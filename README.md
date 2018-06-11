@@ -26,3 +26,13 @@ This repository contains the code for developing the larflow network.
 * from the top repository directory (where this README is located), run configure.sh
 * when setting up for the first time, run build.sh
 * for each time using the code, 
+
+## Contents
+
+(not including submodules)
+
+* models: different version of models
+* dataprep: scripts to make larflow input and truth images from larsoft files and then prepare crops for training
+* training: training scripts
+* deploy: take trained models and process test files
+* ana: analysis scripts for processed test files
