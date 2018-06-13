@@ -8,6 +8,10 @@ source config/setup.sh
 cd ../larcv
 source configure.sh
 
+# setup larlitecv
+cd ../larlitecv
+source configure.sh
+
 # add larcvdataset folder to pythonpath
 cd ../larcvdataset
 source setenv.sh

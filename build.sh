@@ -6,5 +6,8 @@ make
 cd ../larcv
 make
 
+cd ../larlitecv
+make
+
 cd ..
 
