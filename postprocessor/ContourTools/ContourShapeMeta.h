@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "DataFormat/ImageMeta.h"
-#include "DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/ImageMeta.h"
+#include "larcv/core/DataFormat/Image2D.h"
 
 #ifdef USE_OPENCV
 #include <opencv2/opencv.hpp>

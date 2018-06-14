@@ -1,27 +1,22 @@
-#include "BMTCV.h"
+#include "ContourCluster.h"
 
 #ifdef USE_OPENCV
-#include "CVUtil/CVUtil.h"
+#include "larcv/core/CVUtil/CVUtil.h"
 #endif
 
 // LArLite
-#include "BasicTool/FhiclLite/PSet.h"
+//#include "BasicTool/FhiclLite/PSet.h"
 
 // LArOpenCV
-#include "LArOpenCV/ImageCluster/AlgoClass/DefectBreaker.h"
-#include "LArOpenCV/ImageCluster/AlgoData/TrackClusterCompound.h"
+// #include "LArOpenCV/ImageCluster/AlgoClass/DefectBreaker.h"
+// #include "LArOpenCV/ImageCluster/AlgoData/TrackClusterCompound.h"
 
 #include "TRandom3.h"
 
 namespace larlitecv {
 
-  std::vector<larlitecv::BoundarySpacePoint> BMTCV::findBoundarySpacePoints( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v ) {
-    
-    std::vector<larlitecv::BoundarySpacePoint> sp_v;
-    return sp_v;
-  }
 
-  void BMTCV::clear() {
+  void ContourCluster::clear() {
     cvimg_stage0_v.clear(); // unchanged images
     cvimg_stage1_v.clear(); // contour points over time scan
     cvimg_stage2_v.clear(); // 3D-matched contour points
@@ -34,13 +29,14 @@ namespace larlitecv {
     m_plane_atomicmeta_v.clear();
   }
   
-  void BMTCV::analyzeImages( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v, const float threshold, const int iterations ) { 
+  void ContourCluster::analyzeImages( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v, const float threshold, const int iterations ) {
+    
     TRandom3 rand(1983);
     
     // ------------------------------------------------------------------------
     // NO OPENCV
 #ifndef USE_OPENCV
-    throw std::runtime_error( "In order to use BMTCV, you must compile with OpenCV" );
+    throw std::runtime_error( "In order to use ContourCluster, you must compile with OpenCV" );
     return sp_v;
 #else
     // ------------------------------------------------------------------------
@@ -88,7 +84,7 @@ namespace larlitecv {
 	  // store 
 	  continue; // no defects can be found
 	}
-
+	
 	// defects
 	cv::convexityDefects( contour, hull_v[idx], defects_v[idx] );
 
@@ -113,8 +109,9 @@ namespace larlitecv {
     
   }// end of findBoundarySpacePoints
 
-  
-  void BMTCV::splitContour( const std::vector<larcv::Image2D>& img_v ) {
+
+  /*
+  void ContourCluster::splitContour( const std::vector<larcv::Image2D>& img_v ) {
     // given a contour with at least one defect point, we split it with the aim of producing the straightest daughter contours
     // setup the contour breaker
     
@@ -152,25 +149,5 @@ namespace larlitecv {
 
     
   }//splitContour
-
-  /*
-  bool BMTCV::isPointInContour( const std::vector<float>& pos3d, const float maxdist, const int minsize ) {
-    // provides a simple test
-    // project into planes
-    // ------------------------------------------------------------------------
-    // NO OPENCV
-#ifndef USE_OPENCV
-    throw std::runtime_error( "In order to use BMTCV, you must compile with OpenCV" );
-    return sp_v;
-#else
-    // ------------------------------------------------------------------------
-    // HAS OPENCV
-
-    //std::vector<int> imgcoords = larcv::UBWireTool::
-    
-    // ------------------------------------------------------------------------    
-#endif    
-    return true;
-  }
   */
 }

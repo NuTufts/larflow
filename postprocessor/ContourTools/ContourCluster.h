@@ -1,17 +1,18 @@
-#ifndef __BMTCV_H__
-#define __BMTCV_H__
+#ifndef __ContourCluster_H__
+#define __ContourCluster_H__
 
 /* -------------------------------------------------------------------------
- * BMTCV: BoundaryMuonTagger CV
+ * ContourCluster
+ * --------------
+ *
  * This class does 1-plane segment shape analysis using the contour tools
  * from opencv.
+ *
  * -----------------------------------------------------------------------*/
 
 #include <vector>
 
-#include "DataFormat/Image2D.h"
-
-#include "TaggerTypes/BoundarySpacePoint.h"
+#include "larcv/core/DataFormat/Image2D.h"
 
 #ifdef USE_OPENCV
 #include <opencv2/opencv.hpp>
@@ -27,19 +28,14 @@ namespace larlitecv {
   typedef std::vector< int > ContourIndices_t;
   typedef std::vector< cv::Vec4i > Defects_t;
 
-  class BMTCV {
+  class ContourCluster {
   public:
-    BMTCV(){};
-    virtual ~BMTCV() {};
 
+    ContourCluster(){};
+    virtual ~ContourCluster() {};
 
-    std::vector<larlitecv::BoundarySpacePoint> findBoundarySpacePoints( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v );
     void analyzeImages( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v, const float threshold, const int iterations );
-
-    void splitContour( const std::vector<larcv::Image2D>& img_v );    
-    //#ifdef USE_OPENCV
-    //std::vector<cv::Mat>& getImages();
-    //#endif
+    //void splitContour(  const std::vector<larcv::Image2D>& img_v );    
 
     void clear();
 
