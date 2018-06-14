@@ -7,6 +7,7 @@ This repository contains the code for developing the larflow network.
 ### Not included in repo
 
 * ROOT (6.12/04 known to work)
+* opencv (3.2.0 known to work)
 * pytorch (0.4)
 * numpy (1.14.03 known to work)
 * tensorboardX (from [here](https://github.com/lanpa/tensorboard-pytorch))

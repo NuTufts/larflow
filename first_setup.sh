@@ -11,6 +11,6 @@ cd ../larcvdataset
 git checkout master
 
 cd ../larlitecv
-git checkout master
+git checkout dev_larcv2
 
 cd ..
