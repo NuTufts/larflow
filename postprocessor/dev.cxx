@@ -11,6 +11,15 @@
 // larlitecv
 #include "Base/DataCoordinator.h"
 
+// #ifdef USE_OPENCV
+// #include <opencv2/opencv.hpp>
+// #include <opencv2/core/core.hpp>
+// #endif
+
+// ContourTools
+//#include "ContourTools/ContourShapeMeta.h"
+#include "ContourTools/ContourCluster.h"
+
 int main( int nargs, char** argv ) {
 
   std::cout << "larflow post-processor dev" << std::endl;
@@ -24,6 +33,9 @@ int main( int nargs, char** argv ) {
   dataco.add_inputfile( input_reco2d_file,  "larlite" );
   dataco.initialize();
 
+  // cluster algo
+  larlitecv::ContourCluster cluster_algo;
+  
   int nentries = dataco.get_nentries( "larcv" );
 
   for (int ientry=0; ientry<nentries; ientry++) {

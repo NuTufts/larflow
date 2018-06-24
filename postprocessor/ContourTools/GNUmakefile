@@ -22,12 +22,12 @@ LIBS     += `laropencv-config --libs`
 LIBS     += `larcv-config --libs`
 LIBS     += `larlitecv-config --libs`
 
-LIB = libContourTools.so
+LIB = ../lib/libContourTools.so
 
 
 all: $(LIB)
 
-libContourTools.so: ContourShapeMeta.o ContourCluster.o
+../lib/libContourTools.so: ContourShapeMeta.o ContourCluster.o
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"
