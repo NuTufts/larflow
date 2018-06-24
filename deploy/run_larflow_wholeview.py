@@ -108,15 +108,15 @@ if __name__=="__main__":
     else:
 
         # for testing
-        input_larcv_filename = "larcv_8537458_6.root" # whole image
-        output_larcv_filename = "output_larflow.root"
+        input_larcv_filename = "../testdata_tmp/larcv_8541376_98.root" # whole image
+        output_larcv_filename = "larcv_larflow_test_8541376_98.root"
         #checkpoint_data = "checkpoint_fullres_bigsample_11000th_gpu3.tar"
         checkpoint_data = "checkpoint.20000th.tar"
         batch_size = 2
         gpuid = 1
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = 10
+        nprocess_events = -1
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename )
