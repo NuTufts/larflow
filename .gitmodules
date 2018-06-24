@@ -10,3 +10,9 @@
 [submodule "larlitecv"]
 	path = larlitecv
 	url = https://github.com/larbys/larlitecv
+[submodule "Geo2D"]
+	path = Geo2D
+	url = https://github.com/LArbys/Geo2D
+[submodule "LArOpenCV"]
+	path = LArOpenCV
+	url = https://github.com/NevisUB/LArOpenCV

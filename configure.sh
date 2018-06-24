@@ -9,6 +9,14 @@ export USE_OPENCV=1
 cd larlite
 source config/setup.sh
 
+# setup geo2d tool library
+cd ../Geo2D
+source config/setup.sh
+
+# setup LArOpenCV algorithms
+cd ../LArOpenCV
+source setup_laropencv.sh
+
 # setup larlite environment variabls
 cd ../larcv
 source configure.sh
