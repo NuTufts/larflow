@@ -25,16 +25,22 @@ int main( int nargs, char** argv ) {
   dataco.initialize();
 
   int nentries = dataco.get_nentries( "larcv" );
-  
-  // input data
-  larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "wire");
-  larcv::EventImage2D* ev_flow      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
-  const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
-  
-  const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
-  const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
 
-  // get cluster atomics for u and y ADC image
+  for (int ientry=0; ientry<nentries; ientry++) {
+
+    dataco.goto_entry(ientry,"larcv");
+  
+    // input data
+    larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "wire");
+    larcv::EventImage2D* ev_flow      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
+    const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
+  
+    const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
+    const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
+    
+    // get cluster atomics for u and y ADC image
+
+  }
   
   
   

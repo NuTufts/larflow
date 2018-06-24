@@ -5,11 +5,11 @@
 #endif
 
 // LArLite
-//#include "BasicTool/FhiclLite/PSet.h"
+#include "BasicTool/FhiclLite/PSet.h"
 
 // LArOpenCV
-// #include "LArOpenCV/ImageCluster/AlgoClass/DefectBreaker.h"
-// #include "LArOpenCV/ImageCluster/AlgoData/TrackClusterCompound.h"
+#include "LArOpenCV/ImageCluster/AlgoClass/DefectBreaker.h"
+#include "LArOpenCV/ImageCluster/AlgoData/TrackClusterCompound.h"
 
 #include "TRandom3.h"
 
@@ -110,7 +110,7 @@ namespace larlitecv {
   }// end of findBoundarySpacePoints
 
 
-  /*
+  
   void ContourCluster::splitContour( const std::vector<larcv::Image2D>& img_v ) {
     // given a contour with at least one defect point, we split it with the aim of producing the straightest daughter contours
     // setup the contour breaker
@@ -149,5 +149,5 @@ namespace larlitecv {
 
     
   }//splitContour
-  */
+
 }

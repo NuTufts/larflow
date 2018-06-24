@@ -35,7 +35,7 @@ namespace larlitecv {
     virtual ~ContourCluster() {};
 
     void analyzeImages( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v, const float threshold, const int iterations );
-    //void splitContour(  const std::vector<larcv::Image2D>& img_v );    
+    void splitContour(  const std::vector<larcv::Image2D>& img_v );    
 
     void clear();
 
