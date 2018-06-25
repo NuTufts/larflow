@@ -30,6 +30,33 @@ namespace larlitecv {
   }
   
   void ContourCluster::analyzeImages( const std::vector<larcv::Image2D>& img_v, const std::vector<larcv::Image2D>& badch_v, const float threshold, const int iterations ) {
+    /*
+      Function uses OpenCV and LArOpenCV tools to cluster charge using contour algorithms.
+      Algo:
+      - dilate and binarize images to help connect neighboring charge
+      - find contours. basically finds boundary of neighbor-connected charge
+      - determine defect points. this is done to split contours into straight-subclusters
+        defects are local minimum away from the convex hull of a contour
+      - the contours are split into straight subcontours by splitting at defect points
+
+      inputs
+      ------
+      img_v: input ADC images, one per plane is assumed
+      badch_v: images labeling bad channels (not used currently)
+      threshold: threshold for binarizations (10 is often used value)
+      iterations: iterations of the dilation operation (2 is often used)
+
+      outputs
+      -------
+      m_plane_atomicmeta_v: for each plane, a vector of straight-subclusters, aka 'atomics'
+                            these are represented by ContourShapeMeta objects which have
+			    functions to get axis-aligned bb points and first PCA direction
+
+      optional output
+      ---------------
+      cvimg_stage0: contains cv::Mat object for each plane. atmoic contours and their PCA are drawn
+                    on these matrices to help visualize algorithm
+    */
     
     TRandom3 rand(1983);
     
@@ -134,7 +161,6 @@ namespace larlitecv {
 	for ( auto& ctr : atomics ) {
 	  if ( ctr.size()<3 )
 	    continue;
-	  //larlitecv::ContourShapeMeta ctrinfo( ctr, img_v[p].meta() );
 	  larlitecv::ContourShapeMeta ctrinfo( ctr, img_v[p] );	  
 	  m_plane_atomics_v[p].push_back( std::move(ctr) );
 	  m_plane_atomicmeta_v[p].emplace_back( std::move(ctrinfo) );

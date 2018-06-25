@@ -51,7 +51,19 @@ int main( int nargs, char** argv ) {
     const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
     
     // get cluster atomics for u and y ADC image
+    const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
 
+    // make badch image (make blanks for now)
+    std::vector<larcv::Image2D> badch_v;
+    for ( auto const& img : img_v ) {
+      larcv::Image2D badch( img.meta() );
+      badch.paint(0.0);
+      badch_v.emplace_back( std::move(badch) );
+    }
+    
+    cluster_algo.analyzeImages( img_v, badch_v, 10.0, 2 );
+
+    break;
   }
   
   

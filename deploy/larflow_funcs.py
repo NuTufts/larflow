@@ -26,10 +26,14 @@ import torchvision.models as models
 import torch.nn.functional as F
 
 # larflow
-if "PYTORCH_LARFLOW_BASEDIR" in os.environ:
-    sys.path.append(os.environ["PYTORCH_LARFLOW_BASEDIR"])
+LARFLOW_MODEL_DIR=None
+if "LARFLOW_BASEDIR" in os.environ:
+    LARFLOW_MODEL_DIR=os.environ["LARFLOW_BASEDIR"]+"/models"
+    if LARFLOW_MODEL_DIR not in os.environ:
+        sys.path.append(LARFLOW_MODEL_DIR)
 else:
     sys.path.append("../models")
+
 from larflow_uresnet import LArFlowUResNet
 
 
