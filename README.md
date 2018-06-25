@@ -19,14 +19,43 @@ This repository contains the code for developing the larflow network.
 
 * LArCV2 (tufts_ub branch): library for representing LArTPC data as images along with meta-data. Also, provides IO.
 * larlite: classes for meta-data. Also provides access to constants for the UB detector geometry and LAr physics
+* Geo2D: a library of 2D geometry tools to help calculate things like intersections of objects
+* LArOpenCV: a library of algorithms using the OpenCV library. built as libraries that are a part of larlite
+* larlitecv: a library to open larcv and larlite files in a coordinated fashion
 * larcvdataset: wrapper class providing interface to images stored in the larcv format. converts data into numpy arrays for use in pytorch
 
 ## Setup
 
-* clone this repository
-* from the top repository directory (where this README is located), run configure.sh
-* when setting up for the first time, run build.sh
-* for each time using the code, 
+### First-time setup
+
+* clone this repository: `git clone https://github.com/NuTufts/larflow larflow`
+* setup the submodules, configure environment variables, and build: `source first_setup.sh`
+* if you plan to modify any of the submodules, you will need go to the head branch for each submodule. use: `source goto_head_of_submodules.sh`
+
+### Each time you start a new shell and want to use the code
+* setup environment variables via `source configure.sh`
+* if you made a modification to the submodules and want to build, you can use the build script: `source build.sh`. (of course you can porbably just type make in the top directory of the submodule as well.
+
+### Pushing back changes
+
+* if you made changes to a submodule, you need to check in that code and then check in the new commit hash of the submodule to this repo.
+
+      (You made a change to larcv)
+      (First make sure you are not in a DEATCHED_HEAD state)
+      git branch
+        develop
+	* tufts_ub
+      (If it says detached head, go back to head of larflow repo and run `source goto_head_of_submodules.sh` and come back)
+      (stage your commits)
+      git add [[some file you edited]]
+      git commit -m "[[short description of change]]
+      git push
+      cd ..
+      (you should now be in the head of the larflow repo where this README is located)
+      git add larcv
+      git commit -m "[[which submodule you updated]]"
+      git push
+
 
 ## Contents
 
