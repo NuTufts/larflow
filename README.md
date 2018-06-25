@@ -38,20 +38,24 @@ This repository contains the code for developing the larflow network.
 
 ### Pushing back changes
 
-* if you made changes to a submodule, you need to check in that code and then check in the new commit hash of the submodule to this repo.
+If you made changes to a submodule, you need to check in that code and then check in the new commit hash of the submodule to this repo.
 
-      (You made a change to larcv)
-      (First make sure you are not in a DEATCHED_HEAD state)
+Say you made a change to larcv. (Same instructions basically for all submodules).
+
+* First make sure you are not in a DEATCHED_HEAD state)
+
       git branch
         develop
-	* tufts_ub
-      (If it says detached head, go back to head of larflow repo and run `source goto_head_of_submodules.sh` and come back)
-      (stage your commits)
+	`* tufts_ub`
+	
+* If it says detached head, go back to head of larflow repo and run `source goto_head_of_submodules.sh` and come back
+* stage your commits and then push
+
       git add [[some file you edited]]
       git commit -m "[[short description of change]]
       git push
+* go back to head of larflow and commit the updated submodule (in this example `larcv`) to this repo
       cd ..
-      (you should now be in the head of the larflow repo where this README is located)
       git add larcv
       git commit -m "[[which submodule you updated]]"
       git push
