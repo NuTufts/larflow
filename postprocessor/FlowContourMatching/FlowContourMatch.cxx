@@ -29,8 +29,16 @@ namespace larflow {
   }
 
   FlowContourMatch::~FlowContourMatch() {
+    clear();
+  }
+
+  void FlowContourMatch::clear() {
     delete [] m_score_matrix;
     delete m_plot_scorematrix;
+    m_score_matrix = NULL;
+    m_plot_scorematrix = NULL;
+    m_flowdata.clear();
+    m_src_targets.clear();    
   }
   
   void FlowContourMatch::createMatchData( const larlitecv::ContourCluster& contour_data, const larcv::Image2D& flow_img, const larcv::Image2D& src_adc, const larcv::Image2D& tar_adc ) {
@@ -122,6 +130,7 @@ namespace larflow {
 	TargetPix_t tpix;
 	tpix.row = r;
 	tpix.col = target_col;
+	tpix.srccol = source_col;
 	it_srcctr_targets->second.push_back( tpix );
 	
 	// now, find the distance to the contours on the target row
@@ -129,6 +138,7 @@ namespace larflow {
 	  float dist = cv::pointPolygonTest( contour_data.m_plane_atomics_v[tar_planeid][ctrid], tar_pt, true );
 	  if ( dist>-1.0 )
 	    dist = -1.0;
+	  
 	  dist = fabs(dist);
 
 	  // apply some matching threshold

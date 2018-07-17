@@ -21,7 +21,7 @@ namespace larflow {
   public:
     FlowMatchData_t( int srcid, int tarid );
     
-    virtual ~FlowMatchData_t() {}
+    virtual ~FlowMatchData_t() { matchingflow_v.clear(); }
 
     FlowMatchData_t( const FlowMatchData_t& s );          // copy constructor
     //FlowMatchData_t& operator=(const FlowMatchData_t &s); // asignment operator
@@ -51,7 +51,8 @@ namespace larflow {
   
     FlowContourMatch();
     virtual ~FlowContourMatch();
-
+    void clear();
+    
     void createMatchData( const larlitecv::ContourCluster& contour_data, const larcv::Image2D& flow_img, const larcv::Image2D& src_adc, const larcv::Image2D& tar_adc );
     float scoreMatch( const FlowMatchData_t& matchdata );
     void scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid );
@@ -60,8 +61,6 @@ namespace larflow {
     TH2D& plotScoreMatrix();
     
     std::map< SrcTarPair_t, FlowMatchData_t > m_flowdata;
-    //std::map< std::array<int,2>, int >  m_flowdata_map;
-    //std::vector< FlowMatchData_t > m_flowdata_v;
 
     int m_src_ncontours;
     int m_tar_ncontours;
@@ -71,6 +70,7 @@ namespace larflow {
     struct TargetPix_t {
       float row;
       float col;
+      float srccol;
     };
     typedef std::vector<TargetPix_t> ContourTargets_t;
     std::map< int, ContourTargets_t > m_src_targets;
