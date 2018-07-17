@@ -33,7 +33,8 @@ def load_pre_cropped_data( larcvdataset_configfile, batchsize=1 ):
     NumThreads: 1
     NumBatchStorage: 1
     RandomAccess: false
-    InputFiles: ["larflowcrop_832x512_fullres_nooverlap_valid.root"]
+    #InputFiles: ["larflowcrop_832x512_fullres_nooverlap_valid.root"]
+    InputFiles: ["/mnt/disk0/taritree/larflow_data/larflowcrop_832x512_fullres_nooverlap_valid.root"]
     ProcessName: ["source_test","target_test","pixflow_test","pixvisi_test"]
     ProcessType: ["BatchFillerImage2D","BatchFillerImage2D","BatchFillerImage2D","BatchFillerImage2D"]
     ProcessList: {
@@ -94,10 +95,12 @@ if __name__=="__main__":
         batch_size            = args.batchsize
         verbose               = args.verbose
         nprocess_events       = args.nevents
+        save_input            = False
+        save_truth            = False        
     else:
 
         # for testing
-        input_larcv_filename = "larflowcrop_832x512_fullres_nooverlap_valid.root" # test cropped image file
+        input_larcv_filename = "/mnt/disk0/taritree/larflow_data/larflowcrop_832x512_fullres_nooverlap_valid.root"
         output_larcv_filename = "output_larflow.root"
         #checkpoint_data = "checkpoint_fullres_bigsample_11000th_gpu3.tar"
         checkpoint_data = "checkpoint.20000th.tar"
@@ -106,6 +109,8 @@ if __name__=="__main__":
         checkpoint_gpuid = 0
         verbose = False
         nprocess_events = 10
+        save_input = True
+        save_truth = True
 
     # load data
     inputdata = load_pre_cropped_data( input_larcv_filename, batchsize=batch_size )
@@ -206,6 +211,23 @@ if __name__=="__main__":
             flow_lcv  = larcv.as_image2d_meta( img_slice, outmeta )
             ev_out    = outputdata.get_data("image2d","larflow_y2u")
             ev_out.append( flow_lcv )
+
+            # make a copy of the input images in the output file
+            if save_input:
+                ev_img_out = outputdata.get_data("image2d","adc")
+                for iimg in range(ev_meta.image2d_array().size()):
+                    ev_img_out.append( ev_meta.image2d_array().at(iimg) )
+            # make copies of the truth
+            if save_truth:
+                ev_flow  = inputmeta.get_data("image2d","flow")
+                ev_visi  = inputmeta.get_data("image2d","visi")
+                ev_flow_out = outputdata.get_data("image2d","flow")
+                ev_visi_out = outputdata.get_data("image2d","visi")
+                for iimg in range(ev_flow.image2d_array().size()):
+                    ev_flow_out.append( ev_flow.image2d_array().at(iimg) )
+                for iimg in range(ev_visi.image2d_array().size()):
+                    ev_visi_out.append( ev_visi.image2d_array().at(iimg) )
+                    
             outputdata.set_id( evtinfo.run(), evtinfo.subrun(), evtinfo.event() )
             outputdata.save_entry()
             ientry += 1
