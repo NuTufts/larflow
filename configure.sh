@@ -8,6 +8,8 @@ export OPENCV_LIBDIR=/usr/local/lib
 export OPENCV_INCDIR=/usr/local/include
 export USE_OPENCV=1
 
+git submodule update
+
 # setup larlite environment variables
 cd larlite
 source config/setup.sh
