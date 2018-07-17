@@ -9,22 +9,24 @@ INCLUDES += `larcv-config --includes`
 INCLUDES += `larlitecv-config --includes`
 
 LDFLAGS  =  `root-config --ldflags` -lstdc++
-LIBS     =  `root-config --libs`
-LIBS     += `larlite-config --libs`
-LIBS     += `larcv-config --libs`
-LIBS     += `larlitecv-config --libs`
-LIBS     += -Llib -lContourTools
+LDLIBS   =  `root-config --libs`
+LDLIBS   += `larlite-config --libs`
+LDLIBS   += `larcv-config --libs`
+LDLIBS   += `larlitecv-config --libs`
 
-SUBDIRS = ContourTools
+LIBS = ContourTools FlowContourMatching
+LDLIBS += -Llib $(addprefix -l,$(LIBS))
 
+SUBDIRS = ContourTools FlowContourMatching
+INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 
 
-all: $(EXEC) obj
+all: obj $(EXEC) 
 
 %: %.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@.o
-	$(CXX) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	$(CXX) $(LDFLAGS) -o $@ $@.o $(LDLIBS)
 	rm $@.o
 
 obj:
