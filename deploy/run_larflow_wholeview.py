@@ -33,14 +33,14 @@ class WholeImageLoader:
         ubsplit_cfg="""
         InputProducer: \"wire\"
         OutputBBox2DProducer: \"detsplit\"
-        CropInModule: false
+        CropInModule: true
         OutputCroppedProducer: \"detsplit\"
         BBoxPixelHeight: 512
         BBoxPixelWidth: 832
         CoveredZWidth: 310
         FillCroppedYImageCompletely: true
         DebugImage: false
-        MaxImages: 1000
+        MaxImages: 5
         RandomizeCrops: false
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
@@ -146,8 +146,8 @@ if __name__=="__main__":
         gpuid = 1
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = 3
-        stitch = True
+        nprocess_events = 1
+        stitch = False
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename )
@@ -158,12 +158,12 @@ if __name__=="__main__":
     model.eval()
 
     # output IOManager
-    outputdata = larcv.IOManager( larcv.IOManager.kBOTH )
     if stitch:
+        outputdata = larcv.IOManager( larcv.IOManager.kBOTH )        
         outputdata.add_in_file(  input_larcv_filename )
     else:
         # if not stiching we will save crops of adc,flow, and visi
-        pass
+        outputdata = larcv.IOManager( larcv.IOManager.kWRITE )
     outputdata.set_out_file( output_larcv_filename )
     outputdata.initialize()
 
@@ -222,6 +222,9 @@ if __name__=="__main__":
         img_v = ev_img.image2d_array()
         img_np = np.zeros( (img_v.size(),1,img_v.front().meta().rows(),img_v.front().meta().cols()), dtype=np.float32 )
         orig_meta = [ img_v[x].meta() for x in range(3) ]
+        runid    = ev_img.run()
+        subrunid = ev_img.subrun()
+        eventid  = ev_img.event()
 
         # setup stitcher
         if stitch:
@@ -307,9 +310,11 @@ if __name__=="__main__":
                 if not stitch:
                     flowcrops = {"flow":[],"visi":[],"adc":[]}
                     for ii in xrange(0,3):
-                        flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iimg+ii ) )
-                        flowcrops["visi"].append( larflow_cropped_dict["visi"].at( iimg+ii ) )
                         flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
+                    for ii in xrange(0,2):
+                        flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
+                        flowcrops["visi"].append( larflow_cropped_dict["visi"].at( iset*2+ii ) )
+
                     flowcrop_batch.append( flowcrops )
 
                 iset += 1
@@ -351,10 +356,22 @@ if __name__=="__main__":
                 if stitch:
                     stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
                 else:
-                    # we save flow image and crops
-                    evoutflow = outputdata.get_data("image2d","larflow_y2u")
-                    evoutvisi = outputdata.get_data("image2d","visi")
-                    evoutvisi = outputdata.get_data("image2d","flow")                    
+                    # we save flow image and crops for each prediction
+                    evoutadc  = outputdata.get_data("image2d","adc")
+                    evoutvisi = outputdata.get_data("image2d","pixvisi")
+                    evoutflow = outputdata.get_data("image2d","pixflow")                    
+                    evoutpred = outputdata.get_data("image2d","larflow_y2u")
+                    for img in flowcrop_batch[ib]["adc"]:
+                        evoutadc.append( img )
+                    for img in flowcrop_batch[ib]["visi"]:
+                        evoutvisi.append( img )
+                    for img in flowcrop_batch[ib]["flow"]:
+                        evoutflow.append( img )
+                    evoutpred.append( flow_lcv )
+                    
+                    outputdata.set_id( runid, subrunid, eventid )
+                    outputdata.save_entry()
+                    
                     
             tcopy = time.time()-tcopy
             timing["+++copy_to_output"] += tcopy
@@ -368,9 +385,12 @@ if __name__=="__main__":
             print "Processed all the images"
 
         tout = time.time()
-        outputdata.read_entry(ientry)
-        stitcher.process( outputdata )
-        outputdata.save_entry()
+        if stitch:
+            outputdata.read_entry(ientry)
+            stitcher.process( outputdata )
+            outputdata.save_entry()
+        else:
+            pass
         tout = time.time()-tout
         timing["++save_output"] += tout
 
