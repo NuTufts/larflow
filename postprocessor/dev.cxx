@@ -42,7 +42,8 @@ int main( int nargs, char** argv ) {
   // std::string input_larflow_file = "../testdata/larflow_test_8541376_98.root";
   // std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
   // cropped example
-  std::string input_larflow_file = "../testdata/cropped/output_larflow.root";
+  //std::string input_larflow_file = "../testdata/cropped/output_larflow.root";
+  std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   std::string input_reco2d_file  = "";
 
   larlitecv::DataCoordinator dataco;
@@ -66,7 +67,7 @@ int main( int nargs, char** argv ) {
     //const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
 
     // truth
-    larcv::EventImage2D* ev_trueflow  = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "flow");
+    larcv::EventImage2D* ev_trueflow  = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "pixflow");
   
     const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
     const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
@@ -217,12 +218,12 @@ int main( int nargs, char** argv ) {
       for ( auto& g : tar_graphs ) {
 	g.Draw("L");
       }
-      src_truthflow.SetMarkerStyle(20);      
-      src_truthflow.SetMarkerSize(1.0);
-      src_truthflow.SetMarkerColor(kBlue);
+      src_truthflow.SetMarkerStyle(25);      
+      src_truthflow.SetMarkerSize(0.2);
+      src_truthflow.SetMarkerColor(kMagenta);
       src_truthflow.Draw("P");      
-      src_flowpix.SetMarkerStyle(20);      
-      src_flowpix.SetMarkerSize(1.0);
+      src_flowpix.SetMarkerStyle(25);      
+      src_flowpix.SetMarkerSize(0.2);
       src_flowpix.SetMarkerColor(kCyan);            
       src_flowpix.Draw("P");
       c.Update();
