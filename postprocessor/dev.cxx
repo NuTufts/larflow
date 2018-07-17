@@ -38,12 +38,16 @@ int main( int nargs, char** argv ) {
   std::cout << "larflow post-processor dev" << std::endl;
 
   // use hard-coded test-paths for now
-  std::string input_larflow_file = "../testdata/larflow_test_8541376_98.root";
-  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
+  /// whole view examplex
+  // std::string input_larflow_file = "../testdata/larflow_test_8541376_98.root";
+  // std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
+  // cropped example
+  std::string input_larflow_file = "../testdata/cropped/output_larflow.root";
+  std::string input_reco2d_file  = "";
 
   larlitecv::DataCoordinator dataco;
   dataco.add_inputfile( input_larflow_file, "larcv" );
-  dataco.add_inputfile( input_reco2d_file,  "larlite" );
+  //dataco.add_inputfile( input_reco2d_file,  "larlite" );
   dataco.initialize();
 
   // cluster algo
@@ -57,12 +61,16 @@ int main( int nargs, char** argv ) {
     dataco.goto_entry(ientry,"larcv");
   
     // input data
-    larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "wire");
+    larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "adc");
     larcv::EventImage2D* ev_flow      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
-    const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
+    //const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
+
+    // truth
+    larcv::EventImage2D* ev_trueflow  = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "flow");
   
     const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
     const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
+    const std::vector<larcv::Image2D>& true_v = ev_trueflow->image2d_array();
     
     // get cluster atomics for u and y ADC image
     const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
@@ -74,8 +82,10 @@ int main( int nargs, char** argv ) {
       badch.paint(0.0);
       badch_v.emplace_back( std::move(badch) );
     }
-    
+
+    cluster_algo.clear();
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
+    matching_algo.clear();
     matching_algo.createMatchData( cluster_algo, flow_v[0], wire_v[2], wire_v[0] );
     //matching_algo.dumpMatchData();
     matching_algo.scoreMatches( cluster_algo, 2, 0 );
@@ -100,6 +110,7 @@ int main( int nargs, char** argv ) {
     htar.Draw("colz");
 
     const larcv::ImageMeta& src_meta = wire_v[2].meta();
+    const larcv::ImageMeta& tar_meta = wire_v[0].meta();    
     
     std::cout << "Source Matches: " << std::endl;
     for (int i=0; i<matching_algo.m_src_ncontours; i++) {
@@ -123,19 +134,33 @@ int main( int nargs, char** argv ) {
       src_graph.SetLineWidth(5);
       src_graph.SetLineColor(kRed);
 
+      // graph the predicted and true flow locations
       TGraph src_flowpix;
+      TGraph src_truthflow;
       auto it_src_targets = matching_algo.m_src_targets.find( i );
       if ( it_src_targets!=matching_algo.m_src_targets.end() ) {
 	larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
 	src_flowpix.Set( targetlist.size() );
+	src_truthflow.Set( targetlist.size() );
 	int ipixt = 0;
 	for ( auto& pix_t : targetlist ) {
-	  src_flowpix.SetPoint(ipixt, src_meta.pos_x( pix_t.col ), src_meta.pos_y(pix_t.row) );
+	  src_flowpix.SetPoint(ipixt, tar_meta.pos_x( pix_t.col ), tar_meta.pos_y(pix_t.row) );
+	  int truthflow = -10000;
+	  truthflow = true_v[0].pixel( pix_t.row, pix_t.srccol );	  
+	  try {
+	    //std::cout << "truth flow @ (" << pix_t.col << "," << pix_t.row << "): " << truthflow << std::endl;
+	    src_truthflow.SetPoint(ipixt, tar_meta.pos_x( pix_t.srccol+truthflow ), tar_meta.pos_y(pix_t.row) );
+	  }
+	  catch (...) {
+	    std::cout << "bad flow @ (" << pix_t.srccol << "," << pix_t.row << ") "
+		      << "== " << truthflow << " ==>> (" << pix_t.srccol+truthflow << "," << pix_t.row << ")" << std::endl;
+	  }
+	  ipixt++;
 	}
       }
 
       std::cout << "SourceIDX[" << i << "]  ";
-      
+      // graph the target contours
       std::vector< TGraph > tar_graphs;
       for (int j=0; j<matching_algo.m_tar_ncontours; j++) {
 	float score = matching_algo.m_score_matrix[ i*matching_algo.m_tar_ncontours + j ];
@@ -170,11 +195,11 @@ int main( int nargs, char** argv ) {
 	const larlitecv::Contour_t& tar_ctr = cluster_algo.m_plane_atomics_v[0][ j ];
 	TGraph tar_graph( tar_ctr.size()+1 );
 	for ( int n=0; n<tar_ctr.size(); n++) {
-	  float col = src_meta.pos_x( tar_ctr[n].x );
-	  float row = src_meta.pos_y( tar_ctr[n].y );
+	  float col = tar_meta.pos_x( tar_ctr[n].x );
+	  float row = tar_meta.pos_y( tar_ctr[n].y );
 	  tar_graph.SetPoint(n,col,row);
 	}
-	tar_graph.SetPoint(tar_ctr.size(), src_meta.pos_x(tar_ctr[0].x),src_meta.pos_y(tar_ctr[0].y));	
+	tar_graph.SetPoint(tar_ctr.size(), tar_meta.pos_x(tar_ctr[0].x),tar_meta.pos_y(tar_ctr[0].y));	
 	tar_graph.SetLineWidth(width);
 	tar_graph.SetLineColor(color);
 	
@@ -192,16 +217,23 @@ int main( int nargs, char** argv ) {
       for ( auto& g : tar_graphs ) {
 	g.Draw("L");
       }
+      src_truthflow.SetMarkerStyle(20);      
+      src_truthflow.SetMarkerSize(1.0);
+      src_truthflow.SetMarkerColor(kBlue);
+      src_truthflow.Draw("P");      
       src_flowpix.SetMarkerStyle(20);      
       src_flowpix.SetMarkerSize(1.0);
+      src_flowpix.SetMarkerColor(kCyan);            
       src_flowpix.Draw("P");
       c.Update();
       c.Draw();
-      std::cout << "[ENTER] to continue" << std::endl;
+      std::cout << "[ENTER] for next contour." << std::endl;
       std::cin.get();
     }
 
-    break;
+    //break;
+    std::cout << "[ENTER] for next entry." << std::endl;
+    std::cin.get();
   }
   
   
