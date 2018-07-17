@@ -40,7 +40,7 @@ class WholeImageLoader:
         CoveredZWidth: 310
         FillCroppedYImageCompletely: true
         DebugImage: false
-        MaxImages: 5
+        MaxImages: 55
         RandomizeCrops: false
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
