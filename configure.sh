@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export LARFLOW_BASEDIR=$PWD
-export PYTORCH_LARFLOW_BASEDIR=$(LARFLOW_BASEDIR)/pytorch-larflow
+export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 
 # OPENCV
 export OPENCV_LIBDIR=/usr/local/lib

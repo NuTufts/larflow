@@ -2,6 +2,14 @@
 
 This repository contains the code for developing the larflow network.
 
+## To Do list:
+
+* input arguments to deploy scripts need to be sane. right now they make no sense.
+* add script to grab files and store in testdata to be used for deploy and postprocessor
+* post-processor needs cluster matching to 3D-hit formation
+* should post-processor merge subimages before after cluster-matching?
+* can we begin to tag end-points near the boundary?
+
 ## Dependencies
 
 ### Not included in repo
