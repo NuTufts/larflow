@@ -34,9 +34,14 @@ source configure.sh
 cd ../larcvdataset
 source setenv.sh
 
+# return to top-level directory
+cd ../
+
 # setup post-processor
 export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 [[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_POST_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_POST_LIBDIR}:${LD_LIBRARY_PATH}"
 
-# return to top-level directory
-cd ../
+
+# add model folder to python path
+[[ ":$PYTHONPATH:" != *":${PYTHONPATH}:"* ]] && PYTHONPATH="${LARFLOW_BASEDIR}:${LARFLOW_BASEDIR}/models:${PYTHONPATH}"
+
