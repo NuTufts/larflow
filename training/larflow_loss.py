@@ -24,14 +24,14 @@ class LArFlowLoss:
         self.min_nvis_np = np.ones( (1,1,1,1), dtype=np.float32 )
         self.gpud = None
         self.use_cuda = False
-        #self.crossentropy = nn.BCELoss()
         self.classweight_np = np.ones( 2, dtype=np.float32 )
-        self.classweight_np[0] = 5.0e-3 # up weight visible pixels
+        self.classweight_np[0] = 1.0e-2 # up weight visible pixels
         self.classweight_t = torch.from_numpy( self.classweight_np )
         #self.crossentropy = nn.BCEWithLogitsLoss(reduce=False)
         #self.crossentropy  = nn.CrossEntropyLoss( weight=self.classweight_t )
         #self.crossentropy  = nn.NLLLoss2d( weight=self.classweight_t )
-        self.crossentropy  = nn.NLLLoss2d( reduce=False )
+        self.crossentropy  = nn.NLLLoss2d( weight=self.classweight_t, reduce=False )
+        #self.crossentropy  = nn.NLLLoss2d( reduce=False )
         self.smoothl1     = nn.SmoothL1Loss( reduce=False ) # other possibility
 
     def cuda(self,gpuid):
@@ -61,13 +61,11 @@ class LArFlowLoss:
         self.maxdist_var  = torch.autograd.Variable( self.maxdist_t )
         self.min_nvis_var = torch.autograd.Variable( self.min_nvis_t )
 
-        #print "flow_truth: ",flow_truth.size()
-        #print "flow_predict: ",flow_predict.size()
 
         nvisible  = fvisi_truth.sum()
         nelements = float(fvisi_truth.numel())
         ninvis    = nelements-nvisible
-        #print nvisible.data[0]
+
         if nvisible.data[0]>0:
             w_vis     = 1.0/nvisible
         else:
@@ -88,11 +86,7 @@ class LArFlowLoss:
         
         # VISIBILITY/MATCHABILITY LOSS
         # ----------------------------
-        # cross-entropy loss for one class
-        #print "visi_predict: ",visi_predict.size()
-        #print "visi_truth: ",visi_truth.size()
-        #print "visi class >=2: ",(visi_truth>=2).sum()
-        #print "visi class <0:  ",(visi_truth<0).sum()
+        # cross-entropy loss for two classes
         if visi_predict is not None:
             # softmax loss per pixel
             visi_loss = self.crossentropy( visi_predict, visi_truth ) # weighted already
@@ -102,8 +96,9 @@ class LArFlowLoss:
             # visi=0 pixels
             vis0_loss = (fvisi_truth-1.0)*-1.0*visi_loss
             vis0_loss = vis0_loss.sum()
-            vistot_loss = 2.0*w_vis*vis1_loss + w_invis*vis0_loss
-            #print "vis loss= %.2f =  %.2e*%.2f + %.2e*%.2f"%(vistot_loss.data[0],w_vis.data[0],vis1_loss.data[0],w_invis.data[0],vis0_loss.data[0])
+            vistot_loss = w_vis*vis1_loss + 0.01*w_invis*vis0_loss
+            #print vistot_loss, torch.mean(visi_loss)
+            vistot_loss = torch.mean(visi_loss)
             totloss = flow_loss + self.visi_weight*vistot_loss
         else:
             totloss = flow_loss
