@@ -30,15 +30,15 @@ class LArFlowLoss:
         #self.crossentropy = nn.BCEWithLogitsLoss(reduce=False)
         #self.crossentropy  = nn.CrossEntropyLoss( weight=self.classweight_t )
         #self.crossentropy  = nn.NLLLoss2d( weight=self.classweight_t )
-        self.crossentropy  = nn.NLLLoss2d( weight=self.classweight_t, reduce=False )
-        #self.crossentropy  = nn.NLLLoss2d( reduce=False )
+        #self.crossentropy  = nn.NLLLoss2d( weight=self.classweight_t, reduce=False )
+        self.crossentropy  = nn.NLLLoss2d( reduce=False )
         self.smoothl1     = nn.SmoothL1Loss( reduce=False ) # other possibility
 
     def cuda(self,gpuid):
         self.use_cuda = True
         self.gpuid = gpuid
         self.crossentropy.cuda(gpuid)
-
+ 
     def calc_loss(self,flow_predict,visi_predict,flow_truth,visi_truth,fvisi_truth):
         """
         flow_predict: (b,1,h,w) tensor with flow prediction
@@ -98,10 +98,10 @@ class LArFlowLoss:
             vis0_loss = vis0_loss.sum()
             vistot_loss = w_vis*vis1_loss + 0.01*w_invis*vis0_loss
             #print vistot_loss, torch.mean(visi_loss)
-            vistot_loss = torch.mean(visi_loss)
             totloss = flow_loss + self.visi_weight*vistot_loss
         else:
             totloss = flow_loss
             vistot_loss = 0.0
 
+        #return totloss, flow_loss, self.visi_weight*vistot_loss
         return totloss
