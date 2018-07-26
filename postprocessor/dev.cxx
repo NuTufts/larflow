@@ -28,6 +28,7 @@
 #include "ContourTools/ContourCluster.h"
 
 #include "FlowContourMatching/FlowContourMatch.h"
+#include "FlowContourMatching/FlowMatchHit3D.h"
 
 
 int main( int nargs, char** argv ) {
@@ -44,12 +45,17 @@ int main( int nargs, char** argv ) {
   // cropped example
   //std::string input_larflow_file = "../testdata/cropped/output_larflow.root";
   std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
-  std::string input_reco2d_file  = "";
+  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
 
+  // data from larflow output: sequence of images
   larlitecv::DataCoordinator dataco;
   dataco.add_inputfile( input_larflow_file, "larcv" );
-  //dataco.add_inputfile( input_reco2d_file,  "larlite" );
   dataco.initialize();
+
+  // hit (and mctruth) event data
+  larlitecv::DataCoordinator dataco_hits;
+  dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
+  dataco_hits.initialize();
 
   // cluster algo
   larlitecv::ContourCluster cluster_algo;
@@ -60,22 +66,27 @@ int main( int nargs, char** argv ) {
   for (int ientry=0; ientry<nentries; ientry++) {
 
     dataco.goto_entry(ientry,"larcv");
+    int runid    = dataco.run();
+    int subrunid = dataco.subrun();
+    int eventid  = dataco.event();
+
+    // sync up larlite data
+    dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
   
-    // input data
+    // larflow input data
     larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "adc");
     larcv::EventImage2D* ev_flow      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
-    //const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco.get_larlite_data(larlite::data::kHit, "gaushit"));
+    const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
+    
+    // event data
+    const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco_hits.get_larlite_data(larlite::data::kHit, "gaushit"));
 
     // truth
     larcv::EventImage2D* ev_trueflow  = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "pixflow");
-  
     const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
     const std::vector<larcv::Image2D>& flow_v = ev_flow->image2d_array();
     const std::vector<larcv::Image2D>& true_v = ev_trueflow->image2d_array();
-    
-    // get cluster atomics for u and y ADC image
-    const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
-
+   
     // make badch image (make blanks for now)
     std::vector<larcv::Image2D> badch_v;
     for ( auto const& img : img_v ) {
@@ -84,6 +95,7 @@ int main( int nargs, char** argv ) {
       badch_v.emplace_back( std::move(badch) );
     }
 
+    // get cluster atomics for u and y ADC image    
     cluster_algo.clear();
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
     matching_algo.clear();
@@ -97,6 +109,7 @@ int main( int nargs, char** argv ) {
     // c.SaveAs("score_matrix.png");
 
     matching_algo.greedyMatch();
+    //std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.make3Dhits( ev_hit );
 
     // flip through matches
     TCanvas c("c","matched clusters",1600,800);
