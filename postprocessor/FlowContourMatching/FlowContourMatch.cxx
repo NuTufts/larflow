@@ -709,6 +709,7 @@ namespace larflow {
       }
       // otherwise make a hit
       FlowMatchHit3D flowhit;
+      flowhit.idxhit     = hitidx;
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
       flowhit.targetwire = hitdata.targetwire;

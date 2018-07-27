@@ -10,6 +10,8 @@
 // larlite
 #include "DataFormat/hit.h"
 #include "DataFormat/spacepoint.h"
+#include "LArUtil/LArProperties.h"
+#include "LArUtil/Geometry.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -42,13 +44,33 @@ void event_changeout( larlite::storage_manager& dataco_output,
   //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
   larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
   //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
+
+  // larlite geometry tool
+  const larutil::Geometry* geo = larutil::Geometry::GetME();
+  const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
   
   // get the final hits made from flow
   std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
-  for ( auto& flowhit_v : whole_event_hits3d_v ) {
+  for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
-    larlite::spacepoint sp;
-    // ...
+
+    // std::cout << "hitidx[" << flowhit.idxhit << "] "
+    // 	      << "from wire-p2=" << flowhit.srcwire
+    // 	      << " wire-p0=" << flowhit.targetwire;
+
+    if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
+      continue;
+    if ( flowhit.targetwire<0 || flowhit.targetwire>=2399 )
+      continue;
+    
+    // need to get (x,y,z) position
+    Double_t x = (flowhit.tick-3200.0)*cm_per_tick;    
+    Double_t y;
+    Double_t z;
+    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire, 2, 0, y, z );
+    //std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
+    
+    larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
     ev_spacepoint_y2u->emplace_back( std::move(sp) );
   }
 
