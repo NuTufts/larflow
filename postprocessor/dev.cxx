@@ -32,6 +32,32 @@
 #include "FlowContourMatching/FlowMatchHit3D.h"
 
 
+void event_changeout( larlite::storage_manager& dataco_output,
+		      larflow::FlowContourMatch& matching_algo,
+		      const int runid,
+		      const int subrunid,
+		      const int eventid ) {
+  
+  // save the spointpoint vector
+  //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
+  larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
+  //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
+  
+  // get the final hits made from flow
+  std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
+  for ( auto& flowhit_v : whole_event_hits3d_v ) {
+    // form spacepoints
+    larlite::spacepoint sp;
+    // ...
+    ev_spacepoint_y2u->emplace_back( std::move(sp) );
+  }
+
+  dataco_output.set_id( runid, subrunid, eventid );
+  dataco_output.next_event();
+
+  return;
+}
+
 int main( int nargs, char** argv ) {
 
   gStyle->SetOptStat(0);
@@ -49,7 +75,8 @@ int main( int nargs, char** argv ) {
   std::string input_larflow_file  = "../testdata/larcv_larflow_test_5482426_95.root";
   std::string input_reco2d_file   = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file = "output_flowmatch_larlite.root";
-
+  
+  bool kVISUALIZE = false;
 
   // data from larflow output: sequence of images
   larlitecv::DataCoordinator dataco;
@@ -86,22 +113,7 @@ int main( int nargs, char** argv ) {
     if ( current_runid>=0 &&
 	 (current_runid!=runid || current_subrunid!=subrunid || current_eventid!=eventid) ) {
 
-      // save the spointpoint vector
-      //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
-      larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
-      //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
-
-      // get the final hits made from flow
-      std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
-      for ( auto& flowhit_v : whole_event_hits3d_v ) {
-	// form spacepoints
-	larlite::spacepoint sp;
-
-	ev_spacepoint_y2u->emplace_back( std::move(sp) );
-      }
-
-      dataco_output.set_id( runid, subrunid, eventid );
-      dataco_output.next_event();
+      event_changeout( dataco_output, matching_algo, current_runid, current_subrunid, current_eventid );
 
       // clear the algo
       matching_algo.clear();
@@ -112,7 +124,7 @@ int main( int nargs, char** argv ) {
       current_eventid  = eventid;
 
       std::cout << "Event turn over. [enter] to continue." << std::endl;
-      std::cin.get();
+      std::cin.get();      
     }
     
     
@@ -146,214 +158,189 @@ int main( int nargs, char** argv ) {
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
 
     matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
-    std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits();
+
+    if ( kVISUALIZE ) {
     
-    // TCanvas c("c","scorematrix",1600,1200);
-    // matching_algo.plotScoreMatrix().Draw("colz");
-    // c.Update();
-    // c.SaveAs("score_matrix.png");
-
-    // flip through matches
-    TCanvas c("c","matched clusters",1600,800);
-    TH2D hsrc = larcv::as_th2d( wire_v[2], "hsource_y" );
-    hsrc.SetTitle("Source: Y-plane;wires;ticks");
-    hsrc.SetMinimum(10.0);
-    hsrc.SetMaximum(255.0);    
-    TH2D htar = larcv::as_th2d( wire_v[0], "htarget_u" );
-    htar.SetTitle("Target: U-plane;wires;ticks");
-    htar.SetMinimum(10.0);
-    htar.SetMaximum(255.0);    
-    htar.Draw("colz");
-
-    const larcv::ImageMeta& src_meta = wire_v[2].meta();
-    const larcv::ImageMeta& tar_meta = wire_v[0].meta();    
-    
-    std::cout << "Source Matches: " << std::endl;
-    for (int i=0; i<matching_algo.m_src_ncontours; i++) {
-
-      // we make a list of tgraphs for each contour
-      // thickness determined by score
-      // >0.8 = 5 (red)
-      // >0.6 = 4 (orange)
-      // >0.4 = 3 (yellow)
-      // >0.2 = 2 (blue)
-      // <0.1 = 1 (black)
-
-      const larlitecv::Contour_t& src_ctr = cluster_algo.m_plane_atomics_v[2][ i ];
-      TGraph src_graph( src_ctr.size()+1 );
-      for ( int n=0; n<src_ctr.size(); n++) {
-	float col = src_meta.pos_x( src_ctr[n].x );
-	float row = src_meta.pos_y( src_ctr[n].y );
-	src_graph.SetPoint(n,col,row);
-      }
-      src_graph.SetPoint(src_ctr.size(), src_meta.pos_x(src_ctr[0].x), src_meta.pos_y(src_ctr[0].y));
-      src_graph.SetLineWidth(5);
-      src_graph.SetLineColor(kRed);
-
-      // graph the predicted and true flow locations
-      TGraph src_flowpix;
-      TGraph src_truthflow;
-      auto it_src_targets = matching_algo.m_src_targets.find( i );
-      if ( it_src_targets!=matching_algo.m_src_targets.end() ) {
-	larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
-	src_flowpix.Set( targetlist.size() );
-	src_truthflow.Set( targetlist.size() );
-	int ipixt = 0;
-	for ( auto& pix_t : targetlist ) {
-	  src_flowpix.SetPoint(ipixt, tar_meta.pos_x( pix_t.col ), tar_meta.pos_y(pix_t.row) );
-	  int truthflow = -10000;
-	  truthflow = true_v[0].pixel( pix_t.row, pix_t.srccol );	  
-	  try {
-	    //std::cout << "truth flow @ (" << pix_t.col << "," << pix_t.row << "): " << truthflow << std::endl;
-	    src_truthflow.SetPoint(ipixt, tar_meta.pos_x( pix_t.srccol+truthflow ), tar_meta.pos_y(pix_t.row) );
-	  }
-	  catch (...) {
-	    std::cout << "bad flow @ (" << pix_t.srccol << "," << pix_t.row << ") "
-		      << "== " << truthflow << " ==>> (" << pix_t.srccol+truthflow << "," << pix_t.row << ")" << std::endl;
-	  }
-	  ipixt++;
-	}
-      }
-
-      std::cout << "SourceIDX[" << i << "]  ";
-      // graph the target contours
-      std::vector< TGraph > tar_graphs;
-      for (int j=0; j<matching_algo.m_tar_ncontours; j++) {
-	float score = matching_algo.m_score_matrix[ i*matching_algo.m_tar_ncontours + j ];
-	if ( score<0.01 )
-	  continue;
-	
-	std::cout << "[" << j << "]=" << score << " ";
-
-	float width = 1;
-	int color = 0;
-	if ( score>0.8 ) {
-	  width = 5;
-	  color = kRed;
-	}
-	else if ( score>0.6 ) {
-	  width = 4;
-	  color = kRed-9;
-	}
-	else if ( score>0.3 ) {
-	  width = 3;
-	  color = kOrange+1;
-	}
-	else if ( score>0.1 ) {
-	  width = 2;
-	  color = kOrange-9;
-	}
-	else {
-	  width = 1;
-	  color = kBlack;
-	}
-	
-	const larlitecv::Contour_t& tar_ctr = cluster_algo.m_plane_atomics_v[0][ j ];
-	TGraph tar_graph( tar_ctr.size()+1 );
-	for ( int n=0; n<tar_ctr.size(); n++) {
-	  float col = tar_meta.pos_x( tar_ctr[n].x );
-	  float row = tar_meta.pos_y( tar_ctr[n].y );
-	  tar_graph.SetPoint(n,col,row);
-	}
-	tar_graph.SetPoint(tar_ctr.size(), tar_meta.pos_x(tar_ctr[0].x),tar_meta.pos_y(tar_ctr[0].y));	
-	tar_graph.SetLineWidth(width);
-	tar_graph.SetLineColor(color);
-	
-	tar_graphs.emplace_back( std::move(tar_graph) );
-      }
-      std::cout << std::endl;
+      std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits();
       
-      c.Clear();
-      c.Divide(2,1);
-
-      // source
-      c.cd(1);
-      hsrc.Draw("colz");
-      src_graph.Draw("L");
-
-      // plot all hits
-      /*
-      TGraph ghit( ev_hit.size() );
+      // TCanvas c("c","scorematrix",1600,1200);
+      // matching_algo.plotScoreMatrix().Draw("colz");
+      // c.Update();
+      // c.SaveAs("score_matrix.png");
+      
+      // flip through matches
+      TCanvas c("c","matched clusters",1600,800);
+      TH2D hsrc = larcv::as_th2d( wire_v[2], "hsource_y" );
+      hsrc.SetTitle("Source: Y-plane;wires;ticks");
+      hsrc.SetMinimum(10.0);
+      hsrc.SetMaximum(255.0);    
+      TH2D htar = larcv::as_th2d( wire_v[0], "htarget_u" );
+      htar.SetTitle("Target: U-plane;wires;ticks");
+      htar.SetMinimum(10.0);
+      htar.SetMaximum(255.0);    
+      htar.Draw("colz");
+      
       const larcv::ImageMeta& src_meta = wire_v[2].meta();
-      for ( int hidx=0; hidx<(int)ev_hit.size(); hidx++ ) {
-	const larlite::hit& ahit = ev_hit[hidx];
+      const larcv::ImageMeta& tar_meta = wire_v[0].meta();    
+      
+      std::cout << "Source Matches: " << std::endl;
+      for (int i=0; i<matching_algo.m_src_ncontours; i++) {
 
-	// is this on the source plane? if not, skip
-	if ( 2!=(int)ahit.WireID().planeID().Plane )
-	  continue;
-
-	// wire bounds
-	int wire = (int)ahit.WireID().Wire;
-	if ( wire < src_meta.min_x() || wire >= src_meta.max_x() ) {
-	  // if not within wire bounds, skip
-	  continue;
+	// we make a list of tgraphs for each contour
+	// thickness determined by score
+	// >0.8 = 5 (red)
+	// >0.6 = 4 (orange)
+	// >0.4 = 3 (yellow)
+	// >0.2 = 2 (blue)
+	// <0.1 = 1 (black)
+	
+	const larlitecv::Contour_t& src_ctr = cluster_algo.m_plane_atomics_v[2][ i ];
+	TGraph src_graph( src_ctr.size()+1 );
+	for ( int n=0; n<src_ctr.size(); n++) {
+	  float col = src_meta.pos_x( src_ctr[n].x );
+	  float row = src_meta.pos_y( src_ctr[n].y );
+	  src_graph.SetPoint(n,col,row);
+	}
+	src_graph.SetPoint(src_ctr.size(), src_meta.pos_x(src_ctr[0].x), src_meta.pos_y(src_ctr[0].y));
+	src_graph.SetLineWidth(5);
+	src_graph.SetLineColor(kRed);
+	
+	// graph the predicted and true flow locations
+	TGraph src_flowpix;
+	TGraph src_truthflow;
+	auto it_src_targets = matching_algo.m_src_targets.find( i );
+	if ( it_src_targets!=matching_algo.m_src_targets.end() ) {
+	  larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
+	  src_flowpix.Set( targetlist.size() );
+	  src_truthflow.Set( targetlist.size() );
+	  int ipixt = 0;
+	  for ( auto& pix_t : targetlist ) {
+	    src_flowpix.SetPoint(ipixt, tar_meta.pos_x( pix_t.col ), tar_meta.pos_y(pix_t.row) );
+	    int truthflow = -10000;
+	    truthflow = true_v[0].pixel( pix_t.row, pix_t.srccol );	  
+	    try {
+	      //std::cout << "truth flow @ (" << pix_t.col << "," << pix_t.row << "): " << truthflow << std::endl;
+	      src_truthflow.SetPoint(ipixt, tar_meta.pos_x( pix_t.srccol+truthflow ), tar_meta.pos_y(pix_t.row) );
+	    }
+	    catch (...) {
+	      std::cout << "bad flow @ (" << pix_t.srccol << "," << pix_t.row << ") "
+			<< "== " << truthflow << " ==>> (" << pix_t.srccol+truthflow << "," << pix_t.row << ")" << std::endl;
+	    }
+	    ipixt++;
+	  }
 	}
 	
-	int peaktime = 2400+ahit.PeakTime();
-	if ( peaktime < src_meta.min_y() || peaktime >= src_meta.max_y() )
-	  continue;
-	int hitcol = src_meta.col( wire );
-	int hitrow = src_meta.row( peaktime );
-	ghit.SetPoint(hidx, wire, peaktime );
+	std::cout << "SourceIDX[" << i << "]  ";
+	// graph the target contours
+	std::vector< TGraph > tar_graphs;
+	for (int j=0; j<matching_algo.m_tar_ncontours; j++) {
+	  float score = matching_algo.m_score_matrix[ i*matching_algo.m_tar_ncontours + j ];
+	  if ( score<0.01 )
+	    continue;
+	  
+	  std::cout << "[" << j << "]=" << score << " ";
+	  
+	  float width = 1;
+	  int color = 0;
+	  if ( score>0.8 ) {
+	    width = 5;
+	    color = kRed;
+	  }
+	  else if ( score>0.6 ) {
+	    width = 4;
+	    color = kRed-9;
+	  }
+	  else if ( score>0.3 ) {
+	    width = 3;
+	    color = kOrange+1;
+	  }
+	  else if ( score>0.1 ) {
+	    width = 2;
+	    color = kOrange-9;
+	  }
+	  else {
+	    width = 1;
+	    color = kBlack;
+	  }
+	  
+	  const larlitecv::Contour_t& tar_ctr = cluster_algo.m_plane_atomics_v[0][ j ];
+	  TGraph tar_graph( tar_ctr.size()+1 );
+	  for ( int n=0; n<tar_ctr.size(); n++) {
+	    float col = tar_meta.pos_x( tar_ctr[n].x );
+	    float row = tar_meta.pos_y( tar_ctr[n].y );
+	    tar_graph.SetPoint(n,col,row);
+	  }
+	  tar_graph.SetPoint(tar_ctr.size(), tar_meta.pos_x(tar_ctr[0].x),tar_meta.pos_y(tar_ctr[0].y));	
+	  tar_graph.SetLineWidth(width);
+	  tar_graph.SetLineColor(color);
+	  
+	  tar_graphs.emplace_back( std::move(tar_graph) );
+	}
+	std::cout << std::endl;
+      
+	c.Clear();
+	c.Divide(2,1);
+	
+	// source
+	c.cd(1);
+	hsrc.Draw("colz");
+	src_graph.Draw("L");
+
+	// plot matched hits
+	TGraph gsrchits( hits3d_v.size() );
+	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
+	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	  float x = hit3d.srcwire;
+	  float y = hit3d.tick;
+	  //std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
+	  gsrchits.SetPoint( ihit, x, y );
+	}
+	gsrchits.SetMarkerSize(1);
+	gsrchits.SetMarkerStyle(21);
+	gsrchits.SetMarkerColor(kBlack);
+	gsrchits.Draw("P");      
+	
+	// target
+	c.cd(2);
+	htar.Draw("colz");
+	for ( auto& g : tar_graphs ) {
+	  g.Draw("L");
+	}
+	src_truthflow.SetMarkerStyle(25);      
+	src_truthflow.SetMarkerSize(0.2);
+	src_truthflow.SetMarkerColor(kMagenta);
+	src_truthflow.Draw("P");      
+	src_flowpix.SetMarkerStyle(25);      
+	src_flowpix.SetMarkerSize(0.2);
+	src_flowpix.SetMarkerColor(kCyan);            
+	src_flowpix.Draw("P");
+	
+	// plot matched hits
+	TGraph gtarhits( hits3d_v.size() );
+	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
+	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	  gtarhits.SetPoint( ihit, hit3d.targetwire, hit3d.tick );
+	}
+	gtarhits.SetMarkerSize(1);
+	gtarhits.SetMarkerStyle(21);
+	gtarhits.SetMarkerColor(kBlack);
+	gtarhits.Draw("P");
+	
+	c.Update();
+	c.Draw();
+	std::cout << "[ENTER] for next contour." << std::endl;
+	//std::cin.get();
       }
-
-      ghit.SetMarkerStyle(23);
-      ghit.SetMarkerSize(0.5);
-      ghit.SetMarkerColor(kBlack);
-      ghit.Draw("P");
-      */
-
-      // plot matched hits
-      TGraph gsrchits( hits3d_v.size() );
-      for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
-	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	float x = hit3d.srcwire;
-	float y = hit3d.tick;
-	//std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
-	gsrchits.SetPoint( ihit, x, y );
-      }
-      gsrchits.SetMarkerSize(1);
-      gsrchits.SetMarkerStyle(21);
-      gsrchits.SetMarkerColor(kBlack);
-      gsrchits.Draw("P");      
-
-      // target
-      c.cd(2);
-      htar.Draw("colz");
-      for ( auto& g : tar_graphs ) {
-	g.Draw("L");
-      }
-      src_truthflow.SetMarkerStyle(25);      
-      src_truthflow.SetMarkerSize(0.2);
-      src_truthflow.SetMarkerColor(kMagenta);
-      src_truthflow.Draw("P");      
-      src_flowpix.SetMarkerStyle(25);      
-      src_flowpix.SetMarkerSize(0.2);
-      src_flowpix.SetMarkerColor(kCyan);            
-      src_flowpix.Draw("P");
-
-      // plot matched hits
-      TGraph gtarhits( hits3d_v.size() );
-      for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
-	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	gtarhits.SetPoint( ihit, hit3d.targetwire, hit3d.tick );
-      }
-      gtarhits.SetMarkerSize(1);
-      gtarhits.SetMarkerStyle(21);
-      gtarhits.SetMarkerColor(kBlack);
-      gtarhits.Draw("P");
-
-      c.Update();
-      c.Draw();
-      std::cout << "[ENTER] for next contour." << std::endl;
-      //std::cin.get();
-    }
+    }//end of visualize
 
     //break;
     std::cout << "[ENTER] for next entry." << std::endl;
     //std::cin.get();
 
   }
+
+  // save the data from the last event
+  event_changeout( dataco_output, matching_algo, current_runid, current_subrunid, current_eventid );
   
   std::cout << "Finalize output." << std::endl;
   dataco_output.close();
