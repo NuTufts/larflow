@@ -43,9 +43,11 @@ int main( int nargs, char** argv ) {
   // std::string input_larflow_file = "../testdata/larflow_test_8541376_98.root";
   // std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
   // cropped example
-  //std::string input_larflow_file = "../testdata/cropped/output_larflow.root";
-  std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
-  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
+  //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
+  //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
+  std::string input_larflow_file = "../testdata/larcv_larflow_test_5482426_95.root";
+  std::string input_reco2d_file  = "../testdata/larlite_reco2d_5482426_95.root";
+
 
   // data from larflow output: sequence of images
   larlitecv::DataCoordinator dataco;
@@ -96,20 +98,16 @@ int main( int nargs, char** argv ) {
     }
 
     // get cluster atomics for u and y ADC image    
-    cluster_algo.clear();
+    cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
-    matching_algo.clear();
-    matching_algo.createMatchData( cluster_algo, flow_v[0], wire_v[2], wire_v[0] );
-    //matching_algo.dumpMatchData();
-    matching_algo.scoreMatches( cluster_algo, 2, 0 );
 
+    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+    std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits();
+    
     // TCanvas c("c","scorematrix",1600,1200);
     // matching_algo.plotScoreMatrix().Draw("colz");
     // c.Update();
     // c.SaveAs("score_matrix.png");
-
-    matching_algo.greedyMatch();
-    //std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.make3Dhits( ev_hit );
 
     // flip through matches
     TCanvas c("c","matched clusters",1600,800);
@@ -223,9 +221,59 @@ int main( int nargs, char** argv ) {
       
       c.Clear();
       c.Divide(2,1);
+
+      // source
       c.cd(1);
       hsrc.Draw("colz");
       src_graph.Draw("L");
+
+      // plot all hits
+      /*
+      TGraph ghit( ev_hit.size() );
+      const larcv::ImageMeta& src_meta = wire_v[2].meta();
+      for ( int hidx=0; hidx<(int)ev_hit.size(); hidx++ ) {
+	const larlite::hit& ahit = ev_hit[hidx];
+
+	// is this on the source plane? if not, skip
+	if ( 2!=(int)ahit.WireID().planeID().Plane )
+	  continue;
+
+	// wire bounds
+	int wire = (int)ahit.WireID().Wire;
+	if ( wire < src_meta.min_x() || wire >= src_meta.max_x() ) {
+	  // if not within wire bounds, skip
+	  continue;
+	}
+	
+	int peaktime = 2400+ahit.PeakTime();
+	if ( peaktime < src_meta.min_y() || peaktime >= src_meta.max_y() )
+	  continue;
+	int hitcol = src_meta.col( wire );
+	int hitrow = src_meta.row( peaktime );
+	ghit.SetPoint(hidx, wire, peaktime );
+      }
+
+      ghit.SetMarkerStyle(23);
+      ghit.SetMarkerSize(0.5);
+      ghit.SetMarkerColor(kBlack);
+      ghit.Draw("P");
+      */
+
+      // plot matched hits
+      TGraph gsrchits( hits3d_v.size() );
+      for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
+	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	float x = src_meta.pos_x( hit3d.srcpixel );
+	float y = src_meta.pos_y( hit3d.row );
+	std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
+	gsrchits.SetPoint( ihit, x, y );
+      }
+      gsrchits.SetMarkerSize(1);
+      gsrchits.SetMarkerStyle(21);
+      gsrchits.SetMarkerColor(kBlack);
+      gsrchits.Draw("P");      
+
+      // target
       c.cd(2);
       htar.Draw("colz");
       for ( auto& g : tar_graphs ) {
@@ -239,6 +287,18 @@ int main( int nargs, char** argv ) {
       src_flowpix.SetMarkerSize(0.2);
       src_flowpix.SetMarkerColor(kCyan);            
       src_flowpix.Draw("P");
+
+      // plot matched hits
+      TGraph gtarhits( hits3d_v.size() );
+      for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
+	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	gtarhits.SetPoint( ihit, tar_meta.pos_x( hit3d.targetpixel ), tar_meta.pos_y( hit3d.row ) );
+      }
+      gtarhits.SetMarkerSize(1);
+      gtarhits.SetMarkerStyle(21);
+      gtarhits.SetMarkerColor(kBlack);
+      gtarhits.Draw("P");
+
       c.Update();
       c.Draw();
       std::cout << "[ENTER] for next contour." << std::endl;
@@ -248,6 +308,9 @@ int main( int nargs, char** argv ) {
     //break;
     std::cout << "[ENTER] for next entry." << std::endl;
     std::cin.get();
+
+    // after getting through entries for same event, collect hits
+    std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
   }
   
   

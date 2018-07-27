@@ -51,22 +51,64 @@ namespace larflow {
   
   class FlowContourMatch {
   public:
+
+    // internal data structures and types
+    // ----------------------------------
+    typedef enum { kY2U=0, kY2V } FlowDirection_t;
     typedef std::array<int,2> SrcTarPair_t; // pair of source and target contour indices
+    struct HitFlowData_t {
+      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srccol(-1), targetcol(-1), pixrow(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
+      int hitidx;    // index of hit in event_hit vector
+      float maxamp;  // maximum amplitude
+      int srccol;    // source image pixel: column
+      int targetcol; // target image pixel: column
+      int pixrow;    // image pixel: row
+      int matchquality; // match quality (1,2,3)
+      int dist2center;  // distance of source pixel to center of y
+      int dist2charge;  // distance in columns from target pixel to matched charge pixel
+      int src_ctr_idx;
+      int tar_ctr_idx;
+    };
+    struct ClosestContourPix_t {
+      int ctridx;
+      int dist;
+      int col;
+      float scorematch;
+      float adc;
+    };
+    // ------------------------------------------------
   
     FlowContourMatch();
     virtual ~FlowContourMatch();
-    void clear();
+    void clear( bool clear2d=true, bool clear3d=true );
 
-    // algorithm functions
-    void createMatchData( const larlitecv::ContourCluster& contour_data, const larcv::Image2D& flow_img,
-			  const larcv::Image2D& src_adc, const larcv::Image2D& tar_adc );
-    float scoreMatch( const FlowMatchData_t& matchdata );
-    void scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid );
-    void greedyMatch();
-    std::vector< FlowMatchHit3D > make3Dhits( const larlite::event_hit& hit_v,
-					      const larcv::Image2D& src_adc,
-					      const larcv::Image2D& tar_adc,
-					      const float threshold );
+    // algorithm function
+    void match( FlowDirection_t flowdir,
+		const larlitecv::ContourCluster& contour_data,
+		const larcv::Image2D& src_adc,
+		const larcv::Image2D& tar_adc,
+		const larcv::Image2D& flow_img,
+		const larlite::event_hit& hit_v,
+		const float threshold );
+    std::vector< FlowMatchHit3D > get3Dhits();
+    std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata );    
+    
+    // algorithm sub-functions
+    void _createMatchData( const larlitecv::ContourCluster& contour_data,
+			   const larcv::Image2D& flow_img,
+			   const larcv::Image2D& src_adc,
+			   const larcv::Image2D& tar_adc );
+    float _scoreMatch( const FlowMatchData_t& matchdata );
+    void _scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid );
+    void _greedyMatch();
+    void _make3Dhits( const larlite::event_hit& hit_v,
+		      const larcv::Image2D& srcimg_adc,
+		      const larcv::Image2D& tar_adc,
+		      const int src_plane,
+		      const int tar_plane,
+		      const float threshold,
+		      std::vector<HitFlowData_t>& hit2flowdata );
+    
     
 
     // debug/visualization
@@ -93,30 +135,8 @@ namespace larflow {
     int* m_src_img2ctrindex; //< array associating (row,col) to source contours
     int* m_tar_img2ctrindex; //< array associating (row,col) to target contours
 
-    // internal data structures
-    // ----------------------------------
-    struct HitFlowData_t {
-      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srccol(-1), targetcol(-1), pixrow(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
-      int hitidx;    // index of hit in event_hit vector
-      float maxamp;  // maximum amplitude
-      int srccol;    // source image pixel: column
-      int targetcol; // target image pixel: column
-      int pixrow;    // image pixel: row
-      int matchquality; // match quality (1,2,3)
-      int dist2center;  // distance of source pixel to center of y
-      int dist2charge;  // distance in columns from target pixel to matched charge pixel
-      int src_ctr_idx;
-      int tar_ctr_idx;
-    };
 
-    struct ClosestContourPix_t {
-      int ctridx;
-      int dist;
-      int col;
-      float scorematch;
-      float adc;
-    };
-    
+    std::vector<HitFlowData_t> m_hit2flowdata;
     
   };
 
