@@ -1,5 +1,7 @@
 #include "FlowContourMatch.h"
 
+#include <exception>
+
 #include "larcv/core/DataFormat/ImageMeta.h"
 
 #include "TH2D.h"
@@ -16,13 +18,10 @@ namespace larflow {
     matchingflow_v = x.matchingflow_v;
   }
 
-  // FlowMatchData_t& FlowMatchData_t::operator=(const FlowMatchData_t &s) {
-  //   // copy assignment operator
-  //   FlowMatchData_t t(s.src_ctr_id,s.tar_ctr_id);
-  //   t.score = s.score;
-  //   t.matchingflow_v = s.matchingflow_v;
-  //   return t;
-  // }
+  // ==========================================
+  // FlowContourMatch Algo
+  // ---------------------
+  
   FlowContourMatch::FlowContourMatch() {
     m_score_matrix = NULL;
     m_plot_scorematrix = NULL;
@@ -34,23 +33,77 @@ namespace larflow {
     clear();
   }
 
-  void FlowContourMatch::clear() {
-    delete [] m_score_matrix;
-    delete m_plot_scorematrix;
-    m_score_matrix = NULL;
-    m_plot_scorematrix = NULL;
-    m_flowdata.clear();
-    m_src_targets.clear();
-    delete m_src_img2ctrindex;
-    delete m_tar_img2ctrindex;
-    m_src_img2ctrindex = NULL;
-    m_tar_img2ctrindex = NULL;
+  void FlowContourMatch::clear( bool clear2d, bool clear3d ) {
+    if ( clear2d ) {
+      delete [] m_score_matrix;
+      delete m_plot_scorematrix;
+      m_score_matrix = NULL;
+      m_plot_scorematrix = NULL;
+      m_flowdata.clear();
+      m_src_targets.clear();
+      delete m_src_img2ctrindex;
+      delete m_tar_img2ctrindex;
+      m_src_img2ctrindex = NULL;
+      m_tar_img2ctrindex = NULL;
+    }
+    
+    if (clear3d) {
+      m_hit2flowdata.clear();
+    }
+  }
+
+  // ==================================================================================
+  // Primary Algo Interface
+  // -----------------------
+  void FlowContourMatch::match( FlowDirection_t flowdir,
+				const larlitecv::ContourCluster& contour_data,
+				const larcv::Image2D& src_adc,
+				const larcv::Image2D& tar_adc,
+				const larcv::Image2D& flow_img,
+				const larlite::event_hit& hit_v,
+				const float threshold ) {
+    
+    // produces 3D hits from from one flow image
+    int src_planeid = -1;
+    int tar_planeid = -1;
+
+    switch ( flowdir ) {
+    case kY2U:
+      src_planeid = 2;
+      tar_planeid = 0;
+      break;
+    case kY2V:
+      src_planeid = 1;
+      tar_planeid = 0;
+      break;
+    default:
+      throw std::runtime_error("FlowContourMatch::match: invalid FlowDirection_t option"); // shouldnt be possible
+      break;
+    }
+
+    // we clear the 2d data, but keep the hit data (and update it)
+    clear( true, false );
+    
+    
+    // first we create match data within the image
+    _createMatchData( contour_data, flow_img, src_adc, tar_adc );
+
+    // use the match data to score contour-contour matching
+    _scoreMatches( contour_data, src_planeid, tar_planeid );
+
+    // use score matrix to define matches
+    _greedyMatch();
+
+    // make 3D hits and update hit2flowdata vector
+    _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_hit2flowdata );
+
   }
   
-  void FlowContourMatch::createMatchData( const larlitecv::ContourCluster& contour_data,
-					  const larcv::Image2D& flow_img,
-					  const larcv::Image2D& src_adc,
-					  const larcv::Image2D& tar_adc ) {
+  
+  void FlowContourMatch::_createMatchData( const larlitecv::ContourCluster& contour_data,
+					   const larcv::Image2D& flow_img,
+					   const larcv::Image2D& src_adc,
+					   const larcv::Image2D& tar_adc ) {
 
     int src_planeid = src_adc.meta().id();
     int tar_planeid = tar_adc.meta().id();
@@ -190,7 +243,7 @@ namespace larflow {
     }
   }
 
-  void FlowContourMatch::scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid ) {
+  void FlowContourMatch::_scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid ) {
     m_src_ncontours = contour_data.m_plane_atomics_v[src_planeid].size();
     m_tar_ncontours = contour_data.m_plane_atomics_v[tar_planeid].size();
     std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -205,7 +258,7 @@ namespace larflow {
     
     for ( auto it : m_flowdata ) {
       FlowMatchData_t& flowdata = it.second;
-      float score = scoreMatch( flowdata );
+      float score = _scoreMatch( flowdata );
       flowdata.score = score;
       m_score_matrix[ flowdata.src_ctr_id*m_tar_ncontours + flowdata.tar_ctr_id ] = score;
     }
@@ -225,7 +278,7 @@ namespace larflow {
     
   }
   
-  float FlowContourMatch::scoreMatch( const FlowMatchData_t& matchdata ) {
+  float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
     float score = 0.0;
     int nscores = 0;
     for ( auto const& flow : matchdata.matchingflow_v ) {
@@ -236,7 +289,7 @@ namespace larflow {
     return score;
   }
 
-  void FlowContourMatch::greedyMatch() {
+  void FlowContourMatch::_greedyMatch() {
     // goal is to assign a cluster on the
     // source plane purely to one on the target
     
@@ -294,10 +347,13 @@ namespace larflow {
     return *m_plot_scorematrix;
   }
 
-  std::vector< FlowMatchHit3D > FlowContourMatch::make3Dhits( const larlite::event_hit& hit_v,
-							      const larcv::Image2D& srcimg_adc,
-							      const larcv::Image2D& tar_adc,
-							      const float threshold ) {
+  void FlowContourMatch::_make3Dhits( const larlite::event_hit& hit_v,
+				      const larcv::Image2D& srcimg_adc,
+				      const larcv::Image2D& tar_adc,
+				      const int src_plane,
+				      const int tar_plane,
+				      const float threshold,
+				      std::vector<HitFlowData_t>& hit2flowdata ) {
 
     // make3Dhits
     // turn flow predictions and contour matches into 3D hits
@@ -329,12 +385,19 @@ namespace larflow {
     // 8) turn that information, make 3D hit position (X-axis relative to trigger time)
     // 9) ???
     // 9) profit
-
-    const int src_plane = 2;
-    const int tar_plane = 0;
-
-    std::vector<HitFlowData_t> hit2flowdata( hit_v.size() );
-
+    
+    if ( hit2flowdata.size()!=hit_v.size() ) {
+      hit2flowdata.clear();
+      hit2flowdata.resize( hit_v.size() );
+    }
+    
+    // for (int hitidx=0; hitidx<(int)hit_v.size(); hitidx++) {
+    //   // get hit for this index
+    //   const larlite::hit& ahit = hit_v[hitidx];
+    //   std::cout << "hit[" << hitidx << "]: " << ahit.StartTick() << std::endl;
+    // }
+    // std::cin.get();
+    
     for (int hitidx=0; hitidx<(int)hit_v.size(); hitidx++) {
       // get hit for this index
       const larlite::hit& ahit = hit_v[hitidx];
@@ -346,24 +409,35 @@ namespace larflow {
       // is it in the image (crop)
 
       // time limits
-      int hit_tstart = (int)ahit.StartTick();
-      int hit_tend   = (int)ahit.EndTick();
+      int hit_tstart = 2400+(int)ahit.StartTick();
+      int hit_tend   = 2400+(int)ahit.EndTick();
       if ( hit_tend < m_srcimg_meta->min_y() || hit_tstart > m_srcimg_meta->max_y() ) {
 	// if not within the tick bounds, skip
 	continue;
       }
-
+      if ( hit_tend >= m_srcimg_meta->max_y() )
+	hit_tend = m_srcimg_meta->max_y()-1;
+      if ( hit_tstart <= m_srcimg_meta->min_y() )
+	hit_tstart = m_srcimg_meta->min_y();
+      
       // wire bounds
       int wire = (int)ahit.WireID().Wire;
-      if ( wire < m_srcimg_meta->min_x() || wire > m_srcimg_meta->max_x() ) {
+      if ( wire < m_srcimg_meta->min_x() || wire >= m_srcimg_meta->max_x() ) {
 	// if not within wire bounds, skip
 	continue;
       }
 
+      
       // transfor wire and ticks into col and row
       int wirecol  = m_srcimg_meta->col( wire );
       int rowstart = m_srcimg_meta->row( hit_tstart );
       int rowend   = m_srcimg_meta->row( hit_tend );
+
+      std::cout << "---------------------------------------" << std::endl;
+      std::cout << "valid hit: wire=" << wire << " wirecol=" << wirecol 
+		<< " tickrange=[" << hit_tstart << "," << hit_tend << "]"
+		<< " rowrange=["  << rowstart << "," << rowend << "]"
+		<< std::endl;
 
       // ok we are in the image. check the contours.
       // we loop through contours and check if any of their pixels are inside the hit tick range.
@@ -373,14 +447,22 @@ namespace larflow {
 	int src_ctridx = it_ctr.first; // source image contour index
 	const ContourTargets_t& ctrtargets = it_ctr.second; // list of src and target pixels
 
+	// loop over pixels within this source contour, find those that fit within hit
 	for ( auto const& pixinfo : ctrtargets ) {
-	  if ( wirecol!=pixinfo.col )
+	  //std::cout << "  srcctr[" << src_ctridx << "] (" << pixinfo.row << "," << pixinfo.srccol << ")" << std::endl;
+	  
+	  if ( wirecol!=pixinfo.srccol ) // source contour pixel does not match, skip
 	    continue;
 	  if ( rowstart <= pixinfo.row && pixinfo.row <= rowend ) {
 	    // found the overlap
 	    sourcecontourindex = src_ctridx;
 	    foundcontour = true;
 
+	    std::cout << "pixel within hit. source contour=" << src_ctridx
+		      << " source(r,c)=(" << pixinfo.row << "," << pixinfo.srccol << ")"
+		      << " target(r,c)=(" << pixinfo.row << "," << pixinfo.col << ")"
+		      << std::endl;
+	    
 	    // update the src/target pix from larflow based on
 	    // 1) adc value of source pixel
 	    // 2) match quality
@@ -400,6 +482,7 @@ namespace larflow {
 	    int pastquality  = hitdata.matchquality;
 	    int dist2center  = abs( pixinfo.srccol - m_srcimg_meta->cols()/2 );
 	    int dist2charge  = -1;
+	    std::cout << "  -- past hitquality=" << pastquality << std::endl;
 	    
 	    // does target point to charge? look within a range of wires
 	    int tarcolmin = pixinfo.col-2;
@@ -435,11 +518,13 @@ namespace larflow {
 	    if ( incontour && oncharge ) {
 	      matchquality = 1;
 	      dist2charge = 0;
+	      std::cout << "  -- hit quality=1 " << " past(" << pastquality << ") " << std::endl;
 	    }
 	    else if ( incontour && !oncharge && (pastquality<0 || pastquality>=2) ) {
 	      // we calculate the matched pixel for this case if in the past we didnt get a better match
 	      matchquality = 2;
-	      
+	      std::cout << "  -- hit quality=2 " << " past(" << pastquality << ") " << std::endl;
+		      
 	      // we look for the closest pixel inside the contour that has charge, and that is what we match to
 	      int possearch_col = target_col+1;
 	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<30 ) {
@@ -464,7 +549,11 @@ namespace larflow {
 		}
 		negsearch_col--;
 	      }
-
+	      if ( negsearch_col<0 )
+		negsearch_col = 0;
+	      if ( possearch_col>=m_tarimg_meta->cols() )
+		possearch_col = m_tarimg_meta->cols()-1;
+	      
 	      int negdist = abs(negsearch_col-target_col);
 	      int posdist = abs(possearch_col-target_col);
 	      
@@ -482,6 +571,7 @@ namespace larflow {
 	    else if ( !incontour && (pastquality<0 || pastquality>=3) ) {
 	      // we calculate the matched pixel for this case if in the past we didnt get a better match
 	      matchquality = 3;
+	      std::cout << "  -- hit quality=3 " << " past(" << pastquality << ") " << std::endl;
 	      
 	      // check the best matching contour first for charge to match
 	      // we find closest charge on row for all match contours.
@@ -490,6 +580,8 @@ namespace larflow {
 	      std::set<int> used_contours;
 	      
 	      int possearch_col = target_col+1;
+	      if ( possearch_col>=m_tarimg_meta->cols() )
+		possearch_col = m_tarimg_meta->cols()-1;	      
 	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, possearch_col );		
 		if ( tadc > threshold )  {
@@ -508,7 +600,9 @@ namespace larflow {
 		}
 		possearch_col++;
 	      }//end of pos loop
-	      int negsearch_col = target_col+1;
+	      int negsearch_col = target_col-1;
+	      if ( negsearch_col<0 )
+		negsearch_col = 0;	      
 	      while ( negsearch_col>=0 && target_col-negsearch_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
 		if (  tadc > threshold )  {
@@ -552,7 +646,7 @@ namespace larflow {
 	    if ( matchquality>0 ) {
 	      //we found a case we did better or the same
 
-	      if ( matchquality<pastquality )  {
+	      if ( matchquality<pastquality || pastquality<0 )  {
 		// we did better. replace the hit
 		update_hitdata = true;
 	      }
@@ -572,19 +666,19 @@ namespace larflow {
 	      }
 	      
 	    }
-
 	    
 	    if ( update_hitdata ) {
-	      hitdata.maxamp    = target_adc;
-	      hitdata.hitidx    = hitidx;
-	      hitdata.srccol    = pixinfo.srccol;
-	      hitdata.targetcol = target_col;
-	      hitdata.pixrow    = pixinfo.row;
+	      std::cout << "  -- update hit flow data" << std::endl;
+	      hitdata.maxamp       = target_adc;
+	      hitdata.hitidx       = hitidx;
+	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
+	      hitdata.targetwire   = m_tarimg_meta->pos_x( pixinfo.col );
+	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
 	      hitdata.matchquality = matchquality;
-	      hitdata.dist2center = dist2center;
-	      hitdata.dist2charge = dist2charge;
-	      hitdata.src_ctr_idx = sourcecontourindex;
-	      hitdata.tar_ctr_idx = target_contour;
+	      hitdata.dist2center  = dist2center;
+	      hitdata.dist2charge  = dist2charge;
+	      hitdata.src_ctr_idx  = sourcecontourindex;
+	      hitdata.tar_ctr_idx  = target_contour;
 	    }
 	    
 	  }//if row within hit row range
@@ -595,26 +689,36 @@ namespace larflow {
     }//end of hit index loop
 
 
+    return;
+  }
+
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits() {
+    return get3Dhits( m_hit2flowdata );
+  }
+  
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata ) {
+
     // now we have, in principle, the best/modified flow prediction for hits that land on flow predictions
     // we can make 3D hits!
     std::vector<FlowMatchHit3D> output_hit3d_v;
-    for (int hitidx=0; hitidx<(int)hit_v.size(); hitidx++) {
+    for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
       const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
       if (  hitdata.matchquality<=0 ) {
-	// no good match
-	continue;
+    	// no good match
+    	continue;
       }
       // otherwise make a hit
       FlowMatchHit3D flowhit;
-      flowhit.row         = hitdata.pixrow;
-      flowhit.srcpixel    = hitdata.srccol;
-      flowhit.targetpixel = hitdata.targetcol;
-      flowhit.src_ctrid   = hitdata.src_ctr_idx;
-      flowhit.tar_ctrid   = hitdata.tar_ctr_idx;
+      flowhit.idxhit     = hitidx;
+      flowhit.tick       = hitdata.pixtick;
+      flowhit.srcwire    = hitdata.srcwire;
+      flowhit.targetwire = hitdata.targetwire;
+      //flowhit.src_ctrid   = hitdata.src_ctr_idx;
+      //flowhit.tar_ctrid   = hitdata.tar_ctr_idx;
       output_hit3d_v.emplace_back( flowhit );
     }
 
-    return output_hit3d_v;
+    return output_hit3d_v;    
   }
   
 }
