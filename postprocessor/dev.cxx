@@ -9,6 +9,7 @@
 
 // larlite
 #include "DataFormat/hit.h"
+#include "DataFormat/spacepoint.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -45,8 +46,9 @@ int main( int nargs, char** argv ) {
   // cropped example
   //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  std::string input_larflow_file = "../testdata/larcv_larflow_test_5482426_95.root";
-  std::string input_reco2d_file  = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_larflow_file  = "../testdata/larcv_larflow_test_5482426_95.root";
+  std::string input_reco2d_file   = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string output_larlite_file = "output_flowmatch_larlite.root";
 
 
   // data from larflow output: sequence of images
@@ -59,11 +61,20 @@ int main( int nargs, char** argv ) {
   dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
   dataco_hits.initialize();
 
+  // output: 3D track hits
+  larlite::storage_manager dataco_output;
+  dataco_output.set_out_filename( output_larlite_file );
+  dataco_output.open();
+  
   // cluster algo
   larlitecv::ContourCluster cluster_algo;
   larflow::FlowContourMatch matching_algo;
   
   int nentries = dataco.get_nentries( "larcv" );
+
+  int current_runid    = -1;
+  int current_subrunid = -1;
+  int current_eventid  = -1;
 
   for (int ientry=0; ientry<nentries; ientry++) {
 
@@ -72,6 +83,36 @@ int main( int nargs, char** argv ) {
     int subrunid = dataco.subrun();
     int eventid  = dataco.event();
 
+    if ( current_runid>=0 &&
+	 (current_runid!=runid || current_subrunid!=subrunid || current_eventid!=eventid) ) {
+
+      // save the spointpoint vector
+      //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
+      larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
+      //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
+
+      // get the final hits made from flow
+      std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
+      for ( auto& flowhit_v : whole_event_hits3d_v ) {
+	// form spacepoints
+	larlite::spacepoint sp;
+
+	ev_spacepoint_y2u->emplace_back( std::move(sp) );
+      }
+
+      dataco_output.set_id( runid, subrunid, eventid );
+      dataco_output.next_event();
+
+      // clear the algo
+      matching_algo.clear();
+
+      // set the current rse
+      current_runid    = runid;
+      current_subrunid = subrunid;
+      current_eventid  = eventid;
+    }
+    
+    
     // sync up larlite data
     dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
   
@@ -263,9 +304,9 @@ int main( int nargs, char** argv ) {
       TGraph gsrchits( hits3d_v.size() );
       for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
 	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	float x = src_meta.pos_x( hit3d.srcpixel );
-	float y = src_meta.pos_y( hit3d.row );
-	std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
+	float x = hit3d.srcwire;
+	float y = hit3d.tick;
+	//std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
 	gsrchits.SetPoint( ihit, x, y );
       }
       gsrchits.SetMarkerSize(1);
@@ -292,7 +333,7 @@ int main( int nargs, char** argv ) {
       TGraph gtarhits( hits3d_v.size() );
       for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
 	larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	gtarhits.SetPoint( ihit, tar_meta.pos_x( hit3d.targetpixel ), tar_meta.pos_y( hit3d.row ) );
+	gtarhits.SetPoint( ihit, hit3d.targetwire, hit3d.tick );
       }
       gtarhits.SetMarkerSize(1);
       gtarhits.SetMarkerStyle(21);
@@ -309,11 +350,10 @@ int main( int nargs, char** argv ) {
     std::cout << "[ENTER] for next entry." << std::endl;
     std::cin.get();
 
-    // after getting through entries for same event, collect hits
-    std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
   }
   
-  
+  std::cout << "Finalize output." << std::endl;
+  dataco_output.close();
   
   return 0;
 

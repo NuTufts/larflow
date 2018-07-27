@@ -57,17 +57,17 @@ namespace larflow {
     typedef enum { kY2U=0, kY2V } FlowDirection_t;
     typedef std::array<int,2> SrcTarPair_t; // pair of source and target contour indices
     struct HitFlowData_t {
-      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srccol(-1), targetcol(-1), pixrow(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
+      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srcwire(-1), targetwire(-1), pixtick(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
       int hitidx;    // index of hit in event_hit vector
       float maxamp;  // maximum amplitude
-      int srccol;    // source image pixel: column
-      int targetcol; // target image pixel: column
-      int pixrow;    // image pixel: row
+      int srcwire;    // source image pixel: column
+      int targetwire; // target image pixel: column
+      int pixtick;    // image pixel: row
       int matchquality; // match quality (1,2,3)
       int dist2center;  // distance of source pixel to center of y
       int dist2charge;  // distance in columns from target pixel to matched charge pixel
-      int src_ctr_idx;
-      int tar_ctr_idx;
+      int src_ctr_idx;  // this becomes outdated once image changes up
+      int tar_ctr_idx;  // this becomes outdated once image changes up
     };
     struct ClosestContourPix_t {
       int ctridx;

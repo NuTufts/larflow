@@ -661,16 +661,16 @@ namespace larflow {
 	    
 	    if ( update_hitdata ) {
 	      std::cout << "  -- update hit flow data" << std::endl;
-	      hitdata.maxamp    = target_adc;
-	      hitdata.hitidx    = hitidx;
-	      hitdata.srccol    = pixinfo.srccol;
-	      hitdata.targetcol = target_col;
-	      hitdata.pixrow    = pixinfo.row;
+	      hitdata.maxamp       = target_adc;
+	      hitdata.hitidx       = hitidx;
+	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
+	      hitdata.targetwire   = m_tarimg_meta->pos_x( pixinfo.col );
+	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
 	      hitdata.matchquality = matchquality;
-	      hitdata.dist2center = dist2center;
-	      hitdata.dist2charge = dist2charge;
-	      hitdata.src_ctr_idx = sourcecontourindex;
-	      hitdata.tar_ctr_idx = target_contour;
+	      hitdata.dist2center  = dist2center;
+	      hitdata.dist2charge  = dist2charge;
+	      hitdata.src_ctr_idx  = sourcecontourindex;
+	      hitdata.tar_ctr_idx  = target_contour;
 	    }
 	    
 	  }//if row within hit row range
@@ -701,11 +701,11 @@ namespace larflow {
       }
       // otherwise make a hit
       FlowMatchHit3D flowhit;
-      flowhit.row         = hitdata.pixrow;
-      flowhit.srcpixel    = hitdata.srccol;
-      flowhit.targetpixel = hitdata.targetcol;
-      flowhit.src_ctrid   = hitdata.src_ctr_idx;
-      flowhit.tar_ctrid   = hitdata.tar_ctr_idx;
+      flowhit.tick       = hitdata.pixtick;
+      flowhit.srcwire    = hitdata.srcwire;
+      flowhit.targetwire = hitdata.targetwire;
+      //flowhit.src_ctrid   = hitdata.src_ctr_idx;
+      //flowhit.tar_ctrid   = hitdata.tar_ctr_idx;
       output_hit3d_v.emplace_back( flowhit );
     }
 

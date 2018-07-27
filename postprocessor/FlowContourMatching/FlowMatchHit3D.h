@@ -17,11 +17,11 @@ namespace larflow {
 
     typedef enum { kQandCmatch=0, kCmatch, kClosestC } MatchQuality_t; // quality of match
     
-    int row;         // row
-    int srcpixel;    // column in source image
-    int targetpixel; // column in target image
-    int src_ctrid;   // contour index in source image
-    int tar_ctrid;   // contour index in target image
+    int tick;        // row
+    int srcwire;     // column in source image
+    int targetwire;  // column in target image
+    //int src_ctrid;   // contour index in source image
+    //int tar_ctrid;   // contour index in target image
     int idxhit;      // index in eventhit vector
     MatchQuality_t matchquality; // quality of plane-correspondence match
     float center_y_dist;  // distance to center of y-image used for flow prediction
