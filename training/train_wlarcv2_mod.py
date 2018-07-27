@@ -43,8 +43,8 @@ else:
     sys.path.append("../models")
                     
 # Our model definition
-#from larflow_uresnet_mod import LArFlowUResNet
-from larflow_uresnet import LArFlowUResNet
+from larflow_uresnet_mod2 import LArFlowUResNet
+#from larflow_uresnet import LArFlowUResNet
 from larflow_loss import LArFlowLoss
 
 
@@ -69,9 +69,9 @@ ADC_THRESH=10.0
 VISI_WEIGHT=0.001
 USE_VISI=False
 #DEVICE_IDS=[3,4,5]
-DEVICE_IDS=[0]
-GPUID=DEVICE_IDS[0]
-#GPUID=1
+DEVICE_IDS=[1]
+GPUID2=DEVICE_IDS[0]
+GPUID1=1
 # map multi-training weights 
 #CHECKPOINT_MAP_LOCATIONS={"cuda:2":"cuda:0",
 #                          "cuda:3":"cuda:1",
@@ -102,8 +102,8 @@ def main():
 
     # create model, mark it to run on the GPU
     if GPUMODE:
-        model = LArFlowUResNet(inplanes=28,input_channels=1,num_classes=2,showsizes=False, use_visi=USE_VISI) #False
-        model.cuda(GPUID) # put onto gpuid
+        model = LArFlowUResNet(inplanes=16,input_channels=1,num_classes=2,showsizes=False, use_visi=USE_VISI, gpuid1=GPUID1, gpuid2=GPUID2) #False
+        #model.cuda(GPUID) # put onto gpuid
     else:
         model = LArFlowUResNet(inplanes=16,input_channels=1,num_classes=2)
 
@@ -129,7 +129,7 @@ def main():
     maxdist = 32.0
     if GPUMODE:
         criterion = LArFlowLoss(maxdist,VISI_WEIGHT)
-        criterion.cuda(GPUID)
+        criterion.cuda(GPUID1)
     else:
         criterion = LArFlowLoss(maxdist,VISI_WEIGHT)
 
@@ -626,10 +626,10 @@ def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_th
 
     # send to gpu if in gpumode
     if GPUMODE:
-        source_t = source_t.cuda(GPUID)
-        target_t = target_t.cuda(GPUID)
-        flow_t = flow_t.cuda(GPUID)
-        fvisi_t = fvisi_t.cuda(GPUID)
+        source_t = source_t.cuda(GPUID1)
+        target_t = target_t.cuda(GPUID1)
+        flow_t = flow_t.cuda(GPUID1)
+        fvisi_t = fvisi_t.cuda(GPUID1)
 
     # apply threshold to source ADC values. returns a byte mask
     fvisi_t.masked_fill_(fvisi_t>1.0, 1.0)
@@ -637,8 +637,8 @@ def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_th
 
     # make integer visi
     if GPUMODE:
-        fvisi_t= fvisi_t.cuda(GPUID)
-        visi_t = fvisi_t.long().resize_(batchsize,width,fvisi_t.size()[3]).cuda(GPUID)
+        fvisi_t= fvisi_t.cuda(GPUID1)
+        visi_t = fvisi_t.long().resize_(batchsize,width,fvisi_t.size()[3]).cuda(GPUID1)
     else:
         visi_t = fvisi_t.reshape( (batchsize,width,fvisi_t.size()[3]) ).long()
 
