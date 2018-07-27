@@ -549,7 +549,11 @@ namespace larflow {
 		}
 		negsearch_col--;
 	      }
-
+	      if ( negsearch_col<0 )
+		negsearch_col = 0;
+	      if ( possearch_col>=m_tarimg_meta->cols() )
+		possearch_col = m_tarimg_meta->cols()-1;
+	      
 	      int negdist = abs(negsearch_col-target_col);
 	      int posdist = abs(possearch_col-target_col);
 	      
@@ -576,6 +580,8 @@ namespace larflow {
 	      std::set<int> used_contours;
 	      
 	      int possearch_col = target_col+1;
+	      if ( possearch_col>=m_tarimg_meta->cols() )
+		possearch_col = m_tarimg_meta->cols()-1;	      
 	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, possearch_col );		
 		if ( tadc > threshold )  {
@@ -594,7 +600,9 @@ namespace larflow {
 		}
 		possearch_col++;
 	      }//end of pos loop
-	      int negsearch_col = target_col+1;
+	      int negsearch_col = target_col-1;
+	      if ( negsearch_col<0 )
+		negsearch_col = 0;	      
 	      while ( negsearch_col>=0 && target_col-negsearch_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
 		if (  tadc > threshold )  {

@@ -62,7 +62,7 @@ int main( int nargs, char** argv ) {
   dataco_hits.initialize();
 
   // output: 3D track hits
-  larlite::storage_manager dataco_output;
+  larlite::storage_manager dataco_output( larlite::storage_manager::kWRITE );
   dataco_output.set_out_filename( output_larlite_file );
   dataco_output.open();
   
@@ -110,6 +110,9 @@ int main( int nargs, char** argv ) {
       current_runid    = runid;
       current_subrunid = subrunid;
       current_eventid  = eventid;
+
+      std::cout << "Event turn over. [enter] to continue." << std::endl;
+      std::cin.get();
     }
     
     
@@ -343,12 +346,12 @@ int main( int nargs, char** argv ) {
       c.Update();
       c.Draw();
       std::cout << "[ENTER] for next contour." << std::endl;
-      std::cin.get();
+      //std::cin.get();
     }
 
     //break;
     std::cout << "[ENTER] for next entry." << std::endl;
-    std::cin.get();
+    //std::cin.get();
 
   }
   
