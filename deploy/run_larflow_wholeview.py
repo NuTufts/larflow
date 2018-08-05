@@ -18,7 +18,7 @@ import torch
 from larflow_funcs import load_model
 
 class WholeImageLoader:
-    def __init__(self,larcv_input_file):
+    def __init__(self,larcv_input_file, ismc=True):
 
         # we setup a larcv IOManager for read mode
         self.io = larcv.IOManager( larcv.IOManager.kREAD )
@@ -76,15 +76,17 @@ class WholeImageLoader:
         LimitOverlap: false
         RequireMinGoodPixels: false
         MaxOverlapFraction: 0.2
+        IsMC: {}
         """
         flowcrop_cfg = open("ublarflowcrop.cfg",'w')
-        print >>flowcrop_cfg,lfcrop_cfg
+        print >>flowcrop_cfg,lfcrop_cfg.format( str(ismc).lower() )
         flowcrop_cfg.close()
         flowcrop_pset = larcv.CreatePSetFromFile( "ublarflowcrop.cfg", "UBLArFlowCrop" )
         self.flowcrop_algo = larcv.UBCropLArFlow()
         self.flowcrop_algo.configure( flowcrop_pset )
         self.flowcrop_algo.initialize()
         self.flowcrop_algo.set_verbosity(0)
+        self.ismc = ismc
         
         self._nentries = self.io.get_n_entries()
         
@@ -104,11 +106,15 @@ class WholeImageLoader:
     def get_larflow_cropped(self):
         print "run larflow cropper"
         self.flowcrop_algo.process( self.io )
-        print "retrieve larflow cropped images"
         ev_adc_crops  = self.io.get_data("image2d","adc")
-        ev_flow_crops = self.io.get_data("image2d","flow")
-        ev_visi_crops = self.io.get_data("image2d","visi")
-        return {"adc":ev_adc_crops,"flow":ev_flow_crops,"visi":ev_visi_crops}
+        print "retrieve larflow cropped images: ",ev_adc_crops.image2d_array().size()
+        if self.ismc:
+            ev_flow_crops = self.io.get_data("image2d","flow")
+            ev_visi_crops = self.io.get_data("image2d","visi")
+            data = {"adc":ev_adc_crops,"flow":ev_flow_crops,"visi":ev_visi_crops}
+        else:
+            data = {"adc":ev_adc_crops}
+        return data
 
 if __name__=="__main__":
 
@@ -124,6 +130,7 @@ if __name__=="__main__":
         whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
         whole_view_parser.add_argument( "-v", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
         whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
+        whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
 
         args = whole_view_parser.parse_args(sys.argv)
         input_larcv_filename  = args.input
@@ -138,8 +145,12 @@ if __name__=="__main__":
     else:
 
         # for testing
-        input_larcv_filename = "../testdata/larcv_8541376_98.root" # whole image
-        output_larcv_filename = "larcv_larflow_test_8541376_98.root"
+        # bnb+corsicka
+        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
+        output_larcv_filename = "larcv_larflow_test_5482426_95.root"
+        # bnbmc+overlay
+        input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
+        output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         #checkpoint_data = "checkpoint_fullres_bigsample_11000th_gpu3.tar"
         checkpoint_data = "checkpoint.20000th.tar"
         batch_size = 2
@@ -148,9 +159,10 @@ if __name__=="__main__":
         verbose = False
         nprocess_events = 1
         stitch = False
+        ismc = False
 
     # load data
-    inputdata = WholeImageLoader( input_larcv_filename )
+    inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
     
     # load model
     model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid )
@@ -206,8 +218,12 @@ if __name__=="__main__":
             larflow_cropped_dict = inputdata.get_larflow_cropped()
             print "LArFlow Cropper Produced: "
             print "  adc: ",larflow_cropped_dict["adc"].image2d_array().size()
-            print "  visi: ",larflow_cropped_dict["visi"].image2d_array().size()
-            print "  flow: ",larflow_cropped_dict["flow"].image2d_array().size()
+            if ismc:
+                print "  visi: ",larflow_cropped_dict["visi"].image2d_array().size()
+                print "  flow: ",larflow_cropped_dict["flow"].image2d_array().size()
+            else:
+                print "  visi: None-not MC"
+                print "  flow: None-not MC"
         timing["++load_larcv_data"] += tdata
         if verbose:
             print "time to get images: ",tdata," secs"
@@ -225,6 +241,7 @@ if __name__=="__main__":
         runid    = ev_img.run()
         subrunid = ev_img.subrun()
         eventid  = ev_img.event()
+        print "ADC Input image. Nimgs=",img_v.size()," (rse)=",(runid,subrunid,eventid)
 
         # setup stitcher
         if stitch:
@@ -311,9 +328,10 @@ if __name__=="__main__":
                     flowcrops = {"flow":[],"visi":[],"adc":[]}
                     for ii in xrange(0,3):
                         flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
-                    for ii in xrange(0,2):
-                        flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
-                        flowcrops["visi"].append( larflow_cropped_dict["visi"].at( iset*2+ii ) )
+                    if ismc:
+                        for ii in xrange(0,2):
+                            flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
+                            flowcrops["visi"].append( larflow_cropped_dict["visi"].at( iset*2+ii ) )
 
                     flowcrop_batch.append( flowcrops )
 
@@ -358,16 +376,18 @@ if __name__=="__main__":
                 else:
                     # we save flow image and crops for each prediction
                     evoutadc  = outputdata.get_data("image2d","adc")
-                    evoutvisi = outputdata.get_data("image2d","pixvisi")
-                    evoutflow = outputdata.get_data("image2d","pixflow")                    
                     evoutpred = outputdata.get_data("image2d","larflow_y2u")
                     for img in flowcrop_batch[ib]["adc"]:
                         evoutadc.append( img )
-                    for img in flowcrop_batch[ib]["visi"]:
-                        evoutvisi.append( img )
-                    for img in flowcrop_batch[ib]["flow"]:
-                        evoutflow.append( img )
                     evoutpred.append( flow_lcv )
+                    
+                    if ismc:
+                        evoutvisi = outputdata.get_data("image2d","pixvisi")
+                        evoutflow = outputdata.get_data("image2d","pixflow")                                            
+                        for img in flowcrop_batch[ib]["visi"]:
+                            evoutvisi.append( img )
+                        for img in flowcrop_batch[ib]["flow"]:
+                            evoutflow.append( img )
                     
                     outputdata.set_id( runid, subrunid, eventid )
                     outputdata.save_entry()
