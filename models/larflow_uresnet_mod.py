@@ -210,7 +210,7 @@ class LArFlowUResNet(nn.Module):
         
         # decoding flow
         self.num_final_flow_features = self.inplanes
-        self.flow_dec_layer7 = self._make_decoding_layer( self.inplanes*64*3,  self.inplanes*64, self.inplanes*64, self.inplanes*64 ) # 1024->512
+        self.flow_dec_layer7 = self._make_decoding_layer( self.inplanes*64*2,  self.inplanes*64, self.inplanes*64, self.inplanes*64 ) # 1024->512
         self.flow_dec_layer6 = self._make_decoding_layer( self.inplanes*64,    self.inplanes*32, self.inplanes*32, self.inplanes*32 ) # 1024->512
         self.flow_dec_layer5 = self._make_decoding_layer( self.inplanes*32,    self.inplanes*16, self.inplanes*16, self.inplanes*16 ) # 512->256
         self.flow_dec_layer4 = self._make_decoding_layer( self.inplanes*16,    self.inplanes*8,  self.inplanes*8,  self.inplanes*8  ) # 256->128
@@ -229,7 +229,7 @@ class LArFlowUResNet(nn.Module):
 
         # decoding matchability
         if self.use_visi:
-            self.visi_dec_layer7 = self._make_decoding_layer( self.inplanes*64*3,  self.inplanes*64, self.inplanes*64, self.inplanes*64 ) # 1024->512
+            self.visi_dec_layer7 = self._make_decoding_layer( self.inplanes*64*2,  self.inplanes*64, self.inplanes*64, self.inplanes*64 ) # 1024->512
             self.visi_dec_layer6 = self._make_decoding_layer( self.inplanes*64,    self.inplanes*32, self.inplanes*32, self.inplanes*32 ) # 1024->512
             self.visi_dec_layer5 = self._make_decoding_layer( self.inplanes*32,    self.inplanes*16, self.inplanes*16, self.inplanes*16 ) # 512->256
             self.visi_dec_layer4 = self._make_decoding_layer( self.inplanes*16,    self.inplanes*8,  self.inplanes*8,  self.inplanes*8  ) # 256->128
@@ -247,7 +247,7 @@ class LArFlowUResNet(nn.Module):
 
         # 1x1 conv for flow
         self.flow_conv = nn.Conv2d( self.num_final_flow_features, 1, kernel_size=1, stride=1, padding=0, bias=True )
-        self.flow_conv.cuda(self.gpuid1) #default 2
+        self.flow_conv.cuda(self.gpuid2)
         # 1x1 conv for mathability
         if self.use_visi:
             self.visi_conv = nn.Conv2d( self.inplanes, 2, kernel_size=1, stride=1, padding=0, bias=True ) # 2 classes, 0=not vis, 1=vis
@@ -363,29 +363,18 @@ class LArFlowUResNet(nn.Module):
         return x
             
     
-    def forward(self, src, target, target2):
+    def forward(self, src, target):
 
         if self._showsizes:
             print "input: ",src.size()," is_cuda=",src.is_cuda
-
+        #src = src.cuda(0)
+        #target = target.cuda(0)
         src_encode,    s0, s1, s2, s3, s4, s5, s6  = self.encode(src)
         target_encode, t0, t1, t2, t3, t4, t5, t6  = self.encode(target)
-        target_encode2, tt0, tt1, tt2, tt3, tt4, tt5, tt6  = self.encode(target2)
-
-        merged_encode = torch.cat( [target_encode,target_encode2,src_encode], 1 )
-        #merged_encode = torch.cat( [target_encode,src_encode], 1 )
-        #merged_encode2 = torch.cat( [target_encode2,src_encode], 1 )
+        
+        merged_encode = torch.cat( [target_encode,src_encode], 1 )
         if self.multi_gpu:
             merged_encode = merged_encode.cuda(self.gpuid2)
-            #merged_encod2 = merged_encode2.cuda(self.gpuid2)
-            s0 = s0.cuda(self.gpuid2)
-            s1 = s1.cuda(self.gpuid2)
-            s2 = s2.cuda(self.gpuid2)
-            s3 = s3.cuda(self.gpuid2)
-            s4 = s4.cuda(self.gpuid2)
-            s5 = s5.cuda(self.gpuid2)
-            s6 = s6.cuda(self.gpuid2)
-            '''
             t0 = t0.cuda(self.gpuid2)
             t1 = t1.cuda(self.gpuid2)
             t2 = t2.cuda(self.gpuid2)
@@ -393,49 +382,33 @@ class LArFlowUResNet(nn.Module):
             t4 = t4.cuda(self.gpuid2)
             t5 = t5.cuda(self.gpuid2)
             t6 = t6.cuda(self.gpuid2)
-
-            tt0 = tt0.cuda(self.gpuid2)
-            tt1 = tt1.cuda(self.gpuid2)
-            tt2 = tt2.cuda(self.gpuid2)
-            tt3 = tt3.cuda(self.gpuid2)
-            tt4 = tt4.cuda(self.gpuid2)
-            tt5 = tt5.cuda(self.gpuid2)
-            tt6 = tt6.cuda(self.gpuid2)
-            '''
+            s0 = s0.cuda(self.gpuid2)
+            s1 = s1.cuda(self.gpuid2)
+            s2 = s2.cuda(self.gpuid2)
+            s3 = s3.cuda(self.gpuid2)
+            s4 = s4.cuda(self.gpuid2)
+            s5 = s5.cuda(self.gpuid2)
+            s6 = s6.cuda(self.gpuid2)
+        
         flowout = self.flow( merged_encode, s0, s1, s2, s3, s4, s5, s6 )
-        flowout2 = self.flow( merged_encode, s0, s1, s2, s3, s4, s5, s6 )
 
         if self.use_visi:
             visiout = self.visibility( merged_encode, t0, t1, t2, t3, t4, t5, t6 )
-            visiout2 = self.visibility( merged_encode, t0, t1, t2, t3, t4, t5, t6 )
 
-        if self.multi_gpu:
-            flowout = flowout.cuda(self.gpuid1)
-            flowout2 = flowout2.cuda(self.gpuid1)            
-    
         flow_predict = self.flow_conv( flowout )
-        flow_predict2 = self.flow_conv( flowout2 )
-        '''
         if self.multi_gpu:
-            flow_predict = flow_predict.cuda(self.gpuid1)
-            flow_predict2 = flow_predict2.cuda(self.gpuid1)            
-        '''
+            flow_predict = flow_predict.cuda(self.gpuid1)            
         if self.use_visi:
             visi_predict = self.visi_conv( visiout )
             visi_predict = self.visi_softmax(visi_predict)
             visi_predict = visi_predict.cuda(self.gpuid1)
-            visi2_predict = self.visi_conv( visiout2 )
-            visi2_predict = self.visi_softmax(visi2_predict)
-            visi2_predict = visi2_predict.cuda(self.gpuid1)
-
         else:
             visi_predict = None
-            visi2_predict = None
         
         #if self._showsizes:
         #    print "  softmax: ",visi_predict.size()
 
         #print flow_predict.is_cuda, visi_predict.is_cuda    
-        return flow_predict,flow_predict2,visi_predict,visi2_predict
+        return flow_predict,visi_predict
 
 
