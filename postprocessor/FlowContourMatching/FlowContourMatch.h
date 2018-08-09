@@ -54,15 +54,17 @@ namespace larflow {
 
     // internal data structures and types
     // ----------------------------------
-    typedef enum { kY2U=0, kY2V } FlowDirection_t;
-    typedef std::array<int,2> SrcTarPair_t; // pair of source and target contour indices
+    typedef enum { kY2U=0, kY2V } FlowDirection_t; // indicates flow pattern
+    typedef std::array<int,2> SrcTarPair_t;        // pair of source and target contour indices
     struct HitFlowData_t {
+      // information about a hit's match from source to target plane
+      // filled in _make3Dhits function
       HitFlowData_t() : hitidx(-1), maxamp(-1.0), srcwire(-1), targetwire(-1), pixtick(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
-      int hitidx;    // index of hit in event_hit vector
-      float maxamp;  // maximum amplitude
-      int srcwire;    // source image pixel: column
-      int targetwire; // target image pixel: column
-      int pixtick;    // image pixel: row
+      int hitidx;       // index of hit in event_hit vector
+      float maxamp;     // maximum amplitude
+      int srcwire;      // source image pixel: column
+      int targetwire;   // target image pixel: column
+      int pixtick;      // image pixel: row
       int matchquality; // match quality (1,2,3)
       int dist2center;  // distance of source pixel to center of y
       int dist2charge;  // distance in columns from target pixel to matched charge pixel
@@ -70,6 +72,10 @@ namespace larflow {
       int tar_ctr_idx;  // this becomes outdated once image changes up
     };
     struct ClosestContourPix_t {
+      // stores info about the contours nearby to the point where
+      // the flow prediction lands in the target plane.
+      // we use this info to sort
+      // and choose the contour to build a 3D hit with
       int ctridx;
       int dist;
       int col;
@@ -80,9 +86,11 @@ namespace larflow {
   
     FlowContourMatch();
     virtual ~FlowContourMatch();
-    void clear( bool clear2d=true, bool clear3d=true );
+    void clear( bool clear2d=true, bool clear3d=true ); // clear2d and clear3d
 
-    // algorithm function
+    // algorithm functions
+
+    // the unit that we match with the flow is the hit
     void match( FlowDirection_t flowdir,
 		const larlitecv::ContourCluster& contour_data,
 		const larcv::Image2D& src_adc,
@@ -90,6 +98,15 @@ namespace larflow {
 		const larcv::Image2D& flow_img,
 		const larlite::event_hit& hit_v,
 		const float threshold );
+
+    // the unit that we match with the flow is the pixel
+    // we will use the source image to create hits, which we pass to the flow
+    void matchPixels( FlowDirection_t flowdir,
+		      const larlitecv::ContourCluster& contour_data,
+		      const larcv::Image2D& src_adc, 
+		      const larcv::Image2D& tar_adc,
+		      const larcv::Image2D& flow_img,
+		      const float threshold );
     std::vector< FlowMatchHit3D > get3Dhits();
     std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata );    
     
@@ -114,7 +131,10 @@ namespace larflow {
     // debug/visualization
     void dumpMatchData();
     TH2D& plotScoreMatrix();
-    
+
+
+    // internal data members
+    // ----------------------
     std::map< SrcTarPair_t, FlowMatchData_t > m_flowdata; //< for each source,target contour pair, data about their connects using flow info
 
     int m_src_ncontours;      //< number of contours on source image
@@ -123,15 +143,19 @@ namespace larflow {
     TH2D* m_plot_scorematrix; //< histogram of score matrix for visualization
 
     struct TargetPix_t {
+      //< information to store target pixel information. target comes from flow predictions.
       float row;
       float col;
       float srccol;
-    }; //< information to store target pixel information. target comes from flow predictions.
+    }; 
     typedef std::vector<TargetPix_t> ContourTargets_t; //< list of target pixel info
     std::map< int, ContourTargets_t > m_src_targets;   //< for each source contour, a list of pixels in the source+target views that have been matched
 
-    const larcv::ImageMeta* m_srcimg_meta;
-    const larcv::ImageMeta* m_tarimg_meta;
+    const larcv::Image2D*   m_src_img;     // pointer to input source image
+    const larcv::Image2D*   m_flo_img;     // pointer to input flow prediction
+    const larcv::ImageMeta* m_srcimg_meta; // pointer to source image meta
+    const larcv::Image2D*   m_tar_img;     // pointer to input target image
+    const larcv::ImageMeta* m_tarimg_meta; // pointer to target image meta
     int* m_src_img2ctrindex; //< array associating (row,col) to source contours
     int* m_tar_img2ctrindex; //< array associating (row,col) to target contours
 

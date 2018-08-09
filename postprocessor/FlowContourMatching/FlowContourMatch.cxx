@@ -53,7 +53,7 @@ namespace larflow {
   }
 
   // ==================================================================================
-  // Primary Algo Interface
+  // Primary Interfaces
   // -----------------------
   void FlowContourMatch::match( FlowDirection_t flowdir,
 				const larlitecv::ContourCluster& contour_data,
@@ -98,8 +98,51 @@ namespace larflow {
     _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_hit2flowdata );
 
   }
-  
-  
+
+
+  void FlowContourMatch::matchPixels( FlowDirection_t flowdir,
+				      const larlitecv::ContourCluster& contour_data,
+				      const larcv::Image2D& src_adc,
+				      const larcv::Image2D& tar_adc,
+				      const larcv::Image2D& flow_img,
+				      const float threshold ) {
+    // instead of hits, which can be too sparsely defined,
+    // we match pixels (or maybe eventually groups of pixels).
+    // we take in the input image, define a vector of hits, and then
+    // run the matching algorithm by calling match(...)
+    //
+    // inputs
+    // ------
+    // flowdir: indicate the flow pattern
+    // contour_data: clusters defined by ContourCluster
+    // src_adc: source ADC image
+    // tar_adc: target ADC image
+    // flow_img: flow predictions in image format
+    // threshold: ADC threshold
+    //
+    // outputs
+    // -------
+    // (implicit): populate internal
+
+    std::vector<larlite::hit> pixhit_v;
+    // we loop over all source pixels and make "hits" for all pixels above threshold
+    for (int irow=0; irow<(int)src_adc.meta().rows(); irow++) {
+      float hit_tick = src_adc.meta().pos_y( irow )-2400.0;
+      
+      for (int icol=0; icol<(innt)src_adc.meta().cols(); icol++) {
+	float wire = src_adc.meta().pos_x( icol );
+	
+	larlite::hit h;
+	h.set
+      }
+    }
+    
+  }
+
+  // ==================================================================================
+  // Algorithm (internal) Methods
+  // -----------------------------
+    
   void FlowContourMatch::_createMatchData( const larlitecv::ContourCluster& contour_data,
 					   const larcv::Image2D& flow_img,
 					   const larcv::Image2D& src_adc,

@@ -54,21 +54,22 @@ void event_changeout( larlite::storage_manager& dataco_output,
   for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
 
-    // std::cout << "hitidx[" << flowhit.idxhit << "] "
-    // 	      << "from wire-p2=" << flowhit.srcwire
-    // 	      << " wire-p0=" << flowhit.targetwire;
 
     if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
       continue;
     if ( flowhit.targetwire<0 || flowhit.targetwire>=2399 )
       continue;
+
+    std::cout << "hitidx[" << flowhit.idxhit << "] "
+    	      << "from wire-p2=" << flowhit.srcwire
+    	      << " wire-p0=" << flowhit.targetwire;    
     
     // need to get (x,y,z) position
     Double_t x = (flowhit.tick-3200.0)*cm_per_tick;    
     Double_t y;
     Double_t z;
     geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire, 2, 0, y, z );
-    //std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
+    std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
     
     larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
     ev_spacepoint_y2u->emplace_back( std::move(sp) );
@@ -179,7 +180,8 @@ int main( int nargs, char** argv ) {
     cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
 
-    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+    //matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
 
     if ( kVISUALIZE ) {
     
