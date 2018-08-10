@@ -129,11 +129,11 @@ namespace larflow {
     for (int irow=0; irow<(int)src_adc.meta().rows(); irow++) {
       float hit_tick = src_adc.meta().pos_y( irow )-2400.0;
       
-      for (int icol=0; icol<(innt)src_adc.meta().cols(); icol++) {
+      for (int icol=0; icol<(int)src_adc.meta().cols(); icol++) {
 	float wire = src_adc.meta().pos_x( icol );
 	
 	larlite::hit h;
-	h.set
+	//h.set
       }
     }
     

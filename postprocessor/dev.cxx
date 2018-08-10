@@ -99,7 +99,7 @@ int main( int nargs, char** argv ) {
   std::string input_reco2d_file   = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file = "output_flowmatch_larlite.root";
   
-  bool kVISUALIZE = false;
+  bool kVISUALIZE = true;
 
   // data from larflow output: sequence of images
   larlitecv::DataCoordinator dataco;
@@ -180,8 +180,8 @@ int main( int nargs, char** argv ) {
     cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
 
-    //matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
-    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
+    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+    //matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
 
     if ( kVISUALIZE ) {
     
@@ -348,18 +348,18 @@ int main( int nargs, char** argv ) {
 	gtarhits.SetMarkerSize(1);
 	gtarhits.SetMarkerStyle(21);
 	gtarhits.SetMarkerColor(kBlack);
-	gtarhits.Draw("P");
+	//gtarhits.Draw("P");
 	
 	c.Update();
 	c.Draw();
 	std::cout << "[ENTER] for next contour." << std::endl;
-	//std::cin.get();
+	std::cin.get();
       }
     }//end of visualize
 
     //break;
     std::cout << "[ENTER] for next entry." << std::endl;
-    //std::cin.get();
+    std::cin.get();
 
   }
 
