@@ -2,6 +2,10 @@
 
 #include <exception>
 
+// larlite
+#include "LArUtil/Geometry.h"
+
+// larcv2
 #include "larcv/core/DataFormat/ImageMeta.h"
 
 #include "TH2D.h"
@@ -105,7 +109,8 @@ namespace larflow {
 				      const larcv::Image2D& src_adc,
 				      const larcv::Image2D& tar_adc,
 				      const larcv::Image2D& flow_img,
-				      const float threshold ) {
+				      const float threshold,
+				      larlite::event_hit& evhit_v ) {
     // instead of hits, which can be too sparsely defined,
     // we match pixels (or maybe eventually groups of pixels).
     // we take in the input image, define a vector of hits, and then
@@ -122,23 +127,62 @@ namespace larflow {
     //
     // outputs
     // -------
-    // (implicit): populate internal
+    // (implicit): populate internal data members
+    // pixhit_v (by address): vector of hits created from above threshold pixels
 
-    std::vector<larlite::hit> pixhit_v;
+    evhit_v.clear();
+    evhit_v.reserve(1000);
+    
     // we loop over all source pixels and make "hits" for all pixels above threshold
+    int ihit = 0;
     for (int irow=0; irow<(int)src_adc.meta().rows(); irow++) {
       float hit_tick = src_adc.meta().pos_y( irow )-2400.0;
       
       for (int icol=0; icol<(int)src_adc.meta().cols(); icol++) {
-	float wire = src_adc.meta().pos_x( icol );
+	float pixval = src_adc.pixel( irow, icol );
+	if (pixval<threshold )
+	  continue;
+	
+	int wire = src_adc.meta().pos_x( icol );
+
+	// make fake hit from pixel
 	
 	larlite::hit h;
-	//h.set
+	h.set_rms( 1.0 );
+	h.set_time_range( hit_tick-1, hit_tick+1 );
+	h.set_time_peak( hit_tick, 1.0 );
+	h.set_time_rms( 1.0 );
+	h.set_amplitude( pixval, sqrt(pixval) );
+	h.set_integral( pixval, sqrt(pixval) );
+	h.set_sumq( pixval );
+	h.set_multiplicity( 1 );
+	h.set_local_index( ihit );
+	h.set_goodness( 1.0 );
+	h.set_ndf( 1 );
+
+	larlite::geo::WireID wireid( 0, 0, src_adc.meta().id(), wire );
+	int ch = larutil::Geometry::GetME()->PlaneWireToChannel( wireid.Plane, wireid.Wire );
+	h.set_channel( ch );
+	h.set_view( (larlite::geo::View_t)wireid.Plane );
+	h.set_wire( wireid );
+	h.set_signal_type( larutil::Geometry::GetME()->SignalType( ch ) );
+	evhit_v.emplace_back( std::move(h) );
+	
+	ihit++;
       }
     }
     
-  }
+    // now perform matching algo
+    match( flowdir,
+	   contour_data,
+	   src_adc,
+	   tar_adc,
+	   flow_img,
+	   evhit_v, 
+	   threshold );
 
+  }
+  
   // ==================================================================================
   // Algorithm (internal) Methods
   // -----------------------------

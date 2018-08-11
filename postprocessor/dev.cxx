@@ -100,6 +100,8 @@ int main( int nargs, char** argv ) {
   std::string output_larlite_file = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = true;
+  bool use_hits = false;
+  bool use_truth = false;
 
   // data from larflow output: sequence of images
   larlitecv::DataCoordinator dataco;
@@ -180,8 +182,19 @@ int main( int nargs, char** argv ) {
     cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
 
-    matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
-    //matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
+    larlite::event_hit pixhits_v;
+    if ( use_hits ) {
+      if ( !use_truth )
+	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+      else
+	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
+    }
+    else {
+      if ( !use_truth )
+	matching_algo.matchPixels( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], 10.0, pixhits_v );
+      else
+	matching_algo.matchPixels( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], 10.0, pixhits_v );
+    }
 
     if ( kVISUALIZE ) {
     
@@ -348,7 +361,7 @@ int main( int nargs, char** argv ) {
 	gtarhits.SetMarkerSize(1);
 	gtarhits.SetMarkerStyle(21);
 	gtarhits.SetMarkerColor(kBlack);
-	//gtarhits.Draw("P");
+	gtarhits.Draw("P");
 	
 	c.Update();
 	c.Draw();

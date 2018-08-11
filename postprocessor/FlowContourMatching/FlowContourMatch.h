@@ -106,7 +106,8 @@ namespace larflow {
 		      const larcv::Image2D& src_adc, 
 		      const larcv::Image2D& tar_adc,
 		      const larcv::Image2D& flow_img,
-		      const float threshold );
+		      const float threshold,
+		      larlite::event_hit& hit_v );		      
     std::vector< FlowMatchHit3D > get3Dhits();
     std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata );    
     
