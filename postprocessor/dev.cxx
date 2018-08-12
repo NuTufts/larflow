@@ -96,18 +96,24 @@ int main( int nargs, char** argv ) {
   //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
   std::string input_larflow_file  = "../testdata/larcv_larflow_test_5482426_95.root";
+  std::string input_supera_file   = "../testdata/larcv_5482426_95.root";  
   std::string input_reco2d_file   = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
   bool use_hits  = false;
-  bool use_truth = false;
+  bool use_truth = true;
 
-  // data from larflow output: sequence of images
+  // data from larflow output: sequence of cropped images
   larlitecv::DataCoordinator dataco;
   dataco.add_inputfile( input_larflow_file, "larcv" );
   dataco.initialize();
 
+  // data from whole-view image
+  larlitecv::DataCoordinator dataco_whole;
+  dataco_whole.add_inputfile( input_supera_file, "larcv" );
+  dataco_whole.initialize();
+  
   // hit (and mctruth) event data
   larlitecv::DataCoordinator dataco_hits;
   dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
@@ -121,7 +127,8 @@ int main( int nargs, char** argv ) {
   // cluster algo
   larlitecv::ContourCluster cluster_algo;
   larflow::FlowContourMatch matching_algo;
-  
+  larlite::event_hit pixhits_v;
+    
   int nentries = dataco.get_nentries( "larcv" );
 
   int current_runid    = -1;
@@ -142,24 +149,33 @@ int main( int nargs, char** argv ) {
 
       // clear the algo
       matching_algo.clear();
-
+      pixhits_v.clear();
+      
       // set the current rse
       current_runid    = runid;
       current_subrunid = subrunid;
       current_eventid  = eventid;
 
+
       std::cout << "Event turn over. [enter] to continue." << std::endl;
       std::cin.get();      
     }
     
-    
     // sync up larlite data
     dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
+
+    // load up the whole-view images from the supera file
+    dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
+    
   
     // larflow input data
     larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "adc");
     larcv::EventImage2D* ev_flow      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
     const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
+
+    // supera images
+    larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
+    const std::vector<larcv::Image2D>& whole_v = ev_wholeimg->image2d_array();
     
     // event data
     const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco_hits.get_larlite_data(larlite::data::kHit, "gaushit"));
@@ -182,7 +198,6 @@ int main( int nargs, char** argv ) {
     cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
 
-    larlite::event_hit pixhits_v;
     if ( use_hits ) {
       if ( !use_truth )
 	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
@@ -191,11 +206,12 @@ int main( int nargs, char** argv ) {
     }
     else {
       // make hits from whole image
-      //matching_algo.makeHitsFromWholeImagePixels( wire_v[2], pixhits_v );
+      if ( pixhits_v.size()==0 )
+	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
       if ( !use_truth )
-	matching_algo.matchPixels( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], 10.0, pixhits_v );
+	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], pixhits_v, 10.0 );
       else
-	matching_algo.matchPixels( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], 10.0, pixhits_v );
+	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], pixhits_v, 10.0 );
     }
 
     if ( kVISUALIZE ) {
