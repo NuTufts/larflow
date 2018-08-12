@@ -108,8 +108,8 @@ namespace larflow {
 		      const larcv::Image2D& flow_img,
 		      const float threshold,
 		      larlite::event_hit& hit_v );		      
-    std::vector< FlowMatchHit3D > get3Dhits();
-    std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata );    
+    std::vector< FlowMatchHit3D > get3Dhits( bool makehits_for_nonmatches=true );
+    std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
     
     // algorithm sub-functions
     void _createMatchData( const larlitecv::ContourCluster& contour_data,
@@ -133,6 +133,10 @@ namespace larflow {
     void dumpMatchData();
     TH2D& plotScoreMatrix();
 
+
+    // algorithm parameters
+    // --------------------
+    int kTargetChargeRadius; // number of pixels around flow prediction to look for charge pixel
 
     // internal data members
     // ----------------------

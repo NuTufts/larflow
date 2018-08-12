@@ -99,8 +99,8 @@ int main( int nargs, char** argv ) {
   std::string input_reco2d_file   = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file = "output_flowmatch_larlite.root";
   
-  bool kVISUALIZE = true;
-  bool use_hits = false;
+  bool kVISUALIZE = false;
+  bool use_hits  = false;
   bool use_truth = false;
 
   // data from larflow output: sequence of images
@@ -190,6 +190,8 @@ int main( int nargs, char** argv ) {
 	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
     }
     else {
+      // make hits from whole image
+      //matching_algo.makeHitsFromWholeImagePixels( wire_v[2], pixhits_v );
       if ( !use_truth )
 	matching_algo.matchPixels( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], 10.0, pixhits_v );
       else
@@ -371,8 +373,8 @@ int main( int nargs, char** argv ) {
     }//end of visualize
 
     //break;
-    std::cout << "[ENTER] for next entry." << std::endl;
-    std::cin.get();
+    //std::cout << "[ENTER] for next entry." << std::endl;
+    //std::cin.get();
 
   }
 

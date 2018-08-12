@@ -30,7 +30,10 @@ namespace larflow {
     m_score_matrix = NULL;
     m_plot_scorematrix = NULL;
     m_src_img2ctrindex = NULL;
-    m_tar_img2ctrindex = NULL;    
+    m_tar_img2ctrindex = NULL;
+
+    // parameters: see header for descriptions
+    kTargetChargeRadius = 2;
   }
 
   FlowContourMatch::~FlowContourMatch() {
@@ -149,7 +152,7 @@ namespace larflow {
 	
 	larlite::hit h;
 	h.set_rms( 1.0 );
-	h.set_time_range( hit_tick-1, hit_tick+1 );
+	h.set_time_range( hit_tick, hit_tick );
 	h.set_time_peak( hit_tick, 1.0 );
 	h.set_time_rms( 1.0 );
 	h.set_amplitude( pixval, sqrt(pixval) );
@@ -191,6 +194,22 @@ namespace larflow {
 					   const larcv::Image2D& flow_img,
 					   const larcv::Image2D& src_adc,
 					   const larcv::Image2D& tar_adc ) {
+
+    // we compile the relationships between pixels and the different contour-clusters
+    // the goal is to start to see what contours on source and target imager are paired together
+    //   through flow predictions
+    // things we fill
+    // --------------
+    // m_src_img2ctrindex: 2D array. position of array corresponds to position of src_adc img.
+    //                     value is the index to a contour.
+    // m_tar_img2ctrindex: same as above, but for target image
+    // m_srcimg_meta: pointer to source image meta
+    // m_tarimg_meta: pointer to target image meta
+    // m_src_targets: map between contour index and a ContourTargets_t object.
+    //                contourtargets object is a container storing TargetPix_t.
+    //                TargetPix_t stores info about source -> target pixel pair from the flow predictions
+    // m_flowdata: map between src-target contour pair to FlowMatchData_t which contains score
+    
 
     int src_planeid = src_adc.meta().id();
     int tar_planeid = tar_adc.meta().id();
@@ -331,6 +350,16 @@ namespace larflow {
   }
 
   void FlowContourMatch::_scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid ) {
+    // takes src-target contour pairs and starts to calculate scores
+    // scores are based on what fraction of pixels get matched from source to the target contour
+    //
+    // results use m_flowdata information
+    //
+    // things we fill
+    // --------------
+    // m_score_matrix: (src,target) contour index are the pos. in the array/matrix. value is score
+    //
+    
     m_src_ncontours = contour_data.m_plane_atomics_v[src_planeid].size();
     m_tar_ncontours = contour_data.m_plane_atomics_v[tar_planeid].size();
     std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -379,6 +408,9 @@ namespace larflow {
   void FlowContourMatch::_greedyMatch() {
     // goal is to assign a cluster on the
     // source plane purely to one on the target
+    //
+    // this function modifies m_score_matrix
+    //
     
     for (int is=0; is<m_src_ncontours; is++) {
       float max_s = -1.0;
@@ -448,6 +480,11 @@ namespace larflow {
     // inputs
     // ------
     // hit_v: vector of hits found on the different planes
+    // srcimg_adc: source ADC image
+    // tar_adc: target ADC image
+    // src_plane: plane ID of source image
+    // tar_plane: plane ID of target image
+    // threshold: ADC threshold used to determine if landed on pixel w/ charge
     //
     // implicit input from class members
     // ----------------------------------
@@ -458,20 +495,19 @@ namespace larflow {
     //
     // outputs
     // -------
-    // returned: vector 3D hits
+    // hit2flowdata: this vector is constant for a whole event image, and gets updated for each sub-image.
+    //   it stores where we think we should put the target hit -- note this might be a modification of the
+    //   the initial flow prediction
     //
     // description of method
     // ---------------------
     // 1) loop over hits
     // 2) for each hit, determine if it is within a source contour using m_src_img2ctrindex
     // 3) using flow image, determine target pixel
-    // 4) using m_score_matrix, make list of target contour indices that connected with source contour
-    // 5) determine match quality
-    // 6) depending on match quality, determine matching target column
-    // 7) convert source and target columns into wires, row into ticks
-    // 8) turn that information, make 3D hit position (X-axis relative to trigger time)
-    // 9) ???
-    // 9) profit
+    // 4) determine match quality
+    // 5) depending on match quality, determine matching target column
+    // 6) convert source and target columns into wires, row into ticks
+    // 7) turn that information, make 3D hit position (X-axis relative to trigger time)
     
     if ( hit2flowdata.size()!=hit_v.size() ) {
       hit2flowdata.clear();
@@ -515,37 +551,39 @@ namespace larflow {
       }
 
       
-      // transfor wire and ticks into col and row
+      // translate wire and ticks into col and row
       int wirecol  = m_srcimg_meta->col( wire );
       int rowstart = m_srcimg_meta->row( hit_tstart );
       int rowend   = m_srcimg_meta->row( hit_tend );
 
       std::cout << "---------------------------------------" << std::endl;
-      std::cout << "valid hit: wire=" << wire << " wirecol=" << wirecol 
+      std::cout << "valid hit: idx=" << hitidx << " wire=" << wire << " wirecol=" << wirecol 
 		<< " tickrange=[" << hit_tstart << "," << hit_tend << "]"
 		<< " rowrange=["  << rowstart << "," << rowend << "]"
 		<< std::endl;
 
-      // ok we are in the image. check the contours.
-      // we loop through contours and check if any of their pixels are inside the hit tick range.
+      // ok out hit is in the image. check the contours.
+      // we loop through source image contours and check if any of their pixels are inside the hit tick range.
       bool foundcontour = false;
       int  sourcecontourindex = -1;
       for ( auto const& it_ctr : m_src_targets ) {
 	int src_ctridx = it_ctr.first; // source image contour index
 	const ContourTargets_t& ctrtargets = it_ctr.second; // list of src and target pixels
 
-	// loop over pixels within this source contour, find those that fit within hit
+	// loop over pixels within this source contour, find those that fit within given hit above
 	for ( auto const& pixinfo : ctrtargets ) {
 	  //std::cout << "  srcctr[" << src_ctridx << "] (" << pixinfo.row << "," << pixinfo.srccol << ")" << std::endl;
 	  
-	  if ( wirecol!=pixinfo.srccol ) // source contour pixel does not match, skip
+	  if ( wirecol!=pixinfo.srccol ) {
+	    //std::cout << "source contour pixel does not match, skip. wirecol=" << wirecol << " pixinfo.srccol=" << pixinfo.srccol << std::endl;
 	    continue;
+	  }
 	  if ( rowstart <= pixinfo.row && pixinfo.row <= rowend ) {
 	    // found the overlap
 	    sourcecontourindex = src_ctridx;
 	    foundcontour = true;
 
-	    std::cout << "pixel within hit. source contour=" << src_ctridx
+	    std::cout << "source pixel within hit. source contour=" << src_ctridx
 		      << " source(r,c)=(" << pixinfo.row << "," << pixinfo.srccol << ")"
 		      << " target(r,c)=(" << pixinfo.row << "," << pixinfo.col << ")"
 		      << std::endl;
@@ -559,21 +597,25 @@ namespace larflow {
 	    // 1-best) target pixel inside (primary?) contour and on charge
 	    // 2) target pixel inside contour -- find closest charge inside contour
 	    // 3) target pixel outside contour -- find closest charge inside best-score contour
+	    // x) can provide a null result too. when truth is in dead region, the resulting hit can often be poor.
+	    //    eventually we would use matchability here. alternatively, during tracking pass, we can infer if
+	    //    next step is inside dead region. if flow prediction at this point is wildly off, then we throw
+	    //    out hit. but there is nothing one can do for that approach here.
 	    
 	    // get the data for this hit
 	    HitFlowData_t& hitdata = hit2flowdata[hitidx];
 
 	    // so we first calculate the hit quality, using the flow, src image, target image,
 	    //  and src-target contour matches (via score matrix)
-	    int matchquality = -1; // <<
+	    int matchquality = -1; // << starting value
 	    int pastquality  = hitdata.matchquality;
 	    int dist2center  = abs( pixinfo.srccol - m_srcimg_meta->cols()/2 );
 	    int dist2charge  = -1;
 	    std::cout << "  -- past hitquality=" << pastquality << std::endl;
 	    
 	    // does target point to charge? look within a range of wires
-	    int tarcolmin = pixinfo.col-2;
-	    int tarcolmax = pixinfo.col+2;
+	    int tarcolmin = pixinfo.col-kTargetChargeRadius;
+	    int tarcolmax = pixinfo.col+kTargetChargeRadius;
 	    if ( tarcolmin<0 )
 	      tarcolmin = 0;
 	    if ( tarcolmax>=(int)m_tarimg_meta->cols() )
@@ -581,7 +623,7 @@ namespace larflow {
 
 	    // we look for the peak adc value between tarcolmin and tarcolmax
 	    float target_adc = 0; // <<
-	    int   target_col = 0; // <<
+	    int   target_col = pixinfo.col; // << default, set to flow prediction
 	    bool oncharge = false;
 	    for (int tarcol=tarcolmin; tarcol<=tarcolmax; tarcol++) {
 	      float tadc = tar_adc.pixel( pixinfo.row, tarcol );
@@ -600,21 +642,29 @@ namespace larflow {
 	    if ( target_contour>0 ) {
 	      incontour = true;
 	    }
-	    
-	    // quality level 1: oncharge and incontour
+
+	    // CONDITIONS FOR QUALITY LEVEL
 	    if ( incontour && oncharge ) {
+	      // quality level 1: oncharge and incontour	      
 	      matchquality = 1;
 	      dist2charge = 0;
 	      std::cout << "  -- hit quality=1 " << " past(" << pastquality << ") " << std::endl;
-	    }
+	    }//end of quality 1 condition
 	    else if ( incontour && !oncharge && (pastquality<0 || pastquality>=2) ) {
+	      // quality level 2: incontour but not on charge
+	      
 	      // we calculate the matched pixel for this case if in the past we didnt get a better match
 	      matchquality = 2;
 	      std::cout << "  -- hit quality=2 " << " past(" << pastquality << ") " << std::endl;
 		      
 	      // we look for the closest pixel inside the contour that has charge, and that is what we match to
 	      int possearch_col = target_col+1;
-	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<30 ) {
+	      if ( possearch_col<0 )
+		possearch_col = 0;
+	      if ( possearch_col>=m_tarimg_meta->cols() )
+		possearch_col = m_tarimg_meta->cols()-1;	      
+	      
+	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<30 && possearch_col>target_col) {
 		if ( m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + possearch_col) ]==target_contour ) {
 		  // column in contour
 		  float tadc = tar_adc.pixel( pixinfo.row, possearch_col );
@@ -626,7 +676,12 @@ namespace larflow {
 	      }
 	      
 	      int negsearch_col = target_col-1;
-	      while ( negsearch_col>=0 && target_col-negsearch_col<30 ) {	      
+	      if ( negsearch_col<0 )
+		negsearch_col = 0;
+	      if ( negsearch_col>=m_tarimg_meta->cols() )
+		negsearch_col = m_tarimg_meta->cols()-1;	      
+
+	      while ( negsearch_col>=0 && target_col-negsearch_col<30 && negsearch_col < target_col  ) {	      
 		if ( m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + negsearch_col) ]==target_contour ) {
 		  // column in contour
 		  float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
@@ -636,6 +691,8 @@ namespace larflow {
 		}
 		negsearch_col--;
 	      }
+
+	      // bound results
 	      if ( negsearch_col<0 )
 		negsearch_col = 0;
 	      if ( possearch_col>=m_tarimg_meta->cols() )
@@ -654,22 +711,29 @@ namespace larflow {
 	      }
 	      target_adc = tar_adc.pixel( pixinfo.row, target_col );
 	      
-	    }
+	    }// end of quality 2
 	    else if ( !incontour && (pastquality<0 || pastquality>=3) ) {
+	      // quality 3: out of contour and out of charge
 	      // we calculate the matched pixel for this case if in the past we didnt get a better match
+	      // doing the best we can
 	      matchquality = 3;
-	      std::cout << "  -- hit quality=3 " << " past(" << pastquality << ") " << std::endl;
+	      std::cout << "  -- hit quality=3 " << " past(" << pastquality << ") starting search from target_col=" << target_col << std::endl;
 	      
 	      // check the best matching contour first for charge to match
-	      // we find closest charge on row for all match contours.
+	      // we search in a neighborhood around the predicted point
+	      // we track all the contours we cross into
+	      // we use the contour with the best value from m_score_matrix
 	      // take the pixel using the best match
 	      std::vector<ClosestContourPix_t> matched_contour_list;
 	      std::set<int> used_contours;
-	      
+
+	      bool found_candidate_contour = false;
 	      int possearch_col = target_col+1;
+	      if ( possearch_col<0 )
+		possearch_col = 0;
 	      if ( possearch_col>=m_tarimg_meta->cols() )
 		possearch_col = m_tarimg_meta->cols()-1;	      
-	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<50 ) {
+	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col>target_col && possearch_col-target_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, possearch_col );		
 		if ( tadc > threshold )  {
 		  int target_contour_idx = m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + possearch_col) ];
@@ -683,14 +747,17 @@ namespace larflow {
 		    close_ctr_info.scorematch = m_score_matrix[ int(src_ctridx*m_tar_ncontours + target_contour_idx) ];
 		    matched_contour_list.push_back( close_ctr_info );
 		    used_contours.insert( target_contour_idx );
+		    found_candidate_contour = true;
 		  }
 		}
 		possearch_col++;
 	      }//end of pos loop
 	      int negsearch_col = target_col-1;
 	      if ( negsearch_col<0 )
-		negsearch_col = 0;	      
-	      while ( negsearch_col>=0 && target_col-negsearch_col<50 ) {
+		negsearch_col = 0;
+	      if ( negsearch_col>=m_tarimg_meta->cols() )
+		negsearch_col = m_tarimg_meta->cols()-1;	      
+	      while ( negsearch_col>=0 && target_col-negsearch_col<50 && negsearch_col < target_col) {
 		float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
 		if (  tadc > threshold )  {
 		  int target_contour_idx = m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + negsearch_col) ];
@@ -703,35 +770,44 @@ namespace larflow {
 		    close_ctr_info.adc  = tadc;		    
 		    close_ctr_info.scorematch = m_score_matrix[ src_ctridx*m_tar_ncontours + target_contour_idx ];
 		    matched_contour_list.push_back( close_ctr_info );
-		    used_contours.insert( target_contour_idx );		    
+		    used_contours.insert( target_contour_idx );
+		    found_candidate_contour = true;
 		  }
 		}
 		negsearch_col--;
 	      }//end of neg loop
 	      
-	      // ok, now we pick the best one!
+	      // ok, now we pick the best one! if we found a candidate that is
 	      float best_score = 0.0;
 	      float best_adc = 0.0;
-	      int best_col;
-	      int best_dist;
-	      for ( auto& match : matched_contour_list ) {
-		if ( best_score < match.scorematch ) {
-		  best_col   = match.col;
-		  best_score = match.scorematch;
-		  best_dist  = match.dist;
-		  best_adc   = match.adc;
+	      int best_col  = -1;
+	      int best_dist = -1;
+	      if ( found_candidate_contour ) {
+		for ( auto& match : matched_contour_list ) {
+		  if ( best_score < match.scorematch ) {
+		    best_col   = match.col;
+		    best_score = match.scorematch;
+		    best_dist  = match.dist;
+		    best_adc   = match.adc;
+		  }
 		}
-	      }
 
-	      target_col  = best_col;
-	      dist2charge = best_dist;
-	      target_adc  = best_adc;
+		target_col  = best_col;
+		dist2charge = best_dist;
+		target_adc  = best_adc;
+	      }
+	      else {
+		// didn't find a nearby contour 
+		target_col = -1; // indicates that no good target found
+		matchquality = -1;
+	      }
 	    }
 
 	    // did we do better?
 	    bool update_hitdata = false;
-	    if ( matchquality>0 ) {
-	      //we found a case we did better or the same
+	    if ( matchquality>0 && target_col>=0 ) {
+	      // target_col<0 indicates no good target found (happens when true target pixel in dead region)
+	      //we found a case where we did better or the same
 
 	      if ( matchquality<pastquality || pastquality<0 )  {
 		// we did better. replace the hit
@@ -753,13 +829,30 @@ namespace larflow {
 	      }
 	      
 	    }
+
+	    if ( matchquality<0 && pastquality<0 ) {
+	      // matchquality is currenly not set still (didn't find a good match)
+	      // we want to set the default to for the hitdata
+	      hitdata.maxamp       = 0;
+	      hitdata.hitidx       = hitidx;
+	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
+	      hitdata.targetwire   = m_tarimg_meta->pos_x( pixinfo.col );
+	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
+	      hitdata.matchquality = -1;
+	      hitdata.dist2center  = 10000;  // large sentinal value
+	      hitdata.dist2charge  = 10000;  // large sentinal value
+	      hitdata.src_ctr_idx  = sourcecontourindex;
+	      hitdata.tar_ctr_idx  = -1;
+	      std::cout << "  -- set default for unmatched hit [srccol=" << pixinfo.srccol << "] [targetcol=" << pixinfo.col << "]" << std::endl;
+	    }
+	    
 	    
 	    if ( update_hitdata ) {
 	      std::cout << "  -- update hit flow data" << std::endl;
 	      hitdata.maxamp       = target_adc;
 	      hitdata.hitidx       = hitidx;
 	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
-	      hitdata.targetwire   = m_tarimg_meta->pos_x( pixinfo.col );
+	      hitdata.targetwire   = m_tarimg_meta->pos_x( target_col ); //< we used the column we found
 	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
 	      hitdata.matchquality = matchquality;
 	      hitdata.dist2center  = dist2center;
@@ -770,8 +863,13 @@ namespace larflow {
 	    
 	  }//if row within hit row range
 	}//end of ctrtargets pixel loop
-
+	
       }//end of loop over list of src-target pairs
+
+      // did it find a source contour?
+      if ( !foundcontour ) {
+	std::cout << "pixel src(r,c)=(" << (rowstart+rowend)/2 << "," << wirecol << ") does not have matching source contour." << std::endl;
+      }
       
     }//end of hit index loop
 
@@ -779,19 +877,22 @@ namespace larflow {
     return;
   }
 
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits() {
-    return get3Dhits( m_hit2flowdata );
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits( bool makehits_for_nonmatches ) {
+    // we convert the information we've compiled in m_hit2flowdata, which provides our best guess
+    //  as the correct source-column + target-column pair.
+    //  the objects of this container also contain info about matchquality
+    return get3Dhits( m_hit2flowdata, makehits_for_nonmatches );
   }
   
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata ) {
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches ) {
 
     // now we have, in principle, the best/modified flow prediction for hits that land on flow predictions
     // we can make 3D hits!
     std::vector<FlowMatchHit3D> output_hit3d_v;
     for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
       const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
-      if (  hitdata.matchquality<=0 ) {
-    	// no good match
+      if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
+	std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
     	continue;
       }
       // otherwise make a hit
@@ -800,8 +901,20 @@ namespace larflow {
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
       flowhit.targetwire = hitdata.targetwire;
-      //flowhit.src_ctrid   = hitdata.src_ctr_idx;
-      //flowhit.tar_ctrid   = hitdata.tar_ctr_idx;
+      switch ( hitdata.matchquality ) {
+      case 1:
+	flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	break;
+      case 2:
+	flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	break;
+      case 3:
+	flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	break;
+      default:
+	flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	break;
+      }
       output_hit3d_v.emplace_back( flowhit );
     }
 

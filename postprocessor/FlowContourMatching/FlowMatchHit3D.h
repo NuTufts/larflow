@@ -15,7 +15,7 @@ namespace larflow {
     FlowMatchHit3D() {};
     ~FlowMatchHit3D() {};
 
-    typedef enum { kQandCmatch=0, kCmatch, kClosestC } MatchQuality_t; // quality of match
+    typedef enum { kQandCmatch=0, kCmatch, kClosestC, kNoMatch } MatchQuality_t; // quality of match
     
     int tick;        // row
     int srcwire;     // column in source image
