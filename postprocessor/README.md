@@ -39,3 +39,40 @@ There are some options now, hard-coded of course.  You can look for the followin
 * `use_hits`: will use `gaushit` hits. If false, will make fake hits from the individual above threshold pixels
 
 To turn off the visualization change `kVISUALIZE` to `false`.
+
+## TO DO
+
+RECO
+
+* [done] import opencv-based contour clustering
+* [done] segment matching
+* [done] 3d hit generation
+* Both Y->U and Y->V
+* deciding which flow prediction to use for final set of 3d hits
+* 3d clustering
+* marking endpoint of clusters (extrema of pixels along the 1st PCA axis?)
+* ID boundary charge, i.e. (y,z) edges
+* ID endpoints of clusters consistent with anode/cathode crossing, i.e. (x edges)
+* thru-mu reco: astar algo with cylinder selection
+* stopmu reco: stitch clusters into tracks
+* flash-match: mark highly-consistent thrumu/stopmu tracks with out-of-time flash, veto
+* cluster remaining, non-tracked charge
+* optimize combinations of clusters and provide ranked list of those that are consistent with the in-time flash
+
+ANA
+
+* repurpose old-tagger's analysis scripts to get locations of true endpoints
+* analyze eff. and purity of end-point ID
+* analyze number of missing true hits and number of ghost hits
+* first goal? >80% cosmic tagged with >80% 1e1p neutrino pixel eff
+* purity targets?
+
+INFILL MERGER
+
+* prepare Katie's output into whole view image
+* use Katie's output. how?
+
+ENDPOINT MERGER
+
+* prepare Josh's output into whole view image
+* use Josh's output (will have false positive end-points)
