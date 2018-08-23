@@ -1,7 +1,6 @@
 # Weights
 
-
-## Location of weights
+## Development Weights `weights/dev`
 
 * Development larflow Y->U network. (~70% accuracy for <10 pixel matches.) [checkpoint_gpu=0]
 
@@ -28,6 +27,11 @@
       /cluster/tufts/wongjiradlab/twongj01/larflow/weights/dev/dev_endpoint_model_best_v.tar
 
 
+## Filtered
+
+Same as above, but the optimizer state has been removed and all weights are by default on the CPU first.
+
 ## Scripts
 
 * get all the dev weights [5.9 GB]: `get_all_dev_weights.sh`
+
