@@ -131,6 +131,7 @@ if __name__=="__main__":
         whole_view_parser.add_argument( "-v", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
         whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
         whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
+        whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
 
         args = whole_view_parser.parse_args(sys.argv)
         input_larcv_filename  = args.input
@@ -142,30 +143,32 @@ if __name__=="__main__":
         verbose               = args.verbose
         nprocess_events       = args.nevents
         stitch                = args.stitch
+        use_half              = args.use_half
     else:
 
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_larflow_test_5482426_95.root"
+        output_larcv_filename = "larcv_larflow_smalltest_5482426_95.root"
         # bnbmc+overlay
-        input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
-        output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
-        #checkpoint_data = "checkpoint_fullres_bigsample_11000th_gpu3.tar"
-        checkpoint_data = "checkpoint.20000th.tar"
-        batch_size = 2
-        gpuid = 1
+        #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
+        #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
+        #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
+        checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
+        batch_size = 1
+        gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = 1
+        nprocess_events = 3
         stitch = False
         ismc = False
+        use_half = True
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
     
     # load model
-    model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid )
+    model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid, use_half=use_half )
     model.to(device=torch.device("cuda:%d"%(gpuid)))
     model.eval()
 
@@ -347,8 +350,11 @@ if __name__=="__main__":
                 print "batch using ",len(image_meta)," slots"
         
             # filled batch, make tensors
-            source_t = torch.from_numpy( source_np ).to(device=torch.device("cuda:1"))
-            target_t = torch.from_numpy( target_np ).to(device=torch.device("cuda:1"))
+            source_t = torch.from_numpy( source_np ).to(device=torch.device("cuda:%d"%(gpuid)))
+            target_t = torch.from_numpy( target_np ).to(device=torch.device("cuda:%d"%(gpuid)))
+            if use_half:
+                source_t = source_t.half()
+                target_t = target_t.half()
             tformat = time.time()-tformat
             timing["+++format"] += tformat
             if verbose:
@@ -357,6 +363,7 @@ if __name__=="__main__":
             # run model
             trun = time.time()
             pred_flow, pred_visi = model.forward( source_t, target_t )
+            torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
             timing["+++run_model"] += trun
             if verbose:

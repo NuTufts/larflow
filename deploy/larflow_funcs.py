@@ -39,9 +39,11 @@ from larflow_uresnet import LArFlowUResNet
 
 # load model with weights from checkpoints
 
-def load_model( checkpointfile, gpuid=0, checkpointgpu=0 ):
+def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
 
     model = LArFlowUResNet(inplanes=32,input_channels=1,showsizes=False,use_visi=False)
+    if use_half:
+        model = model.half()
 
     # stored parameters know what gpu ID they were on
     # if we change gpuids, we need to force the map here
@@ -63,7 +65,20 @@ def load_model( checkpointfile, gpuid=0, checkpointgpu=0 ):
             name = k[7:] # remove `module.`
             new_state_dict[name] = v
         checkpoint["state_dict"] = new_state_dict
+    if use_half:
+        new_state_dict = OrderedDict()
+        for k, v in checkpoint["state_dict"].items():
+            new_state_dict[k] = v.half()
+        checkpoint["state_dict"] = new_state_dict
 
     model.load_state_dict(checkpoint["state_dict"])
 
     return model
+
+def unpack_checkpoint( checkpointfile ):
+    checkpoint = torch.load( checkpointfile, map_location=map_location )
+    print type(checkpoint)
+    for k,v in checkpoint.items():
+        print k
+
+
