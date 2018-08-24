@@ -76,6 +76,7 @@ class WholeImageLoader:
         LimitOverlap: false
         RequireMinGoodPixels: false
         MaxOverlapFraction: 0.2
+        UseVectorizedCode: false
         IsMC: {}
         """
         flowcrop_cfg = open("ublarflowcrop.cfg",'w')
