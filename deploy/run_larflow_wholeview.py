@@ -40,7 +40,7 @@ class WholeImageLoader:
         CoveredZWidth: 310
         FillCroppedYImageCompletely: true
         DebugImage: false
-        MaxImages: 55
+        MaxImages: -1
         RandomizeCrops: false
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
@@ -161,7 +161,7 @@ if __name__=="__main__":
         verbose = False
         nprocess_events = 3
         stitch = False
-        ismc = False
+        ismc = True
         use_half = True
 
     # load data
@@ -191,7 +191,8 @@ if __name__=="__main__":
     timing = OrderedDict()
     timing["total"]              = 0.0
     timing["+entry"]             = 0.0
-    timing["++load_larcv_data"]  = 0.0
+    timing["++load_larcv_data:ubsplitdet"]  = 0.0
+    timing["++load_larcv_data:ubcroplarflow"]  = 0.0
     timing["++alloc_arrays"]     = 0.0
     timing["+++format"]          = 0.0
     timing["+++run_model"]       = 0.0
@@ -215,6 +216,8 @@ if __name__=="__main__":
         splitimg_bbox_v = inputdata.get_entry(ientry)
         nimgs = splitimg_bbox_v.size() 
         tdata = time.time()-tdata
+        timing["++load_larcv_data:ubsplitdet"] += tdata
+        tdata = time.time()
         if stitch:
             larflow_cropped_dict = None
         else:
@@ -227,7 +230,8 @@ if __name__=="__main__":
             else:
                 print "  visi: None-not MC"
                 print "  flow: None-not MC"
-        timing["++load_larcv_data"] += tdata
+        tdata = time.time()-tdata
+        timing["++load_larcv_data:ubcroplarflow"] += tdata
         if verbose:
             print "time to get images: ",tdata," secs"
         
