@@ -12,6 +12,10 @@ def filter_checkpoint( checkpointfile, outputfile, map_location=None ):
 
 
 chkpt = sys.argv[1]
-filter_checkpoint( chkpt, "output_filtered_checkpoint.tar", map_location={"cuda:0":"cpu"} )
+map_location = {}
+for x in range(0,6):
+    map_location["cuda:%d"%(x)] = "cpu"
+print map_location
+filter_checkpoint( chkpt, "output_filtered_checkpoint.tar", map_location="cpu" )
 
 print "made output_filtered_checkpoint.tar"

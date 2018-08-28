@@ -31,5 +31,9 @@ def unpack_checkpoint( checkpointfile, map_location=None ):
 
 
 chkpt = sys.argv[1]
-unpack_checkpoint( chkpt, map_location={"cuda:0":"cpu"} )
+map_location = {}
+for x in range(0,6):
+    map_location["cuda:%d"%(x)] = "cpu"
+print map_location
+unpack_checkpoint( chkpt, map_location=map_location )
 raw_input()
