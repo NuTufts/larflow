@@ -54,7 +54,7 @@ namespace larflow {
 
     // internal data structures and types
     // ----------------------------------
-    typedef enum { kY2U=0, kY2V } FlowDirection_t; // indicates flow pattern
+    typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; // indicates flow pattern
     typedef std::array<int,2> SrcTarPair_t;        // pair of source and target contour indices
     struct HitFlowData_t {
       // information about a hit's match from source to target plane

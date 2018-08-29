@@ -2,8 +2,9 @@ import os,sys
 import ROOT as rt
 from larlite import larlite
 
+flowfile = sys.argv[1]
 #tmp = open("trueflow2",'r')
-tmp = open("temp2",'r')
+tmp = open(flowfile,'r')
 ll = tmp.readlines()
 
 pts = []
@@ -33,6 +34,7 @@ b.SetMarkerColor(rt.kRed)
 
 g.Draw("colp")
 b.Draw("colpsame")
+g.SetTitle(";Z;X;Y")
 
 c.Update()
 c.Draw()
