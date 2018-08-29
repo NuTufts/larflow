@@ -150,23 +150,23 @@ if __name__=="__main__":
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_larflow_y2v_5482426_95_testsample082918.root"
+        output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
-        #checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-        checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
+        checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
+        #checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
         batch_size = 4
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
         nprocess_events = -1
         stitch = False
-        ismc = False # saves flow and visi images
-        save_cropped_adc = False # remove for y2v so we can hadd with y2u output
+        ismc = True # saves flow and visi images
+        save_cropped_adc = True # remove for y2v so we can hadd with y2u output
         use_half = True
-        FLOWDIR="y2v"
+        FLOWDIR="y2u"
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
