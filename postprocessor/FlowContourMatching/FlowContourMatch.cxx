@@ -1,9 +1,11 @@
 #include "FlowContourMatch.h"
 
 #include <exception>
+#include <cmath>
 
 // larlite
 #include "LArUtil/Geometry.h"
+#include "LArUtil/LArProperties.h"
 
 // larcv2
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -56,12 +58,150 @@ namespace larflow {
     
     if (clear3d) {
       m_hit2flowdata.clear();
+      m_plhit2flowdata.Y2U.clear();
+      m_plhit2flowdata.Y2V.clear();
+      m_plhit2flowdata.consistency3d.clear();
+      m_plhit2flowdata.dy.clear();
+      m_plhit2flowdata.dz.clear();
     }
   }
 
   // ==================================================================================
   // Primary Interfaces
   // -----------------------
+  void FlowContourMatch::fillPlaneHitFlow( const larlitecv::ContourCluster& contour_data,
+					   const larcv::Image2D& src_adc,
+					   const std::vector<larcv::Image2D>& tar_adc,
+					   const std::vector<larcv::Image2D>& flow_img,
+					   const larlite::event_hit& hit_v,
+					   const float threshold,
+					   bool runY2U,
+					   bool runY2V) {
+
+    m_plhit2flowdata.Y2U.clear();
+    m_plhit2flowdata.Y2U.clear();
+    m_plhit2flowdata.consistency3d.clear();
+    m_plhit2flowdata.dy.clear();
+    m_plhit2flowdata.dz.clear();
+    m_plhit2flowdata.ranY2U = false;    
+    m_plhit2flowdata.ranY2V = false;
+
+    //clear( true, false );
+
+    std::cout << "wtf is going on" <<std::endl;
+    if(runY2U && runY2V && tar_adc.size()<2){
+      throw std::runtime_error("FlowContourMatch::fillPlaneHitFlow: requested both planes but single target");  
+    }
+    if(runY2U && runY2V && flow_img.size()<2){
+      throw std::runtime_error("FlowContourMatch::fillPlaneHitFlow: requested both planes but single flow image");  
+    }
+
+    if(runY2U){
+      match( FlowContourMatch::kY2U,
+	     contour_data,
+	     src_adc,
+	     tar_adc[0],
+	     flow_img[0],
+	     hit_v,
+	     threshold );
+      
+      m_plhit2flowdata.ranY2U = true;
+      m_plhit2flowdata.Y2U = m_hit2flowdata;
+    }
+    //need to clean up the m_hit2flow vector here if running both?
+    if(runY2V){
+      match( FlowContourMatch::kY2V,
+	     contour_data,
+	     src_adc,
+	     tar_adc[1],
+	     flow_img[1],
+	     hit_v,
+	     threshold );
+
+      m_plhit2flowdata.ranY2V = true;
+      m_plhit2flowdata.Y2V = m_hit2flowdata;
+    }
+    //check for size mismatch: should not happen if both run
+    if(runY2U && runY2V){
+      if(m_plhit2flowdata.Y2U.size() > m_plhit2flowdata.Y2V.size()){
+	m_plhit2flowdata.Y2U.resize( m_plhit2flowdata.Y2V.size() );
+      }
+      if(m_plhit2flowdata.Y2V.size() > m_plhit2flowdata.Y2U.size()){
+	m_plhit2flowdata.Y2V.resize( m_plhit2flowdata.Y2U.size() );
+      }
+    }
+    _fill_consistency3d(m_plhit2flowdata.Y2U, m_plhit2flowdata.Y2V, m_plhit2flowdata.consistency3d, m_plhit2flowdata.dy, m_plhit2flowdata.dz);
+    
+  }
+
+  void FlowContourMatch::_fill_consistency3d(std::vector<HitFlowData_t>& Y2U,
+					     std::vector<HitFlowData_t>& Y2V,
+					     std::vector<int>& consistency3d,
+					     std::vector<float>& dy,
+					     std::vector<float>& dz) {    
+    float ddy =0;
+    float ddz =0;
+    if(Y2U.size()<=0 && Y2V.size()<=0) return; //nothing was filled
+    //if only Y2V: nothing to compare
+    if(Y2U.size()<=0 && Y2V.size()>0){
+      for(int i=0; i<Y2V.size(); i++){
+	consistency3d.push_back(-1);
+	dy.push_back(0.0);
+	dz.push_back(0.0);
+      }
+    }
+    //if only Y2U: nothing to compare
+    if(Y2U.size()>0 && Y2V.size()<=0){
+      for(int i=0; i<Y2U.size(); i++){
+	consistency3d.push_back(-1);
+	dy.push_back(0.0);
+	dz.push_back(0.0);
+      }
+    }
+    //if both 
+    if(Y2U.size()>0 && Y2V.size()>0){
+      //both are same size (by construction)
+      for(int i=0; i<Y2U.size(); i++){
+	_calc_dist3d(Y2U.at(i),Y2V.at(i),ddy,ddz);
+	dy.push_back(ddy);
+	dz.push_back(ddz);
+	consistency3d.push_back(_calc_consistency3d(ddy,ddz));
+      }
+    } //end of both
+  }
+
+  void FlowContourMatch::_calc_dist3d(HitFlowData_t& hit_y2u,
+				      HitFlowData_t& hit_y2v,
+				      float& dy,
+				      float& dz) {
+    // larlite geometry tool
+    const larutil::Geometry* geo = larutil::Geometry::GetME();
+    const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
+    Double_t x0 = (hit_y2u.pixtick-3200.0)*cm_per_tick;
+    Double_t y0;
+    Double_t z0;
+    geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 0, y0, z0 );
+    Double_t x1 = (hit_y2v.pixtick-3200.0)*cm_per_tick;
+    Double_t y1;
+    Double_t z1;
+    geo->IntersectionPoint( hit_y2v.srcwire, hit_y2v.targetwire, 2, 1, y1, z1 );
+    //
+    dy = sqrt(pow(y1-y0,2));
+    dz = sqrt(pow(z1-z0,2));
+    
+  }
+
+  int FlowContourMatch::_calc_consistency3d(float& dy,
+					    float& dz) {
+
+    float dR = sqrt(dy*dy + dz*dz);
+    //dR should be in cm?
+    if(dR<0.5) return 0; // kIn5mm
+    if(dR<1.0) return 1; // kIn10mm
+    if(dR<5.0) return 2; // kIn50mm
+    return 3;            // kOut50mm
+  }
+ 
   void FlowContourMatch::match( FlowDirection_t flowdir,
 				const larlitecv::ContourCluster& contour_data,
 				const larcv::Image2D& src_adc,
@@ -80,8 +220,8 @@ namespace larflow {
       tar_planeid = 0;
       break;
     case kY2V:
-      src_planeid = 1;
-      tar_planeid = 0;
+      src_planeid = 2;
+      tar_planeid = 1;
       break;
     default:
       throw std::runtime_error("FlowContourMatch::match: invalid FlowDirection_t option"); // shouldnt be possible
@@ -941,6 +1081,7 @@ namespace larflow {
     //  as the correct source-column + target-column pair.
     //  the objects of this container also contain info about matchquality
     return get3Dhits( m_hit2flowdata, makehits_for_nonmatches );
+    //return get3Dhits( m_plhit2flowdata.Y2U, makehits_for_nonmatches );
   }
   
   std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches ) {
@@ -979,5 +1120,138 @@ namespace larflow {
 
     return output_hit3d_v;    
   }
+
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_2pl( bool makehits_for_nonmatches, bool require_3Dconsistency ) {
+    // we convert the information we've compiled in m_hit2flowdata, which provides our best guess
+    //  as the correct source-column + target-column pair.
+    //  the objects of this container also contain info about matchquality
+      return get3Dhits_2pl( m_plhit2flowdata, makehits_for_nonmatches, require_3Dconsistency );
+  }
   
+  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches, bool require_3Dconsistency ) {
+
+    // now we have, in principle, the best/modified flow prediction for hits that land on flow predictions
+    // here we choose which of the two predictions to keep (for each hit)
+    std::vector<FlowMatchHit3D> output_hit3d_v;
+    
+    //case 1: we only ran Y2U
+    if(plhit2flowdata.ranY2U && !plhit2flowdata.ranY2V){
+      const std::vector<HitFlowData_t>& hit2flowdata_y2u = plhit2flowdata.Y2U;
+      for (int hitidx=0; hitidx<(int)hit2flowdata_y2u.size(); hitidx++) {
+	const HitFlowData_t& hitdata = hit2flowdata_y2u[ hitidx ];
+	if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
+	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	  continue;
+	}
+	// otherwise make a hit
+	FlowMatchHit3D flowhit;
+	flowhit.idxhit     = hitidx;
+	flowhit.tick       = hitdata.pixtick;
+	flowhit.srcwire    = hitdata.srcwire;
+	flowhit.targetwire = hitdata.targetwire;
+	
+	switch ( hitdata.matchquality ) {
+	case 1:
+	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  break;
+	case 2:
+	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  break;
+	case 3:
+	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  break;
+	default:
+	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  break;
+	}
+	
+	output_hit3d_v.emplace_back( flowhit );
+      }
+    }// end of Y2U only
+    //case 2: we only ran Y2V
+    if(plhit2flowdata.ranY2V && !plhit2flowdata.ranY2U){
+      const std::vector<HitFlowData_t>& hit2flowdata_y2v = plhit2flowdata.Y2V;
+      for (int hitidx=0; hitidx<(int)hit2flowdata_y2v.size(); hitidx++) {
+	const HitFlowData_t& hitdata = hit2flowdata_y2v[ hitidx ];
+	if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
+	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	  continue;
+	}
+	// otherwise make a hit
+	FlowMatchHit3D flowhit;
+	flowhit.idxhit     = hitidx;
+	flowhit.tick       = hitdata.pixtick;
+	flowhit.srcwire    = hitdata.srcwire;
+	flowhit.targetwire = hitdata.targetwire;
+	
+	switch ( hitdata.matchquality ) {
+	case 1:
+	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  break;
+	case 2:
+	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  break;
+	case 3:
+	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  break;
+	default:
+	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  break;
+	}
+	
+	output_hit3d_v.emplace_back( flowhit );
+      }
+    }// end of Y2V only
+
+    //case 3: we ran Y2U and Y2V
+    if(plhit2flowdata.ranY2U && plhit2flowdata.ranY2V){
+      const std::vector<HitFlowData_t>& hit2flowdata_y2u = plhit2flowdata.Y2U;
+      const std::vector<HitFlowData_t>& hit2flowdata_y2v = plhit2flowdata.Y2V;
+      //we only loop over length of one, they should be same anyway
+      for (int hitidx=0; hitidx<(int)hit2flowdata_y2u.size(); hitidx++) {
+	const HitFlowData_t& hitdata0 = hit2flowdata_y2u[ hitidx ];
+	const HitFlowData_t& hitdata1 = hit2flowdata_y2v[ hitidx ];
+	HitFlowData_t hitdata;
+	//select here
+	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && !makehits_for_nonmatches ) {
+	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	  continue;
+	}
+	if(require_3Dconsistency && plhit2flowdata.consistency3d[ hitidx ]>2) continue; //if require_3Dconsistency, skip if >5cm away
+	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches)  hitdata = hitdata0; //can be either...
+	if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality)  hitdata = hitdata0; //either...	
+	if((hitdata0.matchquality<0 && hitdata1.matchquality>=0)
+	   || (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  hitdata = hitdata1;
+	if((hitdata1.matchquality<0 && hitdata0.matchquality>=0)
+	   || (hitdata1.matchquality>=0 && hitdata0.matchquality>=0 && hitdata1.matchquality < hitdata0.matchquality))  hitdata = hitdata0;
+
+	//make a hit
+	FlowMatchHit3D flowhit;
+	flowhit.idxhit     = hitidx;
+	flowhit.tick       = hitdata.pixtick;
+	flowhit.srcwire    = hitdata.srcwire;
+	flowhit.targetwire = hitdata.targetwire;
+	
+	switch ( hitdata.matchquality ) {
+	case 1:
+	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  break;
+	case 2:
+	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  break;
+	case 3:
+	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  break;
+	default:
+	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  break;
+	}
+	
+	output_hit3d_v.emplace_back( flowhit );
+      }
+    }// end of both
+
+    return output_hit3d_v;    
+  }
+
 }

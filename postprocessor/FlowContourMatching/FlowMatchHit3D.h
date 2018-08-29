@@ -16,6 +16,7 @@ namespace larflow {
     ~FlowMatchHit3D() {};
 
     typedef enum { kQandCmatch=0, kCmatch, kClosestC, kNoMatch } MatchQuality_t; // quality of match
+    typedef enum { kIn5mm=0, kIn10mm, kIn50mm, kOut50mm } Consistency_t; // quality of match
     
     int tick;        // row
     int srcwire;     // column in source image
@@ -24,6 +25,7 @@ namespace larflow {
     //int tar_ctrid;   // contour index in target image
     int idxhit;      // index in eventhit vector
     MatchQuality_t matchquality; // quality of plane-correspondence match
+    Consistency_t consistency;
     float center_y_dist;  // distance to center of y-image used for flow prediction
     
   };

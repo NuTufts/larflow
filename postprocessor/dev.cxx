@@ -43,7 +43,7 @@ void event_changeout( larlite::storage_manager& dataco_output,
   // save the spointpoint vector
   //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
   larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
-  //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
+  //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2v");
 
   // larlite geometry tool
   const larutil::Geometry* geo = larutil::Geometry::GetME();
@@ -201,17 +201,21 @@ int main( int nargs, char** argv ) {
     if ( use_hits ) {
       if ( !use_truth )
 	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], ev_hit, 10.0 );
+	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0 );
       else
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0 );
+	//matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], ev_hit, 10.0 );
     }
     else {
       // make hits from whole image
       if ( pixhits_v.size()==0 )
 	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
       if ( !use_truth )
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], pixhits_v, 10.0 );
+	//matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], flow_v[0], pixhits_v, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0 );
       else
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], pixhits_v, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0 );
+	//matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], pixhits_v, 10.0 );
     }
 
     if ( kVISUALIZE ) {

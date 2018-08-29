@@ -82,6 +82,25 @@ namespace larflow {
       float scorematch;
       float adc;
     };
+    /*
+    struct PlaneHitFlowData_t {
+      HitFlowData_t Y2U; // hitflow vector Y2U
+      HitFlowData_t Y2V; // hitflow vector Y2V
+      bool ranY2U;
+      bool ranY2V;
+      int consistency3d; // 3D consistency estimator (1,2,3)
+    };
+    */
+    struct PlaneHitFlowData_t {
+      std::vector<HitFlowData_t> Y2U; // hitflow vector Y2U
+      std::vector<HitFlowData_t> Y2V; // hitflow vector Y2V
+      std::vector<int> consistency3d; // 3D consistency estimator (1,2,3)
+      std::vector<float> dy; // sqrt(y1-y0)^2
+      std::vector<float> dz; // sqrt(z1-z0)^2            
+      bool ranY2U;
+      bool ranY2V;
+    };
+    
     // ------------------------------------------------
   
     FlowContourMatch();
@@ -109,8 +128,20 @@ namespace larflow {
 		      const float threshold,
 		      larlite::event_hit& hit_v );
     void makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, larlite::event_hit& evhit_v, const float threshold );
+
+    void fillPlaneHitFlow( const larlitecv::ContourCluster& contour_data,
+			   const larcv::Image2D& src_adc,
+			   const std::vector<larcv::Image2D>& tar_adc,
+			   const std::vector<larcv::Image2D>& flow_img,
+			   const larlite::event_hit& hit_v,
+			   const float threshold,
+			   bool runY2U = true,
+			   bool runY2V = false);
+      
     std::vector< FlowMatchHit3D > get3Dhits( bool makehits_for_nonmatches=true );
     std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
+    std::vector< FlowMatchHit3D > get3Dhits_2pl( bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
+    std::vector< FlowMatchHit3D > get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
     
     // algorithm sub-functions
     void _createMatchData( const larlitecv::ContourCluster& contour_data,
@@ -127,9 +158,21 @@ namespace larflow {
 		      const int tar_plane,
 		      const float threshold,
 		      std::vector<HitFlowData_t>& hit2flowdata );
-    
-    
 
+    void _fill_consistency3d(std::vector<HitFlowData_t>& Y2U,
+			     std::vector<HitFlowData_t>& Y2V,
+			     std::vector<int>& consistency3d,
+			     std::vector<float>& dy,
+			     std::vector<float>& dz);
+
+    int _calc_consistency3d(float& dy,
+			    float& dz);
+
+    void _calc_dist3d(HitFlowData_t& hit_y2u,
+		      HitFlowData_t& hit_y2v,
+		      float& dy,
+		      float& dz);
+    
     // debug/visualization
     void dumpMatchData();
     TH2D& plotScoreMatrix();
@@ -167,7 +210,8 @@ namespace larflow {
 
 
     std::vector<HitFlowData_t> m_hit2flowdata;
-    
+    //std::vector<PlaneHitFlowData_t> m_plhit2flowdata;
+    PlaneHitFlowData_t m_plhit2flowdata;
   };
 
 
