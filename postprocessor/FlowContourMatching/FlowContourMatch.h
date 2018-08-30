@@ -54,7 +54,7 @@ namespace larflow {
 
     // internal data structures and types
     // ----------------------------------
-    typedef enum { kY2U=0, kY2V } FlowDirection_t; // indicates flow pattern
+    typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; // indicates flow pattern
     typedef std::array<int,2> SrcTarPair_t;        // pair of source and target contour indices
     struct HitFlowData_t {
       // information about a hit's match from source to target plane
@@ -82,15 +82,6 @@ namespace larflow {
       float scorematch;
       float adc;
     };
-    /*
-    struct PlaneHitFlowData_t {
-      HitFlowData_t Y2U; // hitflow vector Y2U
-      HitFlowData_t Y2V; // hitflow vector Y2V
-      bool ranY2U;
-      bool ranY2V;
-      int consistency3d; // 3D consistency estimator (1,2,3)
-    };
-    */
     struct PlaneHitFlowData_t {
       std::vector<HitFlowData_t> Y2U; // hitflow vector Y2U
       std::vector<HitFlowData_t> Y2V; // hitflow vector Y2V
@@ -99,6 +90,15 @@ namespace larflow {
       std::vector<float> dz; // sqrt(z1-z0)^2            
       bool ranY2U;
       bool ranY2V;
+      void clear() {
+	Y2U.clear();
+	Y2V.clear();
+	consistency3d.clear();
+	dy.clear();
+	dz.clear();
+	ranY2U = false;
+	ranY2V = false;
+      };
     };
     
     // ------------------------------------------------
@@ -138,12 +138,14 @@ namespace larflow {
 			   bool runY2U = true,
 			   bool runY2V = false);
       
-    std::vector< FlowMatchHit3D > get3Dhits( bool makehits_for_nonmatches=true );
-    std::vector< FlowMatchHit3D > get3Dhits( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
+    std::vector< FlowMatchHit3D > get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches=true  );
+    std::vector< FlowMatchHit3D > get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
     std::vector< FlowMatchHit3D > get3Dhits_2pl( bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
     std::vector< FlowMatchHit3D > get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
     
     // algorithm sub-functions
+    // ------------------------
+  protected:
     void _createMatchData( const larlitecv::ContourCluster& contour_data,
 			   const larcv::Image2D& flow_img,
 			   const larcv::Image2D& src_adc,
@@ -172,13 +174,16 @@ namespace larflow {
 		      HitFlowData_t& hit_y2v,
 		      float& dy,
 		      float& dz);
-    
+
+  public:
     // debug/visualization
+    // -------------------
     void dumpMatchData();
     TH2D& plotScoreMatrix();
 
 
-    // algorithm parameters
+  public:
+    // algorithm parameters 
     // --------------------
     int kTargetChargeRadius; // number of pixels around flow prediction to look for charge pixel
 
@@ -208,10 +213,11 @@ namespace larflow {
     int* m_src_img2ctrindex; //< array associating (row,col) to source contours
     int* m_tar_img2ctrindex; //< array associating (row,col) to target contours
 
-
-    std::vector<HitFlowData_t> m_hit2flowdata;
-    //std::vector<PlaneHitFlowData_t> m_plhit2flowdata;
-    PlaneHitFlowData_t m_plhit2flowdata;
+    // key datamember in algo
+    // stores info tying hits on source plane to flow determined after contour matching
+    // stores for both flowdirections, saving info to help decide which one
+    // should be used to set 3D position
+    PlaneHitFlowData_t m_plhit2flowdata;  
   };
 
 

@@ -150,20 +150,23 @@ if __name__=="__main__":
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_larflow_smalltest_5482426_95.root"
+        output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
         checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-        batch_size = 1
+        #checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
+        batch_size = 4
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = 3
+        nprocess_events = -1
         stitch = False
-        ismc = True
+        ismc = True # saves flow and visi images
+        save_cropped_adc = True # remove for y2v so we can hadd with y2u output
         use_half = True
+        FLOWDIR="y2u"
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
@@ -386,12 +389,14 @@ if __name__=="__main__":
                 if stitch:
                     stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
                 else:
-                    # we save flow image and crops for each prediction
-                    evoutadc  = outputdata.get_data("image2d","adc")
-                    evoutpred = outputdata.get_data("image2d","larflow_y2u")
-                    for img in flowcrop_batch[ib]["adc"]:
-                        evoutadc.append( img )
-                    evoutpred.append( flow_lcv )
+                    # we save flow image and crops for each prediction\
+                    evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR))
+                    evoutpred.append( flow_lcv )                    
+                    if save_cropped_adc:
+                        evoutadc  = outputdata.get_data("image2d","adc")
+                        for img in flowcrop_batch[ib]["adc"]:
+                            evoutadc.append( img )
+
                     
                     if ismc:
                         evoutvisi = outputdata.get_data("image2d","pixvisi")

@@ -19,7 +19,8 @@ LDLIBS += -Llib $(addprefix -l,$(LIBS))
 
 SUBDIRS = ContourTools FlowContourMatching
 INCLUDES += $(addprefix -I, $(SUBDIRS))
-EXEC = dev vis
+EXEC = dev
+#EXEC += vis
 
 
 all: obj $(EXEC) 
@@ -31,3 +32,6 @@ all: obj $(EXEC)
 
 obj:
 	@for i in $(SUBDIRS); do ( echo "" && echo "Compiling $$i..." && cd $$i && $(MAKE) ) || exit $$?; done
+
+clean:
+	rm lib/*.so dev
