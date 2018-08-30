@@ -52,6 +52,7 @@ void event_changeout( larlite::storage_manager& dataco_output,
   
   // get the final hits made from flow
   std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
+  //std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_1pl( larflow::FlowContourMatch::kY2U );
   std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
@@ -95,10 +96,10 @@ int main( int nargs, char** argv ) {
   // cropped example
   //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  std::string input_larflow_y2u_file  = "../../../larflow/testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
-  std::string input_larflow_y2v_file  = "../../../larflow/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
-  std::string input_supera_file       = "../../../larflow/testdata/larcv_5482426_95.root";  
-  std::string input_reco2d_file       = "../../../larflow/testdata/larlite_reco2d_5482426_95.root";
+  std::string input_larflow_y2u_file  = "../testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
+  std::string input_larflow_y2v_file  = "../testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
+  std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
+  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
@@ -112,7 +113,7 @@ int main( int nargs, char** argv ) {
   // data from larflow output: sequence of cropped images
   larlitecv::DataCoordinator dataco;
   dataco.add_inputfile( input_larflow_y2u_file, "larcv" );
-  //dataco.add_inputfile( input_larflow_y2v_file, "larcv" );  
+  dataco.add_inputfile( input_larflow_y2v_file, "larcv" );  
   dataco.initialize();
 
   // data from whole-view image
@@ -197,7 +198,7 @@ int main( int nargs, char** argv ) {
     const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
     bool hasFlow[2] = { false, false };
     for (int i=0; i<2; i++)
-      hasFlow[i] = ( hasFlow[i] ) ? true : false;
+      hasFlow[i] = ( ev_flow[i]->valid() ) ? true : false;
 
     // For whole-view data, should avoid reloading, repeatedly
     // supera images
@@ -220,7 +221,7 @@ int main( int nargs, char** argv ) {
     else
       flow_v.push_back( larcv::Image2D() ); // dummy image
     if ( hasFlow[flowdir::kY2V] )
-      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2V]->modimgat(1) ) );
+      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2V]->modimgat(0) ) );
     else
       flow_v.push_back( larcv::Image2D() ); // dummy image
     
@@ -261,6 +262,7 @@ int main( int nargs, char** argv ) {
     if ( kVISUALIZE ) {
     
       std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_2pl();
+      //std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_1pl( flowdir::kY2U );
       
       // TCanvas c("c","scorematrix",1600,1200);
       // matching_algo.plotScoreMatrix().Draw("colz");
