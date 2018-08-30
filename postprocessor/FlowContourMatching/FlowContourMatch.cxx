@@ -1129,7 +1129,7 @@ namespace larflow {
       flowhit.idxhit     = hitidx;
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
-      flowhit.targetwire = hitdata.targetwire;
+      flowhit.targetwire[0] = hitdata.targetwire;
       switch ( hitdata.matchquality ) {
       case 1:
 	flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
@@ -1176,10 +1176,10 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
-	flowhit.idxhit     = hitidx;
-	flowhit.tick       = hitdata.pixtick;
-	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
+	flowhit.idxhit        = hitidx;
+	flowhit.tick          = hitdata.pixtick;
+	flowhit.srcwire       = hitdata.srcwire;
+	flowhit.targetwire[0] = hitdata.targetwire;
 	
 	switch ( hitdata.matchquality ) {
 	case 1:
@@ -1210,10 +1210,10 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
-	flowhit.idxhit     = hitidx;
-	flowhit.tick       = hitdata.pixtick;
-	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
+	flowhit.idxhit        = hitidx;
+	flowhit.tick          = hitdata.pixtick;
+	flowhit.srcwire       = hitdata.srcwire;
+	flowhit.targetwire[1] = hitdata.targetwire;
 	
 	switch ( hitdata.matchquality ) {
 	case 1:
@@ -1262,7 +1262,8 @@ namespace larflow {
 	flowhit.idxhit     = hitidx;
 	flowhit.tick       = hitdata.pixtick;
 	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
+	flowhit.targetwire[0] = hitdata0.targetwire;
+	flowhit.targetwire[1] = hitdata1.targetwire;	
 	
 	switch ( hitdata.matchquality ) {
 	case 1:

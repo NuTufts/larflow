@@ -12,7 +12,9 @@ namespace larflow {
     
   public:
 
-    FlowMatchHit3D() {};
+    FlowMatchHit3D() {
+      targetwire.resize(2,-1);
+    };
     ~FlowMatchHit3D() {};
 
     typedef enum { kQandCmatch=0, kCmatch, kClosestC, kNoMatch } MatchQuality_t; // quality of match
@@ -20,7 +22,7 @@ namespace larflow {
     
     int tick;        // row
     int srcwire;     // column in source image
-    int targetwire;  // column in target image
+    std::vector<int> targetwire;  // column in target image
     //int src_ctrid;   // contour index in source image
     //int tar_ctrid;   // contour index in target image
     int idxhit;      // index in eventhit vector

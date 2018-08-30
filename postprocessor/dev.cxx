@@ -58,18 +58,29 @@ void event_changeout( larlite::storage_manager& dataco_output,
     // form spacepoints
     if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
       continue;
-    if ( flowhit.targetwire<0 || flowhit.targetwire>=2399 )
+    // this intersectoin logic should  be in get3dhits_2pl
+    bool goody2u = true;
+    bool goody2v = true;
+    if ( flowhit.targetwire[0]<0 || flowhit.targetwire[0]>=2399 )
+      goody2u = false;
+    if ( flowhit.targetwire[1]<0 || flowhit.targetwire[1]>=2399 )
+      goody2v = false;
+    if ( !goody2u && !goody2v )
       continue;
+    int useflow = (goody2u) ? 0 : 1;
 
     std::cout << "hitidx[" << flowhit.idxhit << "] "
     	      << "from wire-p2=" << flowhit.srcwire
-    	      << " wire-p0=" << flowhit.targetwire;    
+    	      << " wire-p0=" << flowhit.targetwire[0]
+	      << " wire-p1=" << flowhit.targetwire[1]
+	      << " quality=" << flowhit.matchquality
+	      << " consistency=" << flowhit.consistency;
     
     // need to get (x,y,z) position
     Double_t x = (flowhit.tick-3200.0)*cm_per_tick;    
     Double_t y;
     Double_t z;
-    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire, 2, 0, y, z );
+    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire[useflow], 2, useflow, y, z );
     std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
     
     larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
@@ -420,7 +431,18 @@ int main( int nargs, char** argv ) {
 	TGraph gtarhits( hits3d_v.size() );
 	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
 	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	  gtarhits.SetPoint( ihit, hit3d.targetwire, hit3d.tick );
+
+	  // bool goody2u = true;
+	  // bool goody2v = true;
+	  // if ( hit3d.targetwire[0]<0 || hit3d.targetwire[0]>=2399 )
+	  //   goody2u = false;
+	  // if ( hit3d.targetwire[1]<0 || hit3d.targetwire[1]>=2399 )
+	  //   goody2v = false;
+	  // if ( !goody2u && !goody2v )
+	  //   continue;
+	  // int useflow = (goody2u) ? 0 : 1;
+	  	  
+	  gtarhits.SetPoint( ihit, hit3d.targetwire[0], hit3d.tick );
 	}
 	gtarhits.SetMarkerSize(1);
 	gtarhits.SetMarkerStyle(21);
