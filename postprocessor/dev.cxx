@@ -39,22 +39,22 @@ void event_changeout( larlite::storage_manager& dataco_output,
 		      const int runid,
 		      const int subrunid,
 		      const int eventid ) {
-  
+
+  std::cout << "event_changeout." << std::endl;
   // save the spointpoint vector
   //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
   larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
-  //larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits_y2v");
+  larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2v");
 
   // larlite geometry tool
   const larutil::Geometry* geo = larutil::Geometry::GetME();
   const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
   
   // get the final hits made from flow
-  std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits();
+  std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
+  std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
-
-
     if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
       continue;
     if ( flowhit.targetwire<0 || flowhit.targetwire>=2399 )
@@ -95,10 +95,10 @@ int main( int nargs, char** argv ) {
   // cropped example
   //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  std::string input_larflow_y2u_file  = "../testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
-  std::string input_larflow_y2v_file  = "../testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
-  std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
-  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_larflow_y2u_file  = "../../../larflow/testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
+  std::string input_larflow_y2v_file  = "../../../larflow/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
+  std::string input_supera_file       = "../../../larflow/testdata/larcv_5482426_95.root";  
+  std::string input_reco2d_file       = "../../../larflow/testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
@@ -212,9 +212,18 @@ int main( int nargs, char** argv ) {
     larcv::EventImage2D* ev_trueflow  = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "pixflow");
     const std::vector<larcv::Image2D>& wire_v = ev_wire->image2d_array();
     const std::vector<larcv::Image2D>& true_v = ev_trueflow->image2d_array();
-    const std::vector<larcv::Image2D>* flow_v[larflow::FlowContourMatch::kNumFlowDirs] = {&ev_flow[larflow::FlowContourMatch::kY2U]->image2d_array(),
-											  &ev_flow[larflow::FlowContourMatch::kY2V]->image2d_array() };
 
+    // merged flow predictions
+    std::vector<larcv::Image2D> flow_v;
+    if ( hasFlow[flowdir::kY2U] )
+      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2U]->modimgat(0) ) );
+    else
+      flow_v.push_back( larcv::Image2D() ); // dummy image
+    if ( hasFlow[flowdir::kY2V] )
+      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2V]->modimgat(1) ) );
+    else
+      flow_v.push_back( larcv::Image2D() ); // dummy image
+    
     // Set RSE
     runid    = dataco.run();
     subrunid = dataco.subrun();
@@ -231,26 +240,27 @@ int main( int nargs, char** argv ) {
     // get cluster atomics for cropped u,v,y ADC image    
     cluster_algo.clear();    
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
-
+    
     if ( use_hits ) {      
       if ( !use_truth )
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], (*flow_v[flowdir::kY2U])[0], ev_hit, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       else
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[flowdir::kY2U], ev_hit, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, ev_hit, 10.0, true, true );
     }
     else {
       // make hits from whole image
       if ( pixhits_v.size()==0 )
 	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
+      
       if ( !use_truth )
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], (*flow_v[flowdir::kY2U])[0], pixhits_v, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       else
-	matching_algo.match( larflow::FlowContourMatch::kY2U, cluster_algo, wire_v[2], wire_v[0], true_v[0], pixhits_v, 10.0 );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
     }
 
     if ( kVISUALIZE ) {
     
-      std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits();
+      std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_2pl();
       
       // TCanvas c("c","scorematrix",1600,1200);
       // matching_algo.plotScoreMatrix().Draw("colz");
