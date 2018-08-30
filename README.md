@@ -17,14 +17,15 @@ This repository contains the code for developing the larflow network.
 
 ## To Do list:
 
-* input arguments to deploy scripts need to be sane. right now they make no sense. [DONE]
+* input arguments to deploy scripts need to be sane. right now they make no sense. [DONE?]
 * add script to grab files and store in testdata to be used for deploy and postprocessor [DONE]
+* provide filtered weight files [DONE]
 * add filder and script to grab development weights [DONE]. scripts should point to these by default
 * post-processor needs cluster matching to 3D-hit formation [DONE]
 * post-processor needs Y->U + Y->V support [Ralitsa]
-* deploy script for the larflow/infill/endpoint [Taritree, using Katie and Josh's work]
-* should post-processor merge subimages before after cluster-matching?
-* post-processor reads larflow/infill/endpoint
+* deploy script for the larflow/infill/endpoint [WRITTEN/needs to be debugged]
+* should post-processor merge subimages before after cluster-matching? (ignoring for now)
+* post-processor reads larflow[DONE]/infill[ ]/endpoint[ ]
 * post-processor dbscan clustering
 * post-processor pca calculation to ID ends
 * post-processor break non-straigt clusters
