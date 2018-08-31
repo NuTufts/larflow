@@ -54,40 +54,35 @@ class WholeImageLoader:
         self.split_algo.initialize()
         self.split_algo.set_verbosity(0)
 
-        # # cropper for larflow (needed if we do not restitch the output)
-        # lfcrop_cfg="""Verbosity:0
-        # InputBBoxProducer: \"detsplit\"
-        # InputCroppedADCProducer: \"detsplit\"
-        # InputADCProducer: \"wire\"
-        # InputVisiProducer: \"pixvisi\"
-        # InputFlowProducer: \"pixflow\"
-        # OutputCroppedADCProducer:  \"adc\"
-        # OutputCroppedVisiProducer: \"visi\"
-        # OutputCroppedFlowProducer: \"flow\"
-        # OutputCroppedMetaProducer: \"flowmeta\"
-        # OutputFilename: \"baka_lf.root\"
-        # SaveOutput: false
-        # CheckFlow:  false
-        # MakeCheckImage: false
-        # DoMaxPool: false
-        # RowDownsampleFactor: 2
-        # ColDownsampleFactor: 2
-        # MaxImages: -1
-        # LimitOverlap: false
-        # RequireMinGoodPixels: false
-        # MaxOverlapFraction: 0.2
-        # UseVectorizedCode: true
-        # IsMC: {}
-        # """
-        # flowcrop_cfg = open("ublarflowcrop.cfg",'w')
-        # print >>flowcrop_cfg,lfcrop_cfg.format( str(ismc).lower() )
-        # flowcrop_cfg.close()
-        # flowcrop_pset = larcv.CreatePSetFromFile( "ublarflowcrop.cfg", "UBLArFlowCrop" )
-        # self.flowcrop_algo = larcv.UBCropLArFlow()
-        # self.flowcrop_algo.configure( flowcrop_pset )
-        # self.flowcrop_algo.initialize()
-        # self.flowcrop_algo.set_verbosity(0)
-        # self.ismc = ismc
+        # cropper for infill (needed if we do not restitch the output)
+        infillcrop_cfg_str="""Verbosity:0
+        InputBBoxProducer: \"detsplit\"
+        InputWireProducer: \"wire\"
+        InputLabelsProducer: \"Labels\"
+        InputADCProducer: \"ADC\"
+        OutputCroppedWireProducer: \"wire\"
+        OutputCroppedLabelsProducer: \"Labels\"
+        OutputCroppedADCProducer: \"ADC\"
+        OutputCroppedWeightsProducer: \"Weights\"
+        OutputCroppedMetaProducer: \"meta\"
+        OutputFilename: \"baka_cropinfill.root\"
+        CheckFlow: false
+        MakeCheckImage: false
+        DoMaxPool: false
+        RowDownsampleFactor: 2
+        ColDownsampleFactor: 2
+        MaxImages: 10
+        LimitOverlap: false
+        MaxOverlapFraction: -1
+        """
+        infillcrop_cfg = open("infillcrop.cfg",'w')
+        print >>infillcrop_cfg,infillcrop_cfg_str
+        infillcrop_cfg.close()
+        infillcrop_pset = larcv.CreatePSetFromFile( "infillcrop.cfg", "UBCropInfill" )
+        self.infillcrop_algo = larcv.UBCropInfill()
+        self.infillcrop_algo.configure( infillcrop_pset )
+        self.infillcrop_algo.initialize()
+        self.infillcrop_algo.set_verbosity(0)
         
         self._nentries = self.io.get_n_entries()
         
@@ -104,13 +99,13 @@ class WholeImageLoader:
 
     def get_infill_cropped(self):
         print "run infill cropper"
-        self.flowcrop_algo.process( self.io )
+        self.infillcrop_algo.process( self.io )
         ev_adc_crops  = self.io.get_data("image2d","adc")
         print "retrieve infill cropped images: ",ev_adc_crops.image2d_array().size()
         if self.ismc:
-            ev_flow_crops = self.io.get_data("image2d","flow")
-            ev_visi_crops = self.io.get_data("image2d","visi")
-            data = {"adc":ev_adc_crops,"flow":ev_flow_crops,"visi":ev_visi_crops}
+            ev_labels_crops  = self.io.get_data("image2d","Labels")
+            ev_weights_crops = self.io.get_data("image2d","Weights")
+            data = {"adc":ev_adc_crops,"labels":ev_labels_crops,"weights":ev_weights_crops}
         else:
             data = {"adc":ev_adc_crops}
         return data
@@ -227,13 +222,13 @@ if __name__=="__main__":
         else:
             infill_cropped_dict = inputdata.get_infill_cropped()
             print "Infill Cropper Produced: "
-            print "  adc: ",infill_cropped_dict["adc"].image2d_array().size()
+            print "  adc: ",infill_cropped_dict["ADC"].image2d_array().size()
             if ismc:
-                print "  visi: ",infill_cropped_dict["visi"].image2d_array().size()
-                print "  flow: ",infill_cropped_dict["flow"].image2d_array().size()
+                print "  Labels: ",infill_cropped_dict["Labels"].image2d_array().size()
+                print "  Weights: ",infill_cropped_dict["Weights"].image2d_array().size()
             else:
-                print "  visi: None-not MC"
-                print "  flow: None-not MC"
+                print "  Labels: None-not MC"
+                print "  Weights: None-not MC"
         tdata = time.time()-tdata
         timing["++load_larcv_data:ubcropinfill"] += tdata
         if verbose:
@@ -243,7 +238,7 @@ if __name__=="__main__":
             print "number of images in whole-view split: ",nimgs
 
 
-        # get input adc images
+        # get input adc images (wholeview)
         talloc = time.time()
         ev_img = inputdata.io.get_data("image2d","wire")
         img_v = ev_img.image2d_array()
@@ -286,6 +281,7 @@ if __name__=="__main__":
                 print "starting at iimg=",iimg," set=",iset
             tformat = time.time() # time to get info into torch format
 
+                
             # -------------------------------------------------
             # Batch Loop, fill data, then send through the net
             # clear batch
@@ -336,13 +332,13 @@ if __name__=="__main__":
 
                 # if not stiching, save crops
                 if not stitch:
-                    flowcrops = {"flow":[],"visi":[],"adc":[]}
+                    flowcrops = {"adc":[],"weights":[],"labels":[]}
                     for ii in xrange(0,3):
                         flowcrops["adc"].append(  infill_cropped_dict["adc"].at( iimg+ii )  )
                     if ismc:
                         for ii in xrange(0,2):
-                            flowcrops["flow"].append( infill_cropped_dict["flow"].at( iset*2+ii ) )
-                            flowcrops["visi"].append( infill_cropped_dict["visi"].at( iset*2+ii ) )
+                            flowcrops["weights"].append( infill_cropped_dict["weights"].at( iset*2+ii ) )
+                            flowcrops["labels"].append( infill_cropped_dict["labels"].at( iset*2+ii ) )
 
                     flowcrop_batch.append( flowcrops )
 
