@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <array>
+#include <algorithm>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -70,6 +71,7 @@ namespace larflow {
       int dist2charge;  // distance in columns from target pixel to matched charge pixel
       int src_ctr_idx;  // this becomes outdated once image changes up
       int tar_ctr_idx;  // this becomes outdated once image changes up
+      std::vector<float> X; // 3D coordinates from larlite::geo
     };
     struct ClosestContourPix_t {
       // stores info about the contours nearby to the point where
@@ -85,7 +87,7 @@ namespace larflow {
     struct PlaneHitFlowData_t {
       std::vector<HitFlowData_t> Y2U; // hitflow vector Y2U
       std::vector<HitFlowData_t> Y2V; // hitflow vector Y2V
-      std::vector<int> consistency3d; // 3D consistency estimator (1,2,3)
+      std::vector<int> consistency3d; // 3D consistency estimator (1,2,3,no)
       std::vector<float> dy; // sqrt(y1-y0)^2
       std::vector<float> dz; // sqrt(z1-z0)^2            
       bool ranY2U;
@@ -170,10 +172,14 @@ namespace larflow {
     int _calc_consistency3d(float& dy,
 			    float& dz);
 
-    void _calc_dist3d(HitFlowData_t& hit_y2u,
-		      HitFlowData_t& hit_y2v,
+    void _calc_coord3d(HitFlowData_t& hit_y2u,
+		       std::vector<float>& X);
+
+    void _calc_dist3d(std::vector<float>& X0,
+		      std::vector<float>& X1,
 		      float& dy,
 		      float& dz);
+    
 
   public:
     // debug/visualization

@@ -112,14 +112,9 @@ namespace larflow {
     }
     //check for size mismatch: should not happen if both run
     if(runY2U && runY2V){
-      if(m_plhit2flowdata.Y2U.size() > m_plhit2flowdata.Y2V.size()){
-	m_plhit2flowdata.Y2U.resize( m_plhit2flowdata.Y2V.size() );
-      }
-      if(m_plhit2flowdata.Y2V.size() > m_plhit2flowdata.Y2U.size()){
-	m_plhit2flowdata.Y2V.resize( m_plhit2flowdata.Y2U.size() );
-      }
-    }
-    _fill_consistency3d(m_plhit2flowdata.Y2U, m_plhit2flowdata.Y2V, m_plhit2flowdata.consistency3d, m_plhit2flowdata.dy, m_plhit2flowdata.dz);
+      if ( m_plhit2flowdata.Y2U.size()!=m_plhit2flowdata.Y2V.size() )
+	throw std::runtime_error("FlowContourMatch::fillPlaneHitFlowData -- Y2U and Y2V do not match");
+    }_fill_consistency3d(m_plhit2flowdata.Y2U, m_plhit2flowdata.Y2V, m_plhit2flowdata.consistency3d, m_plhit2flowdata.dy, m_plhit2flowdata.dz);
     
   }
 
@@ -131,64 +126,113 @@ namespace larflow {
     float ddy =0;
     float ddz =0;
     if(Y2U.size()<=0 && Y2V.size()<=0) return; //nothing was filled
-    //if only Y2V: nothing to compare
-    if(Y2U.size()<=0 && Y2V.size()>0){
-      for(int i=0; i<Y2V.size(); i++){
-	consistency3d.push_back(-1);
-	dy.push_back(0.0);
-	dz.push_back(0.0);
-      }
+
+    // if here, at least flow was filled. we allocate consistency vectors
+    if ( (Y2U.size()>0 && consistency3d.size()!=Y2U.size())
+	 || (Y2V.size()>0 && consistency3d.size()!=Y2V.size()) ) {
+      consistency3d.assign( Y2U.size(), -1);
+      dy.assign( Y2U.size(), -1 );
+      dz.assign( Y2U.size(), -1 );
     }
-    //if only Y2U: nothing to compare
-    if(Y2U.size()>0 && Y2V.size()<=0){
+    
+    //first fill 3D coord
+    if(Y2U.size()>0){
       for(int i=0; i<Y2U.size(); i++){
-	consistency3d.push_back(-1);
-	dy.push_back(0.0);
-	dz.push_back(0.0);
+	Y2U[i].X.assign( 3, -1);
+	_calc_coord3d(Y2U[i],Y2U[i].X);
       }
     }
-    //if both 
+    if(Y2V.size()>0){
+      for(int i=0; i<Y2V.size(); i++){
+	Y2V[i].X.assign( 3, -1);
+	_calc_coord3d(Y2V[i],Y2V[i].X);
+      }
+    }
+    
+    //if both flow information is provided, we can run consistency measures
     if(Y2U.size()>0 && Y2V.size()>0){
       //both are same size (by construction)
       for(int i=0; i<Y2U.size(); i++){
-	_calc_dist3d(Y2U.at(i),Y2V.at(i),ddy,ddz);
-	dy.push_back(ddy);
-	dz.push_back(ddz);
-	consistency3d.push_back(_calc_consistency3d(ddy,ddz));
+	_calc_dist3d(Y2U[i].X,Y2V[i].X,ddy,ddz);
+	dy[i] = ddy;
+	dz[i] = ddz;
+	consistency3d[i] = _calc_consistency3d(ddy,ddz);
       }
     } //end of both
   }
+    
+  void FlowContourMatch::_calc_coord3d(HitFlowData_t& hit_y2u,
+				       std::vector<float>& X) {
 
-  void FlowContourMatch::_calc_dist3d(HitFlowData_t& hit_y2u,
-				      HitFlowData_t& hit_y2v,
-				      float& dy,
-				      float& dz) {
+    if ( hit_y2u.srcwire<0 ) {
+      // this hit has no flow-match data
+      X[0] = -1;
+      X[1] = -1;
+      X[2] = -1;
+      return;
+    }
+    // for debug
+    //std::cout << __PRETTY_FUNCTION__ << "src wire=" << hit_y2u.srcwire << " tar(u)=" << hit_y2u.targetwire << std::endl;
+    if ( hit_y2u.targetwire<0 ) {
+      // flow is out of the plane (track how this happend).
+      // for now, we do not have a vaule
+      X[0] = -1;
+      X[1] = -1;
+      X[2] = -1;
+      return;
+    }
+    
     // larlite geometry tool
     const larutil::Geometry* geo = larutil::Geometry::GetME();
     const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
-    Double_t x0 = (hit_y2u.pixtick-3200.0)*cm_per_tick;
-    Double_t y0;
-    Double_t z0;
-    geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 0, y0, z0 );
-    Double_t x1 = (hit_y2v.pixtick-3200.0)*cm_per_tick;
-    Double_t y1;
-    Double_t z1;
-    geo->IntersectionPoint( hit_y2v.srcwire, hit_y2v.targetwire, 2, 1, y1, z1 );
-    //
-    dy = sqrt(pow(y1-y0,2));
-    dz = sqrt(pow(z1-z0,2));
+    X[0] = (hit_y2u.pixtick-3200.0)*cm_per_tick;
+    double y;
+    double z;
+    geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 0, y, z );
+    X[1] = y;
+    X[2] = z;
+    
+  }
+
+  void FlowContourMatch::_calc_dist3d(std::vector<float>& X0,
+				      std::vector<float>& X1,
+				      float& dy,
+				      float& dz) {
+
+    if ( X0.size()<=0 ||  X1.size()<=0 || X0.size()!=X1.size() ) {
+      // one of the 3D positions was not properly initialized: should not happen
+      dy = -1;
+      dz = -1;
+      return;
+    }
+    if ( std::any_of(X0.cbegin(), X0.cend(), [](int i){ return i == -1; })
+	 || std::any_of(X1.cbegin(), X1.cend(), [](int i){ return i == -1; })) {
+      // one of the flows is out of the plane (track how this happend).
+      // for now, we do not have a vaule
+      dy = -1;
+      dy = -1;
+      return;
+
+    }
+        
+    dy = sqrt(pow(X1[1]-X0[1],2));
+    dz = sqrt(pow(X1[2]-X0[2],2));
     
   }
 
   int FlowContourMatch::_calc_consistency3d(float& dy,
 					    float& dz) {
 
+    if ( dy<0 || dz<0 )
+	   return FlowMatchHit3D::kNoValue; // no
+
     float dR = sqrt(dy*dy + dz*dz);
     //dR should be in cm?
-    if(dR<0.5) return 0; // kIn5mm
-    if(dR<1.0) return 1; // kIn10mm
-    if(dR<5.0) return 2; // kIn50mm
-    return 3;            // kOut50mm
+    if(dR<0.5) return FlowMatchHit3D::kIn5mm;  // kIn5mm
+    if(dR<1.0) return FlowMatchHit3D::kIn10mm; // kIn10mm
+    if(dR<5.0) return FlowMatchHit3D::kIn50mm; // kIn50mm
+    return FlowMatchHit3D::kOut50mm;           // kOut50mm
+
   }
  
   void FlowContourMatch::match( FlowDirection_t flowdir,
@@ -1117,6 +1161,12 @@ namespace larflow {
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
       flowhit.targetwire = hitdata.targetwire;
+      flowhit.X[0]          = hitdata.X[0];
+      flowhit.X[1]          = hitdata.X[1];
+      flowhit.X[2]          = hitdata.X[2];
+      flowhit.dy            = -1.;
+      flowhit.dz            = -1.;
+      flowhit.consistency3d = -1.;
       switch ( hitdata.matchquality ) {
       case 1:
 	flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
@@ -1163,11 +1213,15 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
-	flowhit.idxhit     = hitidx;
-	flowhit.tick       = hitdata.pixtick;
-	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
-	
+	flowhit.idxhit        = hitidx;
+	flowhit.tick          = hitdata.pixtick;
+	flowhit.srcwire       = hitdata.srcwire;
+	flowhit.targetwire[0] = hitdata.targetwire;
+	flowhit.X[0]          = hitdata.X[0];
+	flowhit.X[1]          = hitdata.X[1];
+	flowhit.X[2]          = hitdata.X[2];
+	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
+	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
@@ -1182,7 +1236,23 @@ namespace larflow {
 	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
 	  break;
 	}
-	
+	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
+	case 0:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  break;
+	case 1:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  break;
+	case 2:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  break;
+	case 3:
+	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  break;
+	default:
+	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+	  break;
+	}
 	output_hit3d_v.emplace_back( flowhit );
       }
     }// end of Y2U only
@@ -1197,11 +1267,15 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
-	flowhit.idxhit     = hitidx;
-	flowhit.tick       = hitdata.pixtick;
-	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
-	
+	flowhit.idxhit        = hitidx;
+	flowhit.tick          = hitdata.pixtick;
+	flowhit.srcwire       = hitdata.srcwire;
+	flowhit.targetwire[1] = hitdata.targetwire;
+	flowhit.X[0]          = hitdata.X[0];
+	flowhit.X[1]          = hitdata.X[1];
+	flowhit.X[2]          = hitdata.X[2];
+	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
+	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
@@ -1214,6 +1288,24 @@ namespace larflow {
 	  break;
 	default:
 	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  break;
+	}
+
+	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
+	case 0:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  break;
+	case 1:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  break;
+	case 2:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  break;
+	case 3:
+	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  break;
+	default:
+	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
 	  break;
 	}
 	
@@ -1232,25 +1324,32 @@ namespace larflow {
 	const HitFlowData_t& hitdata1 = hit2flowdata_y2v[ hitidx ];
 	HitFlowData_t hitdata;
 	//select here
+	if(require_3Dconsistency && plhit2flowdata.consistency3d[ hitidx ]>3) continue; //if require_3Dconsistency, skip if no consistency
 	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && !makehits_for_nonmatches ) {
 	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
 	  continue;
 	}
-	if(require_3Dconsistency && plhit2flowdata.consistency3d[ hitidx ]>2) continue; //if require_3Dconsistency, skip if >5cm away
-	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches)  hitdata = hitdata0; //can be either...
-	if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality)  hitdata = hitdata0; //either...	
-	if((hitdata0.matchquality<0 && hitdata1.matchquality>=0)
-	   || (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  hitdata = hitdata1;
-	if((hitdata1.matchquality<0 && hitdata0.matchquality>=0)
-	   || (hitdata1.matchquality>=0 && hitdata0.matchquality>=0 && hitdata1.matchquality < hitdata0.matchquality))  hitdata = hitdata0;
-
+	else if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches)  hitdata = hitdata0; //neither has a match, pick y2u  
+	else if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality)  hitdata = hitdata0; //same quality, pick y2u...infill?	
+	else if((hitdata0.matchquality<0 && hitdata1.matchquality>=0)
+		|| (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  hitdata = hitdata1; //y2v better matchqual
+	else if((hitdata1.matchquality<0 && hitdata0.matchquality>=0)
+		|| (hitdata1.matchquality>=0 && hitdata0.matchquality>=0 && hitdata1.matchquality < hitdata0.matchquality))  hitdata = hitdata0; //y2u better matchqual
+	else{
+	  hitdata = hitdata0; 
+	}
 	//make a hit
 	FlowMatchHit3D flowhit;
 	flowhit.idxhit     = hitidx;
 	flowhit.tick       = hitdata.pixtick;
 	flowhit.srcwire    = hitdata.srcwire;
-	flowhit.targetwire = hitdata.targetwire;
-	
+	flowhit.targetwire[0] = hitdata0.targetwire;
+	flowhit.targetwire[1] = hitdata1.targetwire;
+	flowhit.X[0]          = hitdata.X[0];
+	flowhit.X[1]          = hitdata.X[1];
+	flowhit.X[2]          = hitdata.X[2];
+	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
+	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
@@ -1265,7 +1364,23 @@ namespace larflow {
 	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
 	  break;
 	}
-	
+	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
+	case 0:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  break;
+	case 1:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  break;
+	case 2:
+	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  break;
+	case 3:
+	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  break;
+	default:
+	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+	  break;
+	}
 	output_hit3d_v.emplace_back( flowhit );
       }
     }// end of both
