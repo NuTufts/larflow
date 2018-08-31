@@ -48,9 +48,11 @@ from ub_uresnet import UResNet
 
 # load model with weights from checkpoints
 
-def load_model( checkpointfile, gpuid=0, checkpointgpu=0 ):
+def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
 
     model = UResNet(inplanes=32,input_channels=1,num_classes=2,showsizes=False)
+    if use_half:
+        model = model.half()
 
     # stored parameters know what gpu ID they were on
     # if we change gpuids, we need to force the map here

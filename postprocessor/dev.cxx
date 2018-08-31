@@ -52,23 +52,35 @@ void event_changeout( larlite::storage_manager& dataco_output,
   
   // get the final hits made from flow
   std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
+  //std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_1pl( larflow::FlowContourMatch::kY2U );
   std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
     if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
       continue;
-    if ( flowhit.targetwire<0 || flowhit.targetwire>=2399 )
+    // this intersectoin logic should  be in get3dhits_2pl
+    bool goody2u = true;
+    bool goody2v = true;
+    if ( flowhit.targetwire[0]<0 || flowhit.targetwire[0]>=2399 )
+      goody2u = false;
+    if ( flowhit.targetwire[1]<0 || flowhit.targetwire[1]>=2399 )
+      goody2v = false;
+    if ( !goody2u && !goody2v )
       continue;
+    int useflow = (goody2u) ? 0 : 1;
 
     std::cout << "hitidx[" << flowhit.idxhit << "] "
     	      << "from wire-p2=" << flowhit.srcwire
-    	      << " wire-p0=" << flowhit.targetwire;    
+    	      << " wire-p0=" << flowhit.targetwire[0]
+	      << " wire-p1=" << flowhit.targetwire[1]
+	      << " quality=" << flowhit.matchquality
+	      << " consistency=" << flowhit.consistency;
     
     // need to get (x,y,z) position
     Double_t x = (flowhit.tick-3200.0)*cm_per_tick;    
     Double_t y;
     Double_t z;
-    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire, 2, 0, y, z );
+    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire[useflow], 2, useflow, y, z );
     std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
     
     larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
@@ -95,10 +107,10 @@ int main( int nargs, char** argv ) {
   // cropped example
   //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
   //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  std::string input_larflow_y2u_file  = "../../../larflow/testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
-  std::string input_larflow_y2v_file  = "../../../larflow/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
-  std::string input_supera_file       = "../../../larflow/testdata/larcv_5482426_95.root";  
-  std::string input_reco2d_file       = "../../../larflow/testdata/larlite_reco2d_5482426_95.root";
+  std::string input_larflow_y2u_file  = "../testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
+  std::string input_larflow_y2v_file  = "../testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
+  std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
+  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
@@ -112,7 +124,7 @@ int main( int nargs, char** argv ) {
   // data from larflow output: sequence of cropped images
   larlitecv::DataCoordinator dataco;
   dataco.add_inputfile( input_larflow_y2u_file, "larcv" );
-  //dataco.add_inputfile( input_larflow_y2v_file, "larcv" );  
+  dataco.add_inputfile( input_larflow_y2v_file, "larcv" );  
   dataco.initialize();
 
   // data from whole-view image
@@ -197,7 +209,7 @@ int main( int nargs, char** argv ) {
     const std::vector<larcv::Image2D>& img_v = ev_wire->image2d_array();
     bool hasFlow[2] = { false, false };
     for (int i=0; i<2; i++)
-      hasFlow[i] = ( hasFlow[i] ) ? true : false;
+      hasFlow[i] = ( ev_flow[i]->valid() ) ? true : false;
 
     // For whole-view data, should avoid reloading, repeatedly
     // supera images
@@ -220,7 +232,7 @@ int main( int nargs, char** argv ) {
     else
       flow_v.push_back( larcv::Image2D() ); // dummy image
     if ( hasFlow[flowdir::kY2V] )
-      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2V]->modimgat(1) ) );
+      flow_v.emplace_back( std::move(ev_flow[flowdir::kY2V]->modimgat(0) ) );
     else
       flow_v.push_back( larcv::Image2D() ); // dummy image
     
@@ -261,6 +273,7 @@ int main( int nargs, char** argv ) {
     if ( kVISUALIZE ) {
     
       std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_2pl();
+      //std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_1pl( flowdir::kY2U );
       
       // TCanvas c("c","scorematrix",1600,1200);
       // matching_algo.plotScoreMatrix().Draw("colz");
@@ -418,7 +431,18 @@ int main( int nargs, char** argv ) {
 	TGraph gtarhits( hits3d_v.size() );
 	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
 	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
-	  gtarhits.SetPoint( ihit, hit3d.targetwire, hit3d.tick );
+
+	  // bool goody2u = true;
+	  // bool goody2v = true;
+	  // if ( hit3d.targetwire[0]<0 || hit3d.targetwire[0]>=2399 )
+	  //   goody2u = false;
+	  // if ( hit3d.targetwire[1]<0 || hit3d.targetwire[1]>=2399 )
+	  //   goody2v = false;
+	  // if ( !goody2u && !goody2v )
+	  //   continue;
+	  // int useflow = (goody2u) ? 0 : 1;
+	  	  
+	  gtarhits.SetPoint( ihit, hit3d.targetwire[0], hit3d.tick );
 	}
 	gtarhits.SetMarkerSize(1);
 	gtarhits.SetMarkerStyle(21);
