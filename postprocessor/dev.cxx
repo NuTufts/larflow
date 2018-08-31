@@ -10,8 +10,8 @@
 // larlite
 #include "DataFormat/hit.h"
 #include "DataFormat/spacepoint.h"
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
+//#include "LArUtil/LArProperties.h"
+//#include "LArUtil/Geometry.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -46,9 +46,9 @@ void event_changeout( larlite::storage_manager& dataco_output,
   larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
   larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2v");
 
-  // larlite geometry tool
-  const larutil::Geometry* geo = larutil::Geometry::GetME();
-  const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
+  // larlite geometry tool: now called in FlowContour
+  //const larutil::Geometry* geo = larutil::Geometry::GetME();
+  //const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
   
   // get the final hits made from flow
   std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
@@ -73,14 +73,18 @@ void event_changeout( larlite::storage_manager& dataco_output,
     	      << "from wire-p2=" << flowhit.srcwire
     	      << " wire-p0=" << flowhit.targetwire[0]
 	      << " wire-p1=" << flowhit.targetwire[1]
+	      << " x= " << flowhit.X[0]
+	      << " y= " << flowhit.X[1]
+	      << " z= " << flowhit.X[2]
+	      << " dy= " << flowhit.dy
+	      << " dz= " << flowhit.dz
 	      << " quality=" << flowhit.matchquality
-	      << " consistency=" << flowhit.consistency;
+	      << " consistency=" << flowhit.consistency3d;
     
     // need to get (x,y,z) position
-    Double_t x = (flowhit.tick-3200.0)*cm_per_tick;    
-    Double_t y;
-    Double_t z;
-    geo->IntersectionPoint( flowhit.srcwire, flowhit.targetwire[useflow], 2, useflow, y, z );
+    Double_t x = flowhit.X[0];    
+    Double_t y = flowhit.X[1];
+    Double_t z = flowhit.X[2];
     std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
     
     larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
