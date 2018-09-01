@@ -18,7 +18,8 @@
 #include "ContourCluster.h"
 #include "larcv/core/DataFormat/Image2D.h"
 
-#include "FlowMatchHit3D.h"
+// larlite data product
+#include "DataFormat/larflow3dhit.h"
 
 namespace larflow {
 
@@ -140,10 +141,10 @@ namespace larflow {
 			   bool runY2U = true,
 			   bool runY2V = false);
       
-    std::vector< FlowMatchHit3D > get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches=true  );
-    std::vector< FlowMatchHit3D > get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
-    std::vector< FlowMatchHit3D > get3Dhits_2pl( bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
-    std::vector< FlowMatchHit3D > get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
+    std::vector< larlite::larflow3dhit > get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches=true  );
+    std::vector< larlite::larflow3dhit > get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
+    std::vector< larlite::larflow3dhit > get3Dhits_2pl( bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
+    std::vector< larlite::larflow3dhit > get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
     
     // algorithm sub-functions
     // ------------------------

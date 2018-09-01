@@ -10,8 +10,7 @@
 // larlite
 #include "DataFormat/hit.h"
 #include "DataFormat/spacepoint.h"
-//#include "LArUtil/LArProperties.h"
-//#include "LArUtil/Geometry.h"
+#include "DataFormat/larflow3dhit.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -27,11 +26,12 @@
 // #endif
 
 // ContourTools
-//#include "ContourTools/ContourShapeMeta.h"
 #include "ContourTools/ContourCluster.h"
 
+// FlowContourMatching
 #include "FlowContourMatching/FlowContourMatch.h"
-#include "FlowContourMatching/FlowMatchHit3D.h"
+
+
 
 
 void event_changeout( larlite::storage_manager& dataco_output,
@@ -41,56 +41,22 @@ void event_changeout( larlite::storage_manager& dataco_output,
 		      const int eventid ) {
 
   std::cout << "event_changeout." << std::endl;
-  // save the spointpoint vector
-  //larlite::event_spacepoint* ev_spacepoint_tot = (larlite::event_spacepoint*)dataco_output.get_larlite_data(larlite::data::kSpacePoint,"flowhits");                  
-  larlite::event_spacepoint* ev_spacepoint_y2u = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2u");
-  larlite::event_spacepoint* ev_spacepoint_y2v = (larlite::event_spacepoint*)dataco_output.get_data(larlite::data::kSpacePoint,"flowhits_y2v");
+  // save the larflow3dhit vector
+  larlite::event_larflow3dhit* ev_larflowhit = (larlite::event_larflow3dhit*)dataco_output.get_data(larlite::data::kLArFlow3DHit,"flowhits");
 
   // larlite geometry tool: now called in FlowContour
   //const larutil::Geometry* geo = larutil::Geometry::GetME();
   //const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
   
   // get the final hits made from flow
-  std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
-  //std::vector< larflow::FlowMatchHit3D > whole_event_hits3d_v = matching_algo.get3Dhits_1pl( larflow::FlowContourMatch::kY2U );
+  std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
+
   std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
     // form spacepoints
-    if ( flowhit.srcwire<0 || flowhit.srcwire>=3455 )
-      continue;
-    // this intersectoin logic should  be in get3dhits_2pl
-    bool goody2u = true;
-    bool goody2v = true;
-    if ( flowhit.targetwire[0]<0 || flowhit.targetwire[0]>=2399 )
-      goody2u = false;
-    if ( flowhit.targetwire[1]<0 || flowhit.targetwire[1]>=2399 )
-      goody2v = false;
-    if ( !goody2u && !goody2v )
-      continue;
-    int useflow = (goody2u) ? 0 : 1;
-
-    std::cout << "hitidx[" << flowhit.idxhit << "] "
-    	      << "from wire-p2=" << flowhit.srcwire
-    	      << " wire-p0=" << flowhit.targetwire[0]
-	      << " wire-p1=" << flowhit.targetwire[1]
-	      << " x= " << flowhit.X[0]
-	      << " y= " << flowhit.X[1]
-	      << " z= " << flowhit.X[2]
-	      << " dy= " << flowhit.dy
-	      << " dz= " << flowhit.dz
-	      << " quality=" << flowhit.matchquality
-	      << " consistency=" << flowhit.consistency3d;
-    
-    // need to get (x,y,z) position
-    Double_t x = flowhit.X[0];    
-    Double_t y = flowhit.X[1];
-    Double_t z = flowhit.X[2];
-    std::cout << " pos=(" << x << "," << y << "," << z << ") " << std::endl;
-    
-    larlite::spacepoint sp( flowhit.idxhit, x, y, z, 0, 0, 0, 0 );
-    ev_spacepoint_y2u->emplace_back( std::move(sp) );
+    ev_larflowhit->emplace_back( std::move(flowhit) );
   }
-
+  
   dataco_output.set_id( runid, subrunid, eventid );
   dataco_output.next_event();
 
@@ -276,8 +242,8 @@ int main( int nargs, char** argv ) {
 
     if ( kVISUALIZE ) {
     
-      std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_2pl();
-      //std::vector< larflow::FlowMatchHit3D > hits3d_v = matching_algo.get3Dhits_1pl( flowdir::kY2U );
+      std::vector< larlite::larflow3dhit > hits3d_v = matching_algo.get3Dhits_2pl();
+      //std::vector< larlite::larflow3dhit > hits3d_v = matching_algo.get3Dhits_1pl( flowdir::kY2U );
       
       // TCanvas c("c","scorematrix",1600,1200);
       // matching_algo.plotScoreMatrix().Draw("colz");
@@ -405,7 +371,7 @@ int main( int nargs, char** argv ) {
 	// plot matched hits
 	TGraph gsrchits( hits3d_v.size() );
 	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
-	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	  larlite::larflow3dhit& hit3d = hits3d_v[ihit];
 	  float x = hit3d.srcwire;
 	  float y = hit3d.tick;
 	  //std::cout << "src hit[" << ihit << "] (r,c)=(" << y << "," << x << ")" << std::endl;
@@ -434,7 +400,7 @@ int main( int nargs, char** argv ) {
 	// plot matched hits
 	TGraph gtarhits( hits3d_v.size() );
 	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
-	  larflow::FlowMatchHit3D& hit3d = hits3d_v[ihit];
+	  larlite::larflow3dhit& hit3d = hits3d_v[ihit];
 
 	  // bool goody2u = true;
 	  // bool goody2v = true;

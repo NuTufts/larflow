@@ -230,14 +230,14 @@ namespace larflow {
 					    float& dz) {
 
     if ( dy<0 || dz<0 )
-	   return FlowMatchHit3D::kNoValue; // no
+	   return larlite::larflow3dhit::kNoValue; // no
 
     float dR = sqrt(dy*dy + dz*dz);
     //dR should be in cm?
-    if(dR<0.5) return FlowMatchHit3D::kIn5mm;  // kIn5mm
-    if(dR<1.0) return FlowMatchHit3D::kIn10mm; // kIn10mm
-    if(dR<5.0) return FlowMatchHit3D::kIn50mm; // kIn50mm
-    return FlowMatchHit3D::kOut50mm;           // kOut50mm
+    if(dR<0.5) return larlite::larflow3dhit::kIn5mm;  // kIn5mm
+    if(dR<1.0) return larlite::larflow3dhit::kIn10mm; // kIn10mm
+    if(dR<5.0) return larlite::larflow3dhit::kIn50mm; // kIn50mm
+    return larlite::larflow3dhit::kOut50mm;           // kOut50mm
 
   }
  
@@ -1138,7 +1138,7 @@ namespace larflow {
     return;
   }
 
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches ) {
+  std::vector<larlite::larflow3dhit> FlowContourMatch::get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches ) {
     // we convert the information we've compiled in m_hit2flowdata, which provides our best guess
     //  as the correct source-column + target-column pair.
     //  the objects of this container also contain info about matchquality
@@ -1150,11 +1150,11 @@ namespace larflow {
       throw std::runtime_error("should not get here");
   }
   
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches ) {
+  std::vector<larlite::larflow3dhit> FlowContourMatch::get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches ) {
 
     // now we have, in principle, the best/modified flow prediction for hits that land on flow predictions
     // we can make 3D hits!
-    std::vector<FlowMatchHit3D> output_hit3d_v;
+    std::vector<larlite::larflow3dhit> output_hit3d_v;
     for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
       const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
       if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
@@ -1162,7 +1162,7 @@ namespace larflow {
     	continue;
       }
       // otherwise make a hit
-      FlowMatchHit3D flowhit;
+      larlite::larflow3dhit flowhit;
       flowhit.idxhit     = hitidx;
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
@@ -1172,19 +1172,19 @@ namespace larflow {
       flowhit[2]          = hitdata.X[2];
       flowhit.dy            = -1.;
       flowhit.dz            = -1.;
-      flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+      flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
       switch ( hitdata.matchquality ) {
       case 1:
-	flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
 	break;
       case 2:
-	flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	flowhit.matchquality=larlite::larflow3dhit::kCmatch;
 	break;
       case 3:
-	flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	flowhit.matchquality=larlite::larflow3dhit::kClosestC;
 	break;
       default:
-	flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
 	break;
       }
       output_hit3d_v.emplace_back( flowhit );
@@ -1193,18 +1193,18 @@ namespace larflow {
     return output_hit3d_v;    
   }
 
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_2pl( bool makehits_for_nonmatches, bool require_3Dconsistency ) {
+  std::vector<larlite::larflow3dhit> FlowContourMatch::get3Dhits_2pl( bool makehits_for_nonmatches, bool require_3Dconsistency ) {
     // we convert the information we've compiled in m_hit2flowdata, which provides our best guess
     //  as the correct source-column + target-column pair.
     //  the objects of this container also contain info about matchquality
       return get3Dhits_2pl( m_plhit2flowdata, makehits_for_nonmatches, require_3Dconsistency );
   }
   
-  std::vector<FlowMatchHit3D> FlowContourMatch::get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches, bool require_3Dconsistency ) {
+  std::vector<larlite::larflow3dhit> FlowContourMatch::get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches, bool require_3Dconsistency ) {
 
     // now we have, in principle, the best/modified flow prediction for hits that land on flow predictions
     // here we choose which of the two predictions to keep (for each hit)
-    std::vector<FlowMatchHit3D> output_hit3d_v;
+    std::vector<larlite::larflow3dhit> output_hit3d_v;
 
     // note: we can probably combine 1+2 with some pointers to Y2U or Y2V depening on the ranX2X flags
     
@@ -1218,7 +1218,7 @@ namespace larflow {
 	  continue;
 	}
 	// otherwise make a hit
-	FlowMatchHit3D flowhit;
+	larlite::larflow3dhit flowhit;
 	flowhit.resize(3,-1);
 	flowhit.idxhit        = hitidx;
 	flowhit.tick          = hitdata.pixtick;
@@ -1231,33 +1231,33 @@ namespace larflow {
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
-	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
 	  break;
 	case 2:
-	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
 	  break;
 	case 3:
-	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
 	  break;
 	default:
-	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
 	  break;
 	}
 	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
 	case 0:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
 	  break;
 	case 1:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
 	  break;
 	case 2:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
 	  break;
 	case 3:
-	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
 	  break;
 	default:
-	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
 	  break;
 	}
 	output_hit3d_v.emplace_back( flowhit );
@@ -1273,7 +1273,7 @@ namespace larflow {
 	  continue;
 	}
 	// otherwise make a hit
-	FlowMatchHit3D flowhit;
+	larlite::larflow3dhit flowhit;
 	flowhit.resize(3,-1);
 	flowhit.idxhit        = hitidx;
 	flowhit.tick          = hitdata.pixtick;
@@ -1286,34 +1286,34 @@ namespace larflow {
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
-	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
 	  break;
 	case 2:
-	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
 	  break;
 	case 3:
-	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
 	  break;
 	default:
-	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
 	  break;
 	}
 
 	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
 	case 0:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
 	  break;
 	case 1:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
 	  break;
 	case 2:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
 	  break;
 	case 3:
-	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
 	  break;
 	default:
-	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
 	  break;
 	}
 	
@@ -1347,7 +1347,7 @@ namespace larflow {
 	  hitdata = hitdata0; 
 	}
 	//make a hit
-	FlowMatchHit3D flowhit;
+	larlite::larflow3dhit flowhit;
 	flowhit.resize(3,-1);
 	flowhit.idxhit     = hitidx;
 	flowhit.tick       = hitdata.pixtick;
@@ -1361,33 +1361,33 @@ namespace larflow {
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
 	case 1:
-	  flowhit.matchquality=FlowMatchHit3D::kQandCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
 	  break;
 	case 2:
-	  flowhit.matchquality=FlowMatchHit3D::kCmatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
 	  break;
 	case 3:
-	  flowhit.matchquality=FlowMatchHit3D::kClosestC;
+	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
 	  break;
 	default:
-	  flowhit.matchquality=FlowMatchHit3D::kNoMatch;
+	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
 	  break;
 	}
 	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
 	case 0:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn5mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
 	  break;
 	case 1:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn10mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
 	  break;
 	case 2:
-	  flowhit.consistency3d=FlowMatchHit3D::kIn50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
 	  break;
 	case 3:
-	  flowhit.consistency3d=FlowMatchHit3D::kOut50mm;
+	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
 	  break;
 	default:
-	  flowhit.consistency3d=FlowMatchHit3D::kNoValue;
+	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
 	  break;
 	}
 	output_hit3d_v.emplace_back( flowhit );
