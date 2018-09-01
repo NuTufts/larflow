@@ -1167,9 +1167,9 @@ namespace larflow {
       flowhit.tick       = hitdata.pixtick;
       flowhit.srcwire    = hitdata.srcwire;
       flowhit.targetwire[0] = hitdata.targetwire;
-      flowhit.X[0]          = hitdata.X[0];
-      flowhit.X[1]          = hitdata.X[1];
-      flowhit.X[2]          = hitdata.X[2];
+      flowhit[0]          = hitdata.X[0];
+      flowhit[1]          = hitdata.X[1];
+      flowhit[2]          = hitdata.X[2];
       flowhit.dy            = -1.;
       flowhit.dz            = -1.;
       flowhit.consistency3d=FlowMatchHit3D::kNoValue;
@@ -1219,13 +1219,14 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
+	flowhit.resize(3,-1);
 	flowhit.idxhit        = hitidx;
 	flowhit.tick          = hitdata.pixtick;
 	flowhit.srcwire       = hitdata.srcwire;
 	flowhit.targetwire[0] = hitdata.targetwire;
-	flowhit.X[0]          = hitdata.X[0];
-	flowhit.X[1]          = hitdata.X[1];
-	flowhit.X[2]          = hitdata.X[2];
+	flowhit[0]            = hitdata.X[0];
+	flowhit[1]            = hitdata.X[1];
+	flowhit[2]            = hitdata.X[2];
 	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
@@ -1273,13 +1274,14 @@ namespace larflow {
 	}
 	// otherwise make a hit
 	FlowMatchHit3D flowhit;
+	flowhit.resize(3,-1);
 	flowhit.idxhit        = hitidx;
 	flowhit.tick          = hitdata.pixtick;
 	flowhit.srcwire       = hitdata.srcwire;
 	flowhit.targetwire[1] = hitdata.targetwire;
-	flowhit.X[0]          = hitdata.X[0];
-	flowhit.X[1]          = hitdata.X[1];
-	flowhit.X[2]          = hitdata.X[2];
+	flowhit[0]            = hitdata.X[0];
+	flowhit[1]            = hitdata.X[1];
+	flowhit[2]            = hitdata.X[2];
 	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
@@ -1346,14 +1348,15 @@ namespace larflow {
 	}
 	//make a hit
 	FlowMatchHit3D flowhit;
+	flowhit.resize(3,-1);
 	flowhit.idxhit     = hitidx;
 	flowhit.tick       = hitdata.pixtick;
 	flowhit.srcwire    = hitdata.srcwire;
 	flowhit.targetwire[0] = hitdata0.targetwire;
 	flowhit.targetwire[1] = hitdata1.targetwire;
-	flowhit.X[0]          = hitdata.X[0];
-	flowhit.X[1]          = hitdata.X[1];
-	flowhit.X[2]          = hitdata.X[2];
+	flowhit[0]            = hitdata.X[0];
+	flowhit[1]            = hitdata.X[1];
+	flowhit[2]            = hitdata.X[2];	
 	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
 	switch ( hitdata.matchquality ) {
