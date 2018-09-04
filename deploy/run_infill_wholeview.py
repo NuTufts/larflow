@@ -156,7 +156,7 @@ if __name__=="__main__":
         checkpoint_data = ["../weights/dev_filtered/devfiltered_infill_final_checkpoint_uplane.tar",
                            "../weights/dev_filtered/devfiltered_infill_final_checkpoint_vplane.tar",
                            "../weights/dev_filtered/devfiltered_infill_final_checkpoint_yplane.tar"]
-        batch_size = 4
+        batch_size = 1
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
@@ -385,7 +385,7 @@ if __name__=="__main__":
                     print "time to run model (one plane): ",trun," secs"            
 
                 # get result tensor
-                result_np[p] = pred_flow.detach().cpu().numpy().astype(np.float32)
+                result_np[p] = pred_infill.detach().cpu().numpy().astype(np.float32)
 
             # -------------
             # Store results
@@ -399,10 +399,7 @@ if __name__=="__main__":
                     continue
 
                 # convert data to larcv
-                infill_lcv = [None,None,None]
-                for p in xrange(3):
-                    img_slice = result_np[ib,0,:]
-                    infill_lcv[p] = larcv.as_image2d_meta( img_slice, image_meta[p][ib] )
+                infill_lcv = [ larcv.as_image2d_meta( result_np[p][ib,0,:], image_meta[p][ib] ) for p in xrange(3) ]
 
                 # if stiching, store into stitch
                 if stitch:
