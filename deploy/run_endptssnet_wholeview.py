@@ -156,7 +156,7 @@ if __name__=="__main__":
         checkpoint_data = ["../weights/dev_filtered/devfiltered_endpoint_model_best_u.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_model_best_v.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_checkpoint.52500th_y.tar"]
-        batch_size = 3
+        batch_size = 1
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
@@ -340,7 +340,7 @@ if __name__=="__main__":
                 for p in xrange(0,3):
                     adcimg = splitimg_adc_v.at(iimg+p)
                     source_np[p][ib,0,:] = larcv.as_ndarray( adcimg )
-                    image_meta[p].append( splitimg_adc_v.at(iimg+p).meta()  )
+                    image_meta[p].append( adcimg.meta()  )
 
                 # if not stiching, save crops
                 if not stitch:
@@ -371,7 +371,7 @@ if __name__=="__main__":
             # --------------------------
             # Run batch through network, for each plane
             trun = time.time()            
-            for p in xrange(0,p):
+            for p in xrange(3):
                 
                 # filled batch, make tensors
                 source_t = torch.from_numpy( source_np[p] ).to(device=torch.device("cuda:%d"%(gpuid)))
@@ -381,7 +381,7 @@ if __name__=="__main__":
                 # run model
                 pred_ssnet = models[p].forward( source_t )
                 # get result tensor
-                result_np[p] = pred_ssnet.detach().cpu().numpy().astype(np.float32)
+                result_np[p] = pred_ssnet.detach().exp().cpu().numpy().astype(np.float32)
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
@@ -411,9 +411,9 @@ if __name__=="__main__":
                 if stitch:
                     outmeta = out_v[p].meta() # stitch meta                    
                     for p in xrange(3):
-                        stitcher_track.insertFlowSubimage( ssnet_lcv["track"][p],  image_meta[p][ib] )
+                        stitcher_track.insertFlowSubimage(  ssnet_lcv["track"][p],  image_meta[p][ib] )
                         stitcher_shower.insertFlowSubimage( ssnet_lcv["shower"][p], image_meta[p][ib] )
-                        stitcher_endpt.insertFlowSubimage( ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
+                        stitcher_endpt.insertFlowSubimage(  ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
 
                 # we save flow image and crops for each prediction
                 if not stitch:

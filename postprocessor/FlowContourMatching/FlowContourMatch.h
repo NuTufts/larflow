@@ -57,11 +57,28 @@ namespace larflow {
     // internal data structures and types
     // ----------------------------------
     typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; // indicates flow pattern
-    typedef std::array<int,2> SrcTarPair_t;        // pair of source and target contour indices
+    static const int kSourcePlane[2];// = { 2, 2 };
+    static const int kTargetPlane[2];// = { 0, 1 };
+
+    typedef std::array<int,2> SrcTarPair_t;        // pair of source and target contour indices    
     struct HitFlowData_t {
       // information about a hit's match from source to target plane
       // filled in _make3Dhits function
-      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srcwire(-1), targetwire(-1), pixtick(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
+      HitFlowData_t() : hitidx(-1),
+	maxamp(-1.0),
+	srcwire(-1),
+	targetwire(-1),
+	pixtick(-1),
+	matchquality(-1),
+	dist2center(-1),
+	src_ctr_idx(-1),
+	tar_ctr_idx(-1),
+	endpt_score(-1),
+	track_score(-1),
+	shower_score(-1),
+	renormed_track_score(-1),
+	renormed_shower_score(-1)
+      {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
       int srcwire;      // source image pixel: column
@@ -72,6 +89,11 @@ namespace larflow {
       int dist2charge;  // distance in columns from target pixel to matched charge pixel
       int src_ctr_idx;  // this becomes outdated once image changes up
       int tar_ctr_idx;  // this becomes outdated once image changes up
+      float endpt_score;
+      float track_score;
+      float shower_score;
+      float renormed_track_score;
+      float renormed_shower_score;
       std::vector<float> X; // 3D coordinates from larlite::geo
     };
     struct ClosestContourPix_t {
@@ -110,28 +132,16 @@ namespace larflow {
     virtual ~FlowContourMatch();
     void clear( bool clear2d=true, bool clear3d=true ); // clear2d and clear3d
 
-    // algorithm functions
+    // algorithm functions for User
+    // -----------------------------
 
-    // the unit that we match with the flow is the hit
-    void match( FlowDirection_t flowdir,
-		const larlitecv::ContourCluster& contour_data,
-		const larcv::Image2D& src_adc,
-		const larcv::Image2D& tar_adc,
-		const larcv::Image2D& flow_img,
-		const larlite::event_hit& hit_v,
-		const float threshold );
-
-    // the unit that we match with the flow is the pixel
-    // we will use the source image to create hits, which we pass to the flow
-    void matchPixels( FlowDirection_t flowdir,
-		      const larlitecv::ContourCluster& contour_data,
-		      const larcv::Image2D& src_adc, 
-		      const larcv::Image2D& tar_adc,
-		      const larcv::Image2D& flow_img,
-		      const float threshold,
-		      larlite::event_hit& hit_v );
+    // use this to turn pixels into hits. can use output in next function.
+    // (use at beginning of event)
     void makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, larlite::event_hit& evhit_v, const float threshold );
 
+    // update the information for making 3D hits
+    // -----------------------------------------
+    // call once per subimage
     void fillPlaneHitFlow( const larlitecv::ContourCluster& contour_data,
 			   const larcv::Image2D& src_adc,
 			   const std::vector<larcv::Image2D>& tar_adc,
@@ -140,15 +150,34 @@ namespace larflow {
 			   const float threshold,
 			   bool runY2U = true,
 			   bool runY2V = false);
-      
+
+    // Get final output: larflow3dhit
+    // -------------------------------    
+    // call once per end of event (after all subimages have been processed)
     std::vector< larlite::larflow3dhit > get3Dhits_1pl( FlowDirection_t flowdir, bool makehits_for_nonmatches=true  );
     std::vector< larlite::larflow3dhit > get3Dhits_1pl( const std::vector<HitFlowData_t>& hit2flowdata, bool makehits_for_nonmatches=true );
     std::vector< larlite::larflow3dhit > get3Dhits_2pl( bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
     std::vector< larlite::larflow3dhit > get3Dhits_2pl( const PlaneHitFlowData_t& plhit2flowdata, bool makehits_for_nonmatches=true, bool require_3Dconsistency=false );
+
+    // integrate endpoint/ssnet output
+    // (call before getting 3d hits)
+    // -------------------------------
+    void integrateSSNetEndpointOutput( const std::vector<larcv::Image2D>& track_scoreimgs,
+				       const std::vector<larcv::Image2D>& shower_scoreimgs,
+				       const std::vector<larcv::Image2D>& endpt_scoreimgs );
+    
     
     // algorithm sub-functions
     // ------------------------
+    
   protected:
+    void _match( FlowDirection_t flowdir,
+		 const larlitecv::ContourCluster& contour_data,
+		 const larcv::Image2D& src_adc,
+		 const larcv::Image2D& tar_adc,
+		 const larcv::Image2D& flow_img,
+		 const larlite::event_hit& hit_v,
+		 const float threshold );
     void _createMatchData( const larlitecv::ContourCluster& contour_data,
 			   const larcv::Image2D& flow_img,
 			   const larcv::Image2D& src_adc,

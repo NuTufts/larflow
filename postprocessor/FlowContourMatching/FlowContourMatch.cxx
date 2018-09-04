@@ -13,7 +13,8 @@
 #include "TH2D.h"
 
 namespace larflow {
-
+  
+  
   FlowMatchData_t::FlowMatchData_t( int srcid, int tarid )
     : src_ctr_id(srcid), tar_ctr_id(tarid)
   {}
@@ -27,6 +28,9 @@ namespace larflow {
   // ==========================================
   // FlowContourMatch Algo
   // ---------------------
+
+  const int FlowContourMatch::kSourcePlane[2] = { 2, 2 };
+  const int FlowContourMatch::kTargetPlane[2] = { 0, 1 };
   
   FlowContourMatch::FlowContourMatch() {
     m_score_matrix = NULL;
@@ -92,7 +96,7 @@ namespace larflow {
 
     if(runY2U){
       std::cout << "Run Y2U Match" << std::endl;
-      match( FlowContourMatch::kY2U,
+      _match( FlowContourMatch::kY2U,
 	     contour_data,
 	     src_adc,
 	     tar_adc[0],
@@ -104,13 +108,13 @@ namespace larflow {
     }
     if(runY2V){
       std::cout << "Run Y2V Match" << std::endl;
-      match( FlowContourMatch::kY2V,
-	     contour_data,
-	     src_adc,
-	     tar_adc[1],
-	     flow_img[1],
-	     hit_v,
-	     threshold );
+      _match( FlowContourMatch::kY2V,
+	      contour_data,
+	      src_adc,
+	      tar_adc[1],
+	      flow_img[1],
+	      hit_v,
+	      threshold );
 
       m_plhit2flowdata.ranY2V = true;
     }
@@ -122,6 +126,71 @@ namespace larflow {
     _fill_consistency3d(m_plhit2flowdata.Y2U, m_plhit2flowdata.Y2V, m_plhit2flowdata.consistency3d, m_plhit2flowdata.dy, m_plhit2flowdata.dz);
     
   }
+
+
+  // =====================================================================
+  // SSNet+Endpoint Integration
+  // ---------------------------
+
+  void FlowContourMatch::integrateSSNetEndpointOutput( const std::vector<larcv::Image2D>& track_scoreimgs,
+						       const std::vector<larcv::Image2D>& shower_scoreimgs,
+						       const std::vector<larcv::Image2D>& endpt_scoreimgs ) {
+    // store ssnet+endpoint information into hit2flow data
+    // inputs
+    // ------
+    // track_scoreimgs: assuming vector is (u,v,y)
+    // shower_scoreimgs: assuming vector is (u,v,y)
+    // endpt_scoreimgs: assuming vector is (u,v,y)
+    // ** we assume the above cover the same subimage region
+    //
+    // output
+    // -------
+    // updates m_plhit2flowdata[Y2U and Y2V] (if exists)
+    
+    // can be whole view or subimage
+    // we loop over hits, and check if image set is applicable
+
+    bool filled[2] = { m_plhit2flowdata.ranY2U, m_plhit2flowdata.ranY2V };
+    std::vector<HitFlowData_t>* phitdata_v[2] = { &(m_plhit2flowdata.Y2U), &(m_plhit2flowdata.Y2V) };
+
+    for ( int iflow=kY2U; iflow<(int)kNumFlowDirs; iflow++ ) {
+      if ( !filled[iflow] ) continue;
+
+
+      std::vector<HitFlowData_t>&  hitdata_v = *(phitdata_v[iflow]);
+      // we check if hit is contained
+      const larcv::Image2D& track_img  = track_scoreimgs[  kSourcePlane[iflow] ];
+      const larcv::Image2D& shower_img = shower_scoreimgs[ kSourcePlane[iflow] ];
+      const larcv::Image2D& endpt_img  = endpt_scoreimgs[  kSourcePlane[iflow] ];
+      const larcv::ImageMeta& track_meta = track_img.meta();
+      
+      for ( auto& hitdata : hitdata_v ) {
+	if ( track_meta.min_x()<=hitdata.srcwire && hitdata.srcwire<track_meta.max_x()
+	     && track_meta.min_y()<=hitdata.pixtick && hitdata.pixtick<track_meta.max_y() ) {
+	  // inside image
+
+	  int col = track_meta.col( hitdata.srcwire );
+	  int row = track_meta.row( hitdata.pixtick );
+	  hitdata.track_score  = exp( track_img.pixel(row,col) );
+	  hitdata.shower_score = exp( shower_img.pixel(row,col) );
+	  hitdata.endpt_score  = exp( endpt_img.pixel(row,col) );
+
+	  // renormed scores: remove endpt and recalc shower/track
+	  float renorm = 1.0 - hitdata.endpt_score; // bg+track+shower
+	  hitdata.renormed_track_score  = hitdata.track_score/renorm;
+	  hitdata.renormed_shower_score = hitdata.shower_score/renorm;
+
+	  std::cout << "source hit inside subimage: (" << col << "," << row << ") endpt=" << hitdata.endpt_score << std::endl;	  
+	}
+      }
+    }
+  }
+  
+
+  
+  // =====================================================================
+  // INTERNAL FUNCTIONS
+  // --------------------
 
   void FlowContourMatch::_fill_consistency3d(std::vector<HitFlowData_t>& Y2U,
 					     std::vector<HitFlowData_t>& Y2V,
@@ -241,13 +310,13 @@ namespace larflow {
 
   }
  
-  void FlowContourMatch::match( FlowDirection_t flowdir,
-				const larlitecv::ContourCluster& contour_data,
-				const larcv::Image2D& src_adc,
-				const larcv::Image2D& tar_adc,
-				const larcv::Image2D& flow_img,
-				const larlite::event_hit& hit_v,
-				const float threshold ) {
+  void FlowContourMatch::_match( FlowDirection_t flowdir,
+				 const larlitecv::ContourCluster& contour_data,
+				 const larcv::Image2D& src_adc,
+				 const larcv::Image2D& tar_adc,
+				 const larcv::Image2D& flow_img,
+				 const larlite::event_hit& hit_v,
+				 const float threshold ) {
     
     // produces 3D hits from from one flow image
     int src_planeid = -1;
@@ -348,86 +417,7 @@ namespace larflow {
     }
     
   }
-  
-  void FlowContourMatch::matchPixels( FlowDirection_t flowdir,
-				      const larlitecv::ContourCluster& contour_data,
-				      const larcv::Image2D& src_adc,
-				      const larcv::Image2D& tar_adc,
-				      const larcv::Image2D& flow_img,
-				      const float threshold,
-				      larlite::event_hit& evhit_v ) {
-    // instead of hits, which can be too sparsely defined,
-    // we match pixels (or maybe eventually groups of pixels).
-    // we take in the input image, define a vector of hits, and then
-    // run the matching algorithm by calling match(...)
-    //
-    // inputs
-    // ------
-    // flowdir: indicate the flow pattern
-    // contour_data: clusters defined by ContourCluster
-    // src_adc: source ADC image
-    // tar_adc: target ADC image
-    // flow_img: flow predictions in image format
-    // threshold: ADC threshold
-    //
-    // outputs
-    // -------
-    // (implicit): populate internal data members
-    // pixhit_v (by address): vector of hits created from above threshold pixels
-
-    evhit_v.clear();
-    evhit_v.reserve(1000);
     
-    // we loop over all source pixels and make "hits" for all pixels above threshold
-    int ihit = 0;
-    for (int irow=0; irow<(int)src_adc.meta().rows(); irow++) {
-      float hit_tick = src_adc.meta().pos_y( irow )-2400.0;
-      
-      for (int icol=0; icol<(int)src_adc.meta().cols(); icol++) {
-	float pixval = src_adc.pixel( irow, icol );
-	if (pixval<threshold )
-	  continue;
-	
-	int wire = src_adc.meta().pos_x( icol );
-
-	// make fake hit from pixel
-	
-	larlite::hit h;
-	h.set_rms( 1.0 );
-	h.set_time_range( hit_tick, hit_tick );
-	h.set_time_peak( hit_tick, 1.0 );
-	h.set_time_rms( 1.0 );
-	h.set_amplitude( pixval, sqrt(pixval) );
-	h.set_integral( pixval, sqrt(pixval) );
-	h.set_sumq( pixval );
-	h.set_multiplicity( 1 );
-	h.set_local_index( ihit );
-	h.set_goodness( 1.0 );
-	h.set_ndf( 1 );
-
-	larlite::geo::WireID wireid( 0, 0, src_adc.meta().id(), wire );
-	int ch = larutil::Geometry::GetME()->PlaneWireToChannel( wireid.Plane, wireid.Wire );
-	h.set_channel( ch );
-	h.set_view( (larlite::geo::View_t)wireid.Plane );
-	h.set_wire( wireid );
-	h.set_signal_type( larutil::Geometry::GetME()->SignalType( ch ) );
-	evhit_v.emplace_back( std::move(h) );
-	
-	ihit++;
-      }
-    }
-    
-    // now perform matching algo
-    match( flowdir,
-	   contour_data,
-	   src_adc,
-	   tar_adc,
-	   flow_img,
-	   evhit_v, 
-	   threshold );
-
-  }
-  
   // ==================================================================================
   // Algorithm (internal) Methods
   // -----------------------------
@@ -1206,13 +1196,15 @@ namespace larflow {
     // here we choose which of the two predictions to keep (for each hit)
     std::vector<larlite::larflow3dhit> output_hit3d_v;
 
-    // note: we can probably combine 1+2 with some pointers to Y2U or Y2V depening on the ranX2X flags
-    
-    //case 1: we only ran Y2U
-    if(plhit2flowdata.ranY2U && !plhit2flowdata.ranY2V){
-      const std::vector<HitFlowData_t>& hit2flowdata_y2u = plhit2flowdata.Y2U;
-      for (int hitidx=0; hitidx<(int)hit2flowdata_y2u.size(); hitidx++) {
-	const HitFlowData_t& hitdata = hit2flowdata_y2u[ hitidx ];
+    // case 1, we only ran one flow direction
+    if ( !plhit2flowdata.ranY2U || !plhit2flowdata.ranY2V ) {
+
+      // determine which one we ran
+      FlowDirection_t flowdir = ( plhit2flowdata.ranY2U ) ? kY2U : kY2V;
+      const std::vector<HitFlowData_t>& hit2flowdata = ( plhit2flowdata.ranY2U ) ? plhit2flowdata.Y2U : plhit2flowdata.Y2V;
+
+      for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
+	const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
 	if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
 	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
 	  continue;
@@ -1229,100 +1221,48 @@ namespace larflow {
 	flowhit[2]            = hitdata.X[2];
 	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
-	switch ( hitdata.matchquality ) {
-	case 1:
-	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
-	  break;
-	case 2:
-	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
-	  break;
-	case 3:
-	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
-	  break;
-	default:
-	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
-	  break;
-	}
-	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
-	case 0:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
-	  break;
-	case 1:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
-	  break;
-	case 2:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
-	  break;
-	case 3:
-	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
-	  break;
-	default:
-	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
-	  break;
-	}
-	output_hit3d_v.emplace_back( flowhit );
-      }
-    }// end of Y2U only
-    //case 2: we only ran Y2V
-    if(plhit2flowdata.ranY2V && !plhit2flowdata.ranY2U){
-      const std::vector<HitFlowData_t>& hit2flowdata_y2v = plhit2flowdata.Y2V;
-      for (int hitidx=0; hitidx<(int)hit2flowdata_y2v.size(); hitidx++) {
-	const HitFlowData_t& hitdata = hit2flowdata_y2v[ hitidx ];
-	if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
-	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
-	  continue;
-	}
-	// otherwise make a hit
-	larlite::larflow3dhit flowhit;
-	flowhit.resize(3,-1);
-	flowhit.idxhit        = hitidx;
-	flowhit.tick          = hitdata.pixtick;
-	flowhit.srcwire       = hitdata.srcwire;
-	flowhit.targetwire[1] = hitdata.targetwire;
-	flowhit[0]            = hitdata.X[0];
-	flowhit[1]            = hitdata.X[1];
-	flowhit[2]            = hitdata.X[2];
-	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
-	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
-	switch ( hitdata.matchquality ) {
-	case 1:
-	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
-	  break;
-	case 2:
-	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
-	  break;
-	case 3:
-	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
-	  break;
-	default:
-	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
-	  break;
-	}
-
-	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
-	case 0:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
-	  break;
-	case 1:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
-	  break;
-	case 2:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
-	  break;
-	case 3:
-	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
-	  break;
-	default:
-	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
-	  break;
-	}
+	flowhit.track_score   = hitdata.track_score;
+	flowhit.shower_score  = hitdata.shower_score;
+	flowhit.endpt_score   = hitdata.endpt_score;
+	flowhit.renormed_track_score   = hitdata.renormed_track_score;
+	flowhit.renormed_shower_score  = hitdata.renormed_shower_score;
 	
+	switch ( hitdata.matchquality ) {
+	case 1:
+	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
+	  break;
+	case 2:
+	  flowhit.matchquality=larlite::larflow3dhit::kCmatch;
+	  break;
+	case 3:
+	  flowhit.matchquality=larlite::larflow3dhit::kClosestC;
+	  break;
+	default:
+	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
+	  break;
+	}
+	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
+	case 0:
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
+	  break;
+	case 1:
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
+	  break;
+	case 2:
+	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
+	  break;
+	case 3:
+	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
+	  break;
+	default:
+	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
+	  break;
+	}
 	output_hit3d_v.emplace_back( flowhit );
       }
-    }// end of Y2V only
-
-    //case 3: we ran Y2U and Y2V
-    if(plhit2flowdata.ranY2U && plhit2flowdata.ranY2V){
+    }// end of only 1 ran
+    //case 2: we ran Y2U and Y2V
+    else if(plhit2flowdata.ranY2U && plhit2flowdata.ranY2V){
       std::cout << "Picking hits using 2-flow information" << std::endl;
       const std::vector<HitFlowData_t>& hit2flowdata_y2u = plhit2flowdata.Y2U;
       const std::vector<HitFlowData_t>& hit2flowdata_y2v = plhit2flowdata.Y2V;
@@ -1359,6 +1299,12 @@ namespace larflow {
 	flowhit[2]            = hitdata.X[2];	
 	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
 	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
+	flowhit.track_score   = hitdata.track_score;
+	flowhit.shower_score  = hitdata.shower_score;
+	flowhit.endpt_score   = hitdata.endpt_score;
+	flowhit.renormed_track_score   = hitdata.renormed_track_score;
+	flowhit.renormed_shower_score  = hitdata.renormed_shower_score;
+	
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
@@ -1392,7 +1338,7 @@ namespace larflow {
 	}
 	output_hit3d_v.emplace_back( flowhit );
       }
-    }// end of both
+    }// end of both ran
 
     return output_hit3d_v;    
   }

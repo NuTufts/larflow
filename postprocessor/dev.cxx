@@ -74,13 +74,19 @@ int main( int nargs, char** argv ) {
   /// whole view examplex
   // std::string input_larflow_file = "../testdata/larflow_test_8541376_98.root";
   // std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  // cropped example
-  //std::string input_larflow_file = "larcv_larflow_test_8541376_98.root";
-  //  std::string input_reco2d_file  = "../testdata/larlite_reco2d_8541376_98.root";
-  std::string input_larflow_y2u_file  = "../testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
-  std::string input_larflow_y2v_file  = "../testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
+  // cropped examples
+  // -----------------
+  // common source files
   std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
-  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";    
+  // small 5 event sample for DL output:
+  std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
+  // larger 150 event test sample for DL output
+  // std::string input_larflow_y2u_file  = "../testdata/larcv_larflow_y2u_5482426_95_testsample082918.root";
+  // std::string input_larflow_y2v_file  = "../testdata/larcv_larflow_y2v_5482426_95_testsample082918.root";
+  // std::string input_infill_file       = "../testdata/larcv_infill_5482426_95_testsample082918.root";
+  // std::string input_endptssnet_file   = "../testdata/larcv_endptssnet_5482426_95_testsample082918.root";  
+  
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
@@ -93,8 +99,11 @@ int main( int nargs, char** argv ) {
 
   // data from larflow output: sequence of cropped images
   larlitecv::DataCoordinator dataco;
-  dataco.add_inputfile( input_larflow_y2u_file, "larcv" );
-  dataco.add_inputfile( input_larflow_y2v_file, "larcv" );  
+  // 150 event sample
+  // -----------------
+  // dataco.add_inputfile( input_larflow_y2u_file, "larcv" );
+  // dataco.add_inputfile( input_larflow_y2v_file, "larcv" );
+  dataco.add_inputfile( input_dlcosmictag_file, "larcv" );
   dataco.initialize();
 
   // data from whole-view image
@@ -118,6 +127,7 @@ int main( int nargs, char** argv ) {
   larlite::event_hit pixhits_v;
     
   int nentries = dataco.get_nentries( "larcv" );
+  std::cout << "Number of entries in cropped file: " << nentries << std::endl;
 
   int current_runid    = -1;
   int current_subrunid = -1;
@@ -125,7 +135,6 @@ int main( int nargs, char** argv ) {
   int nevents = 0;
 
   for (int ientry=0; ientry<nentries; ientry++) {
-
 
     dataco.goto_entry(ientry,"larcv");
     
@@ -143,6 +152,7 @@ int main( int nargs, char** argv ) {
     if ( current_runid!=runid || current_subrunid!=subrunid || current_eventid!=eventid ) {
 
       // if we are breaking, we cut out now, using the event_changeout all at end of file
+      std::cout << "new event: (" << runid << "," << subrunid << "," << eventid << ")" << std::endl;
       nevents++;      
       if ( nevents>=process_num_events )
 	break;
@@ -171,7 +181,7 @@ int main( int nargs, char** argv ) {
     dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
     
   
-    // larflow input data
+    // larflow input data (assumed to be cropped subimages)
     larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "adc");
     larcv::EventImage2D* ev_flow[larflow::FlowContourMatch::kNumFlowDirs] = {NULL};
     ev_flow[flowdir::kY2U] = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "larflow_y2u");
@@ -180,6 +190,12 @@ int main( int nargs, char** argv ) {
     bool hasFlow[2] = { false, false };
     for (int i=0; i<2; i++)
       hasFlow[i] = ( ev_flow[i]->valid() ) ? true : false;
+
+    // endpt+segment info
+    larcv::EventImage2D* ev_trackimg = (larcv::EventImage2D*)  dataco.get_larcv_data("image2d", "ssnetCropped_track");
+    larcv::EventImage2D* ev_showerimg = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "ssnetCropped_shower");
+    larcv::EventImage2D* ev_endptimg = (larcv::EventImage2D*)  dataco.get_larcv_data("image2d", "ssnetCropped_endpt");
+    
 
     // For whole-view data, should avoid reloading, repeatedly
     // supera images
@@ -238,6 +254,14 @@ int main( int nargs, char** argv ) {
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       else
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
+    }
+
+    // update ssnet info
+    if ( ev_trackimg->valid() && ev_showerimg->valid() && ev_endptimg->valid() ) {
+      matching_algo.integrateSSNetEndpointOutput( ev_trackimg->as_vector(), ev_showerimg->as_vector(), ev_endptimg->as_vector() );
+    }
+    else {
+      std::cout << "Shower/track/endpt info not valid" << std::endl;
     }
 
     if ( kVISUALIZE ) {
