@@ -150,23 +150,36 @@ if __name__=="__main__":
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
-        checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-        #checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
         batch_size = 4
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
         nprocess_events = -1
         stitch = False
-        ismc = True # saves flow and visi images
-        save_cropped_adc = True # remove for y2v so we can hadd with y2u output
         use_half = True
-        FLOWDIR="y2u"
+        
+        FLOWDIR="y2v"
+
+        if FLOWDIR=="y2u":
+            checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
+            output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
+            ismc = True # saves flow and visi images
+            save_cropped_adc = True  # saves cropped adc
+        elif FLOWDIR=="y2v":
+            checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
+            output_larcv_filename = "larcv_larflow_y2v_5482426_95_testsample082918.root"                        
+            # remove for y2v so we can hadd with y2u output                        
+            ismc = False
+            save_cropped_adc = False 
+        else:
+            raise RuntimeError("invalid flowdir")
+
+
+
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
