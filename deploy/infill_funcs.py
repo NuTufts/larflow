@@ -25,21 +25,9 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torch.nn.functional as F
 
-# # larflow
-# LARFLOW_MODEL_DIR=None
-# if "LARFLOW_BASEDIR" in os.environ:
-#     LARFLOW_MODEL_DIR=os.environ["LARFLOW_BASEDIR"]+"/models"
-#     if LARFLOW_MODEL_DIR not in os.environ:
-#         sys.path.append(LARFLOW_MODEL_DIR)
-# else:
-#     sys.path.append("../models")
-
-#from larflow_uresnet import LArFlowUResNet
-
-
-if "UBRESNET_MODELDIR" in os.environ: # should have been placed there by configure.sh script
-    UBRESNET_MODELDIR=os.environ["UBRESNET_MODELDIR"]
-    sys.path.append(UBRESNET_MODELDIR)
+if "LARFLOW_MODELDIR" in os.environ: # should have been placed there by configure.sh script
+    LARFLOW_MODELDIR=os.environ["LARFLOW_MODELDIR"]
+    sys.path.append(LARFLOW_MODELDIR)
 else:
     sys.path.append("../models")
 
