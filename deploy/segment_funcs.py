@@ -25,32 +25,22 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torch.nn.functional as F
 
-# # larflow
-# LARFLOW_MODEL_DIR=None
-# if "LARFLOW_BASEDIR" in os.environ:
-#     LARFLOW_MODEL_DIR=os.environ["LARFLOW_BASEDIR"]+"/models"
-#     if LARFLOW_MODEL_DIR not in os.environ:
-#         sys.path.append(LARFLOW_MODEL_DIR)
-# else:
-#     sys.path.append("../models")
-
-#from larflow_uresnet import LArFlowUResNet
-
-
-if "UBRESNET_MODELDIR" in os.environ: # should have been placed there by configure.sh script
-    UBRESNET_MODELDIR=os.environ["UBRESNET_MODELDIR"]
-    sys.path.append(UBRESNET_MODELDIR)
+if "LARFLOW_MODELDIR" in os.environ: # should have been placed there by configure.sh script
+    LARFLOW_MODELDIR=os.environ["LARFLOW_MODELDIR"]
+    sys.path.append(LARFLOW_MODELDIR)
 else:
     sys.path.append("../models")
 
-from segment_ub_uresnet import UResNet
+from ub_uresnet import UResNet
 
 
 # load model with weights from checkpoints
 
-def load_model( checkpointfile, gpuid=0, checkpointgpu=0 ):
+def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
 
     model = UResNet(inplanes=32,input_channels=1,num_classes=4,showsizes=False)
+    if use_half:
+        model = model.half()
 
     # stored parameters know what gpu ID they were on
     # if we change gpuids, we need to force the map here

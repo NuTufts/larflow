@@ -21,7 +21,7 @@ class WholeImageLoader:
     def __init__(self,larcv_input_file, ismc=True):
         """ This class prepares the data.  
         It passes each event through ubsplitdet to make subimages.
-        The bbox and adcs from these images are passed to ubcropinfill to crop the truth images.
+        The bbox and adcs from these images are passed to ubcropssnet to crop the truth images.
         
         """
         self.ismc = ismc
@@ -60,18 +60,18 @@ class WholeImageLoader:
         self.split_algo.initialize()
         self.split_algo.set_verbosity(0)
 
-        # cropper for infill (needed if we do not restitch the output)
-        infillcrop_cfg_str="""Verbosity:0
+        # cropper for ssnet (needed if we do not restitch the output)
+        ssnetcrop_cfg_str="""Verbosity:0
         InputBBoxProducer: \"detsplit\"
-        InputWireProducer: \"wire\"
+        InputADCProducer: \"wire\"
         InputLabelsProducer: \"Labels\"
-        InputADCProducer: \"detsplit\"
+        InputCroppedADCProducer: \"detsplit\"
         OutputCroppedWireProducer: \"wire\"
-        OutputCroppedLabelsProducer: \"Labels\"
+        OutputLabelsProducer: \"Labels\"
+        OutputWeightsProducer: \"Weights\"
         OutputCroppedADCProducer: \"ADC\"
-        OutputCroppedWeightsProducer: \"Weights\"
         OutputCroppedMetaProducer: \"meta\"
-        OutputFilename: \"baka_cropinfill.root\"
+        OutputFilename: \"baka_cropssnet.root\"
         CheckFlow: false
         MakeCheckImage: false
         DoMaxPool: false
@@ -81,14 +81,14 @@ class WholeImageLoader:
         LimitOverlap: false
         MaxOverlapFraction: -1
         """
-        infillcrop_cfg = open("infillcrop.cfg",'w')
-        print >>infillcrop_cfg,infillcrop_cfg_str
-        infillcrop_cfg.close()
-        infillcrop_pset = larcv.CreatePSetFromFile( "infillcrop.cfg", "UBCropInfill" )
-        self.infillcrop_algo = larcv.UBCropInfill()
-        self.infillcrop_algo.configure( infillcrop_pset )
-        self.infillcrop_algo.initialize()
-        self.infillcrop_algo.set_verbosity(0)
+        ssnetcrop_cfg = open("ssnetcrop.cfg",'w')
+        print >>ssnetcrop_cfg,ssnetcrop_cfg_str
+        ssnetcrop_cfg.close()
+        ssnetcrop_pset = larcv.CreatePSetFromFile( "ssnetcrop.cfg", "UBCropSegment" )
+        self.ssnetcrop_algo = larcv.UBCropSegment()
+        self.ssnetcrop_algo.configure( ssnetcrop_pset )
+        self.ssnetcrop_algo.initialize()
+        self.ssnetcrop_algo.set_verbosity(0)
         
         self._nentries = self.io.get_n_entries()
         
@@ -104,13 +104,13 @@ class WholeImageLoader:
         ev_adc_crops  = self.io.get_data("image2d","detsplit")
         return {"bbox":ev_split_bbox,"ADC":ev_adc_crops}
 
-    def get_infill_cropped(self):
+    def get_ssnet_cropped(self):
         if self.ismc:
-            print "run infill cropper"
-            self.infillcrop_algo.process( self.io )            
+            print "run ssnet cropper"
+            self.ssnetcrop_algo.process( self.io )            
             ev_labels_crops  = self.io.get_data("image2d","Labels")
             ev_weights_crops = self.io.get_data("image2d","Weights")
-            print "retrieve infill cropped images: ",ev_labels_cros.as_vector().size()
+            print "retrieve ssnet cropped images: ",ev_labels_cros.as_vector().size()
             data = {"labels":ev_labels_crops,"weights":ev_weights_crops}
         else:
             data = {}
@@ -120,7 +120,7 @@ if __name__=="__main__":
 
     # ARGUMENTS DEFINTION/PARSER
     if len(sys.argv)>1:
-        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through Infill.')
+        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through Ssnet.')
         whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
         whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
         whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
@@ -149,13 +149,13 @@ if __name__=="__main__":
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_infill_5482426_95_testsample082918.root"
+        output_larcv_filename = "larcv_ssnet_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
-        #output_larcv_filename = "larcv_infill_overlay_6999_13.root"
-        checkpoint_data = ["../weights/dev_filtered/devfiltered_infill_final_checkpoint_uplane.tar",
-                           "../weights/dev_filtered/devfiltered_infill_final_checkpoint_vplane.tar",
-                           "../weights/dev_filtered/devfiltered_infill_final_checkpoint_yplane.tar"]
+        #output_larcv_filename = "larcv_ssnet_overlay_6999_13.root"
+        checkpoint_data = ["../weights/dev_filtered/devfiltered_endpoint_model_best_u.tar",
+                           "../weights/dev_filtered/devfiltered_endpoint_model_best_v.tar",
+                           "../weights/dev_filtered/devfiltered_endpoint_checkpoint.52500th_y.tar"]
         batch_size = 3
         gpuid = 0
         checkpoint_gpuid = 0
@@ -187,9 +187,11 @@ if __name__=="__main__":
     outputdata.set_out_file( output_larcv_filename )
     outputdata.initialize()
 
-    # Infill subimage stitcher
+    # Ssnet subimage stitcher
     if stitch:
-        #stitcher = larcv.UBInfillStitcher("flow")
+        stitcher_track  = larcv.UBSsnetStitcher("track")
+        stitcher_shower = larcv.UBSsnetStitcher("shower")
+        stitcher_endpt  = larcv.UBSsnetStitcher("endpt")
         raise RuntimeError("Not implemented yet")
     else:
         stitcher = None
@@ -198,7 +200,7 @@ if __name__=="__main__":
     timing["total"]              = 0.0
     timing["+entry"]             = 0.0
     timing["++load_larcv_data:ubsplitdet"]  = 0.0
-    timing["++load_larcv_data:ubcropinfill"]  = 0.0
+    timing["++load_larcv_data:ubcropssnet"]  = 0.0
     timing["++alloc_arrays"]     = 0.0
     timing["+++format"]          = 0.0
     timing["+++run_model"]       = 0.0
@@ -227,19 +229,19 @@ if __name__=="__main__":
         timing["++load_larcv_data:ubsplitdet"] += tdata
         tdata = time.time()
         if stitch:
-            infill_cropped_dict = None
+            ssnet_cropped_dict = None
         else:
-            infill_cropped_dict = inputdata.get_infill_cropped()
-            print "Infill Cropper Produced: "
+            ssnet_cropped_dict = inputdata.get_ssnet_cropped()
+            print "Ssnet Cropper Produced: "
             print "  adc: ",split_data["ADC"].as_vector().size()
             if ismc:
-                print "  Labels: ",infill_cropped_dict["Labels"].as_vector().size()
-                print "  Weights: ",infill_cropped_dict["Weights"].as_vector().size()
+                print "  Labels: ",ssnet_cropped_dict["Labels"].as_vector().size()
+                print "  Weights: ",ssnet_cropped_dict["Weights"].as_vector().size()
             else:
                 print "  Labels: None-not MC"
                 print "  Weights: None-not MC"
         tdata = time.time()-tdata
-        timing["++load_larcv_data:ubcropinfill"] += tdata
+        timing["++load_larcv_data:ubcropssnet"] += tdata
         if verbose:
             print "time to get images: ",tdata," secs"
         
@@ -272,7 +274,7 @@ if __name__=="__main__":
 
         # allocate array for input adc (each plane)
         source_np = [ np.zeros( (batch_size,1,512,832), dtype=np.float32 ) for x in xrange(0,3) ]
-        result_np = [ np.zeros( (batch_size,2,512,832), dtype=np.float32 ) for x in xrange(0,3) ]        
+        result_np = [ np.zeros( (batch_size,4,512,832), dtype=np.float32 ) for x in xrange(0,3) ]        
 
         talloc = time.time()-talloc
         timing["++alloc_arrays"] += talloc
@@ -302,7 +304,7 @@ if __name__=="__main__":
                 
             # save meta information for the batch
             image_meta = {0:[],1:[],2:[]}
-            infill_batch = [] # holds larcv data for batch
+            ssnet_batch = [] # holds larcv data for batch
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
                 iimg = 3*iset
@@ -342,13 +344,13 @@ if __name__=="__main__":
 
                 # if not stiching, save crops
                 if not stitch:
-                    infillcrops = {"adc":[],"weights":[],"labels":[]}
+                    ssnetcrops = {"adc":[],"weights":[],"labels":[]}
                     for p in xrange(0,3):
-                        infillcrops["adc"].append(  splitimg_adc_v.at( iimg+p )  )
+                        ssnetcrops["adc"].append(  splitimg_adc_v.at( iimg+p )  )
                         if ismc:
-                            infillcrops["weights"].append( infill_cropped_dict["weights"].at( iimg+p ) )
-                            infillcrops["labels"].append( infill_cropped_dict["labels"].at( iimg+p ) )
-                    infill_batch.append( infillcrops )
+                            ssnetcrops["weights"].append( ssnet_cropped_dict["weights"].at( iimg+p ) )
+                            ssnetcrops["labels"].append( ssnet_cropped_dict["labels"].at( iimg+p ) )
+                    ssnet_batch.append( ssnetcrops )
 
                 iset += 1
                 if iset>=nsets:
@@ -377,9 +379,9 @@ if __name__=="__main__":
                     source_t = source_t.half()
 
                 # run model
-                pred_infill = models[p].forward( source_t )
+                pred_ssnet = models[p].forward( source_t )
                 # get result tensor
-                result_np[p] = pred_infill.detach().cpu().numpy().astype(np.float32)
+                result_np[p] = pred_ssnet.detach().cpu().numpy().astype(np.float32)
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
@@ -400,22 +402,28 @@ if __name__=="__main__":
                     continue
 
                 # convert data to larcv
-                infill_lcv = [ larcv.as_image2d_meta( result_np[p][ib,1,:], image_meta[p][ib] ) for p in xrange(3) ]
+                ssnet_lcv = {}
+                ssnet_lcv["track"]  = [ larcv.as_image2d_meta( result_np[p][ib,1,:], image_meta[p][ib] ) for p in xrange(3) ]
+                ssnet_lcv["shower"] = [ larcv.as_image2d_meta( result_np[p][ib,2,:], image_meta[p][ib] ) for p in xrange(3) ]
+                ssnet_lcv["endpt"]  = [ larcv.as_image2d_meta( result_np[p][ib,3,:], image_meta[p][ib] ) for p in xrange(3) ]                
 
                 # if stiching, store into stitch
                 if stitch:
                     outmeta = out_v[p].meta() # stitch meta                    
                     for p in xrange(3):
-                        stitcher.insertFlowSubimage( infill_lcv[p], image_meta[p][ib] )
+                        stitcher_track.insertFlowSubimage( ssnet_lcv["track"][p],  image_meta[p][ib] )
+                        stitcher_shower.insertFlowSubimage( ssnet_lcv["shower"][p], image_meta[p][ib] )
+                        stitcher_endpt.insertFlowSubimage( ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
 
                 # we save flow image and crops for each prediction
                 if not stitch:
-                    evoutpred = outputdata.get_data("image2d","infillCropped")
-                    for lcv in infill_lcv:
-                        evoutpred.append( lcv )
+                    for cat in ["track","shower","endpt"]:
+                        evoutpred = outputdata.get_data("image2d","ssnetCropped_%s"%(cat))
+                        for lcv in ssnet_lcv[cat]:
+                            evoutpred.append( lcv )
                     if save_cropped_adc:
                         evoutadc  = outputdata.get_data("image2d","adcCropped")
-                        for img in infill_batch[ib]["adc"]:
+                        for img in ssnet_batch[ib]["adc"]:
                             evoutadc.append( img )
                     
                     if ismc:
