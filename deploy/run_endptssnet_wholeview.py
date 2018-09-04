@@ -156,11 +156,11 @@ if __name__=="__main__":
         checkpoint_data = ["../weights/dev_filtered/devfiltered_endpoint_model_best_u.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_model_best_v.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_checkpoint.52500th_y.tar"]
-        batch_size = 3
+        batch_size = 1
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = -1
+        nprocess_events = 1
         stitch = False
         ismc = False # saves flow and visi images
         save_cropped_adc = False # remove for y2v so we can hadd with y2u output
@@ -411,9 +411,9 @@ if __name__=="__main__":
                 if stitch:
                     outmeta = out_v[p].meta() # stitch meta                    
                     for p in xrange(3):
-                        stitcher_track.insertFlowSubimage( ssnet_lcv["track"][p],  image_meta[p][ib] )
+                        stitcher_track.insertFlowSubimage(  ssnet_lcv["track"][p],  image_meta[p][ib] )
                         stitcher_shower.insertFlowSubimage( ssnet_lcv["shower"][p], image_meta[p][ib] )
-                        stitcher_endpt.insertFlowSubimage( ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
+                        stitcher_endpt.insertFlowSubimage(  ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
 
                 # we save flow image and crops for each prediction
                 if not stitch:

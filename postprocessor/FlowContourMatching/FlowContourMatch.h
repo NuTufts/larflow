@@ -64,7 +64,21 @@ namespace larflow {
     struct HitFlowData_t {
       // information about a hit's match from source to target plane
       // filled in _make3Dhits function
-      HitFlowData_t() : hitidx(-1), maxamp(-1.0), srcwire(-1), targetwire(-1), pixtick(-1), matchquality(-1), dist2center(-1), src_ctr_idx(-1), tar_ctr_idx(-1) {};
+      HitFlowData_t() : hitidx(-1),
+	maxamp(-1.0),
+	srcwire(-1),
+	targetwire(-1),
+	pixtick(-1),
+	matchquality(-1),
+	dist2center(-1),
+	src_ctr_idx(-1),
+	tar_ctr_idx(-1),
+	endpt_score(-1),
+	track_score(-1),
+	shower_score(-1),
+	renormed_track_score(-1),
+	renormed_shower_score(-1)
+      {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
       int srcwire;      // source image pixel: column
@@ -75,6 +89,11 @@ namespace larflow {
       int dist2charge;  // distance in columns from target pixel to matched charge pixel
       int src_ctr_idx;  // this becomes outdated once image changes up
       int tar_ctr_idx;  // this becomes outdated once image changes up
+      float endpt_score;
+      float track_score;
+      float shower_score;
+      float renormed_track_score;
+      float renormed_shower_score;
       std::vector<float> X; // 3D coordinates from larlite::geo
     };
     struct ClosestContourPix_t {
