@@ -156,14 +156,14 @@ if __name__=="__main__":
         checkpoint_data = ["../weights/dev_filtered/devfiltered_infill_final_checkpoint_uplane.tar",
                            "../weights/dev_filtered/devfiltered_infill_final_checkpoint_vplane.tar",
                            "../weights/dev_filtered/devfiltered_infill_final_checkpoint_yplane.tar"]
-        batch_size = 1
+        batch_size = 3
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
         nprocess_events = -1
         stitch = False
         ismc = False # saves flow and visi images
-        save_cropped_adc = True # remove for y2v so we can hadd with y2u output
+        save_cropped_adc = False # remove for y2v so we can hadd with y2u output
         use_half = True
 
     # load data
@@ -272,7 +272,7 @@ if __name__=="__main__":
 
         # allocate array for input adc (each plane)
         source_np = [ np.zeros( (batch_size,1,512,832), dtype=np.float32 ) for x in xrange(0,3) ]
-        result_np = [ np.zeros( (batch_size,1,512,832), dtype=np.float32 ) for x in xrange(0,3) ]        
+        result_np = [ np.zeros( (batch_size,2,512,832), dtype=np.float32 ) for x in xrange(0,3) ]        
 
         talloc = time.time()-talloc
         timing["++alloc_arrays"] += talloc
@@ -286,10 +286,9 @@ if __name__=="__main__":
         ibatch = 0 # current batch index, once it hits batch size (or we run out of images, we run the network)
         while iset<nsets:
 
-            # each set is (u,v,y) 
-            
-            if verbose:
-                print "starting at iimg=",iimg," set=",iset
+            # each set is (u,v,y)
+            if verbose or iset%10==0:
+                print "starting at iimg=",iset*3," set=",iset," of ",nsets
             tformat = time.time() # time to get info into torch format
 
 
@@ -355,7 +354,12 @@ if __name__=="__main__":
                 if iset>=nsets:
                     # then break loop
                     break
-                    
+
+            tformat = time.time()-tformat
+            timing["+++format"] += tformat
+            if verbose:
+                print "time to prepare data for one batch (all planes): ",tformat," secs"
+                
             # end of batch larcv prep
             # ------------------------
 
@@ -364,28 +368,25 @@ if __name__=="__main__":
 
             # --------------------------
             # Run batch through network, for each plane
+            trun = time.time()            
             for p in xrange(0,p):
                 
                 # filled batch, make tensors
                 source_t = torch.from_numpy( source_np[p] ).to(device=torch.device("cuda:%d"%(gpuid)))
                 if use_half:
                     source_t = source_t.half()
-                tformat = time.time()-tformat
-                timing["+++format"] += tformat
-                if verbose:
-                    print "time to slice and fill tensor batch (one plane): ",tformat," secs"
 
                 # run model
-                trun = time.time()
                 pred_infill = models[p].forward( source_t )
-                torch.cuda.synchronize() # to give accurate time use
-                trun = time.time()-trun
-                timing["+++run_model"] += trun
-                if verbose:
-                    print "time to run model (one plane): ",trun," secs"            
-
                 # get result tensor
                 result_np[p] = pred_infill.detach().cpu().numpy().astype(np.float32)
+                
+            torch.cuda.synchronize() # to give accurate time use
+            trun = time.time()-trun
+            timing["+++run_model"] += trun
+            if verbose:
+                print "time to run model (all planes): ",trun," secs"            
+            
 
             # -------------
             # Store results
@@ -399,7 +400,7 @@ if __name__=="__main__":
                     continue
 
                 # convert data to larcv
-                infill_lcv = [ larcv.as_image2d_meta( result_np[p][ib,0,:], image_meta[p][ib] ) for p in xrange(3) ]
+                infill_lcv = [ larcv.as_image2d_meta( result_np[p][ib,1,:], image_meta[p][ib] ) for p in xrange(3) ]
 
                 # if stiching, store into stitch
                 if stitch:
@@ -455,6 +456,10 @@ if __name__=="__main__":
         if verbose:
             print "time for entry: ",tentry,"secs"
         timing["+entry"] += tentry
+        print "------ TIMING ---------"
+        for k,v in timing.items():
+            print k,": ",v," (per event: ",v/float(ientry+1)," secs)"
+        
 
     # save results
     outputdata.finalize()
