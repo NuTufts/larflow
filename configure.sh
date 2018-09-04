@@ -2,6 +2,7 @@
 
 export LARFLOW_BASEDIR=$PWD
 export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
+export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
 
 # OPENCV
 export OPENCV_LIBDIR=/usr/local/lib
@@ -43,5 +44,5 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 
 
 # add model folder to python path
-[[ ":$PYTHONPATH:" != *":${PYTHONPATH}:"* ]] && PYTHONPATH="${LARFLOW_BASEDIR}:${LARFLOW_BASEDIR}/models:${PYTHONPATH}"
+[[ ":$PYTHONPATH:" != *":${LARFLOW_MODELDIR}:"* ]] && PYTHONPATH="${LARFLOW_MODELDIR}:${PYTHONPATH}"
 
