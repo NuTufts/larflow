@@ -149,7 +149,8 @@ if __name__=="__main__":
         # for testing
         # bnb+corsicka
         input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        output_larcv_filename = "larcv_infill_5482426_95_testsample082918.root"
+        #output_larcv_filename = "larcv_infill_5482426_95_smallsample082918.root"
+        output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/larcv_infill_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_infill_overlay_6999_13.root"

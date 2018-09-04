@@ -148,7 +148,8 @@ if __name__=="__main__":
 
         # for testing
         # bnb+corsicka
-        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
+        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image
+        #output_larcv_filename = "larcv_ssnet_5482426_95_smallsample082918.root"
         output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/larcv_ssnet_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
@@ -156,7 +157,7 @@ if __name__=="__main__":
         checkpoint_data = ["../weights/dev_filtered/devfiltered_endpoint_model_best_u.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_model_best_v.tar",
                            "../weights/dev_filtered/devfiltered_endpoint_checkpoint.52500th_y.tar"]
-        batch_size = 1
+        batch_size = 3
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
