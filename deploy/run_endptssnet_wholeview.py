@@ -160,7 +160,7 @@ if __name__=="__main__":
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = 1
+        nprocess_events = -1
         stitch = False
         ismc = False # saves flow and visi images
         save_cropped_adc = False # remove for y2v so we can hadd with y2u output
@@ -340,7 +340,7 @@ if __name__=="__main__":
                 for p in xrange(0,3):
                     adcimg = splitimg_adc_v.at(iimg+p)
                     source_np[p][ib,0,:] = larcv.as_ndarray( adcimg )
-                    image_meta[p].append( splitimg_adc_v.at(iimg+p).meta()  )
+                    image_meta[p].append( adcimg.meta()  )
 
                 # if not stiching, save crops
                 if not stitch:
@@ -371,7 +371,7 @@ if __name__=="__main__":
             # --------------------------
             # Run batch through network, for each plane
             trun = time.time()            
-            for p in xrange(0,p):
+            for p in xrange(3):
                 
                 # filled batch, make tensors
                 source_t = torch.from_numpy( source_np[p] ).to(device=torch.device("cuda:%d"%(gpuid)))
@@ -381,7 +381,7 @@ if __name__=="__main__":
                 # run model
                 pred_ssnet = models[p].forward( source_t )
                 # get result tensor
-                result_np[p] = pred_ssnet.detach().cpu().numpy().astype(np.float32)
+                result_np[p] = pred_ssnet.detach().exp().cpu().numpy().astype(np.float32)
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun

@@ -369,7 +369,7 @@ if __name__=="__main__":
             # --------------------------
             # Run batch through network, for each plane
             trun = time.time()            
-            for p in xrange(0,p):
+            for p in xrange(3):
                 
                 # filled batch, make tensors
                 source_t = torch.from_numpy( source_np[p] ).to(device=torch.device("cuda:%d"%(gpuid)))
