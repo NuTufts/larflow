@@ -380,7 +380,7 @@ if __name__=="__main__":
                 # run model
                 pred_infill = models[p].forward( source_t )
                 # get result tensor
-                result_np[p] = pred_infill.detach().cpu().numpy().astype(np.float32)
+                result_np[p] = pred_infill.detach().exp().cpu().numpy().astype(np.float32)
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
