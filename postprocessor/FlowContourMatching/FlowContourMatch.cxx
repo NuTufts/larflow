@@ -156,8 +156,8 @@ namespace larflow {
     for ( int iflow=kY2U; iflow<(int)kNumFlowDirs; iflow++ ) {
       if ( !filled[iflow] ) continue;
 
-
       std::vector<HitFlowData_t>&  hitdata_v = *(phitdata_v[iflow]);
+	      
       // we check if hit is contained
       const larcv::Image2D& track_img  = track_scoreimgs[  kSourcePlane[iflow] ];
       const larcv::Image2D& shower_img = shower_scoreimgs[ kSourcePlane[iflow] ];
@@ -171,16 +171,15 @@ namespace larflow {
 
 	  int col = track_meta.col( hitdata.srcwire );
 	  int row = track_meta.row( hitdata.pixtick );
-	  hitdata.track_score  = exp( track_img.pixel(row,col) );
-	  hitdata.shower_score = exp( shower_img.pixel(row,col) );
-	  hitdata.endpt_score  = exp( endpt_img.pixel(row,col) );
+	  hitdata.track_score  = track_img.pixel(row,col);
+	  hitdata.shower_score = shower_img.pixel(row,col);
+	  hitdata.endpt_score  = endpt_img.pixel(row,col);
 
 	  // renormed scores: remove endpt and recalc shower/track
 	  float renorm = 1.0 - hitdata.endpt_score; // bg+track+shower
 	  hitdata.renormed_track_score  = hitdata.track_score/renorm;
 	  hitdata.renormed_shower_score = hitdata.shower_score/renorm;
 
-	  std::cout << "source hit inside subimage: (" << col << "," << row << ") endpt=" << hitdata.endpt_score << std::endl;	  
 	}
       }
     }
