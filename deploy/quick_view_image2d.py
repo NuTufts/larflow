@@ -2,6 +2,8 @@ import os,sys
 import ROOT as rt
 from larcv import larcv
 
+rt.gStyle.SetOptStat(0)
+
 rfile = sys.argv[1]
 tree  = sys.argv[2]
 entry = int(sys.argv[3])

@@ -1218,8 +1218,8 @@ namespace larflow {
 	flowhit[0]            = hitdata.X[0];
 	flowhit[1]            = hitdata.X[1];
 	flowhit[2]            = hitdata.X[2];
-	flowhit.dy            = plhit2flowdata.dy[ hitidx ];
-	flowhit.dz            = plhit2flowdata.dz[ hitidx ];
+	flowhit.dy            = -1; // no 3d consistency calc
+	flowhit.dz            = -1; // no 3d consistency calc
 	flowhit.track_score   = hitdata.track_score;
 	flowhit.shower_score  = hitdata.shower_score;
 	flowhit.endpt_score   = hitdata.endpt_score;
@@ -1240,23 +1240,7 @@ namespace larflow {
 	  flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
 	  break;
 	}
-	switch ( plhit2flowdata.consistency3d[ hitidx ] ) {
-	case 0:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn5mm;
-	  break;
-	case 1:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn10mm;
-	  break;
-	case 2:
-	  flowhit.consistency3d=larlite::larflow3dhit::kIn50mm;
-	  break;
-	case 3:
-	  flowhit.consistency3d=larlite::larflow3dhit::kOut50mm;
-	  break;
-	default:
-	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
-	  break;
-	}
+	flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
 	output_hit3d_v.emplace_back( flowhit );
       }
     }// end of only 1 ran
@@ -1271,17 +1255,27 @@ namespace larflow {
 	const HitFlowData_t& hitdata1 = hit2flowdata_y2v[ hitidx ];
 	HitFlowData_t hitdata;
 	//select here
+	larlite::larflow3dhit::FlowDirection_t used_dir = larlite::larflow3dhit::kY2U;
 	if(require_3Dconsistency && plhit2flowdata.consistency3d[ hitidx ]>3) continue; //if require_3Dconsistency, skip if no consistency
 	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && !makehits_for_nonmatches ) {
 	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
 	  continue;
 	}
-	else if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches)  hitdata = hitdata0; //neither has a match, pick y2u  
-	else if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality)  hitdata = hitdata0; //same quality, pick y2u...infill?	
+	else if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches) {
+	  hitdata = hitdata0; //neither has a match, pick y2u
+	}
+	else if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality) {
+	  hitdata = hitdata0; //same quality, pick y2u...infill?
+	}
 	else if((hitdata0.matchquality<0 && hitdata1.matchquality>=0)
-		|| (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  hitdata = hitdata1; //y2v better matchqual
-	else if((hitdata1.matchquality<0 && hitdata0.matchquality>=0)
-		|| (hitdata1.matchquality>=0 && hitdata0.matchquality>=0 && hitdata1.matchquality < hitdata0.matchquality))  hitdata = hitdata0; //y2u better matchqual
+		|| (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  {
+	  hitdata = hitdata1; //y2v better matchqual
+	  used_dir = larlite::larflow3dhit::kY2V;
+	}
+	else if((hitdata1.matchquality<0 && hitdata0.matchquality>=0) 
+		|| (hitdata1.matchquality>=0 && hitdata0.matchquality>=0 && hitdata1.matchquality < hitdata0.matchquality))  {
+	  hitdata = hitdata0; //y2u better matchqual
+	}
 	else{
 	  hitdata = hitdata0; 
 	}
@@ -1291,6 +1285,7 @@ namespace larflow {
 	flowhit.idxhit     = hitidx;
 	flowhit.tick       = hitdata.pixtick;
 	flowhit.srcwire    = hitdata.srcwire;
+	flowhit.flowdir    = used_dir;
 	flowhit.targetwire[0] = hitdata0.targetwire;
 	flowhit.targetwire[1] = hitdata1.targetwire;
 	flowhit[0]            = hitdata.X[0];
