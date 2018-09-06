@@ -130,7 +130,7 @@ namespace larflow {
   
     FlowContourMatch();
     virtual ~FlowContourMatch();
-    void clear( bool clear2d=true, bool clear3d=true ); // clear2d and clear3d
+    void clear( bool clear2d=true, bool clear3d=true, int flowdir=-1 ); // clear2d and clear3d
 
     // algorithm functions for User
     // -----------------------------
@@ -181,17 +181,19 @@ namespace larflow {
     void _createMatchData( const larlitecv::ContourCluster& contour_data,
 			   const larcv::Image2D& flow_img,
 			   const larcv::Image2D& src_adc,
-			   const larcv::Image2D& tar_adc );
+			   const larcv::Image2D& tar_adc,
+			   const FlowDirection_t kflowdir );
     float _scoreMatch( const FlowMatchData_t& matchdata );
-    void _scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid );
-    void _greedyMatch();
+    void _scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid, const FlowDirection_t kflowdir );
+    void _greedyMatch(const FlowDirection_t kflowdir);
     void _make3Dhits( const larlite::event_hit& hit_v,
 		      const larcv::Image2D& srcimg_adc,
 		      const larcv::Image2D& tar_adc,
 		      const int src_plane,
 		      const int tar_plane,
 		      const float threshold,
-		      std::vector<HitFlowData_t>& hit2flowdata );
+		      std::vector<HitFlowData_t>& hit2flowdata,
+		      const FlowDirection_t kflowdir );
 
     void _fill_consistency3d(std::vector<HitFlowData_t>& Y2U,
 			     std::vector<HitFlowData_t>& Y2V,
@@ -215,7 +217,7 @@ namespace larflow {
     // debug/visualization
     // -------------------
     void dumpMatchData();
-    TH2D& plotScoreMatrix();
+    TH2D& plotScoreMatrix(const FlowDirection_t kflowdir);
 
 
   public:
@@ -225,10 +227,10 @@ namespace larflow {
 
     // internal data members
     // ----------------------
-    std::map< SrcTarPair_t, FlowMatchData_t > m_flowdata; //< for each source,target contour pair, data about their connects using flow info
+    std::map< SrcTarPair_t, FlowMatchData_t > m_flowdata[2]; //< for each source,target contour pair, data about their connects using flow info
 
     int m_src_ncontours;      //< number of contours on source image
-    int m_tar_ncontours;      //< number of contours on target image
+    int m_tar_ncontours[2];   //< number of contours on target image
     double* m_score_matrix;   //< scores between source and target contours using flow information
     TH2D* m_plot_scorematrix; //< histogram of score matrix for visualization
 
@@ -237,9 +239,9 @@ namespace larflow {
       float row;
       float col;
       float srccol;
-    }; 
-    typedef std::vector<TargetPix_t> ContourTargets_t; //< list of target pixel info
-    std::map< int, ContourTargets_t > m_src_targets;   //< for each source contour, a list of pixels in the source+target views that have been matched
+    };
+    typedef std::vector<TargetPix_t> ContourTargets_t;   //< list of target pixel info
+    std::map< int, ContourTargets_t > m_src_targets[2];  //< for each source contour, a list of pixels in the source+target views that have been matched (one for each flowdir)
 
     const larcv::Image2D*   m_src_img;     // pointer to input source image
     const larcv::Image2D*   m_flo_img;     // pointer to input flow prediction

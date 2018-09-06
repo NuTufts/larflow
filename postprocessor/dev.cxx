@@ -90,12 +90,18 @@ int main( int nargs, char** argv ) {
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
-  bool use_hits   = true;
-  bool use_truth  = false;
+  bool use_hits   = false;
+  bool use_truth  = true;
   int process_num_events = 1;
 
-  if (use_truth)
+  if (use_truth && use_hits)
     output_larlite_file = "output_truthmatch_larlite.root";
+  else if (!use_truth && use_hits)
+    output_larlite_file = "output_flowmatch_larlite.root";
+  else if (use_truth && !use_hits)
+    output_larlite_file = "output_truthpixmatch_larlite.root";
+  else if (!use_truth && !use_hits)
+    output_larlite_file = "output_pixmatch_larlite.root";
 
   // I'm lazy
   using flowdir = larflow::FlowContourMatch;
@@ -194,6 +200,10 @@ int main( int nargs, char** argv ) {
     for (int i=0; i<2; i++)
       hasFlow[i] = ( ev_flow[i]->valid() ) ? true : false;
 
+    // hack for debug
+    //hasFlow[0] = false;
+    //hasFlow[1] = false;
+    
     // endpt+segment info
     larcv::EventImage2D* ev_trackimg = (larcv::EventImage2D*)  dataco.get_larcv_data("image2d", "ssnetCropped_track");
     larcv::EventImage2D* ev_showerimg = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "ssnetCropped_shower");
@@ -243,8 +253,9 @@ int main( int nargs, char** argv ) {
     cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
     
     if ( use_hits ) {      
-      if ( !use_truth )
+      if ( !use_truth ) {
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+      }
       else
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, ev_hit, 10.0, true, true );
     }
@@ -253,8 +264,9 @@ int main( int nargs, char** argv ) {
       if ( pixhits_v.size()==0 )
 	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
       
-      if ( !use_truth )
+      if ( !use_truth ) {
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+      }
       else
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
     }
@@ -268,7 +280,7 @@ int main( int nargs, char** argv ) {
     }
 
     if ( kVISUALIZE ) {
-    
+
       std::vector< larlite::larflow3dhit > hits3d_v = matching_algo.get3Dhits_2pl();
       //std::vector< larlite::larflow3dhit > hits3d_v = matching_algo.get3Dhits_1pl( flowdir::kY2U );
       
@@ -278,19 +290,22 @@ int main( int nargs, char** argv ) {
       // c.SaveAs("score_matrix.png");
       
       // flip through matches
-      TCanvas c("c","matched clusters",1600,800);
+      TCanvas c("c","matched clusters",1200,400);
       TH2D hsrc = larcv::as_th2d( wire_v[2], "hsource_y" );
       hsrc.SetTitle("Source: Y-plane;wires;ticks");
       hsrc.SetMinimum(10.0);
       hsrc.SetMaximum(255.0);    
-      TH2D htar = larcv::as_th2d( wire_v[0], "htarget_u" );
-      htar.SetTitle("Target: U-plane;wires;ticks");
-      htar.SetMinimum(10.0);
-      htar.SetMaximum(255.0);    
-      htar.Draw("colz");
+      TH2D htar_u = larcv::as_th2d( wire_v[0], "htarget_u" );
+      htar_u.SetTitle("Target u-plane;wires;ticks");
+      htar_u.SetMinimum(10.0);
+      htar_u.SetMaximum(255.0);    
+      TH2D htar_v = larcv::as_th2d( wire_v[1], "htarget_v" );
+      htar_v.SetTitle("Target v-plane;wires;ticks");
+      htar_v.SetMinimum(10.0);
+      htar_v.SetMaximum(255.0);    
       
       const larcv::ImageMeta& src_meta = wire_v[2].meta();
-      const larcv::ImageMeta& tar_meta = wire_v[0].meta();    
+      const larcv::ImageMeta* tar_meta[2] = { &(wire_v[0].meta()), &(wire_v[1].meta()) };
       
       std::cout << "Source Matches: " << std::endl;
       for (int i=0; i<matching_algo.m_src_ncontours; i++) {
@@ -315,85 +330,82 @@ int main( int nargs, char** argv ) {
 	src_graph.SetLineColor(kRed);
 	
 	// graph the predicted and true flow locations
-	TGraph src_flowpix;
-	TGraph src_truthflow;
-	auto it_src_targets = matching_algo.m_src_targets.find( i );
-	if ( it_src_targets!=matching_algo.m_src_targets.end() ) {
-	  larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
-	  src_flowpix.Set( targetlist.size() );
-	  src_truthflow.Set( targetlist.size() );
-	  int ipixt = 0;
-	  for ( auto& pix_t : targetlist ) {
-	    src_flowpix.SetPoint(ipixt, tar_meta.pos_x( pix_t.col ), tar_meta.pos_y(pix_t.row) );
-	    int truthflow = -10000;
-	    truthflow = true_v[0].pixel( pix_t.row, pix_t.srccol );	  
-	    try {
-	      //std::cout << "truth flow @ (" << pix_t.col << "," << pix_t.row << "): " << truthflow << std::endl;
-	      src_truthflow.SetPoint(ipixt, tar_meta.pos_x( pix_t.srccol+truthflow ), tar_meta.pos_y(pix_t.row) );
+	TGraph src_flowpix[2];
+	TGraph src_truthflow[2];
+	for (int iflow=0; iflow<2; iflow++) {
+	  auto it_src_targets = matching_algo.m_src_targets[iflow].find( i );
+	  if ( it_src_targets!=matching_algo.m_src_targets[iflow].end() ) {
+	    larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
+	    src_flowpix[iflow].Set( targetlist.size() );
+	    src_truthflow[iflow].Set( targetlist.size() );
+	    int ipixt = 0;
+	    for ( auto& pix_t : targetlist ) {
+	      src_flowpix[iflow].SetPoint(ipixt, tar_meta[iflow]->pos_x( pix_t.col ), tar_meta[iflow]->pos_y(pix_t.row) );
+	      int truthflow = -10000;
+	      truthflow = true_v[iflow].pixel( pix_t.row, pix_t.srccol );	  
+	      try {
+		//std::cout << "truth flow @ (" << pix_t.col << "," << pix_t.row << "): " << truthflow << std::endl;
+		src_truthflow[iflow].SetPoint(ipixt, tar_meta[iflow]->pos_x( pix_t.srccol+truthflow ), tar_meta[iflow]->pos_y(pix_t.row) );
+	      }
+	      catch (...) {
+		std::cout << "bad flow @ (" << pix_t.srccol << "," << pix_t.row << ") "
+			  << "== " << truthflow << " ==>> (" << pix_t.srccol+truthflow << "," << pix_t.row << ")" << std::endl;
+	      }
+	      ipixt++;
 	    }
-	    catch (...) {
-	      std::cout << "bad flow @ (" << pix_t.srccol << "," << pix_t.row << ") "
-			<< "== " << truthflow << " ==>> (" << pix_t.srccol+truthflow << "," << pix_t.row << ")" << std::endl;
-	    }
-	    ipixt++;
-	  }
-	}
+	  }//end of loop over src_targets
+	}//end of loop over flowdir
 	
 	std::cout << "SourceIDX[" << i << "]  ";
 	// graph the target contours
-	std::vector< TGraph > tar_graphs;
-	for (int j=0; j<matching_algo.m_tar_ncontours; j++) {
-	  float score = matching_algo.m_score_matrix[ i*matching_algo.m_tar_ncontours + j ];
-	  if ( score<0.01 )
-	    continue;
-	  
-	  std::cout << "[" << j << "]=" << score << " ";
-	  
-	  float width = 1;
-	  int color = 0;
-	  if ( score>0.8 ) {
-	    width = 5;
-	    color = kRed;
+	std::vector< TGraph > tar_graphs[2];
+	for (int iflow=0; iflow<2; iflow++) {
+	  for (int j=0; j<matching_algo.m_tar_ncontours[iflow]; j++) {
+	    float score = matching_algo.m_score_matrix[ i*matching_algo.m_tar_ncontours[iflow] + j ];
+	    if ( score<0.01 )
+	      continue;
+	    
+	    std::cout << "[" << j << "]=" << score << " ";
+	    
+	    float width = 1;
+	    int color = 0;
+	    if ( score>0.8 ) {
+	      width = 5;
+	      color = kRed;
+	    }
+	    else if ( score>0.6 ) {
+	      width = 4;
+	      color = kRed-9;
+	    }
+	    else if ( score>0.3 ) {
+	      width = 3;
+	      color = kOrange+1;
+	    }
+	    else if ( score>0.1 ) {
+	      width = 2;
+	      color = kOrange-9;
+	    }
+	    else {
+	      width = 1;
+	      color = kBlack;
+	    }
+	    
+	    const larlitecv::Contour_t& tar_ctr = cluster_algo.m_plane_atomics_v[iflow][ j ];
+	    TGraph tar_graph( tar_ctr.size()+1 );
+	    for ( int n=0; n<tar_ctr.size(); n++) {
+	      float col = tar_meta[iflow]->pos_x( tar_ctr[n].x );
+	      float row = tar_meta[iflow]->pos_y( tar_ctr[n].y );
+	      tar_graph.SetPoint(n,col,row);
+	    }
+	    tar_graph.SetPoint(tar_ctr.size(), tar_meta[iflow]->pos_x(tar_ctr[iflow].x),tar_meta[iflow]->pos_y(tar_ctr[0].y));	
+	    tar_graph.SetLineWidth(width);
+	    tar_graph.SetLineColor(color);
+	    
+	    tar_graphs[iflow].emplace_back( std::move(tar_graph) );
 	  }
-	  else if ( score>0.6 ) {
-	    width = 4;
-	    color = kRed-9;
-	  }
-	  else if ( score>0.3 ) {
-	    width = 3;
-	    color = kOrange+1;
-	  }
-	  else if ( score>0.1 ) {
-	    width = 2;
-	    color = kOrange-9;
-	  }
-	  else {
-	    width = 1;
-	    color = kBlack;
-	  }
-	  
-	  const larlitecv::Contour_t& tar_ctr = cluster_algo.m_plane_atomics_v[0][ j ];
-	  TGraph tar_graph( tar_ctr.size()+1 );
-	  for ( int n=0; n<tar_ctr.size(); n++) {
-	    float col = tar_meta.pos_x( tar_ctr[n].x );
-	    float row = tar_meta.pos_y( tar_ctr[n].y );
-	    tar_graph.SetPoint(n,col,row);
-	  }
-	  tar_graph.SetPoint(tar_ctr.size(), tar_meta.pos_x(tar_ctr[0].x),tar_meta.pos_y(tar_ctr[0].y));	
-	  tar_graph.SetLineWidth(width);
-	  tar_graph.SetLineColor(color);
-	  
-	  tar_graphs.emplace_back( std::move(tar_graph) );
 	}
 	std::cout << std::endl;
-      
-	c.Clear();
-	c.Divide(2,1);
 	
-	// source
-	c.cd(1);
-	hsrc.Draw("colz");
-	src_graph.Draw("L");
 
 	// plot matched hits
 	TGraph gsrchits( hits3d_v.size() );
@@ -407,23 +419,7 @@ int main( int nargs, char** argv ) {
 	gsrchits.SetMarkerSize(1);
 	gsrchits.SetMarkerStyle(21);
 	gsrchits.SetMarkerColor(kBlack);
-	gsrchits.Draw("P");      
-	
-	// target
-	c.cd(2);
-	htar.Draw("colz");
-	for ( auto& g : tar_graphs ) {
-	  g.Draw("L");
-	}
-	src_truthflow.SetMarkerStyle(25);      
-	src_truthflow.SetMarkerSize(0.2);
-	src_truthflow.SetMarkerColor(kMagenta);
-	src_truthflow.Draw("P");      
-	src_flowpix.SetMarkerStyle(25);      
-	src_flowpix.SetMarkerSize(0.2);
-	src_flowpix.SetMarkerColor(kCyan);            
-	src_flowpix.Draw("P");
-	
+
 	// plot matched hits
 	TGraph gtarhits( hits3d_v.size() );
 	for ( int ihit=0; ihit<(int)hits3d_v.size(); ihit++ ) {
@@ -444,7 +440,51 @@ int main( int nargs, char** argv ) {
 	gtarhits.SetMarkerSize(1);
 	gtarhits.SetMarkerStyle(21);
 	gtarhits.SetMarkerColor(kBlack);
-	gtarhits.Draw("P");
+
+	// SETUP CANVAS
+	// -------------
+	c.Clear();
+	c.Divide(3,1);
+	
+	// source
+	c.cd(1);
+	hsrc.Draw("colz");
+	//gsrchits.Draw("P");      	
+	src_graph.Draw("L");
+
+	
+	// target (u)
+	c.cd(2);
+	htar_u.Draw("colz");
+	for ( auto& g : tar_graphs[0] ) {
+	  g.Draw("L");
+	}
+	//gtarhits.Draw("P");	
+	src_truthflow[0].SetMarkerStyle(25);      
+	src_truthflow[0].SetMarkerSize(0.2);
+	src_truthflow[0].SetMarkerColor(kMagenta);
+	src_truthflow[0].Draw("P");      
+	src_flowpix[0].SetMarkerStyle(25);      
+	src_flowpix[0].SetMarkerSize(0.2);
+	src_flowpix[0].SetMarkerColor(kCyan);            
+	src_flowpix[0].Draw("P");
+
+	// target (v)
+	c.cd(3);
+	htar_v.Draw("colz");
+	for ( auto& g : tar_graphs[1] ) {
+	  g.Draw("L");
+	}
+	//gtarhits.Draw("P");	
+	src_truthflow[1].SetMarkerStyle(25);      
+	src_truthflow[1].SetMarkerSize(0.2);
+	src_truthflow[1].SetMarkerColor(kMagenta);
+	src_truthflow[1].Draw("P");      
+	src_flowpix[1].SetMarkerStyle(25);      
+	src_flowpix[1].SetMarkerSize(0.2);
+	src_flowpix[1].SetMarkerColor(kCyan);            
+	src_flowpix[1].Draw("P");
+	
 	
 	c.Update();
 	c.Draw();

@@ -46,15 +46,23 @@ namespace larflow {
     clear();
   }
 
-  void FlowContourMatch::clear( bool clear2d, bool clear3d ) {
+  void FlowContourMatch::clear( bool clear2d, bool clear3d, int flowdir ) {
     if ( clear2d ) {
       // needs to be cleared for each subimage
       delete [] m_score_matrix;
       delete m_plot_scorematrix;
       m_score_matrix = NULL;
       m_plot_scorematrix = NULL;
-      m_flowdata.clear();
-      m_src_targets.clear();
+      if ( flowdir>=0 ) {
+	m_flowdata[flowdir].clear();
+	m_src_targets[flowdir].clear();
+      }
+      else {
+	for (int i=0; i<2; i++) {
+	  m_flowdata[i].clear();
+	  m_src_targets[i].clear();
+	}
+      }
       delete m_src_img2ctrindex;
       delete m_tar_img2ctrindex;
       m_src_img2ctrindex = NULL;
@@ -336,22 +344,22 @@ namespace larflow {
     }
 
     // we clear the 2d data, but keep the hit data (which we will udate with _make3Dhits)
-    clear( true, false );
+    clear( true, false, (int)flowdir );
     
     // first we create match data within the image
-    _createMatchData( contour_data, flow_img, src_adc, tar_adc );
+    _createMatchData( contour_data, flow_img, src_adc, tar_adc, flowdir );
 
     // use the match data to score contour-contour matching
-    _scoreMatches( contour_data, src_planeid, tar_planeid );
+    _scoreMatches( contour_data, src_planeid, tar_planeid, flowdir );
 
     // use score matrix to define matches
-    _greedyMatch();
+    _greedyMatch(flowdir);
 
     // make 3D hits and update hit2flowdata vector
     if ( flowdir==kY2U )
-      _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_plhit2flowdata.Y2U );
+      _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_plhit2flowdata.Y2U, flowdir );
     else if ( flowdir=kY2V )
-      _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_plhit2flowdata.Y2V );
+      _make3Dhits( hit_v, src_adc, tar_adc, src_planeid, tar_planeid, threshold, m_plhit2flowdata.Y2V, flowdir );
     else
       throw std::runtime_error("should never get here");
 
@@ -424,7 +432,8 @@ namespace larflow {
   void FlowContourMatch::_createMatchData( const larlitecv::ContourCluster& contour_data,
 					   const larcv::Image2D& flow_img,
 					   const larcv::Image2D& src_adc,
-					   const larcv::Image2D& tar_adc ) {
+					   const larcv::Image2D& tar_adc,
+					   const FlowDirection_t kflowdir ) {
 
     // we compile the relationships between pixels and the different contour-clusters
     // the goal is to start to see what contours on source and target imager are paired together
@@ -532,11 +541,11 @@ namespace larflow {
 	const larlitecv::Contour_t& src_ctr = contour_data.m_plane_atomics_v[src_planeid][src_ctr_id];
 
 	// store the target point for this contour
-	auto it_srcctr_targets = m_src_targets.find( src_ctr_id );
-	if ( it_srcctr_targets==m_src_targets.end() ) {
+	auto it_srcctr_targets = m_src_targets[kflowdir].find( src_ctr_id );
+	if ( it_srcctr_targets==m_src_targets[kflowdir].end() ) {
 	  // create a container
-	  m_src_targets.insert( std::pair<int,ContourTargets_t>(src_ctr_id,ContourTargets_t()) );
-	  it_srcctr_targets = m_src_targets.find( src_ctr_id );
+	  m_src_targets[kflowdir].insert( std::pair<int,ContourTargets_t>(src_ctr_id,ContourTargets_t()) );
+	  it_srcctr_targets = m_src_targets[kflowdir].find( src_ctr_id );
 	}
 	TargetPix_t tpix;
 	tpix.row = r;
@@ -559,12 +568,12 @@ namespace larflow {
 
 	  // // store the match data
 	  SrcTarPair_t idpair = { src_ctr_id, ctrid };
-	  auto it_flowdata = m_flowdata.find( idpair );
-	  if ( it_flowdata==m_flowdata.end() ) {
+	  auto it_flowdata = m_flowdata[kflowdir].find( idpair );
+	  if ( it_flowdata==m_flowdata[kflowdir].end() ) {
 	  //   // if the map doesn't have the pair we're looking for, we create the data
 	    FlowMatchData_t x( src_ctr_id,  ctrid);
-	    m_flowdata.insert( std::pair<SrcTarPair_t,FlowMatchData_t>(idpair,x));
-	    it_flowdata = m_flowdata.find(idpair);
+	    m_flowdata[kflowdir].insert( std::pair<SrcTarPair_t,FlowMatchData_t>(idpair,x));
+	    it_flowdata = m_flowdata[kflowdir].find(idpair);
 	  }
 
 	  FlowMatchData_t& flowdata = it_flowdata->second;
@@ -580,7 +589,7 @@ namespace larflow {
     }
   }
 
-  void FlowContourMatch::_scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid ) {
+  void FlowContourMatch::_scoreMatches( const larlitecv::ContourCluster& contour_data, int src_planeid, int tar_planeid, const FlowDirection_t kflowdir ) {
     // takes src-target contour pairs and starts to calculate scores
     // scores are based on what fraction of pixels get matched from source to the target contour
     //
@@ -592,7 +601,7 @@ namespace larflow {
     //
     
     m_src_ncontours = contour_data.m_plane_atomics_v[src_planeid].size();
-    m_tar_ncontours = contour_data.m_plane_atomics_v[tar_planeid].size();
+    m_tar_ncontours[(int)kflowdir] = contour_data.m_plane_atomics_v[tar_planeid].size();
     // std::cout << __PRETTY_FUNCTION__ << std::endl;
     // std::cout << "scr ncontours: " << m_src_ncontours << std::endl;
     // std::cout << "tar ncontours: " << m_tar_ncontours << std::endl;
@@ -600,25 +609,25 @@ namespace larflow {
     if ( m_score_matrix!=NULL )
       delete [] m_score_matrix;
     
-    m_score_matrix = new double[m_src_ncontours*m_tar_ncontours]; // should probably its own class
-    memset(m_score_matrix, 0, sizeof(double)*m_src_ncontours*m_tar_ncontours );
+    m_score_matrix = new double[m_src_ncontours*m_tar_ncontours[kflowdir]]; // should probably its own class
+    memset(m_score_matrix, 0, sizeof(double)*m_src_ncontours*m_tar_ncontours[kflowdir] );
     
-    for ( auto it : m_flowdata ) {
+    for ( auto it : m_flowdata[kflowdir] ) {
       FlowMatchData_t& flowdata = it.second;
       float score = _scoreMatch( flowdata );
       flowdata.score = score;
-      m_score_matrix[ flowdata.src_ctr_id*m_tar_ncontours + flowdata.tar_ctr_id ] = score;
+      m_score_matrix[ flowdata.src_ctr_id*m_tar_ncontours[kflowdir] + flowdata.tar_ctr_id ] = score;
     }
 
     // normalize it
     for (int is=0; is<m_src_ncontours; is++) {
       float norm_s = 0;
-      for (int it=0; it<m_tar_ncontours; it++) {
-	norm_s += m_score_matrix[ is*m_tar_ncontours + it ];
+      for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+	norm_s += m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ];
       }
       if (norm_s>0 ) {
-	for (int it=0; it<m_tar_ncontours; it++) {
-	  m_score_matrix[ is*m_tar_ncontours + it ] /= norm_s;
+	for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+	  m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] /= norm_s;
 	}
       }
     }
@@ -636,7 +645,7 @@ namespace larflow {
     return score;
   }
 
-  void FlowContourMatch::_greedyMatch() {
+  void FlowContourMatch::_greedyMatch(const FlowDirection_t kflowdir) {
     // goal is to assign a cluster on the
     // source plane purely to one on the target
     //
@@ -646,19 +655,19 @@ namespace larflow {
     for (int is=0; is<m_src_ncontours; is++) {
       float max_s = -1.0;
       int   idx   = 0;
-      for (int it=0; it<m_tar_ncontours; it++) {
-	float score = m_score_matrix[ is*m_tar_ncontours + it ];
+      for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+	float score = m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ];
 	if ( score>max_s ) {
 	  max_s = 0;
 	  idx = it;
 	}
       }
       if (max_s>0 ) {
-	for (int it=0; it<m_tar_ncontours; it++) {
+	for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
 	  if ( it!=idx )
-	    m_score_matrix[ is*m_tar_ncontours + it ] = 0;
+	    m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] = 0;
 	  else
-	    m_score_matrix[ is*m_tar_ncontours + it ] = 1.0;
+	    m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] = 1.0;
 	}
       }
     }
@@ -667,27 +676,30 @@ namespace larflow {
 
   void FlowContourMatch::dumpMatchData() {
     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    for ( auto it : m_flowdata ) {
-      std::cout << "[CONTOURS: src(" << it.first[0] << ") -> tar(" << it.first[1] << ")]" << std::endl;
-      const FlowMatchData_t& flowdata = it.second;
-      std::cout << "  Flow entries " << flowdata.matchingflow_v.size() << std::endl;
-      for ( auto const& flow : flowdata.matchingflow_v ) {
-	std::cout << "    " << flow.row << ": " << flow.src_wire
-		  << " -> " << flow.tar_wire << "  err=" << flow.pred_miss << std::endl;
+    for (int i=0; i<2; i++) {
+      std::cout << "===Match Data. Direction " << i << " =======" << std::endl;
+      for ( auto it : m_flowdata[i] ) {
+	std::cout << "[CONTOURS: src(" << it.first[0] << ") -> tar(" << it.first[1] << ")]" << std::endl;
+	const FlowMatchData_t& flowdata = it.second;
+	std::cout << "  Flow entries " << flowdata.matchingflow_v.size() << std::endl;
+	for ( auto const& flow : flowdata.matchingflow_v ) {
+	  std::cout << "    " << flow.row << ": " << flow.src_wire
+		    << " -> " << flow.tar_wire << "  err=" << flow.pred_miss << std::endl;
+	}
       }
     }
   }
 
-  TH2D& FlowContourMatch::plotScoreMatrix() {
+  TH2D& FlowContourMatch::plotScoreMatrix(const FlowDirection_t kflowdir) {
     if ( m_plot_scorematrix!=NULL ) {
       delete m_plot_scorematrix;
     }
     m_plot_scorematrix = new TH2D( "h2d_flowmatch_scorematrix", ";Source Contour;Target Contour",
 				  m_src_ncontours, 0, m_src_ncontours,
-				  m_tar_ncontours, 0, m_tar_ncontours );
+				  m_tar_ncontours[kflowdir], 0, m_tar_ncontours[kflowdir] );
     for (int is=0; is<m_src_ncontours; is++) {
-      for (int it=0; it<m_tar_ncontours; it++) {
-	m_plot_scorematrix->SetBinContent( is+1, it+1, m_score_matrix[ is*m_tar_ncontours + it ] );
+      for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+	m_plot_scorematrix->SetBinContent( is+1, it+1, m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] );
       }
     }
 
@@ -703,7 +715,8 @@ namespace larflow {
 				      const int src_plane,
 				      const int tar_plane,
 				      const float threshold,
-				      std::vector<HitFlowData_t>& hit2flowdata ) {
+				      std::vector<HitFlowData_t>& hit2flowdata,
+				      const FlowDirection_t kflowdir ) {
 
     // make3Dhits
     // turn flow predictions and contour matches into 3D hits
@@ -805,7 +818,7 @@ namespace larflow {
       // we loop through source image contours and check if any of their pixels are inside the hit tick range.
       bool foundcontour = false;
       int  sourcecontourindex = -1;
-      for ( auto const& it_ctr : m_src_targets ) {
+      for ( auto const& it_ctr : m_src_targets[kflowdir] ) {
 	int src_ctridx = it_ctr.first; // source image contour index
 	const ContourTargets_t& ctrtargets = it_ctr.second; // list of src and target pixels
 
@@ -988,7 +1001,7 @@ namespace larflow {
 		    close_ctr_info.dist = abs(possearch_col - target_col);
 		    close_ctr_info.col	= possearch_col;
 		    close_ctr_info.adc  = tadc;		    
-		    close_ctr_info.scorematch = m_score_matrix[ int(src_ctridx*m_tar_ncontours + target_contour_idx) ];
+		    close_ctr_info.scorematch = m_score_matrix[ int(src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx) ];
 		    matched_contour_list.push_back( close_ctr_info );
 		    used_contours.insert( target_contour_idx );
 		    found_candidate_contour = true;
@@ -1012,7 +1025,7 @@ namespace larflow {
 		    close_ctr_info.dist = abs(negsearch_col - target_col);
 		    close_ctr_info.col	= negsearch_col;
 		    close_ctr_info.adc  = tadc;		    
-		    close_ctr_info.scorematch = m_score_matrix[ src_ctridx*m_tar_ncontours + target_contour_idx ];
+		    close_ctr_info.scorematch = m_score_matrix[ src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx ];
 		    matched_contour_list.push_back( close_ctr_info );
 		    used_contours.insert( target_contour_idx );
 		    found_candidate_contour = true;

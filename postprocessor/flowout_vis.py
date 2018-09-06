@@ -1,6 +1,17 @@
+#!/usr/bin/env python
 import os,sys
 
 # more involved, pyqtgraph visualization
+
+import argparse
+# ARGUMENT DEFINTIONS
+
+argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL cosmic tagging")
+argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
+argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
+argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
+argparser.add_argument("-c", "--color",    required=True,  type=str, help="colorscheme. options: [ssnet,quality,flowdir]")
+args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
 from pyqtgraph.Qt import QtCore, QtGui
@@ -11,7 +22,7 @@ from vis.detectordisplay import DetectorDisplay
 import ROOT as rt
 from larcv import larcv
 from larlite import larlite
-
+from ROOT import larutil
 
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
@@ -32,7 +43,7 @@ w.changeComponentState("FieldCageTubeY",False)
 w.changeComponentState("TPCActive",False)
 
 # import data
-inputfile = sys.argv[1]
+inputfile = args.input
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
 io.add_in_filename( inputfile )
 io.open()
@@ -41,7 +52,7 @@ io.open()
 schemes = ["colorbyssnet","colorbyquality","colorbyflowdir"]
 shortschemes = ["ssnet","quality","flowdir"]
 
-colorscheme = sys.argv[2]
+colorscheme = args.color
 if colorscheme in shortschemes:
     colorscheme = "colorby"+colorscheme
 if colorscheme not in schemes:
@@ -96,6 +107,21 @@ for ihit in xrange(nhits):
         
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
+
+# truth plot
+def extract_trackpts( mctrack, sce ):
+    # convert mctrack points to image pixels
+    steps_np = np.zeros( (mctrack.size(),3) )
+    for istep in xrange(mctrack.size()):
+        step = mctrack.at(istep)
+        t = step.T()
+        steps_np[istep,:] = (step.X(),step.Y(),step.Z())
+    return
+
+#sce = larutil.SpaceChargeMicroBooNE()
+#print sce
+        
+# make the plot
 w.addVisItem( "flowhits", hitplot )
 w.plotData()
 
