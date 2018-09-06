@@ -12,7 +12,6 @@ import ROOT as rt
 from larcv import larcv
 from larlite import larlite
 
-colorscheme = "colorbyssnet"
 
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
@@ -37,6 +36,16 @@ inputfile = sys.argv[1]
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
 io.add_in_filename( inputfile )
 io.open()
+
+# color scheme
+schemes = ["colorbyssnet","colorbyquality","colorbyflowdir"]
+shortschemes = ["ssnet","quality","flowdir"]
+
+colorscheme = sys.argv[2]
+if colorscheme in shortschemes:
+    colorscheme = "colorby"+colorscheme
+if colorscheme not in schemes:
+    raise ValueError("Invalid color scheme. Choices: {}".format(schemes))
 
 # get larflow hits
 io.go_to(0)
@@ -79,6 +88,11 @@ for ihit in xrange(nhits):
             colors[ihit,:] = (0.0,1.0,0.0,1.0)
         else:
             colors[ihit,:] = (0.0,0.0,1.0,1.0)
+    elif colorscheme=="colorbyflowdir":
+        if hit.flowdir==larlite.larflow3dhit.kY2U:
+            colors[ihit,:] = (1.,1.,1.,1.)
+        else:
+            colors[ihit,:] = (1.,0.,0.,1.)
         
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
