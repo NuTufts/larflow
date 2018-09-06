@@ -94,6 +94,9 @@ int main( int nargs, char** argv ) {
   bool use_truth  = false;
   int process_num_events = 1;
 
+  if (use_truth)
+    output_larlite_file = "output_truthmatch_larlite.root";
+
   // I'm lazy
   using flowdir = larflow::FlowContourMatch;
 

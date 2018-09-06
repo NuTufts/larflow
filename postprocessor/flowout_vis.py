@@ -12,6 +12,8 @@ import ROOT as rt
 from larcv import larcv
 from larlite import larlite
 
+colorscheme = "colorbyssnet"
+
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
 w = DetectorDisplay()
@@ -54,22 +56,32 @@ for ihit in xrange(nhits):
     pos_np[ihit,0] = hit.at(0)-130.0
     pos_np[ihit,1] = hit.at(1)
     pos_np[ihit,2] = hit.at(2)-500.0
-    
-    if hit.matchquality==0:
-        # on charge in cluster
-        colors[ihit,:] = (1.0,1.0,1.0,1.0)
-    elif hit.matchquality==1:
-        # in cluster, moved to nearest charge
-        colors[ihit,:] = (1.0,0.0,0.0,1.0)
-    elif hit.matchquality==2:
-        # outside cluster, moved to nearest cluster
-        colors[ihit,:] = (0.0,1.0,0.0,1.0)
-    else:
-        # no match
-        colors[ihit,:] = (0.0,0.0,0.0,1.0)
+
+    if colorscheme=="colorbyquality":
+        if hit.matchquality==0:
+            # on charge in cluster
+            colors[ihit,:] = (1.0,1.0,1.0,1.0)
+        elif hit.matchquality==1:
+            # in cluster, moved to nearest charge
+            colors[ihit,:] = (1.0,0.0,0.0,1.0)
+        elif hit.matchquality==2:
+            # outside cluster, moved to nearest cluster
+            colors[ihit,:] = (0.0,1.0,0.0,1.0)
+        else:
+            # no match
+            colors[ihit,:] = (0.0,0.0,0.0,1.0)
+    elif colorscheme=="colorbyssnet":
+        if hit.endpt_score>0.8:
+            colors[ihit,:] = (1.0,0.0,0.0,1.0)
+        elif hit.renormed_track_score>0.5:
+            colors[ihit,:] = (1.0,1.0,1.0,1.0)
+        elif hit.renormed_shower_score>0.5:
+            colors[ihit,:] = (0.0,1.0,0.0,1.0)
+        else:
+            colors[ihit,:] = (0.0,0.0,1.0,1.0)
         
 
-hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=0.5, pxMode=False)
+hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
 w.addVisItem( "flowhits", hitplot )
 w.plotData()
 
