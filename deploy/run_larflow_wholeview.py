@@ -171,7 +171,7 @@ if __name__=="__main__":
             save_cropped_adc = True  # saves cropped adc
         elif FLOWDIR=="y2v":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
-            output_larcv_filename = "larcv_larflow_y2v_5482426_95_testsample082918.root"                        
+            output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"
             # remove for y2v so we can hadd with y2u output                        
             ismc = False
             save_cropped_adc = False 
@@ -188,6 +188,12 @@ if __name__=="__main__":
     model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid, use_half=use_half )
     model.to(device=torch.device("cuda:%d"%(gpuid)))
     model.eval()
+
+    # set planes
+    if FLOWDIR=="y2u":
+        target_plane = 0
+    elif FLOWDIR=="y2v":
+        target_plane = 1
 
     # output IOManager
     if stitch:
@@ -341,11 +347,11 @@ if __name__=="__main__":
 
                 # crops in numpy array
                 source_np[ib,0,:,:] = img_np[2,0,bounds[2][0]:bounds[2][2],bounds[2][1]:bounds[2][3]] # yplane
-                target_np[ib,0,:,:] = img_np[0,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
+                target_np[ib,0,:,:] = img_np[target_plane,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
                 
                 # store region of image
                 image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
-                target_meta.append( larcv.ImageMeta( bb_v[0], 512, 832 ) )
+                target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
 
                 # if not stiching, save crops
                 if not stitch:
