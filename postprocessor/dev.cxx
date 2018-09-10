@@ -262,7 +262,7 @@ int main( int nargs, char** argv ) {
     }
 
     //mask infill and add to adc
-    matching_algo.maskInfill(ev_infill->as_vector(), ev_chstatus, 10.0, 0.8, infill_v, img_fill_v );
+    matching_algo.maskInfill(ev_infill->as_vector(), ev_chstatus, 20.0, 0.96, infill_v, img_fill_v );
 
     // get cluster atomics for cropped u,v,y ADC image    
     cluster_algo.clear();    
@@ -282,7 +282,8 @@ int main( int nargs, char** argv ) {
 	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
       
       if ( !use_truth ) {
-	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       }
       else
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );

@@ -213,11 +213,11 @@ namespace larflow {
 	for(int row=0; row<img.meta().rows(); row++){
 	  if(img.pixel(row,col)<score_thresh) continue; //infill score threshold
 	  masked_infill[plane].set_pixel(row,col,1);
-	  img_fill_v[plane].set_pixel(row,col,threshold); //set adc to threshold
+	  img_fill_v[plane].set_pixel(row,col,threshold+5.); //set adc to threshold
 	}//end of row
       }//end of col
     }// end of img
-    
+
   }
 
   
