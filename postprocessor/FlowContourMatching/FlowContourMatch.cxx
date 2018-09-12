@@ -246,13 +246,13 @@ namespace larflow {
     if(Y2U.size()>0){
       for(int i=0; i<Y2U.size(); i++){
 	Y2U[i].X.assign( 3, -1);
-	_calc_coord3d(Y2U[i],Y2U[i].X);
+	_calc_coord3d(Y2U[i],Y2U[i].X,FlowContourMatch::kY2U);
       }
     }
     if(Y2V.size()>0){
       for(int i=0; i<Y2V.size(); i++){
 	Y2V[i].X.assign( 3, -1);
-	_calc_coord3d(Y2V[i],Y2V[i].X);
+	_calc_coord3d(Y2V[i],Y2V[i].X,FlowContourMatch::kY2V);
       }
     }
     
@@ -270,7 +270,8 @@ namespace larflow {
     
 
   void FlowContourMatch::_calc_coord3d(HitFlowData_t& hit_y2u,
-				       std::vector<float>& X) {
+				       std::vector<float>& X,
+				       FlowDirection_t flowdir) {
 
     if ( hit_y2u.srcwire<0 ) {
       // this hit has no flow-match data
@@ -294,9 +295,20 @@ namespace larflow {
     const larutil::Geometry* geo = larutil::Geometry::GetME();
     const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
     X[0] = (hit_y2u.pixtick-3200.0)*cm_per_tick;
-    double y;
-    double z;
-    geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 0, y, z );
+    double y=-1.;
+    double z=-1.;
+    //Get intersection
+    switch ( flowdir ) {
+    case kY2U:
+      geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 0, y, z );
+      break;
+    case kY2V:
+      geo->IntersectionPoint( hit_y2u.srcwire, hit_y2u.targetwire, 2, 1, y, z );
+      break;
+    default:
+      throw std::runtime_error("FlowContourMatch::calc_coord3d: invalid FlowDirection_t option"); // shouldnt be possible
+      break;
+    }
     X[1] = y;
     X[2] = z;
     

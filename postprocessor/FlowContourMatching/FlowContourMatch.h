@@ -215,7 +215,8 @@ namespace larflow {
 			    float& dz);
 
     void _calc_coord3d(HitFlowData_t& hit_y2u,
-		       std::vector<float>& X);
+		       std::vector<float>& X,
+		       FlowDirection_t flowdir);
 
     void _calc_dist3d(std::vector<float>& X0,
 		      std::vector<float>& X1,
