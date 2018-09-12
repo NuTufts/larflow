@@ -196,28 +196,65 @@ namespace larflow {
   // =====================================================================
   // INFILL INTEGRATION
   // --------------------
+  void FlowContourMatch::stitchInfill( const larcv::Image2D& infill_crop,
+				       larcv::Image2D& trusted,
+				       larcv::Image2D& infill_whole,
+				       const larcv::EventChStatus& ev_chstatus){
 
-  void FlowContourMatch::maskInfill( const std::vector<larcv::Image2D>& infill,
+    //Note: this is set to prefer prediction in center of image.
+    //Different setting may be better
+
+    const larcv::ImageMeta& out_meta = infill_whole.meta();
+    int src_min_c = out_meta.col( infill_crop.meta().min_x() );
+    int src_min_r = out_meta.row( infill_crop.meta().min_y() );
+
+    for ( int r=0; r<(int)infill_crop.meta().rows(); r++ ) {
+      for ( int c=0; c<(int)infill_crop.meta().cols(); c++ ) {
+
+	int src_c = src_min_c+c;
+	int src_r = src_min_r+r;
+
+	if ( trusted.pixel(src_r,src_c)>0 )
+	  continue; // already filled by trusted region
+
+	infill_whole.set_pixel( src_r, src_c, infill_crop.pixel(r,c) );
+	if ( c>=261 || c<=571 )
+	  trusted.set_pixel( src_r, src_c, 1.0 );
+      }
+    }
+
+  }
+
+  void FlowContourMatch::maskInfill( const larcv::Image2D& infill,
 				     const larcv::EventChStatus& ev_chstatus,
-				     const float threshold,
 				     const float score_thresh,
-				     std::vector<larcv::Image2D>& masked_infill,
-				     std::vector<larcv::Image2D>& img_fill_v){
-    //loop over original infill
-    for(auto const& img : infill){
-      int plane = img.meta().id();
-      const larcv::ChStatus& status = ev_chstatus.status(plane);
-      const std::vector<short> st_v = status.as_vector();
-      for(int col=0; col<img.meta().cols(); col++){
-	if(st_v[col+img.meta().min_x()]==4) continue; //if good ch skip
-	for(int row=0; row<img.meta().rows(); row++){
-	  if(img.pixel(row,col)<score_thresh) continue; //infill score threshold
-	  masked_infill[plane].set_pixel(row,col,1);
-	  img_fill_v[plane].set_pixel(row,col,threshold+5.); //set adc to threshold
-	}//end of row
-      }//end of col
-    }// end of img
+				     larcv::Image2D& masked_infill){
 
+    const larcv::ChStatus& status = ev_chstatus.status(infill.meta().id());
+    const std::vector<short> st_v = status.as_vector();
+    for(int col=0; col<infill.meta().cols(); col++){
+      if(st_v[col+infill.meta().min_x()]==4) continue; //if good ch skip
+      for(int row=0; row<infill.meta().rows(); row++){
+	if(infill.pixel(row,col)<score_thresh) continue; //infill score threshold
+	masked_infill.set_pixel(row,col,1);
+      }//end of row
+    }//end of col
+  }
+
+  void FlowContourMatch::addInfill( const larcv::Image2D& masked_infill,
+				    const larcv::EventChStatus& ev_chstatus,
+				    const float threshold,
+				    larcv::Image2D& img_fill_v){
+
+    const larcv::ChStatus& status = ev_chstatus.status(masked_infill.meta().id());
+    const std::vector<short> st_v = status.as_vector();
+    for(int col=0; col<masked_infill.meta().cols(); col++){
+      if(st_v[col+masked_infill.meta().min_x()]==4) continue; //if good ch skip
+      for(int row=0; row<masked_infill.meta().rows(); row++){
+	if(masked_infill.pixel(row,col)<1) continue; //masked infill
+	img_fill_v.set_pixel(row,col,threshold+5.); //set adc to above threshold
+      }//end of row
+    }//end of col
   }
 
   

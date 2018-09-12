@@ -64,6 +64,39 @@ void event_changeout( larlite::storage_manager& dataco_output,
   return;
 }
 
+larcv::Image2D stitch_infill(larlitecv::DataCoordinator& dataco_crop,
+			     larlitecv::DataCoordinator& dataco_whole,
+			     larflow::FlowContourMatch& matching_algo,
+			     int run, int subrun, int event, int entry){
+
+  //infill prediction (unmasked)
+  larcv::EventImage2D* ev_infill = (larcv::EventImage2D*) dataco_crop.get_larcv_data("image2d", "infillCropped");
+
+  // supera images
+  larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
+  //const std::vector<larcv::Image2D>& whole_v = ev_wholeimg->image2d_array();
+
+  //chstatus
+  const larcv::EventChStatus& ev_chstatus = *(larcv::EventChStatus*) dataco_whole.get_larcv_data("chstatus","wire");
+
+  larcv::Image2D trusted(ev_wholeimg->as_vector()[2].meta());
+  larcv::Image2D infill_whole(ev_wholeimg->as_vector()[2].meta());
+
+  int nentries = dataco_crop.get_nentries( "larcv" );
+  for (int ientry=entry; ientry<nentries; ientry++) {
+
+    dataco_crop.goto_entry(ientry,"larcv");
+    int runid    = dataco_crop.run();
+    int subrunid = dataco_crop.subrun();
+    int eventid  = dataco_crop.event();
+    // load up the whole-view images from the supera file
+    dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
+    if(runid!=run || subrunid!=subrun || eventid!=event) break;
+    matching_algo.stitchInfill(ev_infill->as_vector()[2],trusted,infill_whole,ev_chstatus);
+  }
+  return infill_whole;
+}
+
 int main( int nargs, char** argv ) {
 
   gStyle->SetOptStat(0);
@@ -144,6 +177,9 @@ int main( int nargs, char** argv ) {
   int current_eventid  = -1;
   int nevents = 0;
 
+  //whole image infill
+  larcv::Image2D infill_whole_y;
+
   for (int ientry=0; ientry<nentries; ientry++) {
 
     dataco.goto_entry(ientry,"larcv");
@@ -158,6 +194,9 @@ int main( int nargs, char** argv ) {
       current_subrunid = subrunid;
       current_eventid  = eventid;
     }
+
+    //get stitched infill ->should create image once per event, not sure how to
+    if( ientry==0 ) infill_whole_y = stitch_infill(dataco,dataco_whole,matching_algo,current_runid,current_subrunid,current_eventid,ientry);
 
     if ( current_runid!=runid || current_subrunid!=subrunid || current_eventid!=eventid ) {
 
@@ -178,6 +217,8 @@ int main( int nargs, char** argv ) {
       current_subrunid = subrunid;
       current_eventid  = eventid;
 
+      //clear whole infill
+      infill_whole_y.clear_data();
 
       std::cout << "Event turn over. [enter] to continue." << std::endl;
       std::cin.get();
@@ -256,19 +297,28 @@ int main( int nargs, char** argv ) {
       badch.paint(0.0);
       badch_v.emplace_back( std::move(badch) );
       larcv::Image2D infill( img.meta() );
+      larcv::Image2D img_fill( img.meta() );
       infill.paint(0.0);
+      img_fill = img;
+      //mask infill and add to adc
+      matching_algo.maskInfill(ev_infill->as_vector()[img.meta().id()], ev_chstatus, 0.96, infill );
+      matching_algo.addInfill(infill, ev_chstatus, 20.0,  img_fill );
+      //fill the vectors
       infill_v.emplace_back( std::move(infill) );
-      img_fill_v.emplace_back( std::move(img) );
+      img_fill_v.emplace_back( std::move(img_fill) );
     }
-
-    //mask infill and add to adc
-    matching_algo.maskInfill(ev_infill->as_vector(), ev_chstatus, 20.0, 0.96, infill_v, img_fill_v );
 
     // get cluster atomics for cropped u,v,y ADC image    
     cluster_algo.clear();    
     //cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
     cluster_algo.analyzeImages( img_fill_v, badch_v, 20.0, 3 );
-    
+
+    //mask and add whole image infill
+    larcv::Image2D whole_y_cp = whole_v[2];
+    std::cout <<whole_y_cp.meta().dump() << std::endl;
+    matching_algo.maskInfill(infill_whole_y, ev_chstatus, 0.96, infill_whole_y ); //does that work??
+    matching_algo.addInfill(infill_whole_y, ev_chstatus, 10.0, whole_y_cp );
+
     if ( use_hits ) {      
       if ( !use_truth ) {
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, ev_hit, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
@@ -279,14 +329,16 @@ int main( int nargs, char** argv ) {
     else {
       // make hits from whole image
       if ( pixhits_v.size()==0 )
-	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
+	//matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
+	matching_algo.makeHitsFromWholeImagePixels( whole_y_cp, pixhits_v, 10.0 );
       
       if ( !use_truth ) {
 	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
 	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       }
       else
-	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
+	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, true_v, pixhits_v, 10.0, true, true );
     }
 
     // update ssnet info

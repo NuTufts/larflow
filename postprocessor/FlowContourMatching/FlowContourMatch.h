@@ -144,10 +144,19 @@ namespace larflow {
     // (use at beginning of event)
     void makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, larlite::event_hit& evhit_v, const float threshold );
 
+    //use this to stitch infill crops together
+    void stitchInfill( const larcv::Image2D& infill_crop,
+		       larcv::Image2D& trusted,
+		       larcv::Image2D& infill_whole,
+		       const larcv::EventChStatus& ev_chstatus);
+
     // use this to mask and threshold infill image pixels. can use output in next function.
-    // Later I need to flag the hits as well -> store map?
-    void maskInfill( const std::vector<larcv::Image2D>& infill, const larcv::EventChStatus& ev_chstatus,
-		     const float threshold, const float score_thresh, std::vector<larcv::Image2D>& masked_infill, std::vector<larcv::Image2D>& img_fill_v );
+    void maskInfill( const larcv::Image2D& infill, const larcv::EventChStatus& ev_chstatus,
+		     const float score_thresh, larcv::Image2D& masked_infill );
+
+    // use this to add thresholded infill images to adc. can use output in next function.
+    void addInfill( const larcv::Image2D& masked_infill, const larcv::EventChStatus& ev_chstatus,
+		    const float threshold, larcv::Image2D& img_fill_v );
 
     // update the information for making 3D hits
     // -----------------------------------------
