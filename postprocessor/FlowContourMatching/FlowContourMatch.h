@@ -13,10 +13,12 @@
 #include "TH2D.h"
 
 #include "DataFormat/hit.h"
+#include "DataFormat/chstatus.h" //do I use this
 
 #include "ContourShapeMeta.h"
 #include "ContourCluster.h"
 #include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 
 // larlite data product
 #include "DataFormat/larflow3dhit.h"
@@ -77,7 +79,8 @@ namespace larflow {
 	track_score(-1),
 	shower_score(-1),
 	renormed_track_score(-1),
-	renormed_shower_score(-1)
+	renormed_shower_score(-1)//,
+			//infill_score(-1)
       {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
@@ -94,6 +97,8 @@ namespace larflow {
       float shower_score;
       float renormed_track_score;
       float renormed_shower_score;
+      //float infill_score; // infill "has charge" score
+      bool is_infill;     // is this hit on infill pixel
       std::vector<float> X; // 3D coordinates from larlite::geo
     };
     struct ClosestContourPix_t {
@@ -138,6 +143,11 @@ namespace larflow {
     // use this to turn pixels into hits. can use output in next function.
     // (use at beginning of event)
     void makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, larlite::event_hit& evhit_v, const float threshold );
+
+    // use this to mask and threshold infill image pixels. can use output in next function.
+    // Later I need to flag the hits as well -> store map?
+    void maskInfill( const std::vector<larcv::Image2D>& infill, const larcv::EventChStatus& ev_chstatus,
+		     const float threshold, const float score_thresh, std::vector<larcv::Image2D>& masked_infill, std::vector<larcv::Image2D>& img_fill_v );
 
     // update the information for making 3D hits
     // -----------------------------------------

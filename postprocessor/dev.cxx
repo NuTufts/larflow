@@ -15,6 +15,7 @@
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 
 // larlitecv
@@ -89,7 +90,7 @@ int main( int nargs, char** argv ) {
   
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
-  bool kVISUALIZE = false;
+  bool kVISUALIZE = false; 
   bool use_hits   = false;
   bool use_truth  = true;
   int process_num_events = 1;
@@ -188,7 +189,6 @@ int main( int nargs, char** argv ) {
 
     // load up the whole-view images from the supera file
     dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
-    
   
     // larflow input data (assumed to be cropped subimages)
     larcv::EventImage2D* ev_wire      = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "adc");
@@ -209,12 +209,17 @@ int main( int nargs, char** argv ) {
     larcv::EventImage2D* ev_showerimg = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "ssnetCropped_shower");
     larcv::EventImage2D* ev_endptimg = (larcv::EventImage2D*)  dataco.get_larcv_data("image2d", "ssnetCropped_endpt");
     
-
+    //infill prediction (unmasked)
+    larcv::EventImage2D* ev_infill = (larcv::EventImage2D*) dataco.get_larcv_data("image2d", "infillCropped");
+    
     // For whole-view data, should avoid reloading, repeatedly
     // supera images
     larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
     const std::vector<larcv::Image2D>& whole_v = ev_wholeimg->image2d_array();
-    
+
+    //chstatus
+    const larcv::EventChStatus& ev_chstatus = *(larcv::EventChStatus*) dataco_whole.get_larcv_data("chstatus","wire");
+
     // event data
     const larlite::event_hit&  ev_hit = *((larlite::event_hit*)dataco_hits.get_larlite_data(larlite::data::kHit, "gaushit"));
     std::cout << "Number of hits: " << ev_hit.size() << std::endl;
@@ -241,16 +246,28 @@ int main( int nargs, char** argv ) {
     eventid  = dataco.event();
     
     // make badch image (make blanks for now)
+    // make blank infill images
+    // copy adc images
     std::vector<larcv::Image2D> badch_v;
+    std::vector<larcv::Image2D> infill_v;
+    std::vector<larcv::Image2D> img_fill_v;
     for ( auto const& img : img_v ) {
       larcv::Image2D badch( img.meta() );
       badch.paint(0.0);
       badch_v.emplace_back( std::move(badch) );
+      larcv::Image2D infill( img.meta() );
+      infill.paint(0.0);
+      infill_v.emplace_back( std::move(infill) );
+      img_fill_v.emplace_back( std::move(img) );
     }
+
+    //mask infill and add to adc
+    matching_algo.maskInfill(ev_infill->as_vector(), ev_chstatus, 20.0, 0.96, infill_v, img_fill_v );
 
     // get cluster atomics for cropped u,v,y ADC image    
     cluster_algo.clear();    
-    cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
+    //cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
+    cluster_algo.analyzeImages( img_fill_v, badch_v, 20.0, 3 );
     
     if ( use_hits ) {      
       if ( !use_truth ) {
@@ -265,7 +282,8 @@ int main( int nargs, char** argv ) {
 	matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
       
       if ( !use_truth ) {
-	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       }
       else
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );

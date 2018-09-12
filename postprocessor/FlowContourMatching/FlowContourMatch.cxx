@@ -192,7 +192,33 @@ namespace larflow {
       }
     }
   }
-  
+
+  // =====================================================================
+  // INFILL INTEGRATION
+  // --------------------
+
+  void FlowContourMatch::maskInfill( const std::vector<larcv::Image2D>& infill,
+				     const larcv::EventChStatus& ev_chstatus,
+				     const float threshold,
+				     const float score_thresh,
+				     std::vector<larcv::Image2D>& masked_infill,
+				     std::vector<larcv::Image2D>& img_fill_v){
+    //loop over original infill
+    for(auto const& img : infill){
+      int plane = img.meta().id();
+      const larcv::ChStatus& status = ev_chstatus.status(plane);
+      const std::vector<short> st_v = status.as_vector();
+      for(int col=0; col<img.meta().cols(); col++){
+	if(st_v[col+img.meta().min_x()]==4) continue; //if good ch skip
+	for(int row=0; row<img.meta().rows(); row++){
+	  if(img.pixel(row,col)<score_thresh) continue; //infill score threshold
+	  masked_infill[plane].set_pixel(row,col,1);
+	  img_fill_v[plane].set_pixel(row,col,threshold+5.); //set adc to threshold
+	}//end of row
+      }//end of col
+    }// end of img
+
+  }
 
   
   // =====================================================================
