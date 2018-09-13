@@ -79,8 +79,7 @@ namespace larflow {
 	track_score(-1),
 	shower_score(-1),
 	renormed_track_score(-1),
-	renormed_shower_score(-1)//,
-			//infill_score(-1)
+	renormed_shower_score(-1)
       {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
@@ -97,8 +96,8 @@ namespace larflow {
       float shower_score;
       float renormed_track_score;
       float renormed_shower_score;
-      //float infill_score; // infill "has charge" score
-      bool is_infill;     // is this hit on infill pixel
+      bool src_infill; // source infill
+      bool tar_infill; // target infill
       std::vector<float> X; // 3D coordinates from larlite::geo
     };
     struct ClosestContourPix_t {
@@ -158,6 +157,7 @@ namespace larflow {
     void addInfill( const larcv::Image2D& masked_infill, const larcv::EventChStatus& ev_chstatus,
 		    const float threshold, larcv::Image2D& img_fill_v );
 
+
     // update the information for making 3D hits
     // -----------------------------------------
     // call once per subimage
@@ -185,6 +185,10 @@ namespace larflow {
 				       const std::vector<larcv::Image2D>& shower_scoreimgs,
 				       const std::vector<larcv::Image2D>& endpt_scoreimgs );
     
+    // integrate infill output
+    // (call before getting 3d hits)
+    //------------------------------
+    void labelInfillHits( const std::vector<larcv::Image2D>& masked_infill);
     
     // algorithm sub-functions
     // ------------------------

@@ -49,8 +49,8 @@ io.add_in_filename( inputfile )
 io.open()
 
 # color scheme
-schemes = ["colorbyssnet","colorbyquality","colorbyflowdir"]
-shortschemes = ["ssnet","quality","flowdir"]
+schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist"]
+shortschemes = ["ssnet","quality","flowdir","infill","3ddist"]
 
 colorscheme = args.color
 if colorscheme in shortschemes:
@@ -105,6 +105,31 @@ for ihit in xrange(nhits):
         else:
             colors[ihit,:] = (1.,0.,0.,1.)
         
+    elif colorscheme=="colorbyinfill":
+        if hit.src_infill!=0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
+            # src on infill blue
+            colors[ihit,:] = (0.0,0.0,1.0,1.0)
+        elif (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0) and hit.src_infill==0:
+            # target on infill red
+            colors[ihit,:] = (1.0,0.0,0.0,1.0)
+        elif (hit.src_infill!=0 and (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0)):
+            # both src and tar on infill green
+            colors[ihit,:] = (0.0,1.0,0.0,1.0)
+        elif hit.src_infill==0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
+            # neither src nor tar on infill white
+            colors[ihit,:] = (1.0,1.0,1.0,1.0)
+
+    elif colorscheme=="colorby3ddist":
+        if hit.consistency3d==0:
+            colors[ihit,:] = (1.,1.,1.,1.)
+        elif hit.consistency3d==1:
+            colors[ihit,:] = (1.,0.,0.,1.)
+        elif hit.consistency3d==2:
+            colors[ihit,:] = (0.,1.,0.,1.)
+        elif hit.consistency3d==3:
+            colors[ihit,:] = (0.,0.,1.,1.)
+        else:
+            colors[ihit,:] = (1.,0.,1.,1.)
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
 

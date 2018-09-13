@@ -215,7 +215,7 @@ int main( int nargs, char** argv ) {
       current_eventid  = eventid;
 
       //clear whole infill
-      infill_whole_y.clear_data();
+      infill_whole_y.paint(0.0);
 
       std::cout << "Event turn over. [enter] to continue." << std::endl;
       std::cin.get();
@@ -315,7 +315,7 @@ int main( int nargs, char** argv ) {
     //mask and add whole image infill
     larcv::Image2D whole_y_cp = whole_v[2];
     std::cout <<whole_y_cp.meta().dump() << std::endl;
-    matching_algo.maskInfill(infill_whole_y, ev_chstatus, 0.96, infill_whole_y ); //does that work??
+    matching_algo.maskInfill(infill_whole_y, ev_chstatus, 0.96, infill_whole_y );
     matching_algo.addInfill(infill_whole_y, ev_chstatus, 10.0, whole_y_cp );
 
     if ( use_hits ) {      
@@ -346,6 +346,14 @@ int main( int nargs, char** argv ) {
     }
     else {
       std::cout << "Shower/track/endpt info not valid" << std::endl;
+    }
+    // update infill labels
+    if ( ev_infill->valid() && infill_v.size()==3 ) {
+      matching_algo.labelInfillHits( infill_v );
+      std::cout << "infill labels here" << std::endl;
+    }
+    else {
+      std::cout << "Infill info not valid" << std::endl;
     }
 
     if ( kVISUALIZE ) {

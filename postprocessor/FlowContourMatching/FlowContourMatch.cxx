@@ -201,8 +201,8 @@ namespace larflow {
 				       larcv::Image2D& infill_whole,
 				       const larcv::EventChStatus& ev_chstatus){
 
-    //Note: this is set to prefer prediction in center of image.
-    //Different setting may be better
+    // fills an infill subimage in a whole image.
+    // Note: this is set to prefer prediction in center of image.
 
     const larcv::ImageMeta& out_meta = infill_whole.meta();
     int src_min_c = out_meta.col( infill_crop.meta().min_x() );
@@ -229,7 +229,16 @@ namespace larflow {
 				     const larcv::EventChStatus& ev_chstatus,
 				     const float score_thresh,
 				     larcv::Image2D& masked_infill){
-
+    // masks infill prediction outside of dead regions.
+    // creates activation image (pix = 0 or 1) w.r.t. infill score threshold
+    // inputs
+    //------
+    // original infill image
+    //
+    // outputs
+    //-------
+    // masked & thresholded infill activation
+    //
     const larcv::ChStatus& status = ev_chstatus.status(infill.meta().id());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<infill.meta().cols(); col++){
@@ -245,7 +254,17 @@ namespace larflow {
 				    const larcv::EventChStatus& ev_chstatus,
 				    const float threshold,
 				    larcv::Image2D& img_fill_v){
-
+    // adds infill activation to existing adc image
+    // adc is set w.r.t. some charge threshold
+    // inputs
+    //-------
+    // infill activation
+    // original adc image
+    //
+    // outputs
+    //---------
+    // edited adc image
+    //
     const larcv::ChStatus& status = ev_chstatus.status(masked_infill.meta().id());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<masked_infill.meta().cols(); col++){
@@ -257,7 +276,55 @@ namespace larflow {
     }//end of col
   }
 
-  
+  void FlowContourMatch::labelInfillHits( const std::vector<larcv::Image2D>& masked_infill) {
+    // store Infill above thresh information into hit2flow data
+    // inputs
+    // ------
+    // masked_infill: assuming vector is (u,v,y)
+    // ** we assume the above cover the same subimage region
+    //
+    // output
+    // -------
+    // updates m_plhit2flowdata[Y2U and Y2V] (if exists)
+
+    // can be whole view or subimage
+    // we loop over hits, and check if image set is applicable
+
+    bool filled[2] = { m_plhit2flowdata.ranY2U, m_plhit2flowdata.ranY2V };
+    std::vector<HitFlowData_t>* phitdata_v[2] = { &(m_plhit2flowdata.Y2U), &(m_plhit2flowdata.Y2V) };
+
+    for ( int iflow=kY2U; iflow<(int)kNumFlowDirs; iflow++ ) {
+      if ( !filled[iflow] ) continue;
+
+      std::vector<HitFlowData_t>&  hitdata_v = *(phitdata_v[iflow]);
+      // we check if hit is contained
+      const larcv::Image2D& infill_src = masked_infill[ kSourcePlane[iflow] ];
+      const larcv::Image2D& infill_tar = masked_infill[ kTargetPlane[iflow] ];
+      const larcv::ImageMeta& src_meta = infill_src.meta();
+      const larcv::ImageMeta& tar_meta = infill_tar.meta();
+
+      for ( auto& hitdata : hitdata_v ) {
+	if ( src_meta.min_x()<=hitdata.srcwire && hitdata.srcwire<src_meta.max_x()
+	     && src_meta.min_y()<=hitdata.pixtick && hitdata.pixtick<src_meta.max_y() ) {
+	  // inside image
+
+	  int col = src_meta.col( hitdata.srcwire );
+	  int row = src_meta.row( hitdata.pixtick );
+	  hitdata.src_infill = (infill_src.pixel(row,col)>0 ) ? true : false;
+	  // check if target pix is inside image
+	  if ( tar_meta.min_x()<=hitdata.targetwire && hitdata.targetwire<tar_meta.max_x()
+	       && tar_meta.min_y()<=hitdata.pixtick && hitdata.pixtick<tar_meta.max_y() ) {
+	    int colt= tar_meta.col( hitdata.targetwire);
+	    hitdata.tar_infill = (infill_tar.pixel(row,colt)>0) ? true : false;
+	  }
+	  else{
+	    //not in crop
+	    hitdata.tar_infill = false;
+	  }
+	}
+      }
+    }
+  }
   // =====================================================================
   // INTERNAL FUNCTIONS
   // --------------------
@@ -1250,6 +1317,7 @@ namespace larflow {
       flowhit.dy            = -1.;
       flowhit.dz            = -1.;
       flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
+      
       switch ( hitdata.matchquality ) {
       case 1:
 	flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
@@ -1313,6 +1381,8 @@ namespace larflow {
 	flowhit.endpt_score   = hitdata.endpt_score;
 	flowhit.renormed_track_score   = hitdata.renormed_track_score;
 	flowhit.renormed_shower_score  = hitdata.renormed_shower_score;
+	flowhit.src_infill    = (unsigned short)(hitdata.src_infill);
+	flowhit.tar_infill[0] = (unsigned short)(hitdata.tar_infill);
 	
 	switch ( hitdata.matchquality ) {
 	case 1:
@@ -1350,10 +1420,30 @@ namespace larflow {
 	  continue;
 	}
 	else if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches) {
-	  hitdata = hitdata0; //neither has a match, pick y2u
+	  //neither has a match. pick the one that does not land on infill
+	  if(hitdata0.tar_infill && !hitdata1.tar_infill){
+	    hitdata = hitdata1;
+	    used_dir = larlite::larflow3dhit::kY2V;
+	  }
+	  else if(!hitdata0.tar_infill && hitdata1.tar_infill){
+	    hitdata = hitdata0;
+	  }
+	  else{
+	    hitdata = hitdata0; //neither has a match, same infill, pick y2u
+	  }
 	}
 	else if(hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality==hitdata1.matchquality) {
-	  hitdata = hitdata0; //same quality, pick y2u...infill?
+	  //same quality, pick the one that does not land on infill
+	  if(hitdata0.tar_infill && !hitdata1.tar_infill){
+	    hitdata = hitdata1;
+	    used_dir = larlite::larflow3dhit::kY2V;
+	  }
+	  else if(hitdata0.tar_infill && !hitdata1.tar_infill){
+	    hitdata = hitdata0;
+	  }
+	  else{
+	    hitdata = hitdata0; //same infill, pick y2u
+	  }
 	}
 	else if((hitdata0.matchquality<0 && hitdata1.matchquality>=0)
 		|| (hitdata0.matchquality>=0 && hitdata1.matchquality>=0 && hitdata0.matchquality < hitdata1.matchquality))  {
@@ -1386,6 +1476,9 @@ namespace larflow {
 	flowhit.endpt_score   = hitdata.endpt_score;
 	flowhit.renormed_track_score   = hitdata.renormed_track_score;
 	flowhit.renormed_shower_score  = hitdata.renormed_shower_score;
+	flowhit.src_infill    = (unsigned short)(hitdata.src_infill);
+	flowhit.tar_infill[0] = (unsigned short)(hitdata0.tar_infill);
+	flowhit.tar_infill[1] = (unsigned short)(hitdata1.tar_infill);
 	
 	switch ( hitdata.matchquality ) {
 	case 1:
