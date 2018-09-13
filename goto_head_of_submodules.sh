@@ -4,7 +4,7 @@
 # goes to the dev branches
 
 cd larlite
-git checkout trunk
+git checkout tufts_larflow
 
 cd ../Geo2D
 git checkout develop
