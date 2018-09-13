@@ -195,9 +195,6 @@ int main( int nargs, char** argv ) {
       current_eventid  = eventid;
     }
 
-    //get stitched infill ->should create image once per event, not sure how to
-    if( ientry==0 ) infill_whole_y = stitch_infill(dataco,dataco_whole,matching_algo,current_runid,current_subrunid,current_eventid,ientry);
-
     if ( current_runid!=runid || current_subrunid!=subrunid || current_eventid!=eventid ) {
 
       // if we are breaking, we cut out now, using the event_changeout all at end of file
@@ -224,6 +221,8 @@ int main( int nargs, char** argv ) {
       std::cin.get();
 
     }
+    // get stitched infill ->should create image once per event
+    if( pixhits_v.size()==0 ) infill_whole_y = stitch_infill(dataco,dataco_whole,matching_algo,current_runid,current_subrunid,current_eventid,ientry);
     
     // sync up larlite data
     dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
