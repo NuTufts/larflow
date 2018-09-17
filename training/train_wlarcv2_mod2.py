@@ -44,7 +44,7 @@ else:
                     
 # Our model definition
 #from larflow_uresnet_mod2 import LArFlowUResNet
-from larflow_uresnet_mod import LArFlowUResNet
+from larflow_uresnet_test2 import LArFlowUResNet
 from larflow_loss_mod import LArFlowLoss
 
 
@@ -55,7 +55,8 @@ RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 #CHECKPOINT_FILE="/cluster/kappa/wongjiradlab/twongj01/llf/pytorch-larflow/v0.4_832x512_fullres_y2u/run1_continue/checkpoint.14000th.tar"
 #CHECKPOINT_FILE="/cluster/kappa/wongjiradlab/twongj01/llf/pytorch-larflow/v0.4_832x512_fullres_y2u/run2_bigsample/checkpoint.12500th.tar"
-CHECKPOINT_FILE="/cluster/kappa/wongjiradlab/twongj01/llf/pytorch-larflow/v0.4_832x512_fullres_y2u/run3_bigsample2_droplr/checkpoint.14500th.tar"
+#CHECKPOINT_FILE="/cluster/kappa/wongjiradlab/twongj01/llf/pytorch-larflow/v0.4_832x512_fullres_y2u/run3_bigsample2_droplr/checkpoint.14500th.tar"
+CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
 start_iter  = 0 #14500
 # on meitner
 #TRAIN_LARCV_CONFIG="flowloader_train.cfg"
@@ -68,10 +69,9 @@ IMAGE_HEIGHT=832
 ADC_THRESH=10.0
 VISI_WEIGHT=0.01
 USE_VISI=False
-#DEVICE_IDS=[3,4,5]
-DEVICE_IDS=[0]
-GPUID2=DEVICE_IDS[0]
-GPUID1=1
+DEVICE_IDS=[0,1]
+GPUID1=DEVICE_IDS[0]
+GPUID2=DEVICE_IDS[1]
 # map multi-training weights 
 #CHECKPOINT_MAP_LOCATIONS={"cuda:2":"cuda:0",
 #                          "cuda:3":"cuda:1",
@@ -82,7 +82,7 @@ GPUID1=1
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
-CHECKPOINT_FROM_DATA_PARALLEL=True
+CHECKPOINT_FROM_DATA_PARALLEL=False
 # ===================================================
 
 
@@ -104,7 +104,7 @@ def main():
 
     # create model, mark it to run on the GPU
     if GPUMODE:
-        model = LArFlowUResNet(inplanes=16,input_channels=1,num_classes=2,showsizes=False, use_visi=USE_VISI, gpuid1=GPUID1, gpuid2=GPUID2)
+        model = LArFlowUResNet(inplanes=22,input_channels=1,num_classes=2,showsizes=False, use_visi=USE_VISI, gpuid1=GPUID1, gpuid2=GPUID2)
         #model.cuda(GPUID) # put onto gpuid
     else:
         model = LArFlowUResNet(inplanes=16,input_channels=1,num_classes=2)
@@ -136,16 +136,16 @@ def main():
         criterion = LArFlowLoss(maxdist,VISI_WEIGHT)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
     # training length
-    batchsize_train = 2*len(DEVICE_IDS)
-    batchsize_valid = 1*len(DEVICE_IDS)
+    batchsize_train = 2#*len(DEVICE_IDS)
+    batchsize_valid = 1#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 10000 #30000
+    num_iters   = 30000 
     iter_per_epoch = None # determined later
     iter_per_valid = 10
     iter_per_checkpoint = 300
