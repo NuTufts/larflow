@@ -90,7 +90,7 @@ namespace larlitecv {
       ContourList_t contour_v;
       cv::findContours( cvimg_stage1_v[p], contour_v, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE );
 
-      std::cout << "Plane " << p << " number of contours: " << contour_v.size() << std::endl;
+      //std::cout << "Plane " << p << " number of contours: " << contour_v.size() << std::endl;
       
       // for each contour, find convex hull, find defect points
       std::vector< ContourIndices_t > hull_v( contour_v.size() );

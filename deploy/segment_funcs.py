@@ -25,23 +25,20 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torch.nn.functional as F
 
-# larflow
-LARFLOW_MODEL_DIR=None
-if "LARFLOW_BASEDIR" in os.environ:
-    LARFLOW_MODEL_DIR=os.environ["LARFLOW_BASEDIR"]+"/models"
-    if LARFLOW_MODEL_DIR not in os.environ:
-        sys.path.append(LARFLOW_MODEL_DIR)
+if "LARFLOW_MODELDIR" in os.environ: # should have been placed there by configure.sh script
+    LARFLOW_MODELDIR=os.environ["LARFLOW_MODELDIR"]
+    sys.path.append(LARFLOW_MODELDIR)
 else:
     sys.path.append("../models")
 
-from larflow_uresnet import LArFlowUResNet
+from ub_uresnet import UResNet
 
 
 # load model with weights from checkpoints
 
 def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
 
-    model = LArFlowUResNet(inplanes=32,input_channels=1,showsizes=False,use_visi=False)
+    model = UResNet(inplanes=32,input_channels=1,num_classes=4,showsizes=False)
     if use_half:
         model = model.half()
 
@@ -50,7 +47,7 @@ def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
     map_location=None
     if gpuid!=checkpointgpu:
         map_location={"cuda:%d"%(checkpointgpu):"cuda:%d"%(gpuid)}
-    
+
     checkpoint = torch.load( checkpointfile, map_location=map_location )
     # check for data_parallel checkpoint which has "module" prefix
     from_data_parallel = False
@@ -65,20 +62,7 @@ def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
             name = k[7:] # remove `module.`
             new_state_dict[name] = v
         checkpoint["state_dict"] = new_state_dict
-    if use_half:
-        new_state_dict = OrderedDict()
-        for k, v in checkpoint["state_dict"].items():
-            new_state_dict[k] = v.half()
-        checkpoint["state_dict"] = new_state_dict
 
     model.load_state_dict(checkpoint["state_dict"])
 
     return model
-
-def unpack_checkpoint( checkpointfile ):
-    checkpoint = torch.load( checkpointfile, map_location=map_location )
-    print type(checkpoint)
-    for k,v in checkpoint.items():
-        print k
-
-

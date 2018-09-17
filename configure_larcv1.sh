@@ -24,7 +24,7 @@ cd ../LArOpenCV
 source setup_laropencv.sh
 
 # setup larlite environment variabls
-cd ../larcv
+cd ../larcv1
 source configure.sh
 
 # setup larlitecv

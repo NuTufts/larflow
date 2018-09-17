@@ -14,12 +14,18 @@ from larcv import larcv
 import torch
 
 # util functions
-# also, implicitly loads dependencies, pytorch larflow model definition
-from larflow_funcs import load_model
+# also, implicitly loads dependencies, pytorch segment model definition (ubresnet)
+from segment_funcs import load_model
 
 class WholeImageLoader:
     def __init__(self,larcv_input_file, ismc=True):
-
+        """ This class prepares the data.  
+        It passes each event through ubsplitdet to make subimages.
+        The bbox and adcs from these images are passed to ubcropssnet to crop the truth images.
+        
+        """
+        self.ismc = ismc
+        
         # we setup a larcv IOManager for read mode
         self.io = larcv.IOManager( larcv.IOManager.kREAD )
         self.io.add_in_file( larcv_input_file )
@@ -54,40 +60,35 @@ class WholeImageLoader:
         self.split_algo.initialize()
         self.split_algo.set_verbosity(0)
 
-        # cropper for larflow (needed if we do not restitch the output)
-        lfcrop_cfg="""Verbosity:0
+        # cropper for ssnet (needed if we do not restitch the output)
+        ssnetcrop_cfg_str="""Verbosity:0
         InputBBoxProducer: \"detsplit\"
-        InputCroppedADCProducer: \"detsplit\"
         InputADCProducer: \"wire\"
-        InputVisiProducer: \"pixvisi\"
-        InputFlowProducer: \"pixflow\"
-        OutputCroppedADCProducer:  \"adc\"
-        OutputCroppedVisiProducer: \"visi\"
-        OutputCroppedFlowProducer: \"flow\"
-        OutputCroppedMetaProducer: \"flowmeta\"
-        OutputFilename: \"baka_lf.root\"
-        SaveOutput: false
-        CheckFlow:  false
+        InputLabelsProducer: \"Labels\"
+        InputCroppedADCProducer: \"detsplit\"
+        OutputCroppedWireProducer: \"wire\"
+        OutputLabelsProducer: \"Labels\"
+        OutputWeightsProducer: \"Weights\"
+        OutputCroppedADCProducer: \"ADC\"
+        OutputCroppedMetaProducer: \"meta\"
+        OutputFilename: \"baka_cropssnet.root\"
+        CheckFlow: false
         MakeCheckImage: false
         DoMaxPool: false
         RowDownsampleFactor: 2
         ColDownsampleFactor: 2
-        MaxImages: -1
+        MaxImages: 10
         LimitOverlap: false
-        RequireMinGoodPixels: false
-        MaxOverlapFraction: 0.2
-        UseVectorizedCode: true
-        IsMC: {}
+        MaxOverlapFraction: -1
         """
-        flowcrop_cfg = open("ublarflowcrop.cfg",'w')
-        print >>flowcrop_cfg,lfcrop_cfg.format( str(ismc).lower() )
-        flowcrop_cfg.close()
-        flowcrop_pset = larcv.CreatePSetFromFile( "ublarflowcrop.cfg", "UBLArFlowCrop" )
-        self.flowcrop_algo = larcv.UBCropLArFlow()
-        self.flowcrop_algo.configure( flowcrop_pset )
-        self.flowcrop_algo.initialize()
-        self.flowcrop_algo.set_verbosity(0)
-        self.ismc = ismc
+        ssnetcrop_cfg = open("ssnetcrop.cfg",'w')
+        print >>ssnetcrop_cfg,ssnetcrop_cfg_str
+        ssnetcrop_cfg.close()
+        ssnetcrop_pset = larcv.CreatePSetFromFile( "ssnetcrop.cfg", "UBCropSegment" )
+        self.ssnetcrop_algo = larcv.UBCropSegment()
+        self.ssnetcrop_algo.configure( ssnetcrop_pset )
+        self.ssnetcrop_algo.initialize()
+        self.ssnetcrop_algo.set_verbosity(0)
         
         self._nentries = self.io.get_n_entries()
         
@@ -95,33 +96,31 @@ class WholeImageLoader:
     def nentries(self):
         return self._nentries
 
-    def get_entry( self, entry ):
+    def get_split_entry( self, entry ):
         self.io.read_entry(entry)
+        # first split the entry
         self.split_algo.process( self.io )
-
-        #ev_split_imgs = self.io.get_data("image2d","detsplit")
-        #return ev_split_imgs.image2d_array()        
         ev_split_bbox = self.io.get_data("bbox2d","detsplit")
-        return ev_split_bbox
+        ev_adc_crops  = self.io.get_data("image2d","detsplit")
+        return {"bbox":ev_split_bbox,"ADC":ev_adc_crops}
 
-    def get_larflow_cropped(self):
-        print "run larflow cropper"
-        self.flowcrop_algo.process( self.io )
-        ev_adc_crops  = self.io.get_data("image2d","adc")
-        print "retrieve larflow cropped images: ",ev_adc_crops.image2d_array().size()
+    def get_ssnet_cropped(self):
         if self.ismc:
-            ev_flow_crops = self.io.get_data("image2d","flow")
-            ev_visi_crops = self.io.get_data("image2d","visi")
-            data = {"adc":ev_adc_crops,"flow":ev_flow_crops,"visi":ev_visi_crops}
+            print "run ssnet cropper"
+            self.ssnetcrop_algo.process( self.io )            
+            ev_labels_crops  = self.io.get_data("image2d","Labels")
+            ev_weights_crops = self.io.get_data("image2d","Weights")
+            print "retrieve ssnet cropped images: ",ev_labels_cros.as_vector().size()
+            data = {"labels":ev_labels_crops,"weights":ev_weights_crops}
         else:
-            data = {"adc":ev_adc_crops}
+            data = {}
         return data
 
 if __name__=="__main__":
 
     # ARGUMENTS DEFINTION/PARSER
     if len(sys.argv)>1:
-        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through LArFlow.')
+        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through Ssnet.')
         whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
         whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
         whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
@@ -149,51 +148,35 @@ if __name__=="__main__":
 
         # for testing
         # bnb+corsicka
-        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
+        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image
+        #output_larcv_filename = "larcv_ssnet_5482426_95_smallsample082918.root"
+        output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/larcv_ssnet_5482426_95_testsample082918.root"
         # bnbmc+overlay
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
-        #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
-        #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
-        batch_size = 4
+        #output_larcv_filename = "larcv_ssnet_overlay_6999_13.root"
+        checkpoint_data = ["../weights/dev_filtered/devfiltered_endpoint_model_best_u.tar",
+                           "../weights/dev_filtered/devfiltered_endpoint_model_best_v.tar",
+                           "../weights/dev_filtered/devfiltered_endpoint_checkpoint.52500th_y.tar"]
+        batch_size = 3
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
         nprocess_events = -1
         stitch = False
+        ismc = False # saves flow and visi images
+        save_cropped_adc = False # remove for y2v so we can hadd with y2u output
         use_half = True
-        
-        FLOWDIR="y2v"
-
-        if FLOWDIR=="y2u":
-            checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-            output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
-            ismc = True # saves flow and visi images
-            save_cropped_adc = True  # saves cropped adc
-        elif FLOWDIR=="y2v":
-            checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
-            output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"
-            # remove for y2v so we can hadd with y2u output                        
-            ismc = False
-            save_cropped_adc = False 
-        else:
-            raise RuntimeError("invalid flowdir")
-
-
-
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
     
-    # load model
-    model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid, use_half=use_half )
-    model.to(device=torch.device("cuda:%d"%(gpuid)))
-    model.eval()
-
-    # set planes
-    if FLOWDIR=="y2u":
-        target_plane = 0
-    elif FLOWDIR=="y2v":
-        target_plane = 1
+    # load models (all nets if possible)
+    models = [None,None,None]
+    for p in xrange(3):
+        models[p] = load_model( checkpoint_data[p], gpuid=gpuid, checkpointgpu=checkpoint_gpuid, use_half=use_half )
+        models[p].to(device=torch.device("cuda:%d"%(gpuid)))
+        models[p].eval()
+    print "MODELS LOADED"
 
     # output IOManager
     if stitch:
@@ -205,9 +188,12 @@ if __name__=="__main__":
     outputdata.set_out_file( output_larcv_filename )
     outputdata.initialize()
 
-    # LArFlow subimage stitcher
+    # Ssnet subimage stitcher
     if stitch:
-        stitcher = larcv.UBLArFlowStitcher("flow")
+        stitcher_track  = larcv.UBSsnetStitcher("track")
+        stitcher_shower = larcv.UBSsnetStitcher("shower")
+        stitcher_endpt  = larcv.UBSsnetStitcher("endpt")
+        raise RuntimeError("Not implemented yet")
     else:
         stitcher = None
 
@@ -215,7 +201,7 @@ if __name__=="__main__":
     timing["total"]              = 0.0
     timing["+entry"]             = 0.0
     timing["++load_larcv_data:ubsplitdet"]  = 0.0
-    timing["++load_larcv_data:ubcroplarflow"]  = 0.0
+    timing["++load_larcv_data:ubcropssnet"]  = 0.0
     timing["++alloc_arrays"]     = 0.0
     timing["+++format"]          = 0.0
     timing["+++run_model"]       = 0.0
@@ -236,25 +222,27 @@ if __name__=="__main__":
         tentry = time.time()
         
         tdata = time.time()
-        splitimg_bbox_v = inputdata.get_entry(ientry)
+        split_data = inputdata.get_split_entry(ientry)
+        splitimg_bbox_v = split_data["bbox"]
+        splitimg_adc_v  = split_data["ADC"].as_vector()
         nimgs = splitimg_bbox_v.size() 
         tdata = time.time()-tdata
         timing["++load_larcv_data:ubsplitdet"] += tdata
         tdata = time.time()
         if stitch:
-            larflow_cropped_dict = None
+            ssnet_cropped_dict = None
         else:
-            larflow_cropped_dict = inputdata.get_larflow_cropped()
-            print "LArFlow Cropper Produced: "
-            print "  adc: ",larflow_cropped_dict["adc"].image2d_array().size()
+            ssnet_cropped_dict = inputdata.get_ssnet_cropped()
+            print "Ssnet Cropper Produced: "
+            print "  adc: ",split_data["ADC"].as_vector().size()
             if ismc:
-                print "  visi: ",larflow_cropped_dict["visi"].image2d_array().size()
-                print "  flow: ",larflow_cropped_dict["flow"].image2d_array().size()
+                print "  Labels: ",ssnet_cropped_dict["Labels"].as_vector().size()
+                print "  Weights: ",ssnet_cropped_dict["Weights"].as_vector().size()
             else:
-                print "  visi: None-not MC"
-                print "  flow: None-not MC"
+                print "  Labels: None-not MC"
+                print "  Weights: None-not MC"
         tdata = time.time()-tdata
-        timing["++load_larcv_data:ubcroplarflow"] += tdata
+        timing["++load_larcv_data:ubcropssnet"] += tdata
         if verbose:
             print "time to get images: ",tdata," secs"
         
@@ -262,16 +250,16 @@ if __name__=="__main__":
             print "number of images in whole-view split: ",nimgs
 
 
-        # get input adc images
+        # get input adc images (wholeview)
         talloc = time.time()
         ev_img = inputdata.io.get_data("image2d","wire")
-        img_v = ev_img.image2d_array()
+        img_v = ev_img.as_vector()
         img_np = np.zeros( (img_v.size(),1,img_v.front().meta().rows(),img_v.front().meta().cols()), dtype=np.float32 )
         orig_meta = [ img_v[x].meta() for x in range(3) ]
         runid    = ev_img.run()
         subrunid = ev_img.subrun()
         eventid  = ev_img.event()
-        print "ADC Input image. Nimgs=",img_v.size()," (rse)=",(runid,subrunid,eventid)
+        print "Whole-view ADC Input image. Nimgs=",img_v.size()," (rse)=",(runid,subrunid,eventid)
 
         # setup stitcher
         if stitch:
@@ -285,9 +273,9 @@ if __name__=="__main__":
             out.paint(0.0)
             out_v.push_back( out )
 
-        # fill source and target images
-        source_np = np.zeros( (batch_size,1,512,832), dtype=np.float32 )
-        target_np = np.zeros( (batch_size,1,512,832), dtype=np.float32 )
+        # allocate array for input adc (each plane)
+        source_np = [ np.zeros( (batch_size,1,512,832), dtype=np.float32 ) for x in xrange(0,3) ]
+        result_np = [ np.zeros( (batch_size,4,512,832), dtype=np.float32 ) for x in xrange(0,3) ]        
 
         talloc = time.time()-talloc
         timing["++alloc_arrays"] += talloc
@@ -296,29 +284,32 @@ if __name__=="__main__":
 
         nsets = nimgs/3
 
-        # loop over images from cropper
+        # loop over images from cropper+each plane
         iset   = 0 # index of image in cropper
         ibatch = 0 # current batch index, once it hits batch size (or we run out of images, we run the network)
         while iset<nsets:
-            
-            if verbose:
-                print "starting at iimg=",iimg," set=",iset
+
+            # each set is (u,v,y)
+            if verbose or iset%10==0:
+                print "starting at iimg=",iset*3," set=",iset," of ",nsets
             tformat = time.time() # time to get info into torch format
 
-            # -------------------------------------------------
-            # Batch Loop, fill data, then send through the net
-            # clear batch
-            source_np[:] = 0.0
-            target_np[:] = 0.0
-            
+
+            # ----------------------------------
+            # Batch Prep, gather larcv data
+
+            # clear batch            
+            for p in xrange(0,3):
+                source_np[p][:] = 0.0
+                result_np[p][:] = 0.0
+                
             # save meta information for the batch
-            image_meta = []
-            target_meta = []
-            flowcrop_batch = [] # only filled if not stitching
+            image_meta = {0:[],1:[],2:[]}
+            ssnet_batch = [] # holds larcv data for batch
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
-                iimg = 3*iset 
-                #print "iimg=",iimg," of nimgs=",nimgs," of nbboxes=",splitimg_bbox_v.size()
+                iimg = 3*iset
+
                 # get the bboxes, all three planes
                 bb_v  = [splitimg_bbox_v.at(iimg+x) for x in xrange(3)]
                 
@@ -341,89 +332,109 @@ if __name__=="__main__":
                 # we have to get the row, col bounds in the source image
                 if isbad:
                     #sign of bad image
-                    image_meta.append(None) 
-                    target_meta.append(None)
+                    for p in xrange(3):
+                        image_meta[p].append(None)
+                    # skip to next item in batch
                     continue
 
-                # crops in numpy array
-                source_np[ib,0,:,:] = img_np[2,0,bounds[2][0]:bounds[2][2],bounds[2][1]:bounds[2][3]] # yplane
-                target_np[ib,0,:,:] = img_np[target_plane,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
-                
-                # store region of image
-                image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
-                target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
+                # pass image data to numpy array and store meta
+                for p in xrange(0,3):
+                    adcimg = splitimg_adc_v.at(iimg+p)
+                    source_np[p][ib,0,:] = larcv.as_ndarray( adcimg )
+                    image_meta[p].append( adcimg.meta()  )
 
                 # if not stiching, save crops
                 if not stitch:
-                    flowcrops = {"flow":[],"visi":[],"adc":[]}
-                    for ii in xrange(0,3):
-                        flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
-                    if ismc:
-                        for ii in xrange(0,2):
-                            flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
-                            flowcrops["visi"].append( larflow_cropped_dict["visi"].at( iset*2+ii ) )
-
-                    flowcrop_batch.append( flowcrops )
+                    ssnetcrops = {"adc":[],"weights":[],"labels":[]}
+                    for p in xrange(0,3):
+                        ssnetcrops["adc"].append(  splitimg_adc_v.at( iimg+p )  )
+                        if ismc:
+                            ssnetcrops["weights"].append( ssnet_cropped_dict["weights"].at( iimg+p ) )
+                            ssnetcrops["labels"].append( ssnet_cropped_dict["labels"].at( iimg+p ) )
+                    ssnet_batch.append( ssnetcrops )
 
                 iset += 1
                 if iset>=nsets:
                     # then break loop
                     break
-                    
-            # end of batch prep loop
-            # -----------------------            
 
-            if verbose:
-                print "batch using ",len(image_meta)," slots"
-        
-            # filled batch, make tensors
-            source_t = torch.from_numpy( source_np ).to(device=torch.device("cuda:%d"%(gpuid)))
-            target_t = torch.from_numpy( target_np ).to(device=torch.device("cuda:%d"%(gpuid)))
-            if use_half:
-                source_t = source_t.half()
-                target_t = target_t.half()
             tformat = time.time()-tformat
             timing["+++format"] += tformat
             if verbose:
-                print "time to slice and fill tensor batch: ",tformat," secs"
+                print "time to prepare data for one batch (all planes): ",tformat," secs"
+                
+            # end of batch larcv prep
+            # ------------------------
 
-            # run model
-            trun = time.time()
-            pred_flow, pred_visi = model.forward( source_t, target_t )
+            if verbose:
+                print "batch using ",len(image_meta)," slots"
+
+            # --------------------------
+            # Run batch through network, for each plane
+            trun = time.time()            
+            for p in xrange(3):
+                
+                # filled batch, make tensors
+                source_t = torch.from_numpy( source_np[p] ).to(device=torch.device("cuda:%d"%(gpuid)))
+                if use_half:
+                    source_t = source_t.half()
+
+                # run model
+                pred_ssnet = models[p].forward( source_t )
+                # get result tensor
+                result_np[p] = pred_ssnet.detach().exp().cpu().numpy().astype(np.float32)
+                
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
             timing["+++run_model"] += trun
             if verbose:
-                print "time to run model: ",trun," secs"            
+                print "time to run model (all planes): ",trun," secs"            
+            
 
-            # turn pred_flow back into larcv
-            tcopy = time.time()
-            flow_np = pred_flow.detach().cpu().numpy().astype(np.float32)
-            outmeta = out_v[0].meta()
-            for ib in xrange(min(batch_size,len(image_meta))):
-                if image_meta[ib] is None:
+            # -------------
+            # Store results
+            tcopy = time.time()            
+            for ib in xrange(min(batch_size,len(image_meta[p]))):
+                isgood = True
+                for p in xrange(3):
+                    if image_meta[p][ib] is None:
+                        isgood = False
+                if not isgood:
                     continue
-                img_slice = flow_np[ib,0,:]
-                flow_lcv = larcv.as_image2d_meta( img_slice, image_meta[ib] )
-                if stitch:
-                    stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
-                else:
-                    # we save flow image and crops for each prediction\
-                    evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR))
-                    evoutpred.append( flow_lcv )                    
-                    if save_cropped_adc:
-                        evoutadc  = outputdata.get_data("image2d","adc")
-                        for img in flowcrop_batch[ib]["adc"]:
-                            evoutadc.append( img )
 
+                # convert data to larcv
+                ssnet_lcv = {}
+                ssnet_lcv["track"]  = [ larcv.as_image2d_meta( result_np[p][ib,1,:], image_meta[p][ib] ) for p in xrange(3) ]
+                ssnet_lcv["shower"] = [ larcv.as_image2d_meta( result_np[p][ib,2,:], image_meta[p][ib] ) for p in xrange(3) ]
+                ssnet_lcv["endpt"]  = [ larcv.as_image2d_meta( result_np[p][ib,3,:], image_meta[p][ib] ) for p in xrange(3) ]                
+
+                # if stiching, store into stitch
+                if stitch:
+                    outmeta = out_v[p].meta() # stitch meta                    
+                    for p in xrange(3):
+                        stitcher_track.insertFlowSubimage(  ssnet_lcv["track"][p],  image_meta[p][ib] )
+                        stitcher_shower.insertFlowSubimage( ssnet_lcv["shower"][p], image_meta[p][ib] )
+                        stitcher_endpt.insertFlowSubimage(  ssnet_lcv["endpt"][p],  image_meta[p][ib] )                        
+
+                # we save flow image and crops for each prediction
+                if not stitch:
+                    for cat in ["track","shower","endpt"]:
+                        evoutpred = outputdata.get_data("image2d","ssnetCropped_%s"%(cat))
+                        for lcv in ssnet_lcv[cat]:
+                            evoutpred.append( lcv )
+                    if save_cropped_adc:
+                        evoutadc  = outputdata.get_data("image2d","adcCropped")
+                        for img in ssnet_batch[ib]["adc"]:
+                            evoutadc.append( img )
                     
                     if ismc:
-                        evoutvisi = outputdata.get_data("image2d","pixvisi")
-                        evoutflow = outputdata.get_data("image2d","pixflow")                                            
-                        for img in flowcrop_batch[ib]["visi"]:
-                            evoutvisi.append( img )
-                        for img in flowcrop_batch[ib]["flow"]:
-                            evoutflow.append( img )
+                        #evoutvisi = outputdata.get_data("image2d","pixvisi")
+                        #evoutflow = outputdata.get_data("image2d","pixflow")                                            
+                        #for img in flowcrop_batch[ib]["visi"]:
+                        #    evoutvisi.append( img )
+                        #for img in flowcrop_batch[ib]["flow"]:
+                        #    evoutflow.append( img )
+                        pass
                     
                     outputdata.set_id( runid, subrunid, eventid )
                     outputdata.save_entry()
@@ -454,6 +465,10 @@ if __name__=="__main__":
         if verbose:
             print "time for entry: ",tentry,"secs"
         timing["+entry"] += tentry
+        print "------ TIMING ---------"
+        for k,v in timing.items():
+            print k,": ",v," (per event: ",v/float(ientry+1)," secs)"
+        
 
     # save results
     outputdata.finalize()

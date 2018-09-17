@@ -83,10 +83,12 @@ class WholeImageLoader:
         print >>flowcrop_cfg,lfcrop_cfg.format( str(ismc).lower() )
         flowcrop_cfg.close()
         flowcrop_pset = larcv.CreatePSetFromFile( "ublarflowcrop.cfg", "UBLArFlowCrop" )
-        self.flowcrop_algo = larcv.UBCropLArFlow()
-        self.flowcrop_algo.configure( flowcrop_pset )
-        self.flowcrop_algo.initialize()
-        self.flowcrop_algo.set_verbosity(0)
+        self.flowcrop_algo = None
+        # not yet implemented in larcv1
+        #self.flowcrop_algo = larcv.UBCropLArFlow()
+        #self.flowcrop_algo.configure( flowcrop_pset )
+        #self.flowcrop_algo.initialize()
+        #self.flowcrop_algo.set_verbosity(0)
         self.ismc = ismc
         
         self._nentries = self.io.get_n_entries()
@@ -148,12 +150,11 @@ if __name__=="__main__":
     else:
 
         # for testing
-        # bnb+corsicka
-        input_larcv_filename = "../testdata/larcv_5482426_95.root" # whole image    
-        # bnbmc+overlay
+        ## bnbmc+overlay (larcv1)
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
-        #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
+        ## EXTBNB example
+        input_larcv_filename = "../testdata/larcv1_data/larcv_mcc9_example.root"
         batch_size = 4
         gpuid = 0
         checkpoint_gpuid = 0
@@ -161,8 +162,8 @@ if __name__=="__main__":
         nprocess_events = -1
         stitch = False
         use_half = True
-        
-        FLOWDIR="y2v"
+        ismc = False
+        FLOWDIR="y2u"
 
         if FLOWDIR=="y2u":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"

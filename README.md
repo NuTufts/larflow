@@ -2,13 +2,39 @@
 
 This repository contains the code for developing the larflow network.
 
+## Contents
+
+(not including submodule dependencies)
+
+* models: different version of models
+* dataprep: scripts to make larflow input and truth images from larsoft files and then prepare crops for training
+* training: training scripts
+* deploy: take trained models and process test files
+* ana: analysis scripts for processed test files
+* weights: default location for weights
+* testdata: default location for testdata used for development
+* utils: utility scripts
+
 ## To Do list:
 
-* input arguments to deploy scripts need to be sane. right now they make no sense.
-* add script to grab files and store in testdata to be used for deploy and postprocessor
-* post-processor needs cluster matching to 3D-hit formation
-* should post-processor merge subimages before after cluster-matching?
-* can we begin to tag end-points near the boundary?
+* input arguments to deploy scripts need to be sane. right now they make no sense. [DONE?]
+* add script to grab files and store in testdata to be used for deploy and postprocessor [DONE]
+* provide filtered weight files [DONE]
+* add filder and script to grab development weights [DONE]. scripts should point to these by default
+* post-processor needs cluster matching to 3D-hit formation [DONE]
+* post-processor needs Y->U + Y->V support [Ralitsa]
+* deploy script for the larflow/infill/endpoint [WRITTEN/needs to be debugged]
+* should post-processor merge subimages before after cluster-matching? (ignoring for now)
+* post-processor reads larflow[DONE]/infill[ ]/endpoint[ ]
+* post-processor dbscan clustering
+* post-processor pca calculation to ID ends
+* post-processor break non-straigt clusters
+* post-processor labels endpoint hits: both by endpoint-net and by 3d-location
+* post-processor uses end-points to find thrumus using existing astar+3d-hit-neighborhood mask
+* post-processor uses end-points + adrien tracker to find stops
+* post-processor flash-matching
+* post-processor cluster selection
+* post-processor CROI definition
 
 ## Dependencies
 
@@ -20,7 +46,7 @@ This repository contains the code for developing the larflow network.
 * numpy (1.14.03 known to work)
 * tensorboardX (from [here](https://github.com/lanpa/tensorboard-pytorch))
 * tensorboard
-* cuda (9.1 known to work)
+* cuda (8.0,9.0,9.1 known to work)
 * (to do: add missing)
 
 ### Included as submodules
@@ -60,7 +86,7 @@ Say you made a change to larcv. (Same instructions basically for all submodules)
 * stage your commits and then push
 
       git add [[some file you edited]]
-      git commit -m "[[short description of change]]
+      git commit -m "[[short description of change]]"
       git push
 * go back to head of larflow and commit the updated submodule (in this example `larcv`) to this repo
       cd ..
@@ -69,12 +95,3 @@ Say you made a change to larcv. (Same instructions basically for all submodules)
       git push
 
 
-## Contents
-
-(not including submodules)
-
-* models: different version of models
-* dataprep: scripts to make larflow input and truth images from larsoft files and then prepare crops for training
-* training: training scripts
-* deploy: take trained models and process test files
-* ana: analysis scripts for processed test files
