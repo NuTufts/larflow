@@ -81,8 +81,8 @@ class LArFlow3DConsistencyLoss:
     def to(self,gpuid):
         self.use_cuda = True
         self.gpuid = gpuid
-        self.intersections_t.to( device=torch.device("gpu:%d"%(gpuid)) )
-        self.src_index_t.to( device=torch.device("gpu:%d"%(gpudid) ) )
+        self.intersections_t.to( device=torch.device("cuda:%d"%(gpuid)) )
+        self.src_index_t.to( device=torch.device("cuda:%d"%(gpuid) ) )
 
     def cuda(self,gpuid):
         #self.use_cuda = True
@@ -224,10 +224,13 @@ if __name__=="__main__":
         truevisi_y2v_t = torch.from_numpy( larcv.as_ndarray(visiy2v).transpose(index) )
 
         #print "source meta: ",source_meta.dump()
+
+        # gpu
+        losscalc.to( 0 )
         
         lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
-                                      predflow_y2u_t, predflow_y2v_t,
-                                      #trueflow_y2u_t, trueflow_y2v_t, # for debug test
+                                      #predflow_y2u_t, predflow_y2v_t, # for debugging
+                                      trueflow_y2u_t, trueflow_y2v_t, # for debug test
                                       trueflow_y2u_t, trueflow_y2v_t,
                                       truevisi_y2u_t.long(), truevisi_y2v_t.long(),
                                       truevisi_y2u_t, truevisi_y2v_t )
