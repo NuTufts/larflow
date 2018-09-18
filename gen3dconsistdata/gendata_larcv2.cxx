@@ -60,7 +60,7 @@ int main(int nargs, char** argv ) {
   auto ev_y2u = (larcv::EventImage2D*)io.get_data("image2d", "y2u_intersect");
   ev_y2u->emplace( std::move(y2u_intersect_v) );
   auto ev_y2v = (larcv::EventImage2D*)io.get_data("image2d", "y2v_intersect");
-  ev_y2v->emplace( std::move(y2u_intersect_v) );
+  ev_y2v->emplace( std::move(y2v_intersect_v) );
 
   io.save_entry();
 
