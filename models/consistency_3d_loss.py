@@ -1,4 +1,5 @@
 import os,sys,time
+from array import array
 
 import numpy as np
 
@@ -8,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # ROOT
+import ROOT as rt
 from larcv import larcv
 
 # taken from torch.nn.modules.loss
@@ -168,17 +170,36 @@ if __name__=="__main__":
     """ Code for testing"""
 
     losscalc = LArFlow3DConsistencyLoss(832,512)
+
+    # set device
     device = torch.device("cuda:0")
-    #device = torch.device("cpu")    
-    
+    #device = torch.device("cpu")
+    losscalc.to( device=device )    
+
     print "loss calculor loaded"
 
-    # test data
-    if True:
-        io = larcv.IOManager()
-        io.add_in_file( "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root" )
-        io.initialize()
-        io.read_entry( 60 )
+    # save a histogram
+    rout = rt.TFile("testout_consistency3dloss.root","recreate")
+    ttest = rt.TTree("test","Consistency 3D Loss test data")
+    dloss = array('d',[0])
+    dtime = array('d',[0])
+    ttest.Branch("loss",dloss,"loss/D")
+    ttest.Branch("dtime",dtime,"dtime/D")    
+
+    # as test, we process some pre-cropped small samples
+    io = larcv.IOManager()
+    io.add_in_file( "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root" )
+    io.initialize()
+
+    nentries = io.get_n_entries()
+    print "Number of Entries: ",nentries
+    start = time.time()
+    
+    for ientry in xrange(nentries):
+
+        tentry = time.time()
+        
+        io.read_entry( ientry )
         if os.environ["LARCV_VERSION"]=="1":
             ev_adc_test = io.get_data(larcv.kProductImage2D,"adc")            
             ev_flowy2u_test = io.get_data(larcv.kProductImage2D,"larflow_y2u")
@@ -212,12 +233,8 @@ if __name__=="__main__":
             targetu_meta = ev_adc_test.as_vector()[0].meta()
             targetv_meta = ev_adc_test.as_vector()[1].meta()
         
-        
 
         # tensor conversion
-        truey2u_np = larcv.as_ndarray(truey2u).transpose((0,1))
-        #print np.where( truey2u_np>100 )        
-        #print np.argwhere( truey2u_np>100 )
         index = (0,1)
         if os.environ["LARCV_VERSION"]=="2":
             index = (1,0)
@@ -232,19 +249,20 @@ if __name__=="__main__":
 
         #print "source meta: ",source_meta.dump()
 
-        # gpu
-        losscalc.to( device=device )
-
-        start = time.time()
-        for x in xrange(0,10):
-            lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
-                                          #predflow_y2u_t, predflow_y2v_t, # for debugging
-                                          trueflow_y2u_t, trueflow_y2v_t, # for debug test
-                                          trueflow_y2u_t, trueflow_y2v_t,
-                                          truevisi_y2u_t.long(), truevisi_y2v_t.long(),
-                                          truevisi_y2u_t, truevisi_y2v_t )
-            print "Loss (iter {}): {}".format(x,lossval.item())," iscuda",lossval.is_cuda
-        end = time.time()
-        tloss = end-start
-        print "Time: ",tloss," secs / ",tloss/10.0," secs per event"
-                            
+        lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
+                                      predflow_y2u_t, predflow_y2v_t, # for debugging
+                                      #trueflow_y2u_t, trueflow_y2v_t, # for debug test
+                                      trueflow_y2u_t, trueflow_y2v_t,
+                                      truevisi_y2u_t.long(), truevisi_y2v_t.long(),
+                                      truevisi_y2u_t, truevisi_y2v_t )
+        print "Loss (iter {}): {}".format(ientry,lossval.item())," iscuda",lossval.is_cuda
+        dloss[0] = lossval.item()
+        dtime[0] = time.time()-tentry
+        ttest.Fill()
+        
+    end = time.time()
+    tloss = end-start
+    print "Time: ",tloss," secs / ",tloss/nentries," secs per event"
+    rout.cd()
+    ttest.Write()
+    rout.Close()
