@@ -18,7 +18,7 @@ int main(int nargs, char** argv ) {
   const larutil::Geometry* geo = larutil::Geometry::GetME();
 
   larcv::IOManager io(larcv::IOManager::kWRITE );
-  io.set_out_file("consistency3d_data.root");
+  io.set_out_file("consistency3d_data_larcv2.root");
   io.initialize();
   
   larcv::ImageMeta y2u_meta( 0, 0, 3456, 2400, 2400, 3456, 0 );
