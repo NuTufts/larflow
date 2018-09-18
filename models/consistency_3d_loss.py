@@ -1,4 +1,4 @@
-import os,sys
+import os,sys,time
 
 import numpy as np
 
@@ -78,17 +78,16 @@ class LArFlow3DConsistencyLoss:
         self.row_index_offset_t = torch.from_numpy( self.row_index_offset )
         #print "row index offset: ",self.row_index_offset.shape#," ",self.row_index_offset[3,:]
         
-    def to(self,gpuid):
-        self.use_cuda = True
-        self.gpuid = gpuid
-        self.intersections_t.to( device=torch.device("cuda:%d"%(gpuid)) )
-        self.src_index_t.to( device=torch.device("cuda:%d"%(gpuid) ) )
+    def to(self,device=torch.device("cpu")):
+        self.intersections_t = self.intersections_t.to( device=device )
+        self.src_index_t     = self.src_index_t.to( device=device )
 
     def cuda(self,gpuid):
-        #self.use_cuda = True
-        #self.gpuid = gpuid
-        #self.intersections_t.to( device=device )
-        pass
+        self.use_cuda = True
+        self.gpuid = gpuid
+        device = torch.device("cuda:%d"%(gpuid))
+        self.intersections_t = self.intersections_t.to( device=device )
+        self.src_index_t     = self.src_index_t.to( device=device )
         
     def calc_loss(self,source_meta, targetu_meta, targetv_meta,
                   flow1_predict,flow2_predict,
@@ -103,24 +102,29 @@ class LArFlow3DConsistencyLoss:
         visi[x]_predict: output prediction for visibility with {x:0=Y2U, 1=Y2V}
         """
         ## debug
-        #print "flow predict: ",flow1_predict.shape, flow2_predict.shape
+        #print "flow predict: ",flow1_predict.shape, flow2_predict.shape, flow1_predict.device, flow2_predict.device
         #print "flow truth: ",flow1_truth.shape, flow2_truth.shape
         #print "visi truth: ",visi1_truth.shape, visi2_truth.shape
-        #print "src_index_t: ",self.src_index_t.shape
+        #print "src_index_t: ",self.src_index_t.shape, self.src_index_t.device
         #print "src_origin: ",source_meta.min_x()
         #print "tar1_origin: ",targetu_meta.min_x()
         #print "tar1_origin: ",targetv_meta.min_x()        
         
         ## algo
+        ## turn some numbers into tensor
+        src_min_x_t  = (torch.ones( (1), dtype=torch.float32 )*source_meta.min_x()).to( device=flow1_predict.device )
+        tar1_min_x_t = (torch.ones( (1), dtype=torch.float32 )*targetu_meta.min_x()).to( device=flow1_predict.device )
+        tar2_min_x_t = (torch.ones( (1), dtype=torch.float32 )*targetv_meta.min_x()).to( device=flow1_predict.device )
+        
         ## we need to get source and target wire (from flow)
-        source_fwire_t  = self.src_index_t.add( source_meta.min_x() )
+        source_fwire_t  = self.src_index_t.add( src_min_x_t )
 
         # dualflowmask: we only consider source pixels where visibility is in both (these are binary values)
         mask = fvisi1_truth.clamp(0.0,1.0)*fvisi2_truth.clamp(0.0,1.0)
 
         # calculate the target wire we've flowed to
         #print "flow1_predict: ",flow1_predict[340:350,91]
-        pred_target1_fwire_t   = (self.src_index_t + flow1_predict).add( targetu_meta.min_x() ) # should be whole-image u-wire number
+        pred_target1_fwire_t   = (self.src_index_t + flow1_predict).add( tar1_min_x_t ) # should be whole-image u-wire number
         #print "flow1_predict+col_index+col_origin({}): ".format(source_meta.min_x()),pred_target1_fwire_t[340:350,91]
         pred_target1_fwire_t   = pred_target1_fwire_t.round() # round to nearest wire
         #print "flow1_predict+source_origin(round): ",pred_target1_fwire_t[490:510,470]
@@ -129,7 +133,7 @@ class LArFlow3DConsistencyLoss:
         pred_target1_index_t   = (source_fwire_t.long())*2400 + pred_target1_iwire_t # ywire*2400 + uwire
 
         #print "flow2_predict: ",flow2_predict[340:350,91]
-        pred_target2_fwire_t   = (self.src_index_t + flow2_predict).add( targetv_meta.min_x() )
+        pred_target2_fwire_t   = (self.src_index_t + flow2_predict).add( tar2_min_x_t )
         
         pred_target2_fwire_t   = pred_target2_fwire_t.round() # round to nearest wire
         pred_target2_iwire_t   = pred_target2_fwire_t.long().clamp(0,2399) # cast to integer
@@ -138,13 +142,13 @@ class LArFlow3DConsistencyLoss:
 
         
         # get the (y,z) of the intersection we've flowed to
-        posyz_target1_t = torch.zeros( (2,self.ncols, self.nrows) )
+        posyz_target1_t = torch.zeros( (2,self.ncols, self.nrows) ).to( device=flow1_predict.device )
         posyz_target1_t[0,:,:] = torch.take( self.intersections_t[0,0,:], pred_target1_index_t.reshape( self.ncols*self.nrows ) ).reshape( (self.ncols,self.nrows) ) # det-y
         posyz_target1_t[1,:,:] = torch.take( self.intersections_t[0,1,:], pred_target1_index_t.reshape( self.ncols*self.nrows ) ).reshape( (self.ncols,self.nrows) ) # det-y        
         posyz_target1_t[0,:,:] *= mask
         posyz_target1_t[1,:,:] *= mask
 
-        posyz_target2_t = torch.zeros( (2,self.ncols, self.nrows) )
+        posyz_target2_t = torch.zeros( (2,self.ncols, self.nrows) ).to( device=flow1_predict.device )
         posyz_target2_t[0,:,:] = torch.take( self.intersections_t[1,0,:], pred_target2_index_t.reshape( self.ncols*self.nrows ) ).reshape( (self.ncols,self.nrows) ) # det-y
         posyz_target2_t[1,:,:] = torch.take( self.intersections_t[1,1,:], pred_target2_index_t.reshape( self.ncols*self.nrows ) ).reshape( (self.ncols,self.nrows) ) # det-y                
         posyz_target2_t[0,:,:] *= mask
@@ -164,6 +168,9 @@ if __name__=="__main__":
     """ Code for testing"""
 
     losscalc = LArFlow3DConsistencyLoss(832,512)
+    device = torch.device("cuda:0")
+    #device = torch.device("cpu")    
+    
     print "loss calculor loaded"
 
     # test data
@@ -214,25 +221,30 @@ if __name__=="__main__":
         index = (0,1)
         if os.environ["LARCV_VERSION"]=="2":
             index = (1,0)
-        predflow_y2u_t = torch.from_numpy( larcv.as_ndarray(flowy2u).transpose(index) )
-        predflow_y2v_t = torch.from_numpy( larcv.as_ndarray(flowy2v).transpose(index) )
+        predflow_y2u_t = torch.from_numpy( larcv.as_ndarray(flowy2u).transpose(index) ).to(device=device)
+        predflow_y2v_t = torch.from_numpy( larcv.as_ndarray(flowy2v).transpose(index) ).to(device=device)
 
-        trueflow_y2u_t = torch.from_numpy( larcv.as_ndarray(truey2u).transpose(index) )
-        trueflow_y2v_t = torch.from_numpy( larcv.as_ndarray(truey2v).transpose(index) ) 
+        trueflow_y2u_t = torch.from_numpy( larcv.as_ndarray(truey2u).transpose(index) ).to(device=device)
+        trueflow_y2v_t = torch.from_numpy( larcv.as_ndarray(truey2v).transpose(index) ).to(device=device)
 
-        truevisi_y2u_t = torch.from_numpy( larcv.as_ndarray(visiy2u).transpose(index) )
-        truevisi_y2v_t = torch.from_numpy( larcv.as_ndarray(visiy2v).transpose(index) )
+        truevisi_y2u_t = torch.from_numpy( larcv.as_ndarray(visiy2u).transpose(index) ).to(device=device)
+        truevisi_y2v_t = torch.from_numpy( larcv.as_ndarray(visiy2v).transpose(index) ).to(device=device)
 
         #print "source meta: ",source_meta.dump()
 
         # gpu
-        losscalc.to( 0 )
-        
-        lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
-                                      #predflow_y2u_t, predflow_y2v_t, # for debugging
-                                      trueflow_y2u_t, trueflow_y2v_t, # for debug test
-                                      trueflow_y2u_t, trueflow_y2v_t,
-                                      truevisi_y2u_t.long(), truevisi_y2v_t.long(),
-                                      truevisi_y2u_t, truevisi_y2v_t )
+        losscalc.to( device=device )
+
+        start = time.time()
+        for x in xrange(0,10):
+            lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
+                                          #predflow_y2u_t, predflow_y2v_t, # for debugging
+                                          trueflow_y2u_t, trueflow_y2v_t, # for debug test
+                                          trueflow_y2u_t, trueflow_y2v_t,
+                                          truevisi_y2u_t.long(), truevisi_y2v_t.long(),
+                                          truevisi_y2u_t, truevisi_y2v_t )
+            print "Loss (iter {}): {}".format(x,lossval.item())," iscuda",lossval.is_cuda
+        end = time.time()
+        tloss = end-start
+        print "Time: ",tloss," secs / ",tloss/10.0," secs per event"
                             
-        print "Loss: ",lossval.item()
