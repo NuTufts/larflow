@@ -226,8 +226,8 @@ if __name__=="__main__":
         #print "source meta: ",source_meta.dump()
         
         lossval = losscalc.calc_loss( source_meta, targetu_meta, targetv_meta,
-                                      #predflow_y2u_t, predflow_y2v_t,
-                                      trueflow_y2u_t, trueflow_y2v_t,
+                                      predflow_y2u_t, predflow_y2v_t,
+                                      #trueflow_y2u_t, trueflow_y2v_t, # for debug test
                                       trueflow_y2u_t, trueflow_y2v_t,
                                       truevisi_y2u_t.long(), truevisi_y2v_t.long(),
                                       truevisi_y2u_t, truevisi_y2v_t )
