@@ -406,7 +406,7 @@ class LArFlowUResNet(nn.Module):
 
 if __name__ == "__main__":
 
-    batchsize = 2
+    batchsize = 1
     ncols = 832
     nrows = 512
     dev = torch.device("cuda:0")
@@ -418,9 +418,9 @@ if __name__ == "__main__":
                             num_final_features=256,
                             showsizes=True,
                             use_visi=False,
-                            use_deconvtranspose=False,
+                            use_deconvtranspose=True,
                             onlyone_res=True,
-                            gpuid1=0, gpuid2=1 )
+                            gpuid1=0, gpuid2=0 )
 
     source  = torch.rand( (batchsize,1,ncols,nrows), dtype=torch.float )
     target1 = torch.rand( (batchsize,1,ncols,nrows), dtype=torch.float )
