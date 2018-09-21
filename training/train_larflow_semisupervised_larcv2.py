@@ -123,7 +123,7 @@ def main():
 
     # define loss function (criterion) and optimizer
     maxdist = 500.0
-    criterion = LArFlowTotalLoss(IMAGE_WIDTH,IMAGE_HEIGHT,BATCHSIZE,maxdist,0.0,1.0).to(device=DEVICE)
+    criterion = LArFlowTotalLoss(IMAGE_WIDTH,IMAGE_HEIGHT,BATCHSIZE,maxdist,0.0,0.1).to(device=DEVICE)
 
     # training parameters
     lr = 1.0e-4
@@ -142,11 +142,11 @@ def main():
 
     nbatches_per_itertrain = 20
     itersize_train         = batchsize_train*nbatches_per_itertrain
-    trainbatches_per_print = 100
+    trainbatches_per_print = 5
     
     nbatches_per_itervalid = 40
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
-    validbatches_per_print = 100
+    validbatches_per_print = 10
 
     # SETUP OPTIMIZER
 
@@ -247,7 +247,7 @@ def main():
             # evaluate on validation set
             if ii%iter_per_valid==0:
                 try:
-                    prec1 = validate(iovalid, DEVICE, batchsize_valid, model, criterion, nbatches_per_itervalid, validbatches_per_print, ii)
+                    totloss, flow1acc5, flow2acc5 = validate(iovalid, DEVICE, batchsize_valid, model, criterion, nbatches_per_itervalid, ii, validbatches_per_print)
                 except Exception,e:
                     print "Error in validation routine!"            
                     print e.message
@@ -256,7 +256,8 @@ def main():
                     break
 
                 # remember best prec@1 and save checkpoint
-                is_best = prec1 > best_prec1
+                prec1   = 0.5*(flow1acc5+flow2acc5)
+                is_best =  prec1 > best_prec1
                 best_prec1 = max(prec1, best_prec1)
 
                 # check point for best model
@@ -391,7 +392,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         time_meters["batch"].update(time.time()-batchstart)
 
         # print status
-        prep_status_message( "train-batch", i, acc_meters, loss_meters, time_meters )
+        if i%print_freq == 0:
+            prep_status_message( "train-batch", i, acc_meters, loss_meters, time_meters )
 
     prep_status_message( "Train-Iteration", iiter, acc_meters, loss_meters, time_meters )
 
@@ -405,7 +407,7 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
     return loss_meters['total'].avg,acc_meters['flow1@5'],acc_meters['flow2@5']
 
 
-def validate(val_loader, batchsize, model, criterion, nbatches, print_freq, iiter):
+def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, print_freq):
     """
     inputs
     ------
@@ -421,80 +423,82 @@ def validate(val_loader, batchsize, model, criterion, nbatches, print_freq, iite
     -------
     average percent of predictions within 5 pixels of truth
     """
-
-
     global writer
-    
-    batch_time = AverageMeter()
-    losses = AverageMeter()
-    lossesf = AverageMeter()
-    lossesf2 = AverageMeter()
-    lossesv = AverageMeter()
-    vis_acc = AverageMeter()
-    load_data = AverageMeter()
-    acc_list = [] # 10, 5, 2
-    for i in range(6):
-        acc_list.append( AverageMeter() )
+
+
+
+    # accruacy and loss meters
+    lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    flowaccnames = ("flow%d@5","flow%d@10","flow%d@20","flow%d@50")
+    consistnames = ("dist2d")
+
+    acc_meters  = {}
+    for i in [1,2]:
+        for n in flowaccnames:
+            acc_meters[n%(i)] = AverageMeter()
+    acc_meters["dist2d"] = AverageMeter()
+    acc_meters["flow1@vis"] = AverageMeter()
+    acc_meters["flow2@vis"] = AverageMeter()
+
+    loss_meters = {}    
+    for l in lossnames:
+        loss_meters[l] = AverageMeter()
+
+    # timers for profiling        
+    time_meters = {}
+    for l in ["batch","data","forward","backward","accuracy"]:
+        time_meters[l] = AverageMeter()
     
     # switch to evaluate mode
     model.eval()
     
-    end = time.time()
+    iterstart = time.time()
     nnone = 0
     for i in range(0,nbatches):
         batchstart = time.time()
         
         tdata_start = time.time()
-        source_var, target_var, target2_var, flow_var, flow2_var, visi_var, visi2_var, fvisi_var, fvisi2_var = prep_data( val_loader, "valid", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, DEVICE )
-        load_data.update( time.time()-tdata_start )
+        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data( val_loader, "valid", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
+        time_meters["data"].update( time.time()-tdata_start )
         
         # compute output
-        flow_pred,flow2_pred,visi_pred,visi2_pred = model.forward(source_var,target_var,target2_var)
-        loss, loss_f, loss_f2, loss_v = criterion.calc_loss(flow_pred,flow2_pred,visi_pred,flow_var,flow2_var,visi_var,fvisi_var,fvisi2_var)
+        tforward = time.time()
+        flow1_pred,flow2_pred = model.forward(source,target1,target2)
+        totloss,f1,f2,v1,v2,closs = criterion(flow1_pred,flow2_pred,None,None,flow1,flow2,visi1,visi2,src_origin,tar1_origin,tar2_origin)
+        time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and record loss
-        acc_values = accuracy(flow_pred, flow2_pred, visi_pred, visi2_pred, flow_var, flow2_var, visi_var, visi2_var, fvisi_var, fvisi2_var)
-        if acc_values is not None:
-            losses.update(loss.data[0])
-            lossesf.update(loss_f.data[0])
-            lossesf2.update(loss_f2.data[0])
-            if USE_VISI:
-                lossesv.update(loss_v.data[0])
-            for iacc,acc in enumerate(acc_list):
-                acc.update( acc_values[iacc] )
-            vis_acc.update( acc_values[-1] )
-        else:
+        # measure accuracy and update meters
+        nvis1 = accuracy(flow1_pred.detach(),None,flow1.detach(),fvisi1.detach(),1,acc_meters)
+        nvis2 = accuracy(flow2_pred.detach(),None,flow2.detach(),fvisi2.detach(),2,acc_meters)
+        if nvis1==0 or nvis2==0:
             nnone += 1
-                
-        # measure elapsed time
-        batch_time.update(time.time() - batchstart)
+
+        # update loss meters
+        loss_meters["total"].update( totloss.item() )
+        loss_meters["flow1"].update( f1.item() )
+        loss_meters["flow2"].update( f2.item() )        
+        loss_meters["visi1"].update( v1.item() )
+        loss_meters["visi2"].update( v2.item() )
+        loss_meters["consist3d"].update( closs.item() )
+            
+        # measure elapsed time for batch
+        time_meters["batch"].update( time.time()-batchstart )
         end = time.time()
-
         if i % print_freq == 0:
-            status = (i,nbatches,batch_time.val,batch_time.avg,losses.val,losses.avg,acc_list[1].val,acc_list[1].avg)
-            print "Valid: [%d/%d]\tTime %.3f (%.3f)\tLoss %.3f (%.3f)\tAcc5@1 %.3f (%.3f)"%status
+            prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters )
 
-    status = (iiter,batch_time.avg,load_data.avg,losses.avg,acc_list[1].avg, nnone)
-    print "Valid Iter %d sum: Batch %.3f\tData %.3f || Loss %.3f\tAcc5@1 %.3f\tNone=%d"%status    
+            
+    prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters )
 
-    #writer.add_scalar( 'data/valid_loss', losses.avg, iiter )
-    writer.add_scalars('data/valid_loss', {'tot_loss': losses.avg,
-                                           'flow_loss': lossesf.avg,
-                                           'flow2_loss': lossesf2.avg,
-                                           'visi_loss': lossesv.avg},iiter)
+    # write to tensorboard
+    loss_scalars = { x:y.avg for x,y in loss_meters.items() }
+    writer.add_scalars('data/valid_loss', loss_scalars, iiter )
 
-    writer.add_scalars('data/valid_accuracy', {'acc10': acc_list[0].avg,
-                                               'acc05': acc_list[1].avg,
-                                               'acc02': acc_list[2].avg,
-                                               'acc10_2': acc_list[3].avg,
-                                               'acc05_2': acc_list[4].avg,
-                                               'acc02_2': acc_list[5].avg,
-                                               'vis':   vis_acc.avg},iiter)
-
-    print "Test:Result* Acc@5 %.3f\tLoss %.3f"%(acc_list[1].avg,losses.avg)
-
-    return float(acc_list[1].avg)
-
+    acc_scalars = { x:y.avg for x,y in acc_meters.items() }
+    writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
+    
+    return loss_meters['total'].avg,acc_meters['flow1@5'].avg,acc_meters['flow2@5'].avg
 
 def save_checkpoint(state, is_best, p, filename='checkpoint.pth.tar'):
     if p>0:

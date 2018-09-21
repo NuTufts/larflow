@@ -142,7 +142,7 @@ class LArFlowTotalLoss(nn.Module):
                 fvisi2 = visi2_truth.float().clamp(0.0,1.0).reshape( flow2_predict.shape )
             else:
                 fvisi2 = None
-            closs = self.consistency3d(flow1_predict,flow2_predict,fvisi1,fvisi2,source_minx,target1_minx,target2_minx)
+            closs = self.consistency3d(flow1_predict,flow2_predict,fvisi1,fvisi2,source_minx,target1_minx,target2_minx)*self.consistency_weight
         else:
             closs = torch.zeros( 1, dtype=torch.float ).to(device=flow1_predict.device)
 

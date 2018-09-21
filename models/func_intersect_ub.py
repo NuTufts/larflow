@@ -65,11 +65,10 @@ class IntersectUB( torch.autograd.Function ):
         cls.dataloaded = True
 
     @classmethod
-    def set_img_dims(cls,nrows,ncols,batchsize):
+    def set_img_dims(cls,nrows,ncols):
 
         cls.nrows = nrows
         cls.ncols = ncols
-        cls.batchsize = batchsize
         
         # index of source matrix: each column gets value same as index
         src_index_np = np.tile( np.linspace( 0, float(ncols)-1, ncols ), nrows )
@@ -117,8 +116,6 @@ class IntersectUB( torch.autograd.Function ):
         batchsize = pred_flowy2u.size()[0]
 
         ## wire position calcs
-        print "pred flow: ",pred_flowy2u.size()
-        print "source_originx: ",source_originx
         source_fwire_t       = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
         pred_target1_fwire_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
         pred_target2_fwire_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
@@ -140,9 +137,9 @@ class IntersectUB( torch.autograd.Function ):
         pred_target2_index_t = (source_fwire_t*ntarget_wires + pred_target2_fwire_t).long()
 
         ## get the (y,z) of the intersection we've flowed to
-        posyz_target1_t = torch.zeros( (IntersectUB.batchsize,2,ncols,nrows) ).to( device=dev )
-        posyz_target2_t = torch.zeros( (IntersectUB.batchsize,2,ncols,nrows) ).to( device=dev )
-        for b in xrange(IntersectUB.batchsize):
+        posyz_target1_t = torch.zeros( (batchsize,2,ncols,nrows) ).to( device=dev )
+        posyz_target2_t = torch.zeros( (batchsize,2,ncols,nrows) ).to( device=dev )
+        for b in xrange(batchsize):
             posyz_target1_t[b,0,:,:] = torch.take( IntersectUB.intersections_t[0,0,:,:], pred_target1_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
             posyz_target1_t[b,1,:,:] = torch.take( IntersectUB.intersections_t[0,1,:,:], pred_target1_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
             posyz_target2_t[b,0,:,:] = torch.take( IntersectUB.intersections_t[1,0,:,:], pred_target2_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
@@ -157,8 +154,9 @@ class IntersectUB( torch.autograd.Function ):
         #posyz_target1_t, posyz_target2_t, = ctx.saved_tensors
         #diffy = posyz_target1_t[0,:] - posyz_target2_t[0,:] # ydiff
         #diffz = posyz_target1_t[1,:] - posyz_target2_t[1,:] # zdiff
-        grad_input_u = (-0.3464*grad_output1[:,0,:,:]).reshape( (IntersectUB.batchsize,1,IntersectUB.ncols,IntersectUB.nrows) ) # only y-pos changes with respect to the intersection of Y-U wires
-        grad_input_v = ( 0.3464*grad_output2[:,0,:,:]).reshape( (IntersectUB.batchsize,1,IntersectUB.ncols,IntersectUB.nrows) ) # only y-pos changes with respect to the intersection of Y-V wires
+        batchsize = grad_output1.size()[0]
+        grad_input_u = (-0.3464*grad_output1[:,0,:,:]).reshape( (batchsize,1,IntersectUB.ncols,IntersectUB.nrows) ) # only y-pos changes with respect to the intersection of Y-U wires
+        grad_input_v = ( 0.3464*grad_output2[:,0,:,:]).reshape( (batchsize,1,IntersectUB.ncols,IntersectUB.nrows) ) # only y-pos changes with respect to the intersection of Y-V wires
         return grad_input_u,grad_input_v, None, None, None
         
 
@@ -168,7 +166,7 @@ if __name__=="__main__":
     #device = torch.device("cpu")
     
     IntersectUB.load_intersection_data()
-    IntersectUB.set_img_dims(512,832,1)
+    IntersectUB.set_img_dims(512,832)
     IntersectUB.print_intersect_grad()
     
     # save a histogram
