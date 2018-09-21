@@ -51,22 +51,22 @@ from larflow_combined_loss import LArFlowCombinedLoss
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
-RUNPROFILER=True
+RUNPROFILER=False
 CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
 start_iter  = 0
-TRAIN_LARCV_CONFIG="meitner_flowloader_832x512_dualflow_train.cfg"
-VALID_LARCV_CONFIG="meitner_flowloader_832x512_dualflow_valid.cfg"
+TRAIN_LARCV_CONFIG="test_flowloader_832x512_dualflow_train.cfg"
+VALID_LARCV_CONFIG="test_flowloader_832x512_dualflow_valid.cfg"
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE=8
-BATCHSIZE_VALID=2
+BATCHSIZE=1
+BATCHSIZE_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.0
 USE_VISI=False
-DEVICE_IDS=[0,1]
+DEVICE_IDS=[0]
 GPUID1=DEVICE_IDS[0]
-GPUID2=DEVICE_IDS[1]
+GPUID2=DEVICE_IDS[0]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
