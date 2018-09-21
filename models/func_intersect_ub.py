@@ -72,8 +72,8 @@ class IntersectUB( torch.autograd.Function ):
         cls.batchsize = batchsize
         
         # index of source matrix: each column gets value same as index
-        src_index_np = np.tile( np.linspace( 0, float(ncols)-1, ncols ), nrows*batchsize )
-        src_index_np = src_index_np.reshape( (batchsize, nrows, ncols) ).transpose( (0,2,1) )
+        src_index_np = np.tile( np.linspace( 0, float(ncols)-1, ncols ), nrows )
+        src_index_np = src_index_np.reshape( (nrows, ncols) ).transpose( (1,0) )
         cls.src_index_t  = torch.from_numpy( src_index_np ).float()
         #print "src_index_np: ",self.src_index_np.shape#, self.src_index_np[3,:]
 
@@ -106,22 +106,30 @@ class IntersectUB( torch.autograd.Function ):
         ## switch tensors to device
         IntersectUB.src_index_t = IntersectUB.src_index_t.to(device=dev)
         IntersectUB.intersections_t = IntersectUB.intersections_t.to(device=dev)
-        print pred_flowy2u.is_cuda
-        print IntersectUB.src_index_t.is_cuda
-        print IntersectUB.intersections_t.is_cuda
+        #print pred_flowy2u.is_cuda
+        #print IntersectUB.src_index_t.is_cuda
+        #print IntersectUB.intersections_t.is_cuda
 
         ## img dims
         ncols = IntersectUB.ncols
         nrows = IntersectUB.nrows
         ntarget_wires = IntersectUB.ntarget_wires
-        batchsize = IntersectUB.batchsize
-        
-        ## we need to get the source wire, add origin wire + relative position
-        source_fwire_t = IntersectUB.src_index_t.add(source_originx)
+        batchsize = pred_flowy2u.size()[0]
 
-        ## calcualte the wires in the target planes
-        pred_target1_fwire_t = (IntersectUB.src_index_t+pred_flowy2u).add( targetu_originx )
-        pred_target2_fwire_t = (IntersectUB.src_index_t+pred_flowy2v).add( targetv_originx )
+        ## wire position calcs
+        print "pred flow: ",pred_flowy2u.size()
+        print "source_originx: ",source_originx
+        source_fwire_t       = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
+        pred_target1_fwire_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
+        pred_target2_fwire_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
+        for b in xrange(batchsize):
+
+            ## we need to get the source wire, add origin wire + relative position
+            source_fwire_t[b,:] = IntersectUB.src_index_t.add( source_originx[b] )
+
+            ## calcualte the wires in the target planes
+            pred_target1_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2u[b,:]).add( targetu_originx[b] )
+            pred_target2_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2v[b,:]).add( targetv_originx[b] )
 
         ## clamp for those out of flow and round
         pred_target1_fwire_t.clamp(0,ntarget_wires).round()
@@ -135,7 +143,7 @@ class IntersectUB( torch.autograd.Function ):
         posyz_target1_t = torch.zeros( (IntersectUB.batchsize,2,ncols,nrows) ).to( device=dev )
         posyz_target2_t = torch.zeros( (IntersectUB.batchsize,2,ncols,nrows) ).to( device=dev )
         for b in xrange(IntersectUB.batchsize):
-            posyz_target1_t[b,0,:,:] = torch.take( IntersectUB.intersections_t[0,0,:,:], pred_target1_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (batchsize,ncols,nrows) ) # det-y
+            posyz_target1_t[b,0,:,:] = torch.take( IntersectUB.intersections_t[0,0,:,:], pred_target1_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
             posyz_target1_t[b,1,:,:] = torch.take( IntersectUB.intersections_t[0,1,:,:], pred_target1_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
             posyz_target2_t[b,0,:,:] = torch.take( IntersectUB.intersections_t[1,0,:,:], pred_target2_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
             posyz_target2_t[b,1,:,:] = torch.take( IntersectUB.intersections_t[1,1,:,:], pred_target2_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
@@ -252,12 +260,20 @@ if __name__=="__main__":
         truevisi_y2v_t = torch.from_numpy( np_visiy2v ).to(device=device)
 
         #print "requires grad: ",predflow_y2u_t.requires_grad,predflow_y2v_t.requires_grad
-        y2u_t = predflow_y2u_t
-        y2v_t = predflow_y2v_t
-        #y2u_t = trueflow_y2u_t
-        #y2v_t = trueflow_y2v_t
+        #y2u_t = predflow_y2u_t
+        #y2v_t = predflow_y2v_t
+        y2u_t = trueflow_y2u_t
+        y2v_t = trueflow_y2v_t
+
+        source_origin = torch.zeros( (1) ).to(device=device)
+        targetu_origin = torch.zeros( (1) ).to(device=device)
+        targetv_origin = torch.zeros( (1) ).to(device=device)        
+        for b in xrange(1):
+            source_origin[0]  = source_meta.min_x()
+            targetu_origin[0] = targetu_meta.min_x()
+            targetv_origin[0] = targetv_meta.min_x()
         
-        posyz_fromy2u,posyz_fromy2v = IntersectUB.apply( y2u_t, y2v_t,source_meta.min_x(), targetu_meta.min_x(), targetv_meta.min_x() )
+        posyz_fromy2u,posyz_fromy2v = IntersectUB.apply( y2u_t, y2v_t, source_origin, targetu_origin, targetv_origin )
                                                          
         
         mask = truevisi_y2u_t*truevisi_y2v_t

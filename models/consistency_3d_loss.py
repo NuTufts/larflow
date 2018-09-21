@@ -53,6 +53,7 @@ class LArFlow3DConsistencyLoss(nn.Module):
         posyz_target1_t,posyz_target2_t = IntersectUB.apply( flow1_predict, flow2_predict, source_originx, targetu_originx, targetu_originx )
 
         if hasmask:
+            print posyz_target1_t.size()," vs. mask=",mask.size()            
             posyz_target1_t *= mask
             posyz_target1_t *= mask
             posyz_target2_t *= mask
