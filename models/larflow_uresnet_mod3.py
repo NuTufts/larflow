@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch as torch
+import torch.utils.checkpoint as torchcheck
 import math
 
 ###########################################################
@@ -25,8 +26,11 @@ class LArFlowUResNet(nn.Module):
                  layer_channels=[16,32,64,128,512,1024], layer_strides=[2,2,2,2,2,2],
                  num_final_features=256,
                  use_deconvtranspose=False,
+                 use_visi=True,                 
                  onlyone_res=False,
-                 showsizes=False, use_visi=True, gpuid1=1, gpuid2=0):
+                 showsizes=False,
+                 use_grad_checkpoints=False,
+                 gpuid1=0, gpuid2=0):
 
         super(LArFlowUResNet, self).__init__()
 
@@ -40,6 +44,7 @@ class LArFlowUResNet(nn.Module):
         self.use_deconv = use_deconvtranspose
         self.num_final_features = num_final_features
         self.redistributed = False
+        self.use_grad_checkpoints = use_grad_checkpoints
 
         # layer specification
         if len(layer_strides)!=len(layer_channels):
@@ -67,10 +72,13 @@ class LArFlowUResNet(nn.Module):
             else:
                 inputchannels = self.encoder_nchannels[ilayer-1]
             layer_stride = self.encoder_strides[ilayer]
-            self.encoder_layers.append( DoubleResNet(BasicBlock,inputchannels,outputchannels,stride=layer_stride,onlyone=onlyone_res) )
+            #self.encoder_layers.append( DoubleResNet(BasicBlock,inputchannels,outputchannels,stride=layer_stride,onlyone=onlyone_res) )
+            layername =  "enc_layer%d"%(ilayer)           
+            layer = DoubleResNet(BasicBlock,inputchannels,outputchannels,stride=layer_stride,onlyone=onlyone_res)
+            self.encoder_layers.append(layername)
             self.decoder_nchannels.append( outputchannels )
             self.decoder_strides.append(layer_stride)
-            setattr(self,"enc_layer%d"%(ilayer),self.encoder_layers[-1])
+            setattr(self,layername,layer)
 
         # decoding layers for flow
         self.decoder_nchannels.reverse()
@@ -93,17 +101,21 @@ class LArFlowUResNet(nn.Module):
                     deconvout = deconvin      # maintain same number of channels
                     skipchs   = self.stem_noutchannels
                     outchs    = self.num_final_features
-                
+
+                layername = "%s_layer%d"%(name,ilayer)
                 layer = LArFlowUpsampleLayer( deconvin, skipchs, deconvout, outchs, use_conv=self.use_deconv, onlyoneres=onlyone_res, stride=self.decoder_strides[ilayer] )
-                self.decoder_layers[name].append( layer )
-                setattr(self,"%s_layer%d"%(name,ilayer),self.decoder_layers[name][-1])
+                #self.decoder_layers[name].append( layer )
+                self.decoder_layers[name].append(layername)
+                setattr(self,layername,layer)
 
 
         # # 1x1 conv for flow
         self.flow_layers = {}
         for n,name in enumerate(["flow1","flow2"]):
-            self.flow_layers[name] = nn.Conv2d( self.num_final_features, 1, kernel_size=1, stride=1, padding=0, bias=True )
-            setattr(self,"%s_predict"%(name),self.flow_layers[name])
+            layername = "%s_predict"%(name)
+            layer = nn.Conv2d( self.num_final_features, 1, kernel_size=1, stride=1, padding=0, bias=True )
+            self.flow_layers[name] = layername
+            setattr(self,layername,layer)
             
         # 1x1 conv for mathability
         if self.use_visi:
@@ -123,6 +135,7 @@ class LArFlowUResNet(nn.Module):
 
     def redistribute_layers(self):
         """ move some layers to 2nd gpu"""
+        print "LArFLowUResNet: redistributing model across GPUs"
         for k,layers in self.decoder_layers.items():
             for i,layer in enumerate(layers):
                 layer = layer.to(device=torch.device("cuda:%d"%(self.gpuid2)))
@@ -136,41 +149,61 @@ class LArFlowUResNet(nn.Module):
 
         if self.multi_gpu and not self.redistributed:
             self.redistribute_layers()
+        if self._showsizes:
+            print "larflowuresnet_mod3::forward()"
         
-        # stem
+        # ENCODER
         inputname = ("source","target1","target2")
         stem_output    = []
         encoder_output = [ [], [], [] ] # for skip connections
         for n,x in enumerate([source,target1,target2]):
-            x,x0  = self.stem(x)
+
+            ## stem
+            if not self.use_grad_checkpoints:
+                x,x0  = self.stem(x)
+            else:
+                x,x0  = torchcheck.checkpoint(self.stem,x)
             if self._showsizes:
-                print "{} stem/enc-layer0: {}".format(inputname[n],x0.shape)
+                print "{} stem/enc-layer0: {} {}".format(inputname[n],x0.shape,x0.device)
             if n>0:
                 stem_output.append(x0) # only save target output
             else:
                 stem_output.append(None) # dont need the source image
 
-            for i,layer in enumerate(self.encoder_layers):
+            ## encoder                
+            for i,layername in enumerate(self.encoder_layers):
+                layer = getattr(self,layername)
                 if n!=0:
                     # for targets, we need to save output for skip-connections
                     if i>0:
-                        encoder_output[n].append( layer(encoder_output[n][-1]) ) # only save target output
+                        layerin = encoder_output[n][-1]
                     else:
-                        encoder_output[n].append( layer( x ) )
+                        layerin = x
+
+                    if not self.use_grad_checkpoints:
+                        layerout = layer(layerin)
+                    else:
+                        layerout = torchcheck.checkpoint( layer, layerin )
+                        
+                    encoder_output[n].append( layerout )
                     if self._showsizes:
                         print "{} enc-layer{}: {} {}".format(inputname[n],i+1,encoder_output[n][-1].size(),encoder_output[n][-1].device)
                 else:
                     # for source, we can release mem, except for last output
                     if i>0:
-                        out = layer( out ) # can overwrite
+                        layerin = layerout
                     else:
-                        out = layer(x)
+                        layerin = x
+                    if not self.use_grad_checkpoints:
+                        layerout = layer(layerin)
+                    else:
+                        layerout = torchcheck.checkpoint(layer,layerin)
                     if i+1==len(self.encoder_layers):                        
-                        encoder_output[n].append(out)
+                        encoder_output[n].append(layerout)
                     else:
                         encoder_output[n].append(None)
                     if self._showsizes:
-                        print "{} enc-layer{}: {} {}".format(inputname[n],i+1,out.size(),out.device)
+                        print "{} enc-layer{}: {} {}".format(inputname[n],i+1,layerout.size(),layerout.device)
 
         # concat last layer
         enc_concat = torch.cat( [ out[-1] for out in encoder_output ], 1 )
@@ -182,7 +215,8 @@ class LArFlowUResNet(nn.Module):
         # flow features
         flow_features = {"flow1":None,"flow2":None}
         for n,name in enumerate(["flow1","flow2"]):
-            for i,layer in enumerate(self.decoder_layers[name]):
+            for i,layername in enumerate(self.decoder_layers[name]):
+                layer = getattr(self,layername)
                 if i==0:
                     x = layer(enc_concat,encoder_output[n+1][-2-i])
                 elif i+1<len(self.decoder_layers[name]):
@@ -201,7 +235,8 @@ class LArFlowUResNet(nn.Module):
         # flow prediction regression layer, move back to gpu1
         flow_predict = {"flow1":None,"flow2":None}
         for n,name in enumerate(["flow1","flow2"]):
-            flow_predict[name] = self.flow_layers[name](flow_features[name]).to(device=torch.device("cuda:%d"%(self.gpuid1)))
+            layer = getattr(self,self.flow_layers[name])
+            flow_predict[name] = layer(flow_features[name]).to(device=torch.device("cuda:%d"%(self.gpuid1)))
             if self._showsizes:
                 print "{} prediction layer: {} {}".format(name,flow_predict[name].size(),flow_predict[name].device)
             # move back to original gpu

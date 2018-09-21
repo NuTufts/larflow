@@ -44,23 +44,25 @@ else:
                     
 # Our model definition
 from larflow_uresnet_mod3 import LArFlowUResNet
-from larflow_combined_loss import LArFlowTotalLoss
+from larflow_combined_loss import LArFlowCombinedLoss
 
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
-RUNPROFILER=False
+RUNPROFILER=True
 CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
-start_iter  = 0 #14500
+start_iter  = 0
 TRAIN_LARCV_CONFIG="meitner_flowloader_832x512_dualflow_train.cfg"
 VALID_LARCV_CONFIG="meitner_flowloader_832x512_dualflow_valid.cfg"
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE=2
+BATCHSIZE=8
+BATCHSIZE_VALID=2
 ADC_THRESH=10.0
-VISI_WEIGHT=0.01
+VISI_WEIGHT=0.0
+CONSISTENCY_WEIGHT=0.0
 USE_VISI=False
 DEVICE_IDS=[0,1]
 GPUID1=DEVICE_IDS[0]
@@ -70,6 +72,7 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
+ITER_PER_CHECKPOINT=100
 # ===================================================
 
 
@@ -96,15 +99,16 @@ def main():
     
     # create model, mark it to run on the GPU
     model = LArFlowUResNet( num_classes=2, input_channels=1,
-                            layer_channels=[16,32,64,128,1024],
-                            layer_strides= [ 2, 2, 2,  2,   2],
-                            num_final_features=128,
+                            layer_channels=[16,32,64,128],
+                            layer_strides= [ 2, 2, 2,  2],
+                            num_final_features=64,
                             use_deconvtranspose=False,
                             onlyone_res=True,
                             showsizes=False,
                             use_visi=False,
-                            gpuid1=0,
-                            gpuid2=0 ).to(device=DEVICE)
+                            use_grad_checkpoints=True,
+                            gpuid1=DEVICE_IDS[0],
+                            gpuid2=DEVICE_IDS[0] )
     
     # Resume training option
     if RESUME_FROM_CHECKPOINT:
@@ -114,39 +118,44 @@ def main():
         if CHECKPOINT_FROM_DATA_PARALLEL:
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
         model.load_state_dict(checkpoint["state_dict"])
-    '''
+
     if not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
-        model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
-    '''
+        model = nn.DataParallel( model, device_ids=DEVICE_IDS ).to(device=DEVICE) # distribute across device_ids
+    else:
+        model = model.to(device=DEVICE)
+
     # uncomment to dump model
-    #print "Loaded model: ",model
+    if False:    
+        print "Loaded model: ",model
+        return
 
     # define loss function (criterion) and optimizer
-    maxdist = 500.0
-    criterion = LArFlowTotalLoss(IMAGE_WIDTH,IMAGE_HEIGHT,BATCHSIZE,maxdist,0.0,0.1).to(device=DEVICE)
+    maxdist = 200.0
+    criterion = LArFlowCombinedLoss(IMAGE_WIDTH,IMAGE_HEIGHT,BATCHSIZE,maxdist,
+                                    VISI_WEIGHT,CONSISTENCY_WEIGHT).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-4
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
     # training length
-    batchsize_train = BATCHSIZE #*len(DEVICE_IDS)
-    batchsize_valid = 1#*len(DEVICE_IDS)
+    batchsize_train = BATCHSIZE
+    batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 30000 
+    num_iters   = 10
     iter_per_epoch = None # determined later
     iter_per_valid = 10
-    iter_per_checkpoint = 300
+
 
     nbatches_per_itertrain = 20
     itersize_train         = batchsize_train*nbatches_per_itertrain
-    trainbatches_per_print = 5
+    trainbatches_per_print = -1
     
     nbatches_per_itervalid = 40
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
-    validbatches_per_print = 10
+    validbatches_per_print = -1
 
     # SETUP OPTIMIZER
 
@@ -272,7 +281,7 @@ def main():
                     }, is_best, -1)
 
             # periodic checkpoint
-            if ii>0 and ii%iter_per_checkpoint==0:
+            if ii>0 and ii%ITER_PER_CHECKPOINT==0:
                 print "saving periodic checkpoint"
                 save_checkpoint({
                     'iter':ii,
@@ -297,7 +306,8 @@ def main():
 
     print "FIN"
     print "PROFILER"
-    print prof
+    if RUNPROFILER:
+        print prof
     writer.close()
 
 
@@ -354,7 +364,7 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         totloss,f1,f2,v1,v2,closs = criterion(flow1_pred,flow2_pred,None,None,flow1,flow2,visi1,visi2,src_origin,tar1_origin,tar2_origin)
         if RUNPROFILER:
             torch.cuda.synchronize()
-        time_meters["forward"].update(time.time()-end)            
+        time_meters["forward"].update(time.time()-end)
 
         # compute gradient and do SGD step
         if RUNPROFILER:
@@ -392,7 +402,7 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         time_meters["batch"].update(time.time()-batchstart)
 
         # print status
-        if i%print_freq == 0:
+        if print_freq>0 and i%print_freq == 0:
             prep_status_message( "train-batch", i, acc_meters, loss_meters, time_meters )
 
     prep_status_message( "Train-Iteration", iiter, acc_meters, loss_meters, time_meters )
@@ -485,7 +495,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         # measure elapsed time for batch
         time_meters["batch"].update( time.time()-batchstart )
         end = time.time()
-        if i % print_freq == 0:
+        if print_freq>0 and i % print_freq == 0:
             prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters )
 
             

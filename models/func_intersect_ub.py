@@ -115,6 +115,21 @@ class IntersectUB( torch.autograd.Function ):
         ntarget_wires = IntersectUB.ntarget_wires
         batchsize = pred_flowy2u.size()[0]
 
+        if type(source_originx) is float:
+            source_originx_t = torch.ones( (batchsize), dtype=torch.float ).to(device=dev)*source_originx
+        else:
+            source_originx_t = source_originx
+
+        if type(targetu_originx) is float:
+            targetu_originx_t = torch.ones( (batchsize), dtype=torch.float ).to(device=dev)*targetu_originx
+        else:
+            targetu_originx_t = targetu_originx
+
+        if type(targetv_originx) is float:
+            targetv_originx_t = torch.ones( (batchsize), dtype=torch.float ).to(device=dev)*targetv_originx
+        else:
+            targetv_originx_t = targetv_originx
+            
         ## wire position calcs
         source_fwire_t       = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
         pred_target1_fwire_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
@@ -122,11 +137,11 @@ class IntersectUB( torch.autograd.Function ):
         for b in xrange(batchsize):
 
             ## we need to get the source wire, add origin wire + relative position
-            source_fwire_t[b,:] = IntersectUB.src_index_t.add( source_originx[b] )
+            source_fwire_t[b,:] = IntersectUB.src_index_t.add( source_originx_t[b] )
 
             ## calcualte the wires in the target planes
-            pred_target1_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2u[b,:]).add( targetu_originx[b] )
-            pred_target2_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2v[b,:]).add( targetv_originx[b] )
+            pred_target1_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2u[b,:]).add( targetu_originx_t[b] )
+            pred_target2_fwire_t[b,:] = (IntersectUB.src_index_t+pred_flowy2v[b,:]).add( targetv_originx_t[b] )
 
         ## clamp for those out of flow and round
         pred_target1_fwire_t.clamp(0,ntarget_wires).round()
