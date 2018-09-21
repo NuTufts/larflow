@@ -11,79 +11,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from func_intersect_ub import IntersectUB
-from consistency_3d_loss import LArFlow3DConsistencyLoss
+from larflow_flow_loss import LArFlowFlowLoss
+from larflow_visibility_loss import LArFlowVisibilityLoss
+from larflow_consistency3d_loss import LArFlow3DConsistencyLoss    
 
-class LArFlowFlowLoss(nn.Module):
-    def __init__(self,maxdist_err):
-        super(LArFlowFlowLoss,self).__init__()
-        # flow loss
-
-        # define max loss
-        self.maxdist_err = maxdist_err
-        self.maxloss_t = torch.ones( (1,1,1,1), dtype=torch.float )*(maxdist_err*maxdist_err)
-        self.smoothl1_flow = nn.SmoothL1Loss( reduce=False )
-
-    def forward(self,flow_predict,flow_truth,visi_truth):
-
-        # FLOW LOSS
-        # ---------
-        # Smoothed L1 (why the subweights?)
-        flow_err = self.smoothl1_flow( flow_predict, flow_truth ).clamp(0,self.maxdist_err*self.maxdist_err)
-
-        # number of visible
-        fvis = visi_truth.float().clamp(0,1).reshape( flow_predict.shape )
-        nvis = fvis.sum()
-        
-        # mask by the visibility: we don't want to penalize for pixels with no info
-        flow_err *= fvis
-
-        # loss
-        flow_loss = flow_err.sum()
-        if nvis>0:
-            flow_loss /= nvis
-
-        return flow_loss
-
-class LArFlowVisibilityLoss(nn.Module):
-    def __init__(self,nonvisi_weight=1.0e-2):
-        super(LArFlowVisibilityLoss,self).__init__()
-        
-        # visibility parameters
-        self.classweight_t    = torch.ones( 2, dtype=torch.float )
-        self.classweight_t[0] = nonvisi_weight
-        self.softmax          = nn.LogSoftmax(dim=1)
-        self.crossentropy     = nn.NLLLoss2d( reduce=False )
-
-
-    def forward(self,visi_predict,visi_truth):
-
-        # VISIBILITY/MATCHABILITY LOSS
-        # ----------------------------
-        # cross-entropy loss for two classes
-
-        sm = self.softmax(visi_predict)
-        visi_loss = self.crossentropy( visi_predict, visi_truth ) # weighted already
-
-        # reweight by class
-        visi_loss[:,0,:,:] *= self.classweight_t[0]
-        visi_loss[:,1,:,:] *= self.classweight_t[1]
-
-        # weight by pixel
-        fvisi = visi_truth.float().clamp(0,1).reshape( flow_predict.shape )        
-        nvis = fvisi.sum()
-
-        visi_loss *= fvisi
-        visi_loss = visi_loss.sum()
-        if nvis.item()>0:
-            visi_loss /= visi_loss
-
-        return visi_loss
-    
-
-class LArFlowTotalLoss(nn.Module):
+class LArFlowCombinedLoss(nn.Module):
     def __init__(self, ncols, nrows, batchsize, maxdist_err, visi_weight, consistency_weight, weight=None, size_average=True, ignore_index=-100 ):
-        super(LArFlowTotalLoss,self).__init__()
+        super(LArFlowCombinedLoss,self).__init__()
         self.ignore_index = ignore_index
         self.reduce = False
 
@@ -142,7 +76,7 @@ class LArFlowTotalLoss(nn.Module):
                 fvisi2 = visi2_truth.float().clamp(0.0,1.0).reshape( flow2_predict.shape )
             else:
                 fvisi2 = None
-            closs = self.consistency3d(flow1_predict,flow2_predict,fvisi1,fvisi2,source_minx,target1_minx,target2_minx)
+            closs = self.consistency3d(flow1_predict,flow2_predict,fvisi1,fvisi2,source_minx,target1_minx,target2_minx)*self.consistency_weight
         else:
             closs = torch.zeros( 1, dtype=torch.float ).to(device=flow1_predict.device)
 
@@ -154,7 +88,7 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0")
     
-    lossfunc = LArFlowTotalLoss(832,512,1,100.0,0.0,1.0)
+    lossfunc = LArFlowCombinedLoss(832,512,1,100.0,0.0,1.0)
     
     # save a histogram
     rout = rt.TFile("testout_totalloss_ub.root","recreate")

@@ -18,10 +18,10 @@ class LArFlow3DConsistencyLoss(nn.Module):
     def __init__(self,ncols, nrows, batchsize, intersectiondata=None, larcv_version=None, nsource_wires=3456, ntarget_wires=2400, goodrange=None):
         super(LArFlow3DConsistencyLoss,self).__init__()
         IntersectUB.load_intersection_data(intersectiondatafile=intersectiondata,larcv_version=larcv_version,nsource_wires=nsource_wires,ntarget_wires=ntarget_wires)
-        IntersectUB.set_img_dims( nrows, ncols, batchsize )
+        IntersectUB.set_img_dims( nrows, ncols )
         if goodrange is not None:
-            self.goodrange_t = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float )
-            self.goodrange_t[:,:,goodrange[0]:goodrange[1],:] = 1.0
+            self.goodrange_t = torch.zeros( (ncols,nrows), dtype=torch.float )
+            self.goodrange_t[goodrange[0]:goodrange[1],:] = 1.0
         else:
             self.goodrange_t = None
         
@@ -47,12 +47,14 @@ class LArFlow3DConsistencyLoss(nn.Module):
             hasmask = True            
         if self.goodrange_t is not None:
             self.goodrange_t = self.goodrange_t.to(device=flow1_predict.device)
-            mask *= self.goodrange_t
+            for b in xrange( flow1_predict.size()[0] ):
+                mask[b,:] *= self.goodrange_t
             hasmask = True            
 
         posyz_target1_t,posyz_target2_t = IntersectUB.apply( flow1_predict, flow2_predict, source_originx, targetu_originx, targetu_originx )
 
         if hasmask:
+            #print posyz_target1_t.size()," vs. mask=",mask.size()            
             posyz_target1_t *= mask
             posyz_target1_t *= mask
             posyz_target2_t *= mask
