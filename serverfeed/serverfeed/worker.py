@@ -7,7 +7,7 @@ from workermessages import PPP_READY, PPP_HEARTBEAT
 
 class BaseWorker(object):
 
-    def __init__(self,identity,broker_ipaddress, port=5560, timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3, ssh_thru_server=None):
+    def __init__(self,identity,broker_ipaddress, port=5560, timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3, ssh_thru_server=None, worker_verbosity=0):
         self._identity = u"Worker-{}".format(identity).encode("ascii")
         self._broker_ipaddress = broker_ipaddress
         self._broker_port = port
@@ -16,6 +16,7 @@ class BaseWorker(object):
         self._interval_init      = 1
         self._interval_max       = 32
         self._timeout_secs = timeout_secs
+        self._worker_verbosity = worker_verbosity
         if ssh_thru_server is not None and type(ssh_thru_server) is not str:
             raise ValueError("ssh_thru_server should be a str with server address, e.g. user@server")
         self._ssh_thru_server = ssh_thru_server
@@ -34,14 +35,18 @@ class BaseWorker(object):
         
         if self._ssh_thru_server is None:
             # regular connection            
-            self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._broker_port))
-            print "SSNetWorker[{}] socket connected".format(self._identity)
+            #self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._broker_port))
+            self._socket.connect("ipc:///tmp/feeds/1")
+            if self._worker_verbosity>=0:
+                print "BaseWorker[{}] socket connected".format(self._identity)
         else:
             ssh.tunnel_connection(self._socket, "tcp://%s:%d"%(self._broker_ipaddress,self._broker_port), self._ssh_thru_server )
-            print "SSNetWorker[{}] socket connected via ssh-tunnel".format(self._identity)
+            if self._worker_verbosity>=0:            
+                print "BaseWorker[{}] socket connected via ssh-tunnel".format(self._identity)
 
         self._socket.send(PPP_READY)
-        print "SSNetWorker[{}] sent PPP_READY".format(self._identity)        
+        if self._worker_verbosity>=0:        
+            print "BaseWorker[{}] sent PPP_READY".format(self._identity)        
 
     def do_work(self):
 
@@ -63,8 +68,8 @@ class BaseWorker(object):
                     break # Interrupted
                 
                 if len(frames) >=3 :
-
-                    print "SSNetWorker[{}]: Replying".format(self._identity)
+                    if self._worker_verbosity>1:
+                        print "BaseWorker[{}]: Replying".format(self._identity)
                     # calling child function
                     processed = self.process_message( frames[2:] )
 
@@ -73,7 +78,7 @@ class BaseWorker(object):
                     # append reply content
                     reply.extend( self.generate_reply() )
                     # send back through the proxy
-                    self._socket.send_multipart(reply)
+                    self._socket.send_multipart(reply,copy=False)
                     # post-reply: user-hook
                     self.post_reply()
                     
@@ -82,18 +87,21 @@ class BaseWorker(object):
                     liveness = self._num_missing_beats
                                         
                 elif len(frames) == 1 and frames[0] == PPP_HEARTBEAT:
-                    print "SSNetWorker[{}]: Recieved Queue heartbeat".format(self._identity)
+                    if self._worker_verbosity>1:                    
+                        print "BaseWorker[{}]: Recieved Queue heartbeat".format(self._identity)
                     # reset liveness count
                     liveness = self._num_missing_beats
                 else:
-                    print "SSNetWorker[{}]: Invalid message: %s".format(self._identity) % frames
+                    if self._worker_verbosity>0:
+                        print "BaseWorker[{}]: Invalid message: %s".format(self._identity) % frames
                 interval = self._interval_init
             else:
                 # poller times out
                 liveness -= 1
                 if liveness == 0:
-                    print "SSNetWorker[{}]: Heartbeat failure, can't reach queue".format(self._identity)
-                    print "ssNetWorker[{}]: Reconnecting in %0.2fs..." % interval
+                    if self._worker_verbosity>=0:                    
+                        print "BaseWorker[{}]: Heartbeat failure, can't reach queue".format(self._identity)
+                        print "ssNetWorker[{}]: Reconnecting in %0.2fs..." % interval
                     time.sleep(interval)
 
                     if interval < self._interval_max:
@@ -110,7 +118,8 @@ class BaseWorker(object):
             # out of poller if/then
             # is it time to send a heartbeat to the client?
             if time.time() > heartbeat_at:
-                print "SSNetWorker[{}]: Worker sending heartbeat".format(self._identity)
+                if self._worker_verbosity>1:
+                    print "BaseWorker[{}]: Worker sending heartbeat".format(self._identity)
                 self._socket.send(PPP_HEARTBEAT)
                 heartbeat_at = time.time() + self._heartbeat_interval                
                 

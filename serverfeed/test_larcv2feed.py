@@ -4,7 +4,7 @@ from serverfeed.server import Server
 from serverfeed.larcv2feeder import LArCV2Feeder
 from serverfeed.larcv2client import LArCV2Sink
 import multiprocessing
-
+import cProfile
 
 ##
 ## Contents of test file
@@ -23,21 +23,28 @@ import multiprocessing
   KEY: TTree    image2d_ssnetCropped_track_tree;1       ssnetCropped_track tree
 """
 
+
 if __name__ == "__main__":
 
-    NWORKERS = 4
+    NWORKERS = 5
     NENTRIES = 100
+
+    # start client
+    ident = 0
+    client = LArCV2Sink(4,ident,"localhost")        
+    
     def start_worker(ident):
         worker = LArCV2Feeder("tester_flowloader_dualflow_train.cfg","ThreadProcessorTrain",ident,"localhost")
-        worker.do_work()
+        cProfile.runctx('worker.do_work()',globals(),locals(),"profworker_{}.prof".format(ident))
 
     def start_server():
-        broker = Server("*")
-        broker.start()
+        print "START SERVER"
+        broker = Server("*",poller_timeout_secs=0.01)
+        cProfile.runctx('broker.start()',globals(),locals(),"profserver.prof")
 
-    pserver = multiprocessing.Process(target=start_server)
-    pserver.daemon = True
-    pserver.start()
+    #pserver = multiprocessing.Process(target=start_server)
+    #pserver.daemon = True
+    #pserver.start()
 
     workers = []
     for i in xrange(NWORKERS):
@@ -45,14 +52,14 @@ if __name__ == "__main__":
         process.daemon = True
         process.start()
         workers.append(process)
-        
-    # start client
-    ident = 0
-    client = LArCV2Sink(4,ident,"localhost")
+
+    time.sleep(1)
+
+    # start recieving the feeds
     startfeed = time.time()
     for i in xrange(NENTRIES):
         print "entry[",i,"]"
-        ok = client.send_receive()
+        ok = client.receive()
         print client.products.keys()
     endfeed = time.time()
 
@@ -62,7 +69,7 @@ if __name__ == "__main__":
     for worker in workers:
         worker.terminate()
 
-    pserver.terminate()
+    #pserver.terminate()
 
     print "Test time: ",(endfeed-startfeed)/float(NENTRIES)," secs"
 

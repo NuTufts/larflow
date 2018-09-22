@@ -35,7 +35,8 @@ class BaseClient(object):
         self._context  = zmq.Context()
         self._socket   = self._context.socket(zmq.REQ)        
         self._socket.identity = self._identity
-        self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._port))
+        #self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._port))
+        self._socket.connect("ipc:///tmp/feeds/0")
         self._poller = zmq.Poller()
         self._poller.register( self._socket, zmq.POLLIN )
         print "SSNetClient[{}] socket connected to server".format(self._identity)

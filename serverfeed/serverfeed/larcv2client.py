@@ -1,6 +1,6 @@
 import os,sys,time
 
-from client import BaseClient
+from pullclient import BasePullClient
 from collections import OrderedDict
 from functools import reduce
 import numpy as np
@@ -17,7 +17,7 @@ m.patch()
 # This handles processing of LArCV1 events
 # Really, what I should use is composition ...
 
-class LArCV2Sink( BaseClient ):
+class LArCV2Sink( BasePullClient ):
 
     def __init__(self, batchsize, identity, broker_ipaddress, port=5559, timeout_secs=30, max_tries=3 ):
         super( LArCV2Sink, self ).__init__( identity, broker_ipaddress, port=port, timeout_secs=timeout_secs, max_tries=max_tries )
@@ -37,12 +37,12 @@ class LArCV2Sink( BaseClient ):
         self.products = {}
         numproducts = len(frames)/2
         
-        #for i in xrange(numproducts):
-        #    name   = frames[2*i+0]
-        #    x_comp = frames[2*i+1]
-        #    x_enc = zlib.decompress(x_comp)
-        #    arr = msgpack.unpackb(x_enc,object_hook=m.decode)
-        #    self.products[name] = arr
+        for i in xrange(numproducts):
+            name   = frames[2*i+0]
+            x_comp = frames[2*i+1]
+            x_enc = zlib.decompress(x_comp)
+            arr = msgpack.unpackb(x_enc,object_hook=m.decode)
+            self.products[name] = arr
             
     def process_events(self, start=None, end=None):
 

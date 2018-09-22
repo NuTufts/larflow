@@ -1,5 +1,5 @@
 import os,sys,time
-from worker import BaseWorker
+from pushworker import BasePushWorker
 import numpy as np
 import zlib
 import zmq
@@ -11,12 +11,11 @@ import msgpack_numpy as m
 m.patch()
 
 os.environ["GLOG_minloglevel"] = "1"
-import caffe
 
 from larcvdataset import LArCVDataset
 
 
-class LArCV2Feeder( BaseWorker ):
+class LArCV2Feeder( BasePushWorker ):
     """ This worker simply receives data and replies with dummy string. prints shape of array. """
 
     def __init__( self,configfile,fillername,identity,broker_ipaddress,**kwargs):
@@ -28,7 +27,7 @@ class LArCV2Feeder( BaseWorker ):
         self.products = {}
         self.compression_level = 4
         self.print_msg_size = False
-        
+        self.start_dataloader(4)
         print "LArCV2Feeder[{}] is loaded.".format(self._identity)
         
         
@@ -46,6 +45,11 @@ class LArCV2Feeder( BaseWorker ):
             raise RuntimeError("Cannot change batchsize!!")
             
         return
+
+    def start_dataloader(self,batchsize):
+        self.batchsize = batchsize
+        self.larcvloader.start(self.batchsize)
+        self.post_reply()
 
     def generate_reply(self):
         """
@@ -72,7 +76,7 @@ class LArCV2Feeder( BaseWorker ):
             reply.append( x_comp )
 
         if self.print_msg_size:
-            print "LArCV2Feeder[{}] finished reply for name=\"{}\". size of array portion={} MB (uncompressed {} MB)".format(self._identity,name,totcompsize/1.0e6,totmsgsize/1.0e6)
+            print "LArCV2Feeder[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
         return reply
 
     def post_reply(self):
@@ -89,6 +93,7 @@ class LArCV2Feeder( BaseWorker ):
         # make torch tensors from numpy arrays
         index = (0,1,2,3)
         self.products = {}
+        #self.products['test'] = np.zeros((1),dtype=np.float32)
         self.products["source_t"]  = data["source"].reshape( (batchsize,1,width,height) ).transpose(index)  # source image ADC
         self.products["target1_t"] = data["target1"].reshape( (batchsize,1,width,height) ).transpose(index) # target image ADC
         self.products["target2_t"] = data["target2"].reshape( (batchsize,1,width,height)).transpose(index)  # target image ADC
