@@ -16,10 +16,10 @@ Behavior with respect to the server
 
 class BasePullClient(object):
 
-    def __init__( self, identity, broker_ipaddress, port=5559, timeout_secs=30, max_tries=3, do_compress=True ):
+    def __init__( self, identity, socket_address="ipc:///tmp/feed", port=0, timeout_secs=30, max_tries=3, do_compress=True ):
         #  Prepare our context and sockets
-        self._identity = u"Client-{}".format(identity).encode("ascii")
-        self._broker_ipaddress = broker_ipaddress
+        self._identity = u"PullClient-{}".format(identity).encode("ascii")
+        self._socket_address = socket_address
         self._port = port
         self._max_tries = max_tries
         self._timeout_secs=timeout_secs
@@ -35,14 +35,10 @@ class BasePullClient(object):
         self._context  = zmq.Context()
         self._socket   = self._context.socket(zmq.PULL)
         self._socket.identity = self._identity
-        #self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._port))
-        self._socket.bind("ipc:///tmp/feeds/0")
-        #self._poller = zmq.Poller()
-        #self._poller.register( self._socket, zmq.POLLIN )
-        print "SSNetClient[{}] socket connected to server".format(self._identity)
+        self._socket.bind("%s/%d"%(self._socket_address,self._port))
+        print "BasePullClient[{}] socket connected to server".format(self._identity)
 
     def receive(self):
-
         
         retries_left = self._max_tries
 
@@ -55,8 +51,7 @@ class BasePullClient(object):
         troundtrip = time.time()-troundtrip
         self._ttracker["send/receive::triptime"] += troundtrip
         self.nmsgs += 1
-        self.process_reply( reply )
-        return True
+        return self.process_reply( reply )
 
 
     def process_reply(self):

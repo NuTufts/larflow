@@ -18,16 +18,17 @@ from larcvdataset import LArCVDataset
 class LArCV2Feeder( BasePushWorker ):
     """ This worker simply receives data and replies with dummy string. prints shape of array. """
 
-    def __init__( self,configfile,fillername,identity,broker_ipaddress,**kwargs):
-        super( LArCV2Feeder, self ).__init__(identity,broker_ipaddress)
+    def __init__( self,configfile,fillername,identity,pullsocket_address,port=0,batchsize=None):
+        super( LArCV2Feeder, self ).__init__(identity,pullsocket_address,port=port)
         self.configfile = configfile
         self.fillername = fillername
-        self.batchsize = None
+        self.batchsize = batchsize
         self.larcvloader = LArCVDataset(self.configfile,fillername)
         self.products = {}
         self.compression_level = 4
         self.print_msg_size = False
-        self.start_dataloader(4)
+        if self.batchsize is not None:
+            self.start_dataloader(self.batchsize)
         print "LArCV2Feeder[{}] is loaded.".format(self._identity)
         
         
@@ -56,7 +57,7 @@ class LArCV2Feeder( BasePushWorker ):
         our job is to return our data set, then load another
         """
         
-        reply = []
+        reply = [self._identity]
         totmsgsize = 0.0
         totcompsize = 0.0        
         for key,arr in self.products.items():

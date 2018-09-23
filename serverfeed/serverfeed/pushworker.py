@@ -7,10 +7,10 @@ from workermessages import PPP_READY, PPP_HEARTBEAT
 
 class BasePushWorker(object):
 
-    def __init__(self,identity,broker_ipaddress, port=5560, timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3, ssh_thru_server=None, worker_verbosity=0):
+    def __init__(self,identity,pullsocket_address, port=0, timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3, ssh_thru_server=None, worker_verbosity=0):
         self._identity = u"PushWorker-{}".format(identity).encode("ascii")
-        self._broker_ipaddress = broker_ipaddress
-        self._broker_port = port
+        self._pullsocket_address = pullsocket_address
+        self._port = port
         self._heartbeat_interval = heartbeat_interval_secs
         self._num_missing_beats  = num_missing_beats
         self._interval_init      = 1
@@ -22,9 +22,9 @@ class BasePushWorker(object):
         self._ssh_thru_server = ssh_thru_server
 
         self._context = zmq.Context(1)
-        self.connect_to_broker()
+        self.connect_to_pullsocket()
 
-    def connect_to_broker(self):
+    def connect_to_pullsocket(self):
         """ create new socket. connect to server. send READY message """
 
         self._socket   = self._context.socket(zmq.PUSH)
@@ -33,7 +33,7 @@ class BasePushWorker(object):
         if self._ssh_thru_server is None:
             # regular connection            
             #self._socket.connect("tcp://%s:%d"%(self._broker_ipaddress,self._broker_port))
-            self._socket.connect("ipc:///tmp/feeds/0")
+            self._socket.connect("%s/%d"%(self._pullsocket_address,self._port))
             if self._worker_verbosity>=0:
                 print "BaseWorker[{}] socket connected".format(self._identity)
         else:
