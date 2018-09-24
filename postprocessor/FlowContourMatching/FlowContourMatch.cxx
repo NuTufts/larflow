@@ -329,13 +329,6 @@ namespace larflow {
   // =====================================================================
   // MCTRACK MATCH
   // --------------------
-  /*
-  void FlowContourMatch::mctrack_project(const larlite::mctrack& truthtrack,
-					 const std::vector<larcv::Image2D>& img_v,
-					 std::vector<larcv::Image2D>& trackimg_v,
-					 ::larutil::SpaceChargeMicroBooNE* psce,
-					 ::larutil::TimeService* ptsv){
-					 }*/
   void FlowContourMatch::mctrack_match(std::vector<HitFlowData_t>& hit2flowdata,
 				       const larlite::event_mctrack& evtrack,
 				       const std::vector<larcv::Image2D>& img_v,
@@ -404,15 +397,14 @@ namespace larflow {
       pos[2] = step.Z();
       float t = step.T();
 
-      //apply sce-> a lot of hardcoded crap here
       std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
       pos[0] = pos[0]-pos_offset[0]+0.7;
       pos[1] += pos_offset[1];
       pos[2] += pos_offset[2];
       //time tick
       float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
-      pos[0] = (tick-3200.0)*cm_per_tick; // x in cm
-      //fill
+      pos[0] = (tick - tsv->TriggerOffset()/0.5)*cm_per_tick; // x in cm
+
       tyz.push_back(pos);
       trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
       E.push_back(step.E());
@@ -443,9 +435,9 @@ namespace larflow {
       double prevE = trackimg_v[4].pixel(pix[0],pix[3]);
       if( prevE>0 && prevE > E.at(istep) ){ istep++; continue;} //fill only highest E deposit
       trackimg_v[0].set_pixel(pix[0],pix[3],(float)trackid.at(istep));// trackid
-      trackimg_v[1].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[1]); // x
-      trackimg_v[2].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[2]); // y
-      trackimg_v[3].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[3]); // z
+      trackimg_v[1].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[0]); // x
+      trackimg_v[2].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[1]); // y
+      trackimg_v[3].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[2]); // z
       trackimg_v[4].set_pixel(pix[0],pix[3],(float)E.at(istep)); // E
       istep++;
     }
