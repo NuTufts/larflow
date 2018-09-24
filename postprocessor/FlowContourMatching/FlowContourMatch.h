@@ -13,7 +13,11 @@
 #include "TH2D.h"
 
 #include "DataFormat/hit.h"
-#include "DataFormat/chstatus.h" //do I use this
+#include "DataFormat/chstatus.h"
+#include "DataFormat/mctrack.h"
+
+#include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "LArUtil/TimeService.h"
 
 #include "ContourShapeMeta.h"
 #include "ContourCluster.h"
@@ -79,7 +83,8 @@ namespace larflow {
 	track_score(-1),
 	shower_score(-1),
 	renormed_track_score(-1),
-	renormed_shower_score(-1)
+	renormed_shower_score(-1),
+	trackid(-1)
       {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
@@ -99,6 +104,8 @@ namespace larflow {
       bool src_infill; // source infill
       bool tar_infill; // target infill
       std::vector<float> X; // 3D coordinates from larlite::geo
+      std::vector<float> X_truth; // from mctrack projection
+      int trackid; // from mctrack projection
     };
     struct ClosestContourPix_t {
       // stores info about the contours nearby to the point where
@@ -157,6 +164,13 @@ namespace larflow {
     void addInfill( const larcv::Image2D& masked_infill, const larcv::EventChStatus& ev_chstatus,
 		    const float threshold, larcv::Image2D& img_fill_v );
 
+    // match mctrack truth info to hits
+    void mctrack_match(std::vector<HitFlowData_t>& hi2flowdata,
+		       const larlite::event_mctrack& evtrack,
+		       const std::vector<larcv::Image2D>& img_v,
+		       std::vector<larcv::Image2D>& trackimg_v,
+		       ::larutil::SpaceChargeMicroBooNE* psce=NULL,
+		       ::larutil::TimeService* ptsv=NULL);
 
     // update the information for making 3D hits
     // -----------------------------------------
@@ -236,7 +250,25 @@ namespace larflow {
 		      float& dy,
 		      float& dz);
     
+    void _mctrack_to_tyz(const larlite::mctrack& truthtrack,
+			 std::vector<std::vector<double>>& tyz,
+			 std::vector<unsigned int>& trackid,
+			 std::vector<double>& E,
+			 ::larutil::SpaceChargeMicroBooNE* psce,
+			 const ::larutil::TimeService* ptsv);
 
+    void _tyz_to_pixels(const std::vector<std::vector<double>>& tyz,
+			const std::vector<unsigned int>& trackid,
+			const std::vector<double>& E,
+			const larcv::ImageMeta& meta,
+			std::vector<larcv::Image2D>& trackimg);
+
+    std::vector<int> getProjectedPixel( const std::vector<float>& pos3d,
+					const larcv::ImageMeta& meta,
+					const int nplanes,
+					const float fracpixborder=1.5 );
+
+    
   public:
     // debug/visualization
     // -------------------

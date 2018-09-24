@@ -20,7 +20,7 @@ LDLIBS += -Llib $(addprefix -l,$(LIBS))
 SUBDIRS = ContourTools FlowContourMatching
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
-#EXEC += vis
+EXEC += test_mc
 
 
 all: obj $(EXEC) 
