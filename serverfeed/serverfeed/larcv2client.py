@@ -19,18 +19,20 @@ m.patch()
 
 class LArCV2Sink( BasePullClient ):
 
-    def __init__(self,batchsize,identity,socketaddress,port=0,timeout_secs=30,max_tries=3):
-        super( LArCV2Sink, self ).__init__(identity,socketaddress,port=port,timeout_secs=timeout_secs,max_tries=max_tries )
+    def __init__(self,batchsize,numworkers,identity,socketaddress,port=0,timeout_secs=30,max_tries=3):
+        super( LArCV2Sink, self ).__init__(identity,numworkers,socketaddress,port=port,timeout_secs=timeout_secs,max_tries=max_tries )
 
         self.batchsize = batchsize
         self.products = {}
 
     def process_reply(self,frames):
         ## need to decode the products
+        if len(frames)<=1:
+            return False
         self.products = {}
-        numproducts = len(frames)/2
         self.products["feeder"] = frames[0]
         data = frames[1:]
+        numproducts = len(data)/2
         
         for i in xrange(numproducts):
             name   = data[2*i+0]

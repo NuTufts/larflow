@@ -31,7 +31,8 @@ import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 
 # dataset interface
-from larcvdataset import LArCVDataset
+#from larcvdataset import LArCVDataset
+from serverfeed.larcv2socketfeed import LArCV2SocketFeeder
 
 # larflow
 LARFLOW_MODEL_DIR=None
@@ -58,15 +59,13 @@ TRAIN_LARCV_CONFIG="test_flowloader_832x512_dualflow_train.cfg"
 VALID_LARCV_CONFIG="test_flowloader_832x512_dualflow_valid.cfg"
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE=1
+BATCHSIZE=4
 BATCHSIZE_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
-CONSISTENCY_WEIGHT=0.0
+CONSISTENCY_WEIGHT=0.001
 USE_VISI=False
-DEVICE_IDS=[0]
-GPUID1=DEVICE_IDS[0]
-GPUID2=DEVICE_IDS[0]
+DEVICE_IDS=[1]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
@@ -144,7 +143,7 @@ def main():
     batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 10
+    num_iters   = 10000
     iter_per_epoch = None # determined later
     iter_per_valid = 10
 
@@ -179,12 +178,17 @@ def main():
 
     # LOAD THE DATASET
     
-    iotrain = LArCVDataset(TRAIN_LARCV_CONFIG,"ThreadProcessorTrain")
-    iovalid = LArCVDataset(VALID_LARCV_CONFIG,"ThreadProcessorValid")
-    iotrain.start( batchsize_train )
-    iovalid.start( batchsize_valid )
+    #iotrain = LArCVDataset(TRAIN_LARCV_CONFIG,"ThreadProcessorTrain")
+    #iovalid = LArCVDataset(VALID_LARCV_CONFIG,"ThreadProcessorValid")
+    #iotrain.start( batchsize_train )
+    #iovalid.start( batchsize_valid )
+    iotrain = LArCV2SocketFeeder(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,port=0)
+    iovalid = LArCV2SocketFeeder(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,port=1)
 
-    NENTRIES = len(iotrain)
+    print "pause to give time to feeders"
+
+    #NENTRIES = len(iotrain)
+    NENTRIES = 100000
     print "Number of entries in training set: ",NENTRIES
 
     if NENTRIES>0:
@@ -213,11 +217,14 @@ def main():
         import cv2 as cv
         cv.imwrite( "testout_source.png",  source.cpu().numpy()[0,0,:,:] )
         cv.imwrite( "testout_target1.png", target1.cpu().numpy()[0,0,:,:] )
-        cv.imwrite( "testout_target2.png", target2.cpu().numpy()[0,0,:,:] )        
+        cv.imwrite( "testout_target2.png", target2.cpu().numpy()[0,0,:,:] )
+
+        sample = "valid"
+        print "TEST BATCH: sample=",sample
+        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,Wminx,Uminx,Vminx = prep_data( iosample[sample], sample, batchsize_train, 
+                                                                                                    IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, DEVICE )       
         
         print "STOP FOR DEBUGGING"
-        iotrain.stop()
-        iovalid.stop()
         sys.exit(-1)
 
     with torch.autograd.profiler.profile(enabled=RUNPROFILER) as prof:
@@ -360,6 +367,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         if RUNPROFILER:
             torch.cuda.synchronize()
         end = time.time()
+        source.requires_grad = True
+        target1.requires_grad = True
+        target2.requires_grad = True
         flow1_pred,flow2_pred = model.forward(source,target1,target2)
         totloss,f1,f2,v1,v2,closs = criterion(flow1_pred,flow2_pred,None,None,flow1,flow2,visi1,visi2,src_origin,tar1_origin,tar2_origin)
         if RUNPROFILER:
@@ -369,14 +379,13 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         # compute gradient and do SGD step
         if RUNPROFILER:
             torch.cuda.synchronize()                
-        end = time.time()        
+        end = time.time()
         optimizer.zero_grad()
         totloss.backward()
         optimizer.step()
         if RUNPROFILER:        
             torch.cuda.synchronize()                
         time_meters["backward"].update(time.time()-end)
-        
 
         # measure accuracy and record loss
         end = time.time()
@@ -390,8 +399,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         loss_meters["consist3d"].update( closs.item() )
         
         # measure accuracy and update meters
-        nvis1 = accuracy(flow1_pred.detach(),None,flow1.detach(),fvisi1.detach(),1,acc_meters)
-        nvis2 = accuracy(flow2_pred.detach(),None,flow2.detach(),fvisi2.detach(),2,acc_meters)
+        nvis1 = accuracy(flow1_pred.detach(),None,flow1.detach(),fvisi1.detach(),1,acc_meters,True)
+        nvis2 = accuracy(flow2_pred.detach(),None,flow2.detach(),fvisi2.detach(),2,acc_meters,True)
         if nvis1==0 or nvis2==0:
             nnone += 1
 
@@ -403,9 +412,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # print status
         if print_freq>0 and i%print_freq == 0:
-            prep_status_message( "train-batch", i, acc_meters, loss_meters, time_meters )
+            prep_status_message( "train-batch", i, acc_meters, loss_meters, time_meters,True )
 
-    prep_status_message( "Train-Iteration", iiter, acc_meters, loss_meters, time_meters )
+    prep_status_message( "Train-Iteration", iiter, acc_meters, loss_meters, time_meters, True )
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -479,8 +488,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
         # measure accuracy and record loss
         # measure accuracy and update meters
-        nvis1 = accuracy(flow1_pred.detach(),None,flow1.detach(),fvisi1.detach(),1,acc_meters)
-        nvis2 = accuracy(flow2_pred.detach(),None,flow2.detach(),fvisi2.detach(),2,acc_meters)
+        nvis1 = accuracy(flow1_pred.detach(),None,flow1.detach(),fvisi1.detach(),1,acc_meters,False)
+        nvis2 = accuracy(flow2_pred.detach(),None,flow2.detach(),fvisi2.detach(),2,acc_meters,False)
         if nvis1==0 or nvis2==0:
             nnone += 1
 
@@ -496,10 +505,10 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters["batch"].update( time.time()-batchstart )
         end = time.time()
         if print_freq>0 and i % print_freq == 0:
-            prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters )
+            prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters, False )
 
             
-    prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters )
+    prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters, False )
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -546,13 +555,19 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(flow_pred,visi_pred,flow_truth,visi_truth,flowdir,acc_meters):
+def accuracy(flow_pred,visi_pred,flow_truth,visi_truth,flowdir,acc_meters,istrain):
     """Computes the accuracy metrics."""
     # inputs:
     #  assuming all pytorch tensors
     # metrics:
     #  (10,5,2) pixel accuracy fraction. flow within X pixels of target. (truth vis.==1 + fraction good ) / (fraction true vis.==1)
     #  visible accuracy: (true vis==1 && pred vis.>0.5) / ( true vis == 1)
+
+    
+    if istrain:
+        accvals = (5,10,20,50)
+    else:
+        accvals = (5,10,20,50)
     
     profile = False
     
@@ -565,12 +580,10 @@ def accuracy(flow_pred,visi_pred,flow_truth,visi_truth,flowdir,acc_meters):
     if nvis<=0:
         return None
 
-    #acc100 = (( flow_err<100.0 ).float()*visi_truth).sum() / nvis        
-    acc50  = (( flow_err<50.0  ).float()*visi_truth).sum() / nvis    
-    acc20  = (( flow_err<20.0  ).float()*visi_truth).sum() / nvis    
-    acc10  = (( flow_err<10.0  ).float()*visi_truth).sum() / nvis
-    acc5   = (( flow_err<5.0   ).float()*visi_truth).sum() / nvis
-    acc_measures = (acc5,acc10,acc20,acc50)
+    
+    for level in accvals:
+        name = "flow%d@%d"%(flowdir,level)        
+        acc_meters[name].update( ((( flow_err<float(level)  ).float()*visi_truth).sum() / nvis ).item() )
 
     if visi_pred is not None:
         _, visi_max = visi_pred.max( 1, keepdim=False)
@@ -578,11 +591,6 @@ def accuracy(flow_pred,visi_pred,flow_truth,visi_truth,flowdir,acc_meters):
         visi_acc    = (mask_visi==1).sum() / nvis
     else:
         visi_acc = 0.0
-
-    ## update the meters
-    for level,measure in zip((5,10,20,50),acc_measures):
-        name = "flow%d@%d"%(flowdir,level)
-        acc_meters[name].update(measure)
 
     if visi_pred is not None:
         name = "flow%d@vis"
@@ -592,7 +600,7 @@ def accuracy(flow_pred,visi_pred,flow_truth,visi_truth,flowdir,acc_meters):
         torch.cuda.synchronize()            
         start = time.time()
         
-    return acc10
+    return acc_meters["flow%d@5"%(flowdir)]
 
 def dump_lr_schedule( startlr, numepochs ):
     for epoch in range(0,numepochs):
@@ -602,13 +610,19 @@ def dump_lr_schedule( startlr, numepochs ):
     print "Epoch [%d] lr=%.3e"%(epoch,lr)
     return
 
-def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers ):
+def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, istrain ):
     print "------------------------------------------------------------------------"
     print " Iter[",iternum,"] ",descripter
+    print "  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Acc[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
+                                                                                                                             timers["batch"].avg,
+                                                                                                                             timers["forward"].avg,
+                                                                                                                             timers["backward"].avg,
+                                                                                                                             timers["accuracy"].avg,
+                                                                                                                             timers["data"].avg)    
     print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
     print "  Flow1 accuracy: @5[%.1f] @10[%.1f] @20[%.1f] @50[%.1f]"%(acc_meters["flow1@5"].avg*100,acc_meters["flow1@10"].avg*100,acc_meters["flow1@20"].avg*100,acc_meters["flow1@50"].avg*100)
     print "  Flow2 accuracy: @5[%.1f] @10[%.1f] @20[%.1f] @50[%.1f]"%(acc_meters["flow2@5"].avg*100,acc_meters["flow2@20"].avg*100,acc_meters["flow2@20"].avg*100,acc_meters["flow2@50"].avg*100)
-    print "  Timing: batch[%.1f] Forward[%.1f] Backward[%.1f] Data[%.1f]"%(timers["batch"].avg,timers["forward"].avg,timers["backward"].avg,timers["data"].avg)
+        
     print "------------------------------------------------------------------------"    
 
 def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_threshold, device ):
@@ -634,10 +648,12 @@ def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_th
     #print "PREP DATA: ",train_or_valid,"GPUMODE=",GPUMODE,"GPUID=",GPUID    
 
     # get data
-    data = larcvloader[0]
+    #data = larcvloader[0]
+    data = larcvloader.get_batch_dict()
 
     # make torch tensors from numpy arrays
     index = (0,1,2,3)
+    #print "prep_data: ",data.keys()
     source_t  = torch.from_numpy( pad( data["source_%s"%(train_or_valid)].reshape( (batchsize,1,width,height) ).transpose(index) )).to( device=device )   # source image ADC
     target1_t = torch.from_numpy( pad( data["target1_%s"%(train_or_valid)].reshape( (batchsize,1,width,height) ).transpose(index) )).to(device=device )   # target image ADC
     target2_t = torch.from_numpy( pad( data["target2_%s"%(train_or_valid)].reshape( (batchsize,1,width,height)).transpose(index) )).to( device=device )  # target2 image ADC

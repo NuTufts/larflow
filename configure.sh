@@ -35,6 +35,10 @@ source configure.sh
 cd ../larcvdataset
 source setenv.sh
 
+# add larcvdataset folder to pythonpath
+cd ../serverfeed
+source setenv.sh
+
 # return to top-level directory
 cd ../
 

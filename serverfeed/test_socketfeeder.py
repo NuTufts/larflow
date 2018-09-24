@@ -6,11 +6,9 @@ from serverfeed.larcv2socketfeed import LArCV2SocketFeeder
 if __name__ == "__main__":
 
     batchsize = 4
-    nworkers  = 4
-    feeder = LArCV2SocketFeeder(batchsize,"test","tester_flowloader_dualflow_train.cfg","ThreadProcessorTrain",nworkers)
+    nworkers  = 3
     print "start feeders"
-    feeder.start()
-
+    feeder = LArCV2SocketFeeder(batchsize,"test","tester_flowloader_dualflow_train.cfg","ThreadProcessorTrain",nworkers)
     
     print "start receiving"
     nentries = 100

@@ -24,6 +24,10 @@ class BasePushWorker(object):
         self._context = zmq.Context(1)
         self.connect_to_pullsocket()
 
+        # connect to sync socket
+        self._sync_socket = self._context.socket(zmq.REQ)
+        self._sync_socket.connect("%s/ready%d"%(self._pullsocket_address,self._port))
+        
     def connect_to_pullsocket(self):
         """ create new socket. connect to server. send READY message """
 
@@ -41,15 +45,17 @@ class BasePushWorker(object):
             if self._worker_verbosity>=0:            
                 print "BaseWorker[{}] socket connected via ssh-tunnel".format(self._identity)
 
-        self._socket.send(PPP_READY)
-        if self._worker_verbosity>=0:        
-            print "BaseWorker[{}] sent PPP_READY".format(self._identity)        
-
+        
     def do_work(self):
 
         liveness = self._num_missing_beats
         interval = self._interval_init
         heartbeat_at = time.time() + self._heartbeat_interval
+
+        while not self.isready():
+            print "{} not ready".format(self._identity)
+            time.sleep(0.1)
+        print "{} Do Work".format(self._identity)
         
         while True:
 
@@ -60,20 +66,29 @@ class BasePushWorker(object):
             
             reply = self.generate_reply() # gen message
             # send back through the proxy
+            #self._socket.send_multipart(reply,copy=False)
             self._socket.send_multipart(reply)
                 
             # flush std out
             sys.stdout.flush()
-
+            #break
         # end of while loop
 
         return True
-
-    def process_message(self,frames):
-        raise NotImplemented("Inherited classes must define this function")
 
     def generate_reply(self):
         raise NotImplemented("Inherited classes must define this function")
 
     def post_reply(self):
         raise NotImplemented("Inherited classes must define this function")
+
+    def isready(self):
+        raise NotImplemented("Inherited classes must define this function")
+
+    def sync(self):
+        """  contact the sync socket, to say this worker is ready """
+        print "BasePushWorker[{}] starting sync with client".format(self._identity)
+        self._sync_socket.send(b'{}'.format(self._identity))
+        msg = self._sync_socket.recv()
+        print "BasePushWorker[{}] message from client received. Ready.".format(self._identity)
+        return

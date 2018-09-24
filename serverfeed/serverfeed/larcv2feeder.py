@@ -27,30 +27,23 @@ class LArCV2Feeder( BasePushWorker ):
         self.products = {}
         self.compression_level = 4
         self.print_msg_size = False
+        self.num_reads = 0
         if self.batchsize is not None:
             self.start_dataloader(self.batchsize)
         print "LArCV2Feeder[{}] is loaded.".format(self._identity)
-        
-        
-    def process_message(self, frames ):
-        """ 
-        the client message is just a request for data. the batchsize requested is provide. it CANNOT change. there is really nothing for us to parse.
-        """
-        batchsize = int(frames[0].decode("ascii"))
-        if self.batchsize is None:
-            self.batchsize = batchsize
-            self.larcvloader.start(self.batchsize)
-            # get first batch
-            self.post_reply()
-        elif self.batchsize!=batchsize:
-            raise RuntimeError("Cannot change batchsize!!")
-            
-        return
 
+        
     def start_dataloader(self,batchsize):
+        print "LArCV2Feeder[{}] starting loader w/ batchsize={}".format(self._identity,self.batchsize)
         self.batchsize = batchsize
         self.larcvloader.start(self.batchsize)
-        self.post_reply()
+        print "LArCV2Feeder[{}] dataloader ready, loading first product set".format(self._identity,self.batchsize)
+        while not self.larcvloader.io._proc.manager_started():
+            time.sleep(1.0)            
+            print "LArCV2Feeder[{}] waiting for larcv_threadio".format(self._identity)
+        self.post_reply() # get first batch
+        print "LArCV2Feeder[{}] manager started. syncing with client".format(self._identity)
+        self.sync() # we notify the client we are ready
 
     def generate_reply(self):
         """
@@ -80,42 +73,16 @@ class LArCV2Feeder( BasePushWorker ):
             print "LArCV2Feeder[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
         return reply
 
+    def isready(self):
+        return self.larcvloader.io._proc.manager_started()
+
     def post_reply(self):
         """ load up the next data set. we've already sent out the message. so here we try to hide latency while gpu running. """
         
         # get data
-        data = self.larcvloader[0]
-        
-        batchsize = self.batchsize
-        # hack for now. how to do this?
-        width  = 832 
-        height = 512
-
-        # make torch tensors from numpy arrays
-        index = (0,1,2,3)
-        self.products = {}
-        #self.products['test'] = np.zeros((1),dtype=np.float32)
-        self.products["source_t"]  = data["source"].reshape( (batchsize,1,width,height) ).transpose(index)  # source image ADC
-        self.products["target1_t"] = data["target1"].reshape( (batchsize,1,width,height) ).transpose(index) # target image ADC
-        self.products["target2_t"] = data["target2"].reshape( (batchsize,1,width,height)).transpose(index)  # target image ADC
-        self.products["flow1_t"]   = data["pixflow1"].reshape( (batchsize,1,width,height)).transpose(index) # flow from source to target
-        self.products["flow2_t"]   = data["pixflow2"].reshape( (batchsize,1,width,height)).transpose(index) # flow from source to target
-        self.products["fvisi1_t"]  = data["pixvisi1"].reshape( (batchsize,1,width,height)).transpose(index) # vis at source (float)
-        self.products["fvisi2_t"]  = data["pixvisi2"].reshape( (batchsize,1,width,height)).transpose(index) # vis at source (float)
-        
-        # apply threshold to source ADC values. returns a byte mask
-        self.products["fvisi1_t"]  = self.products["fvisi1_t"].clip(0.0,1.0)
-        self.products["fvisi2_t"]  = self.products["fvisi2_t"].clip(0.0,1.0)
-        
-        # make integer visi
-        self.products["visi1_t"]   = self.products["fvisi1_t"].reshape( (batchsize,width,height) ).astype( np.int )
-        self.products["visi2_t"]   = self.products["fvisi2_t"].reshape( (batchsize,width,height) ).astype( np.int )
-        
-        # image column origins
-        self.products["source_x"]  = data["meta"].reshape((batchsize,3,1,4))[:,0,:,0].reshape((batchsize))
-        self.products["target1_x"] = data["meta"].reshape((batchsize,3,1,4))[:,1,:,0].reshape((batchsize))
-        self.products["target2_x"] = data["meta"].reshape((batchsize,3,1,4))[:,2,:,0].reshape((batchsize))
-
+        self.products = self.larcvloader[0]        
+        #print "[",self.num_reads,":{}] ".format(self._identity),self.products.keys()
+        self.num_reads += 1
         return
             
 
