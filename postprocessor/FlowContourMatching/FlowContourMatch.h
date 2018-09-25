@@ -164,14 +164,6 @@ namespace larflow {
     void addInfill( const larcv::Image2D& masked_infill, const larcv::EventChStatus& ev_chstatus,
 		    const float threshold, larcv::Image2D& img_fill_v );
 
-    // match mctrack truth info to hits
-    void mctrack_match(std::vector<HitFlowData_t>& hi2flowdata,
-		       const larlite::event_mctrack& evtrack,
-		       const std::vector<larcv::Image2D>& img_v,
-		       std::vector<larcv::Image2D>& trackimg_v,
-		       ::larutil::SpaceChargeMicroBooNE* psce=NULL,
-		       ::larutil::TimeService* ptsv=NULL);
-
     // update the information for making 3D hits
     // -----------------------------------------
     // call once per subimage
@@ -183,6 +175,19 @@ namespace larflow {
 			   const float threshold,
 			   bool runY2U = true,
 			   bool runY2V = false);
+
+    // match mctrack truth info to hits
+    // ----------------------------------
+    // call once per end of event (after all subimages have been processed)
+    void mctrack_match(const larlite::event_mctrack& evtrack,
+		       const std::vector<larcv::Image2D>& img_v);
+
+    void mctrack_match(PlaneHitFlowData_t& plhit2flowdata,
+		       const larlite::event_mctrack& evtrack,
+		       const std::vector<larcv::Image2D>& img_v,
+		       ::larutil::SpaceChargeMicroBooNE* psce=NULL,
+		       const ::larutil::TimeService* ptsv=NULL);
+
 
     // Get final output: larflow3dhit
     // -------------------------------    
@@ -311,7 +316,11 @@ namespace larflow {
     // stores info tying hits on source plane to flow determined after contour matching
     // stores for both flowdirections, saving info to help decide which one
     // should be used to set 3D position
-    PlaneHitFlowData_t m_plhit2flowdata;  
+    PlaneHitFlowData_t m_plhit2flowdata;
+
+    //larutil
+    const ::larutil::TimeService* m_ptsv;
+    ::larutil::SpaceChargeMicroBooNE* m_psce;
   };
 
 

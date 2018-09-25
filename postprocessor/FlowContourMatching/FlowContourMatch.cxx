@@ -41,6 +41,11 @@ namespace larflow {
 
     // parameters: see header for descriptions
     kTargetChargeRadius = 2;
+
+    //larutil 
+    m_psce = new ::larutil::SpaceChargeMicroBooNE;
+    m_ptsv = ::larutil::TimeService::GetME();
+    
   }
 
   FlowContourMatch::~FlowContourMatch() {
@@ -329,15 +334,20 @@ namespace larflow {
   // =====================================================================
   // MCTRACK MATCH
   // --------------------
-  void FlowContourMatch::mctrack_match(std::vector<HitFlowData_t>& hit2flowdata,
+  void FlowContourMatch::mctrack_match( const larlite::event_mctrack& evtrack,
+					const std::vector<larcv::Image2D>& img_v){
+
+    return mctrack_match( m_plhit2flowdata, evtrack, img_v, m_psce, m_ptsv);
+  }
+
+  void FlowContourMatch::mctrack_match(PlaneHitFlowData_t& plhit2flowdata,
 				       const larlite::event_mctrack& evtrack,
 				       const std::vector<larcv::Image2D>& img_v,
-				       std::vector<larcv::Image2D>& trackimg_v,
 				       ::larutil::SpaceChargeMicroBooNE* psce,
-				       ::larutil::TimeService* ptsv){
+				       const ::larutil::TimeService* ptsv){
     
     // This function updates internal std::vector<HitFlowData_t> to add mctruth.
-    // It is intended to be run once per event
+    // It is intended to be run once per event,
     // when we have collected all hits in the whole image. 
     // First all mctracks in the event are projected onto the whole Y image.
     // Then we match via hit source pixel and tick 
@@ -355,6 +365,7 @@ namespace larflow {
     }
 
     // blank track images: trackid, x, y, z, E with Y meta
+    std::vector<larcv::Image2D> trackimg_v;
     for(int i=0; i<5; i++){
       larcv::Image2D trackimg(img_v[2].meta());
       trackimg.paint(0.0);
@@ -370,15 +381,41 @@ namespace larflow {
       _mctrack_to_tyz(truthtrack,tyz,trackid,E,sce,tsv);
       _tyz_to_pixels(tyz,trackid,E,img_v[2].meta(),trackimg_v);
     }
+    std::vector<HitFlowData_t>* hit2flowdata = &plhit2flowdata.Y2U; // assign Y2U first
+    std::vector<HitFlowData_t>* hit2flowdata2 = NULL; 
+    if(plhit2flowdata.ranY2U && plhit2flowdata.ranY2V){
+      hit2flowdata2 = &plhit2flowdata.Y2V; // also assign Y2V
+    }
+    else if(!plhit2flowdata.ranY2U && plhit2flowdata.ranY2V){
+      hit2flowdata = &plhit2flowdata.Y2V; //assign Y2V only
+    }
+    else if(!plhit2flowdata.ranY2U && !plhit2flowdata.ranY2V){
+      throw std::runtime_error("FlowContourMatch::mctrack_match -- no hits filled");
+    }
+    else{
+      //do nothing
+    }
     // now we loop over HitFlowData_t
+    // note: this copies the same mctruth to Y2U and Y2V, b/c we don't know
+    // at this point which one will be selected
+    //
     // to check: are srcwire, pixtick in global (whole img) scope??
     // if not, I need the crop image meta
-    for(auto& hit : hit2flowdata){
+    for(auto& hit : *(hit2flowdata)){
       hit.X_truth.resize(3,-1.);
       hit.trackid = (int)trackimg_v[0].pixel(hit.pixtick,hit.srcwire);
       hit.X_truth[0] = trackimg_v[1].pixel(hit.pixtick,hit.srcwire);
       hit.X_truth[1] = trackimg_v[2].pixel(hit.pixtick,hit.srcwire);
       hit.X_truth[2] = trackimg_v[3].pixel(hit.pixtick,hit.srcwire);
+    }
+    if(hit2flowdata2 != NULL){
+      for(auto& hit : *(hit2flowdata2)){
+	hit.X_truth.resize(3,-1.);
+	hit.trackid = (int)trackimg_v[0].pixel(hit.pixtick,hit.srcwire);
+	hit.X_truth[0] = trackimg_v[1].pixel(hit.pixtick,hit.srcwire);
+	hit.X_truth[1] = trackimg_v[2].pixel(hit.pixtick,hit.srcwire);
+	hit.X_truth[2] = trackimg_v[3].pixel(hit.pixtick,hit.srcwire);
+      }
     }
   }
 
@@ -403,7 +440,7 @@ namespace larflow {
       pos[2] += pos_offset[2];
       //time tick
       float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
-      pos[0] = (tick - tsv->TriggerOffset()/0.5)*cm_per_tick; // x in cm
+      pos[0] = (tick - tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
 
       tyz.push_back(pos);
       trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
@@ -1512,6 +1549,10 @@ namespace larflow {
       flowhit.dy            = -1.;
       flowhit.dz            = -1.;
       flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
+      flowhit.X_truth[0]    = hitdata.X_truth[0];
+      flowhit.X_truth[1]    = hitdata.X_truth[1];
+      flowhit.X_truth[2]    = hitdata.X_truth[2];
+      flowhit.trackid       = hitdata.trackid;
       
       switch ( hitdata.matchquality ) {
       case 1:
@@ -1578,6 +1619,10 @@ namespace larflow {
 	flowhit.renormed_shower_score  = hitdata.renormed_shower_score;
 	flowhit.src_infill    = (unsigned short)(hitdata.src_infill);
 	flowhit.tar_infill[0] = (unsigned short)(hitdata.tar_infill);
+	flowhit.X_truth[0]    = hitdata.X_truth[0];
+	flowhit.X_truth[1]    = hitdata.X_truth[1];
+	flowhit.X_truth[2]    = hitdata.X_truth[2];
+	flowhit.trackid       = hitdata.trackid;
 	
 	switch ( hitdata.matchquality ) {
 	case 1:
@@ -1674,7 +1719,11 @@ namespace larflow {
 	flowhit.src_infill    = (unsigned short)(hitdata.src_infill);
 	flowhit.tar_infill[0] = (unsigned short)(hitdata0.tar_infill);
 	flowhit.tar_infill[1] = (unsigned short)(hitdata1.tar_infill);
-	
+	flowhit.X_truth[0]    = hitdata.X_truth[0];
+	flowhit.X_truth[1]    = hitdata.X_truth[1];
+	flowhit.X_truth[2]    = hitdata.X_truth[2];
+	flowhit.trackid       = hitdata.trackid;
+
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
