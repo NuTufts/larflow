@@ -368,15 +368,15 @@ namespace larflow {
     std::vector<larcv::Image2D> trackimg_v;
     for(int i=0; i<5; i++){
       larcv::Image2D trackimg(img_v[2].meta());
-      trackimg.paint(0.0);
+      trackimg.paint(-1.0);
       trackimg_v.emplace_back(std::move(trackimg));
     }
     for(const auto& truthtrack : evtrack){
       //initialize internal vectors
       int nstep = truthtrack.size();
-      std::vector<unsigned int> trackid(nstep,0);
-      std::vector<double> E(nstep,0);
-      std::vector<std::vector<double>> tyz(nstep,std::vector<double>(3,0));
+      std::vector<unsigned int> trackid;//(nstep,0);
+      std::vector<double> E;//(nstep,0);
+      std::vector<std::vector<double>> tyz;//(nstep,std::vector<double>(3,0));
       
       _mctrack_to_tyz(truthtrack,tyz,trackid,E,sce,tsv);
       _tyz_to_pixels(tyz,trackid,E,img_v[2].meta(),trackimg_v);
@@ -401,22 +401,38 @@ namespace larflow {
     //
     // to check: are srcwire, pixtick in global (whole img) scope??
     // if not, I need the crop image meta
+    
     for(auto& hit : *(hit2flowdata)){
       hit.X_truth.resize(3,-1.);
-      hit.trackid = (int)trackimg_v[0].pixel(hit.pixtick,hit.srcwire);
-      hit.X_truth[0] = trackimg_v[1].pixel(hit.pixtick,hit.srcwire);
-      hit.X_truth[1] = trackimg_v[2].pixel(hit.pixtick,hit.srcwire);
-      hit.X_truth[2] = trackimg_v[3].pixel(hit.pixtick,hit.srcwire);
+      if(hit.pixtick >= trackimg_v[0].meta().min_y() && hit.pixtick < trackimg_v[0].meta().max_y()
+	 && hit.srcwire >= trackimg_v[0].meta().min_x() && hit.srcwire < trackimg_v[0].meta().max_x() ){
+	int col = trackimg_v[0].meta().col( hit.srcwire );
+	int row = trackimg_v[0].meta().row( hit.pixtick );
+	
+	hit.trackid = (int)trackimg_v[0].pixel(row,col);
+	hit.X_truth[0] = trackimg_v[1].pixel(row,col);
+	hit.X_truth[1] = trackimg_v[2].pixel(row,col);
+	hit.X_truth[2] = trackimg_v[3].pixel(row,col);
+      }
+
     }
+    
     if(hit2flowdata2 != NULL){
       for(auto& hit : *(hit2flowdata2)){
 	hit.X_truth.resize(3,-1.);
-	hit.trackid = (int)trackimg_v[0].pixel(hit.pixtick,hit.srcwire);
-	hit.X_truth[0] = trackimg_v[1].pixel(hit.pixtick,hit.srcwire);
-	hit.X_truth[1] = trackimg_v[2].pixel(hit.pixtick,hit.srcwire);
-	hit.X_truth[2] = trackimg_v[3].pixel(hit.pixtick,hit.srcwire);
+	if(hit.pixtick >= trackimg_v[0].meta().min_y() && hit.pixtick < trackimg_v[0].meta().max_y()
+	   && hit.srcwire >= trackimg_v[0].meta().min_x() && hit.srcwire < trackimg_v[0].meta().max_x() ){
+	  int col = trackimg_v[0].meta().col( hit.srcwire );
+	  int row = trackimg_v[0].meta().row( hit.pixtick );
+
+	  hit.trackid = (int)trackimg_v[0].pixel(row,col);
+	  hit.X_truth[0] = trackimg_v[1].pixel(row,col);
+	  hit.X_truth[1] = trackimg_v[2].pixel(row,col);
+	  hit.X_truth[2] = trackimg_v[3].pixel(row,col);
+	}
       }
     }
+    
   }
 
   void FlowContourMatch::_mctrack_to_tyz(const larlite::mctrack& truthtrack,
@@ -440,8 +456,8 @@ namespace larflow {
       pos[2] += pos_offset[2];
       //time tick
       float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
-      pos[0] = (tick - tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
-
+      pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
+      //pos[0] = tick;
       tyz.push_back(pos);
       trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
       E.push_back(step.E());
@@ -461,14 +477,18 @@ namespace larflow {
     imgpath.reserve(tyz.size());
     for (auto const& pos : tyz ) {
       std::vector<float> fpos(3);
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++){
 	fpos[i] = pos[i];
-      std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( fpos, meta, 3 );
-      //crossing_imgcoords[0] = (int)pos[0];
+      }      
+      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( fpos, meta, 3 );
+      std::vector<int> crossing_imgcoords = getProjectedPixel( fpos, meta, 3 );
       imgpath.push_back( crossing_imgcoords );
     }
+    
     int istep = 0;
+    // note: pix are image row, col numbers
     for(auto const& pix : imgpath ){
+      if(pix[0]==-1 || pix[3]==-1){istep++; continue;}
       double prevE = trackimg_v[4].pixel(pix[0],pix[3]);
       if( prevE>0 && prevE > E.at(istep) ){ istep++; continue;} //fill only highest E deposit
       trackimg_v[0].set_pixel(pix[0],pix[3],(float)trackid.at(istep));// trackid
@@ -478,6 +498,7 @@ namespace larflow {
       trackimg_v[4].set_pixel(pix[0],pix[3],(float)E.at(istep)); // E
       istep++;
     }
+    
   }
   
   // copy of UBWireTool::getProjectedImagePixel
@@ -553,7 +574,7 @@ namespace larflow {
     if ( pos3d[1]<-116.3 && pos3d[2]<2.0 && img_coords[1+1]==-1 ) {
       img_coords[1+1] = 0;
     }
-
+    //std::cout << tick << " "<< img_coords[0] << " "<< img_coords[1] << " "<< img_coords[2] << " "<< img_coords[3]  << std::endl;
     return img_coords;
   }  
 
