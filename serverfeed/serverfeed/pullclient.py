@@ -1,4 +1,4 @@
-import time
+import os,time
 import zmq
 from collections import OrderedDict
 
@@ -35,6 +35,11 @@ class BasePullClient(object):
         print "BasePullClient[{}] configured. childclass should call wait_for_workers() when finished with constructor".format(self._identity)
         
     def load_socket(self):
+        # MAKE DIRECTORY IF IPC SOCKET
+        if "ipc://" in self._socket_address:
+            tmpdir = self._socket_address[5:]
+            print "Make directory for IPC socket"
+            os.system("mkdir -p %s"%(tmpdir))
         self._context  = zmq.Context()
         # PULL SOCKET
         self._socket   = self._context.socket(zmq.PULL)
