@@ -268,11 +268,6 @@ namespace larflow {
 			const larcv::ImageMeta& meta,
 			std::vector<larcv::Image2D>& trackimg);
 
-    std::vector<int> getProjectedPixel( const std::vector<float>& pos3d,
-					const larcv::ImageMeta& meta,
-					const int nplanes,
-					const float fracpixborder=1.5 );
-
     
   public:
     // debug/visualization
@@ -280,6 +275,12 @@ namespace larflow {
     void dumpMatchData();
     TH2D& plotScoreMatrix(const FlowDirection_t kflowdir);
 
+    // edited copy of UBWireTool::getProjectedImagePixels
+    // --------------------------------------------------
+    std::vector<int> getProjectedPixel( const std::vector<float>& pos3d,
+					const larcv::ImageMeta& meta,
+					const int nplanes,
+					const float fracpixborder=1.5 );
 
   public:
     // algorithm parameters 

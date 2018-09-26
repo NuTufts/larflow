@@ -414,7 +414,6 @@ namespace larflow {
 	hit.X_truth[1] = trackimg_v[2].pixel(row,col);
 	hit.X_truth[2] = trackimg_v[3].pixel(row,col);
       }
-
     }
     
     if(hit2flowdata2 != NULL){
@@ -443,24 +442,45 @@ namespace larflow {
 					 const ::larutil::TimeService* tsv){
 
     const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    const larlite::mcstep start = truthtrack.Start();
+    bool isStart=true;
+    larlite::mcstep prev_step = start;
     for(auto const& step : truthtrack){
       std::vector<double> pos(3); //x,y,z
-      pos[0] = step.X();
-      pos[1] = step.Y();
-      pos[2] = step.Z();
-      float t = step.T();
+      std::vector<float> dr(4); // x,y,z,t
+      if(isStart){isStart=false; continue;}
+      dr[0] = -prev_step.X()+step.X();
+      dr[1] = -prev_step.Y()+step.X();
+      dr[2] = -prev_step.Z()+step.Z();
+      dr[3] = -prev_step.T()+step.T();
+      float dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
+      // segment theta: aingle in (z,y) plane starting from y axis
+      // sin(theta) = dz/dR
+      float theta = asin(dr[2]/dR);
+      // segment phi: angle in (x,y) starting from x axis
+      // sin(phi) = dy/sqrt(dx^2+dy^2) = dy/(dR*cos(theta))
+      float phi = asin(dr[1]/(dR*cos(theta)));
+      // we divide dR=sqrt(dx^2+dy^2+dz^2) in 0.15cm steps
+      const int N = dR/0.15;
+      for(int i=0; i<N; i++){
+	pos[0] = prev_step.X()+N*cos(phi)*cos(theta)*0.15; // dx = cos(phi)*cos(theta)*stepsize
+	pos[1] = prev_step.Y()+N*sin(phi)*cos(theta)*0.15; // dy = sin(phi)*cos(theta)*stepsize
+	pos[2] = prev_step.Z()+N*sin(theta)*0.15; // dz = sin(theta)*stepsize
+	// for time use linear approximation
+	float t = prev_step.T()+N*(0.15*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
+	prev_step = step;
 
-      std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
-      pos[0] = pos[0]-pos_offset[0]+0.7;
-      pos[1] += pos_offset[1];
-      pos[2] += pos_offset[2];
-      //time tick
-      float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
-      pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
-      //pos[0] = tick;
-      tyz.push_back(pos);
-      trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
-      E.push_back(step.E());
+	std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
+	pos[0] = pos[0]-pos_offset[0]+0.7;
+	pos[1] += pos_offset[1];
+	pos[2] += pos_offset[2];
+	//time tick
+	float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
+	pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
+	tyz.push_back(pos);
+	trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
+	E.push_back(step.E());
+      }
     }
     
   }
@@ -537,7 +557,7 @@ namespace larflow {
     Double_t xyz[3] = { pos3d[0], pos3d[1], pos3d[2] };
     // there is a corner where the V plane wire number causes an error
     if ( (pos3d[1]>-117.0 && pos3d[1]<-116.0) && pos3d[2]<2.0 ) {
-      std::cout << __PRETTY_FUNCTION__ << ": v-plane corner hack (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ")" << std::endl;
+      //std::cout << __PRETTY_FUNCTION__ << ": v-plane corner hack (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ")" << std::endl;
       xyz[1] = -116.0;
     }
     for (int p=0; p<nplanes; p++) {
@@ -548,7 +568,7 @@ namespace larflow {
       // get image coordinates
       if ( wire<meta.min_x() ) {
 	if ( wire>meta.min_x()-col_border ) {
-	  std::cout << __PRETTY_FUNCTION__ << " plane=" << p << " wire=" << wire << "<" << meta.min_x()-col_border << std::endl;
+	  //std::cout << __PRETTY_FUNCTION__ << " plane=" << p << " wire=" << wire << "<" << meta.min_x()-col_border << std::endl;
 	  // within lower border
 	  img_coords[p+1] = 0;
 	}
@@ -557,7 +577,7 @@ namespace larflow {
       }
       else if ( wire>=meta.max_x() ) {
 	if ( wire<meta.max_x()+col_border ) {
-	  std::cout << __PRETTY_FUNCTION__ << " plane=" << p << " wire=" << wire << ">" << meta.max_x()+col_border << std::endl;
+	  //std::cout << __PRETTY_FUNCTION__ << " plane=" << p << " wire=" << wire << ">" << meta.max_x()+col_border << std::endl;
 	  // within border
 	  img_coords[p+1] = meta.cols()-1;
 	}
@@ -574,7 +594,6 @@ namespace larflow {
     if ( pos3d[1]<-116.3 && pos3d[2]<2.0 && img_coords[1+1]==-1 ) {
       img_coords[1+1] = 0;
     }
-    //std::cout << tick << " "<< img_coords[0] << " "<< img_coords[1] << " "<< img_coords[2] << " "<< img_coords[3]  << std::endl;
     return img_coords;
   }  
 
