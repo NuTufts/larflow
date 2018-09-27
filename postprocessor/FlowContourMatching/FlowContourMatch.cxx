@@ -376,7 +376,7 @@ namespace larflow {
       int nstep = truthtrack.size();
       std::vector<unsigned int> trackid;//(nstep,0);
       std::vector<double> E;//(nstep,0);
-      std::vector<std::vector<double>> tyz;//(nstep,std::vector<double>(3,0));
+      std::vector<std::vector<float>> tyz;//(nstep,std::vector<double>(3,0));
       
       _mctrack_to_tyz(truthtrack,tyz,trackid,E,sce,tsv);
       _tyz_to_pixels(tyz,trackid,E,img_v[2].meta(),trackimg_v);
@@ -435,48 +435,32 @@ namespace larflow {
   }
 
   void FlowContourMatch::_mctrack_to_tyz(const larlite::mctrack& truthtrack,
-					 std::vector<std::vector<double>>& tyz,
+					 std::vector<std::vector<float>>& tyz,
 					 std::vector<unsigned int>& trackid,
 					 std::vector<double>& E,
 					 ::larutil::SpaceChargeMicroBooNE* sce,
 					 const ::larutil::TimeService* tsv){
 
     const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*0.5;
-    const larlite::mcstep start = truthtrack.Start();
-    bool isStart=true;
-    larlite::mcstep prev_step = start;
-    for(auto const& step : truthtrack){
-      std::vector<double> pos(3); //x,y,z
+    for(int step=1; step<truthtrack.size(); step++){
+      std::vector<float> pos(3); //x,y,z
       std::vector<float> dr(4); // x,y,z,t
-      if(isStart){isStart=false; continue;}
-      dr[0] = -prev_step.X()+step.X();
-      dr[1] = -prev_step.Y()+step.Y();
-      dr[2] = -prev_step.Z()+step.Z();
-      dr[3] = -prev_step.T()+step.T();
+      dr[0] = -truthtrack[step-1].X()+truthtrack[step].X();
+      dr[1] = -truthtrack[step-1].Y()+truthtrack[step].Y();
+      dr[2] = -truthtrack[step-1].Z()+truthtrack[step].Z();
+      dr[3] = -truthtrack[step-1].T()+truthtrack[step].T();
       float dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
-      // segment theta: aingle in (z,y) plane starting from y axis
-      // sin(theta) = dz/dR
-      //float theta = asin(dr[2]/dR);
-      // segment phi: angle in (x,y) starting from x axis
-      // sin(phi) = dy/sqrt(dx^2+dy^2) = dy/(dR*cos(theta))
-      //float phi = asin(dr[1]/(dR*cos(theta)));
-      // we divide dR=sqrt(dx^2+dy^2+dz^2) in 0.15cm steps
       for (int i=0; i<3; i++)
 	dr[i] /= dR;
 
-      float dstep = dR;
-      int N = 1;
-      if ( dR>0.15 ) {
-	N /= dR/0.15;
-	N++;
-	dstep = dR/float(N);
-      }
+      int N = (dR>0.15) ? dR/0.15+1 : 1;
+      float dstep = dR/float(N);
       for(int i=0; i<N; i++){
-	pos[0] = prev_step.X()+dstep*i*dr[0];
-	pos[1] = prev_step.Y()+dstep*i*dr[1];
-	pos[2] = prev_step.Z()+dstep*i*dr[2];
+	pos[0] = truthtrack[step-1].X()+dstep*i*dr[0];
+	pos[1] = truthtrack[step-1].Y()+dstep*i*dr[1];
+	pos[2] = truthtrack[step-1].Z()+dstep*i*dr[2];
 	// for time use linear approximation
-	float t = prev_step.T()+i*(dstep*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
+	float t = truthtrack[step-1].T()+i*(dstep*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
 
 	std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
 	pos[0] = pos[0]-pos_offset[0]+0.7;
@@ -487,14 +471,12 @@ namespace larflow {
 	pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
 	tyz.push_back(pos);
 	trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
-	E.push_back(step.E());
+	E.push_back(truthtrack[step-1].E());
       }
-      prev_step = step;
     }
-    
   }
 
-  void FlowContourMatch::_tyz_to_pixels(const std::vector<std::vector<double>>& tyz,
+  void FlowContourMatch::_tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 					const std::vector<unsigned int>& trackid,
 					const std::vector<double>& E,
 					const larcv::ImageMeta& meta,
@@ -505,12 +487,8 @@ namespace larflow {
     std::vector<std::vector<int>> imgpath;
     imgpath.reserve(tyz.size());
     for (auto const& pos : tyz ) {
-      std::vector<float> fpos(3);
-      for (int i=0; i<3; i++){
-	fpos[i] = pos[i];
-      }      
-      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( fpos, meta, 3 );
-      std::vector<int> crossing_imgcoords = getProjectedPixel( fpos, meta, 3 );
+      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( pos, meta, 3 );
+      std::vector<int> crossing_imgcoords = getProjectedPixel( pos, meta, 3 );
       imgpath.push_back( crossing_imgcoords );
     }
     

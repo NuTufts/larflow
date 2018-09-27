@@ -256,13 +256,13 @@ namespace larflow {
 		      float& dz);
     
     void _mctrack_to_tyz(const larlite::mctrack& truthtrack,
-			 std::vector<std::vector<double>>& tyz,
+			 std::vector<std::vector<float>>& tyz,
 			 std::vector<unsigned int>& trackid,
 			 std::vector<double>& E,
 			 ::larutil::SpaceChargeMicroBooNE* psce,
 			 const ::larutil::TimeService* ptsv);
 
-    void _tyz_to_pixels(const std::vector<std::vector<double>>& tyz,
+    void _tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 			const std::vector<unsigned int>& trackid,
 			const std::vector<double>& E,
 			const larcv::ImageMeta& meta,

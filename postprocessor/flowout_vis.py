@@ -10,7 +10,7 @@ argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL 
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
 argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
-argparser.add_argument("-c", "--color",    required=True,  type=str, help="colorscheme. options: [ssnet,quality,flowdir]")
+argparser.add_argument("-c", "--color",    required=True,  type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth]")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -49,8 +49,8 @@ io.add_in_filename( inputfile )
 io.open()
 
 # color scheme
-schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist"]
-shortschemes = ["ssnet","quality","flowdir","infill","3ddist"]
+schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth"]
+shortschemes = ["ssnet","quality","flowdir","infill","3ddist","hastruth"]
 
 colorscheme = args.color
 if colorscheme in shortschemes:
@@ -99,6 +99,7 @@ for ihit in xrange(nhits):
             colors[ihit,:] = (0.0,1.0,0.0,1.0)
         else:
             colors[ihit,:] = (0.0,0.0,1.0,1.0)
+
     elif colorscheme=="colorbyflowdir":
         if hit.flowdir==larlite.larflow3dhit.kY2U:
             colors[ihit,:] = (1.,1.,1.,1.)
@@ -130,6 +131,12 @@ for ihit in xrange(nhits):
             colors[ihit,:] = (0.,0.,1.,1.)
         else:
             colors[ihit,:] = (1.,0.,1.,1.)
+
+    elif colorscheme=="colorbyhastruth":
+        if hit.trackid!=-1:
+            colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
+        else:
+            colors[ihit,:] = (1.,0.,0.,1.) # mctrack not matched
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
 
