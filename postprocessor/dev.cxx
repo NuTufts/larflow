@@ -36,6 +36,8 @@
 
 
 void event_changeout( larlite::storage_manager& dataco_output,
+		      larlitecv::DataCoordinator& dataco_whole,
+		      larlitecv::DataCoordinator& dataco_mc,
 		      larflow::FlowContourMatch& matching_algo,
 		      const int runid,
 		      const int subrunid,
@@ -48,6 +50,15 @@ void event_changeout( larlite::storage_manager& dataco_output,
   // larlite geometry tool: now called in FlowContour
   //const larutil::Geometry* geo = larutil::Geometry::GetME();
   //const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
+  
+  // get mctrack
+  dataco_mc.goto_event( runid, subrunid, eventid, "larlite" );
+  const larlite::event_mctrack&  ev_track = *((larlite::event_mctrack*)dataco_mc.get_larlite_data(larlite::data::kMCTrack, "mcreco"));
+  // get supera images
+  dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
+  larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
+  // fill mctruth
+  matching_algo.mctrack_match(ev_track,ev_wholeimg->as_vector());
   
   // get the final hits made from flow
   std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
@@ -112,7 +123,8 @@ int main( int nargs, char** argv ) {
   // -----------------
   // common source files
   std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
-  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";    
+  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_mcinfo_file       = "../testdata/larlite_mcinfo_5482426_95.root";
   // small 5 event sample for DL output:
   std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
   // larger 150 event test sample for DL output
@@ -157,6 +169,7 @@ int main( int nargs, char** argv ) {
   // hit (and mctruth) event data
   larlitecv::DataCoordinator dataco_hits;
   dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
+  dataco_hits.add_inputfile( input_mcinfo_file,  "larlite" );
   dataco_hits.initialize();
 
   // output: 3D track hits
@@ -203,7 +216,7 @@ int main( int nargs, char** argv ) {
       if ( nevents>=process_num_events )
 	break;
 
-      event_changeout( dataco_output, matching_algo, current_runid, current_subrunid, current_eventid );
+      event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo, current_runid, current_subrunid, current_eventid );
 
       // clear the algo
       matching_algo.clear();
@@ -577,7 +590,7 @@ int main( int nargs, char** argv ) {
   }//end of entry loop
 
   // save the data from the last event
-  event_changeout( dataco_output, matching_algo, current_runid, current_subrunid, current_eventid );
+  event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo, current_runid, current_subrunid, current_eventid );
   
   std::cout << "Finalize output." << std::endl;
   dataco_output.close();
