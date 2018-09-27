@@ -450,7 +450,7 @@ namespace larflow {
       std::vector<float> dr(4); // x,y,z,t
       if(isStart){isStart=false; continue;}
       dr[0] = -prev_step.X()+step.X();
-      dr[1] = -prev_step.Y()+step.X();
+      dr[1] = -prev_step.Y()+step.Y();
       dr[2] = -prev_step.Z()+step.Z();
       dr[3] = -prev_step.T()+step.T();
       float dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
