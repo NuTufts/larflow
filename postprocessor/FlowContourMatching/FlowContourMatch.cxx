@@ -456,19 +456,27 @@ namespace larflow {
       float dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
       // segment theta: aingle in (z,y) plane starting from y axis
       // sin(theta) = dz/dR
-      float theta = asin(dr[2]/dR);
+      //float theta = asin(dr[2]/dR);
       // segment phi: angle in (x,y) starting from x axis
       // sin(phi) = dy/sqrt(dx^2+dy^2) = dy/(dR*cos(theta))
-      float phi = asin(dr[1]/(dR*cos(theta)));
+      //float phi = asin(dr[1]/(dR*cos(theta)));
       // we divide dR=sqrt(dx^2+dy^2+dz^2) in 0.15cm steps
-      const int N = dR/0.15;
+      for (int i=0; i<3; i++)
+	dr[i] /= dR;
+
+      float dstep = dR;
+      int N = 1;
+      if ( dR>0.15 ) {
+	N /= dR/0.15;
+	N++;
+	dstep = dR/float(N);
+      }
       for(int i=0; i<N; i++){
-	pos[0] = prev_step.X()+N*cos(phi)*cos(theta)*0.15; // dx = cos(phi)*cos(theta)*stepsize
-	pos[1] = prev_step.Y()+N*sin(phi)*cos(theta)*0.15; // dy = sin(phi)*cos(theta)*stepsize
-	pos[2] = prev_step.Z()+N*sin(theta)*0.15; // dz = sin(theta)*stepsize
+	pos[0] = prev_step.X()+dstep*i*dr[0];
+	pos[1] = prev_step.Y()+dstep*i*dr[1];
+	pos[2] = prev_step.Z()+dstep*i*dr[2];
 	// for time use linear approximation
-	float t = prev_step.T()+N*(0.15*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
-	prev_step = step;
+	float t = prev_step.T()+i*(dstep*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
 
 	std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
 	pos[0] = pos[0]-pos_offset[0]+0.7;
@@ -481,6 +489,7 @@ namespace larflow {
 	trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
 	E.push_back(step.E());
       }
+      prev_step = step;
     }
     
   }
