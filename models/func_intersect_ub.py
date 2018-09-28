@@ -129,6 +129,9 @@ class IntersectUB( torch.autograd.Function ):
             targetv_originx_t = torch.ones( (batchsize), dtype=torch.float ).to(device=dev)*targetv_originx
         else:
             targetv_originx_t = targetv_originx
+        #print "source origin:  ",source_originx_t
+        #print "targetu origin: ",targetu_originx_t
+        #print "targetv origin: ",targetv_originx_t        
             
         ## wire position calcs
         source_fwire_t       = torch.zeros( (batchsize,1,ncols,nrows), dtype=torch.float ).to( device=dev )
@@ -146,11 +149,14 @@ class IntersectUB( torch.autograd.Function ):
         ## clamp for those out of flow and round
         pred_target1_fwire_t.clamp(0,ntarget_wires).round()
         pred_target2_fwire_t.clamp(0,ntarget_wires).round()
+        #print "source  fwire: ",source_fwire_t
+        #print "target1 fwire: ",pred_target1_fwire_t
+        #print "target2 fwire: ",pred_target2_fwire_t        
 
         ## calculate the index for the lookup table
         pred_target1_index_t = (source_fwire_t*ntarget_wires + pred_target1_fwire_t).long()
         pred_target2_index_t = (source_fwire_t*ntarget_wires + pred_target2_fwire_t).long()
-
+        
         ## get the (y,z) of the intersection we've flowed to
         posyz_target1_t = torch.zeros( (batchsize,2,ncols,nrows) ).to( device=dev )
         posyz_target2_t = torch.zeros( (batchsize,2,ncols,nrows) ).to( device=dev )
@@ -161,6 +167,8 @@ class IntersectUB( torch.autograd.Function ):
             posyz_target2_t[b,1,:,:] = torch.take( IntersectUB.intersections_t[1,1,:,:], pred_target2_index_t[b,0,:,:].reshape( ncols*nrows ) ).reshape( (ncols,nrows) ) # det-y
 
         #ctx.save_for_backward(posyz_target1_t,posyz_target2_t)
+        #print "posyz_target1: ",posyz_target1_t
+        #print "posyz_target2: ",posyz_target2_t
         
         return (posyz_target1_t,posyz_target2_t)
 
@@ -288,7 +296,6 @@ if __name__=="__main__":
         
         posyz_fromy2u,posyz_fromy2v = IntersectUB.apply( y2u_t, y2v_t, source_origin, targetu_origin, targetv_origin )
                                                          
-        
         mask = truevisi_y2u_t*truevisi_y2v_t
         diff = (posyz_fromy2u-posyz_fromy2v)
         #print "diff.shape=",diff.shape
