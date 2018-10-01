@@ -6,3 +6,5 @@ last_filelist_larlite.txt
 *.root
 *.png
 *.pdf
+*.tar
+*.cfg
