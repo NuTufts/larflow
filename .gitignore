@@ -4,3 +4,5 @@
 last_filelist_larcv.txt
 last_filelist_larlite.txt
 *.root
+*.png
+*.pdf
