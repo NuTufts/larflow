@@ -32,7 +32,8 @@ from tensorboardX import SummaryWriter
 
 # dataset interface
 #from larcvdataset import LArCVDataset
-from serverfeed.larcv2socketfeed import LArCV2SocketFeeder
+#from serverfeed.larcv2socketfeed import LArCV2SocketFeeder
+from serverfeed.larcv2server import LArCV2Server
 
 # larflow
 LARFLOW_MODEL_DIR=None
@@ -63,7 +64,7 @@ BATCHSIZE=4
 BATCHSIZE_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
-CONSISTENCY_WEIGHT=0.001
+CONSISTENCY_WEIGHT=0.1
 USE_VISI=False
 DEVICE_IDS=[1]
 # map multi-training weights 
@@ -74,6 +75,101 @@ CHECKPOINT_FROM_DATA_PARALLEL=False
 ITER_PER_CHECKPOINT=100
 # ===================================================
 
+## =========================================================
+## DATA PREP 3: LArCV2ServerWorker2
+## =========================================================
+def load_data( io ):
+    from larcv import larcv
+    import numpy as np
+    
+    width  = 832
+    height = 512
+    src_adc_threshold = 10.0
+
+    index = (1,0)
+    products = ["source","targetu","targetv","flowy2u","flowy2v","visiy2u","visiy2v","meta"]
+    data = {}
+    for k in products:
+        if k !="meta":
+            data[k] = np.zeros( (1,width,height), dtype=np.float32 )
+        else:
+            data[k] = np.zeros( (3,width,height), dtype=np.float32 )            
+        
+    ev_adc = io.get_data("image2d","adc")
+    ev_flo = io.get_data("image2d","pixflow")
+    ev_vis = io.get_data("image2d","pixvisi")
+
+    data["source"][0,:,:]  = larcv.as_ndarray( ev_adc.as_vector()[2] ).transpose(1,0)
+    data["targetu"][0,:,:] = larcv.as_ndarray( ev_adc.as_vector()[0] ).transpose(1,0)
+    data["targetv"][0,:,:] = larcv.as_ndarray( ev_adc.as_vector()[1] ).transpose(1,0)
+
+    data["flowy2u"][0,:,:] = larcv.as_ndarray( ev_flo.as_vector()[0] ).transpose(1,0)
+    data["flowy2v"][0,:,:] = larcv.as_ndarray( ev_flo.as_vector()[1] ).transpose(1,0)
+
+    data["visiy2u"][0,:,:] = larcv.as_ndarray( ev_vis.as_vector()[0] ).transpose(1,0)
+    data["visiy2v"][0,:,:] = larcv.as_ndarray( ev_vis.as_vector()[1] ).transpose(1,0)
+
+    for ip in xrange(0,3):
+        data["meta"][ip,0,0] = ev_adc.as_vector()[ip].meta().min_x()
+        data["meta"][ip,0,1] = ev_adc.as_vector()[ip].meta().min_y()
+        data["meta"][ip,0,2] = ev_adc.as_vector()[ip].meta().max_x()
+        data["meta"][ip,0,3] = ev_adc.as_vector()[ip].meta().max_y()
+            
+    return data
+
+def prep_data3( ioserver, batchsize, width, height, src_adc_threshold, device ):
+    """
+    inputs
+    ------
+    larcvloader: instance of LArCVDataloader
+    train_or_valid (str): "train" or "valid"
+    batchsize (int)
+    width (int)
+    height(int)
+    src_adc_threshold (float)
+
+    outputs
+    -------
+    source_var (Pytorch Variable): source ADC
+    targer_var (Pytorch Variable): target ADC
+    flow_var (Pytorch Variable): flow from source to target
+    visi_var (Pytorch Variable): visibility of source (long)
+    fvisi_var(Pytorch Variable): visibility of target (float)
+    """
+
+    #print "PREP DATA: ",train_or_valid,"GPUMODE=",GPUMODE,"GPUID=",GPUID    
+
+    # get data
+    data = ioserver.get_batch_dict()
+
+    # make torch tensors from numpy arrays
+    index = (0,1,3,2)
+    #print "prep_data: ",data.keys()
+    #print "source shape: ",data["source_%s"%(train_or_valid)].shape
+    source_t  = torch.from_numpy( data["source"] ).to( device=device )   # source image ADC
+    target1_t = torch.from_numpy( data["targetu"] ).to(device=device )   # target image ADC
+    target2_t = torch.from_numpy( data["targetv"] ).to( device=device )  # target2 image ADC
+    flow1_t   = torch.from_numpy( data["flowy2u"] ).to( device=device )   # flow from source to target
+    flow2_t   = torch.from_numpy( data["flowy2v"] ).to( device=device ) # flow from source to target
+    fvisi1_t  = torch.from_numpy( data["visiy2u"] ).to( device=device )  # visibility at source (float)
+    fvisi2_t  = torch.from_numpy( data["visiy2v"] ).to( device=device ) # visibility at source (float)
+
+    # apply threshold to source ADC values. returns a byte mask
+    fvisi1_t  = fvisi1_t.clamp(0.0,1.0)
+    fvisi2_t  = fvisi2_t.clamp(0.0,1.0)
+
+    # make integer visi
+    visi1_t = fvisi1_t.reshape( (batchsize,fvisi1_t.size()[2],fvisi1_t.size()[3]) ).long()
+    visi2_t = fvisi2_t.reshape( (batchsize,fvisi2_t.size()[2],fvisi2_t.size()[3]) ).long()
+
+    # image column origins
+    meta_data_np = data["meta"]
+    #print meta_data_np
+    source_minx  = torch.from_numpy( meta_data_np[:,2,0,0].reshape((batchsize)) ).to(device=device)
+    target1_minx = torch.from_numpy( meta_data_np[:,0,0,0].reshape((batchsize)) ).to(device=device)
+    target2_minx = torch.from_numpy( meta_data_np[:,1,0,0].reshape((batchsize)) ).to(device=device)
+    
+    return source_t, target1_t, target2_t, flow1_t, flow2_t, visi1_t, visi2_t, fvisi1_t, fvisi2_t, source_minx, target1_minx, target2_minx,meta_data_np
 
 def pad(npimg4d):
     #imgpad  = np.zeros( (npimg4d.shape[0],1,IMAGE_WIDTH,IMAGE_HEIGHT), dtype=np.float32 )
@@ -182,8 +278,10 @@ def main():
     #iovalid = LArCVDataset(VALID_LARCV_CONFIG,"ThreadProcessorValid")
     #iotrain.start( batchsize_train )
     #iovalid.start( batchsize_valid )
-    iotrain = LArCV2SocketFeeder(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,port=0)
-    iovalid = LArCV2SocketFeeder(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,port=1)
+    #iotrain = LArCV2SocketFeeder(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,port=0)
+    #iovalid = LArCV2SocketFeeder(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,port=1)
+    iotrain = LArCV2Server(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,load_func=load_data,inputfile=inputfile,port=0)
+    iovalid = LArCV2Server(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,load_func=load_data,inputfile=inputfile,port=1)    
 
     print "pause to give time to feeders"
 
@@ -214,14 +312,19 @@ def main():
         source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,Wminx,Uminx,Vminx = prep_data( iosample[sample], sample, batchsize_train, 
                                                                                                     IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, DEVICE )
         # load opencv
+        print "Print using OpenCV"
         import cv2 as cv
         cv.imwrite( "testout_source.png",  source.cpu().numpy()[0,0,:,:] )
         cv.imwrite( "testout_target1.png", target1.cpu().numpy()[0,0,:,:] )
         cv.imwrite( "testout_target2.png", target2.cpu().numpy()[0,0,:,:] )
+        print "source shape: ",source.cpu().numpy().shape
+        print "minX-src: ",Wminx
+        print "minX-U: ",Uminx
+        print "minX-V: ",Vminx
 
         sample = "valid"
         print "TEST BATCH: sample=",sample
-        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,Wminx,Uminx,Vminx = prep_data( iosample[sample], sample, batchsize_train, 
+        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,Wminx,Uminx,Vminx = prep_data( iosample[sample], sample, batchsize_valid, 
                                                                                                     IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, DEVICE )       
         
         print "STOP FOR DEBUGGING"
@@ -360,7 +463,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data( train_loader, "train", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
+        #source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data( train_loader, "train", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
+        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data3( train_loader, batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )        
         time_meters["data"].update(time.time()-end)
 
         # compute output
@@ -477,7 +581,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         batchstart = time.time()
         
         tdata_start = time.time()
-        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data( val_loader, "valid", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
+        #source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data( val_loader, "valid", batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
+        source,target1,target2,flow1,flow2,visi1,visi2,fvisi1,fvisi2,src_origin,tar1_origin,tar2_origin = prep_data3( val_loader, batchsize, IMAGE_WIDTH, IMAGE_HEIGHT, ADC_THRESH, device )
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute output
@@ -652,15 +757,16 @@ def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_th
     data = larcvloader.get_batch_dict()
 
     # make torch tensors from numpy arrays
-    index = (0,1,2,3)
+    index = (0,1,3,2)
     #print "prep_data: ",data.keys()
-    source_t  = torch.from_numpy( pad( data["source_%s"%(train_or_valid)].reshape( (batchsize,1,width,height) ).transpose(index) )).to( device=device )   # source image ADC
-    target1_t = torch.from_numpy( pad( data["target1_%s"%(train_or_valid)].reshape( (batchsize,1,width,height) ).transpose(index) )).to(device=device )   # target image ADC
-    target2_t = torch.from_numpy( pad( data["target2_%s"%(train_or_valid)].reshape( (batchsize,1,width,height)).transpose(index) )).to( device=device )  # target2 image ADC
-    flow1_t   = torch.from_numpy( pad( data["pixflow1_%s"%(train_or_valid)].reshape( (batchsize,1,width,height)).transpose(index) )).to( device=device )   # flow from source to target
-    flow2_t   = torch.from_numpy( pad( data["pixflow2_%s"%(train_or_valid)].reshape( (batchsize,1,width,height)).transpose(index) )).to( device=device ) # flow from source to target
-    fvisi1_t  = torch.from_numpy( pad( data["pixvisi1_%s"%(train_or_valid)].reshape( (batchsize,1,width,height) ).transpose(index) )).to( device=device )  # visibility at source (float)
-    fvisi2_t  = torch.from_numpy( pad( data["pixvisi2_%s"%(train_or_valid)].reshape( (batchsize,1,width,height)).transpose(index) )).to( device=device ) # visibility at source (float)
+    #print "source shape: ",data["source_%s"%(train_or_valid)].shape
+    source_t  = torch.from_numpy( pad( data["source_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) )  ).to( device=device )   # source image ADC
+    target1_t = torch.from_numpy( pad( data["target1_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) ) ).to(device=device )   # target image ADC
+    target2_t = torch.from_numpy( pad( data["target2_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) ) ).to( device=device )  # target2 image ADC
+    flow1_t   = torch.from_numpy( pad( data["pixflow1_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) )).to( device=device )   # flow from source to target
+    flow2_t   = torch.from_numpy( pad( data["pixflow2_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) )).to( device=device ) # flow from source to target
+    fvisi1_t  = torch.from_numpy( pad( data["pixvisi1_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) )).to( device=device )  # visibility at source (float)
+    fvisi2_t  = torch.from_numpy( pad( data["pixvisi2_%s"%(train_or_valid)].reshape(batchsize,1,height,width).transpose(index) )).to( device=device ) # visibility at source (float)
 
     # apply threshold to source ADC values. returns a byte mask
     fvisi1_t  = fvisi1_t.clamp(0.0,1.0)
@@ -671,10 +777,11 @@ def prep_data( larcvloader, train_or_valid, batchsize, width, height, src_adc_th
     visi2_t = fvisi2_t.reshape( (batchsize,fvisi2_t.size()[2],fvisi2_t.size()[3]) ).long()
 
     # image column origins
-    #print data["meta_%s"%(train_or_valid)]
-    source_minx  = torch.from_numpy( data["meta_%s"%(train_or_valid)].reshape((batchsize,3,1,4))[:,0,:,0].reshape((batchsize)) ).to(device=device)
-    target1_minx = torch.from_numpy( data["meta_%s"%(train_or_valid)].reshape((batchsize,3,1,4))[:,1,:,0].reshape((batchsize)) ).to(device=device)
-    target2_minx = torch.from_numpy( data["meta_%s"%(train_or_valid)].reshape((batchsize,3,1,4))[:,2,:,0].reshape((batchsize)) ).to(device=device)
+    meta_data_np = data["meta_%s"%(train_or_valid)].reshape((batchsize,3,4,1)).transpose((0,1,3,2))
+    #print meta_data_np
+    source_minx  = torch.from_numpy( meta_data_np[:,2,0,0].reshape((batchsize)) ).to(device=device)
+    target1_minx = torch.from_numpy( meta_data_np[:,0,0,0].reshape((batchsize)) ).to(device=device)
+    target2_minx = torch.from_numpy( meta_data_np[:,1,0,0].reshape((batchsize)) ).to(device=device)
     
     return source_t, target1_t, target2_t, flow1_t, flow2_t, visi1_t, visi2_t, fvisi1_t, fvisi2_t, source_minx, target1_minx, target2_minx
 

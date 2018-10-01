@@ -23,10 +23,12 @@ class LArCV2Server:
 
     def __init__(self,batchsize,identity,configurationfile,larcvfillername,nworkers,port=0,server_verbosity=0,load_func=None,inputfile=None):
 
-        address = "ipc:///tmp/feeds" # client front end
+        feeddir = "/tmp/feed{}".format(identity)
+        address = "ipc://{}".format(feeddir) # client front end
+        os.system("mkdir -p {}".format(feeddir))
 
         # start the server
-        self.pserver = Process(target=__start_larcv2_server__,args=("ipc:///tmp/feeds",server_verbosity,))
+        self.pserver = Process(target=__start_larcv2_server__,args=(address,server_verbosity,))
         self.pserver.daemon = True
         self.pserver.start()
 
