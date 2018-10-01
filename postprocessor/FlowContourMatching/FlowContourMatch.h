@@ -84,7 +84,8 @@ namespace larflow {
 	shower_score(-1),
 	renormed_track_score(-1),
 	renormed_shower_score(-1),
-	trackid(-1)
+	trackid(-1),
+	truthflag(0)
       {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
@@ -106,6 +107,7 @@ namespace larflow {
       std::vector<float> X; // 3D coordinates from larlite::geo
       std::vector<float> X_truth; // from mctrack projection
       int trackid; // from mctrack projection
+      int truthflag;
     };
     struct ClosestContourPix_t {
       // stores info about the contours nearby to the point where
@@ -265,7 +267,7 @@ namespace larflow {
     void _tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 			const std::vector<unsigned int>& trackid,
 			const std::vector<double>& E,
-			const larcv::ImageMeta& meta,
+			const larcv::Image2D& adc,
 			std::vector<larcv::Image2D>& trackimg);
 
     

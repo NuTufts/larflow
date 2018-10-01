@@ -6,6 +6,7 @@
 #include "TGraph.h"
 #include "TStyle.h"
 #include <TApplication.h>
+#include "TVector3.h"
 
 // larlite
 #include "DataFormat/hit.h"
@@ -112,8 +113,8 @@ int main( int nargs, char** argv ) {
     std::cout << "Number of hits: " << ev_hit.size() << std::endl;
     const larlite::event_mctrack&  ev_track = *((larlite::event_mctrack*)dataco_mc.get_larlite_data(larlite::data::kMCTrack, "mcreco"));
 
-    matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
-
+    //matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
+    
     // blank track images: trackid, x, y, z, E with Y meta
     std::vector<larcv::Image2D> trackimg_v;
     for(int i=0; i<5; i++){
@@ -121,40 +122,31 @@ int main( int nargs, char** argv ) {
       trackimg.paint(-1.0);
       trackimg_v.emplace_back(std::move(trackimg));
     }
-    //larlite::mctrack truthtrack = ev_track.at(0);
-    for(const auto& truthtrack : ev_track){
+    //larlite::mctrack track = ev_track.at(0);
+    for(const auto& track : ev_track){
       //initialize internal vectors
       std::vector<std::vector<float>> xyz;
       std::vector<unsigned int> trackid;
       std::vector<float> E;
-      const larlite::mcstep start = truthtrack.Start();
-      bool isStart=true;
-      larlite::mcstep prev_step = start;
-      for(auto const& step : truthtrack){
+      for(int istep=1; istep<track.size(); istep++){
 	std::vector<float> dr(4); // x,y,z,t
 	std::vector<float> pos(3);
-	if(isStart){isStart=false; continue;}
+	dr[0] = -track[istep-1].X()+track[istep].X();
+	dr[1] = -track[istep-1].Y()+track[istep].Y();
+	dr[2] = -track[istep-1].Z()+track[istep].Z();
+	dr[3] = -track[istep-1].T()+track[istep].T();
+	double dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
+	for (int i=0; i<3; i++)
+	  dr[i] /= dR;
 
-	dr[0] = -prev_step.X()+step.X();
-	dr[1] = -prev_step.Y()+step.Y();
-	dr[2] = -prev_step.Z()+step.Z();
-	dr[3] = -prev_step.T()+step.T();
-	float dR = sqrt(pow(dr[0],2)+pow(dr[1],2)+pow(dr[2],2));
-	// segment theta: aingle in (z,y) plane starting from y axis
-	// sin(theta) = dz/dR
-	float theta = asin(dr[2]/dR);
-	// segment phi: angle in (x,y) starting from x axis
-	// sin(phi) = dy/sqrt(dx^2+dy^2) = dy/(dR*cos(theta))
-	float phi = asin(dr[1]/(dR*cos(theta)));
-	// we divide dR=sqrt(dx^2+dy^2+dz^2) in 0.15cm steps
-	const int N = dR/0.15;
-	for(int i=0; i<N; i++){
-	  pos[0] = prev_step.X()+N*cos(phi)*cos(theta)*0.15; // dx = cos(phi)*cos(theta)*stepsize
-	  pos[1] = prev_step.Y()+N*sin(phi)*cos(theta)*0.15; // dy = sin(phi)*cos(theta)*stepsize
-	  pos[2] = prev_step.Z()+N*sin(theta)*0.15; // dz = sin(theta)*stepsize
+	int N = (dR>0.15) ? dR/0.15+1 : 1;
+	double dstep = dR/double(N);	
+	for(int i=0; i<N; i++){	  
+	  pos[0] = track[istep-1].X()+dstep*i*dr[0];
+	  pos[1] = track[istep-1].Y()+dstep*i*dr[1];
+	  pos[2] = track[istep-1].Z()+dstep*i*dr[2];
 	  // for time use linear approximation
-	  float t = prev_step.T() + N*(0.15*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
-	  prev_step = step;
+	  float t = track[istep-1].T() + N*(0.15*::larutil::LArProperties::GetME()->DriftVelocity()*1.0e3); // cm * cm/usec * usec/ns
 	  std::vector<double> pos_offset = sce->GetPosOffsets( pos[0], pos[1], pos[2] );
 	  pos[0] = pos[0]-pos_offset[0]+0.7;
 	  pos[1] += pos_offset[1];
@@ -163,9 +155,9 @@ int main( int nargs, char** argv ) {
 	  float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
 	  pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
 	  xyz.push_back(pos);
-	  trackid.push_back(truthtrack.TrackID());
-	  E.push_back(step.E());
-	}
+	  trackid.push_back(track.TrackID());
+	  E.push_back(track[istep].E());
+	}		  
       }
 
       //now translate to image row, col
@@ -176,22 +168,27 @@ int main( int nargs, char** argv ) {
 	std::vector<int> crossing_imgcoords = matching_algo.getProjectedPixel( pos, whole_v[2].meta(), 3 );
 	imgpath.push_back( crossing_imgcoords );
       }
+      float thresh = 10.0; // ADC threshold
       int istep = 0;
       // note: pix are image row, col numbers
       for(auto const& pix : imgpath ){
 	if(pix[0]==-1 || pix[3]==-1){istep++; continue;}
-	double prevE = trackimg_v[4].pixel(pix[0],pix[3]);
-	if( prevE>0 && prevE > E.at(istep) ){ istep++; continue;} //fill only highest E deposit
-	trackimg_v[0].set_pixel(pix[0],pix[3],(float)trackid.at(istep));// trackid
-	trackimg_v[1].set_pixel(pix[0],pix[3],(float)xyz.at(istep)[0]); // x
-	trackimg_v[2].set_pixel(pix[0],pix[3],(float)xyz.at(istep)[1]); // y
-	trackimg_v[3].set_pixel(pix[0],pix[3],(float)xyz.at(istep)[2]); // z
-	trackimg_v[4].set_pixel(pix[0],pix[3],(float)E.at(istep)); // E
+	// smear thruth to +-2 pix if there is charge
+	for(int b= pix[3]-2; b<pix[3]+3; b++){
+	  if(b<0 || b>= trackimg_v[0].meta().cols()) continue; //border case
+	  double prevE = trackimg_v[4].pixel(pix[0],b);	  
+	  if( prevE>0 && prevE > E.at(istep) ) continue; //fill only highest E deposit
+	  if(whole_v[2].pixel(pix[0],b)<thresh) continue;
+	  int flag = (b==pix[3]) ? 1 : 2; // 0: not matched, 1: on track, 2: on smear
+	  trackimg_v[0].set_pixel(pix[0],b,(float)trackid.at(istep));// trackid
+	  trackimg_v[1].set_pixel(pix[0],b,(float)xyz.at(istep)[0]); // x
+	  trackimg_v[2].set_pixel(pix[0],b,(float)xyz.at(istep)[1]); // y
+	  trackimg_v[3].set_pixel(pix[0],b,(float)xyz.at(istep)[2]); // z
+	  trackimg_v[4].set_pixel(pix[0],b,(float)E.at(istep)); // E
+	}
 	istep++;
       }
-      
-      
-    }    
+    }
     // save the data from the last event
     for ( auto& img : trackimg_v ) {
       larcv::Image2D cp = img;
@@ -211,7 +208,16 @@ int main( int nargs, char** argv ) {
 
 }
     
-    
+// Below is alternative stepping with TVector3    
+//TVector3 dir(track[istep].X(),track[istep].Y(),track[istep].Z());
+//TVector3 prev(track[istep-1].X(),track[istep-1].Y(),track[istep-1].Z());
+//dir -= prev; //direction
+//double dR = dir.Mag();	
+//dir.SetMag(1.);
+//if(i>0) prev += dir*dstep;
+//pos[0] = prev.X();
+//pos[1] = prev.Y();
+//pos[2] = prev.Z();
 
 
 

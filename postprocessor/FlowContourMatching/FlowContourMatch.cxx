@@ -6,6 +6,7 @@
 // larlite
 #include "LArUtil/Geometry.h"
 #include "LArUtil/LArProperties.h"
+#include "LArUtil/DetectorProperties.h"
 
 // larcv2
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -42,7 +43,7 @@ namespace larflow {
     // parameters: see header for descriptions
     kTargetChargeRadius = 2;
 
-    //larutil 
+    // larutil 
     m_psce = new ::larutil::SpaceChargeMicroBooNE;
     m_ptsv = ::larutil::TimeService::GetME();
     
@@ -364,9 +365,9 @@ namespace larflow {
       tsv = ::larutil::TimeService::GetME();
     }
 
-    // blank track images: trackid, x, y, z, E with Y meta
+    // blank track images: trackid, x, y, z, E, flag with Y meta
     std::vector<larcv::Image2D> trackimg_v;
-    for(int i=0; i<5; i++){
+    for(int i=0; i<6; i++){
       larcv::Image2D trackimg(img_v[2].meta());
       trackimg.paint(-1.0);
       trackimg_v.emplace_back(std::move(trackimg));
@@ -379,7 +380,7 @@ namespace larflow {
       std::vector<std::vector<float>> tyz;//(nstep,std::vector<double>(3,0));
       
       _mctrack_to_tyz(truthtrack,tyz,trackid,E,sce,tsv);
-      _tyz_to_pixels(tyz,trackid,E,img_v[2].meta(),trackimg_v);
+      _tyz_to_pixels(tyz,trackid,E,img_v[2],trackimg_v);
     }
     std::vector<HitFlowData_t>* hit2flowdata = &plhit2flowdata.Y2U; // assign Y2U first
     std::vector<HitFlowData_t>* hit2flowdata2 = NULL; 
@@ -410,6 +411,7 @@ namespace larflow {
 	int row = trackimg_v[0].meta().row( hit.pixtick );
 	
 	hit.trackid = (int)trackimg_v[0].pixel(row,col);
+	hit.truthflag = (int)trackimg_v[5].pixel(row,col)+1; //nomatch is -1 in blank image
 	hit.X_truth[0] = trackimg_v[1].pixel(row,col);
 	hit.X_truth[1] = trackimg_v[2].pixel(row,col);
 	hit.X_truth[2] = trackimg_v[3].pixel(row,col);
@@ -425,6 +427,7 @@ namespace larflow {
 	  int row = trackimg_v[0].meta().row( hit.pixtick );
 
 	  hit.trackid = (int)trackimg_v[0].pixel(row,col);
+	  hit.truthflag = (int)trackimg_v[5].pixel(row,col)+1;
 	  hit.X_truth[0] = trackimg_v[1].pixel(row,col);
 	  hit.X_truth[1] = trackimg_v[2].pixel(row,col);
 	  hit.X_truth[2] = trackimg_v[3].pixel(row,col);
@@ -441,7 +444,7 @@ namespace larflow {
 					 ::larutil::SpaceChargeMicroBooNE* sce,
 					 const ::larutil::TimeService* tsv){
 
-    const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*(::larutil::DetectorProperties::GetME()->SamplingRate()*1.0e-3); 
     for(int step=1; step<truthtrack.size(); step++){
       std::vector<float> pos(3); //x,y,z
       std::vector<float> dr(4); // x,y,z,t
@@ -479,7 +482,7 @@ namespace larflow {
   void FlowContourMatch::_tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 					const std::vector<unsigned int>& trackid,
 					const std::vector<double>& E,
-					const larcv::ImageMeta& meta,
+					const larcv::Image2D& adc,
 					std::vector<larcv::Image2D>& trackimg_v){
 
     // this function updates the mctrack images for each mctrack
@@ -487,22 +490,29 @@ namespace larflow {
     std::vector<std::vector<int>> imgpath;
     imgpath.reserve(tyz.size());
     for (auto const& pos : tyz ) {
-      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( pos, meta, 3 );
-      std::vector<int> crossing_imgcoords = getProjectedPixel( pos, meta, 3 );
+      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( pos, adc.meta(), 3 );
+      std::vector<int> crossing_imgcoords = getProjectedPixel( pos, adc.meta(), 3 );
       imgpath.push_back( crossing_imgcoords );
     }
     
     int istep = 0;
+    float thresh = 10.0; // adc threshold
     // note: pix are image row, col numbers
     for(auto const& pix : imgpath ){
       if(pix[0]==-1 || pix[3]==-1){istep++; continue;}
-      double prevE = trackimg_v[4].pixel(pix[0],pix[3]);
-      if( prevE>0 && prevE > E.at(istep) ){ istep++; continue;} //fill only highest E deposit
-      trackimg_v[0].set_pixel(pix[0],pix[3],(float)trackid.at(istep));// trackid
-      trackimg_v[1].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[0]); // x
-      trackimg_v[2].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[1]); // y
-      trackimg_v[3].set_pixel(pix[0],pix[3],(float)tyz.at(istep)[2]); // z
-      trackimg_v[4].set_pixel(pix[0],pix[3],(float)E.at(istep)); // E
+      for(int b=pix[3]-3; b<pix[3]+4; b++){
+	if( b<0 || b>= trackimg_v[0].meta().cols()) continue; //border case
+	double prevE = trackimg_v[4].pixel(pix[0],b);
+	if( prevE>0 && prevE > E.at(istep) ) continue; //fill only highest E deposit
+	if( adc.pixel(pix[0],b)<thresh) continue;
+	trackimg_v[0].set_pixel(pix[0],b,(float)trackid.at(istep));// trackid
+	trackimg_v[1].set_pixel(pix[0],b,(float)tyz.at(istep)[0]); // x
+	trackimg_v[2].set_pixel(pix[0],b,(float)tyz.at(istep)[1]); // y
+	trackimg_v[3].set_pixel(pix[0],b,(float)tyz.at(istep)[2]); // z
+	trackimg_v[4].set_pixel(pix[0],b,(float)E.at(istep)); // E
+	int flag = (b==pix[3]) ? 1 : 2; // 1: on track, 2: on smear
+	trackimg_v[5].set_pixel(pix[0],b,(float)flag); // flag
+      }
       istep++;
     }
     
@@ -518,7 +528,7 @@ namespace larflow {
     float col_border = fabs(fracpixborder)*meta.pixel_width();
 
     // tick/row
-    float tick = pos3d[0]/(0.5*larutil::LArProperties::GetME()->DriftVelocity()) + 3200.0;
+    float tick = pos3d[0]/(::larutil::LArProperties::GetME()->DriftVelocity()*::larutil::DetectorProperties::GetME()->SamplingRate()*1.0e-3) + 3200.0;
     if ( tick<meta.min_y() ) {
       if ( tick>meta.min_y()-row_border )
 	// below min_y-border, out of image
