@@ -15,7 +15,8 @@ from larcv import larcv
 from func_intersect_ub import IntersectUB
 
 class LArFlow3DConsistencyLoss(nn.Module):
-    def __init__(self,ncols, nrows, batchsize, intersectiondata=None, larcv_version=None, nsource_wires=3456, ntarget_wires=2400, goodrange=None):
+    def __init__(self,ncols, nrows, batchsize, intersectiondata=None, larcv_version=None,
+                 nsource_wires=3456, ntarget_wires=2400, goodrange=None, return_pos_images=False, reduce=True):
         super(LArFlow3DConsistencyLoss,self).__init__()
         IntersectUB.load_intersection_data(intersectiondatafile=intersectiondata,larcv_version=larcv_version,nsource_wires=nsource_wires,ntarget_wires=ntarget_wires)
         IntersectUB.set_img_dims( nrows, ncols )
@@ -24,6 +25,8 @@ class LArFlow3DConsistencyLoss(nn.Module):
             self.goodrange_t[goodrange[0]:goodrange[1],:] = 1.0
         else:
             self.goodrange_t = None
+        self._return_pos_images = return_pos_images
+        self._reduce = reduce
         
         
     def forward(self,flow1_predict,flow2_predict,fmask1,fmask2,
@@ -69,10 +72,17 @@ class LArFlow3DConsistencyLoss(nn.Module):
 
         #print "diffyz: ",np.argwhere( np.isnan( diff_yz.detach().cpu().numpy() ) )
         #print "mask.sum: ",np.argwhere( np.isnan( mask.sum().detach().cpu().numpy() ) )
-        loss = l2.sum()
-        
-        # loss is the mean loss per non-masked pixel
-        if mask.sum()>0:
-            loss = l2.sum()/mask.sum() # divide by number of non-masked pixels
+        if self._reduce:
+            loss = l2.sum()
+            # loss is the mean loss per non-masked pixel
+            if mask.sum()>0:
+                loss = l2.sum()/mask.sum() # divide by number of non-masked pixels
+        else:
+            loss = l2
 
-        return loss
+        if not self._return_pos_images:
+            # default
+            return loss
+        else:
+            # for debug typically
+            return loss,posyz_target1_t,posyz_target2_t
