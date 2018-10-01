@@ -18,8 +18,8 @@ from larcvdataset import LArCVDataset
 class LArCV2Feeder( BasePushWorker ):
     """ This worker simply receives data and replies with dummy string. prints shape of array. """
 
-    def __init__( self,configfile,fillername,identity,pullsocket_address,port=0,batchsize=None):
-        super( LArCV2Feeder, self ).__init__(identity,pullsocket_address,port=port)
+    def __init__( self,configfile,fillername,identity,pullsocket_address,port=0,batchsize=None,worker_verbosity=0):
+        super( LArCV2Feeder, self ).__init__(identity,pullsocket_address,port=port,worker_verbosity=worker_verbosity)
         self.configfile = configfile
         self.fillername = fillername
         self.batchsize = batchsize
@@ -41,7 +41,7 @@ class LArCV2Feeder( BasePushWorker ):
         while not self.larcvloader.io._proc.manager_started():
             time.sleep(1.0)            
             print "LArCV2Feeder[{}] waiting for larcv_threadio".format(self._identity)
-        self.post_reply() # get first batch
+        #self.post_reply() # get first batch
         print "LArCV2Feeder[{}] manager started. syncing with client".format(self._identity)
         self.sync() # we notify the client we are ready
 
@@ -80,7 +80,10 @@ class LArCV2Feeder( BasePushWorker ):
         """ load up the next data set. we've already sent out the message. so here we try to hide latency while gpu running. """
         
         # get data
-        self.products = self.larcvloader[0]        
+        self.products = self.larcvloader[0]
+        while self.larcvloader.io._proc.thread_running():
+            print "finish load"
+            time.sleep(0.01)
         #print "[",self.num_reads,":{}] ".format(self._identity),self.products.keys()
         self.num_reads += 1
         return

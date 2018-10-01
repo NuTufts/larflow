@@ -76,6 +76,7 @@ class BasePullClient(object):
         troundtrip = time.time()-troundtrip
         self._ttracker["send/receive::triptime"] += troundtrip
         self.nmsgs += 1
+        print "PullClient[{}] number of messages {}".format(self._identity,self.nmsgs)
         return self.process_reply( reply )
 
 

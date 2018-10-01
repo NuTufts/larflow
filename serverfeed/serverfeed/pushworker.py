@@ -23,6 +23,7 @@ class BasePushWorker(object):
 
         self._context = zmq.Context(1)
         self.connect_to_pullsocket()
+        self.event_queue = []
 
         # connect to sync socket
         self._sync_socket = self._context.socket(zmq.REQ)
@@ -54,21 +55,29 @@ class BasePushWorker(object):
 
         while not self.isready():
             print "{} not ready".format(self._identity)
-            time.sleep(0.1)
+            time.sleep(0.01)
         print "{} Do Work".format(self._identity)
-        
+
+        nmsgs = 0
         while True:
 
             if self._worker_verbosity>1:
                 print "BasePushWorker[{}]: Generate Data".format(self._identity)
             # calling child function
             self.post_reply() # load data
-            
-            reply = self.generate_reply() # gen message
+
+            if len(self.event_queue)<4:
+                reply = self.generate_reply() # gen message
+                self.event_queue.append(reply)
             # send back through the proxy
             #self._socket.send_multipart(reply,copy=False)
-            self._socket.send_multipart(reply)
-                
+            if len(self.event_queue)>0:
+                reply = self.event_queue.pop()
+                self._socket.send_multipart(reply)
+                nmsgs += 1
+
+            if self._worker_verbosity>1:
+                print "BasePushWorker[{}]: Queue={} sent={}".format(self._identity,len(self.event_queue),nmsgs)
             # flush std out
             sys.stdout.flush()
             #break

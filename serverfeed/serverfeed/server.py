@@ -74,13 +74,13 @@ class Server:
         self._backend.bind(self._str_backendip)
         self._workers = WorkerQueue(self._server_verbosity) # queue for workers who are either registering for work or are returning work
         if self._server_verbosity>=0:
-            print("SSNetBroker: initialized. bound frontend(%s) and backend(%s)"%(self._str_frontendip, self._str_backendip))
+            print("Server: initialized. bound frontend(%s) and backend(%s)"%(self._str_frontendip, self._str_backendip))
 
     def start(self,timeout_sec=-1):
         # note: need to handle interrupt
         # Switch messages between sockets
         if self._server_verbosity>1:        
-            print "SSNetBroker: start"
+            print "Server: start"
 
         # Initialize pollers
 
@@ -102,7 +102,7 @@ class Server:
         
         while True:
             if self._server_verbosity>1:
-                print "SSNetBroker: runtime=",time.time()-tstart,"secs"
+                print "Server: runtime=",time.time()-tstart,"secs"
 
             if len(self._workers)>0:
                 poller = poll_both
@@ -112,7 +112,7 @@ class Server:
             #socks = dict(poller.poll( self._poller_timeout_secs*1000 ))
             socks = dict(poller.poll( 10 ))
             if self._server_verbosity>1:            
-                print "SSNetBroker: finish poll."
+                print "Server: finish poll."
 
             # Handle worker activity on backend
             if socks.get(self._backend) == zmq.POLLIN:
@@ -120,32 +120,32 @@ class Server:
                 frames = self._backend.recv_multipart(zmq.DONTWAIT)
                 if not frames:
                     if self._server_verbosity>=0:
-                        print "SSNetBroker: error in backend frame"
+                        print "Server: error in backend frame"
                     break
 
                 address = frames[0]
                 self._workers.ready(Worker(address,self._heartbeat_interval,self._heartbeat_liveness))
                 if self._server_verbosity>1:                
-                    print "SSNetBroker: added to queue worker {}. In queue=".format(address.decode("ascii")),len(self._workers)
+                    print "Server: added to queue worker {}. In queue=".format(address.decode("ascii")),len(self._workers)
                 
                 # Validate control message, or return reply to client
                 msg = frames[1:]
                 if len(msg) == 1:
                     if msg[0] not in (PPP_READY, PPP_HEARTBEAT):
-                        print "SSNetBroker: ERROR Invalid message from worker: %s" % msg
+                        print "Server: ERROR Invalid message from worker: %s" % msg
                     elif msg[0] == PPP_HEARTBEAT:
                         if self._server_verbosity>1:
-                            print "SSNetBroker: got heartbeat from {}".format(address.decode("ascii"))
+                            print "Server: got heartbeat from {}".format(address.decode("ascii"))
                         pass
                 else:
                     if self._server_verbosity>1:
-                        print "SSNetBroker: route worker {} result back to client {}".format( address.decode("ascii"), msg[0].decode("ascii") )
+                        print "Server: route worker {} result back to client {}".format( address.decode("ascii"), msg[0].decode("ascii") )
                     self._frontend.send_multipart(msg)
 
                 # # Send heartbeats to idle workers if it's time
                 # if time.time() >= heartbeat_at:
                 #     for worker in self._workers.queue:
-                #         print "SSNetBroker: send heartbeat"
+                #         print "Server: send heartbeat"
                 #         msg = [worker, PPP_HEARTBEAT]
                 #         self._backend.send_multipart(msg)
                 #     heartbeat_at = time.time() + self._heartbeat_interval
@@ -156,18 +156,18 @@ class Server:
             if socks.get(self._frontend) == zmq.POLLIN:
                 frames = self._frontend.recv_multipart(zmq.DONTWAIT)
                 if not frames:
-                    print "SSNetBroker: error in frontend frame"
+                    print "Server: error in frontend frame"
                     break
                 frames.insert(0, self._workers.next())
                 if self._server_verbosity>1:
-                    print "SSNetBroker: send job for {} to {}".format(frames[1],frames[0])
+                    print "Server: send job for {} to {}".format(frames[1],frames[0])
                 self._backend.send_multipart(frames)
 
             # Send heartbeats to idle workers if it's time
             if time.time() >= heartbeat_at:
                 for worker in self._workers.queue:
                     if self._server_verbosity>1:
-                        print "SSNetBroker: send heartbeat"
+                        print "Server: send heartbeat"
                     msg = [worker, PPP_HEARTBEAT]
                     self._backend.send_multipart(msg)
                 heartbeat_at = time.time() + self._heartbeat_interval
@@ -179,13 +179,13 @@ class Server:
             # purge expired workers
             self._workers.purge()
             if self._server_verbosity>1:            
-                print "SSNetBroker: purged. in queue=",len(self._workers)
+                print "Server: purged. in queue=",len(self._workers)
                     
 
             # check for time-out condition.
             # change state to closing
             if timeout_sec>0 and time.time()-tstart>timeout_sec:
-                print "SSNetBroker: at end of life. stopping."
+                print "Server: at end of life. stopping."
                 break
 
             sys.stdout.flush()
@@ -203,4 +203,4 @@ class Server:
         self._frontend.close()
         self._context.term()
 
-        print "SSNetBroker: shutting down"
+        print "Server: shutting down"

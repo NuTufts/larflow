@@ -6,7 +6,7 @@ from larcv2feeder import LArCV2Feeder
 
 def __start_larcv2feeder_workers__(identity,configfile,fillername,address,port,batchsize):
     print "starting LArCV2Feeder {} w/ batchsize={}".format(identity,batchsize)
-    worker = LArCV2Feeder(configfile,fillername,identity,address,port=port,batchsize=batchsize)
+    worker = LArCV2Feeder(configfile,fillername,identity,address,port=port,batchsize=batchsize,worker_verbosity=1)
     print "starting LArCV2Feeder {} do_work".format(identity,batchsize)    
     worker.do_work()
         
@@ -39,6 +39,7 @@ class LArCV2SocketFeeder:
             pworker.start()
 
     def get_batch_dict(self):
+        print "recieve one message"
         return self.client.receive()
 
     def __len__(self):
