@@ -365,9 +365,9 @@ namespace larflow {
       tsv = ::larutil::TimeService::GetME();
     }
 
-    // blank track images: trackid, x, y, z, E, flag with Y meta
+    // blank track images: trackid, x, y, z, E, flag, dWall with Y meta
     std::vector<larcv::Image2D> trackimg_v;
-    for(int i=0; i<6; i++){
+    for(int i=0; i<7; i++){
       larcv::Image2D trackimg(img_v[2].meta());
       trackimg.paint(-1.0);
       trackimg_v.emplace_back(std::move(trackimg));
@@ -378,9 +378,10 @@ namespace larflow {
       std::vector<unsigned int> trackid;//(nstep,0);
       std::vector<double> E;//(nstep,0);
       std::vector<std::vector<float>> tyz;//(nstep,std::vector<double>(3,0));
+      std::vector<float> dWall;
       
-      _mctrack_to_tyz(truthtrack,tyz,trackid,E,sce,tsv);
-      _tyz_to_pixels(tyz,trackid,E,img_v[2],trackimg_v);
+      _mctrack_to_tyz(truthtrack,tyz,trackid,E,dWall,sce,tsv);
+      _tyz_to_pixels(tyz,trackid,E,dWall,img_v[2],trackimg_v);
     }
     std::vector<HitFlowData_t>* hit2flowdata = &plhit2flowdata.Y2U; // assign Y2U first
     std::vector<HitFlowData_t>* hit2flowdata2 = NULL; 
@@ -415,6 +416,8 @@ namespace larflow {
 	hit.X_truth[0] = trackimg_v[1].pixel(row,col);
 	hit.X_truth[1] = trackimg_v[2].pixel(row,col);
 	hit.X_truth[2] = trackimg_v[3].pixel(row,col);
+	hit.dWall      = trackimg_v[6].pixel(row,col);
+	//std::cout <<"dWall= "<< hit.dWall << std::endl;
       }
     }
     
@@ -431,6 +434,7 @@ namespace larflow {
 	  hit.X_truth[0] = trackimg_v[1].pixel(row,col);
 	  hit.X_truth[1] = trackimg_v[2].pixel(row,col);
 	  hit.X_truth[2] = trackimg_v[3].pixel(row,col);
+	  hit.dWall      = trackimg_v[6].pixel(row,col);
 	}
       }
     }
@@ -441,10 +445,20 @@ namespace larflow {
 					 std::vector<std::vector<float>>& tyz,
 					 std::vector<unsigned int>& trackid,
 					 std::vector<double>& E,
+					 std::vector<float>& dWall,
 					 ::larutil::SpaceChargeMicroBooNE* sce,
 					 const ::larutil::TimeService* tsv){
 
     const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*(::larutil::DetectorProperties::GetME()->SamplingRate()*1.0e-3); 
+    // detector boundaries
+    const ::larutil::Geometry* geo = ::larutil::Geometry::GetME();
+    const float xmin = 0.;
+    const float xmax = geo->DetHalfWidth()*2.;
+    const float ymin = -1.*geo->DetHalfHeight();
+    const float ymax = geo->DetHalfHeight();
+    const float zmin = 0.;
+    const float zmax = geo->DetLength();
+
     for(int step=1; step<truthtrack.size(); step++){
       std::vector<float> pos(3); //x,y,z
       std::vector<float> dr(4); // x,y,z,t
@@ -459,6 +473,7 @@ namespace larflow {
       int N = (dR>0.15) ? dR/0.15+1 : 1;
       float dstep = dR/float(N);
       for(int i=0; i<N; i++){
+	float mindist = 1.0e4;
 	pos[0] = truthtrack[step-1].X()+dstep*i*dr[0];
 	pos[1] = truthtrack[step-1].Y()+dstep*i*dr[1];
 	pos[2] = truthtrack[step-1].Z()+dstep*i*dr[2];
@@ -471,8 +486,17 @@ namespace larflow {
 	pos[2] += pos_offset[2];
 	//time tick
 	float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
-	pos[0] = (tick + tsv->TriggerOffsetTPC()/0.5)*cm_per_tick; // x in cm
+	pos[0] = (tick + tsv->TriggerOffsetTPC()/(::larutil::DetectorProperties::GetME()->SamplingRate()*1.0e-3))*cm_per_tick; // x in cm
+	// SCE shifted min dist to wall
+	if(std::abs(pos[0] - xmin)< mindist) mindist = std::abs(pos[0] - xmin);
+	if(std::abs(pos[0] - xmax)< mindist) mindist = std::abs(pos[0] - xmax);
+	if(std::abs(pos[1] - ymin)< mindist) mindist = std::abs(pos[1] - ymin);
+	if(std::abs(pos[1] - ymax)< mindist) mindist = std::abs(pos[1] - ymax);
+	if(std::abs(pos[2] - zmin)< mindist) mindist = std::abs(pos[2] - zmin);
+	if(std::abs(pos[2] - zmax)< mindist) mindist = std::abs(pos[2] - zmax);
+
 	tyz.push_back(pos);
+	dWall.push_back(mindist);
 	trackid.push_back(truthtrack.TrackID());//this is the same for all steps in a track
 	E.push_back(truthtrack[step-1].E());
       }
@@ -482,6 +506,7 @@ namespace larflow {
   void FlowContourMatch::_tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 					const std::vector<unsigned int>& trackid,
 					const std::vector<double>& E,
+					const std::vector<float>& dWall,
 					const larcv::Image2D& adc,
 					std::vector<larcv::Image2D>& trackimg_v){
 
@@ -500,7 +525,7 @@ namespace larflow {
     // note: pix are image row, col numbers
     for(auto const& pix : imgpath ){
       if(pix[0]==-1 || pix[3]==-1){istep++; continue;}
-      for(int b=pix[3]-3; b<pix[3]+4; b++){
+      for(int b=pix[3]-2; b<pix[3]+3; b++){
 	if( b<0 || b>= trackimg_v[0].meta().cols()) continue; //border case
 	double prevE = trackimg_v[4].pixel(pix[0],b);
 	if( prevE>0 && prevE > E.at(istep) ) continue; //fill only highest E deposit
@@ -510,8 +535,9 @@ namespace larflow {
 	trackimg_v[2].set_pixel(pix[0],b,(float)tyz.at(istep)[1]); // y
 	trackimg_v[3].set_pixel(pix[0],b,(float)tyz.at(istep)[2]); // z
 	trackimg_v[4].set_pixel(pix[0],b,(float)E.at(istep)); // E
-	int flag = (b==pix[3]) ? 1 : 2; // 1: on track, 2: on smear
+	int flag = (b==pix[3]) ? 0 : 1; // 1: on track, 2: on smear //+1 when filling hit
 	trackimg_v[5].set_pixel(pix[0],b,(float)flag); // flag
+	trackimg_v[6].set_pixel(pix[0],b,(float)dWall.at(istep)); //dWall
       }
       istep++;
     }
@@ -1590,7 +1616,7 @@ namespace larflow {
       flowhit.X_truth[1]    = hitdata.X_truth[1];
       flowhit.X_truth[2]    = hitdata.X_truth[2];
       flowhit.trackid       = hitdata.trackid;
-      
+      flowhit.dWall         = hitdata.dWall;
       switch ( hitdata.matchquality ) {
       case 1:
 	flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
@@ -1603,6 +1629,20 @@ namespace larflow {
 	break;
       default:
 	flowhit.matchquality=larlite::larflow3dhit::kNoMatch;
+	break;
+      }
+      switch ( hitdata.truthflag ) {
+      case 0:
+	flowhit.truthflag=larlite::larflow3dhit::kNoTruthMatch;
+	break;
+      case 1:
+	flowhit.truthflag=larlite::larflow3dhit::kOnTrack;
+	break;
+      case 2:
+	flowhit.truthflag=larlite::larflow3dhit::kOnSmear;
+	break;
+      default:
+	flowhit.truthflag=larlite::larflow3dhit::kUnknown;
 	break;
       }
       output_hit3d_v.emplace_back( flowhit );
@@ -1660,7 +1700,7 @@ namespace larflow {
 	flowhit.X_truth[1]    = hitdata.X_truth[1];
 	flowhit.X_truth[2]    = hitdata.X_truth[2];
 	flowhit.trackid       = hitdata.trackid;
-	
+	flowhit.dWall         = hitdata.dWall;
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
@@ -1676,6 +1716,20 @@ namespace larflow {
 	  break;
 	}
 	flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
+	switch ( hitdata.truthflag ) {
+	case 0:
+	  flowhit.truthflag=larlite::larflow3dhit::kNoTruthMatch;
+	  break;
+	case 1:
+	  flowhit.truthflag=larlite::larflow3dhit::kOnTrack;
+	  break;
+	case 2:
+	  flowhit.truthflag=larlite::larflow3dhit::kOnSmear;
+	  break;
+	default:
+	  flowhit.truthflag=larlite::larflow3dhit::kUnknown;
+	  break;
+	}
 	output_hit3d_v.emplace_back( flowhit );
       }
     }// end of only 1 ran
@@ -1760,7 +1814,8 @@ namespace larflow {
 	flowhit.X_truth[1]    = hitdata.X_truth[1];
 	flowhit.X_truth[2]    = hitdata.X_truth[2];
 	flowhit.trackid       = hitdata.trackid;
-
+	flowhit.dWall         = hitdata.dWall;
+	//std::cout <<"hitdata dWall "<< hitdata.dWall <<" flowhit dWall " << flowhit.dWall << std::endl;
 	switch ( hitdata.matchquality ) {
 	case 1:
 	  flowhit.matchquality=larlite::larflow3dhit::kQandCmatch;
@@ -1790,6 +1845,20 @@ namespace larflow {
 	  break;
 	default:
 	  flowhit.consistency3d=larlite::larflow3dhit::kNoValue;
+	  break;
+	}
+	switch ( hitdata.truthflag ) {
+	case 0:
+	  flowhit.truthflag=larlite::larflow3dhit::kNoTruthMatch;
+	  break;
+	case 1:
+	  flowhit.truthflag=larlite::larflow3dhit::kOnTrack;
+	  break;
+	case 2:
+	  flowhit.truthflag=larlite::larflow3dhit::kOnSmear;
+	  break;
+	default:
+	  flowhit.truthflag=larlite::larflow3dhit::kUnknown;
 	  break;
 	}
 	output_hit3d_v.emplace_back( flowhit );

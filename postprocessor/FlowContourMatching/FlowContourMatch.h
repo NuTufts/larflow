@@ -85,7 +85,8 @@ namespace larflow {
 	renormed_track_score(-1),
 	renormed_shower_score(-1),
 	trackid(-1),
-	truthflag(0)
+	truthflag(0),
+	dWall(0)
       {};
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
@@ -108,6 +109,7 @@ namespace larflow {
       std::vector<float> X_truth; // from mctrack projection
       int trackid; // from mctrack projection
       int truthflag;
+      float dWall; //min dist to detector boundary
     };
     struct ClosestContourPix_t {
       // stores info about the contours nearby to the point where
@@ -261,12 +263,14 @@ namespace larflow {
 			 std::vector<std::vector<float>>& tyz,
 			 std::vector<unsigned int>& trackid,
 			 std::vector<double>& E,
+			 std::vector<float>& dWall,
 			 ::larutil::SpaceChargeMicroBooNE* psce,
 			 const ::larutil::TimeService* ptsv);
 
     void _tyz_to_pixels(const std::vector<std::vector<float>>& tyz,
 			const std::vector<unsigned int>& trackid,
 			const std::vector<double>& E,
+			const std::vector<float>& dWall,
 			const larcv::Image2D& adc,
 			std::vector<larcv::Image2D>& trackimg);
 
