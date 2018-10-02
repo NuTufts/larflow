@@ -12,14 +12,11 @@ m.patch()
 
 os.environ["GLOG_minloglevel"] = "1"
 
-from workermessages import decode_larcv1_metamsg
-from larcvdataset import LArCVDataset
+class LArCVServerWorker( WorkerService ):
+    """ This worker uses a user function to prepare data. """
 
-class LArCV2ServerWorker2( WorkerService ):
-    """ This worker simply receives data and replies with dummy string. prints shape of array. """
-
-    def __init__( self,inputfile,identity,ipaddress,load_func,port=0,batchsize=None,worker_verbosity=0):
-        super( LArCV2ServerWorker2, self ).__init__(identity,ipaddress)
+    def __init__( self,identity,inputfile,ipaddress,load_func,batchsize=None,verbosity=0):
+        super( LArCVServerWorker, self ).__init__(identity,ipaddress,verbosity=verbosity)
         self.inputfile = inputfile
         self.io = larcv.IOManager(larcv.IOManager.kREAD)
         self.io.add_in_file(self.inputfile)
@@ -31,7 +28,9 @@ class LArCV2ServerWorker2( WorkerService ):
         self.print_msg_size = False
         self.num_reads = 0
         self.load_func = load_func
-        print "LArCV2ServerWorker2[{}] is loaded.".format(self._identity)
+        if not callable(self.load_func):
+            raise ValueError("'load_func' argument needs to be a function returning a dict of numpy arrays")
+        print "LArCVServerWorker[{}] is loaded.".format(self._identity)
         
     def process_message(self, frames ):
         """ just a request. nothing to parse
@@ -68,7 +67,8 @@ class LArCV2ServerWorker2( WorkerService ):
             
         self.num_reads += 1
         tload = time.time()-tstart
-        print "LArCV2ServerWorker2[{}] fetched data. time={} secs. nreads={}".format(self._identity,tload,self.num_reads)
+        if self._verbosity>0:
+            print "LArCVServerWorker[{}] fetched data. time={} secs. nreads={}".format(self._identity,tload,self.num_reads)
         return
     
     def generate_reply(self):
@@ -97,21 +97,12 @@ class LArCV2ServerWorker2( WorkerService ):
             reply.append( key.encode('utf-8') )
             reply.append( x_comp )
 
-        if self.print_msg_size:
-            print "LArCV2ServerWorker2[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
-        print "LArCV2ServerWorker2[{}]: generate msg in {} secs".format(self._identity,time.time()-tstart)
+        if self._verbosity>1:
+            if self.print_msg_size:
+                print "LArCVServerWorker[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
+            print "LArCVServerWorker[{}]: generate msg in {} secs".format(self._identity,time.time()-tstart)
         return reply
         
-    def start_dataloader(self,batchsize):
-        print "LArCV2ServerWorker2[{}] starting loader w/ batchsize={}".format(self._identity,self.batchsize)
-        self.batchsize = batchsize
-        self.larcvloader.start(self.batchsize)
-        print "LArCV2ServerWorker2[{}] dataloader ready, loading first product set".format(self._identity,self.batchsize)
-        while not self.larcvloader.io._proc.manager_started():
-            time.sleep(1.0)            
-            print "LArCV2ServerWorker2[{}] waiting for larcv_threadio".format(self._identity)
-        #self.post_reply() # get first batch
-        print "LArCV2ServerWorker2[{}] manager started. syncing with client".format(self._identity)
             
 
 if __name__ == "__main__":

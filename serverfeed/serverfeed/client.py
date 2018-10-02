@@ -27,17 +27,18 @@ Behavior with respect to the server
 
 class ServerClient(object):
 
-    def __init__( self, identity, broker_ipaddress, port=5559, timeout_secs=30, max_tries=3, do_compress=True ):
+    def __init__( self, identity, broker_ipaddress, timeout_secs=30, max_tries=3, do_compress=True, verbosity=0 ):
         #  Prepare our context and sockets
         self._identity = u"Client-{}".format(identity).encode("ascii")
         self._broker_ipaddress = broker_ipaddress
-        self._port = port
         self._max_tries = max_tries
         self._timeout_secs=timeout_secs
         self._expected_shape = (24,1,512,512)
         self._compress = do_compress
+        self._verbosity = verbosity        
         self.load_socket()
         self.nmsgs = 0
+
 
         self._ttracker = OrderedDict()
         self._ttracker["send/receive::triptime"] = 0.0
@@ -80,7 +81,8 @@ class ServerClient(object):
                     break
                 
                 # process reply
-                print "ServerClient[{}] received reply.".format(self._identity)
+                if self._verbosity>1:
+                    print "ServerClient[{}] received reply.".format(self._identity)
                 troundtrip = time.time()-troundtrip
                 self._ttracker["send/receive::triptime"] += troundtrip
                 self.nmsgs += 1

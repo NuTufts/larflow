@@ -1,10 +1,5 @@
 import time
 from client import ServerClient
-from collections import OrderedDict
-from functools import reduce
-import ROOT as rt
-from ROOT import std
-import numpy as np
 import zmq
 import zlib
 
@@ -12,18 +7,13 @@ import msgpack
 import msgpack_numpy as m
 m.patch()
 
-from workermessages import decode_larcv1_metamsg
 
-# Inherist from client.SSNetClient
-# Base class handles network stuff
-# This handles processing of LArCV1 events
-# Really, what I should use is composition ...
-
-class LArCV2ServerClient( ServerClient ):
+class LArCVServerClient( ServerClient ):
+    """ simply recieves output of larcvserverworker (through server) """
 
     def __init__(self, identity, broker_ipaddress):
         # Call Mother
-        super( LArCV2ServerClient, self ).__init__( identity, broker_ipaddress )
+        super( LArCVServerClient, self ).__init__( identity, broker_ipaddress )
 
     def get_batch(self):
         return True

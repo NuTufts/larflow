@@ -1,8 +1,9 @@
 import os,sys,time
 
-from serverfeed.larcv2server import LArCV2Server
+from serverfeed.larcvserver import LArCVServer
 
 def load_data( io ):
+    """ example of data loader function. we provide dictionary with numpy arrays (no batch) """
     from larcv import larcv
     import numpy as np
     
@@ -48,8 +49,7 @@ if __name__ == "__main__":
     nworkers  = 4
     print "start feeders"
     inputfile = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root"
-    #feeder = LArCV2Server(batchsize,"test","tester_flowloader_dualflow_train.cfg","ThreadProcessorTrain",nworkers,server_verbosity=1)
-    feeder = LArCV2Server(batchsize,"test","tester_flowloader_dualflow_train.cfg","ThreadProcessorTrain",nworkers,server_verbosity=0,load_func=load_data,inputfile=inputfile)
+    feeder = LArCVServer(batchsize,"test",load_data,inputfile,nworkers,server_verbosity=0,worker_verbosity=0)
 
     print "wait for workers to load up"
     twait = 3

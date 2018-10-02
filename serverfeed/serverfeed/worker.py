@@ -7,9 +7,12 @@ from workermessages import PPP_READY, PPP_HEARTBEAT
 
 class WorkerService(object):
 
-    def __init__(self,identity,broker_ipaddress, timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3, ssh_thru_server=None):
+    def __init__(self,identity,broker_address,
+                 timeout_secs=30, heartbeat_interval_secs=2, num_missing_beats=3,
+                 ssh_thru_server=None, verbosity=0):
         self._identity = u"Worker-{}".format(identity).encode("ascii")
-        self._broker_ipaddress = broker_ipaddress
+        self._broker_address = broker_address
+        self._verbosity = verbosity
         self._heartbeat_interval = heartbeat_interval_secs
         self._num_missing_beats  = num_missing_beats
         self._interval_init      = 1
@@ -35,11 +38,12 @@ class WorkerService(object):
         
         if self._ssh_thru_server is None:
             # regular connection            
-            self._socket.connect("%s/%d"%(self._broker_ipaddress,1))
+            self._socket.connect("%s/%d"%(self._broker_address,1))
             print "WorkerService[{}] socket connected".format(self._identity)
-        #else:
-        #    #ssh.tunnel_connection(self._socket, "tcp://%s:%d"%(self._broker_ipaddress,self._broker_port), self._ssh_thru_server )
-        #    #print "WorkerService[{}] socket connected via ssh-tunnel".format(self._identity)
+        else:
+            raise RuntimeError("Not implemented yet")
+            #ssh.tunnel_connection(self._socket, "tcp://%s:%d"%(self._broker_ipaddress,self._broker_port), self._ssh_thru_server )
+            #print "WorkerService[{}] socket connected via ssh-tunnel".format(self._identity)
 
         self._socket.send(PPP_READY)
         print "WorkerService[{}] sent PPP_READY".format(self._identity)        
@@ -67,18 +71,21 @@ class WorkerService(object):
                 
                 if len(frames) >=3:
 
-                    #print "WorkerService[{}]: Replying".format(self._identity)
+                    if self._verbosity>1:
+                        print "WorkerService[{}]: Replying".format(self._identity)
                     # calling child function
 
                     # add back client-routing envelope
                     reply = [frames[0],frames[1]]
 
                     if len(self._data_queue)==0:
-                        #print "WorkerService[{}]: queue empty. generate data".format(self._identity)
+                        if self._verbosity>1:
+                            print "WorkerService[{}]: queue empty. generate data".format(self._identity)
                         self._data_queue.append( self.generate_reply() )
                     else:
-                        #print "WorkerService[{}]: use queue. num stored={}".format(self._identity,len(self._data_queue))
-                        pass
+                        if self._verbosity>1:                        
+                            print "WorkerService[{}]: use queue. num stored={}".format(self._identity,len(self._data_queue))
+
                     # append reply content
                     reply.extend( self._data_queue.pop(0) )
                     # send back through the proxy
@@ -90,7 +97,8 @@ class WorkerService(object):
                     server_heartbeat_at = time.time() + self._heartbeat_interval*(self._num_missing_beats-liveness+1)                    
                                         
                 elif len(frames) == 1 and frames[0] == PPP_HEARTBEAT:
-                    #print "WorkerService[{}]: Recieved Queue heartbeat".format(self._identity)
+                    if self._verbosity>1:
+                        print "WorkerService[{}]: Recieved Queue heartbeat".format(self._identity)
                     # reset liveness count
                     liveness = self._num_missing_beats
                     # set time until server heartbeat
@@ -125,15 +133,17 @@ class WorkerService(object):
                 # update queue if nothing to do
                 if len(self._data_queue)<4:
                     self._data_queue.append( self.generate_reply() )
-                    #print "WorkerService[{}]: fill queue to {} ...".format(self._identity,len(self._data_queue))
+                    if self._verbosity>0:
+                        print "WorkerService[{}]: fill queue to {} ...".format(self._identity,len(self._data_queue))
                 else:
-                    #print "WorkerService[{}]: queue full ...".format(self._identity)                    
-                    pass
+                    if self._verbosity>2:
+                        print "WorkerService[{}]: queue full ...".format(self._identity)                    
                 
             # out of poller if/then
             # is it time to send a heartbeat to the client?
             if time.time() > heartbeat_at:
-                #print "WorkerService[{}]: Worker sending heartbeat".format(self._identity)
+                if self._verbosity>1:
+                    print "WorkerService[{}]: Worker sending heartbeat".format(self._identity)
                 self._socket.send(PPP_HEARTBEAT)
                 heartbeat_at = time.time() + self._heartbeat_interval                
                 

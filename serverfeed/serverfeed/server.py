@@ -55,7 +55,7 @@ class WorkerQueue(object):
 
 class Server:
 
-    def __init__(self,ipaddress,frontendport=5559,backendport=5560, heartbeat_interval_secs=1, heartbeat_liveness=5, poller_timeout_secs=1, server_verbosity=0):
+    def __init__(self,ipaddress,heartbeat_interval_secs=1, heartbeat_liveness=5, poller_timeout_secs=1, server_verbosity=0):
         # Prepare our context and sockets
         self._ipaddress = ipaddress
         self._heartbeat_interval  = heartbeat_interval_secs
@@ -66,10 +66,8 @@ class Server:
         self._context   = zmq.Context()
         self._frontend  = self._context.socket(zmq.ROUTER)
         self._backend   = self._context.socket(zmq.ROUTER)
-        #self._str_frontendip = "tcp://%s:%s"%(ipaddress,frontendport)
-        #self._str_backendip  = "tcp://%s:%s"%(ipaddress,backendport)        
-        self._str_frontendip = "ipc:///tmp/feeds/0"
-        self._str_backendip  = "ipc:///tmp/feeds/1"
+        self._str_frontendip = "%s/0"%(ipaddress)
+        self._str_backendip  = "%s/1"%(ipaddress)    
         self._frontend.bind(self._str_frontendip)
         self._backend.bind(self._str_backendip)
         self._workers = WorkerQueue(self._server_verbosity) # queue for workers who are either registering for work or are returning work
