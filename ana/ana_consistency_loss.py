@@ -295,8 +295,8 @@ current_event  = -1
 for ientry in xrange(start_entry,start_entry+nentries,batchsize_valid):
 
     # canvas for debug
-    c = rt.TCanvas("c","c",1500,1000)
-    c.Divide(3,2)
+    c = rt.TCanvas("c","c",1500,1200)
+    c.Divide(3,3)
     c.Draw()
 
 
@@ -429,7 +429,23 @@ for ientry in xrange(start_entry,start_entry+nentries,batchsize_valid):
     aved_th2d.SetTitle("consistency dist")
     aved_th2d.Draw("COLZ")
     c.Update()
-    #c.SaveAs("loss3d_%d.png"%(ientry))
+
+    # model out
+    img_outy2u = larcv.as_image2d_meta( flowy2u[0,0,:,:].detach().cpu().numpy().transpose((1,0)), srcmetas[0] )
+    houty2u = larcv.as_th2d( img_outy2u, "houty2u" )
+    c.cd(8)
+    houty2u.SetTitle("output Y2U")
+    houty2u.Draw("COLZ")
+    c.Update()
+
+    img_outy2v = larcv.as_image2d_meta( flowy2v[0,0,:,:].detach().cpu().numpy().transpose((1,0)), srcmetas[0] )
+    houty2v = larcv.as_th2d( img_outy2v, "houty2v" )
+    c.cd(9)
+    houty2v.SetTitle("output Y2V")
+    houty2v.Draw("COLZ")
+    c.Update()    
+    
+    
     c.SaveAs("loss3d_check_%d.png"%(ientry))
     
     npixs = (fvisi1*fvisi2).sum()
