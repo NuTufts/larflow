@@ -15,11 +15,11 @@ os.environ["GLOG_minloglevel"] = "1"
 from workermessages import decode_larcv1_metamsg
 from larcvdataset import LArCVDataset
 
-class LArCV2ServerWorker( WorkerService ):
+class LArCV2ThreadIOWorker( WorkerService ):
     """ This worker simply receives data and replies with dummy string. prints shape of array. """
 
-    def __init__( self,configfile,fillername,identity,ipaddress,port=0,batchsize=None,worker_verbosity=0):
-        super( LArCV2ServerWorker, self ).__init__(identity,ipaddress)
+    def __init__( self,configfile,fillername,identity,ipaddress,port=0,batchsize=None,verbosity=0):
+        super( LArCV2ThreadIOWorker, self ).__init__(identity,ipaddress)
         self.configfile = configfile
         self.fillername = fillername
         self.batchsize = batchsize
@@ -30,7 +30,7 @@ class LArCV2ServerWorker( WorkerService ):
         self.num_reads = 0
         if self.batchsize is not None:
             self.start_dataloader(self.batchsize)
-        print "LArCV2ServerWorker[{}] is loaded.".format(self._identity)
+        print "LArCV2ThreadIOWorker[{}] is loaded.".format(self._identity)
         
     def process_message(self, frames ):
         """ just a request. nothing to parse
@@ -51,7 +51,7 @@ class LArCV2ServerWorker( WorkerService ):
             time.sleep(0.001)        
         #print "[",self.num_reads,":{}] ".format(self._identity),self.products.keys()
         self.num_reads += 1        
-        print "LArCV2ServerWorker[{}] fetched data. time={} secs. nreads={}".format(self._identity,time.time()-tstart,self.num_reads)
+        print "LArCV2ThreadIOWorker[{}] fetched data. time={} secs. nreads={}".format(self._identity,time.time()-tstart,self.num_reads)
         return
     
     def generate_reply(self):
@@ -81,20 +81,20 @@ class LArCV2ServerWorker( WorkerService ):
             reply.append( x_comp )
 
         if self.print_msg_size:
-            print "LArCV2ServerWorker[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
-        print "LArCV2ServerWorker[{}]: generate msg in {} secs".format(self._identity,time.time()-tstart)
+            print "LArCV2ThreadIOWorker[{}]: size of array portion={} MB (uncompressed {} MB)".format(self._identity,totcompsize/1.0e6,totmsgsize/1.0e6)
+        print "LArCV2ThreadIOWorker[{}]: generate msg in {} secs".format(self._identity,time.time()-tstart)
         return reply
         
     def start_dataloader(self,batchsize):
-        print "LArCV2ServerWorker[{}] starting loader w/ batchsize={}".format(self._identity,self.batchsize)
+        print "LArCV2ThreadIOWorker[{}] starting loader w/ batchsize={}".format(self._identity,self.batchsize)
         self.batchsize = batchsize
         self.larcvloader.start(self.batchsize)
-        print "LArCV2ServerWorker[{}] dataloader ready, loading first product set".format(self._identity,self.batchsize)
+        print "LArCV2ThreadIOWorker[{}] dataloader ready, loading first product set".format(self._identity,self.batchsize)
         while not self.larcvloader.io._proc.manager_started():
             time.sleep(1.0)            
-            print "LArCV2ServerWorker[{}] waiting for larcv_threadio".format(self._identity)
+            print "LArCV2ThreadIOWorker[{}] waiting for larcv_threadio".format(self._identity)
         #self.post_reply() # get first batch
-        print "LArCV2ServerWorker[{}] manager started. syncing with client".format(self._identity)
+        print "LArCV2ThreadIOWorker[{}] manager started. syncing with client".format(self._identity)
             
 
 if __name__ == "__main__":
