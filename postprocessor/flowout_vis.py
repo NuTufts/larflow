@@ -49,8 +49,8 @@ io.add_in_filename( inputfile )
 io.open()
 
 # color scheme
-schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall"]
-shortschemes = ["ssnet","quality","flowdir","infill","3ddist","hastruth","dwall"]
+schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall","colorbyrecovstruth"]
+shortschemes = ["ssnet","quality","flowdir","infill","3ddist","hastruth","dwall","recovstruth"]
 
 colorscheme = args.color
 if colorscheme in shortschemes:
@@ -62,14 +62,23 @@ if colorscheme not in schemes:
 io.go_to(0)
 ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, "flowhits" )
 nhits = ev_larflow.size()
-
+ntruth = 0
 print "Number of larflow hits: ",nhits
 
+if colorscheme=="colorbyrecovstruth":
+    # we also need to count points with truth
+    for ihit in xrange(nhits):
+        hit = ev_larflow.at(ihit)
+        if hit.truthflag>0:
+            ntruth += 1
+
 # we get positions, and also set color depending on type
-pos_np = np.zeros( (nhits,3) )
-colors = np.zeros( (nhits,4) ) # (r,g,b,alpha)
+# note ntruth=0 unless colorscheme is recovstruth
+pos_np = np.zeros( (nhits+ntruth,3) )
+colors = np.zeros( (nhits+ntruth,4) )
 #hitplot = gl.GLScatterPlotItem(pos=pos3, color=(1,1,1,.3), size=0.1, pxMode=False)
 
+itruthhit = 0
 for ihit in xrange(nhits):
     
     hit = ev_larflow.at(ihit)
@@ -151,6 +160,20 @@ for ihit in xrange(nhits):
             colors[ihit,:] = (1.,0.,0.,1.)
         if hit.endpt_score>0.8:
             colors[ihit,:] = (0.,0.,1.,1.)
+
+    elif colorscheme=="colorbyrecovstruth":
+        colors[ihit,:] = (1.,1.,1.,0.5) # color for reco points is white        
+        if hit.truthflag>0:
+            # create a truth hit that is red
+            pos_np[nhits+itruthhit,0] = hit.X_truth[0]-130
+            pos_np[nhits+itruthhit,1] = hit.X_truth[1]
+            pos_np[nhits+itruthhit,2] = hit.X_truth[2]-500.0
+            if hit.truthflag==1:
+                colors[nhits+itruthhit,:] = (1.,0.,0.,1.0) # core truth hit is red
+            else:
+                colors[nhits+itruthhit,:] = (0.,0.,1.,1.0) # edge truth hit is bleed                
+            itruthhit+=1
+            
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
 

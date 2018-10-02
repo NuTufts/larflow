@@ -137,7 +137,7 @@ int main( int nargs, char** argv ) {
   
   bool kVISUALIZE = false; 
   bool use_hits   = false;
-  bool use_truth  = true;
+  bool use_truth  = false;
   int process_num_events = 1;
 
   if (use_truth && use_hits)
