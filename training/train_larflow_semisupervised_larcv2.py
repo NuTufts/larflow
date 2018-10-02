@@ -31,9 +31,7 @@ import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 
 # dataset interface
-#from larcvdataset import LArCVDataset
-#from serverfeed.larcv2socketfeed import LArCV2SocketFeeder
-from serverfeed.larcv2server import LArCV2Server
+from serverfeed.larcvserver import LArCVServer
 
 # larflow
 LARFLOW_MODEL_DIR=None
@@ -55,6 +53,7 @@ GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
+INPUTFILE="/mnt/disk1/nutufts/larflow/larcv_dlcosmictag_5482426_95_smallsample082918.root"
 start_iter  = 0
 TRAIN_LARCV_CONFIG="test_flowloader_832x512_dualflow_train.cfg"
 VALID_LARCV_CONFIG="test_flowloader_832x512_dualflow_valid.cfg"
@@ -76,7 +75,7 @@ ITER_PER_CHECKPOINT=100
 # ===================================================
 
 ## =========================================================
-## DATA PREP 3: LArCV2ServerWorker2
+## DATA PREP 3: LArCVServerWorker
 ## =========================================================
 def load_data( io ):
     from larcv import larcv
@@ -169,7 +168,7 @@ def prep_data3( ioserver, batchsize, width, height, src_adc_threshold, device ):
     target1_minx = torch.from_numpy( meta_data_np[:,0,0,0].reshape((batchsize)) ).to(device=device)
     target2_minx = torch.from_numpy( meta_data_np[:,1,0,0].reshape((batchsize)) ).to(device=device)
     
-    return source_t, target1_t, target2_t, flow1_t, flow2_t, visi1_t, visi2_t, fvisi1_t, fvisi2_t, source_minx, target1_minx, target2_minx,meta_data_np
+    return source_t, target1_t, target2_t, flow1_t, flow2_t, visi1_t, visi2_t, fvisi1_t, fvisi2_t, source_minx, target1_minx, target2_minx
 
 def pad(npimg4d):
     #imgpad  = np.zeros( (npimg4d.shape[0],1,IMAGE_WIDTH,IMAGE_HEIGHT), dtype=np.float32 )
@@ -220,7 +219,7 @@ def main():
         model = model.to(device=DEVICE)
 
     # uncomment to dump model
-    if False:    
+    if False:
         print "Loaded model: ",model
         return
 
@@ -280,8 +279,8 @@ def main():
     #iovalid.start( batchsize_valid )
     #iotrain = LArCV2SocketFeeder(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,port=0)
     #iovalid = LArCV2SocketFeeder(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,port=1)
-    iotrain = LArCV2Server(batchsize_train,"train",TRAIN_LARCV_CONFIG,"ThreadProcessorTrain",1,load_func=load_data,inputfile=inputfile,port=0)
-    iovalid = LArCV2Server(batchsize_valid,"valid",VALID_LARCV_CONFIG,"ThreadProcessorValid",1,load_func=load_data,inputfile=inputfile,port=1)    
+    iotrain = LArCVServer(batchsize_train,"train",load_data,INPUTFILE,6)
+    iovalid = LArCVServer(batchsize_valid,"valid",load_data,INPUTFILE,2)
 
     print "pause to give time to feeders"
 

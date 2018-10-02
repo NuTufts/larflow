@@ -89,17 +89,17 @@ class LArFlowUResNet(nn.Module):
                 if ilayer==0:
                     deconvin  = enc_nchannels*3 # we concat across all planes
                     deconvout = enc_nchannels*3 # maintain same number of channels
-                    skipchs   = self.decoder_nchannels[ilayer+1]
+                    skipchs   = self.decoder_nchannels[ilayer+1]*2 # source+target enc features
                     outchs    = self.decoder_nchannels[ilayer+1]
                 elif ilayer>0 and ilayer+1<len(self.decoder_nchannels):
                     deconvin  = enc_nchannels # we concat across all planes
                     deconvout = deconvin
-                    skipchs   = self.decoder_nchannels[ilayer+1]
+                    skipchs   = self.decoder_nchannels[ilayer+1]*2 # source+target enc features
                     outchs    = self.decoder_nchannels[ilayer+1]
                 else:
                     deconvin  = enc_nchannels # we concat across all planes
                     deconvout = deconvin      # maintain same number of channels
-                    skipchs   = self.stem_noutchannels
+                    skipchs   = self.stem_noutchannels # stem features
                     outchs    = self.num_final_features
 
                 layername = "%s_layer%d"%(name,ilayer)
@@ -201,7 +201,8 @@ class LArFlowUResNet(nn.Module):
                     if i+1==len(self.encoder_layers):                        
                         encoder_output[n].append(layerout)
                     else:
-                        encoder_output[n].append(None)
+                        #encoder_output[n].append(None) # don't concat source
+                        encoder_output[n].append(layerout) # concat source
                     if self._showsizes:
                         print "{} enc-layer{}: {} {}".format(inputname[n],i+1,layerout.size(),layerout.device)
 
@@ -218,9 +219,11 @@ class LArFlowUResNet(nn.Module):
             for i,layername in enumerate(self.decoder_layers[name]):
                 layer = getattr(self,layername)
                 if i==0:
-                    x = layer(enc_concat,encoder_output[n+1][-2-i])
+                    xcat = torch.cat( [encoder_output[0][-2-i],encoder_output[1+n][-2-i]], 1 ) # concat source+target enc features                    
+                    x = layer(enc_concat,xcat)
                 elif i+1<len(self.decoder_layers[name]):
-                    x = layer(x,encoder_output[n+1][-2-i])
+                    xcat = torch.cat( [encoder_output[0][-2-i],encoder_output[1+n][-2-i]], 1 ) # concat source+target enc features                    
+                    x = layer(x,xcat)
                 else:
                     x = layer(x,stem_output[n+1])
                     flow_features[name] = x
