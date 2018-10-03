@@ -29,12 +29,12 @@ namespace larflow {
     TruthCluster() {};
     virtual ~TruthCluster() {};
 
-    std::vector< std::vector<larlite::larflow3dhit*> > clusterHits( const std::vector<larlite::larflow3dhit>& hits );
+    std::vector< std::vector<const larlite::larflow3dhit*> > clusterHits( const std::vector<larlite::larflow3dhit>& hits, bool return_unassigned=true );
 
 
   protected:
     struct Cluster_t {
-      std::vector<larlite::larflow3dhit*> phits; // pointer of hits
+      std::vector< const larlite::larflow3dhit* > phits; // pointer of hits
       float aabbox[3][2]; // axis-aligned bounding box (for faster nn tests)
       int trackid;
     };
@@ -42,7 +42,7 @@ namespace larflow {
     float distToCluster( const larlite::larflow3dhit* phit, const Cluster_t* pcluster );
     void  assignToClosestCluster( const larlite::larflow3dhit* phit, std::vector<Cluster_t>& clusters );
     std::vector<Cluster_t> createClustersByTrackID( const std::vector<larlite::larflow3dhit>& hits );
-    
+    Cluster_t assignUnmatchedToClusters( const std::vector<const larlite::larflow3dhit*>& unmatchedhit_v, std::vector<Cluster_t>& cluster_v );    
   };
 
 
