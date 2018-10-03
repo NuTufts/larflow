@@ -21,8 +21,9 @@ class WholeImageLoader:
     def __init__(self,larcv_input_file, ismc=True):
 
         # we setup a larcv IOManager for read mode
-        self.io = larcv.IOManager( larcv.IOManager.kREAD )
+        self.io = larcv.IOManager( larcv.IOManager.kBOTH )
         self.io.add_in_file( larcv_input_file )
+        self.io.set_out_file( "baka.root" )
         self.io.initialize()
 
         # we setup some image processor modules
@@ -33,7 +34,7 @@ class WholeImageLoader:
         ubsplit_cfg="""
         InputProducer: \"wire\"
         OutputBBox2DProducer: \"detsplit\"
-        CropInModule: true
+        CropInModule: false
         OutputCroppedProducer: \"detsplit\"
         BBoxPixelHeight: 512
         BBoxPixelWidth: 832
@@ -52,7 +53,7 @@ class WholeImageLoader:
         self.split_algo = larcv.UBSplitDetector()
         self.split_algo.configure(split_pset)
         self.split_algo.initialize()
-        self.split_algo.set_verbosity(0)
+        self.split_algo.set_verbosity(1)
 
         # cropper for larflow (needed if we do not restitch the output)
         lfcrop_cfg="""Verbosity:0
@@ -101,10 +102,15 @@ class WholeImageLoader:
         self.io.read_entry(entry)
         self.split_algo.process( self.io )
 
-        #ev_split_imgs = self.io.get_data("image2d","detsplit")
+        #ev_split_imgs = self.io.get_data(larcv.kProductImage2D,"detsplit")
+        #print "number of images: ",ev_split_imgs.Image2DArray()
         #return ev_split_imgs.image2d_array()        
-        ev_split_bbox = self.io.get_data("bbox2d","detsplit")
-        return ev_split_bbox
+        #ev_split_bbox = self.io.get_data("bbox2d","detsplit")
+        #print "get detsplit objects"
+        ev_split_bbox = self.io.get_data(larcv.kProductROI,"detsplit")
+        print "number of bboxes: ",ev_split_bbox.ROIArray().size()
+        
+        return ev_split_bbox.ROIArray()
 
     def get_larflow_cropped(self):
         print "run larflow cropper"
@@ -159,7 +165,7 @@ if __name__=="__main__":
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
-        nprocess_events = -1
+        nprocess_events = 1
         stitch = False
         use_half = True
         ismc = False
@@ -167,12 +173,14 @@ if __name__=="__main__":
 
         if FLOWDIR=="y2u":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-            output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
-            ismc = True # saves flow and visi images
+            #output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"
+            output_larcv_filename = "larcv1_larflow_y2u_bnbext_mcc9.root"
+            ismc = False # saves flow and visi images
             save_cropped_adc = True  # saves cropped adc
         elif FLOWDIR=="y2v":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
-            output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"
+            #output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"            
+            output_larcv_filename = "larcv1_larflow_y2u_bnbext_mcc9.root"            
             # remove for y2v so we can hadd with y2u output                        
             ismc = False
             save_cropped_adc = False 
@@ -242,7 +250,8 @@ if __name__=="__main__":
         tdata = time.time()-tdata
         timing["++load_larcv_data:ubsplitdet"] += tdata
         tdata = time.time()
-        if stitch:
+
+        if stitch or not ismc:
             larflow_cropped_dict = None
         else:
             larflow_cropped_dict = inputdata.get_larflow_cropped()
@@ -265,8 +274,8 @@ if __name__=="__main__":
 
         # get input adc images
         talloc = time.time()
-        ev_img = inputdata.io.get_data("image2d","wire")
-        img_v = ev_img.image2d_array()
+        ev_img = inputdata.io.get_data(larcv.kProductImage2D,"wire")
+        img_v = ev_img.Image2DArray()
         img_np = np.zeros( (img_v.size(),1,img_v.front().meta().rows(),img_v.front().meta().cols()), dtype=np.float32 )
         orig_meta = [ img_v[x].meta() for x in range(3) ]
         runid    = ev_img.run()
@@ -281,7 +290,7 @@ if __name__=="__main__":
         # output stitched images
         out_v = rt.std.vector("larcv::Image2D")()
         for i in range(img_v.size()):
-            img_np[i,0,:,:] = larcv.as_ndarray( img_v[i] )
+            img_np[i,0,:,:] = larcv.as_ndarray( img_v[i] ).transpose( (1,0) )
             out = larcv.Image2D( img_v[i].meta() )
             out.paint(0.0)
             out_v.push_back( out )
@@ -295,7 +304,7 @@ if __name__=="__main__":
         if verbose:
             print "time to allocate memory (and copy) for numpy arrays: ",talloc,"secs"
 
-        nsets = nimgs/3
+        nsets = nimgs
 
         # loop over images from cropper
         iset   = 0 # index of image in cropper
@@ -318,17 +327,17 @@ if __name__=="__main__":
             flowcrop_batch = [] # only filled if not stitching
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
-                iimg = 3*iset 
+                iimg = iset 
                 #print "iimg=",iimg," of nimgs=",nimgs," of nbboxes=",splitimg_bbox_v.size()
                 # get the bboxes, all three planes
-                bb_v  = [splitimg_bbox_v.at(iimg+x) for x in xrange(3)]
+                bb_v  = [splitimg_bbox_v.at(iimg).BB().at(x) for x in xrange(3)] # in metas
                 
                 bounds = []
                 isbad = False
                 # get row,col bounds for each plane
                 for bb,orig in zip(bb_v,orig_meta):
-                    rmin = orig.row( bb.min_y() )
-                    rmax = orig.row( bb.max_y() )
+                    rmin = orig.row( bb.max_y() )
+                    rmax = orig.row( bb.min_y() )
                     cmin = orig.col( bb.min_x() )
                     cmax = orig.col( bb.max_x() )
                     if rmax-rmin!=512 or cmax-cmin!=832:
@@ -338,6 +347,8 @@ if __name__=="__main__":
                             print "  plane ",ip,": ",bbb.dump()
                         isbad = True
                     bounds.append( (rmin,cmin,rmax,cmax) )
+
+                print "BOUNDS: ",bounds
                     
                 # we have to get the row, col bounds in the source image
                 if isbad:
@@ -349,16 +360,33 @@ if __name__=="__main__":
                 # crops in numpy array
                 source_np[ib,0,:,:] = img_np[2,0,bounds[2][0]:bounds[2][2],bounds[2][1]:bounds[2][3]] # yplane
                 target_np[ib,0,:,:] = img_np[target_plane,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
+
+                # flip time dimension
+                np.flip( source_np, 2 )
+                np.flip( target_np, 2 )
+
+                # hack for mcc9: reduce scale
+                source_np *= (40.0/15000.0)
+                target_np *= (40.0/10000.0)
+
+                # threshold and clip
+                source_np[ source_np<10.0 ]  =   0.0
+                source_np[ source_np>200.0 ] = 200.0                
+                target_np[ target_np<10.0 ]  = 0.0
+                target_np[ target_np>200.0 ] = 200.0
                 
                 # store region of image
-                image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
-                target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
+                #image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
+                #target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
+                image_meta.append(  bb_v[2]  )
+                target_meta.append( bb_v[target_plane] )
 
                 # if not stiching, save crops
                 if not stitch:
                     flowcrops = {"flow":[],"visi":[],"adc":[]}
                     for ii in xrange(0,3):
-                        flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
+                        #flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
+                        pass
                     if ismc:
                         for ii in xrange(0,2):
                             flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
@@ -404,23 +432,24 @@ if __name__=="__main__":
             for ib in xrange(min(batch_size,len(image_meta))):
                 if image_meta[ib] is None:
                     continue
-                img_slice = flow_np[ib,0,:]
+                img_slice = np.flip( flow_np[ib,0,:], 0 ).transpose((1,0))
+                print "img_slice.shape: ",img_slice.shape," ",image_meta[ib].dump()
                 flow_lcv = larcv.as_image2d_meta( img_slice, image_meta[ib] )
                 if stitch:
                     stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
                 else:
                     # we save flow image and crops for each prediction\
-                    evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR))
-                    evoutpred.append( flow_lcv )                    
+                    evoutpred = outputdata.get_data(larcv.kProductImage2D,"larflow_%s"%(FLOWDIR))
+                    evoutpred.Append( flow_lcv )                    
                     if save_cropped_adc:
-                        evoutadc  = outputdata.get_data("image2d","adc")
+                        evoutadc  = outputdata.get_data(larcv.kProductImage2D,"adc")
                         for img in flowcrop_batch[ib]["adc"]:
-                            evoutadc.append( img )
+                            evoutadc.Append( img )
 
                     
                     if ismc:
-                        evoutvisi = outputdata.get_data("image2d","pixvisi")
-                        evoutflow = outputdata.get_data("image2d","pixflow")                                            
+                        evoutvisi = outputdata.get_data(larcv.kProductImage2D,"pixvisi")
+                        evoutflow = outputdata.get_data(larcv.kProductImage2D,"pixflow")                                            
                         for img in flowcrop_batch[ib]["visi"]:
                             evoutvisi.append( img )
                         for img in flowcrop_batch[ib]["flow"]:
