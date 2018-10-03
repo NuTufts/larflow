@@ -14,10 +14,10 @@ LDLIBS   += `larlite-config --libs`
 LDLIBS   += `larcv-config --libs`
 LDLIBS   += `larlitecv-config --libs`
 
-LIBS = ContourTools FlowContourMatching
+LIBS = ContourTools FlowContourMatching LArFlowCluster3D
 LDLIBS += -Llib $(addprefix -l,$(LIBS))
 
-SUBDIRS = ContourTools FlowContourMatching
+SUBDIRS = ContourTools FlowContourMatching cluster
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 EXEC += test_mc
