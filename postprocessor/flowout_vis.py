@@ -59,7 +59,7 @@ if colorscheme not in schemes:
     raise ValueError("Invalid color scheme. Choices: {}".format(schemes))
 
 # get larflow hits
-io.go_to(0)
+io.go_to(args.entry)
 ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, "flowhits" )
 nhits = ev_larflow.size()
 ntruth = 0
