@@ -67,6 +67,7 @@ namespace larflow {
     struct FlashHypo_t : public std::vector<float> {
       int clusteridx;
       int flashidx;
+      float tot;
     };
 
   protected:
@@ -100,15 +101,40 @@ namespace larflow {
     int  _nflashes;   // row
     int  _nqclusters; // col
     int  _nelements;  // row*col
+    int* _nclusters_compat_wflash; // [nflashes]
+    bool _compatibility_defined;
     void buildFullCompatibilityMatrix( const std::vector<FlashData_t>&, const std::vector<QCluster_t>& );
+    void resetCompatibiltyMatrix();
     inline int  getCompat( int iflash, int iqcluster )  { return *(m_compatibility + _nqclusters*iflash + iqcluster); };
     inline void setCompat( int iflash, int iqcluster, int compat ) { *(m_compatibility + _nqclusters*iflash + iqcluster) = compat; };
 
     // Flash Hypothesis Building
     // -------------------------
-    std::vector< std::vector<LArFlowFlashMatch::FlashHypo_t> >  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
+    std::vector< std::vector<LArFlowFlashMatch::FlashHypo_t> >  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
+										      const std::vector<QCluster_t>& qcluster_v );
 
-    // 
+    // Build Fit Parameter matrices
+    // ----------------------------
+    int _nmatches;         // {(flash,cluster) ordered pairs, unrolled
+    int _nflashes_red;     // (flash w/ matches)
+    int _nclusters_red;    // (clusters w/ matches)
+    bool _reindexed;       // have we reindexed the compatible flashes/clusters
+    std::vector<int> _match_clustidx;
+    std::vector<int> _match_flashidx;
+    std::vector<int> _match_flashidx_orig;
+    std::map<int,int> _flash_reindex;
+    std::map<int,int> _clust_reindex;
+    float* m_flash_hypo;   // [nclusters_red][npmts]
+    float* m_flash_data;   // [nflashes_red][npmts]
+    float* m_flashhypo_norm;
+    float* m_flashdata_norm;
+    int* _pair2index;      // [flashreindex][cluster-reindex], value is match-index
+    void buildFittingData(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
+    void clearFittingData();
+
+    // Calculate Initial Fit Point
+    // ----------------------------
+    void calcInitialFitPoint();
 			       
 
 

@@ -2,6 +2,7 @@
 #include <string>
 
 // larlite
+#include "LArUtil/Geometry.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
@@ -34,6 +35,21 @@ int main( int nargs, char** argv ) {
 
   std::cout << "larlite entries: " << nentries << std::endl;
   std::cout << "larcv entries: " << nentries_larcv << std::endl;
+
+  // dump pmt pos
+  const larutil::Geometry* geo = larutil::Geometry::GetME();
+
+  std::cout << "--------------" << std::endl;
+  std::cout << "PMT POSITIONS" << std::endl;
+  std::cout << "--------------" << std::endl;
+  for (int ich=0; ich<32; ich++) {
+    int opdet = geo->OpDetFromOpChannel(ich);
+    double xyz[3];
+    geo->GetOpChannelPosition( ich, xyz );
+    std::cout << "[ch " << ich << "] (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ")" << std::endl;
+  }
+  std::cout << "-------------------" << std::endl;
+  
 
   // algo
   larflow::LArFlowFlashMatch algo;
