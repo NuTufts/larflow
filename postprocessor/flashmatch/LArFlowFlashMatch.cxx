@@ -16,7 +16,9 @@ namespace larflow {
       m_flash_data(nullptr),
       m_flashhypo_norm(nullptr),
       m_flashdata_norm(nullptr),
-      _pair2index(nullptr)
+      _pair2index(nullptr),
+      fmatch(nullptr),
+      fpmtweight(nullptr)
   {
     
   }
@@ -57,8 +59,11 @@ namespace larflow {
 
     // refined compabtibility: incompatible-z
 
+    // define fit parameter variables
+    defineFitParameters();
+
     // find initial best fit to start
-    calcInitialFitPoint();
+    calcInitialFitPoint( flashdata_v, qcluster_v );
     
     // fit: gradient descent
 
@@ -92,7 +97,7 @@ namespace larflow {
       for ( size_t ihit=0; ihit<lfcluster.size(); ihit++ ) {
 	for (size_t i=0; i<3; i++)
 	  qcluster[ihit].xyz[i] = lfcluster[ihit][i];
-	qcluster[ihit].tick     = lfcluster[ihit].tick; // convert this later ...
+	qcluster[ihit].tick     = lfcluster[ihit].tick; 
 
 	if ( qcluster[ihit].tick<src_meta.min_y() || qcluster[ihit].tick>src_meta.max_y() )
 	  continue;
@@ -115,7 +120,7 @@ namespace larflow {
 	qcluster[ihit].fromplaneid = src_plane;
       }//end of hit loop
 
-      std::cout << "qcluster. tick range: " << qcluster.min_tyz[0] << "," << qcluster.max_tyz[1] << std::endl;
+      std::cout << "[qcluster " << icluster << "] tick range: " << qcluster.min_tyz[0] << "," << qcluster.max_tyz[0] << std::endl;
     }//end of cluster loop
     
   }
@@ -168,6 +173,8 @@ namespace larflow {
     _nqclusters = qcluster_v.size();
     _nelements  = _nflashes*_nqclusters;
     m_compatibility = new int[ _nelements ];
+    _nclusters_compat_wflash = new int[_nflashes];
+    memset( _nclusters_compat_wflash, 0, sizeof(int)*_nflashes );
 
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
     const float max_drifttime_ticks = (256.0+20.0)/larp->DriftVelocity()/0.5; // allow some slop
@@ -183,7 +190,7 @@ namespace larflow {
 	const QCluster_t& qcluster = qcluster_v[iq];
 
 	float dtick_min = qcluster.min_tyz[0] - flash.tpc_tick;
-	float dtick_max = qcluster.min_tyz[1] - flash.tpc_tick;
+	float dtick_max = qcluster.max_tyz[0] - flash.tpc_tick;
 
 	// must happen after (allow for some slop)
 	if ( dtick_min < -10 || dtick_max < -10 ) {
@@ -195,11 +202,17 @@ namespace larflow {
 	else {
 	  setCompat( iflash, iq, 0 ); // ok
 	  ncompatmatches++;
+	  _nclusters_compat_wflash[iflash] += 1;
 	}
       }
     }
     _compatibility_defined = true;
     std::cout << "number of compat flash-cluster matches: " << ncompatmatches << std::endl;
+    std::cout << "------------------------------------------" << std::endl;
+    std::cout << "NUM COMPAT CLUSTERS PER FLASH" << std::endl;
+    for (size_t iflash=0; iflash<flash_v.size(); iflash++)
+      std::cout << "[dataflash " << iflash << "] " << _nclusters_compat_wflash[iflash] << std::endl;
+    std::cout << "------------------------------------------" << std::endl;      
   }
 
   void LArFlowFlashMatch::resetCompatibiltyMatrix() {
@@ -213,8 +226,8 @@ namespace larflow {
     m_compatibility = nullptr;
   }
 
-  std::vector< std::vector<LArFlowFlashMatch::FlashHypo_t> > LArFlowFlashMatch::buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
-												      const std::vector<QCluster_t>&  qcluster_v ) {
+  void LArFlowFlashMatch::buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
+						const std::vector<QCluster_t>&  qcluster_v ) {
     
     // each cluster builds a hypothesis for each compatible flash
     // store the hypotheses into the fitting variables
@@ -228,14 +241,15 @@ namespace larflow {
     const size_t npmts = 32;
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
 
-    std::vector< std::vector<FlashHypo_t> > hypo_vv(_flash_reindex.size()); // inner vector is for hypos from each compat cluster
+    m_flash_hypo_map.clear();
+    m_flash_hypo_v.clear();
+    m_flash_hypo_v.reserve(50);
     
     for (auto& it : _flash_reindex ) {
       size_t iflash  = it.first;  // flash index in original input data array
       size_t reflash = it.second; // reindexed flash
       const FlashData_t& flash = flashdata_v[iflash]; // original flash
 
-      std::vector< FlashHypo_t >& hypo_v = hypo_vv.at(reflash); // reindexed flash
       for ( int iq=0; iq<qcluster_v.size(); iq++) {
 	int compat = getCompat( iflash, iq );
 	if ( compat!=0 )
@@ -272,12 +286,16 @@ namespace larflow {
 	int imatch = *(_pair2index + _nclusters_red*iflash + reclusteridx); // get the match index
 	memcpy( m_flash_hypo + imatch*npmts, hypo.data(), sizeof(float)*npmts );
 	*(m_flashhypo_norm+imatch) = hypo.tot;
-	
-	hypo_v.emplace_back( std::move(hypo) );
+
+	// store
+	int idx = m_flash_hypo_v.size();
+	m_flash_hypo_map[ flashclusterpair_t((int)iflash,iq) ] = idx;
+	m_flash_hypo_remap[ flashclusterpair_t((int)reflash,reclusteridx) ] = idx;
+	//m_flash_hypo_remap[ flashclusterpair_t(iflash,iq) ] = idx;
+	m_flash_hypo_v.emplace_back( std::move(hypo) );
       }//end of loop over clusters
     }//end of loop over flashes
     
-    return hypo_vv;
   }
 
   void LArFlowFlashMatch::buildFittingData( const std::vector<FlashData_t>& flashdata_v,
@@ -370,7 +388,22 @@ namespace larflow {
     _reindexed = false;
   }
 
-  void LArFlowFlashMatch::calcInitialFitPoint() {
+  void LArFlowFlashMatch::defineFitParameters() {
+    clearFitParameters();
+    fmatch = new float[_nmatches];
+    fpmtweight = new float[_nflashes_red*32];
+  }
+
+  void LArFlowFlashMatch::clearFitParameters() {
+    flightyield = 0.;
+    delete [] fmatch;
+    delete [] fpmtweight;
+    fmatch = nullptr;
+    fpmtweight = nullptr;
+  }
+  
+  void LArFlowFlashMatch::calcInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v ) {
+    
     // before we fit, we try to find a solution to the many-many match
     // and use it as a best fit
     //
@@ -380,7 +413,8 @@ namespace larflow {
     //  2) adjust the best-fit lightyield
     //  3) repeat (1)+(2) until solved (or no flashes left to match)
 
-    // need the z-order
+    // need to define bins in z-dimension and assign pmt channels to them
+    // this is for shape fit
     const larutil::Geometry* geo = larutil::Geometry::GetME();
     std::vector< std::vector<int> > zbinned_pmtchs(10);
     for (int ich=0; ich<32; ich++) {
@@ -389,6 +423,42 @@ namespace larflow {
       geo->GetOpChannelPosition( ich, xyz );
       int bin = xyz[2]/100.0;
       zbinned_pmtchs[bin].push_back( ich );
+    }
+
+    // step-0, set light yeild using uniquely matched tracks, if there are any
+    float hypotot = 0.;
+    float datatot = 0.;
+    bool lyset = false;
+    for (size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
+      if ( _nclusters_compat_wflash[iflash]==1 ) {
+	// unique flash. find the cluster
+	int match_iq = -1;
+	for (size_t iq=0; iq<qcluster_v.size(); iq++) {
+	  if ( match_iq<0 && getCompat(iflash,iq)==0 ) {
+	    match_iq = iq;
+	  }
+	  else {
+	    throw std::runtime_error("[LArFlowFlashMatch::calcInitialFitPoint][ERROR] though marked as unique-matched, this flash has more than 1 compatible cluster");
+	  }
+	}//end of cluster loop
+	if ( match_iq>=0 ) {
+	  datatot += flashdata_v[iflash].tot;
+	  hypotot += m_flash_hypo_v[ m_flash_hypo_map[flashclusterpair_t(iflash,match_iq)] ].tot;
+	}
+	else {
+	  throw std::runtime_error("[LArFlowFlashMatch::calcInitialFitPoint][ERROR] though marked as unique-matched, this flash has more no compatible cluster");
+	}
+      }
+    }
+
+    if ( hypotot>0 && datatot > 0 ) {
+      flightyield = datatot/hypotot;
+      std::cout << "[LArFlowFlashMatch::calcInitialFitPoint] unique match data/hypo pe ratio: " << flightyield << std::endl;
+      lyset = true;
+    }
+    else {
+      std::cout << "[LArFlowFlashMatch::calcInitialFitPoint] no unique matches to set initial light yield " << std::endl;
+      lyset = false;
     }
     
   }

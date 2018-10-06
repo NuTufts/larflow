@@ -110,8 +110,28 @@ namespace larflow {
 
     // Flash Hypothesis Building
     // -------------------------
-    std::vector< std::vector<LArFlowFlashMatch::FlashHypo_t> >  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
-										      const std::vector<QCluster_t>& qcluster_v );
+    struct flashclusterpair_t {
+      int flashidx;
+      int clustidx;
+      flashclusterpair_t( int fid, int cid )
+      : flashidx(fid), clustidx(cid)
+      {};
+      bool operator<(const flashclusterpair_t& rhs) const
+      {
+	if ( flashidx<rhs.flashidx) return true;
+	else if ( flashidx>rhs.flashidx) return false;
+	else {
+	  if ( clustidx<rhs.clustidx ) return true;
+	  else return false;
+	}
+	return false; // should never get here
+      };
+    };
+    std::map<flashclusterpair_t,int> m_flash_hypo_map;   // using orig index
+    std::map<flashclusterpair_t,int> m_flash_hypo_remap; // using reduced indexing
+    std::vector< FlashHypo_t > m_flash_hypo_v;
+    void  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
+				const std::vector<QCluster_t>& qcluster_v );
 
     // Build Fit Parameter matrices
     // ----------------------------
@@ -122,8 +142,8 @@ namespace larflow {
     std::vector<int> _match_clustidx;
     std::vector<int> _match_flashidx;
     std::vector<int> _match_flashidx_orig;
-    std::map<int,int> _flash_reindex;
-    std::map<int,int> _clust_reindex;
+    std::map<int,int> _flash_reindex; // original -> reindex
+    std::map<int,int> _clust_reindex; // original -> reindex
     float* m_flash_hypo;   // [nclusters_red][npmts]
     float* m_flash_data;   // [nflashes_red][npmts]
     float* m_flashhypo_norm;
@@ -132,9 +152,16 @@ namespace larflow {
     void buildFittingData(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
     void clearFittingData();
 
+    // Define fit parameters
+    float  flightyield;
+    float* fmatch;     // [_nmatches]
+    float* fpmtweight; // [_nflashes_red*32]
+    void defineFitParameters();
+    void clearFitParameters();
+
     // Calculate Initial Fit Point
     // ----------------------------
-    void calcInitialFitPoint();
+    void calcInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
 			       
 
 
