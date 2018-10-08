@@ -152,9 +152,10 @@ namespace larflow {
     int _nflashes_red;     // (flash w/ matches)
     int _nclusters_red;    // (clusters w/ matches)
     bool _reindexed;       // have we reindexed the compatible flashes/clusters
+    std::vector<int> _match_flashidx;    
     std::vector<int> _match_clustidx;
-    std::vector<int> _match_flashidx;
     std::vector<int> _match_flashidx_orig;
+    std::vector<int> _match_clustidx_orig;    
     std::map<int,int> _flash_reindex; // original -> reindex
     std::map<int,int> _clust_reindex; // original -> reindex
     float* m_flash_hypo;   // [nclusters_red][npmts]
@@ -175,7 +176,11 @@ namespace larflow {
     // Match refinement
     // ----------------------------
     std::vector<int> _flashdata_best_hypo_chi2_idx;
-    std::vector<int> _flashdata_best_hypo_maxdist_idx;        
+    std::vector<int> _flashdata_best_hypo_maxdist_idx;
+    float _fMaxDistCut;
+    float _fCosmicDiscThreshold;
+    float _fweighted_scalefactor_mean;
+    float _fweighted_scalefactor_stdev;
     void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
 					 
     // Calculate Initial Fit Point

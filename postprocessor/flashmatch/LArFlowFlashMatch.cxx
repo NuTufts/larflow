@@ -49,7 +49,12 @@ namespace larflow {
 	_zbinned_pmtchs[ich].push_back( ich );
       }
     }
-    m_flash_hypo_v.clear();    
+    m_flash_hypo_v.clear();
+
+    // more default parameters
+    _fMaxDistCut = 0.5;
+    _fCosmicDiscThreshold = 5.0;
+    
   }
   
   LArFlowFlashMatch::Results_t LArFlowFlashMatch::match( const std::vector<larlite::opflash>& beam_flashes,
@@ -86,9 +91,9 @@ namespace larflow {
 
     // refined compabtibility: incompatible-z
     reduceMatchesWithShapeAnalysis( flashdata_v, qcluster_v );
-
+    
     // define the fitting data members
-    //buildFittingData( flashdata_v, qcluster_v );
+    buildFittingData( flashdata_v, qcluster_v );
     
     // define fit parameter variables
     //defineFitParameters();
@@ -368,8 +373,9 @@ namespace larflow {
 	    _clust_reindex[qidx] = _clust_reindex.size();
 	  
 	  _match_flashidx.push_back( _flash_reindex[iflash] ); // store reindex
-	  _match_flashidx_orig.push_back( iflash ); // store reindex	  
+	  _match_flashidx_orig.push_back( iflash ); // store original index
 	  _match_clustidx.push_back( _clust_reindex[qidx] );   // store reindex
+	  _match_clustidx_orig.push_back( qidx ); // store original index
 	}
       }
     }
@@ -391,14 +397,27 @@ namespace larflow {
       *(_pair2index + _nclusters_red*reflash + reclust ) = imatch;
     }
 
-    // copy data flash to m_flash_data
+    // copy data flash and hypo flash to m_flash_data, m_flash_hypo, respectively
     for (size_t imatch=0; imatch<_nmatches; imatch++) {
       size_t reflash = _match_flashidx[imatch];
-      size_t origidx = _match_flashidx_orig[imatch];
-      memcpy( m_flash_data+imatch*npmts, flashdata_v[origidx].data(), sizeof(float)*npmts );
-      *( m_flashdata_norm+imatch ) = flashdata_v[origidx].tot;
+      int reclust    = _match_clustidx[imatch];
+      size_t origflashidx = _match_flashidx_orig[imatch];
+      size_t origclustidx = _match_clustidx_orig[imatch];
+
+      // copy data
+      memcpy( m_flash_data+imatch*npmts, flashdata_v[origflashidx].data(), sizeof(float)*npmts );
+      *( m_flashdata_norm+imatch ) = flashdata_v[origflashidx].tot;
+
+      FlashHypo_t& hypo = getHypothesisWithOrigIndex( origflashidx, origclustidx );
+      memcpy( m_flash_hypo+imatch*npmts, hypo.data(), sizeof(float)*npmts );
+      *( m_flashhypo_norm+imatch ) = hypo.tot;
     }
+
+
     
+    std::cout << "prepared fit data. " << std::endl;
+    std::cout << "  reindexed flashes: "  << _nflashes_red  << " (of " << flashdata_v.size() << " original)" << std::endl;
+    std::cout << "  reindexed clusters: " << _nclusters_red << " (of " << qcluster_v.size()  << " original)" << std::endl;
     _reindexed = true;
   }
 
@@ -411,6 +430,7 @@ namespace larflow {
     _match_flashidx.clear();
     _match_flashidx_orig.clear();    
     _match_clustidx.clear();
+    _match_clustidx_orig.clear();        
 
     delete [] _pair2index;    
     delete [] m_flash_hypo;
@@ -531,8 +551,12 @@ namespace larflow {
 
   void LArFlowFlashMatch::reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 							  const std::vector<QCluster_t>&  qcluster_v ) {
-
-    const float fmaxdict_cut = 0.5;
+    // from this function we get
+    // (1) reduced number of possible flash-cluster matches
+    // (2) an initial estimate of the ligh yield parameter and sigma bounds for each prior
+    // (3) best fits using shape and chi2
+    // (from truth-clusters, get about 180 matches left over. that's 2^180 vector we are trying to solve ... )
+    
     _flashdata_best_hypo_maxdist_idx.resize(flashdata_v.size(),-1);
     _flashdata_best_hypo_chi2_idx.resize(flashdata_v.size(),-1);    
 
@@ -579,7 +603,7 @@ namespace larflow {
 	  
 	  // we enforce cosmic dic. threshold by scaling hypo to data and zero-ing below threshold
 	  for (size_t ich=0; ich<flashdata.size(); ich++) {
-	    if ( copy[ich]*hypo_scale<5.0 )
+	    if ( copy[ich]*hypo_scale<_fCosmicDiscThreshold )
 	      copy[ich] = 0.;
 	  }
 
@@ -599,9 +623,9 @@ namespace larflow {
 	  hyposcale_v.push_back(hypo_scale); // save hyposcale
 	  scaleweight_v.push_back( exp(-0.5*chi2 ) );
 
-	  std::cout << "hyposcale=" << hypo_scale << "  chi2=" << chi2 << std::endl;
+	  //std::cout << "hyposcale=" << hypo_scale << "  chi2=" << chi2 << std::endl;
 
-	  if ( maxdist>fmaxdict_cut ) {
+	  if ( maxdist>_fMaxDistCut ) {
 	    setCompat(iflash,iclust,4); // fails shape match
 	  }
 
@@ -618,18 +642,49 @@ namespace larflow {
 
       _flashdata_best_hypo_maxdist_idx[iflash] = bestidx;
       _flashdata_best_hypo_chi2_idx[iflash]    = bestchi2_idx;      
+
     }
 
-    TCanvas c("c","c",800,600);
-    TH1D hscale("hscale", "",50,0,1e3);
-    for ( size_t i=0; i<hyposcale_v.size(); i++) {
-      hscale.Fill( hyposcale_v[i], scaleweight_v[i] );
+    if ( false ) {
+      TCanvas c("c","c",800,600);
+      TH1D hscale("hscale", "",50,0,1e3);
+      for ( size_t i=0; i<hyposcale_v.size(); i++) {
+	hscale.Fill( hyposcale_v[i], scaleweight_v[i] );
+      }
+      hscale.Draw("hist");
+      c.Update();
+      c.Draw();
+      c.SaveAs("hyposcale.png");
     }
-    hscale.Draw("hist");
-    c.Update();
-    c.Draw();
-    c.SaveAs("hyposcale.png");
-    
+
+    // calculate weight-mean light-yield value;
+    _fweighted_scalefactor_mean  = 0.;
+    _fweighted_scalefactor_stdev = 0.;
+    float totweight = 0;
+    float xxsum = 0;
+    float xsum  = 0;
+    float nweights  = 0;
+    for ( size_t i=0; i<hyposcale_v.size(); i++) {
+      float scale = hyposcale_v[i];
+      float weight = scaleweight_v[i];
+
+      if ( weight>1.0e-6 ) {
+	xsum  += scale*weight;
+	xxsum += scale*scale*weight;
+	totweight += weight;
+	nweights += 1.0;
+      }
+    }
+    _fweighted_scalefactor_mean  = xsum/totweight;
+    _fweighted_scalefactor_stdev = (xxsum - 2.0*xsum*_fweighted_scalefactor_mean + totweight*_fweighted_scalefactor_mean*_fweighted_scalefactor_mean)/(totweight*(nweights-1.0)/nweights);
+    std::cout << "nonsqrt: " << _fweighted_scalefactor_stdev << std::endl;    
+    _fweighted_scalefactor_stdev = sqrt( _fweighted_scalefactor_stdev );
+
+
+    std::cout << "total weight: " << totweight << std::endl;
+    std::cout << "total number of weights: " << int(nweights) << std::endl;
+    std::cout << "Weighted scale-factor mean: "   << _fweighted_scalefactor_mean  << std::endl;
+    std::cout << "Weighted scale-factor stddev: " << _fweighted_scalefactor_stdev << std::endl;
   }
 
   void LArFlowFlashMatch::printCompatInfo() {
@@ -712,9 +767,7 @@ namespace larflow {
 	
 	if ( both )
 	  hhypo->SetLineColor(kMagenta);
-	    
-
-
+	   
 	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );	
 	for (int ipmt=0;ipmt<32;ipmt++) {
 	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]);
