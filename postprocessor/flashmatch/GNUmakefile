@@ -35,3 +35,6 @@ all: $(LIB) dev_flashmatch
 
 dev_flashmatch: $(LIB) dev_flashmatch.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowFlashMatch $(LIBS) 
+
+clean:
+	@rm *.o $(LIB) dev_flashmatch
