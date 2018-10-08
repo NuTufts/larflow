@@ -1,10 +1,12 @@
 #include "LArFlowFlashMatch.h"
-
 #include <sstream>
 
 // ROOT
 #include "TCanvas.h"
 #include "TH1D.h"
+#include "TRandom3.h"
+#include "TFile.h"
+#include "TTree.h"
 
 // larlite
 #include "LArUtil/Geometry.h"
@@ -22,9 +24,12 @@ namespace larflow {
       m_flash_data(nullptr),
       m_flashhypo_norm(nullptr),
       m_flashdata_norm(nullptr),
+      m_iscosmic(nullptr),
       _pair2index(nullptr),
+      flightyield(nullptr),
       fmatch(nullptr),
-      fpmtweight(nullptr)
+      fpmtweight(nullptr),
+      _parsdefined(false)
   {
 
     // define bins in z-dimension and assign pmt channels to them
@@ -53,8 +58,14 @@ namespace larflow {
 
     // more default parameters
     _fMaxDistCut = 0.5;
-    _fCosmicDiscThreshold = 5.0;
-    
+    _fCosmicDiscThreshold = 10.0;
+    _fclustsum_weight = 1e4;
+    _fflashsum_weight = 0.5e4;
+    _fl1norm_weight = 0.1;
+    _flightyield_weight = 1.0;
+
+    // random generators
+    _rand = new TRandom3( 4357 );
   }
   
   LArFlowFlashMatch::Results_t LArFlowFlashMatch::match( const std::vector<larlite::opflash>& beam_flashes,
@@ -96,10 +107,10 @@ namespace larflow {
     buildFittingData( flashdata_v, qcluster_v );
     
     // define fit parameter variables
-    //defineFitParameters();
+    defineFitParameters();
 
     // find initial best fit to start
-    //calcInitialFitPoint( flashdata_v, qcluster_v );
+    setInitialFitPoint( flashdata_v, qcluster_v );
     
     // fit: gradient descent
 
@@ -108,9 +119,191 @@ namespace larflow {
 
     // build flash-posteriors
     //calcFlashPosteriors;
+    *flightyield = 2.0;
+    _fweighted_scalefactor_sig  = 0.5;
+    _fweighted_scalefactor_mean = 2.0;    
 
     printCompatInfo();
-    dumpMatchImages( flashdata_v );
+    dumpMatchImages( flashdata_v, false, false );
+
+    int nsamples = 1000000;
+    int naccept = 0;
+    
+    // save the current state
+    int step = 0;
+    float state_ly = *flightyield;
+    std::vector<float> state_v(_nmatches,0.0);
+    memcpy( state_v.data(), fmatch, _nmatches*sizeof(float) );
+    float lastnll = calcNLL(true);
+
+    std::cout << "[enter to start]" << std::endl;
+    std::cin.get();
+
+    // proposal vars
+    float proposal_ly = 0.;
+    std::vector<float> proposal_v(_nmatches,0.0);
+    float proposal_nll;
+    int dstate;
+    
+    // accumulation
+    TFile fout("out_mcmc_flash.root", "recreate");
+    TTree tmcmc("mcmc","MCMC");
+    char brname_state[100];
+    sprintf( brname_state, "state_v[%d]/F", _nmatches );
+    
+    tmcmc.Branch("step", &step, "step/I" );
+    tmcmc.Branch("naccepted", &naccept, "naccepted/I" );    
+    tmcmc.Branch("state_v",state_v.data(), brname_state );
+    tmcmc.Branch("dstate",&dstate,"dstate/I");
+    tmcmc.Branch("ly", &state_ly, "ly/F" );
+    tmcmc.Branch("nll", &lastnll, "nll/F" );
+    tmcmc.Fill();
+    
+    int n_ave_updates = 0;
+    std::vector<float> ave_v(_nmatches,0.0);
+    float best_nll = 1.0e9;
+    float best_ly  = 1.0;
+    float ave_ly   = 0.0;
+    
+    auto start = std::clock();    
+    
+    for (int i=1; i<nsamples; i++) {
+      step = i;
+      if ( step%10000==0 )
+	std::cout << "step[" << step << "]" << std::endl;
+      
+      // set initial proposal value to current state
+      memcpy( proposal_v.data(), state_v.data(), sizeof(float)*_nmatches );
+      proposal_ly = state_ly;
+
+      // generate proposal. by effect.
+      dstate = (int)generateProposal( 1, 0.0, 0.1, proposal_v, proposal_ly );
+      
+      // set the fit variables to calc nll
+      memcpy( fmatch, proposal_v.data(), sizeof(float)*_nmatches );
+      *flightyield = proposal_ly;
+      
+      // accept or reject
+      float proposal_nll = calcNLL(step%10000==0);
+      bool accept = true;
+      //std::cout << "step[" << i << "] (proposalLL<lastnll)=" << (proposal_nll<lastnll) << " ";
+      if ( proposal_nll>lastnll )  {
+	// worse step, so we have to decide to reject or not
+	float logratio = -0.5*(proposal_nll-lastnll);
+	//std::cout << " logratio=" << logratio;
+	if ( logratio>-1e4 ) {
+	  // give it a chance to jump. ay other prob, forget about it
+	  float mc = _rand->Uniform();
+	  if ( mc > exp(logratio) ) {
+	    //std::cout << "  drew step change (" << mc << ">" << exp(logratio) << ") ";
+	    accept = false; // we reject
+	  }
+	}
+	else
+	  accept = false;
+      }
+      
+      if ( accept ) {
+	// update state
+	//std::cout << "  accept" << std::endl;
+
+	// copy proposal to state_v, state_ly
+	memcpy( state_v.data(), proposal_v.data(), sizeof(float)*_nmatches );
+	state_ly = proposal_ly;
+	lastnll = proposal_nll;
+	naccept++;
+      }
+      else {
+	//std::cout << "  reject" << std::endl;
+      }
+
+      if ( step>nsamples/2 ) {
+	// start to update after burn in
+	n_ave_updates += 1;
+	for (int i=0; i<_nmatches; i++) {
+	  ave_v[i] += state_v[i];
+	}
+	ave_ly += state_ly;
+      }
+      
+      tmcmc.Fill();
+    }//end of mcmc loop
+    
+    for (int i=0; i<_nmatches; i++) {
+      ave_v[i] /= float(n_ave_updates);
+    }
+    ave_ly  /= float(n_ave_updates);    
+    
+    double tnll_s = (std::clock() - start) / (double)(CLOCKS_PER_SEC);
+    std::cout << "Time: " << tnll_s << " s (per sample: " << tnll_s/float(1000)/float(nsamples) << " ms)" << std::endl;
+    std::cout << "num accepted proposals: " << naccept << " out of " << nsamples << std::endl;    
+    // set with ending state
+    std::cout << "Set average state. ave_ly=" << ave_ly << std::endl;
+    memcpy( fmatch, ave_v.data(), sizeof(float)*_nmatches );
+    *flightyield = ave_ly;
+    calcNLL(true);
+    tmcmc.Write();
+    fout.Close();
+
+    std::cout << "ave match vector" << std::endl;
+    for (int imatch=0; imatch<_nmatches; imatch++) {
+      std::cout << "imatch[" << imatch << "] "
+		<< "flash=" << _match_flashidx_orig[imatch] << " "
+		<< "clust=" << _match_clustidx_orig[imatch] << " "
+		<< "ave=" << ave_v[imatch] << std::endl;
+    }
+
+    std::cout << std::endl;
+
+    std::cout << "distribution over clusters" << std::endl;
+    for (int iclust=0; iclust<_nqclusters; iclust++) {
+      auto it_clust = _clust_reindex.find( iclust );
+      if ( it_clust==_clust_reindex.end() )
+	continue;
+
+      int reclust = it_clust->second;
+      std::cout << "cluster[" << iclust << "] ";
+      
+      // find non-zero flash
+      for (int iflash=0; iflash<_nflashes; iflash++) {
+	auto it_flash = _flash_reindex.find( iflash );
+	if ( it_flash==_flash_reindex.end() )
+	  continue;
+
+	int reflash = it_flash->second;
+	int imatch = getMatchIndex( reflash, reclust );
+	if ( ave_v[imatch]>0.05 ) {
+	  std::cout << "fl[" << iflash << "]=" << ave_v[imatch] <<  " ";
+	}
+      }
+      std::cout << std::endl;
+    }
+
+    std::cout << "distribution over flashes" << std::endl;
+    for (int iflash=0; iflash<_nflashes; iflash++) {
+      auto it_flash = _flash_reindex.find( iflash );
+      if ( it_flash==_flash_reindex.end() )
+	continue;
+
+      int reflash = it_flash->second;
+      std::cout << "flash[" << iflash << "] ";
+      
+      // find non-zero flash
+      for (int iclust=0; iclust<_nqclusters; iclust++) {
+	auto it_clust = _clust_reindex.find( iclust );
+	if ( it_clust==_clust_reindex.end() )
+	  continue;
+
+	int reclust = it_clust->second;
+	int imatch = getMatchIndex( reflash, reclust );
+	if ( ave_v[imatch]>0.05 ) {
+	  std::cout << "cl[" << iclust << "]=" << ave_v[imatch] <<  " ";
+	}
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "FIN" << std::endl;
+    dumpMatchImages( flashdata_v, false, true );    
   }
 
 
@@ -388,9 +581,12 @@ namespace larflow {
     m_flash_data     = new float[ _nmatches*npmts ];
     m_flashdata_norm = new float[ _nmatches ];
     m_flashhypo_norm = new float[ _nmatches ];
+    m_iscosmic       = new int[ _nmatches ];
 
     // create a map from (reflash,recluster) pair to match index
     _pair2index = new int[ _nflashes_red*_nclusters_red ];
+    for (int i=0; i<_nflashes_red*_nclusters_red; i++)
+      _pair2index[i] = -1;
     for (int imatch=0; imatch<_nmatches; imatch++){
       int reflash  = _match_flashidx[imatch];
       int reclust  = _match_clustidx[imatch];
@@ -411,6 +607,11 @@ namespace larflow {
       FlashHypo_t& hypo = getHypothesisWithOrigIndex( origflashidx, origclustidx );
       memcpy( m_flash_hypo+imatch*npmts, hypo.data(), sizeof(float)*npmts );
       *( m_flashhypo_norm+imatch ) = hypo.tot;
+
+      if ( flashdata_v[origflashidx].isbeam )
+	*(m_iscosmic ) = 0;
+      else
+	*(m_iscosmic ) = 1;
     }
 
 
@@ -447,66 +648,62 @@ namespace larflow {
   }
 
   void LArFlowFlashMatch::defineFitParameters() {
+    if ( !_reindexed )
+      throw std::runtime_error("[LArFlowFlashMatch::defineFitParametere][ERROR] must call buildFittingData first");
     clearFitParameters();
+    flightyield = new float;
     fmatch = new float[_nmatches];
     fpmtweight = new float[_nflashes_red*32];
+    
+    memset( fpmtweight, 0, sizeof(_nflashes_red )*32 );
+    memset( fmatch, 0, sizeof(float)*_nmatches );
+    _parsdefined = true;
   }
 
   void LArFlowFlashMatch::clearFitParameters() {
-    flightyield = 0.;
+    delete flightyield;
     delete [] fmatch;
     delete [] fpmtweight;
+    flightyield = nullptr;
     fmatch = nullptr;
     fpmtweight = nullptr;
+    _parsdefined = false;
   }
   
-  void LArFlowFlashMatch::calcInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v ) {
+  void LArFlowFlashMatch::setInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v ) {
+
+    if ( !_parsdefined )
+      throw std::runtime_error("[LArFlowFlashMatch::setInitialFitPoint][ERROR] must call setInitialFitPoint first");
     
-    // before we fit, we try to find a solution to the many-many match
-    // and use it as a best fit
-    //
-    // we do a naive, iterative method
-    //  0) if we have uniquely matched flash-cluster, we use it to set the light yield
-    //  1) we loop through each cluster and set the best-flash using a shape comparison (CDF-maxdist for z-projection)
-    //  2) adjust the best-fit lightyield
-    //  3) repeat (1)+(2) until solved (or no flashes left to match)
+    (*flightyield) = _fweighted_scalefactor_mean;
+    // for ( int iflash=0; iflash<_nflashes; iflash++) {
 
+    //   auto it = _flash_reindex.find( iflash );
+    //   if ( it==_flash_reindex.end() )
+    // 	continue; // not paired
 
-    // step-0, set light yeild using uniquely matched tracks, if there are any
-    float hypotot = 0.;
-    float datatot = 0.;
-    bool lyset = false;
-    for (size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
-      if ( _nclusters_compat_wflash[iflash]==1 ) {
-	// unique flash. find the cluster
-	int match_iq = -1;
-	for (size_t iq=0; iq<qcluster_v.size(); iq++) {
-	  if ( match_iq<0 && getCompat(iflash,iq)==0 ) {
-	    match_iq = iq;
-	  }
-	  else {
-	    throw std::runtime_error("[LArFlowFlashMatch::calcInitialFitPoint][ERROR] though marked as unique-matched, this flash has more than 1 compatible cluster");
-	  }
-	}//end of cluster loop
-	if ( match_iq>=0 ) {
-	  datatot += flashdata_v[iflash].tot;
-	  hypotot += m_flash_hypo_v[ m_flash_hypo_map[flashclusterpair_t(iflash,match_iq)] ].tot;
-	}
-	else {
-	  throw std::runtime_error("[LArFlowFlashMatch::calcInitialFitPoint][ERROR] though marked as unique-matched, this flash has more no compatible cluster");
-	}
-      }
+    //   int bestclustidx = _flashdata_best_hypo_maxdist_idx[iflash]; // get cluster (original index) that best matches
+      
+    //   int reflashidx   = (*it).second;
+    //   int reclustidx   = _clust_reindex[bestclustidx];
+    //   int imatch = getMatchIndex( reflashidx, reclustidx );
+    //   *(fmatch+imatch) = 1.0;
+    // }
+    memset( fmatch, 0, sizeof(float)*_nmatches );
+    for (int iclust=0; iclust<_nqclusters; iclust++) {
+      auto it = _clust_reindex.find( iclust );
+      if ( it==_clust_reindex.end() )
+	continue; // not paired
+      int bestflashidx = _clustdata_best_hypo_chi2_idx[iclust];
+      int reflashidx   = _flash_reindex[bestflashidx];
+      int reclustidx   = (*it).second;
+      int imatch = getMatchIndex( reflashidx, reclustidx );
+      *(fmatch+imatch) = 1.0;
     }
-
-    if ( hypotot>0 && datatot > 0 ) {
-      flightyield = datatot/hypotot;
-      std::cout << "[LArFlowFlashMatch::calcInitialFitPoint] unique match data/hypo pe ratio: " << flightyield << std::endl;
-      lyset = true;
-    }
-    else {
-      std::cout << "[LArFlowFlashMatch::calcInitialFitPoint] no unique matches to set initial light yield " << std::endl;
-      lyset = false;
-    }
+    std::cout << "initialstateset: ";
+    for (int i=0; i<_nmatches; i++)
+      std::cout << fmatch[i];
+    std::cout << std::endl;
     
   }
 
@@ -545,7 +742,7 @@ namespace larflow {
       if ( dist>maxdist )
 	maxdist = dist;
     }
-    //std::cout << "tot_hypo=" << norm_hypo << " tot_data=" << norm_data << " maxdist=" << maxdist << std::endl;
+    std::cout << "tot_hypo=" << norm_hypo << " tot_data=" << norm_data << " maxdist=" << maxdist << std::endl;
     return maxdist;
   }
 
@@ -559,6 +756,11 @@ namespace larflow {
     
     _flashdata_best_hypo_maxdist_idx.resize(flashdata_v.size(),-1);
     _flashdata_best_hypo_chi2_idx.resize(flashdata_v.size(),-1);    
+    _clustdata_best_hypo_maxdist_idx.resize(qcluster_v.size(),-1);
+    _clustdata_best_hypo_chi2_idx.resize(qcluster_v.size(),-1);    
+
+    std::vector<float> clustdata_best_hypo_maxdist(qcluster_v.size(),2.0);
+    std::vector<float> clustdata_best_hypo_chi2(qcluster_v.size(),1e9);    
 
     std::vector<float> hyposcale_v;
     std::vector<float> scaleweight_v;    
@@ -580,34 +782,52 @@ namespace larflow {
 	// get hypo
 	FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
 
-	// for most-generous comparison, we must renorm hypo to flash data pe tot.
-	// if cosmic flash, we zero out pmts that flashdata is non-triggered
+	// for most-generous comparison, we renorm hypo flash to data total pe
+	// but we dont total predictions where flashdata is zeor due to cosmic disc window
 
-	float hypo_renorm = 0.;
+	float hypo_renorm = 0.; // vis-only normalization, only including flashdata channel > 0
 	for (size_t ich=0; ich<flashdata.size(); ich++) {
 	  if ( flashdata[ich]>0 || flashdata.isbeam ) {
-	    hypo_renorm += hypo[ich];
+	    hypo_renorm += hypo[ich]*hypo.tot;
 	  }
 	}
+
+	//std::cout << "hypo_renorm=" << hypo_renorm << " hypo.tot=" << hypo.tot << " ratio=" << hypo_renorm/hypo.tot << std::endl;
 
 	if ( hypo_renorm == 0.0 ) {
 	  // no overlap between data and hypo -- good, can reject
 	  setCompat(iflash,iclust,3); // no overlap
 	}
 	else {
+	  //FlashHypo_t& copy = hypo;
 	  // give ourselves a new working copy
 	  FlashHypo_t copy(hypo);
-	  //FlashHypo_t& copy = hypo;
 	  
-	  float hypo_scale = flashdata.tot/hypo_renorm;
+	  float hypo_scale = flashdata.tot/(hypo_renorm/hypo.tot); // we want 
+
+	  //std::cout << "data.tot=" << flashdata.tot << " hypo_scale=" << hypo_scale << " copy.tot=" << copy.tot << " copy.size=" << copy.size() << std::endl;
 	  
 	  // we enforce cosmic dic. threshold by scaling hypo to data and zero-ing below threshold
+	  copy.tot = 0.0; // copy norm
 	  for (size_t ich=0; ich<flashdata.size(); ich++) {
-	    if ( copy[ich]*hypo_scale<_fCosmicDiscThreshold )
-	      copy[ich] = 0.;
+	    float copychpred = hypo[ich]*hypo_scale;
+	    //if ( copychpred<_fCosmicDiscThreshold )
+	    //copy[ich] = 0.;
+	    //else
+	    copy[ich] = copychpred;
+	    //std::cout << "copy.chpred=" << copy[ich] << " vs. chpred=" << copychpred << std::endl;	  
+	    copy.tot += copy[ich];
 	  }
-
-	  float maxdist = shapeComparison( copy, flashdata, flashdata.tot, hypo_scale );
+	  //std::cout << "copy.tot=" << copy.tot << std::endl;
+	  if ( copy.tot==0 ) {
+	    setCompat(iflash,iclust,3);
+	    continue;
+	  }
+	  
+	  for (size_t ich=0; ich<flashdata.size(); ich++)
+	    copy[ich] /= copy.tot;
+	  
+	  float maxdist = shapeComparison( copy, flashdata, flashdata.tot, copy.tot );
 
 	  // chi2
 	  float chi2 = 0;
@@ -629,6 +849,7 @@ namespace larflow {
 	    setCompat(iflash,iclust,4); // fails shape match
 	  }
 
+	  // update bests for flash
 	  if ( maxdist < bestdist ) {
 	    bestdist = maxdist;
 	    bestidx = iclust;
@@ -637,15 +858,29 @@ namespace larflow {
 	    bestchi2 = chi2;
 	    bestchi2_idx = iclust;
 	  }
-	}
-      }
+
+	  // update bests for clust
+	  if ( maxdist < clustdata_best_hypo_maxdist[iclust] ) {
+	    clustdata_best_hypo_maxdist[iclust] = maxdist;
+	    _clustdata_best_hypo_maxdist_idx[iclust] = iflash;
+	    std::cout << "update best cluster flash: maxdist=" << maxdist << " idx=" << iflash << std::endl;
+	  }
+	  if ( chi2 < clustdata_best_hypo_chi2[iclust] ) {
+	    clustdata_best_hypo_chi2[iclust] = chi2;
+	    _clustdata_best_hypo_chi2_idx[iclust] = iflash;
+	  }
+	  
+	}//end of if valid renorm
+
+	// update cluser bests
+      }//end of cluster loop
 
       _flashdata_best_hypo_maxdist_idx[iflash] = bestidx;
       _flashdata_best_hypo_chi2_idx[iflash]    = bestchi2_idx;      
 
     }
 
-    if ( false ) {
+    if ( true ) {
       TCanvas c("c","c",800,600);
       TH1D hscale("hscale", "",50,0,1e3);
       for ( size_t i=0; i<hyposcale_v.size(); i++) {
@@ -659,7 +894,8 @@ namespace larflow {
 
     // calculate weight-mean light-yield value;
     _fweighted_scalefactor_mean  = 0.;
-    _fweighted_scalefactor_stdev = 0.;
+    _fweighted_scalefactor_var = 0.;
+    _fweighted_scalefactor_sig = 0.;    
     float totweight = 0;
     float xxsum = 0;
     float xsum  = 0;
@@ -676,15 +912,15 @@ namespace larflow {
       }
     }
     _fweighted_scalefactor_mean  = xsum/totweight;
-    _fweighted_scalefactor_stdev = (xxsum - 2.0*xsum*_fweighted_scalefactor_mean + totweight*_fweighted_scalefactor_mean*_fweighted_scalefactor_mean)/(totweight*(nweights-1.0)/nweights);
-    std::cout << "nonsqrt: " << _fweighted_scalefactor_stdev << std::endl;    
-    _fweighted_scalefactor_stdev = sqrt( _fweighted_scalefactor_stdev );
-
+    _fweighted_scalefactor_var = (xxsum - 2.0*xsum*_fweighted_scalefactor_mean + totweight*_fweighted_scalefactor_mean*_fweighted_scalefactor_mean)/(totweight*(nweights-1.0)/nweights);
+    _fweighted_scalefactor_sig = sqrt( _fweighted_scalefactor_var );
+    float x_zero = _fweighted_scalefactor_mean/_fweighted_scalefactor_sig;
+    _ly_neg_prob = 0.5*TMath::Erf( x_zero );
 
     std::cout << "total weight: " << totweight << std::endl;
     std::cout << "total number of weights: " << int(nweights) << std::endl;
     std::cout << "Weighted scale-factor mean: "   << _fweighted_scalefactor_mean  << std::endl;
-    std::cout << "Weighted scale-factor stddev: " << _fweighted_scalefactor_stdev << std::endl;
+    std::cout << "Weighted scale-factor variance (stdev): " << _fweighted_scalefactor_var << " ("  << _fweighted_scalefactor_sig << ")" << std::endl;
   }
 
   void LArFlowFlashMatch::printCompatInfo() {
@@ -727,25 +963,42 @@ namespace larflow {
     std::cout << "[Total " << totcompat << "]" << std::endl;
   }
 
-  void LArFlowFlashMatch::dumpMatchImages( const std::vector<FlashData_t>& flashdata_v ) {
+  void LArFlowFlashMatch::dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch ) {
     TCanvas c("c","",500,400);
 
     for (int iflash=0; iflash<_nflashes; iflash++) {
       int ncompat = 0;
       TH1D hdata("hdata","",32,0,32);
-      for (int ipmt=0; ipmt<32; ipmt++) {
-	hdata.SetBinContent( ipmt+1, flashdata_v[iflash][ipmt] );
+      float norm = 1.;
+      if ( !shapeonly ) {
+	norm = flashdata_v[iflash].tot;
       }
-      hdata.SetMaximum(1.);
-      hdata.SetMinimum(0.);
+      for (int ipmt=0; ipmt<32; ipmt++) {
+	hdata.SetBinContent( ipmt+1, flashdata_v[iflash][ipmt]*norm );
+      }
+      //hdata.SetMaximum(1.);
+      //hdata.SetMinimum(0.);
       hdata.SetLineWidth(4);
       hdata.SetLineColor(kBlack);
       hdata.Draw("hist");
       std::vector< TH1D* > hclust_v;
+
+      auto it_flash = _flash_reindex.find( iflash );
+
       for (int iclust=0; iclust<_nqclusters; iclust++) {
+
 	if ( getCompat(iflash,iclust)!=0 )
 	  continue;
-
+	
+	if (usefmatch) {
+	  auto it_clust = _clust_reindex.find( iclust );
+	  if ( it_flash==_flash_reindex.end() || it_clust==_clust_reindex.end() )
+	    continue;
+	  int imatch = getMatchIndex( it_flash->second, it_clust->second );
+	  if ( imatch<0 || fmatch[ imatch ] < 0.001 )
+	    continue;
+	}
+	
 	char hname[20];
 	sprintf( hname, "hhypo_%d", iclust);
 	TH1D* hhypo = new TH1D(hname, "", 32, 0, 32 );
@@ -768,9 +1021,13 @@ namespace larflow {
 	if ( both )
 	  hhypo->SetLineColor(kMagenta);
 	   
-	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );	
+	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
+	float hypo_norm = 1.;
+	if ( !shapeonly )
+	  hypo_norm = (*flightyield)*hypo.tot;
+	
 	for (int ipmt=0;ipmt<32;ipmt++) {
-	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]);
+	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
 	}
 	hhypo->Draw("hist same");
 	hclust_v.push_back( hhypo );
@@ -781,12 +1038,130 @@ namespace larflow {
 
       char cname[100];
       sprintf( cname, "hflashdata_compat_pmtch%02d.png",iflash);
+      std::cout << "saving " << cname << std::endl;
       c.SaveAs(cname);
 
       for (int ic=0; ic<(int)hclust_v.size(); ic++) {
 	delete hclust_v[ic];
       }
+      hclust_v.clear();
     }//end of flash loop
+  }
+
+  float LArFlowFlashMatch::calcNLL( bool print ) {
+
+
+    // calculate agreement
+    float nll_data = 0.;
+
+    // fit to data
+    for (int imatch=0; imatch<_nmatches; imatch++) {
+      float hyponorm = *(m_flashhypo_norm + imatch)*(*flightyield);
+      float datanorm = *(m_flashdata_norm + imatch);
+
+      float nll_match = 0.;
+      for (int ich=0; ich<32; ich++) {
+	float pred = *(m_flash_hypo + imatch*32 + ich );
+	float obs  = *(m_flash_data + imatch*32 + ich );
+	pred *= hyponorm;
+	obs  *= datanorm;
+	if ( m_iscosmic[imatch]==1 && pred<_fCosmicDiscThreshold )
+	  pred = 1.0e-3;
+	if ( pred<1.0e-3 )
+	  pred = 1.0e-3;
+	float nll_bin = (pred-obs);
+	if ( obs>0 )
+	  nll_bin += obs*(log(obs)-log(pred));
+	//std::cout << "[" << imatch << "][" << ich << "] pred=" << pred << " obs=" << obs << " nllbin=" << nll_bin << std::endl;
+	nll_match += 2.0*nll_bin;
+      }
+      nll_data += nll_match*fmatch[imatch];
+    }
+
+    // constraints:
+    float nll_clustsum = 0.;
+    //for each cluster. sum of pairs to flashes should be 1
+    for (int iclust=0; iclust<_nclusters_red; iclust++) {
+      float clustsum = 0.;
+      for (int iflash=0; iflash<_nflashes_red; iflash++) {
+	int imatch = getMatchIndex( iflash, iclust );
+	if ( imatch>=0 )
+	  clustsum += *(fmatch+ imatch );
+      }
+      nll_clustsum += (clustsum-1.0)*(clustsum-1.0);
+      //std::cout << "clustsum[" << iclust << "] " << clustsum << std::endl;
+    }
+
+    float nll_flashsum = 0.;
+    //for each flash. sum of pairs to flashes should be 1 for the most part
+    for (int iflash=0; iflash<_nflashes_red; iflash++) {
+      float flashsum = 0.;
+      for (int iclust=0; iclust<_nclusters_red; iclust++) {
+	int imatch = getMatchIndex( iflash, iclust );
+	if ( imatch>=0 )
+	  flashsum += *(fmatch+ imatch );
+      }
+      nll_flashsum += (flashsum-1.0)*(flashsum-1.0);
+      //std::cout << "clustsum[" << iclust << "] " << clustsum << std::endl;
+    }
+    
+    // L1 norm: enforce sparsity
+    float nll_l1norm = 0;
+    for (int imatch=0; imatch<_nmatches; imatch++) {
+      nll_l1norm += fabs(fmatch[imatch]);
+    }
+
+    // lightyield prior
+    float nll_ly = (*flightyield - _fweighted_scalefactor_mean)*(*flightyield - _fweighted_scalefactor_mean)/_fweighted_scalefactor_var;
+
+    float nll = nll_data + _fclustsum_weight*nll_clustsum + _fflashsum_weight*nll_flashsum + _fl1norm_weight*nll_l1norm + _flightyield_weight*nll_ly;
+    if ( print )
+      std::cout << "NLL(ly=" << *flightyield << "): nll_tot=" << nll
+		<< ":  nll_data=" << nll_data
+		<< " + nll_clustsum=" << nll_clustsum
+		<< " + nll_flashsum=" << nll_flashsum	
+		<< " + l1norm=" << nll_l1norm
+		<< " nll_ly=" << nll_ly << "" << std::endl; 
+    
+    return nll;
+  }
+
+  float LArFlowFlashMatch::generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
+					     std::vector<float>& match_v, float& ly  ) {
+    // generate number of flips
+    //int nflips = _rand->Poisson( hamdist_mean );
+    int nflips = (int)fabs(_rand->Exp(hamdist_mean));
+    
+    // draw index
+    std::set<int> flip_idx;
+    while ( nflips>0 && flip_idx.size()!=nflips ) {
+      int idx = _rand->Integer( _nmatches );
+      flip_idx.insert(idx);
+    }
+    
+    // generate ly change
+    float proposal_ly = -1.;
+    float dly = 0.;
+    while (proposal_ly<0) {
+      dly = _rand->Gaus( 0, lydist_sigma );
+      proposal_ly = ly + dly;
+    }
+    ly = proposal_ly;
+
+
+    // copy state vector
+    //match_v.resize( _nmatches );
+    //memcpy( match_v.data(), fmatch, sizeof(float)*_nmatches );
+    // do the flips
+    for (auto& idx : flip_idx ) {
+      match_v[idx] = (match_v[idx]>0.5 ) ? 0.0 : 1.0;
+    }
+
+    // return prob of jump
+    float prob_hamdist = TMath::Poisson( hamdist_mean, nflips );
+    float prob_ly      = TMath::Gaus( dly/lydist_sigma );
+    
+    return float(flip_idx.size());
   }
 
   

@@ -11,6 +11,8 @@
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
 
+class TRandom3;
+
 namespace larflow {
 
 
@@ -115,7 +117,7 @@ namespace larflow {
     // this is for shape fit
     std::vector< std::vector<int> > _zbinned_pmtchs;
     float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
-    void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v );
+    void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
 
     // Flash Hypothesis Building
     // -------------------------
@@ -146,6 +148,20 @@ namespace larflow {
 				const std::vector<QCluster_t>& qcluster_v );
     FlashHypo_t& getHypothesisWithOrigIndex( int flashidx, int clustidx );
 
+    // Match refinement
+    // ----------------------------
+    std::vector<int> _flashdata_best_hypo_chi2_idx;
+    std::vector<int> _flashdata_best_hypo_maxdist_idx;
+    std::vector<int> _clustdata_best_hypo_chi2_idx;
+    std::vector<int> _clustdata_best_hypo_maxdist_idx;
+    float _fMaxDistCut;
+    float _fCosmicDiscThreshold;
+    float _fweighted_scalefactor_mean;
+    float _fweighted_scalefactor_var;
+    float _fweighted_scalefactor_sig;
+    float _ly_neg_prob;
+    void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
+    
     // Build Fit Parameter matrices
     // ----------------------------
     int _nmatches;         // {(flash,cluster) ordered pairs, unrolled
@@ -162,32 +178,39 @@ namespace larflow {
     float* m_flash_data;   // [nflashes_red][npmts]
     float* m_flashhypo_norm;
     float* m_flashdata_norm;
+    int*   m_iscosmic;
     int* _pair2index;      // [flashreindex][cluster-reindex], value is match-index
+    int getMatchIndex( int reflashidx, int reclustidx ) { return *(_pair2index + reflashidx*_nclusters_red + reclustidx); };
     void buildFittingData(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
     void clearFittingData();
 
     // Define fit parameters
-    float  flightyield;
+    // ---------------------
+    float* flightyield;
     float* fmatch;     // [_nmatches]
     float* fpmtweight; // [_nflashes_red*32]
+    bool _parsdefined;
     void defineFitParameters();
     void clearFitParameters();
-
-    // Match refinement
-    // ----------------------------
-    std::vector<int> _flashdata_best_hypo_chi2_idx;
-    std::vector<int> _flashdata_best_hypo_maxdist_idx;
-    float _fMaxDistCut;
-    float _fCosmicDiscThreshold;
-    float _fweighted_scalefactor_mean;
-    float _fweighted_scalefactor_stdev;
-    void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
 					 
-    // Calculate Initial Fit Point
+    // Set Initial Fit Point
     // ----------------------------
-    void calcInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
-			       
+    void setInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
 
+    // Calc NLL (given state)
+    // ----------------------
+    float _fclustsum_weight;
+    float _fflashsum_weight;    
+    float _fl1norm_weight;
+    float _flightyield_weight;
+    float calcNLL(bool print=false);
+
+    // Proposal Generation
+    // -------------------
+    TRandom3* _rand;
+    float generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
+			    std::vector<float>& match_v, float& ly  );
+    
 
   };
 
