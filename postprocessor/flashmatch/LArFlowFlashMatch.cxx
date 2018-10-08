@@ -131,6 +131,7 @@ namespace larflow {
     
     // save the current state
     int step = 0;
+    int step_accepted = 0;
     float state_ly = *flightyield;
     std::vector<float> state_v(_nmatches,0.0);
     memcpy( state_v.data(), fmatch, _nmatches*sizeof(float) );
@@ -152,6 +153,7 @@ namespace larflow {
     sprintf( brname_state, "state_v[%d]/F", _nmatches );
     
     tmcmc.Branch("step", &step, "step/I" );
+    tmcmc.Branch("accepted", &step_accepted, "accepted/I" );    
     tmcmc.Branch("naccepted", &naccept, "naccepted/I" );    
     tmcmc.Branch("state_v",state_v.data(), brname_state );
     tmcmc.Branch("dstate",&dstate,"dstate/I");
@@ -211,10 +213,12 @@ namespace larflow {
 	memcpy( state_v.data(), proposal_v.data(), sizeof(float)*_nmatches );
 	state_ly = proposal_ly;
 	lastnll = proposal_nll;
+	step_accepted = 1;
 	naccept++;
       }
       else {
 	//std::cout << "  reject" << std::endl;
+	step_accepted = 0;	
       }
 
       if ( step>nsamples/2 ) {
