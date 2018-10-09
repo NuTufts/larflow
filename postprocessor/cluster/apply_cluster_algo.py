@@ -87,11 +87,13 @@ def sort_by_cluster(y,idx,ev_larflow):
     clusters = []
     clust = larlite.larflowcluster()
     k = y[0] #initial cluster
-    for i in xrange(y.shape[0]-1):
+    for i in xrange(y.shape[0]):
         if y[i]==k:
             clust.push_back(ev_larflow[idx[i]])
             continue
+        print k, clust.size()
         clusters.append(clust)
+        clust.clear()
         k = y[i]
     return clusters
         
@@ -146,6 +148,7 @@ def main():
 
     # EVENT LOOP
     nevents = io.get_entries()
+    nevents = 1 # dummy
     for i in xrange(nevents):
         io.go_to(i)
         ev_larflow = get_event(io,"kLArFlow3DHit","flowhits")
