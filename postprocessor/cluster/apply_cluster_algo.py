@@ -31,30 +31,31 @@ def dataIO(inputfile,outputfile):
     io.open()
     return io
 
-def read_event(io,event=0,product="",producer=""):    
-    io.go_to(event)
+def get_event(io,product="",producer=""):
     ev = None
     myString  ='%s.get_data(larlite.data.%s,"%s")'%("io",product,producer)
     loc = {"io":io}
     ev = eval(myString,globals(),loc)
-    #print "ev var: ",ev
-    #exec("print ev")
     return ev
 
-def save_event():
+def save_event(ev,myVec):
     print "saving"
-
+    for entry in myVec: 
+        ev.push_back( entry )
+    return ev
+    
 def fill_data(ev):
     nhits = ev.size()
     pos_np = np.zeros( (nhits,3) )
-    id_np  = np.zeros( (nhits) )
+    idx_np = np.zeros( (nhits,2) )
     for ihit in xrange(nhits):
         hit = ev.at(ihit)
         pos_np[ihit,0] = hit.at(0)
         pos_np[ihit,1] = hit.at(1)
         pos_np[ihit,2] = hit.at(2)
-        id_np[ihit]    = hit.trackid
-    return pos_np,id_np
+        idx_np[ihit,0] = ihit
+        idx_np[ihit,1] = hit.trackid
+    return pos_np,idx_np
 
 def set_params(pars):
     default_base = {'quantile': .3,
@@ -66,7 +67,7 @@ def set_params(pars):
     params = default_base.copy()
     params.update(pars)
     return params
-    
+
 def call_algo(name,params):     
     algo=None
     if name=="dbscan" or name=="DBSCAN":
@@ -81,6 +82,39 @@ def call_algo(name,params):
         print "unknown algo; exit"
         exit(0)
     return algo
+
+def sort_by_cluster(y,idx,ev_larflow):
+    clusters = []
+    clust = larlite.larflowcluster()
+    k = y[0] #initial cluster
+    for i in xrange(y.shape[0]-1):
+        if y[i]==k:
+            clust.push_back(ev_larflow[idx[i]])
+            continue
+        clusters.append(clust)
+        k = y[i]
+    return clusters
+        
+def plot_event(fignum,X,y,algoname):    
+    # get colors
+    colors_ = list(six.iteritems(colors.cnames))
+    for i, (n,h) in enumerate(colors_):
+            colors_[i] = h
+    colors_ = np.array(colors_)        
+    fig = plt.figure(fignum, figsize=(4, 3))
+    ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
+    ax.scatter(X[:, 0], X[:, 1], X[:, 2],
+                              s=10, c=colors_[y], depthshade=False, edgecolor='k')
+    ax.w_xaxis.set_ticklabels([])
+    ax.w_yaxis.set_ticklabels([])
+    ax.w_zaxis.set_ticklabels([])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_title(algoname)
+    ax.dist = 12
+    fignum = fignum + 1    
+    fig.show()
 
 def main():
 
@@ -111,12 +145,13 @@ def main():
         alg_list.append(pair)
 
     # EVENT LOOP
-    nevents = 1
+    nevents = io.get_entries()
     for i in xrange(nevents):
-        ev_larflow = read_event(io,i,"kLArFlow3DHit","flowhits")
+        io.go_to(i)
+        ev_larflow = get_event(io,"kLArFlow3DHit","flowhits")
         print "event: ",i, " 3D hits: ",ev_larflow.size()
         # fill the data and truth
-        X,y = fill_data(ev_larflow)
+        X,idx = fill_data(ev_larflow)
         # normalize dataset for easier parameter selection
         X_norm = StandardScaler().fit_transform(X)
         # cluster
@@ -128,38 +163,21 @@ def main():
             else:
                 y_pred = algo.predict(X_norm)
 
+            y_sort = np.sort(y_pred)
+            y_idx = np.argsort(y_pred)
+            clusterVec=sort_by_cluster(y_sort,y_idx,ev_larflow)
+
+            if args.output is not None:
+                ev_out = get_event(io,"kLArFlowCluster","%s"%(name))
+                save_event(ev_out,clusterVec)
             if args.plot:
                 plot_event(fignum,X,y_pred,name)
-            if args.output is not None:
-                save_event() # need ev_cluster per algo
-        #raw_input()
+
         io.set_id( io.run_id(), io.subrun_id(), io.event_id() );
         io.next_event()
         
-    #finalize
     io.close()
     exit(0)
-
-def plot_event(fignum,X,y,algoname):    
-    # get colors
-    colors_ = list(six.iteritems(colors.cnames))
-    for i, (n,h) in enumerate(colors_):
-            colors_[i] = h
-    colors_ = np.array(colors_)        
-    fig = plt.figure(fignum, figsize=(4, 3))
-    ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-    ax.scatter(X[:, 0], X[:, 1], X[:, 2],
-                              s=10, c=colors_[y], depthshade=False, edgecolor='k')
-    ax.w_xaxis.set_ticklabels([])
-    ax.w_yaxis.set_ticklabels([])
-    ax.w_zaxis.set_ticklabels([])
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.set_title(algoname)
-    ax.dist = 12
-    fignum = fignum + 1    
-    fig.show()
                                             
 if __name__ == '__main__':
     main()
