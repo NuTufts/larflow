@@ -13,6 +13,9 @@
 #include "larcv/core/DataFormat/Image2D.h"
 
 class TRandom3;
+namespace larutil {
+  class SpaceChargeMicroBooNE;
+}
 
 namespace larflow {
 
@@ -58,15 +61,24 @@ namespace larflow {
     };
 
     struct FlashData_t : public std::vector<float> {
+      FlashData_t() { truthmatched_clusteridx=-1; mctrackid=-1; mctrackpdg=-1; };      
       int tpc_tick;
       int tpc_trigx;
       bool isbeam;
       float tot;
+      int mctrackid;
+      int mctrackpdg;
+      int truthmatched_clusteridx;
+      int maxch;
+      float maxchposz;      
     };
 
     struct QCluster_t : public std::vector<QPoint_t> {
+      QCluster_t() { truthmatched_flashidx=-1; mctrackid=-1; };
       float min_tyz[3];
       float max_tyz[3];
+      int mctrackid;
+      int truthmatched_flashidx;
     };
     
     struct FlashHypo_t : public std::vector<float> {
@@ -220,9 +232,10 @@ namespace larflow {
     std::vector<int> _cluster_truthid;
     std::vector<int> _flash2truecluster;
     std::vector<int> _cluster2trueflash;
+    larutil::SpaceChargeMicroBooNE* _psce;
     bool kDoTruthMatching;
-    void doFlash2MCTrackMatching( const std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
-    void doCluster2FlashTruthMatching() {};
+    void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
+    void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters=false ) {};
     void clearMCTruthInfo() {};
 
