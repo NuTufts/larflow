@@ -7,6 +7,7 @@
 #include "DataFormat/opflash.h"
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/mctrack.h"
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
@@ -37,6 +38,8 @@ namespace larflow {
 		     const std::vector<larlite::opflash>& cosmic_flashes,
 		     const std::vector<larlite::larflowcluster>& clusters,
 		     const std::vector<larcv::Image2D>& img_v );
+
+    void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
     
 
     // internal data members
@@ -210,7 +213,18 @@ namespace larflow {
     TRandom3* _rand;
     float generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
 			    std::vector<float>& match_v, float& ly  );
-    
+
+    // MCTrack Info
+    const std::vector<larlite::mctrack>* _mctrack_v;
+    std::vector<int> _flash_truthid;
+    std::vector<int> _cluster_truthid;
+    std::vector<int> _flash2truecluster;
+    std::vector<int> _cluster2trueflash;
+    bool kDoTruthMatching;
+    void doFlash2MCTrackMatching( const std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
+    void doCluster2FlashTruthMatching() {};
+    void buildClusterExtensionsWithMCTrack( bool appendtoclusters=false ) {};
+    void clearMCTruthInfo() {};
 
   };
 

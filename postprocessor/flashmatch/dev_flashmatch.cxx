@@ -6,6 +6,7 @@
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/mctrack.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -19,11 +20,13 @@ int main( int nargs, char** argv ) {
   std::string input_cluster = argv[1];
   std::string input_opflash = argv[2];
   std::string input_larcv   = argv[3];
+  std::string input_mcinfo  = argv[4];
 
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
   io.add_in_filename( input_cluster );
-  io.add_in_filename( input_opflash );  
+  io.add_in_filename( input_opflash );
+  io.add_in_filename( input_mcinfo  );
   io.open();
 
   larcv::IOManager iolarcv( larcv::IOManager::kREAD );
@@ -70,6 +73,10 @@ int main( int nargs, char** argv ) {
     std::cout << "number of beam flashes: " << ev_opflash_beam->size() << std::endl;
     std::cout << "number of cosmic flashes: " << ev_opflash_cosmic->size() << std::endl;
     std::cout << "number of images: " << ev_larcv->as_vector().size() << std::endl;
+
+    larlite::event_mctrack* ev_mctrack = (larlite::event_mctrack*)io.get_data( larlite::data::kMCTrack, "mcreco" );
+    std::cout << "number of mctracks: " << ev_mctrack->size() << std::endl;
+    algo.loadMCTrackInfo( *ev_mctrack, true );
     
     larflow::LArFlowFlashMatch::Results_t result = algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
 

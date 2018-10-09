@@ -97,6 +97,10 @@ namespace larflow {
     // build compbatility matrix
     buildFullCompatibilityMatrix( flashdata_v, qcluster_v );
 
+    if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
+      std::cout << "[LArFlowFlashMatch::match][INFO] Doing MCTrack truth-reco matching" << std::endl;
+    }
+    
     // now build hypotheses: we only do so for compatible pairs
     buildFlashHypotheses( flashdata_v, qcluster_v );
 
@@ -1168,5 +1172,9 @@ namespace larflow {
     return float(flip_idx.size());
   }
 
-  
+  void LArFlowFlashMatch::loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching ) {
+    _mctrack_v = &mctrack_v;
+    kDoTruthMatching = do_truth_matching;
+    std::cout << "[LArFlowFlashMatch::loadMCTrackInfo][INFO] Loaded MC tracks." << std::endl;
+  }
 }
