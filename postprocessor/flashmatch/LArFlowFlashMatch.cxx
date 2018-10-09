@@ -1029,6 +1029,7 @@ namespace larflow {
       hdata.SetLineColor(kBlack);
       hdata.Draw("hist");
       std::vector< TH1D* > hclust_v;
+      float max = hdata.GetMaximum();
 
       auto it_flash = _flash_reindex.find( iflash );
 
@@ -1038,12 +1039,13 @@ namespace larflow {
 	
 	if ( getCompat(iflash,iclust)!=0 && !truthmatched )
 	  continue;
+
+	auto it_clust = _clust_reindex.find( iclust );
+	int imatch = -1;
+	if ( it_clust!=_clust_reindex.end() && it_flash!=_flash_reindex.end() )
+	  imatch = getMatchIndex( it_flash->second, it_clust->second );
 	
-	if (usefmatch) {
-	  auto it_clust = _clust_reindex.find( iclust );
-	  if ( it_flash==_flash_reindex.end() || it_clust==_clust_reindex.end() )
-	    continue;
-	  int imatch = getMatchIndex( it_flash->second, it_clust->second );
+	if (usefmatch && !truthmatched) {
 	  if ( imatch<0 || fmatch[ imatch ] < 0.001 )
 	    continue;
 	}
@@ -1073,10 +1075,10 @@ namespace larflow {
 	if ( truthmatched ) {
 	  hhypo->SetLineColor(kGreen+3);
 	  hhypo->SetLineWidth(3);
-	  if ( getCompat( iflash, iclust)!=0 )
+	  if ( getCompat( iflash, iclust)!=0 || ( usefmatch && (imatch<0 || fmatch[imatch]<0.001) ) )
 	    hhypo->SetLineStyle(3);
 	}
-	   
+	
 	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
 	float hypo_norm = 1.;
 	if ( !shapeonly )
@@ -1086,9 +1088,13 @@ namespace larflow {
 	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
 	}
 	hhypo->Draw("hist same");
+	if ( max < hhypo->GetMaximum() )
+	  max = hhypo->GetMaximum();
 	hclust_v.push_back( hhypo );
       }
 
+      hdata.SetMaximum( max*1.1 );
+      
       c.Update();
       c.Draw();
 
@@ -1311,6 +1317,7 @@ namespace larflow {
 	flashdata_v[iflash].mctrackid = idx;
 	flashdata_v[iflash].mctrackpdg = pdgx;	  
       }
+      std::cout << "FlashMCtrackMatch[" << iflash << "] trackid=" << flashdata_v[iflash].mctrackid << " pdg=" << flashdata_v[iflash].mctrackpdg << std::endl;
     }
 
   }
@@ -1322,7 +1329,7 @@ namespace larflow {
       for (int iclust=0; iclust<(int)qcluster_v.size(); iclust++) {
 	QCluster_t& cluster = qcluster_v[iclust];
 
-	if ( flash.mctrackid==cluster.mctrackid ) {
+	if ( flash.mctrackid!=-1 && flash.mctrackid==cluster.mctrackid ) {
 	  flash.truthmatched_clusteridx = iclust;
 	  cluster.truthmatched_flashidx = iflash;
 	  break;
