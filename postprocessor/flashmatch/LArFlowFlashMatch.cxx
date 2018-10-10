@@ -80,14 +80,35 @@ namespace larflow {
   LArFlowFlashMatch::Results_t LArFlowFlashMatch::match( const std::vector<larlite::opflash>& beam_flashes,
 							 const std::vector<larlite::opflash>& cosmic_flashes,
 							 const std::vector<larlite::larflowcluster>& clusters,
-							 const std::vector<larcv::Image2D>& img_v ) {
+							 const std::vector<larcv::Image2D>& img_v,
+							 const bool ignorelast ) {
     
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
-    _qcluster_v.resize( clusters.size() );
+    // we ignore last cluster because sometimes we put store unclustered hits in that entry
+    if ( ignorelast )
+      _qcluster_v.resize( clusters.size()-1 );
+    else
+      _qcluster_v.resize( clusters.size() );
 
     // we build up the charge clusters that are easy to grab
-    buildInitialQClusters( clusters, _qcluster_v, img_v, 2 );
+    buildInitialQClusters( clusters, _qcluster_v, img_v, 2, ignorelast );
+
+    // collect the flashes
+    _flashdata_v.clear();
+    _flashdata_v = collectFlashInfo( beam_flashes, cosmic_flashes );
+    
+    // MC matching
+    if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
+      std::cout << "[LArFlowFlashMatch::match][INFO] Doing MCTrack truth-reco matching" << std::endl;
+      doFlash2MCTrackMatching( _flashdata_v );
+      doTruthCluster2FlashTruthMatching( _flashdata_v, _qcluster_v );
+      bool appendtoclusters = true;
+      buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
+    }
+
+    // modifications to fill gaps
+    applyGapFill( _qcluster_v );
 
     // we have to build up charge in dead regions in the Y-plane
     // [TODO]
@@ -98,23 +119,12 @@ namespace larflow {
     //  make a qpoint
     // [TODO]
 
-    // collect the flashes
-    _flashdata_v.clear();
-    _flashdata_v = collectFlashInfo( beam_flashes, cosmic_flashes );
 
     std::cout << "Number of data flashes: " << _flashdata_v.size() << std::endl;
     std::cout << "Number of clusters: " << _qcluster_v.size() << std::endl;
     
     // build compbatility matrix
     buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
-
-    if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
-      std::cout << "[LArFlowFlashMatch::match][INFO] Doing MCTrack truth-reco matching" << std::endl;
-      doFlash2MCTrackMatching( _flashdata_v );
-      doTruthCluster2FlashTruthMatching( _flashdata_v, _qcluster_v );
-      bool appendtoclusters = true;
-      buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
-    }
     
     // now build hypotheses: we only do so for compatible pairs
     buildFlashHypotheses( _flashdata_v, _qcluster_v );
@@ -330,19 +340,30 @@ namespace larflow {
     dumpMatchImages( _flashdata_v, false, true );    
   }
 
+  // ==============================================================================
+  // CHARGE CLUSTER TOOLS
+  // -------------------------------------------------------------------------------
 
   void LArFlowFlashMatch::buildInitialQClusters( const std::vector<larlite::larflowcluster>& lfclusters, std::vector<QCluster_t>& qclusters,
-						 const std::vector<larcv::Image2D>& img_v, const int src_plane ) {
+						 const std::vector<larcv::Image2D>& img_v, const int src_plane, bool ignorelast ) {
 
-    if ( qclusters.size()!=lfclusters.size() )
-      qclusters.resize( lfclusters.size() );
+    if ( ignorelast ) {
+      if ( qclusters.size()!=lfclusters.size()-1 )
+	qclusters.resize( lfclusters.size()-1 );
+    }
+    else {
+      if ( qclusters.size()!=lfclusters.size() )
+	qclusters.resize( lfclusters.size() );
+    }
 
     const larcv::ImageMeta& src_meta = img_v[src_plane].meta();
-    
-    for ( size_t icluster=0; icluster<lfclusters.size(); icluster++ ) {
+
+    int nclusters = lfclusters.size();
+    if ( ignorelast ) nclusters -= 1;
+    for ( size_t icluster=0; icluster<nclusters; icluster++ ) {
 
       const larlite::larflowcluster& lfcluster = lfclusters[icluster];
-
+      
       QCluster_t& qcluster = qclusters[icluster];
       qcluster.reserve( lfcluster.size() );
       for ( size_t i=0; i<3; i++) {
@@ -359,8 +380,22 @@ namespace larflow {
 	  qhit.xyz[i] = lfcluster[ihit][i];
 	qhit.tick     = lfcluster[ihit].tick;
 	qhit.intpc = 1; // true by definition for larflow-reco tracks
+	qhit.gapfill = 0;
 
+	// clean up the hits
 	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
+	  continue;
+
+	bool isok = true;
+	for (int i=0; i<3; i++) {
+	  if ( std::isnan(qhit.xyz[i]) )
+	    isok = false;
+	}
+	if ( qhit.xyz[1]<-118.0 || qhit.xyz[1]>118 ) isok = false;
+	if ( qhit.xyz[2]<0 || qhit.xyz[2]>1050 ) isok = false;
+	if ( std::isnan(qhit.tick) || qhit.tick<0 )
+	  isok = false;
+	if (!isok )
 	  continue;
 
 	if ( qhit.tick > qcluster.max_tyz[0] )
@@ -404,6 +439,152 @@ namespace larflow {
       //std::cout << "[qcluster " << icluster << "] tick range: " << qcluster.min_tyz[0] << "," << qcluster.max_tyz[0] << std::endl;
     }//end of cluster loop
     
+  }
+
+  void LArFlowFlashMatch::applyGapFill( std::vector<QCluster_t>& qcluster_v ) {
+    for ( auto& cluster : qcluster_v )
+      fillClusterGaps( cluster );
+  }
+  
+  void LArFlowFlashMatch::fillClusterGaps( QCluster_t& cluster ) {
+    // we sort the points in z, y, x
+    // look for gaps. then look for points
+    // to be less sensitive to noise,
+    //   we require points to have N neighbors within L distance
+    //   we use cilantro to help us build and query a fast kD tree
+
+    const float kGapmin[3] = { 6.0, 6.0, 6.0 }; // (20 wires)
+    const float kMaxStepSize = 2.0;
+    
+    struct pt_t {
+      float x; // projected dim
+      int idx; // index to cluster array
+      bool operator<(const pt_t& rhs ) {
+	if ( x < rhs.x ) return true;
+	return false;
+      }
+    };
+
+    std::vector< pt_t > dimx(cluster.size());
+    std::vector< pt_t > dimy(cluster.size());
+    std::vector< pt_t > dimz(cluster.size());
+    for ( size_t ic=0; ic<cluster.size(); ic++) {
+      dimx[ic].idx = ic;
+      dimy[ic].idx = ic;
+      dimz[ic].idx = ic;      
+      dimx[ic].x = cluster[ic].xyz[0];
+      dimy[ic].x = cluster[ic].xyz[1];
+      dimz[ic].x = cluster[ic].xyz[2];      
+    }
+    std::sort( dimx.begin(), dimx.end() );
+    std::sort( dimy.begin(), dimy.end() );
+    std::sort( dimz.begin(), dimz.end() );
+
+    // for debug
+    // std::cout << "Sorted X ----------" << std::endl;
+    // for (auto& pt : dimx )
+    //   std::cout << " [" << pt.idx << "] " << pt.x << std::endl;
+    // std::cout << "[enter to continue]" << std::endl;
+    // std::cin.get();
+    
+    // we collect possible gaps
+    struct gap_t {
+      float len;      
+      int dim;
+      float start;
+      float end;
+      int start_idx;
+      int end_idx;
+      bool operator<( const gap_t& rhs ) {
+	if ( len<rhs.len) return true;
+	return false;
+      }
+    };
+    
+    std::vector<gap_t> gaps;
+    std::vector<pt_t>* dim_v[3] = { &dimx, &dimy, &dimz };
+    
+    for (int idim=0; idim<3; idim++) {
+      for (size_t i=1; i<dim_v[idim]->size(); i++) {
+	float dx = (*dim_v[idim])[i].x - (*dim_v[idim])[i-1].x;
+	if ( dx> kGapmin[idim] ) {
+	  gap_t g;
+	  g.len = dx;
+	  g.dim = idim;
+	  g.start = (*dim_v[idim])[i-1].x;
+	  g.end   = (*dim_v[idim])[i].x;
+	  g.start_idx = (*dim_v[idim])[i-1].idx;
+	  g.end_idx   = (*dim_v[idim])[i].idx;
+	  gaps.emplace_back(std::move(g));
+	}
+      }
+    }
+    std::cout << "number of gaps in cluster: " << gaps.size() << std::endl;
+    std::sort( gaps.begin(), gaps.end() );
+
+    // record where we fill gaps already -- forbid it
+    std::vector<float> gapends[3];
+
+    // fill the gap between the two points
+    for ( auto& gap : gaps ) {
+      int dim = gap.dim;
+      QPoint_t& start = cluster[gap.start_idx];
+      QPoint_t& end   = cluster[gap.end_idx];
+
+      // we check if we've already filled in this neighborhood
+      bool alreadyfilled = false;
+      for (int idim=0; idim<3; idim++) {
+	for (auto& endpos : gapends[idim] ) {
+	  float dist = fabs(start.xyz[idim]-endpos);
+	  if ( dist<kGapmin[idim] ) {
+	    alreadyfilled = true;
+	    break;
+	  }
+	}
+	if ( alreadyfilled )
+	  break;
+      }
+
+      if ( alreadyfilled )
+	continue;
+
+      for (int idim=0; idim<3; idim++) {
+	gapends[idim].push_back( start.xyz[idim] );
+	gapends[idim].push_back( end.xyz[idim] );
+      }
+
+      float gaplen=0;
+      float dir[3];
+      for (int i=0; i<3; i++) {
+	dir[i] = end.xyz[i]-start.xyz[i];
+	gaplen += dir[i]*dir[i];
+      }
+      gaplen = sqrt(gaplen);
+      for (int i=0; i<3; i++) dir[i] /= gaplen;      
+      float dtick = end.tick-start.tick;
+
+      int nsteps = gaplen/kMaxStepSize + 1;
+      float stepsize = gaplen/float(nsteps);
+      float stepdtick = dtick/float(nsteps);
+
+      std::cout << "  Fill gap in dim " << dim << " between: "
+		<< " (" << start.xyz[0] << "," << start.xyz[1] << "," << start.xyz[2] << ") and "	
+		<< " (" << end.xyz[0] << "," << end.xyz[1] << "," << end.xyz[2] << ") "
+		<< " with " << nsteps << " steps of size " << stepsize << " cm"
+		<< std::endl;
+      
+      // generate points
+      for (int istep=0; istep<nsteps-1; istep++) {
+	QPoint_t pt;
+	for (int i=0; i<3; i++)
+	  pt.xyz[i] = start.xyz[i] + (float(istep)+0.5)*stepsize*dir[i];
+	pt.tick = start.tick + (float(istep)+0.5)*stepdtick;
+	pt.pixeladc = stepsize; // we store step size insead of pixel value
+	pt.intpc = 1;
+	pt.gapfill = 1;
+	cluster.emplace_back( std::move(pt) );
+      }
+    }
   }
 
   std::vector<LArFlowFlashMatch::FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
@@ -529,7 +710,9 @@ namespace larflow {
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
-    const float outoftpc_len2adc = (40.0/0.3)*2; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
+    const float gapfill_len2adc  = (60.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field        
+    const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
+
 
     m_flash_hypo_map.clear();
     m_flash_hypo_v.clear();
@@ -561,20 +744,24 @@ namespace larflow {
 	  
 	  const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
 	  int intpc = qcluster[ihit].intpc;
+	  int gapfill = qcluster[ihit].gapfill;
 
 	  if ( vis && vis->size()==npmts) {
-	    // XXXXXX NOTE: NEED TO ADD PE DIFFERENTLY FOR IN TPC AND OUT TPC PE
 	    for (int ich=0; ich<npmts; ich++) {
 	      float q  = qcluster[ihit].pixeladc;
 	      float pe = 0.;
-	      if ( intpc==1 ) {
+	      if ( intpc==1 && gapfill==0 ) {
 		// q is a pixel values
 		pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
 		hypo.tot_intpc += pe;
 	      }
-	      else if (intpc==0) {
+	      else {
 		// outside tpc, what is stored is the track length
-		pe = q*outoftpc_len2adc; 
+		if ( intpc==0 )
+		  pe = q*outoftpc_len2adc;
+		else if ( gapfill==1 )
+		  pe = q*gapfill_len2adc;
+		
 		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ]; // naive: hardcoded factor of two for no-field effect
 		hypo.tot_outtpc += pe;
 	      }
@@ -1282,9 +1469,9 @@ namespace larflow {
 	  truthclust_xy->SetPoint(ipt,qtruth->at(ipt).xyz[0]-xoffset, qtruth->at(ipt).xyz[1] );
 	  //std::cout << "qtruth[0] = " << qtruth->at(ipt).xyz[0]-xoffset << " (w/ offset=" << xoffset << ")" << std::endl;
 	}
-	truthclust->SetMarkerSize(1);
+	truthclust->SetMarkerSize(0.5);
 	truthclust->SetMarkerStyle(20);
-	truthclust_xy->SetMarkerSize(1);
+	truthclust_xy->SetMarkerSize(0.5);
 	truthclust_xy->SetMarkerStyle(20);	
       }
 
@@ -1369,9 +1556,9 @@ namespace larflow {
 	  truthclust2->SetPoint(ipt,qc->at(ipt).xyz[2], qc->at(ipt).xyz[1] );
 	  truthclust2_xy->SetPoint(ipt,qc->at(ipt).xyz[0]-xoffset, qc->at(ipt).xyz[1] );	  
 	}
-	truthclust2->SetMarkerSize(1);
+	truthclust2->SetMarkerSize(0.5);
 	truthclust2->SetMarkerStyle(20);
-	truthclust2_xy->SetMarkerSize(1);
+	truthclust2_xy->SetMarkerSize(0.5);
 	truthclust2_xy->SetMarkerStyle(20);
       }
       
@@ -1703,8 +1890,12 @@ namespace larflow {
   void LArFlowFlashMatch::buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v ) {
     // we create hits outside the tpc for each truth-matched cluster
     // outside of TPC, so no field, no space-charge correction
+    // -----
+    // 1) we find when we first cross the tpc and exit
+    // 2) at these points we draw a line of charge using the direction at the crossing point
 
-    const float maxstepsize=0.15; // half a pixel
+    const float maxstepsize=1.0; // (10 pixels)
+    const float maxextension=30.0; // 1 meters (we stop when out of cryostat)
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
     const float  driftv = larp->DriftVelocity();    
     
@@ -1728,45 +1919,60 @@ namespace larflow {
 
 	double thispos[4] = { thisstep.X(), thisstep.Y(), thisstep.Z(), thisstep.T() };
 	double nextpos[4] = { nextstep.X(), nextstep.Y(), nextstep.Z(), nextstep.T() };
-	
-	double dirstep[4];
-	
-	double steplen = 0.;
-	for (int i=0; i<4; i++) {
-	  dirstep[i] = nextpos[i]-thispos[i];
-	  if ( i<3 )
-	    steplen += dirstep[i]*dirstep[i];
-	}
-	steplen = sqrt(steplen);
-	for (int i=0; i<3; i++)
-	  dirstep[i] /= steplen;
-
-	int nsubsteps = steplen/maxstepsize;
-	if ( fabs(nsubsteps*steplen - maxstepsize)>0.01 )
-	  nsubsteps += 1;
-	
-	double substeplen = steplen/nsubsteps;
-	double substepdt  = dirstep[3]/nsubsteps;
-
-	for (int isub=0; isub<nsubsteps; isub++) {
-	  double pos[4];
-	  for (int i=0; i<3; i++) 
-	    pos[i] = thispos[i] + (double(isub)+0.5)*substeplen*dirstep[i];
-	  pos[3] = thispos[3] + ((double)isub+0.5)*substepdt;
-	  
 
 	  // are we in the tpc?
-	  bool intpc = false;
-	  if ( pos[0]>0 && pos[0]<256 && pos[1]>-116.5 && pos[1]<116.5 && pos[2]>0 && pos[2]<1036.0 )
-	    intpc = true;
+	bool intpc = false;
+	if ( nextpos[0]>0 && nextpos[0]<256 && nextpos[1]>-116.5 && nextpos[1]<116.5 && nextpos[2]>0 && nextpos[2]<1036.0 )
+	  intpc = true;
+	
+	if ( (intpc && !crossedtpc) || (!intpc && crossedtpc) ) {
+	  // entering point/make extension
 
-	  if ( intpc ) {
-	    // in the tpc, we don't do anything. those points are suppose to be covered by the tpc
-	    crossedtpc = true;
-	    continue;
+	  // make extension
+	  double dirstep[4];	
+	  double steplen = maxstepsize;
+	  int nsubsteps = maxextension/steplen;
+	  
+	  for (int i=0; i<4; i++) {
+	    dirstep[i] = nextpos[i]-thispos[i];
+	    if ( i<3 )
+	      steplen += dirstep[i]*dirstep[i];
+	  }
+	  steplen = sqrt(steplen);
+	  for (int i=0; i<3; i++)
+	    dirstep[i] /= steplen;
+	  double stepdtick = dirstep[4]/nsubsteps;
+	  
+	  double* extpos = nullptr;
+	  if ( !crossedtpc ) {
+	    // entering point, we go backwards
+	    for (int i=0; i<3; i++) dirstep[i] *= -1;
+	    extpos = nextpos;
 	  }
 	  else {
-	    // not in the tpc. we make points here
+	    extpos = thispos;
+	  }
+	  
+	  for (int isub=0; isub<nsubsteps; isub++) {
+	    double pos[4];
+	    for (int i=0; i<3; i++) 
+	      pos[i] = extpos[i] + (double(isub)+0.5)*steplen*dirstep[i];
+	    pos[3] = extpos[3] + ((double)isub+0.5)*stepdtick;
+
+	    // once pos is outside cryostat, stop
+	    if ( pos[0]<-25 ) // past the plane of the pmts
+	      break;
+	    if ( pos[0]>260 ) // visibilty behind the cathode seems fucked up
+	      break;
+	    if ( pos[1]>150.0 )
+	      break;
+	    if ( pos[1]<-150.0 )
+	      break;
+	    if ( pos[2] < -60 )
+	      break;
+	    if ( pos[2] > 1100 )
+	      break;
+	    
 	    // determine which ext
 	    QCluster_t& ext = (crossedtpc) ? ext2 : ext1;
 	    QPoint_t qpt;
@@ -1777,12 +1983,21 @@ namespace larflow {
 	    // x-offset from tick relative to trigger, then actual x-depth
 	    // we do this, because reco will be relative to cluster which has this x-offset
 	    qpt.xyz[0] = (qpt.tick-3200)*0.5*driftv + pos[0];
-	    qpt.pixeladc = substeplen; // here we leave distance. photon hypo must know what to do with this
+	    qpt.pixeladc = steplen; // here we leave distance. photon hypo must know what to do with this
+	    if ( pos[0]>250 ) {
+	      // this is a hack.
+	      // we want the extension points to the gap filler works.
+	      // but the visi behind cathode is messed up so we want no contribution
+	      qpt.pixeladc = 0.;
+	    }
 	    qpt.fromplaneid = -1;
 	    qpt.intpc = 0;
+	    qpt.gapfill = 0;
 	    ext.emplace_back( std::move(qpt) );
-	  }
-	}//end of substep loop
+		    
+	  }//end of extension
+	  crossedtpc = true; // mark that we have crossed	  
+	}
       }//end of step loop
 
       // what to do with these?
@@ -1912,5 +2127,7 @@ namespace larflow {
 
     return lfcluster_v;
   }
+
+
   
 }

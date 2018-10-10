@@ -42,7 +42,8 @@ namespace larflow {
     Results_t match( const std::vector<larlite::opflash>& beam_flashes,
 		     const std::vector<larlite::opflash>& cosmic_flashes,
 		     const std::vector<larlite::larflowcluster>& clusters,
-		     const std::vector<larcv::Image2D>& img_v );
+		     const std::vector<larcv::Image2D>& img_v,
+		     const bool ignorelast=true);
 
     void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
 
@@ -64,6 +65,7 @@ namespace larflow {
       float pixeladc;
       int   fromplaneid; // { 0:U, 1:V, 2:Y, 3:UV-ave }
       int   intpc;
+      int   gapfill;
     };
 
     struct FlashData_t : public std::vector<float> {
@@ -101,15 +103,18 @@ namespace larflow {
     std::vector<FlashData_t> _flashdata_v;
     std::vector<QCluster_t>  _qcluster_v;
     
-    // functions to produce spatial charge estimates
-
+    // QCluster Tools
+    // ----------------------------------------------
     // 1) first naive adc sum on pixel intensities
     void buildInitialQClusters( const std::vector<larlite::larflowcluster>&,
 				std::vector<QCluster_t>&,
-				const std::vector<larcv::Image2D>&, int src_plane );
+				const std::vector<larcv::Image2D>&, int src_plane,
+				bool ignorelast=true );
     
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
     //    project into u,v. collect hits there.
+    void fillClusterGaps( QCluster_t& cluster );
+    void applyGapFill( std::vector<QCluster_t>& qcluster_v );
     
     // 3) hits/pixels not part of cluster (pixel got flowed to wrong place), but clearly inside neighborhood of pixels
     //    we collect that as charge as well
