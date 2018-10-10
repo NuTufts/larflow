@@ -9,6 +9,7 @@
 
 // larlite
 #include "DataFormat/hit.h"
+#include "DataFormat/opflash.h"
 #include "DataFormat/spacepoint.h"
 #include "DataFormat/larflow3dhit.h"
 
@@ -37,28 +38,39 @@
 
 void event_changeout( larlite::storage_manager& dataco_output,
 		      larlitecv::DataCoordinator& dataco_whole,
-		      larlitecv::DataCoordinator& dataco_mc,
+		      larlitecv::DataCoordinator& dataco_larlite,
 		      larflow::FlowContourMatch& matching_algo,
 		      const int runid,
 		      const int subrunid,
 		      const int eventid ) {
-
+  
   std::cout << "event_changeout." << std::endl;
   // save the larflow3dhit vector
   larlite::event_larflow3dhit* ev_larflowhit = (larlite::event_larflow3dhit*)dataco_output.get_data(larlite::data::kLArFlow3DHit,"flowhits");
+  auto evout_opflash_beam   = (larlite::event_opflash*)dataco_output.get_data(larlite::data::kOpFlash, "simpleFlashBeam" );
+  auto evout_opflash_cosmic = (larlite::event_opflash*)dataco_output.get_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
 
   // larlite geometry tool: now called in FlowContour
   //const larutil::Geometry* geo = larutil::Geometry::GetME();
   //const float cm_per_tick      = larutil::LArProperties::GetME()->DriftVelocity()*0.5; // cm/usec * usec/tick
   
   // get mctrack
-  dataco_mc.goto_event( runid, subrunid, eventid, "larlite" );
-  const larlite::event_mctrack&  ev_track = *((larlite::event_mctrack*)dataco_mc.get_larlite_data(larlite::data::kMCTrack, "mcreco"));
+  dataco_larlite.goto_event( runid, subrunid, eventid, "larlite" );
+  const larlite::event_mctrack&  ev_track = *((larlite::event_mctrack*)dataco_larlite.get_larlite_data(larlite::data::kMCTrack, "mcreco"));
   // get supera images
   dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
   larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
   // fill mctruth
   matching_algo.mctrack_match(ev_track,ev_wholeimg->as_vector());
+
+  // get opreco to save into output file
+  auto ev_opflash_beam   = (larlite::event_opflash*)dataco_larlite.get_larlite_data(larlite::data::kOpFlash, "simpleFlashBeam" );
+  auto ev_opflash_cosmic = (larlite::event_opflash*)dataco_larlite.get_larlite_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
+
+  for ( auto& flash : *ev_opflash_beam )
+    evout_opflash_beam->emplace_back( std::move(flash) );
+  for ( auto& flash : *ev_opflash_cosmic )
+    evout_opflash_cosmic->emplace_back( std::move(flash) );
   
   // get the final hits made from flow
   std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
@@ -124,6 +136,7 @@ int main( int nargs, char** argv ) {
   // common source files
   std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
   std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_opreco_file       = "../testdata/larlite_opreco_5482426_95.root";
   std::string input_mcinfo_file       = "../testdata/larlite_mcinfo_5482426_95.root";
   // small 5 event sample for DL output:
   std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
@@ -137,7 +150,7 @@ int main( int nargs, char** argv ) {
   
   bool kVISUALIZE = false; 
   bool use_hits   = false;
-  bool use_truth  = false;
+  bool use_truth  = true;
   int process_num_events = 1;
 
   if (use_truth && use_hits)
@@ -169,6 +182,7 @@ int main( int nargs, char** argv ) {
   // hit (and mctruth) event data
   larlitecv::DataCoordinator dataco_hits;
   dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
+  dataco_hits.add_inputfile( input_opreco_file,  "larlite" );  
   dataco_hits.add_inputfile( input_mcinfo_file,  "larlite" );
   dataco_hits.initialize();
 

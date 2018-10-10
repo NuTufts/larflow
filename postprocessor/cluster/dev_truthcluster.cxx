@@ -10,12 +10,21 @@ int main( int nargs, char** argv ) {
 
   std::cout << "Dev Truth Cluster" << std::endl;
 
-  std::string inputfile = argv[1];
+  std::string larflow_input   = argv[1];
+  // std::string larcv_input     = argv[2];
+  // std::string opreco_input    = argv[3];
+  // std::string mcinfo_input    = argv[4];
 
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
-  io.add_in_filename( inputfile );
+  io.add_in_filename( larflow_input );
   io.open();
+
+  // eventually want to merge inputs here
+  // larlite::storage_manager io_larlite( larlite::storage_manager::kREAD );
+  // io_larlite.add_in_filename( opreco_input );
+  // io_larlite.add_in_filename( mcinfo_input );
+  // io_larlite.open();
 
   // output
   larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
@@ -52,7 +61,6 @@ int main( int nargs, char** argv ) {
     io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
 
     io_out.next_event();
-    break;
   }
 
   std::cout << "finished" << std::endl;
