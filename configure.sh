@@ -50,3 +50,12 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 # add model folder to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_MODELDIR}:"* ]] && PYTHONPATH="${LARFLOW_MODELDIR}:${PYTHONPATH}"
 
+
+# SETUP CILANTRO
+export CILANTRO_INC_DIR=${LARFLOW_BASEDIR}/cilantro/include
+export CILANTRO_LIB_DIR=${LARFLOW_BASEDIR}/cilantro/build
+[[ ":$LD_LIBRARY_PATH:" != *":${CILANTRO_LIB_DIR}:"* ]] && LD_LIBRARY_PATH="${CILANTRO_LIB_DIR}:${LD_LIBRARY_PATH}"
+
+# SETUP EIGEN
+export EIGEN_INC_DIR=/usr/include/eigen3
+export EIGEN_LIB_DIR=

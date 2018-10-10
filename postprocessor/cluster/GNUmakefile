@@ -10,6 +10,8 @@ INCLUDES += `geo2d-config --includes`
 INCLUDES += `laropencv-config --includes`
 INCLUDES += `larcv-config --includes`
 INCLUDES += `larlitecv-config --includes`
+INCLUDES += -I$(CILANTRO_INC_DIR)
+INCLUDES += -I$(EIGEN_INC_DIR)
 
 LDFLAGS  =  `root-config --ldflags` -lstdc++
 LIBS     =  `root-config --libs`
@@ -20,13 +22,14 @@ LIBS     += `geo2d-config --libs`
 LIBS     += `laropencv-config --libs`
 LIBS     += `larcv-config --libs`
 LIBS     += `larlitecv-config --libs`
+LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
 
 LIB = ../lib/libLArFlowCluster3D.so
 
 
 all: $(LIB) dev_truthcluster
 
-../lib/libLArFlowCluster3D.so: TruthCluster.o
+../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"

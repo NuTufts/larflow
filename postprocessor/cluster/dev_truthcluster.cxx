@@ -3,8 +3,11 @@
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/pcaxis.h"
 
 #include "TruthCluster.h"
+
+#include "CilantroPCA.h"
 
 int main( int nargs, char** argv ) {
 
@@ -48,6 +51,7 @@ int main( int nargs, char** argv ) {
 
     std::cout << "truthcluster returned with " << clusters.size() << " clusters" << std::endl;
     larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"flowtruthclusters");
+    larlite::event_pcaxis* ev_outpca             = (larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"flowtruthclusters");    
     
     for ( auto& hit_v : clusters ) {
       larlite::larflowcluster flowcluster;
@@ -55,6 +59,10 @@ int main( int nargs, char** argv ) {
       for ( auto const& phit : hit_v ) {
 	flowcluster.push_back( *phit );
       }
+      larflow::CilantroPCA pca( flowcluster );
+      larlite::pcaxis pcainfo = pca.getpcaxis();
+      
+      ev_outpca->emplace_back( std::move(pcainfo) );
       ev_outcluster->emplace_back( std::move(flowcluster) );
     }
 

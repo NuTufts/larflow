@@ -8,9 +8,8 @@ import argparse
 
 argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL cosmic tagging")
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
-#argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
-#argparser.add_argument("-c", "--color",    required=True,  type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall]")
+argparser.add_argument("-p", "--pca",      action='store_true',      help="plot pca")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -63,6 +62,10 @@ io.go_to(args.entry)
 ev_larflow = io.get_data(larlite.data.kLArFlowCluster, "flowtruthclusters" )
 nclusters = ev_larflow.size()
 print "Number of larflow clusters: ",nclusters
+
+ev_pca = None
+if args.pca:
+    ev_pca = io.get_data(larlite.data.kPCAxis, "flowtruthclusters")
 
 #if colorscheme=="colorbyrecovstruth":
 #    # we also need to count points with truth
@@ -130,9 +133,33 @@ for icluster in xrange(nclusters):
         colors[ihit,2] = clustercol[2]
         colors[ihit,3] = 0.5
         
-        
+
+    # cluster
     hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
     clusterplotitems.append( hitplot )
+
+    # pca
+    if args.pca:
+        pcapoints = np.zeros( (3,3) ) # start, center, end of main eigenvector
+        pcacolor  = np.ones( (3,4) )
+        pcaxis  = ev_pca.at(icluster)
+        eigval  = pcaxis.getEigenValues()
+        print eigval[0],eigval[1],eigval[2]
+        meanpos = pcaxis.getAvePosition()
+        eigvec  = pcaxis.getEigenVectors()
+
+        for j in xrange(3):
+            pcapoints[0,j] = meanpos[j] - eigvec[j][0]*100.0
+            pcapoints[1,j] = meanpos[j]
+            pcapoints[2,j] = meanpos[j] + eigvec[j][0]*100.0
+        for i in xrange(3):
+            pcapoints[i,0] += -130.0
+            pcapoints[i,2] += -500.0
+            #for j in xrange(3):
+            #    pcacolor[i,j] = clustercol[j]
+        
+        pcaplot = gl.GLLinePlotItem(pos=pcapoints,color=pcacolor,width=1.0)
+        clusterplotitems.append( pcaplot )
 
         
 # make the plot
