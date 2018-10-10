@@ -19,3 +19,9 @@
 [submodule "LArOpenCV"]
 	path = LArOpenCV
 	url = https://github.com/NevisUB/LArOpenCV
+[submodule "cilantro"]
+	path = cilantro
+	url = https://github.com/NuTufts/cilantro.git
+[submodule "Pangolin"]
+	path = Pangolin
+	url = https://github.com/NuTufts/Pangolin.git
