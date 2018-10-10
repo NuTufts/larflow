@@ -33,6 +33,11 @@ int main( int nargs, char** argv ) {
   iolarcv.add_in_file( input_larcv );
   iolarcv.initialize();
 
+  // output
+  larlite::storage_manager outlarlite( larlite::storage_manager::kWRITE );
+  io.set_out_filename( "output_dev_flashmatch.root" );
+  io.open();
+  
   int nentries = io.get_entries();
   int nentries_larcv = iolarcv.get_n_entries();
 
@@ -80,8 +85,19 @@ int main( int nargs, char** argv ) {
     
     larflow::LArFlowFlashMatch::Results_t result = algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
 
+    std::vector<larlite::larflowcluster> outclusters = algo.exportMatchedTracks();
+    larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "truthflashmatched" );
+    for ( auto& lfcluster : outclusters ) {
+      ev_outcluster->emplace_back( std::move(lfcluster) );
+    }
+    outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
+    outlarlite.next_event(); // saves and clears
     break;
   }
+
+  outlarlite.close();
+  io.close();
+  iolarcv.finalize();
   
   return 0;
 }

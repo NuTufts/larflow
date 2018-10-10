@@ -36,6 +36,8 @@ namespace larflow {
       float global_chi2;
     };
     
+    // Functions meant for users
+    // --------------------------
     
     Results_t match( const std::vector<larlite::opflash>& beam_flashes,
 		     const std::vector<larlite::opflash>& cosmic_flashes,
@@ -43,6 +45,8 @@ namespace larflow {
 		     const std::vector<larcv::Image2D>& img_v );
 
     void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
+
+    std::vector<larlite::larflowcluster> exportMatchedTracks();
     
 
     // internal data members
@@ -53,11 +57,13 @@ namespace larflow {
 	tick = 0;
 	pixeladc = 0.0;
 	fromplaneid = -1;
+	intpc = -1;
       };
       float xyz[3]; // (tick,y,z) coordinates
       float tick;
       float pixeladc;
       int   fromplaneid; // { 0:U, 1:V, 2:Y, 3:UV-ave }
+      int   intpc;
     };
 
     struct FlashData_t : public std::vector<float> {
@@ -85,9 +91,15 @@ namespace larflow {
       int clusteridx;
       int flashidx;
       float tot;
+      float tot_intpc;
+      float tot_outtpc;
     };
 
   protected:
+
+    // vectors for storing the events data flashes and reconstructed qclusters
+    std::vector<FlashData_t> _flashdata_v;
+    std::vector<QCluster_t>  _qcluster_v;
     
     // functions to produce spatial charge estimates
 
@@ -95,10 +107,10 @@ namespace larflow {
     void buildInitialQClusters( const std::vector<larlite::larflowcluster>&,
 				std::vector<QCluster_t>&,
 				const std::vector<larcv::Image2D>&, int src_plane );
-
+    
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
     //    project into u,v. collect hits there.
-
+    
     // 3) hits/pixels not part of cluster (pixel got flowed to wrong place), but clearly inside neighborhood of pixels
     //    we collect that as charge as well
 
@@ -124,7 +136,7 @@ namespace larflow {
     void resetCompatibiltyMatrix();
     inline int  getCompat( int iflash, int iqcluster )  { return *(m_compatibility + _nqclusters*iflash + iqcluster); };
     inline void setCompat( int iflash, int iqcluster, int compat ) { *(m_compatibility + _nqclusters*iflash + iqcluster) = compat; };
-    void printCompatInfo();
+    void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
 
     // shape-only comparison code
     // --------------------------
@@ -207,6 +219,7 @@ namespace larflow {
     bool _parsdefined;
     void defineFitParameters();
     void clearFitParameters();
+    std::vector<float> getMatchScoresForCluster( int icluster );    
 					 
     // Set Initial Fit Point
     // ----------------------------
@@ -228,6 +241,7 @@ namespace larflow {
 
     // MCTrack Info
     const std::vector<larlite::mctrack>* _mctrack_v;
+    std::map<int,int> _mctrackid2index;
     std::vector<int> _flash_truthid;
     std::vector<int> _cluster_truthid;
     std::vector<int> _flash2truecluster;
@@ -236,12 +250,13 @@ namespace larflow {
     bool kDoTruthMatching;
     void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
     void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
-    void buildClusterExtensionsWithMCTrack( bool appendtoclusters=false ) {};
-    void clearMCTruthInfo() {};
-
+    void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
+    void clearMCTruthInfo();
+    
   };
-
-
+    
+    
 }
 
 #endif
+  

@@ -1,4 +1,3 @@
-
 #include "LArFlowFlashMatch.h"
 #include <sstream>
 
@@ -78,10 +77,11 @@ namespace larflow {
 							 const std::vector<larcv::Image2D>& img_v ) {
     
     // first is to build the charge points for each cluster
-    std::vector< QCluster_t > qcluster_v( clusters.size() );
+    _qcluster_v.clear();
+    _qcluster_v.resize( clusters.size() );
 
     // we build up the charge clusters that are easy to grab
-    buildInitialQClusters( clusters, qcluster_v, img_v, 2 );
+    buildInitialQClusters( clusters, _qcluster_v, img_v, 2 );
 
     // we have to build up charge in dead regions in the Y-plane
     // [TODO]
@@ -93,34 +93,37 @@ namespace larflow {
     // [TODO]
 
     // collect the flashes
-    std::vector< FlashData_t > flashdata_v = collectFlashInfo( beam_flashes, cosmic_flashes );
+    _flashdata_v.clear();
+    _flashdata_v = collectFlashInfo( beam_flashes, cosmic_flashes );
 
-    std::cout << "Number of data flashes: " << flashdata_v.size() << std::endl;
-    std::cout << "Number of clusters: " << qcluster_v.size() << std::endl;
+    std::cout << "Number of data flashes: " << _flashdata_v.size() << std::endl;
+    std::cout << "Number of clusters: " << _qcluster_v.size() << std::endl;
     
     // build compbatility matrix
-    buildFullCompatibilityMatrix( flashdata_v, qcluster_v );
+    buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
 
     if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
       std::cout << "[LArFlowFlashMatch::match][INFO] Doing MCTrack truth-reco matching" << std::endl;
-      doFlash2MCTrackMatching( flashdata_v );
-      doTruthCluster2FlashTruthMatching( flashdata_v, qcluster_v );
+      doFlash2MCTrackMatching( _flashdata_v );
+      doTruthCluster2FlashTruthMatching( _flashdata_v, _qcluster_v );
+      bool appendtoclusters = true;
+      buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
     }
     
     // now build hypotheses: we only do so for compatible pairs
-    buildFlashHypotheses( flashdata_v, qcluster_v );
-
+    buildFlashHypotheses( _flashdata_v, _qcluster_v );
+    
     // refined compabtibility: incompatible-z
-    reduceMatchesWithShapeAnalysis( flashdata_v, qcluster_v );
+    reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v );
     
     // define the fitting data members
-    buildFittingData( flashdata_v, qcluster_v );
+    buildFittingData( _flashdata_v, _qcluster_v );
     
     // define fit parameter variables
     defineFitParameters();
 
     // find initial best fit to start
-    setInitialFitPoint( flashdata_v, qcluster_v );
+    setInitialFitPoint( _flashdata_v, _qcluster_v );
     
     // fit: gradient descent
 
@@ -133,11 +136,11 @@ namespace larflow {
     _fweighted_scalefactor_sig  = 0.5;
     _fweighted_scalefactor_mean = 2.0;    
 
-    printCompatInfo();
-    dumpMatchImages( flashdata_v, false, false );
+    printCompatInfo( _flashdata_v, _qcluster_v );
+    dumpMatchImages( _flashdata_v, false, false );
     //assert(false);
 
-    int nsamples = 1000000;
+    int nsamples = 100000;
     int naccept = 0;
     
     // save the current state
@@ -277,7 +280,7 @@ namespace larflow {
 	continue;
 
       int reclust = it_clust->second;
-      std::cout << "cluster[" << iclust << ": truthflash=" << qcluster_v[iclust].truthmatched_flashidx << "] ";
+      std::cout << "cluster[" << iclust << ": truthflash=" << _qcluster_v[iclust].truthmatched_flashidx << "] ";
       
       // find non-zero flash
       for (int iflash=0; iflash<_nflashes; iflash++) {
@@ -301,7 +304,7 @@ namespace larflow {
 	continue;
 
       int reflash = it_flash->second;
-      std::cout << "flash[" << iflash << ": truthcluster=" << flashdata_v[iflash].truthmatched_clusteridx << "] ";
+      std::cout << "flash[" << iflash << ": truthcluster=" << _flashdata_v[iflash].truthmatched_clusteridx << "] ";
       
       // find non-zero flash
       for (int iclust=0; iclust<_nqclusters; iclust++) {
@@ -318,7 +321,7 @@ namespace larflow {
       std::cout << std::endl;
     }
     std::cout << "FIN" << std::endl;
-    dumpMatchImages( flashdata_v, false, true );    
+    dumpMatchImages( _flashdata_v, false, true );    
   }
 
 
@@ -347,7 +350,8 @@ namespace larflow {
       for ( size_t ihit=0; ihit<lfcluster.size(); ihit++ ) {
 	for (size_t i=0; i<3; i++)
 	  qcluster[ihit].xyz[i] = lfcluster[ihit][i];
-	qcluster[ihit].tick     = lfcluster[ihit].tick; 
+	qcluster[ihit].tick     = lfcluster[ihit].tick;
+	qcluster[ihit].intpc = 1; // true by definition for larflow-reco tracks
 
 	if ( qcluster[ihit].tick<src_meta.min_y() || qcluster[ihit].tick>src_meta.max_y() )
 	  continue;
@@ -515,6 +519,7 @@ namespace larflow {
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
+    const float outoftpc_len2adc = (40.0/0.3)*2; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
 
     m_flash_hypo_map.clear();
     m_flash_hypo_v.clear();
@@ -535,6 +540,8 @@ namespace larflow {
 	hypo.resize(npmts,0.0);
 	hypo.clusteridx = iq;     // use original
 	hypo.flashidx   = iflash; // use original
+	hypo.tot_intpc = 0.;
+	hypo.tot_outtpc = 0.;
 	float norm = 0.0;
 	for ( size_t ihit=0; ihit<qcluster.size(); ihit++ ) {
 	  double xyz[3];
@@ -543,15 +550,33 @@ namespace larflow {
 	  xyz[0] = (qcluster[ihit].tick - flash.tpc_tick)*0.5*driftv;
 	  
 	  const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
+	  int intpc = qcluster[ihit].intpc;
+
 	  if ( vis && vis->size()==npmts) {
+	    // XXXXXX NOTE: NEED TO ADD PE DIFFERENTLY FOR IN TPC AND OUT TPC PE
 	    for (int ich=0; ich<npmts; ich++) {
-	      float pe = qcluster[ihit].pixeladc*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
+	      float q  = qcluster[ihit].pixeladc;
+	      float pe = 0.;
+	      if ( intpc==1 ) {
+		// q is a pixel values
+		pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
+		hypo.tot_intpc += pe;
+	      }
+	      else if (intpc==0) {
+		// outside tpc, what is stored is the track length
+		pe = q*outoftpc_len2adc; 
+		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ]; // naive: hardcoded factor of two for no-field effect
+		hypo.tot_outtpc += pe;
+	      }
 	      hypo[ich] += pe;
 	      norm += pe;
 	    }
 	  }
+	  else if ( vis->size()>0 && vis->size()!=npmts ) {
+	    throw std::runtime_error("[LArFlowFlashMatch::buildFlashHypotheses][ERROR] unexpected visibility size");
+	  }
 	}
-
+	
 	// normalize
 	hypo.tot = norm;
 	if ( norm>0 ) {
@@ -667,6 +692,36 @@ namespace larflow {
     std::cout << "  reindexed flashes: "  << _nflashes_red  << " (of " << flashdata_v.size() << " original)" << std::endl;
     std::cout << "  reindexed clusters: " << _nclusters_red << " (of " << qcluster_v.size()  << " original)" << std::endl;
     _reindexed = true;
+  }
+
+  std::vector<float> LArFlowFlashMatch::getMatchScoresForCluster( int icluster ) {
+
+    if (!_parsdefined) {
+      throw std::runtime_error( "[LArFlowFlashMatch::getMatchScoresForCluster][ERROR] defineFitParameters needed to have been called first." );
+    }
+    
+    // icluster is for original index
+    std::vector<float> matchscores_v( _nflashes, 0.0 );
+    
+    auto it_clust = _clust_reindex.find( icluster );
+    if ( it_clust==_clust_reindex.end() ) {
+      // wasnt in fit. return the zero vector
+      return matchscores_v;
+    }
+
+    int reclust = it_clust->second;
+
+    // find non-zero flash
+    for (int iflash=0; iflash<_nflashes; iflash++) {
+      auto it_flash = _flash_reindex.find( iflash );
+      if ( it_flash==_flash_reindex.end() )
+	continue;
+
+      int reflash = it_flash->second;
+      int imatch = getMatchIndex( reflash, reclust );
+      matchscores_v[iflash] = *(fmatch+imatch);
+    }
+    return matchscores_v;
   }
 
   void LArFlowFlashMatch::clearFittingData() {
@@ -970,7 +1025,7 @@ namespace larflow {
     std::cout << "Weighted scale-factor variance (stdev): " << _fweighted_scalefactor_var << " ("  << _fweighted_scalefactor_sig << ")" << std::endl;
   }
 
-  void LArFlowFlashMatch::printCompatInfo() {
+  void LArFlowFlashMatch::printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v ) {
     std::cout << "----------------------" << std::endl;
     std::cout << "COMPAT MATRIX" << std::endl;
     std::cout << "----------------------" << std::endl;
@@ -985,6 +1040,8 @@ namespace larflow {
 	}
       }
       std::cout << "flash[" << iflash << "] [Tot: " << ncompat << "] ";
+      if ( flashdata_v[iflash].mctrackid>=0 )
+	std::cout << "[truthclust=" << flashdata_v[iflash].truthmatched_clusteridx << "] ";
       for ( auto& idx : compatidx ) {
 	bool bestmaxdist = false;
 	bool bestchi2 = false;
@@ -1081,8 +1138,14 @@ namespace larflow {
 	
 	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
 	float hypo_norm = 1.;
-	if ( !shapeonly )
+	if ( !shapeonly ) {
 	  hypo_norm = (*flightyield)*hypo.tot;
+	  std::cout << "hypo[fl=" << iflash << ",cl=" << iclust << "]"
+		    << " totalpe=" << hypo_norm
+		    << " intpcpe=" << hypo.tot_intpc*(*flightyield)
+		    << " outtpcpe=" << hypo.tot_outtpc*(*flightyield)
+		    << std::endl;
+	}
 	
 	for (int ipmt=0;ipmt<32;ipmt++) {
 	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
@@ -1250,10 +1313,14 @@ namespace larflow {
     std::vector<std::vector<int>>   track_pdg_match_v(flashdata_v.size());
     std::vector<std::vector<int>>   track_mid_match_v(flashdata_v.size());
     std::vector<std::vector<float>> track_E_match_v(flashdata_v.size());
-    std::vector<std::vector<float>> track_dz_match_v(flashdata_v.size());    
+    std::vector<std::vector<float>> track_dz_match_v(flashdata_v.size());
     
+    int imctrack=-1;
+    _mctrackid2index.clear();
     for (auto& mct : *_mctrack_v ) {
-
+      imctrack++;
+      _mctrackid2index[mct.TrackID()] = imctrack;
+      
       // get time
       //float track_tick = tsv->TPCG4Time2Tick( mct.Start().T() );
       float track_tick = mct.Start().T()*1.0e-3/0.5 + 3200;
@@ -1336,6 +1403,219 @@ namespace larflow {
 	}
       }
     }
+  }
+
+  void LArFlowFlashMatch::buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v ) {
+    // we create hits outside the tpc for each truth-matched cluster
+    // outside of TPC, so no field, no space-charge correction
+
+    const float maxstepsize=0.15; // half a pixel
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
+    const float  driftv = larp->DriftVelocity();    
+    
+    for ( int iclust=0; iclust<(int)qcluster_v.size(); iclust++) {
+      QCluster_t& cluster = qcluster_v[iclust];
+      if ( cluster.mctrackid<0 )
+	continue;
+      const larlite::mctrack& mct = (*_mctrack_v).at( _mctrackid2index[cluster.mctrackid] );
+
+      int nsteps = (int)mct.size();
+      QCluster_t ext1;
+      QCluster_t ext2;
+      ext1.reserve(200);
+      ext2.reserve(200);
+      bool crossedtpc = false;
+      
+      for (int istep=0; istep<nsteps-1; istep++) {
+
+	const larlite::mcstep& thisstep = mct[istep];	
+	const larlite::mcstep& nextstep = mct[istep+1];
+
+	double thispos[4] = { thisstep.X(), thisstep.Y(), thisstep.Z(), thisstep.T() };
+	double nextpos[4] = { nextstep.X(), nextstep.Y(), nextstep.Z(), nextstep.T() };
+	
+	double dirstep[4];
+	
+	double steplen = 0.;
+	for (int i=0; i<4; i++) {
+	  dirstep[i] = nextpos[i]-thispos[i];
+	  if ( i<3 )
+	    steplen += dirstep[i]*dirstep[i];
+	}
+	steplen = sqrt(steplen);
+	for (int i=0; i<3; i++)
+	  dirstep[i] /= steplen;
+
+	int nsubsteps = steplen/maxstepsize;
+	if ( fabs(nsubsteps*steplen - maxstepsize)>0.01 )
+	  nsubsteps += 1;
+	
+	double substeplen = steplen/nsubsteps;
+	double substepdt  = dirstep[3]/nsubsteps;
+
+	for (int isub=0; isub<nsubsteps; isub++) {
+	  double pos[4];
+	  for (int i=0; i<3; i++) 
+	    pos[i] = thispos[i] + (double(isub)+0.5)*substeplen*dirstep[i];
+	  pos[3] = thispos[3] + ((double)isub+0.5)*substepdt;
+	  
+
+	  // are we in the tpc?
+	  bool intpc = false;
+	  if ( pos[0]>0 && pos[0]<256 && pos[1]>-116.5 && pos[1]<116.5 && pos[2]>0 && pos[2]<1036.0 )
+	    intpc = true;
+
+	  if ( intpc ) {
+	    // in the tpc, we don't do anything. those points are suppose to be covered by the tpc
+	    crossedtpc = true;
+	    continue;
+	  }
+	  else {
+	    // not in the tpc. we make points here
+	    // determine which ext
+	    QCluster_t& ext = (crossedtpc) ? ext2 : ext1;
+	    QPoint_t qpt;
+	    qpt.xyz[0] = pos[0];
+	    qpt.xyz[1] = pos[1];
+	    qpt.xyz[2] = pos[2];
+	    qpt.tick   = (pos[3]*1.0e-3)/0.5 + 3200;
+	    // x-offset from tick relative to trigger, then actual x-depth
+	    // we do this, because reco will be relative to cluster which has this x-offset
+	    qpt.xyz[0] = (qpt.tick-3200)*0.5*driftv + pos[0];
+	    qpt.pixeladc = substeplen; // here we leave distance. photon hypo must know what to do with this
+	    qpt.fromplaneid = -1;
+	    qpt.intpc = 0;
+	    ext.emplace_back( std::move(qpt) );
+	  }
+	}//end of substep loop
+      }//end of step loop
+
+      // what to do with these?
+      if ( appendtoclusters ) {
+	for (auto& qpt : ext1 ) {
+	  cluster.emplace_back( std::move(qpt) );
+	}
+	for (auto& qpt : ext2 ) {
+	  cluster.emplace_back( std::move(qpt) );
+	}
+      }
+      else {
+	if ( ext1.size()>0 )
+	  qcluster_v.emplace_back( std::move(ext1) );
+	if ( ext2.size()>0 )
+	  qcluster_v.emplace_back( std::move(ext2) );
+      }
+
+      // for debug: cluster check =========================
+      // std::cout << "extendcluster[" << iclust << "] --------------------------------------" << std::endl;
+      // for (auto const& hit : cluster ) {
+      // 	std::cout << "  (" << hit.xyz[0] << "," << hit.xyz[1] << "," << hit.xyz[2] << ") intpc=" << hit.intpc << std::endl;
+      // }
+      // std::cout << "[enter for next]" << std::endl;
+      // std::cin.get();
+      // ==================================================
+      
+    }// end of cluster loop
+  }
+
+  void LArFlowFlashMatch::clearMCTruthInfo() {
+    _flash_truthid.clear();
+    _cluster_truthid.clear();
+    _flash2truecluster.clear();
+    _cluster2trueflash.clear();
+    delete _psce;
+    _psce = nullptr;
+    kDoTruthMatching = false;
+  }
+
+  std::vector<larlite::larflowcluster> LArFlowFlashMatch::exportMatchedTracks() {
+    // for each cluster, we use the best matching flash
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
+    const float  usec_per_tick = 0.5; // usec per tick
+    const float  tpc_trigger_tick = 3200;
+    const float  driftv = larp->DriftVelocity();
+    
+    std::vector<larlite::larflowcluster> lfcluster_v(_qcluster_v.size());
+    
+    for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
+      const QCluster_t& cluster = _qcluster_v[iclust];
+      larlite::larflowcluster& lfcluster = lfcluster_v[iclust];
+      lfcluster.resize(cluster.size());
+      
+      // is it flash matched?
+      std::vector<float> matchscores = getMatchScoresForCluster(iclust);
+      float maxfmatch = 0.;
+      int   maxfmatch_idx = -1;      
+      for (int iflash=0; iflash<_flashdata_v.size(); iflash++) {
+	if ( matchscores[iflash]>maxfmatch ) {
+	  maxfmatch = matchscores[iflash];
+	  maxfmatch_idx = iflash;
+	}
+      }
+
+      float matched_flash_tick = 0;
+      float matched_flash_xoffset = 0;
+      if ( maxfmatch_idx>=0 ) {
+	matched_flash_tick    = _flashdata_v[maxfmatch_idx].tpc_tick;
+	matched_flash_xoffset = (matched_flash_tick-tpc_trigger_tick)*usec_per_tick/driftv;
+      }
+      
+      // transfer hit locations back to larlite
+      
+      int nhits=0;
+      for (int ihit=0; ihit<(int)cluster.size(); ihit++) {
+	const QPoint_t& qpt = cluster.at(ihit);
+	larlite::larflow3dhit& lfhit = lfcluster[ihit];
+	lfhit.resize(3,0);
+	for (int i=0; i<3; i++)
+	  lfhit[i] = qpt.xyz[i];
+	lfhit.tick = qpt.tick;
+
+	if ( maxfmatch_idx>=0 ) {
+	  // match found, we shift the x positions
+	  lfhit[0]   -= matched_flash_xoffset;
+	  lfhit.tick -= matched_flash_tick; // now this is delta-t from t0
+	  // since we have this position, we can invert spacecharge effect
+	  // TODO
+	}
+	bool hitok = true;
+	for (int i=0; i<3; i++)
+	  if ( std::isnan(lfhit[i]) )
+	    hitok = false;
+
+	if (hitok)
+	  nhits++;
+	
+	// here we should get larflow3dhit metadata and pass it on TODO
+      }//end of hit loop
+
+      // this is in case we learn how to filter out points
+      // then we throw away excess capacity
+      lfcluster.resize(nhits); 
+
+      // metadata
+      // --------
+
+      // matched flash (reco)
+      if ( maxfmatch_idx>=0 ) {
+	lfcluster.isflashmatched = 1;
+	lfcluster.flash_tick = matched_flash_tick;
+      }
+      else {
+	lfcluster.isflashmatched = -1;
+	lfcluster.flash_tick = -1;
+      }
+
+      // matched flash (truth)
+      lfcluster.truthmatched_mctrackid = cluster.mctrackid;
+      if ( cluster.truthmatched_flashidx>=0 )
+	lfcluster.truthmatched_flashtick = _flashdata_v[cluster.truthmatched_flashidx].tpc_tick;
+      else
+	lfcluster.truthmatched_flashtick = -1;
+      
+    }//end of cluster loop
+
+    return lfcluster_v;
   }
   
 }
