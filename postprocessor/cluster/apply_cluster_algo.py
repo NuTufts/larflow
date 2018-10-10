@@ -83,19 +83,17 @@ def call_algo(name,params):
         exit(0)
     return algo
 
-def sort_by_cluster(y,idx,ev_larflow):
-    clusters = []
+def sort_by_cluster(y,idx,ev_larflow,ev_clusters):
     clust = larlite.larflowcluster()
     k = y[0] #initial cluster
     for i in xrange(y.shape[0]):
         if y[i]==k:
             clust.push_back(ev_larflow[idx[i]])
             continue
-        print k, clust.size()
-        clusters.append(clust)
+        ev_clusters.push_back(clust)
         clust.clear()
         k = y[i]
-    return clusters
+    return ev_clusters
         
 def plot_event(fignum,X,y,algoname):    
     # get colors
@@ -140,7 +138,7 @@ def main():
     algonames= [x.strip() for x in args.algo.split(',')]
     alg_list = []
 
-    params=set_params({'eps': .3})
+    params=set_params({'eps': .2})
     for name in algonames:
         algo=call_algo(name,params)
         pair = (name,algo)
@@ -168,11 +166,9 @@ def main():
 
             y_sort = np.sort(y_pred)
             y_idx = np.argsort(y_pred)
-            clusterVec=sort_by_cluster(y_sort,y_idx,ev_larflow)
-
             if args.output is not None:
                 ev_out = get_event(io,"kLArFlowCluster","%s"%(name))
-                save_event(ev_out,clusterVec)
+                sort_by_cluster(y_sort,y_idx,ev_larflow,ev_out)
             if args.plot:
                 plot_event(fignum,X,y_pred,name)
 
