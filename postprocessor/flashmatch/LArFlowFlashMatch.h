@@ -174,6 +174,7 @@ namespace larflow {
     void  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
 				const std::vector<QCluster_t>& qcluster_v );
     FlashHypo_t& getHypothesisWithOrigIndex( int flashidx, int clustidx );
+    bool hasHypothesis( int flashidx, int clustidx );
 
     // Match refinement
     // ----------------------------

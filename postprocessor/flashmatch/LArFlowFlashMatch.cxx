@@ -7,6 +7,12 @@
 #include "TRandom3.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TH2D.h"
+#include "TEllipse.h"
+#include "TBox.h"
+#include "TGraph.h"
+#include "TText.h"
+#include "TStyle.h"
 
 // larlite
 #include "LArUtil/Geometry.h"
@@ -62,8 +68,8 @@ namespace larflow {
     // more default parameters
     _fMaxDistCut = 0.5;
     _fCosmicDiscThreshold = 10.0;
-    _fclustsum_weight = 1e4;
-    _fflashsum_weight = 0.5e4;
+    _fclustsum_weight = 1e3;
+    _fflashsum_weight = 0.5e3;
     _fl1norm_weight = 0.1;
     _flightyield_weight = 1.0;
 
@@ -132,15 +138,15 @@ namespace larflow {
 
     // build flash-posteriors
     //calcFlashPosteriors;
-    *flightyield = 2.0;
+    *flightyield = 1.0;
     _fweighted_scalefactor_sig  = 0.5;
-    _fweighted_scalefactor_mean = 2.0;    
+    _fweighted_scalefactor_mean = 1.0;    
 
     printCompatInfo( _flashdata_v, _qcluster_v );
     dumpMatchImages( _flashdata_v, false, false );
     //assert(false);
 
-    int nsamples = 100000;
+    int nsamples = 500000;
     int naccept = 0;
     
     // save the current state
@@ -193,7 +199,7 @@ namespace larflow {
       proposal_ly = state_ly;
 
       // generate proposal. by effect.
-      dstate = (int)generateProposal( 1, 0.0, 0.1, proposal_v, proposal_ly );
+      dstate = (int)generateProposal( 0.5, 0.0, 0.05, proposal_v, proposal_ly );
       
       // set the fit variables to calc nll
       memcpy( fmatch, proposal_v.data(), sizeof(float)*_nmatches );
@@ -338,7 +344,7 @@ namespace larflow {
       const larlite::larflowcluster& lfcluster = lfclusters[icluster];
 
       QCluster_t& qcluster = qclusters[icluster];
-      qcluster.resize( lfcluster.size() );
+      qcluster.reserve( lfcluster.size() );
       for ( size_t i=0; i<3; i++) {
 	qcluster.min_tyz[i] =  1.0e9;
 	qcluster.max_tyz[i] = -1.0e9;
@@ -348,30 +354,31 @@ namespace larflow {
       std::map<int,int> mctrackid_counts;
       
       for ( size_t ihit=0; ihit<lfcluster.size(); ihit++ ) {
+	QPoint_t qhit;
 	for (size_t i=0; i<3; i++)
-	  qcluster[ihit].xyz[i] = lfcluster[ihit][i];
-	qcluster[ihit].tick     = lfcluster[ihit].tick;
-	qcluster[ihit].intpc = 1; // true by definition for larflow-reco tracks
+	  qhit.xyz[i] = lfcluster[ihit][i];
+	qhit.tick     = lfcluster[ihit].tick;
+	qhit.intpc = 1; // true by definition for larflow-reco tracks
 
-	if ( qcluster[ihit].tick<src_meta.min_y() || qcluster[ihit].tick>src_meta.max_y() )
+	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
 	  continue;
 
-	if ( qcluster[ihit].tick > qcluster.max_tyz[0] )
-	  qcluster.max_tyz[0] = qcluster[ihit].tick;
-	if ( qcluster[ihit].tick < qcluster.min_tyz[0] )
-	  qcluster.min_tyz[0] = qcluster[ihit].tick;
+	if ( qhit.tick > qcluster.max_tyz[0] )
+	  qcluster.max_tyz[0] = qhit.tick;
+	if ( qhit.tick < qcluster.min_tyz[0] )
+	  qcluster.min_tyz[0] = qhit.tick;
 	
 	for (size_t i=1; i<3; i++) {
-	  if ( qcluster[ihit].xyz[i] > qcluster.max_tyz[i] )
-	    qcluster.max_tyz[i] = qcluster[ihit].xyz[i];
-	  if ( qcluster[ihit].xyz[i] < qcluster.min_tyz[i] )
-	    qcluster.min_tyz[i] = qcluster[ihit].xyz[i];
+	  if ( qhit.xyz[i] > qcluster.max_tyz[i] )
+	    qcluster.max_tyz[i] = qhit.xyz[i];
+	  if ( qhit.xyz[i] < qcluster.min_tyz[i] )
+	    qcluster.min_tyz[i] = qhit.xyz[i];
 	}
 
 	int row = img_v[src_plane].meta().row( lfcluster[ihit].tick );
 	int col = img_v[src_plane].meta().col( lfcluster[ihit].srcwire );
-	qcluster[ihit].pixeladc    = img_v[src_plane].pixel( row, col );
-	qcluster[ihit].fromplaneid = src_plane;
+	qhit.pixeladc    = img_v[src_plane].pixel( row, col );
+	qhit.fromplaneid = src_plane;
 
 	// mc track id
 	auto it=mctrackid_counts.find( lfcluster[ihit].trackid );
@@ -379,6 +386,8 @@ namespace larflow {
 	  mctrackid_counts[ lfcluster[ihit].trackid ] = 0;
 	}
 	mctrackid_counts[ lfcluster[ihit].trackid ] += 1;
+
+	qcluster.emplace_back( std::move(qhit) );
       }//end of hit loop
 
       // assign mctrackid based on majority
@@ -419,7 +428,8 @@ namespace larflow {
 	float maxpmtpe = 0.;
 	int maxpmtch = 0;
 	for (size_t ich=0; ich<npmts; ich++) {
-	  float pe = flash.PE( geo->OpDetFromOpChannel( ich ) );
+	  //float pe = flash.PE( geo->OpDetFromOpChannel( ich ) );
+	  float pe = flash.PE( ich );
 	  flashdata[iflash][ich] = pe;
 	  flashdata[iflash].tot += pe;
 	  if ( pe > maxpmtpe ) {
@@ -593,6 +603,13 @@ namespace larflow {
 
   }
 
+  bool LArFlowFlashMatch::hasHypothesis( int flashidx, int clustidx ) {
+    flashclusterpair_t fcpair( flashidx, clustidx );
+    auto it = m_flash_hypo_map.find( fcpair );
+    if ( it==m_flash_hypo_map.end() ) return false;
+    return true;
+  }
+  
   LArFlowFlashMatch::FlashHypo_t& LArFlowFlashMatch::getHypothesisWithOrigIndex( int flashidx, int clustidx ) {
     flashclusterpair_t fcpair( flashidx, clustidx );
     auto it = m_flash_hypo_map.find( fcpair );
@@ -1068,9 +1085,28 @@ namespace larflow {
   }
 
   void LArFlowFlashMatch::dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch ) {
-    TCanvas c("c","",500,400);
+    gStyle->SetOptStat(0);
+    
+    const larutil::Geometry* geo = larutil::Geometry::GetME();
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
+    const float  driftv = larp->DriftVelocity();    
+    
+    TCanvas c("c","",800,400);
+    TCanvas c2d("c2d","pmt flash", 1500, 800);
+    TPad datayz("pad1", "",0.0,0.7,0.8,1.0);
+    TPad hypoyz("pad2", "",0.0,0.4,0.8,0.7);
+    TPad dataxy("pad3", "",0.8,0.7,1.0,1.0);
+    TPad hypoxy("pad4", "",0.8,0.4,1.0,0.7);
+    TPad histpad("pad5","",0.0,0.0,1.0,0.4);
+    datayz.SetRightMargin(0.05);
+    datayz.SetLeftMargin(0.05);    
+    hypoyz.SetRightMargin(0.05);
+    hypoyz.SetLeftMargin(0.05);    
 
     for (int iflash=0; iflash<_nflashes; iflash++) {
+      c.Clear();
+      c.cd();
+      
       int ncompat = 0;
       TH1D hdata("hdata","",32,0,32);
       float norm = 1.;
@@ -1086,9 +1122,19 @@ namespace larflow {
       hdata.SetLineColor(kBlack);
       hdata.Draw("hist");
       std::vector< TH1D* > hclust_v;
+      int tophistidx = 0;
       float max = hdata.GetMaximum();
 
       auto it_flash = _flash_reindex.find( iflash );
+
+      bool mctrack_match = false;
+      if ( flashdata_v[iflash].mctrackid>=0 )
+	mctrack_match = true;
+
+      int bestmatch_idx = -1;
+      float peratio_best = 1.0e9;
+      float matchscore_best = 0;
+      const FlashHypo_t* bestmatch_hypo = nullptr;
 
       for (int iclust=0; iclust<_nqclusters; iclust++) {
 	
@@ -1112,22 +1158,57 @@ namespace larflow {
 	TH1D* hhypo = new TH1D(hname, "", 32, 0, 32 );
 	hhypo->SetLineWidth(1.0);
 	hhypo->SetLineColor(kRed);
-	bool both = true;
-	if ( _flashdata_best_hypo_maxdist_idx.size()==_nflashes && _flashdata_best_hypo_maxdist_idx[iflash]==iclust ) {
-	  hhypo->SetLineWidth(2);
-	  hhypo->SetLineColor(kBlue);
+	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
+	float hypo_norm = 1.;
+	if ( !shapeonly ) {
+	  hypo_norm = (*flightyield)*hypo.tot;
+	  // std::cout << "hypo[fl=" << iflash << ",cl=" << iclust << "]"
+	  // 	    << " totalpe=" << hypo_norm
+	  // 	    << " intpcpe=" << hypo.tot_intpc*(*flightyield)
+	  // 	    << " outtpcpe=" << hypo.tot_outtpc*(*flightyield)
+	  // 	    << std::endl;
 	}
-	else
-	  both = false;
-	if ( _flashdata_best_hypo_chi2_idx.size()==_nflashes && _flashdata_best_hypo_chi2_idx[iflash]==iclust ) {
-	  hhypo->SetLineWidth(2);
-	  hhypo->SetLineColor(kCyan);
+	for (int ipmt=0;ipmt<32;ipmt++) {
+	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
 	}
-	else
-	  both = false;
 	
-	if ( both )
-	  hhypo->SetLineColor(kMagenta);
+
+	float fmatchscore = 0.;
+	if ( usefmatch && imatch>=0 ) {
+	  // we mark the best score
+	  fmatchscore = fmatch[imatch];
+	  if ( fmatchscore >= matchscore_best || fmatchscore>0.98 ) {
+	    // basically the same
+	    float peratio = fabs(hypo_norm/norm-1.0);
+	    if ( peratio < peratio_best ) {
+	      bestmatch_idx = iclust;
+	      peratio_best = peratio;
+	      matchscore_best = fmatchscore;
+	      bestmatch_hypo = &hypo;
+	      tophistidx = hclust_v.size();
+	    }
+	  }
+	}
+
+	// set colors
+	if ( !usefmatch ) {
+	  int ntop = 0; // best initial chi2, maxdist
+	  if ( _flashdata_best_hypo_maxdist_idx.size()==_nflashes && _flashdata_best_hypo_maxdist_idx[iflash]==iclust ) {
+	    hhypo->SetLineWidth(2);
+	    hhypo->SetLineColor(kBlue);
+	    tophistidx = hclust_v.size();
+	    ntop++;
+	  }
+	  if ( _flashdata_best_hypo_chi2_idx.size()==_nflashes && _flashdata_best_hypo_chi2_idx[iflash]==iclust ) {
+	    hhypo->SetLineWidth(2);
+	    hhypo->SetLineColor(kCyan);
+	    tophistidx = hclust_v.size();
+	    ntop++;
+	  }
+	
+	  if ( ntop==2 ) // both best chi2 and maxdist
+	    hhypo->SetLineColor(kMagenta);
+	}
 
 	if ( truthmatched ) {
 	  hhypo->SetLineColor(kGreen+3);
@@ -1136,25 +1217,11 @@ namespace larflow {
 	    hhypo->SetLineStyle(3);
 	}
 	
-	const FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
-	float hypo_norm = 1.;
-	if ( !shapeonly ) {
-	  hypo_norm = (*flightyield)*hypo.tot;
-	  std::cout << "hypo[fl=" << iflash << ",cl=" << iclust << "]"
-		    << " totalpe=" << hypo_norm
-		    << " intpcpe=" << hypo.tot_intpc*(*flightyield)
-		    << " outtpcpe=" << hypo.tot_outtpc*(*flightyield)
-		    << std::endl;
-	}
-	
-	for (int ipmt=0;ipmt<32;ipmt++) {
-	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
-	}
 	hhypo->Draw("hist same");
 	if ( max < hhypo->GetMaximum() )
 	  max = hhypo->GetMaximum();
 	hclust_v.push_back( hhypo );
-      }
+      }//end of cluster loop
 
       hdata.SetMaximum( max*1.1 );
       
@@ -1166,11 +1233,235 @@ namespace larflow {
       std::cout << "saving " << cname << std::endl;
       c.SaveAs(cname);
 
+      
+      // 2D plot as check.
+      TH2D bg("hyz","",105,-20,1050, 120, -130, 130);
+      TH2D bgxy("hxy","",25,-20,280, 120, -130, 130);
+      TBox boxzy( 0, -116.5, 1036, 116.5 );
+      boxzy.SetFillStyle(0);
+      boxzy.SetLineColor(kBlack);
+      boxzy.SetLineWidth(1);
+      TBox boxxy( 0, -116.5, 256, 116.5 );
+      boxxy.SetFillStyle(0);
+      boxxy.SetLineColor(kBlack);
+      boxxy.SetLineWidth(1);
+      
+      c2d.Clear();
+      c2d.Draw();
+      c2d.cd();
+      datayz.Draw();
+      hypoyz.Draw();
+      dataxy.Draw();
+      hypoxy.Draw();
+      histpad.Draw();
+
+      datayz.cd();
+      bg.Draw();
+      boxzy.Draw();
+      
+
+      // draw data markers
+      std::vector<TEllipse*> pmtmarkers_v(32,0);
+      std::vector<TText*>    chmarkers_v(32,0);
+      std::vector<TEllipse*> datamarkers_v(32,0);
+      std::vector<TEllipse*> hypomarkers_v(32,0);      
+
+      const QCluster_t* qtruth = nullptr;
+      if ( flashdata_v[iflash].truthmatched_clusteridx>=0 )
+	qtruth = &(_qcluster_v[ flashdata_v[iflash].truthmatched_clusteridx ]);
+      
+      TGraph* truthclust = nullptr;
+      TGraph* truthclust_xy = nullptr;      
+      if ( qtruth ) {
+	std::cout << "qtruth[" << flashdata_v[iflash].truthmatched_clusteridx << "] npoints: " << qtruth->size() << std::endl;
+	truthclust = new TGraph(qtruth->size());
+	truthclust_xy = new TGraph(qtruth->size());
+	float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;
+	for (int ipt=0; ipt<(int)qtruth->size(); ipt++) {
+	  truthclust->SetPoint(ipt,qtruth->at(ipt).xyz[2], qtruth->at(ipt).xyz[1] );
+	  truthclust_xy->SetPoint(ipt,qtruth->at(ipt).xyz[0]-xoffset, qtruth->at(ipt).xyz[1] );
+	  //std::cout << "qtruth[0] = " << qtruth->at(ipt).xyz[0]-xoffset << " (w/ offset=" << xoffset << ")" << std::endl;
+	}
+	truthclust->SetMarkerSize(1);
+	truthclust->SetMarkerStyle(20);
+	truthclust_xy->SetMarkerSize(1);
+	truthclust_xy->SetMarkerStyle(20);	
+      }
+
+      TGraph* mctrack_data    = nullptr;
+      TGraph* mctrack_data_xy = nullptr;      
+      if ( mctrack_match ) {
+	const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ];
+	std::cout << "matchedmctrack[" << flashdata_v[iflash].mctrackid << "] npoints: " << mct.size() << std::endl;	
+	mctrack_data    = new TGraph( mct.size() );
+	mctrack_data_xy = new TGraph( mct.size() );	
+	for (int istep=0; istep<(int)mct.size(); istep++) {
+	  mctrack_data->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
+	  mctrack_data_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
+	}
+	mctrack_data->SetLineColor(kBlue);
+	mctrack_data->SetLineWidth(1);
+	mctrack_data_xy->SetLineColor(kBlue);
+	mctrack_data_xy->SetLineWidth(1);
+      }
+			
+      for (int ich=0; ich<32; ich++) {
+	int opdet = geo->OpDetFromOpChannel(ich);
+	double xyz[3];
+	geo->GetOpChannelPosition( ich, xyz );
+	float pe = (flashdata_v[iflash][ich]*norm);
+	if ( pe>10 )
+	  pe = 10 + (pe-10)*0.10;
+	float radius = ( pe>50 ) ? 50 : pe;
+	datamarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
+	datamarkers_v[ich]->SetFillColor(kRed);
+	datamarkers_v[ich]->Draw();
+
+	pmtmarkers_v[ich] = new TEllipse(xyz[2],xyz[1], 10.0, 10.0);
+	pmtmarkers_v[ich]->SetLineColor(kBlack);
+	pmtmarkers_v[ich]->Draw();
+
+	char pmtname[10];
+	sprintf(pmtname,"%02d",ich);
+	chmarkers_v[ich] = new TText(xyz[2]-10.0,xyz[1]-5.0,pmtname);
+	chmarkers_v[ich]->SetTextSize(0.04);
+	chmarkers_v[ich]->Draw();
+      }
+      if ( truthclust )
+	truthclust->Draw("P");
+      if ( mctrack_data )
+	mctrack_data->Draw("L");
+
+      dataxy.cd();
+      bgxy.Draw();
+      boxxy.Draw();
+      if ( truthclust_xy )
+	truthclust_xy->Draw("P");
+      if ( mctrack_data_xy )
+	mctrack_data_xy->Draw("L");
+      
+      hypoyz.cd();
+      bg.Draw();
+      boxzy.Draw();
+
+      const FlashHypo_t* hypo = nullptr;
+      int iclust = _flashdata_best_hypo_maxdist_idx[iflash];
+      if ( truthclust )
+	iclust = flashdata_v[iflash].truthmatched_clusteridx;
+      if ( usefmatch ) {
+	hypo = bestmatch_hypo;
+	iclust = bestmatch_idx;
+      }
+
+      TGraph* truthclust2 = nullptr;
+      TGraph* truthclust2_xy = nullptr;      
+      if ( qtruth && !usefmatch) {
+	truthclust2 = truthclust;
+	truthclust2_xy = truthclust_xy;	
+      }
+      else {
+	QCluster_t* qc = &(_qcluster_v[iclust]);
+	//std::cout << "qc[" << iclust << "] npoints: " << qc->size() << std::endl;
+	truthclust2 = new TGraph(qc->size());
+	truthclust2_xy = new TGraph(qc->size());
+	float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;	
+	for (int ipt=0; ipt<(int)qc->size(); ipt++) {
+	  truthclust2->SetPoint(ipt,qc->at(ipt).xyz[2], qc->at(ipt).xyz[1] );
+	  truthclust2_xy->SetPoint(ipt,qc->at(ipt).xyz[0]-xoffset, qc->at(ipt).xyz[1] );	  
+	}
+	truthclust2->SetMarkerSize(1);
+	truthclust2->SetMarkerStyle(20);
+	truthclust2_xy->SetMarkerSize(1);
+	truthclust2_xy->SetMarkerStyle(20);
+      }
+      
+      
+      if ( hasHypothesis(iflash, iclust) ){
+	if ( !usefmatch )
+	  hypo = &(getHypothesisWithOrigIndex( iflash, iclust ));
+	else
+	  hypo = bestmatch_hypo;
+	
+	float hypo_norm = (*flightyield)*hypo->tot;
+	for (int ich=0; ich<32; ich++) {
+	  int opdet = geo->OpDetFromOpChannel(ich);
+	  double xyz[3];
+	  geo->GetOpChannelPosition( ich, xyz );
+	  float pe = (hypo->at(ich)*norm);
+	  if ( pe>10 )
+	    pe = 10 + (pe-10)*0.10;
+	  float radius = ( pe>50 ) ? 50 : pe;
+	  hypomarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
+	  hypomarkers_v[ich]->SetFillColor(kRed);
+	  hypomarkers_v[ich]->Draw();
+
+	  pmtmarkers_v[ich]->Draw();
+	  chmarkers_v[ich]->Draw();	  
+	}
+      }
+      
+      if ( truthclust2 )
+	truthclust2->Draw("P");
+      if ( mctrack_data )
+	mctrack_data->Draw("L");
+      
+      hypoxy.cd();
+      bgxy.Draw();
+      boxxy.Draw();
+      if ( truthclust2_xy )
+	truthclust2_xy->Draw("P");
+      if ( mctrack_data_xy )
+	mctrack_data_xy->Draw("L");      
+
+      // finally hist pad
+      histpad.cd();
+      hdata.Draw("hist");
+      for (int ihist=0; ihist<(int)hclust_v.size(); ihist++) {
+	hclust_v[ihist]->Draw("hist same");
+      }
+      if ( tophistidx<hclust_v.size() )
+	hclust_v[tophistidx]->Draw("hist same");
+      
+      c2d.Update();
+      sprintf(cname,"hflash2d_flashid%d.png",iflash);
+      c2d.SaveAs(cname);
+
+      std::cout << "clean up" << std::endl;
+      
+      for ( auto& pmarker : pmtmarkers_v ) {
+	delete pmarker;
+	pmarker = nullptr;
+      }
+      for ( auto& pmarker : datamarkers_v ) {
+	delete pmarker;
+	pmarker = nullptr;
+      }
+      for ( auto& pmarker : hypomarkers_v ) {
+	delete pmarker;
+	pmarker = nullptr;
+      }
+      if ( truthclust )
+	delete truthclust;
+      truthclust = nullptr;
+      if ( truthclust_xy )
+	delete truthclust_xy;
+      
+      if ( !qtruth || usefmatch ) {
+	delete truthclust2;
+	delete truthclust2_xy;
+      }
+      if (mctrack_data)
+	delete mctrack_data;
+      if ( mctrack_data_xy )
+	delete mctrack_data_xy;
+
       for (int ic=0; ic<(int)hclust_v.size(); ic++) {
 	delete hclust_v[ic];
       }
-      hclust_v.clear();
-    }//end of flash loop
+      hclust_v.clear();      
+      
+    } //end of flash loop
+    
   }
 
   float LArFlowFlashMatch::calcNLL( bool print ) {
@@ -1383,8 +1674,12 @@ namespace larflow {
 	}
 	flashdata_v[iflash].mctrackid = idx;
 	flashdata_v[iflash].mctrackpdg = pdgx;	  
-      }
-      std::cout << "FlashMCtrackMatch[" << iflash << "] trackid=" << flashdata_v[iflash].mctrackid << " pdg=" << flashdata_v[iflash].mctrackpdg << std::endl;
+      }// if multipl matched ids
+      int nmcpts = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ].size();
+      std::cout << "FlashMCtrackMatch[" << iflash << "] "
+		<< "trackid=" << flashdata_v[iflash].mctrackid << " "
+		<< "pdg=" << flashdata_v[iflash].mctrackpdg << " "
+		<< "nmcpts=" << nmcpts << std::endl;
     }
 
   }
