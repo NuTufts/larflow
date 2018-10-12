@@ -10,7 +10,8 @@ from vis.solidstreewidget import SolidsTreeWidget
 
 class DetectorDisplay(gl.GLViewWidget) :
     def __init__(self, use_cache=True, cache_dir="./pylardcache", 
-                 daefile=os.path.dirname(__file__)+"/microboone_32pmts_nowires_cryostat.dae"):
+                 daefile=os.path.dirname(__file__)+"/microboone_32pmts_nowires_cryostat.dae",
+                 background='w'):
         super(DetectorDisplay,self).__init__()
         self.treeitems = OrderedDict()
         self.daefile = daefile

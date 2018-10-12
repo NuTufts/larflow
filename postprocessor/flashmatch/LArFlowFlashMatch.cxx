@@ -68,8 +68,8 @@ namespace larflow {
     // more default parameters
     _fMaxDistCut = 0.5;
     _fCosmicDiscThreshold = 10.0;
-    _fclustsum_weight = 1e3;
-    _fflashsum_weight = 0.5e3;
+    _fclustsum_weight = 1e2;
+    _fflashsum_weight = 0.5e2;
     _fl1norm_weight = 0.1;
     _flightyield_weight = 1.0;
 
@@ -741,6 +741,9 @@ namespace larflow {
 	  xyz[1] = qcluster[ihit].xyz[1];
 	  xyz[2] = qcluster[ihit].xyz[2];
 	  xyz[0] = (qcluster[ihit].tick - flash.tpc_tick)*0.5*driftv;
+
+	  if ( xyz[0]>256.0 )
+	    continue; // i dont trust the hypotheses here
 	  
 	  const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
 	  int intpc = qcluster[ihit].intpc;

@@ -10,10 +10,12 @@ argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL 
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
 argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
-argparser.add_argument("-c", "--color",    required=True,  type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall]")
+argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall]")
+argparser.add_argument("-l", "--light",    action='store_true',      help="use light background")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
+import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.opengl as gl
 import numpy as np
@@ -27,6 +29,7 @@ from ROOT import larutil
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
 w = DetectorDisplay()
+
 w.show() # bring main 3D screen
 w.solidswidget.show() # checkbox for parts of detector
 w.setWindowTitle('LArFlow Visualization')
@@ -42,6 +45,7 @@ w.changeComponentState("FieldCageTubeZ",False)
 w.changeComponentState("FieldCageTubeY",False)
 w.changeComponentState("TPCActive",False)
 
+
 # import data
 inputfile = args.input
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
@@ -49,8 +53,8 @@ io.add_in_filename( inputfile )
 io.open()
 
 # color scheme
-schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall","colorbyrecovstruth"]
-shortschemes = ["ssnet","quality","flowdir","infill","3ddist","hastruth","dwall","recovstruth"]
+schemes = ["colorbydefault","colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall","colorbyrecovstruth"]
+shortschemes = ["default","ssnet","quality","flowdir","infill","3ddist","hastruth","dwall","recovstruth"]
 
 colorscheme = args.color
 if colorscheme in shortschemes:
@@ -173,6 +177,8 @@ for ihit in xrange(nhits):
             else:
                 colors[nhits+itruthhit,:] = (0.,0.,1.,1.0) # edge truth hit is bleed                
             itruthhit+=1
+    elif colorscheme=="colorbydefault":
+        colors[ihit,:] = (1.,1.,1.,1.)
             
 
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)

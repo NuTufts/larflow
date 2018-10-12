@@ -87,7 +87,9 @@ namespace larflow {
 	trackid(-1),
 	truthflag(0),
 	dWall(0)
-      {};
+      {
+	X_truth.resize(3,-1);
+      };
       int hitidx;       // index of hit in event_hit vector
       float maxamp;     // maximum amplitude
       int srcwire;      // source image pixel: column

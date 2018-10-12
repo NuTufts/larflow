@@ -18,6 +18,8 @@ make
 cd ../larlitecv
 make
 
+cd ..
+
 # cilantro/pangolin
 mkdir Pangolin/build
 cd Pangolin/build
@@ -31,5 +33,5 @@ cmake ..
 cmake --build .
 
 # return home
-cd ..
+cd ../..
 
