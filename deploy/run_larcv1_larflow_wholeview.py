@@ -13,6 +13,9 @@ from larcv import larcv
 # pytorch
 import torch
 
+
+import cv2 as cv
+
 # util functions
 # also, implicitly loads dependencies, pytorch larflow model definition
 from larflow_funcs import load_model
@@ -160,8 +163,10 @@ if __name__=="__main__":
         #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         ## EXTBNB example
-        input_larcv_filename = "../testdata/larcv1_data/larcv_mcc9_example.root"
-        batch_size = 4
+        #input_larcv_filename = "../testdata/larcv1_data/larcv_mcc9_example.root"
+        input_larcv_filename = "../testdata/larcv1_data/larcv_wholeview_2e59dbd4-a395-4296-8d81-f84c4a7e474b.root"
+        
+        batch_size = 1
         gpuid = 0
         checkpoint_gpuid = 0
         verbose = False
@@ -169,7 +174,7 @@ if __name__=="__main__":
         stitch = False
         use_half = True
         ismc = False
-        FLOWDIR="y2u"
+        FLOWDIR="y2v"
 
         if FLOWDIR=="y2u":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
@@ -180,10 +185,10 @@ if __name__=="__main__":
         elif FLOWDIR=="y2v":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
             #output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"            
-            output_larcv_filename = "larcv1_larflow_y2u_bnbext_mcc9.root"            
+            output_larcv_filename = "larcv1_larflow_y2v_bnbext_mcc9.root"            
             # remove for y2v so we can hadd with y2u output                        
             ismc = False
-            save_cropped_adc = False 
+            save_cropped_adc = False
         else:
             raise RuntimeError("invalid flowdir")
 
@@ -199,6 +204,7 @@ if __name__=="__main__":
     model.eval()
 
     # set planes
+    source_plane = 2    
     if FLOWDIR=="y2u":
         target_plane = 0
     elif FLOWDIR=="y2v":
@@ -296,8 +302,8 @@ if __name__=="__main__":
             out_v.push_back( out )
 
         # fill source and target images
-        source_np = np.zeros( (batch_size,1,512,832), dtype=np.float32 )
-        target_np = np.zeros( (batch_size,1,512,832), dtype=np.float32 )
+        crop_np = np.zeros( (batch_size,3,512,832), dtype=np.float32 )
+        #target_np = np.zeros( (batch_size,1,512,832), dtype=np.float32 )
 
         talloc = time.time()-talloc
         timing["++alloc_arrays"] += talloc
@@ -318,12 +324,13 @@ if __name__=="__main__":
             # -------------------------------------------------
             # Batch Loop, fill data, then send through the net
             # clear batch
-            source_np[:] = 0.0
-            target_np[:] = 0.0
+            crop_np[:] = 0.0
+            #target_np[:] = 0.0
             
             # save meta information for the batch
             image_meta = []
             target_meta = []
+            adc_metas = []
             flowcrop_batch = [] # only filled if not stitching
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
@@ -337,7 +344,11 @@ if __name__=="__main__":
                 # get row,col bounds for each plane
                 for bb,orig in zip(bb_v,orig_meta):
                     rmin = orig.row( bb.max_y() )
-                    rmax = orig.row( bb.min_y() )
+                    if bb.min_y()==orig.min_y():
+                        print "at edge: ",rmin,orig.rows()
+                        rmax = orig.rows()
+                    else:
+                        rmax = orig.row( bb.min_y() )
                     cmin = orig.col( bb.min_x() )
                     cmax = orig.col( bb.max_x() )
                     if rmax-rmin!=512 or cmax-cmin!=832:
@@ -358,35 +369,54 @@ if __name__=="__main__":
                     continue
 
                 # crops in numpy array
-                source_np[ib,0,:,:] = img_np[2,0,bounds[2][0]:bounds[2][2],bounds[2][1]:bounds[2][3]] # yplane
-                target_np[ib,0,:,:] = img_np[target_plane,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
+                for p in xrange(0,3):
+                    crop_np[ib,p,:,:] = img_np[p,0,bounds[p][0]:bounds[p][2],bounds[p][1]:bounds[p][3]] # yplane
+                    #target_np[ib,0,:,:] = img_np[target_plane,0,bounds[target_plane][0]:bounds[target_plane][2],bounds[target_plane][1]:bounds[target_plane][3]]
 
                 # flip time dimension
-                np.flip( source_np, 2 )
-                np.flip( target_np, 2 )
+                np.flip( crop_np, 2 )
+                #np.flip( target_np, 2 )
 
                 # hack for mcc9: reduce scale
-                source_np *= (40.0/15000.0)
-                target_np *= (40.0/10000.0)
+                #source_np *= (40.0/15000.0)
+                #target_np *= (40.0/10000.0)
 
                 # threshold and clip
-                source_np[ source_np<10.0 ]  =   0.0
-                source_np[ source_np>200.0 ] = 200.0                
-                target_np[ target_np<10.0 ]  = 0.0
-                target_np[ target_np>200.0 ] = 200.0
+                crop_np[ crop_np<10.0 ]  =   0.0
+                crop_np[ crop_np>200.0 ] = 200.0                
+                #target_np[ target_np<10.0 ]  = 0.0
+                #target_np[ target_np>200.0 ] = 200.0
+
+                cv.imwrite( "imgdump/img_%d_%d_%d_source.png"%(ientry,iset+1,ib),crop_np[ib,source_plane,:,:] )
+                cv.imwrite( "imgdump/img_%d_%d_%d_target.png"%(ientry,iset+1,ib),crop_np[ib,target_plane,:,:] )                
                 
                 # store region of image
                 #image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
                 #target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
                 image_meta.append(  bb_v[2]  )
                 target_meta.append( bb_v[target_plane] )
+                adc_metas.append( bb_v )
 
                 # if not stiching, save crops
                 if not stitch:
                     flowcrops = {"flow":[],"visi":[],"adc":[]}
-                    for ii in xrange(0,3):
-                        #flowcrops["adc"].append(  larflow_cropped_dict["adc"].at( iimg+ii )  )
-                        pass
+                    if save_cropped_adc:
+                        for p in xrange(0,3):
+                            adc_lcv = larcv.as_image2d_meta( crop_np[ib,p,:].transpose((1,0)), bb_v[p] )
+                            flowcrops["adc"].append( adc_lcv )
+                        #if target_plane==0:
+                        #    adc_lcv0 = larcv.as_image2d_meta( target_np[ib,0,:].transpose((1,0)), bb_v[0] )
+                        #    flowcrops["adc"].append( adc_lcv0  )
+                        #    adc_lcv1 = larcv.as_image2d_meta( np.flip(img_np[1,0,bounds[1][0]:bounds[1][2],bounds[1][1]:bounds[1][3]],0).transpose((1,0)), bb_v[1] )
+                        #    flowcrops["adc"].append( adc_lcv1  )
+                        #elif target_plane==1:
+                        #    adc_lcv0 = larcv.as_image2d_meta( np.flip(img_np[0,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]],0).transpose((1,0)), bb_v[0] )
+                        #    flowcrops["adc"].append( adc_lcv0  )
+                        #    adc_lcv1 = larcv.as_image2d_meta( target_np[ib,0,:].transpose((1,0)), bb_v[1] )
+                        #    flowcrops["adc"].append( adc_lcv1  )
+                        #adc_lcv2 = larcv.as_image2d_meta( source_np[ib,0,:].transpose((1,0)), bb_v[2] )
+                        #flowcrops["adc"].append( adc_lcv2  )
+                        
                     if ismc:
                         for ii in xrange(0,2):
                             flowcrops["flow"].append( larflow_cropped_dict["flow"].at( iset*2+ii ) )
@@ -404,10 +434,10 @@ if __name__=="__main__":
 
             if verbose:
                 print "batch using ",len(image_meta)," slots"
-        
-            # filled batch, make tensors
-            source_t = torch.from_numpy( source_np ).to(device=torch.device("cuda:%d"%(gpuid)))
-            target_t = torch.from_numpy( target_np ).to(device=torch.device("cuda:%d"%(gpuid)))
+
+            tensorshape = (crop_np.shape[0],1,crop_np.shape[2],crop_np.shape[3])
+            source_t = torch.from_numpy( crop_np[:,source_plane,:,:].reshape( tensorshape ) ).to(device=torch.device("cuda:%d"%(gpuid)))
+            target_t = torch.from_numpy( crop_np[:,target_plane,:,:].reshape( tensorshape ) ).to(device=torch.device("cuda:%d"%(gpuid)))
             if use_half:
                 source_t = source_t.half()
                 target_t = target_t.half()
@@ -427,12 +457,20 @@ if __name__=="__main__":
 
             # turn pred_flow back into larcv
             tcopy = time.time()
-            flow_np = pred_flow.detach().cpu().numpy().astype(np.float32)
+            flow_np = pred_flow.detach().float().cpu().numpy()
+            print "flow_np_shape: ",flow_np.shape
+            cv.imwrite( "imgdump/img_%d_%d_%d_flow.png"%(ientry,iset,0),flow_np[0,0,:,:] )
+            flow_np = flow_np.transpose( (0,1,3,2) )            
+            #flow_np = flow_np.reshape( (flow_np.shape[0],flow_np.shape[1],flow_np.shape[3],flow_np.shape[2]) )            
+
+            print "flow_np_reshape: ",flow_np.shape            
             outmeta = out_v[0].meta()
             for ib in xrange(min(batch_size,len(image_meta))):
+
                 if image_meta[ib] is None:
                     continue
-                img_slice = np.flip( flow_np[ib,0,:], 0 ).transpose((1,0))
+
+                img_slice =  flow_np[ib,0,:,:]
                 print "img_slice.shape: ",img_slice.shape," ",image_meta[ib].dump()
                 flow_lcv = larcv.as_image2d_meta( img_slice, image_meta[ib] )
                 if stitch:
@@ -463,6 +501,8 @@ if __name__=="__main__":
             timing["+++copy_to_output"] += tcopy
             if verbose:
                 print "time to copy results back into full image: ",tcopy," secs"
+            #if iset>=2:
+            #    break
         # end of loop over cropped set
         # -------------------------------
 
