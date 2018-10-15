@@ -2,11 +2,11 @@
 
 namespace larflow {
 
-  CilantroSpectral::CilantroSpectral( const larlite::larflowcluster& cluster, const int NC, const int NN ) {
-    _cluster = &cluster;
+  CilantroSpectral::CilantroSpectral( const std::vector<larlite::larflow3dhit>& larflowhits, const int NC, const int NN ) {
+    _larflowhits = &larflowhits;
     // transfer points
     _points.clear();
-    for ( auto const& hit : cluster ) {
+    for ( auto const& hit : larflowhits ) {
       _points.push_back( Eigen::Vector3f(hit[0],hit[1],hit[2]) );
     }
     
@@ -39,6 +39,20 @@ namespace larflow {
     
   }
   
-  
+  void CilantroSpectral::get_cluster_indeces(){
+    const auto& cpi = _sc->getClusterPointIndices();
+    size_t mins = _points.size(), maxs = 0;
+    for (size_t i = 0; i < cpi.size(); i++) {
+      if (cpi[i].size() < mins) mins = cpi[i].size();
+      if (cpi[i].size() > maxs) maxs = cpi[i].size();
+    }
+    std::cout << "Cluster size range is: [" << mins << "," << maxs << "]" << std::endl;
+
+    const auto& idx_map = _sc->getClusterIndexMap();
+    for(int i=0; i<idx_map.size(); i++){
+      std::cout << "cluster id "<< idx_map.at(i) << std::endl;
+    }
+    
+  }
 
 }
