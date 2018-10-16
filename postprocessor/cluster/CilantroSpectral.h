@@ -12,7 +12,7 @@ namespace larflow {
   class CilantroSpectral {
   public:
 
-    CilantroSpectral( const std::vector<larlite::larflow3dhit>& larflowhits, const int NC, const int NN );
+    CilantroSpectral( const std::vector<larlite::larflow3dhit>& larflowhits, const int NC, const int NN, bool debug=false );
     virtual ~CilantroSpectral();
 
     void build_neighborhood_graph(std::vector<Eigen::Vector3f> &points, Eigen::SparseMatrix<float> &affinities, const int NN);

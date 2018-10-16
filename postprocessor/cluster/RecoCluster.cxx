@@ -9,10 +9,13 @@ namespace larflow {
 
     // we filter out all hits without reconstructed 3D position
     fhits.clear();
+    int num=0;
     for (const auto& hit : hits ){
+      num++;
       if(hit.at(0)==-1. || hit.at(1)==-1. || hit.at(2)==-1.){
 	continue;
       }
+      if(num>4000) break;
       fhits.push_back(hit);
     }
   }
@@ -68,14 +71,15 @@ namespace larflow {
     std::vector<std::vector<long unsigned int> > cpi;    
     std::vector<long unsigned int> idx_mat;
     sc.get_cluster_indeces(cpi,idx_mat);
-    // I need to check how to use cluster indeces properly
-    
-    int idx = 0;
+    // cpi = < <hit idx in cluster 0> <hit idx in cluster 1> ... <hit idx in cluster cpi.size()-1> >
+    // idx_mat = <clust id of hit 0, clust id of hit 1,..., clust id of hit hits.size()-1>    
     for (auto const& cl : cpi ) {
       // create new cluster
       Cluster_t info;
-      info.trackid = hit_v.at(idx).trackid;
-      info.phits.push_back( &hit_v.at(idx) ); // store address: for now 1st hit only
+      info.trackid = hit_v.at(cl[0]).trackid;
+      for(int id = 0; id<cl.size(); id++){
+	info.phits.push_back( &hit_v.at(cl[id]) ); // store address
+      }
       // put into vector
       output.emplace_back( std::move(info) );
       /*
@@ -83,7 +87,6 @@ namespace larflow {
 	noclusterhits.phits.push_back( &hit );
 	}
       */
-      idx += cl.size();
     }
     
     // calculate axis-aligned bounding boxes for clusters

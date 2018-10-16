@@ -6,6 +6,7 @@
 
 #include "RecoCluster.h"
 #include "CilantroSpectral.h"
+#include <cilantro/timer.hpp>
 
 #include "TTree.h"
 #include "TCanvas.h"
@@ -71,16 +72,24 @@ int main( int nargs, char** argv ) {
     }
     */
     std::vector<larlite::larflow3dhit> fhits;
-    clusteralgo.filter_hits(fhits,ev_hits);
-    larflow::CilantroSpectral sc( ev_hits,40,5 );
+    fhits.reserve(ev_hits.size());
+    clusteralgo.filter_hits(ev_hits,fhits);
+    std::cout << "number of filtered hits: " << fhits.size() << std::endl;
+    //
+    cilantro::Timer timer;
+    timer.start();
+    larflow::CilantroSpectral sc( fhits,40,10 );
+    timer.stop();
+    std::cout << "Clustering time: " << timer.getElapsedTime() << "ms" << std::endl;
+    //
     std::vector<std::vector<long unsigned int> > cpi;
     std::vector<long unsigned int> idx_mat;
     sc.get_cluster_indeces(cpi,idx_mat);
     std::cout << cpi.size() <<" "<<idx_mat.size() << std::endl;
-    for(int i=0; i<10; i++){
-      std::cout << cpi[0][i] <<" "<< idx_mat[i] << std::endl;
-    }
-
+   
+    //    for(int i=0; i<cpi.size(); i++){
+    //  std::cout <<"cluster size:  "<< cl <<" "<< cpi[i].size() << std::endl;
+    //}
     //io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
     //io_out.next_event();
     break;

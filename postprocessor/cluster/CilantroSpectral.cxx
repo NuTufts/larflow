@@ -2,20 +2,22 @@
 
 namespace larflow {
 
-  CilantroSpectral::CilantroSpectral( const std::vector<larlite::larflow3dhit>& larflowhits, const int NC, const int NN ) {
+  CilantroSpectral::CilantroSpectral( const std::vector<larlite::larflow3dhit>& larflowhits, const int NC, const int NN, bool debug ) {
     _larflowhits = &larflowhits;
     // transfer points
     _points.clear();
-    /*
-    for ( auto const& hit : larflowhits ) {
-      _points.push_back( Eigen::Vector3f(hit[0],hit[1],hit[2]) );
+    if(!debug){
+      for ( auto const& hit : larflowhits ) {
+	_points.push_back( Eigen::Vector3f(hit[0],hit[1],hit[2]) );
+      }
     }
-    */
-    generate_dummy_data(_points);
+    else{
+      generate_dummy_data(_points);
+    }
     std::cout << "num points: " << _points.size() << std::endl;
     build_neighborhood_graph(_points, _affinities, NN);
 
-    _sc = new cilantro::SpectralClustering<float>(_affinities, NC, true, cilantro::GraphLaplacianType::NORMALIZED_RANDOM_WALK);
+    _sc = new cilantro::SpectralClustering<float>(_affinities, NC, true, cilantro::GraphLaplacianType::NORMALIZED_RANDOM_WALK, 200,1.e-7,true);
     std::cout << "Number of clusters: " << _sc->getNumberOfClusters() << std::endl;
     std::cout << "Performed k-means iterations: " << _sc->getClusterer().getNumberOfPerformedIterations() << std::endl;
 
