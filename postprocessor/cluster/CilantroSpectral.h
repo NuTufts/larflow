@@ -17,7 +17,7 @@ namespace larflow {
 
     void build_neighborhood_graph(std::vector<Eigen::Vector3f> &points, Eigen::SparseMatrix<float> &affinities, const int NN);
 
-    void get_cluster_indeces(std::vector<std::vector<long unsigned int> >& cpi, std::vector<long unsigned int>& idx_map);
+    static void get_cluster_indeces(cilantro::SpectralClustering<float>* sc,std::vector<std::vector<long unsigned int> >& cpi, std::vector<long unsigned int>& idx_map);
     void generate_dummy_data(std::vector<Eigen::Vector3f>& points);
     
     const std::vector<larlite::larflow3dhit>* _larflowhits;

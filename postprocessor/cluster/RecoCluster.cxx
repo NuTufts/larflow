@@ -54,7 +54,7 @@ namespace larflow {
     larflow::CilantroSpectral sc( hit_v,40,5 );
     std::vector<std::vector<long unsigned int> > cpi;    
     std::vector<long unsigned int> idx_mat;
-    larflow::CilantroSpectral::get_cluster_indeces(cpi,idx_mat);
+    larflow::CilantroSpectral::get_cluster_indeces(sc._sc,cpi,idx_mat);
     // I need to check how to use cluster indeces properly
     
     int idx = 0;
