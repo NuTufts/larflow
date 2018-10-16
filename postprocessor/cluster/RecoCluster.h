@@ -24,8 +24,8 @@ namespace larflow {
     RecoCluster() {};
     virtual ~RecoCluster() {};
 
+    void filter_hits(const std::vector<larlite::larflow3dhit>& hits, std::vector<larlite::larflow3dhit>& fhits);
     std::vector< std::vector<const larlite::larflow3dhit*> > clusterHits( const std::vector<larlite::larflow3dhit>& hits, std::string algo, bool return_unassigned=true );
-
 
   protected:
     struct Cluster_t {

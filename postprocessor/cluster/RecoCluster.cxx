@@ -4,6 +4,19 @@
 
 namespace larflow {
 
+  void RecoCluster::filter_hits(const std::vector<larlite::larflow3dhit>& hits,
+				std::vector<larlite::larflow3dhit>& fhits){
+
+    // we filter out all hits without reconstructed 3D position
+    fhits.clear();
+    for (const auto& hit : hits ){
+      if(hit.at(0)==-1. || hit.at(1)==-1. || hit.at(2)==-1.){
+	continue;
+      }
+      fhits.push_back(hit);
+    }
+  }
+  
   std::vector< std::vector<const larlite::larflow3dhit*> > RecoCluster::clusterHits( const std::vector<larlite::larflow3dhit>& hits, std::string algo, bool return_unassigned ) {
 
     std::vector<Cluster_t> cluster_info;
@@ -13,15 +26,15 @@ namespace larflow {
     else{
       cluster_info = createClusters( hits );
     }
-    Cluster_t unmatched = cluster_info.front(); // first entry is the unmatched hits cluster (at least for DBSCAN)
-    cluster_info.erase(cluster_info.begin()); // remove first element from list
+    Cluster_t unmatched = cluster_info.back(); // last entry is the unmatched hits cluster (at least for DBSCAN)
+    cluster_info.pop_back(); // remove first element from list
 
     std::cout << "Created " << cluster_info.size() << " clusters using " << algo << std::endl;
     std::cout << "Number of unassigned hits: " << unmatched.phits.size() << " of " << hits.size() << std::endl;
 
     
     Cluster_t unassigned = assignUnmatchedToClusters( unmatched.phits, cluster_info );
-    std::cout << "after NN assignement of non-truthmatched hits, remaining unassigned: " << unassigned.phits.size() << std::endl;
+    std::cout << "after NN assignement of unmatched hits, remaining unassigned: " << unassigned.phits.size() << std::endl;
 
     // for the output
     int nclusters = cluster_info.size();
@@ -54,7 +67,7 @@ namespace larflow {
     larflow::CilantroSpectral sc( hit_v,40,5 );
     std::vector<std::vector<long unsigned int> > cpi;    
     std::vector<long unsigned int> idx_mat;
-    larflow::CilantroSpectral::get_cluster_indeces(sc._sc,cpi,idx_mat);
+    sc.get_cluster_indeces(cpi,idx_mat);
     // I need to check how to use cluster indeces properly
     
     int idx = 0;
@@ -77,14 +90,14 @@ namespace larflow {
     for ( auto& cluster : output ) {
       // set first location
       for (int i=0; i<3; i++)
-	cluster.aabbox[i][0] = cluster.aabbox[i][1] = cluster.phits.front()->X_truth[i];
+	cluster.aabbox[i][0] = cluster.aabbox[i][1] = cluster.phits.front()->at(i);
 
       for ( auto& phit : cluster.phits ) {
 	for (int i=0; i<3; i++) {
-	  if ( phit->X_truth[i] < cluster.aabbox[i][0] )
-	    cluster.aabbox[i][0] = phit->X_truth[i];
-	  if ( phit->X_truth[i] > cluster.aabbox[i][1] )
-	    cluster.aabbox[i][1] = phit->X_truth[i];
+	  if ( phit->at(i) < cluster.aabbox[i][0] )
+	    cluster.aabbox[i][0] = phit->at(i);
+	  if ( phit->at(i) > cluster.aabbox[i][1] )
+	    cluster.aabbox[i][1] = phit->at(i);
 	}
       }
     }
@@ -113,14 +126,14 @@ namespace larflow {
     for ( auto& cluster : output ) {
       // set first location
       for (int i=0; i<3; i++)
-	cluster.aabbox[i][0] = cluster.aabbox[i][1] = cluster.phits.front()->X_truth[i];
+	cluster.aabbox[i][0] = cluster.aabbox[i][1] = cluster.phits.front()->at(i);
 
       for ( auto& phit : cluster.phits ) {
 	for (int i=0; i<3; i++) {
-	  if ( phit->X_truth[i] < cluster.aabbox[i][0] )
-	    cluster.aabbox[i][0] = phit->X_truth[i];
-	  if ( phit->X_truth[i] > cluster.aabbox[i][1] )
-	    cluster.aabbox[i][1] = phit->X_truth[i];
+	  if ( phit->at(i) < cluster.aabbox[i][0] )
+	    cluster.aabbox[i][0] = phit->at(i);
+	  if ( phit->at(i) > cluster.aabbox[i][1] )
+	    cluster.aabbox[i][1] = phit->at(i);
 	}
       }
     }

@@ -51,9 +51,9 @@ namespace larflow {
     std::cout << "built affinity matrix" << std::endl;
   }
   
-  void CilantroSpectral::get_cluster_indeces(cilantro::SpectralClustering<float>* sc,std::vector<std::vector<long unsigned int> >& cpi, std::vector<long unsigned int>& idx_map){
-    cpi = sc->getClusterPointIndices();
-    idx_map = sc->getClusterIndexMap();
+  void CilantroSpectral::get_cluster_indeces(std::vector<std::vector<long unsigned int> >& cpi, std::vector<long unsigned int>& idx_map){
+    cpi = _sc->getClusterPointIndices();
+    idx_map = _sc->getClusterIndexMap();
 
   }
 

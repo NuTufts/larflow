@@ -27,14 +27,17 @@ LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
 LIB = ../lib/libLArFlowCluster3D.so
 
 
-all: $(LIB) dev_truthcluster
+all: $(LIB) dev_truthcluster reco_cluster
 
-../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o
+../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o CilantroSpectral.o RecoCluster.o
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 dev_truthcluster: $(LIB) dev_truthcluster.cxx
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+
+reco_cluster: $(LIB) reco_cluster.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
 
