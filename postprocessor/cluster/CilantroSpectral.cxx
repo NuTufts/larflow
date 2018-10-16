@@ -6,17 +6,16 @@ namespace larflow {
     _larflowhits = &larflowhits;
     // transfer points
     _points.clear();
+    /*
     for ( auto const& hit : larflowhits ) {
       _points.push_back( Eigen::Vector3f(hit[0],hit[1],hit[2]) );
     }
-    
+    */
+    generate_dummy_data(_points);
+    std::cout << "num points: " << _points.size() << std::endl;
     build_neighborhood_graph(_points, _affinities, NN);
-    cilantro::Timer timer;
-    timer.start();
-    
+
     _sc = new cilantro::SpectralClustering<float>(_affinities, NC, true, cilantro::GraphLaplacianType::NORMALIZED_RANDOM_WALK);
-    timer.stop();
-    std::cout << "Clustering time: " << timer.getElapsedTime() << "ms" << std::endl;
     std::cout << "Number of clusters: " << _sc->getNumberOfClusters() << std::endl;
     std::cout << "Performed k-means iterations: " << _sc->getClusterer().getNumberOfPerformedIterations() << std::endl;
 
@@ -30,29 +29,32 @@ namespace larflow {
     _affinities.data().squeeze();
   }
 
+  void CilantroSpectral::generate_dummy_data(std::vector<Eigen::Vector3f>& points){
+    points.resize(1700);
+    for (size_t i = 0; i < 1500; i++) {
+      points.at(i).setRandom().normalize();
+    }
+    for (size_t i = 1500; i < 1700; i++) {
+      points.at(i).setRandom().normalize();
+      points.at(i) *= 0.3f;
+    }
+  }
+  
   void CilantroSpectral::build_neighborhood_graph(std::vector<Eigen::Vector3f> &points, Eigen::SparseMatrix<float> &affinities, const int NN){
-    // NN neighbors
+    std::cout << "num neighbors: " << NN << std::endl;
+    // NN number of neighbors
     auto nh = cilantro::kNNNeighborhood<float>(NN);
     std::vector<cilantro::NeighborSet<float>> nn;
     cilantro::KDTree3f(points).search(points, nh, nn);
+    std::cout << "populated kd tree" << std::endl;
     affinities = cilantro::getNNGraphFunctionValueSparseMatrix(nn, cilantro::RBFKernelWeightEvaluator<float>(), true);
-    
+    std::cout << "built affinity matrix" << std::endl;
   }
   
-  void CilantroSpectral::get_cluster_indeces(){
-    const auto& cpi = _sc->getClusterPointIndices();
-    size_t mins = _points.size(), maxs = 0;
-    for (size_t i = 0; i < cpi.size(); i++) {
-      if (cpi[i].size() < mins) mins = cpi[i].size();
-      if (cpi[i].size() > maxs) maxs = cpi[i].size();
-    }
-    std::cout << "Cluster size range is: [" << mins << "," << maxs << "]" << std::endl;
+  void CilantroSpectral::get_cluster_indeces(std::vector<std::vector<long unsigned int> >& cpi, std::vector<long unsigned int>& idx_map){
+    cpi = _sc->getClusterPointIndices();
+    idx_map = _sc->getClusterIndexMap();
 
-    const auto& idx_map = _sc->getClusterIndexMap();
-    for(int i=0; i<idx_map.size(); i++){
-      std::cout << "cluster id "<< idx_map.at(i) << std::endl;
-    }
-    
   }
 
 }
