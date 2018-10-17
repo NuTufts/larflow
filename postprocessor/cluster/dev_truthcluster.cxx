@@ -31,7 +31,8 @@ int main( int nargs, char** argv ) {
 
   // output
   larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
-  io_out.set_out_filename( "output_dev_truthcluster.root" );
+  //io_out.set_out_filename( "output_dev_truthcluster_truepixflow.root" );
+  io_out.set_out_filename( "output_dev_truthcluster_recopixflow.root" );
   io_out.open();
 
   // Truth Cluster
