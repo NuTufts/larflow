@@ -132,7 +132,9 @@ for icluster in xrange(nclusters):
     clusterplotitems.append( hitplot )
 
     # pca
-    if args.pca:
+    if args.pca and icluster+1<nclusters:
+        # pca of all clusters, except last one, which is unassigned hits
+        
         pcapoints = np.zeros( (3,3) ) # start, center, end of main eigenvector
         pcacolor  = np.ones( (3,4) )
         pcaxis  = ev_pca.at(icluster)

@@ -55,8 +55,10 @@ int main( int nargs, char** argv ) {
     larlite::event_larflowcluster* ev_outcore    = (larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"flowtruthcore"); // after dbscan to identify core
     larlite::event_pcaxis* ev_outpca             = (larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"flowtruthclusters");
     larlite::event_pcaxis* ev_outcorepca         = (larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"flowtruthcore");
-    
+
+    int iclust=-1;
     for ( auto& hit_v : clusters ) {
+      iclust++;
       larlite::larflowcluster flowcluster;
       flowcluster.reserve( hit_v.size() );
       std::cout << "truth cluster has " << hit_v.size() << " hits" << std::endl;
@@ -68,18 +70,21 @@ int main( int nargs, char** argv ) {
       larlite::pcaxis pcainfo = pca.getpcaxis();
 
       // calculate core
-      larflow::CoreFilter corealgo( flowcluster, 3, 15.0 );
-      larlite::larflowcluster corecluster = corealgo.getCore();
-      larflow::CilantroPCA pcacore( corecluster );
-      larlite::pcaxis pcacoreinfo = pcacore.getpcaxis();
-            
+      larflow::CoreFilter corealgo( flowcluster, 3, 10.0 );
+      larlite::larflowcluster corecluster = corealgo.getCore(5);
+
       ev_outpca->emplace_back( std::move(pcainfo) );
-      ev_outcluster->emplace_back( std::move(flowcluster) );
-      if ( corecluster.size()>0 ) {
+      ev_outcluster->emplace_back( std::move(flowcluster) );	
+      
+      if ( corecluster.size()>3 && iclust+1!=(int)clusters.size() ) {
+	// no core for last cluster which is unassigned hits
 	std::cout << "core of cluster has " << corecluster.size() << " of " << hit_v.size() << " hits" << std::endl;
 	// for ( auto const& hit : corecluster ) {
 	//   std::cout << " corehit (" << hit[0] << "," << hit[1] << "," << hit[2] << ")" << std::endl;
 	// }
+	larflow::CilantroPCA pcacore( corecluster );
+	larlite::pcaxis pcacoreinfo = pcacore.getpcaxis();
+	
 	ev_outcore->emplace_back( std::move(corecluster) );
 	ev_outcorepca->emplace_back( std::move( pcacoreinfo) );
       }

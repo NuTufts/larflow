@@ -27,40 +27,39 @@ namespace larflow {
   }
 
 
-  larlite::larflowcluster CoreFilter::getPoints( bool core ) {
-    int maxcluster = -1;
-    int maxnhits = 0;
+  larlite::larflowcluster CoreFilter::getPoints( bool core, int minhits_in_subcluster ) {
+
+    larlite::larflowcluster out;
+    
     if ( core ) {
       for (int iclust=0; iclust<(int)_clusters_v.size()-1; iclust++) {
-	if ( (int)_clusters_v[iclust].size()>maxnhits ) {
-	  maxnhits   = _clusters_v[iclust].size();
-	  maxcluster = iclust;
+	if ( (int)_clusters_v[iclust].size()>=minhits_in_subcluster ) {
+	  for ( auto const& hitidx : _clusters_v[iclust] ) {
+	    out.push_back( (*_cluster)[hitidx] );
+	  }
 	}
       }
     }
     else {
       // non-core
-      maxcluster = _clusters_v.size()-1;
-    }
-    
-    std::cout << "[CoreFilter::getPoints] GetCore=" << core
-	      << ": maxcluster=" << maxcluster << " of " << _clusters_v.size()
-	      << " npts=" << maxnhits << " of " << _cluster->size() << std::endl;
-    
-    larlite::larflowcluster out;
-    if ( core && maxnhits>0 ) {
-      for ( auto const& hitidx : _clusters_v[maxcluster] ) {
+      for ( auto const& hitidx : _clusters_v.back() ) {
 	out.push_back( (*_cluster)[hitidx] );
       }
     }
     
+    std::cout << "[CoreFilter::getPoints] GetCore=" << core
+	      << ": " << out.size() << " of " << _cluster->size() << std::endl;
+    
     return out;
   }
   
-  larlite::larflowcluster CoreFilter::getCore() {
-    return getPoints( true );
+  larlite::larflowcluster CoreFilter::getCore(int min_hits_in_subcluster) {
+    return getPoints( true, min_hits_in_subcluster );
   }
-  const larlite::larflowcluster& getNonCore();
+  
+  larlite::larflowcluster CoreFilter::getNonCore() {
+    return getPoints( false, -1 );
+  }
   
   
 
