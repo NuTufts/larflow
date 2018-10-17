@@ -29,7 +29,7 @@ LIB = ../lib/libLArFlowCluster3D.so
 
 all: $(LIB) dev_truthcluster reco_cluster
 
-../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o CilantroSpectral.o RecoCluster.o
+../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o CilantroSpectral.o RecoCluster.o DBSCAN.o CoreFilter.o
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"

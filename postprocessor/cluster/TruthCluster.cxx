@@ -28,7 +28,13 @@ namespace larflow {
     for ( auto& cluster : cluster_info ) {
       icluster++;
       for ( auto& phit : cluster.phits ) {
-	output[icluster].push_back( phit );
+	bool hitok = true;
+	for ( int i=0; i<3; i++) {
+	  if ( std::isnan((*phit)[i]) ) hitok = false;
+	}
+	if ( (*phit)[0]==-1 && (*phit)[1]==-1 && (*phit)[2]==-1 ) hitok = false;
+	if (hitok )
+	  output[icluster].push_back( phit );
       }
     }
 
