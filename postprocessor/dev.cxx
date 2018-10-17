@@ -43,6 +43,8 @@ void event_changeout( larlite::storage_manager& dataco_output,
 		      const int runid,
 		      const int subrunid,
 		      const int eventid,
+		      bool makehits_useunmatched,
+		      bool makehits_require_3dconsistency,
 		      bool hasopreco, bool hasmcreco) {
   
   std::cout << "event_changeout." << std::endl;
@@ -77,7 +79,7 @@ void event_changeout( larlite::storage_manager& dataco_output,
   }
   
   // get the final hits made from flow
-  std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( true, false );
+  std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( makehits_useunmatched, makehits_require_3dconsistency );
   
   std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
@@ -138,29 +140,31 @@ int main( int nargs, char** argv ) {
   // cropped examples
   // -----------------
   // common source files
-  // std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
-  // std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
-  // std::string input_opreco_file       = "../testdata/larlite_opreco_5482426_95.root";
-  // std::string input_mcinfo_file       = "../testdata/larlite_mcinfo_5482426_95.root";
-  // std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
+  std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
+  std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
+  std::string input_opreco_file       = "../testdata/larlite_opreco_5482426_95.root";
+  std::string input_mcinfo_file       = "../testdata/larlite_mcinfo_5482426_95.root";
+  std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
   
   // extbnb (mcc9) example
-  std::string input_supera_file       = "../testdata/larcv1_data/larcv2_wholeview_bnbext_mcc9.root";
-  std::string input_reco2d_file       = "../testdata/larcv1_data/larlite_reco2d_a5b67944-607c-49df-9e7d-8881f88bcc0c.root";
-  std::string input_opreco_file       = "";
-  std::string input_mcinfo_file       = "";
-  std::string input_dlcosmictag_file  = "../testdata/larcv1_data/larcv2_larflow_bnbext_mcc9.root";
+  // std::string input_supera_file       = "../testdata/larcv1_data/larcv2_wholeview_bnbext_mcc9.root";
+  // std::string input_reco2d_file       = "../testdata/larcv1_data/larlite_reco2d_a5b67944-607c-49df-9e7d-8881f88bcc0c.root";
+  // std::string input_opreco_file       = "";
+  // std::string input_mcinfo_file       = "";
+  // std::string input_dlcosmictag_file  = "../testdata/larcv1_data/larcv2_larflow_bnbext_mcc9.root";
   
   std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
-  bool kVISUALIZE = true;
+  bool kVISUALIZE = false;
   bool kINSPECT   = false;
   bool use_hits   = false;
-  bool use_truth  = false;
+  bool use_truth  = true;
   bool has_opreco = true;
   bool has_mcreco = true;
-  bool has_infill = false;
-  bool has_ssnet  = false;
+  bool has_infill = true;
+  bool has_ssnet  = true;
+  bool makehits_useunmatched = false;
+  bool makehits_require_3dconsistency = false;
   int process_num_events = 1;
 
   if (use_truth && use_hits)
@@ -250,7 +254,9 @@ int main( int nargs, char** argv ) {
       if ( nevents>=process_num_events )
 	break;
 
-      event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo, current_runid, current_subrunid, current_eventid, has_opreco, has_mcreco );
+      event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo,
+		       current_runid, current_subrunid, current_eventid,
+		       makehits_useunmatched, makehits_require_3dconsistency, has_opreco, has_mcreco );
 
       // clear the algo
       matching_algo.clear();
@@ -657,7 +663,9 @@ int main( int nargs, char** argv ) {
   }//end of entry loop
 
   // save the data from the last event
-  event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo, current_runid, current_subrunid, current_eventid, has_opreco, has_mcreco );
+  event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo,
+		   current_runid, current_subrunid, current_eventid,
+		   makehits_useunmatched, makehits_require_3dconsistency, has_opreco, has_mcreco );
   
   std::cout << "Finalize output." << std::endl;
   dataco_output.close();

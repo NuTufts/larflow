@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os,sys
+from math import sqrt
 
 # more involved, pyqtgraph visualization
 
@@ -10,6 +11,7 @@ argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL 
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
 argparser.add_argument("-p", "--pca",      action='store_true',      help="plot pca")
+argparser.add_argument("-m", "--mode",     default="",     type=str, help="plotting mode")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -47,15 +49,8 @@ io = larlite.storage_manager(larlite.storage_manager.kREAD)
 io.add_in_filename( inputfile )
 io.open()
 
-# color scheme
-#schemes = ["colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall","colorbyrecovstruth"]
-#shortschemes = ["ssnet","quality","flowdir","infill","3ddist","hastruth","dwall","recovstruth"]
-
-# colorscheme = args.color
-# if colorscheme in shortschemes:
-#     colorscheme = "colorby"+colorscheme
-# if colorscheme not in schemes:
-#     raise ValueError("Invalid color scheme. Choices: {}".format(schemes))
+# modes
+modes = ["core","core-only"]
 
 # get larflow clusters
 io.go_to(args.entry)
@@ -120,8 +115,6 @@ for icluster in xrange(nclusters):
         # last one, reserve white
         clustercol = np.ones( (3,) )
 
-    print clustercol
-
     for ihit in xrange(nhits):
     
         hit = cluster.at(ihit)
@@ -144,7 +137,7 @@ for icluster in xrange(nclusters):
         pcacolor  = np.ones( (3,4) )
         pcaxis  = ev_pca.at(icluster)
         eigval  = pcaxis.getEigenValues()
-        print eigval[0],eigval[1],eigval[2]
+        #print eigval[0],eigval[1],eigval[2]
         meanpos = pcaxis.getAvePosition()
         eigvec  = pcaxis.getEigenVectors()
 
@@ -161,10 +154,69 @@ for icluster in xrange(nclusters):
         pcaplot = gl.GLLinePlotItem(pos=pcapoints,color=pcacolor,width=1.0)
         clusterplotitems.append( pcaplot )
 
+core_plots = []
+if args.mode in ["core","core-only"]:
+    print "PLOTTING CORE CLUSTERS"
+    if args.mode=="core-only":
+        clusterplotitems = []
+    
+    # plot core points as well
+    ev_core = io.get_data(larlite.data.kLArFlowCluster, "flowtruthcore" )
+    ev_corepca = io.get_data(larlite.data.kPCAxis, "flowtruthcore" )    
+    nclusters = ev_core.size()
+    print "Number of core clusters: ",nclusters
+
+    for iclust in xrange(nclusters):
+        cluster = ev_core.at(iclust)
+        nhits = cluster.size()
+        print "  corecluster[",iclust,"] nhits=",nhits
         
+        pos_np = np.zeros( (nhits,3) )
+        colors = np.ones( (nhits,4) ) # white
+
+        for ihit in xrange(nhits):            
+            hit = cluster.at(ihit)
+            pos_np[ihit,0] = hit.at(0)-130.0
+            pos_np[ihit,1] = hit.at(1)
+            pos_np[ihit,2] = hit.at(2)-500.0
+            colors[ihit,0:3] = 255.0
+
+        # pca
+        if args.pca:
+            pcapoints = np.zeros( (3,3) ) # start, center, end of main eigenvector
+            pcacolor  = np.zeros( (3,4) )
+            pcacolor[:,0] = 255.0
+            pcacolor[:,3] = 1.0
+            pcaxis  = ev_corepca.at(iclust)
+            eigval  = pcaxis.getEigenValues()
+            tot = eigval[0]+eigval[1]+eigval[2]
+            print "eigenvals[",iclust,"]: ",eigval[0]/tot,eigval[1]/tot,eigval[2]/tot
+            #if eigval[1]/eigval[0]>0.001:
+            #    continue
+            
+            meanpos = pcaxis.getAvePosition()
+            eigvec  = pcaxis.getEigenVectors()
+            eiglen = sqrt(eigval[0])
+        
+            for j in xrange(3):
+                pcapoints[0,j] = meanpos[j] - eigvec[j][0]*2*eiglen
+                pcapoints[1,j] = meanpos[j]
+                pcapoints[2,j] = meanpos[j] + eigvec[j][0]*2*eiglen
+            for i in xrange(3):
+                pcapoints[i,0] += -130.0
+                pcapoints[i,2] += -500.0
+        
+            pcaplot = gl.GLLinePlotItem(pos=pcapoints,color=pcacolor,width=1.0)
+            clusterplotitems.append( pcaplot )
+            
+        # cluster
+        hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)        
+        clusterplotitems.append( hitplot )
+    
 # make the plot
 for n,hitplot in enumerate(clusterplotitems):
     w.addVisItem( "cluster%d"%(n), hitplot )
+        
     
 w.plotData()
 

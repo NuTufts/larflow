@@ -3,6 +3,7 @@
 export LARFLOW_BASEDIR=$PWD
 export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
+export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils
 
 # OPENCV
 export OPENCV_LIBDIR=/usr/local/lib
@@ -49,6 +50,9 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 
 # add model folder to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_MODELDIR}:"* ]] && PYTHONPATH="${LARFLOW_MODELDIR}:${PYTHONPATH}"
+
+# add utils folder to python path
+[[ ":$PYTHONPATH:" != *":${LARFLOW_UTILSDIR}:"* ]] && PYTHONPATH="${LARFLOW_UTILSDIR}:${PYTHONPATH}"
 
 
 # SETUP CILANTRO

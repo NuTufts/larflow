@@ -70,7 +70,7 @@ int main( int nargs, char** argv ) {
       // calculate core
       larflow::CoreFilter corealgo( flowcluster, 3, 15.0 );
       larlite::larflowcluster corecluster = corealgo.getCore();
-      larflow::CilantroPCA pcacore( flowcluster );
+      larflow::CilantroPCA pcacore( corecluster );
       larlite::pcaxis pcacoreinfo = pcacore.getpcaxis();
             
       ev_outpca->emplace_back( std::move(pcainfo) );
