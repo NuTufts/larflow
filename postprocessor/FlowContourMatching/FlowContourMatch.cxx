@@ -488,8 +488,8 @@ namespace larflow {
 	float tick = tsv->TPCG4Time2Tick(t) + pos[0]/cm_per_tick;
 	pos[0] = (tick + tsv->TriggerOffsetTPC()/(::larutil::DetectorProperties::GetME()->SamplingRate()*1.0e-3))*cm_per_tick; // x in cm
 	// SCE shifted min dist to wall
-	if(std::abs(pos[0] - xmin)< mindist) mindist = std::abs(pos[0] - xmin);
-	if(std::abs(pos[0] - xmax)< mindist) mindist = std::abs(pos[0] - xmax);
+	//if(std::abs(pos[0] - xmin)< mindist) mindist = std::abs(pos[0] - xmin);
+	//if(std::abs(pos[0] - xmax)< mindist) mindist = std::abs(pos[0] - xmax);
 	if(std::abs(pos[1] - ymin)< mindist) mindist = std::abs(pos[1] - ymin);
 	if(std::abs(pos[1] - ymax)< mindist) mindist = std::abs(pos[1] - ymax);
 	if(std::abs(pos[2] - zmin)< mindist) mindist = std::abs(pos[2] - zmin);
