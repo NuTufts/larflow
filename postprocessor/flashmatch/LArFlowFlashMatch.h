@@ -149,6 +149,7 @@ namespace larflow {
     // this is for shape fit
     std::vector< std::vector<int> > _zbinned_pmtchs;
     float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
+    float chi2Comparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );    
     void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
 
     // Flash Hypothesis Building
@@ -184,7 +185,9 @@ namespace larflow {
     // Match refinement
     // ----------------------------
     std::vector<int> _flashdata_best_hypo_chi2_idx;
+    std::vector<float> _flashdata_best_hypo_chi2;    
     std::vector<int> _flashdata_best_hypo_maxdist_idx;
+    std::vector<float> _flashdata_best_hypo_maxdist;    
     std::vector<int> _clustdata_best_hypo_chi2_idx;
     std::vector<int> _clustdata_best_hypo_maxdist_idx;
     float _fMaxDistCut;
@@ -193,7 +196,9 @@ namespace larflow {
     float _fweighted_scalefactor_var;
     float _fweighted_scalefactor_sig;
     float _ly_neg_prob;
-    void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
+    void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
+					 const std::vector<QCluster_t>&  qcluster_v,
+					 bool adjust_pe_for_cosmic_disc );
     
     // Build Fit Parameter matrices
     // ----------------------------
@@ -214,17 +219,22 @@ namespace larflow {
     int*   m_iscosmic;
     int* _pair2index;      // [flashreindex][cluster-reindex], value is match-index
     int getMatchIndex( int reflashidx, int reclustidx ) { return *(_pair2index + reflashidx*_nclusters_red + reclustidx); };
+    bool doOrigIndexPairHaveMatch( int flashidx_orig, int clustidx_orig );
     void buildFittingData(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
     void clearFittingData();
 
     // Define fit parameters
     // ---------------------
+    // possible matches unrolled into 1D vector with _nmatches elements
     float* flightyield;
-    float* fmatch;     // [_nmatches]
-    float* fpmtweight; // [_nflashes_red*32]
+    float* fmatch;         // [_nmatches]
+    float* fmatch_nll;     // [_nmatches]
+    float* fmatch_maxdist; // [_nmatches]
+    float* fpmtweight;     // [_nflashes_red*32]
     bool _parsdefined;
     void defineFitParameters();
     void clearFitParameters();
+    void zeroMatchVector();
     std::vector<float> getMatchScoresForCluster( int icluster );    
 					 
     // Set Initial Fit Point
@@ -246,6 +256,7 @@ namespace larflow {
 			    std::vector<float>& match_v, float& ly  );
 
     // MCTrack Info
+    // ------------
     const std::vector<larlite::mctrack>* _mctrack_v;
     std::map<int,int> _mctrackid2index;
     std::vector<int> _flash_truthid;
@@ -254,10 +265,12 @@ namespace larflow {
     std::vector<int> _cluster2trueflash;
     larutil::SpaceChargeMicroBooNE* _psce;
     bool kDoTruthMatching;
+    bool kFlashMatchedDone;
     void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
     void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
     void clearMCTruthInfo();
+    void setFitParsWithTruthMatch();    
     
   };
     
