@@ -1537,14 +1537,15 @@ namespace larflow {
       // ----------------
       const FlashHypo_t* hypo = nullptr;
       int bestmatch_iclust = -1;
-      if ( bestchi2_idx>=0 ) {
-	bestmatch_iclust = bestchi2_idx;
-	hypo  = bestchi2_hypo;
-      }
-      else if ( bestmaxdist_idx>=0 ) {
+      if ( bestmaxdist_idx>=0 ) {
 	bestmatch_iclust = bestmaxdist_idx;
 	hypo = bestmaxdist_hypo;
       }
+      else if ( bestchi2_idx>=0 ) {
+	bestmatch_iclust = bestchi2_idx;
+	hypo  = bestchi2_hypo;
+      }
+      
       if ( usefmatch && bestfmatch_hypo ) {
 	hypo   = bestfmatch_hypo;
 	bestmatch_iclust = bestfmatch_idx;
