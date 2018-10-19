@@ -21,6 +21,10 @@
 #include "LArUtil/TimeService.h"
 #include "SelectionTool/OpT0Finder/PhotonLibrary/PhotonVisibilityService.h"
 
+// larflow postprocessor
+#include "cluster/CoreFilter.h"
+#include "cluster/CilantroPCA.h"
+
 namespace larflow {
 
   LArFlowFlashMatch::LArFlowFlashMatch()
@@ -597,6 +601,25 @@ namespace larflow {
 	cluster.emplace_back( std::move(pt) );
       }
     }
+  }//end of fillClusterGaps
+
+  void LArFlowFlashMatch::fillClusterGapsUsingCorePCA( QCluster_t& cluster ) {
+    std::vector< std::vector<float> > clusterpts( cluster.size() ); // this copy is unfortunate
+    for (size_t ihit=0; ihit<cluster.size(); ihit++ ) {
+      clusterpts[ihit].resize(3);
+      for (int i=0; i<3; i++ ) clusterpts[ihit][i] = cluster[ihit].xyz[i];
+    }
+
+    int minneighbors = 3;
+    int minclusterpoints = 5;
+    float maxdist = 10.0;
+    CoreFilter corealgo( clusterpts, minneighbors, maxdist );
+    std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
+
+    // get pca of core points
+    CilantroPCA pcalgo( core );
+    larlite::pcaxis pca = pcalgo.getpcaxis();
+    
   }
 
   std::vector<LArFlowFlashMatch::FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,

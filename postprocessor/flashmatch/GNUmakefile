@@ -11,6 +11,9 @@ INCLUDES += `laropencv-config --includes`
 INCLUDES += `larcv-config --includes`
 INCLUDES += `larlitecv-config --includes`
 INCLUDES += -I../ContourTools
+INCLUDES += -I$(LARFLOW_BASEDIR)/postprocessor
+INCLUDES += -I$(CILANTRO_INC_DIR)
+INCLUDES += -I$(EIGEN_INC_DIR)
 
 LDFLAGS  =  `root-config --ldflags` -lstdc++
 LIBS     =  `root-config --libs`
@@ -21,6 +24,8 @@ LIBS     += `geo2d-config --libs`
 LIBS     += `laropencv-config --libs`
 LIBS     += `larcv-config --libs`
 LIBS     += `larlitecv-config --libs`
+LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
+LIBS     += -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
 
 LIB = ../lib/libLArFlowFlashMatch.so
 

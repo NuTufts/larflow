@@ -16,7 +16,7 @@ namespace larflow {
 
     typedef std::vector<int> Cluster_t;
     
-    std::vector< Cluster_t > makeCluster( const float maxdist, const float minhits, const int maxkdneighbors, const larlite::larflowcluster& clust );
+    std::vector< Cluster_t > makeCluster( const float maxdist, const float minhits, const int maxkdneighbors, const std::vector< std::vector<float> >& clust );
     
   };
 

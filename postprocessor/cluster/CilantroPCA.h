@@ -12,15 +12,15 @@ namespace larflow {
   public:
 
     CilantroPCA( const larlite::larflowcluster& cluster );
+    CilantroPCA( const std::vector< std::vector<float> >& cluster );
     virtual ~CilantroPCA();
 
     larlite::pcaxis getpcaxis();
+
+  protected:
     
-    const larlite::larflowcluster* _cluster;
     std::vector<Eigen::Vector3f>   _points;
     cilantro::PrincipalComponentAnalysis3f* _pca;
-
-    
     
   };
 

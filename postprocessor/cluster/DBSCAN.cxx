@@ -7,14 +7,15 @@
 namespace larflow {
 
 
-  std::vector< DBSCAN::Cluster_t > DBSCAN::makeCluster( const float maxdist, const float minhits, const int maxkdneighbors, const larlite::larflowcluster& clust ) {
+  std::vector< DBSCAN::Cluster_t > DBSCAN::makeCluster( const float maxdist, const float minhits, const int maxkdneighbors,
+							const std::vector<std::vector<float> >& clust ) {
 
     // get points (maybe one day I figure out how to do this without copying
     std::vector<Eigen::Vector3f> _points;
     _points.reserve( clust.size() );
     std::map<int,int> indexmap; // 
     for ( int iorig=0; iorig<(int)clust.size(); iorig++) {
-      const larlite::larflow3dhit& hit = clust[iorig];
+      const std::vector<float>& hit = clust[iorig];
       bool hitok = true;
       for (int i=0; i<3; i++) {
 	if ( std::isnan( hit[i] ) ) hitok = false;         // bad value
@@ -40,7 +41,7 @@ namespace larflow {
       int pastlabel = clusterlabel_v[ipt];
       
       // get neighbors to point
-      cilantro::NeighborSet<float> nn;      
+      cilantro::NeighborSet<float> nn;
       tree.kNNInRadiusSearch( pt, maxkdneighbors, maxdist, nn);
       
       //std::cout << "[larflow::DBSCAN::makeClusters][DEBUG] ipt=" << " nneighbors=" << nn.size() << " pastlabel=" << pastlabel << std::endl;

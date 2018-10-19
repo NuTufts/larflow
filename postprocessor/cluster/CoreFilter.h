@@ -21,19 +21,21 @@ namespace larflow {
   class CoreFilter {
   public:
     
+    CoreFilter( const std::vector< std::vector<float> >& cluster, const int min_neighbors, const float maxdist );
     CoreFilter( const larlite::larflowcluster& cluster, const int min_neighbors, const float maxdist );
     virtual ~CoreFilter();
 
-    larlite::larflowcluster getCore( int min_hits_in_subcluster );
-    larlite::larflowcluster getNonCore();
-
+    larlite::larflowcluster           getCore( int min_hits_in_subcluster, const larlite::larflowcluster& cluster );
+    std::vector< std::vector<float> > getCore( int min_hits_in_subcluster, const std::vector< std::vector<float> >& cluster );
+    larlite::larflowcluster getNonCore( int min_hits_in_subcluster, const larlite::larflowcluster& cluster );
+    std::vector< int > getPointIndices( bool core, int min_hits_in_subcluster );
+    
   protected:
 
     int _min_neighbors;
     float _maxdist;
-    const larlite::larflowcluster* _cluster;
     std::vector< DBSCAN::Cluster_t > _clusters_v; // from the dbscan results
-    larlite::larflowcluster getPoints( bool core, int min_hits_in_subcluster );
+
     
     
 

@@ -59,6 +59,7 @@ namespace larflow {
 	pixeladc = 0.0;
 	fromplaneid = -1;
 	intpc = -1;
+	type = -1;
       };
       float xyz[3]; // (tick,y,z) coordinates
       float tick;
@@ -66,6 +67,7 @@ namespace larflow {
       int   fromplaneid; // { 0:U, 1:V, 2:Y, 3:UV-ave }
       int   intpc;
       int   gapfill;
+      int   type; // -1=unspecifed, 0=from flow pred, 1=from gapfil, 2=from tpc extension
     };
 
     struct FlashData_t : public std::vector<float> {
@@ -114,6 +116,7 @@ namespace larflow {
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
     //    project into u,v. collect hits there.
     void fillClusterGaps( QCluster_t& cluster );
+    void fillClusterGapsUsingCorePCA( QCluster_t& cluster );
     void applyGapFill( std::vector<QCluster_t>& qcluster_v );
     
     // 3) hits/pixels not part of cluster (pixel got flowed to wrong place), but clearly inside neighborhood of pixels
