@@ -92,11 +92,16 @@ namespace larflow {
     
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
+    _pca_qcluster_v.clear();
     // we ignore last cluster because sometimes we put store unclustered hits in that entry
-    if ( ignorelast )
+    if ( ignorelast ) {
       _qcluster_v.resize( clusters.size()-1 );
-    else
+      _pca_qcluster_v.reserve( clusters.size()-1 );
+    }
+    else {
       _qcluster_v.resize( clusters.size() );
+      _pca_qcluster_v.reserve( clusters.size() );      
+    }
 
     // we build up the charge clusters that are easy to grab
     buildInitialQClusters( clusters, _qcluster_v, img_v, 2, ignorelast );
@@ -381,6 +386,7 @@ namespace larflow {
       const larlite::larflowcluster& lfcluster = lfclusters[icluster];
       
       QCluster_t& qcluster = qclusters[icluster];
+      qcluster.idx = icluster;
       qcluster.reserve( lfcluster.size() );
       for ( size_t i=0; i<3; i++) {
 	qcluster.min_tyz[i] =  1.0e9;
@@ -389,15 +395,18 @@ namespace larflow {
 
       // store mctrackids
       std::map<int,int> mctrackid_counts;
-      
+
+      std::vector< std::vector<float> > clusterpts;
+      clusterpts.reserve( lfcluster.size() );
       for ( size_t ihit=0; ihit<lfcluster.size(); ihit++ ) {
 	QPoint_t qhit;
-	for (size_t i=0; i<3; i++)
+	qhit.xyz.resize(3,0);
+	for (size_t i=0; i<3; i++) {
 	  qhit.xyz[i] = lfcluster[ihit][i];
+	}
 	qhit.tick     = lfcluster[ihit].tick;
-	qhit.intpc = 1; // true by definition for larflow-reco tracks
-	qhit.gapfill = 0;
-
+	qhit.type = kNonCore; // default
+	
 	// clean up the hits
 	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
 	  continue;
@@ -438,6 +447,7 @@ namespace larflow {
 	}
 	mctrackid_counts[ lfcluster[ihit].trackid ] += 1;
 
+	clusterpts.push_back( qhit.xyz );
 	qcluster.emplace_back( std::move(qhit) );
       }//end of hit loop
 
@@ -453,156 +463,47 @@ namespace larflow {
       qcluster.mctrackid = maxid;
       
       //std::cout << "[qcluster " << icluster << "] tick range: " << qcluster.min_tyz[0] << "," << qcluster.max_tyz[0] << std::endl;
+
+      // we do pca which will be useful for many downstream algorithms
+      //   1) pca used to define a core
+      //   2) pca used to build an extension
+      //   3) pca used to fill gaps in the core
+      // all are meant to augment track-like clusters
+      // what about neutrinos? showers? 2nd-pca axis analysis tells us not to do this
+
+      int minneighbors = 3;
+      int minclusterpoints = 5;
+      float maxdist = 10.0;
+      CoreFilter corealgo( clusterpts, minneighbors, maxdist );
+      std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
+      std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
+      for (auto& idx : coreidx_v ) {
+	qcluster[idx].type = kCore;
+      }
+    
+      // get pca of core points
+      if ( core.size()>=3 ) {
+	CilantroPCA pcalgo( core );
+	larlite::pcaxis pca = pcalgo.getpcaxis();
+	_pca_qcluster_v.emplace_back(pca);
+      }else {
+	larlite::pcaxis pca;
+	_pca_qcluster_v.push_back( pca );
+      }
+      
     }//end of cluster loop
     
   }
 
   void LArFlowFlashMatch::applyGapFill( std::vector<QCluster_t>& qcluster_v ) {
-    for ( auto& cluster : qcluster_v )
-      fillClusterGaps( cluster );
+    int iclust=0;
+    for ( auto& cluster : qcluster_v ) {
+      std::cout << "[LArFlowFlashMatch::applyGapFill][INFO] Filling clusteridx=" << iclust << std::endl;
+      fillClusterGapsUsingCorePCA( cluster );
+      iclust++;
+    }
   }
   
-  void LArFlowFlashMatch::fillClusterGaps( QCluster_t& cluster ) {
-    // we sort the points in z, y, x
-    // look for gaps. then look for points
-    // to be less sensitive to noise,
-    //   we require points to have N neighbors within L distance
-    //   we use cilantro to help us build and query a fast kD tree
-
-    const float kGapmin[3] = { 6.0, 6.0, 6.0 }; // (20 wires)
-    const float kMaxStepSize = 2.0;
-    
-    struct pt_t {
-      float x; // projected dim
-      int idx; // index to cluster array
-      bool operator<(const pt_t& rhs ) {
-	if ( x < rhs.x ) return true;
-	return false;
-      }
-    };
-
-    std::vector< pt_t > dimx(cluster.size());
-    std::vector< pt_t > dimy(cluster.size());
-    std::vector< pt_t > dimz(cluster.size());
-    for ( size_t ic=0; ic<cluster.size(); ic++) {
-      dimx[ic].idx = ic;
-      dimy[ic].idx = ic;
-      dimz[ic].idx = ic;      
-      dimx[ic].x = cluster[ic].xyz[0];
-      dimy[ic].x = cluster[ic].xyz[1];
-      dimz[ic].x = cluster[ic].xyz[2];      
-    }
-    std::sort( dimx.begin(), dimx.end() );
-    std::sort( dimy.begin(), dimy.end() );
-    std::sort( dimz.begin(), dimz.end() );
-
-    // for debug
-    // std::cout << "Sorted X ----------" << std::endl;
-    // for (auto& pt : dimx )
-    //   std::cout << " [" << pt.idx << "] " << pt.x << std::endl;
-    // std::cout << "[enter to continue]" << std::endl;
-    // std::cin.get();
-    
-    // we collect possible gaps
-    struct gap_t {
-      float len;      
-      int dim;
-      float start;
-      float end;
-      int start_idx;
-      int end_idx;
-      bool operator<( const gap_t& rhs ) {
-	if ( len<rhs.len) return true;
-	return false;
-      }
-    };
-    
-    std::vector<gap_t> gaps;
-    std::vector<pt_t>* dim_v[3] = { &dimx, &dimy, &dimz };
-    
-    for (int idim=0; idim<3; idim++) {
-      for (size_t i=1; i<dim_v[idim]->size(); i++) {
-	float dx = (*dim_v[idim])[i].x - (*dim_v[idim])[i-1].x;
-	if ( dx> kGapmin[idim] ) {
-	  gap_t g;
-	  g.len = dx;
-	  g.dim = idim;
-	  g.start = (*dim_v[idim])[i-1].x;
-	  g.end   = (*dim_v[idim])[i].x;
-	  g.start_idx = (*dim_v[idim])[i-1].idx;
-	  g.end_idx   = (*dim_v[idim])[i].idx;
-	  gaps.emplace_back(std::move(g));
-	}
-      }
-    }
-    std::cout << "number of gaps in cluster: " << gaps.size() << std::endl;
-    std::sort( gaps.begin(), gaps.end() );
-
-    // record where we fill gaps already -- forbid it
-    std::vector<float> gapends[3];
-
-    // fill the gap between the two points
-    for ( auto& gap : gaps ) {
-      int dim = gap.dim;
-      QPoint_t& start = cluster[gap.start_idx];
-      QPoint_t& end   = cluster[gap.end_idx];
-
-      // we check if we've already filled in this neighborhood
-      bool alreadyfilled = false;
-      for (int idim=0; idim<3; idim++) {
-	for (auto& endpos : gapends[idim] ) {
-	  float dist = fabs(start.xyz[idim]-endpos);
-	  if ( dist<kGapmin[idim] ) {
-	    alreadyfilled = true;
-	    break;
-	  }
-	}
-	if ( alreadyfilled )
-	  break;
-      }
-
-      if ( alreadyfilled )
-	continue;
-
-      for (int idim=0; idim<3; idim++) {
-	gapends[idim].push_back( start.xyz[idim] );
-	gapends[idim].push_back( end.xyz[idim] );
-      }
-
-      float gaplen=0;
-      float dir[3];
-      for (int i=0; i<3; i++) {
-	dir[i] = end.xyz[i]-start.xyz[i];
-	gaplen += dir[i]*dir[i];
-      }
-      gaplen = sqrt(gaplen);
-      for (int i=0; i<3; i++) dir[i] /= gaplen;      
-      float dtick = end.tick-start.tick;
-
-      int nsteps = gaplen/kMaxStepSize + 1;
-      float stepsize = gaplen/float(nsteps);
-      float stepdtick = dtick/float(nsteps);
-
-      std::cout << "  Fill gap in dim " << dim << " between: "
-		<< " (" << start.xyz[0] << "," << start.xyz[1] << "," << start.xyz[2] << ") and "	
-		<< " (" << end.xyz[0] << "," << end.xyz[1] << "," << end.xyz[2] << ") "
-		<< " with " << nsteps << " steps of size " << stepsize << " cm"
-		<< std::endl;
-      
-      // generate points
-      for (int istep=0; istep<nsteps-1; istep++) {
-	QPoint_t pt;
-	for (int i=0; i<3; i++)
-	  pt.xyz[i] = start.xyz[i] + (float(istep)+0.5)*stepsize*dir[i];
-	pt.tick = start.tick + (float(istep)+0.5)*stepdtick;
-	pt.pixeladc = stepsize; // we store step size insead of pixel value
-	pt.intpc = 1;
-	pt.gapfill = 1;
-	cluster.emplace_back( std::move(pt) );
-      }
-    }
-  }//end of fillClusterGaps
-
   void LArFlowFlashMatch::fillClusterGapsUsingCorePCA( QCluster_t& cluster ) {
     std::vector< std::vector<float> > clusterpts( cluster.size() ); // this copy is unfortunate
     for (size_t ihit=0; ihit<cluster.size(); ihit++ ) {
@@ -610,15 +511,115 @@ namespace larflow {
       for (int i=0; i<3; i++ ) clusterpts[ihit][i] = cluster[ihit].xyz[i];
     }
 
-    int minneighbors = 3;
-    int minclusterpoints = 5;
-    float maxdist = 10.0;
-    CoreFilter corealgo( clusterpts, minneighbors, maxdist );
-    std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
+    const float kGapMin_cm = 6.0; // cm
+    const float kGapStepLenMin_cm = 1.0; // cm
+    const float kGapStepLenMax_cm = 3.0; // cm
+    // int minneighbors = 3;
+    // int minclusterpoints = 5;
+    // float maxdist = 10.0;
+    // CoreFilter corealgo( clusterpts, minneighbors, maxdist );
+    // std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
+    // std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
+    
+    // // get pca of core points
+    // CilantroPCA pcalgo( core );
+    //larlite::pcaxis pca = pcalgo.getpcaxis();
+    larlite::pcaxis pca = _pca_qcluster_v[cluster.idx];
+    if ( pca.getEigenVectors().size()==0 ) {
+      // not core
+      return;
+    }
+    
+    // we project points on the pca line
+    // define eigen line
+    Eigen::Vector3f origin( pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] );
+    Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
+    Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
+    //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
 
-    // get pca of core points
-    CilantroPCA pcalgo( core );
-    larlite::pcaxis pca = pcalgo.getpcaxis();
+    struct ProjPoint_t {
+      int idx;
+      float s;
+      bool operator< ( const ProjPoint_t& rhs ) const {
+	if ( s < rhs.s ) return true;
+	return false;
+      };
+    };
+
+    // extract core points from cluster
+
+    std::vector< ProjPoint_t > orderedline;
+    orderedline.reserve( cluster.size() );
+    for ( size_t icore=0; icore<cluster.size(); icore++ ) {
+      if ( cluster[icore].type==kNonCore )
+	continue;
+      Eigen::Map< Eigen::Vector3f >  ept( cluster[icore].xyz.data() );
+      Eigen::Vector3f projpt = pcaline.projection( ept );
+      float s = (projpt-origin).norm();
+      float coss = vec.dot(projpt-origin);
+      ProjPoint_t pjpt;
+      pjpt.idx = icore;
+      pjpt.s = ( coss<0 ) ? -s : s;
+      orderedline.push_back( pjpt );
+    }
+    std::sort( orderedline.begin(), orderedline.end() );
+
+    // now loop through and look for gaps
+    // keep track of average gap -- help us set the filler point density
+    float avegap = 0.;
+    int nfillgaps = 0;
+    std::vector< int > gapstarts;
+    for ( size_t ipt=0; ipt+1<orderedline.size(); ipt++ ) {
+
+      // cannot have gap between two EXT pts
+      
+      float gap = fabs(orderedline[ipt+1].s - orderedline[ipt].s);
+      //std::cout << " orderedline[" << ipt << "] gap=" << gap << " s0=" << orderedline[ipt].s << std::endl;
+      if ( gap>kGapMin_cm )  {
+	gapstarts.push_back( ipt );	
+      }
+      else {
+	avegap += gap;
+	nfillgaps++;
+      }
+    }
+    if ( nfillgaps>0 )
+      avegap /= float(nfillgaps);
+
+    std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
+    if ( nfillgaps==0 ) // no need to do anything!
+      return;
+
+    // add gap points
+    for ( auto& idxgap : gapstarts ) {
+      // get the projected point info
+      ProjPoint_t& start = orderedline[idxgap];
+      ProjPoint_t& end   = orderedline[idxgap+1];
+      // get the points
+      Eigen::Map< Eigen::Vector3f > startpt( cluster[start.idx].xyz.data() );
+      Eigen::Map< Eigen::Vector3f > endpt( cluster[end.idx].xyz.data() );
+      Eigen::ParametrizedLine< float, 3 > gapline = Eigen::ParametrizedLine<float,3>::Through( startpt, endpt );
+      float gaplen = (endpt-startpt).norm();
+      // step len
+      float steplen = ( avegap < kGapStepLenMax_cm ) ? avegap : kGapStepLenMax_cm;
+      steplen = ( steplen > kGapStepLenMin_cm ) ? steplen : kGapStepLenMin_cm;
+      int nsteps = (int)(gaplen/steplen) + 1;
+      steplen = gaplen/float(nsteps);
+      float tickstart = cluster[ start.idx ].tick;
+      float tickend   = cluster[ end.idx ].tick;
+      float dticklen = (tickend-tickstart)/float(nsteps);
+      for (int istep=0; istep<nsteps; istep++) {
+	float s = steplen*((float)istep+0.5);
+	Eigen::Vector3f gappt = gapline.pointAt( s );
+	QPoint_t qpt;
+	qpt.xyz.resize(3,0);
+	for (int i=0; i<3; i++) qpt.xyz[i] = gappt(i);
+	qpt.type = kGapFill;
+	qpt.pixeladc = steplen;
+	qpt.tick = tickstart + dticklen*((float)istep+0.5);
+	cluster.emplace_back( std::move(qpt) );
+      }
+    }//end of gap starts loop
     
   }
 
@@ -772,37 +773,41 @@ namespace larflow {
 	hypo.tot_outtpc = 0.;
 	float norm = 0.0;
 	for ( size_t ihit=0; ihit<qcluster.size(); ihit++ ) {
+	  const QPoint_t& qhit = qcluster[ihit];
 	  double xyz[3];
-	  xyz[1] = qcluster[ihit].xyz[1];
-	  xyz[2] = qcluster[ihit].xyz[2];
-	  xyz[0] = (qcluster[ihit].tick - flash.tpc_tick)*0.5*driftv;
+	  xyz[1] = qhit.xyz[1];
+	  xyz[2] = qhit.xyz[2];
+	  xyz[0] = (qhit.tick - flash.tpc_tick)*0.5*driftv;
 
-	  if ( xyz[0]>256.0 )
+	  if ( xyz[0]>250.0 )
 	    continue; // i dont trust the hypotheses here
 	  
 	  const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
-	  int intpc = qcluster[ihit].intpc;
-	  int gapfill = qcluster[ihit].gapfill;
 
 	  if ( vis && vis->size()==npmts) {
 	    for (int ich=0; ich<npmts; ich++) {
-	      float q  = qcluster[ihit].pixeladc;
+	      float q  = qhit.pixeladc;
 	      float pe = 0.;
-	      if ( intpc==1 && gapfill==0 ) {
+	      if ( qhit.type==kCore || qhit.type==kNonCore) {
 		// q is a pixel values
 		pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
 		hypo.tot_intpc += pe;
 	      }
-	      else {
+	      else if ( qhit.type==kExt ) {
 		// outside tpc, what is stored is the track length
-		if ( intpc==0 )
-		  pe = q*outoftpc_len2adc;
-		else if ( gapfill==1 )
-		  pe = q*gapfill_len2adc;
-		
-		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ]; // naive: hardcoded factor of two for no-field effect
+		pe = q*outoftpc_len2adc;
+		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
 		hypo.tot_outtpc += pe;
 	      }
+	      else if ( qhit.type==kGapFill ) {
+		pe = q*gapfill_len2adc;
+		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
+		hypo.tot_intpc += pe;
+	      }
+	      else {
+		throw std::runtime_error("[LArFlowFlashMatch::buildFlashHypotheses][ERROR] unrecognized qpoint type");
+	      }
+
 	      hypo[ich] += pe;
 	      norm += pe;
 	    }
@@ -1093,7 +1098,7 @@ namespace larflow {
       if ( dist>maxdist )
 	maxdist = dist;
     }
-    std::cout << "tot_hypo=" << norm_hypo << " tot_data=" << norm_data << " maxdist=" << maxdist << std::endl;
+    //std::cout << "tot_hypo=" << norm_hypo << " tot_data=" << norm_data << " maxdist=" << maxdist << std::endl;
     return maxdist;
   }
 
@@ -1399,10 +1404,11 @@ namespace larflow {
 
       // record some info for text for canvas
       int bestchi2_idx = -1;
-      float bestchi2 = -1;      
+      float bestchi2 = -1;
+      float bestchi2_peratio = -1.0;
       int bestmaxdist_idx = -1;
       float bestmaxdist = -1;
-      float peratio_best = 1.0e9;
+      float bestmaxdist_peratio = -1.0;
       int bestfmatch_idx = -1;
       float matchscore_best = 0;
       const FlashHypo_t* bestchi2_hypo = nullptr;
@@ -1412,7 +1418,9 @@ namespace larflow {
       int truthmatch_idx = -1;
       float truthmatch_chi2 = -1;
       float truthmatch_maxdist = -1;
+      float truthmatch_peratio = -1;
       const FlashHypo_t* truthmatch_hypo = nullptr;
+      TH1D* truthmatch_hist = nullptr;
 
       for (int iclust=0; iclust<_nqclusters; iclust++) {
 	
@@ -1453,21 +1461,23 @@ namespace larflow {
 	for (int ipmt=0;ipmt<32;ipmt++) {
 	  hhypo->SetBinContent(ipmt+1,hypo[ipmt]*hypo_norm);
 	}
-
+	// pe ratio of hypothesis
+	float peratio = fabs(hypo_norm/norm-1.0);
+	    
 	float fmatchscore = 0.;
 	if ( usefmatch && imatch>=0 ) {
 	  // we mark the best score
 	  fmatchscore = fmatch[imatch];
 	  if ( fmatchscore >= matchscore_best || fmatchscore>0.98 ) {
 	    // basically the same
-	    float peratio = fabs(hypo_norm/norm-1.0);
-	    if ( peratio < peratio_best ) {
-	      bestfmatch_idx = iclust;
-	      matchscore_best = fmatchscore;	      
-	      bestfmatch_hypo = &hypo;
-	      peratio_best = peratio;	      
-	      tophistidx = hclust_v.size();
-	    }
+	    //float peratio = fabs(hypo_norm/norm-1.0);
+	    // if ( peratio < peratio_best ) {
+	    //   bestfmatch_idx = iclust;
+	    //   matchscore_best = fmatchscore;	      
+	    //   bestfmatch_hypo = &hypo;
+	    //   peratio_best = peratio;	      
+	    //   tophistidx = hclust_v.size();
+	    // }
 	  }
 	}
 	
@@ -1480,6 +1490,7 @@ namespace larflow {
 	  bestmaxdist_idx = iclust;
 	  bestmaxdist = _flashdata_best_hypo_maxdist[iflash];
 	  bestmaxdist_hypo = &hypo;
+	  bestmaxdist_peratio = peratio;
 	  ntop++;
 	}
 	if ( _flashdata_best_hypo_chi2_idx.size()==_nflashes && _flashdata_best_hypo_chi2_idx[iflash]==iclust ) {
@@ -1488,6 +1499,7 @@ namespace larflow {
 	  bestchi2_idx = iclust;
 	  bestchi2 = _flashdata_best_hypo_chi2[iflash];
 	  bestchi2_hypo = &hypo;
+	  bestchi2_peratio = peratio;
 	  ntop++;
 	}
 
@@ -1499,8 +1511,10 @@ namespace larflow {
 	if ( truthmatched ) {
 	  truthmatch_idx = iclust;
 	  truthmatch_hypo = &hypo;
+	  truthmatch_peratio = fabs(hypo.tot/flashdata_v[iflash].tot-1.0);
 	  hhypo->SetLineColor(kGreen+3);
 	  hhypo->SetLineWidth(3);
+	  truthmatch_hist = hhypo;
 	  if ( getCompat( iflash, iclust)!=0 || ( usefmatch && (imatch<0 || fmatch[imatch]<0.001) ) )
 	    hhypo->SetLineStyle(3);
 	  if ( usefmatch ) {
@@ -1516,14 +1530,18 @@ namespace larflow {
 	}
 	
 	hhypo->Draw("hist same");
-	if ( max < hhypo->GetMaximum() )
-	  max = hhypo->GetMaximum();
+	// if ( max < hhypo->GetMaximum() )
+	//   max = hhypo->GetMaximum();
 	hclust_v.push_back( hhypo );
       }//end of cluster loop
 
       std::cout << "flash[" << iflash << "] bestchi2[" << _flashdata_best_hypo_chi2_idx[iflash] << "]  fromloop[" << bestchi2_idx << "]" << std::endl;
 
-      hdata.SetMaximum( max*1.1 );
+      if ( truthmatch_hypo ) {
+	if ( truthmatch_hist->GetMaximum() > hdata.GetMaximum() ) {
+	  hdata.SetMaximum( truthmatch_hist->GetMaximum()*1.1 );
+	}
+      }
       
       c.Update();
       c.Draw();
@@ -1633,22 +1651,42 @@ namespace larflow {
 	qtruth = &(_qcluster_v[ flashdata_v[iflash].truthmatched_clusteridx ]);
 
       // projections for truthmatch cluster
-      TGraph* truthclust = nullptr;
-      TGraph* truthclust_xy = nullptr;      
-      if ( qtruth ) {
-	std::cout << "qtruth[" << flashdata_v[iflash].truthmatched_clusteridx << "] npoints: " << qtruth->size() << std::endl;
-	truthclust = new TGraph(qtruth->size());
-	truthclust_xy = new TGraph(qtruth->size());
+      TGraph* truthclust_zy[ kNumQTypes ]= {nullptr};
+      TGraph* truthclust_xy[ kNumQTypes ]= {nullptr};
+      int ntruthpts[ kNumQTypes ] = {0};
+      if ( qtruth && qtruth->size()>0 ) {
+	//std::cout << "qtruth[" << flashdata_v[iflash].truthmatched_clusteridx << "] npoints: " << qtruth->size() << std::endl;
+	for (int iqt=0; iqt<kNumQTypes; iqt++) {
+	  truthclust_zy[iqt] = new TGraph(qtruth->size());
+	  truthclust_xy[iqt] = new TGraph(qtruth->size());
+	}
 	float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;
 	for (int ipt=0; ipt<(int)qtruth->size(); ipt++) {
-	  truthclust->SetPoint(ipt,qtruth->at(ipt).xyz[2], qtruth->at(ipt).xyz[1] );
-	  truthclust_xy->SetPoint(ipt,qtruth->at(ipt).xyz[0]-xoffset, qtruth->at(ipt).xyz[1] );
-	  //std::cout << "qtruth[0] = " << qtruth->at(ipt).xyz[0]-xoffset << " (w/ offset=" << xoffset << ")" << std::endl;
+	  const QPoint_t& truthq = (*qtruth)[ipt];
+	  truthclust_zy[ truthq.type ]->SetPoint(ntruthpts[truthq.type],truthq.xyz[2], truthq.xyz[1] );
+	  truthclust_xy[ truthq.type ]->SetPoint(ntruthpts[truthq.type],truthq.xyz[0]-xoffset, truthq.xyz[1] );
+	  ntruthpts[truthq.type]++;
 	}
-	truthclust->SetMarkerSize(0.5);
-	truthclust->SetMarkerStyle(20);
-	truthclust_xy->SetMarkerSize(0.5);
-	truthclust_xy->SetMarkerStyle(20);	
+	//std::cout << "qtruth[0] = " << qtruth->at(ipt).xyz[0]-xoffset << " (w/ offset=" << xoffset << ")" << std::endl;
+	for ( int iqt=0; iqt<kNumQTypes; iqt++ ) {
+	  truthclust_zy[iqt]->Set( ntruthpts[iqt] );
+	  truthclust_xy[iqt]->Set( ntruthpts[iqt] );
+
+	  truthclust_zy[iqt]->Set( ntruthpts[iqt] );
+	  truthclust_xy[iqt]->Set( ntruthpts[iqt] );
+
+	  truthclust_zy[iqt]->SetMarkerSize(0.3);
+	  truthclust_zy[iqt]->SetMarkerStyle( 20 );
+
+	  truthclust_xy[iqt]->SetMarkerSize(0.3);
+	  truthclust_xy[iqt]->SetMarkerStyle( 20 );
+	}
+	truthclust_zy[kGapFill]->SetMarkerColor(kRed);	
+	truthclust_xy[kGapFill]->SetMarkerColor(kRed);
+	truthclust_zy[kExt]->SetMarkerColor(kGreen+3);	
+	truthclust_xy[kExt]->SetMarkerColor(kGreen+3);
+	truthclust_zy[kNonCore]->SetMarkerColor(kYellow+2);
+	truthclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
       }
 
       // mc-track
@@ -1695,8 +1733,10 @@ namespace larflow {
 	chmarkers_v[ich]->Draw();
       }
       
-      if ( truthclust )
-	truthclust->Draw("P");
+      if ( truthclust_zy[kCore] ) {
+	for (int i=0; i<kNumQTypes; i++) 
+	  truthclust_zy[i]->Draw("P");
+      }
       if ( mctrack_data )
 	mctrack_data->Draw("L");
 
@@ -1705,8 +1745,10 @@ namespace larflow {
       dataxy.cd();
       bgxy.Draw();
       boxxy.Draw();
-      if ( truthclust_xy )
-	truthclust_xy->Draw("P");
+      if ( truthclust_xy[kCore] ) {
+	for (int i=0; i<kNumQTypes; i++)
+	  truthclust_xy[i]->Draw("P");
+      }
       if ( mctrack_data_xy )
 	mctrack_data_xy->Draw("L");
       
@@ -1725,36 +1767,62 @@ namespace larflow {
 	  truthmarkers_v[ich]->Draw();
       }
       
-      TGraph* truthclust2 = nullptr;
-      TGraph* truthclust2_xy = nullptr;
+      TGraph* bestmatchclust_zy[kNumQTypes] = {nullptr};
+      TGraph* bestmatchclust_xy[kNumQTypes] = {nullptr};
 	
       if ( bestmatch_iclust>=0 ) {
-	
+	int nbestpts[kNumQTypes] = {0};
 	QCluster_t* qc = &(_qcluster_v[bestmatch_iclust]);
 	//std::cout << "qc[" << iclust << "] npoints: " << qc->size() << std::endl;
-	truthclust2 = new TGraph(qc->size());
-	truthclust2_xy = new TGraph(qc->size());
+	for (int i=0; i<kNumQTypes; i++) {
+	  bestmatchclust_zy[i] = new TGraph(qc->size());
+	  bestmatchclust_xy[i] = new TGraph(qc->size());
+	  
+	  bestmatchclust_zy[i]->SetMarkerSize(0.3);
+	  bestmatchclust_xy[i]->SetMarkerSize(0.3);
+
+	  bestmatchclust_zy[i]->SetMarkerStyle(20);
+	  bestmatchclust_xy[i]->SetMarkerStyle(20);
+	  
+	}
 	float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;	
 	for (int ipt=0; ipt<(int)qc->size(); ipt++) {
-	  truthclust2->SetPoint(ipt,qc->at(ipt).xyz[2], qc->at(ipt).xyz[1] );
-	  truthclust2_xy->SetPoint(ipt,qc->at(ipt).xyz[0]-xoffset, qc->at(ipt).xyz[1] );	  
+	  const QPoint_t& bestq = (*qc)[ipt];
+	  bestmatchclust_zy[bestq.type]->SetPoint(nbestpts[bestq.type],bestq.xyz[2], bestq.xyz[1] );
+	  bestmatchclust_xy[bestq.type]->SetPoint(nbestpts[bestq.type],bestq.xyz[0]-xoffset, bestq.xyz[1] );
+	  nbestpts[bestq.type]++;
 	}
-	truthclust2->SetMarkerSize(0.5);
-	truthclust2->SetMarkerStyle(20);
-	truthclust2_xy->SetMarkerSize(0.5);
-	truthclust2_xy->SetMarkerStyle(20);
-      }
-            
-      if ( truthclust2 )
-	truthclust2->Draw("P");
+	for (int i=0; i<kNumQTypes; i++) {
+	  bestmatchclust_zy[i]->Set(nbestpts[i]);
+	  bestmatchclust_xy[i]->Set(nbestpts[i]);
+	}
+	
+	bestmatchclust_zy[kGapFill]->SetMarkerColor(kRed);	
+	bestmatchclust_xy[kGapFill]->SetMarkerColor(kRed);
+
+	bestmatchclust_zy[kExt]->SetMarkerColor(kGreen+3);	
+	bestmatchclust_xy[kExt]->SetMarkerColor(kGreen+3);
+
+	bestmatchclust_zy[kNonCore]->SetMarkerColor(kYellow+2);
+	bestmatchclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
+
+	for (int i=0; i<kNumQTypes; i++) {
+	  bestmatchclust_zy[i]->Draw("P");
+	}
+	
+      }// if has best match
+      
       if ( mctrack_data )
 	mctrack_data->Draw("L");
       
       hypoxy.cd();
       bgxy.Draw();
       boxxy.Draw();
-      if ( truthclust2_xy )
-	truthclust2_xy->Draw("P");
+      if ( bestmatch_iclust>=0 ) {
+      	for (int i=0; i<kNumQTypes; i++) {
+	  bestmatchclust_xy[i]->Draw("P");
+	}
+      }
       if ( mctrack_data_xy )
 	mctrack_data_xy->Draw("L");      
 
@@ -1779,17 +1847,17 @@ namespace larflow {
       if ( truthmatch_idx<0 )
 	sprintf( ztruthscores, "Truth-Chi2=NA  Truth-Maxdist=NA" );
       else
-	sprintf( ztruthscores, "Truth-Chi2=%.2f  Truth-Maxdist=%.2f", truthmatch_chi2, truthmatch_maxdist );
+	sprintf( ztruthscores, "Truth-Chi2=%.2f  Truth-Maxdist=%.2f peratio=%.2f", truthmatch_chi2, truthmatch_maxdist, truthmatch_peratio );
 
       char zbestchi[100];
       if ( bestchi2_idx>=0 )
-	sprintf( zbestchi, "Best Chi2 idx (cyan): %d  Chi2=%.1f", bestchi2_idx, bestchi2 );
+	sprintf( zbestchi, "Best Chi2 idx (cyan): %d  Chi2=%.1f peratio=%.2f", bestchi2_idx, bestchi2, bestchi2_peratio );
       else
 	sprintf( zbestchi, "No chi2 match" );
 
       char zbestmaxdist[100];
       if ( bestmaxdist_idx>=0 )
-	sprintf( zbestmaxdist, "Best maxdist idx (blue): %d  maxdist=%.2f", bestmaxdist_idx, bestmaxdist );
+	sprintf( zbestmaxdist, "Best maxdist idx (blue): %d  maxdist=%.2f peratio=%.2f", bestmaxdist_idx, bestmaxdist, bestmaxdist_peratio );
       else
 	sprintf( zbestmaxdist, "No maxdist match" );
       
@@ -1837,16 +1905,17 @@ namespace larflow {
 	delete pmarker;
 	pmarker = nullptr;
       }
-      if ( truthclust )
-	delete truthclust;
-      truthclust = nullptr;
-      if ( truthclust_xy )
-	delete truthclust_xy;
-      
-      if ( !qtruth || usefmatch ) {
-	delete truthclust2;
-	delete truthclust2_xy;
+      for (int i=0; i<kNumQTypes; i++) {
+	if ( truthclust_zy[i] )
+	     delete truthclust_zy[i];
+	if ( truthclust_xy[i] )
+	  delete truthclust_xy[i];
+	if ( bestmatchclust_zy[i] )
+	     delete bestmatchclust_zy[i];
+	if ( bestmatchclust_xy[i] )
+	  delete bestmatchclust_xy[i];
       }
+      
       if (mctrack_data)
 	delete mctrack_data;
       if ( mctrack_data_xy )
@@ -2218,6 +2287,7 @@ namespace larflow {
 	    // determine which ext
 	    QCluster_t& ext = (crossedtpc) ? ext2 : ext1;
 	    QPoint_t qpt;
+	    qpt.xyz.resize(3,0);
 	    qpt.xyz[0] = pos[0];
 	    qpt.xyz[1] = pos[1];
 	    qpt.xyz[2] = pos[2];
@@ -2233,8 +2303,7 @@ namespace larflow {
 	      qpt.pixeladc = 0.;
 	    }
 	    qpt.fromplaneid = -1;
-	    qpt.intpc = 0;
-	    qpt.gapfill = 0;
+	    qpt.type = kExt;
 	    ext.emplace_back( std::move(qpt) );
 		    
 	  }//end of extension

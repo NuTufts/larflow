@@ -8,6 +8,7 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/mctrack.h"
+#include "DataFormat/pcaxis.h"
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
@@ -52,22 +53,20 @@ namespace larflow {
 
     // internal data members
     // ---------------------
+    typedef enum { kUnlabeled=-1, kCore, kNonCore, kGapFill, kExt, kNumQTypes } QPointType_t;
     struct QPoint_t {
       QPoint_t() {
-	xyz[0] = xyz[1] = xyz[2] = 0.0;
+	xyz.resize(3,0);
 	tick = 0;
 	pixeladc = 0.0;
 	fromplaneid = -1;
-	intpc = -1;
-	type = -1;
+	type = kUnlabeled;
       };
-      float xyz[3]; // (tick,y,z) coordinates
+      std::vector<float> xyz; // (tick,y,z) coordinates
       float tick;
       float pixeladc;
       int   fromplaneid; // { 0:U, 1:V, 2:Y, 3:UV-ave }
-      int   intpc;
-      int   gapfill;
-      int   type; // -1=unspecifed, 0=from flow pred, 1=from gapfil, 2=from tpc extension
+      QPointType_t type; // -1=unspecifed, 0=from flow pred, 1=from gapfil, 2=from tpc extension
     };
 
     struct FlashData_t : public std::vector<float> {
@@ -85,6 +84,7 @@ namespace larflow {
 
     struct QCluster_t : public std::vector<QPoint_t> {
       QCluster_t() { truthmatched_flashidx=-1; mctrackid=-1; };
+      int idx;
       float min_tyz[3];
       float max_tyz[3];
       int mctrackid;
@@ -104,6 +104,7 @@ namespace larflow {
     // vectors for storing the events data flashes and reconstructed qclusters
     std::vector<FlashData_t> _flashdata_v;
     std::vector<QCluster_t>  _qcluster_v;
+    std::vector<larlite::pcaxis>  _pca_qcluster_v; // pca, useful
     
     // QCluster Tools
     // ----------------------------------------------
@@ -115,7 +116,6 @@ namespace larflow {
     
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
     //    project into u,v. collect hits there.
-    void fillClusterGaps( QCluster_t& cluster );
     void fillClusterGapsUsingCorePCA( QCluster_t& cluster );
     void applyGapFill( std::vector<QCluster_t>& qcluster_v );
     

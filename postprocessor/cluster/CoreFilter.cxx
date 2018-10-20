@@ -52,6 +52,7 @@ namespace larflow {
   std::vector<int> CoreFilter::getPointIndices( bool core, int minhits_in_subcluster ) {
 
     std::vector< int > out;
+    out.clear();
     
     if ( core ) {
       for (int iclust=0; iclust<(int)_clusters_v.size()-1; iclust++) {
@@ -69,8 +70,8 @@ namespace larflow {
       }
     }
     
-    // std::cout << "[CoreFilter::getPoints] GetCore=" << core
-    // 	      << ": " << out.size() << " of " << _cluster->size() << std::endl;
+    // std::cout << "[CoreFilter::getPointIndices] GetCore=" << core
+    //  	      << ": size=" << out.size() << std::endl;
     
     return out;
   }
@@ -78,6 +79,9 @@ namespace larflow {
   std::vector< std::vector<float> > CoreFilter::getCore(int min_hits_in_subcluster, const std::vector< std::vector<float> >& cluster ) {
     std::vector<int> coreidx = getPointIndices( true, min_hits_in_subcluster );
     std::vector< std::vector<float> > out;
+    if ( coreidx.size()==0 )
+      return out;
+    
     out.reserve( cluster.size() );
     
     for (auto& idx : coreidx )
@@ -87,7 +91,10 @@ namespace larflow {
   
   larlite::larflowcluster CoreFilter::getCore(int min_hits_in_subcluster, const larlite::larflowcluster& cluster ) {
     std::vector<int> coreidx = getPointIndices( true, min_hits_in_subcluster );
-    larlite::larflowcluster out;
+    larlite::larflowcluster out;    
+    if ( coreidx.size()==0 )
+      return out;
+    
     for (auto& idx : coreidx )
       out.push_back( cluster[idx] );
     return out;
@@ -96,6 +103,9 @@ namespace larflow {
   larlite::larflowcluster CoreFilter::getNonCore( int min_hits_in_subcluster, const larlite::larflowcluster& cluster ) {
     std::vector<int> coreidx = getPointIndices( false, min_hits_in_subcluster );
     larlite::larflowcluster out;
+    if ( coreidx.size()==0 )
+      return out;
+    
     for (auto& idx : coreidx )
       out.push_back( cluster[idx] );
     return out;
