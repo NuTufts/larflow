@@ -45,7 +45,8 @@ namespace larflow {
       fpmtweight(nullptr),
       _parsdefined(false),
       _psce(nullptr),
-      kFlashMatchedDone(false)
+      kFlashMatchedDone(false),
+      _evstatus(nullptr)
   {
 
     // define bins in z-dimension and assign pmt channels to them
@@ -1372,6 +1373,37 @@ namespace larflow {
     boxxy.SetFillStyle(0);
     boxxy.SetLineColor(kBlack);
     boxxy.SetLineWidth(1);
+
+    // badch indicator
+    std::vector< TBox* > zy_deadregions;
+    for (int p=2; p<3; p++) {
+      const larcv::ChStatus& status = _evstatus->status( p );
+      int maxchs = ( p<=1 ) ? 2400 : 3456;
+      bool inregion = false;
+      int regionstart = -1;
+      int currentregionwire = -1;
+      for (int ich=0; ich<maxchs; ich++) {
+	
+	if ( !inregion && status.status(ich)!=4 ) {
+	  inregion = true;
+	  regionstart = ich;
+	  currentregionwire = ich;
+	}
+	else if ( inregion && status.status(ich)!=4 ) {
+	  currentregionwire = ich;
+	}
+	else if ( inregion && status.status(ich)==4 ) {
+	  // end a region, make a box!
+	  TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
+	  badchs->SetFillColor( 19 );
+	  badchs->SetLineColor( 0 );
+	  //badchs->SetFillStyle( 3005 );
+	  zy_deadregions.push_back( badchs );
+	  inregion = false;
+	}
+	  
+      }
+    }
     
 
     for (int iflash=0; iflash<_nflashes; iflash++) {
@@ -1689,7 +1721,7 @@ namespace larflow {
 	truthclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
       }
 
-      // mc-track
+      // mc-track: of truth match if it exists
       TGraph* mctrack_data    = nullptr;
       TGraph* mctrack_data_xy = nullptr;      
       if ( mctrack_match ) {
@@ -1725,12 +1757,14 @@ namespace larflow {
       // -----------------------------------
       datayz.cd();
       bg.Draw();
-      boxzy.Draw();      
+      boxzy.Draw();
+      for ( auto& pbadchbox : zy_deadregions ) {
+	pbadchbox->Draw();
+      }
 
       for (int ich=0; ich<32; ich++) {
 	datamarkers_v[ich]->Draw();
 	pmtmarkers_v[ich]->Draw();
-	chmarkers_v[ich]->Draw();
       }
       
       if ( truthclust_zy[kCore] ) {
@@ -1740,6 +1774,9 @@ namespace larflow {
       if ( mctrack_data )
 	mctrack_data->Draw("L");
 
+      for (int ich=0; ich<32; ich++)
+	chmarkers_v[ich]->Draw();
+      
       // XY: DATA
       // --------
       dataxy.cd();
@@ -1757,6 +1794,9 @@ namespace larflow {
       hypoyz.cd();
       bg.Draw();
       boxzy.Draw();
+      for ( auto& pbadchbox : zy_deadregions ) {
+	pbadchbox->Draw();
+      }      
 
       for (int ich=0; ich<32; ich++) {
 	if (hypo) 
@@ -1769,8 +1809,13 @@ namespace larflow {
       
       TGraph* bestmatchclust_zy[kNumQTypes] = {nullptr};
       TGraph* bestmatchclust_xy[kNumQTypes] = {nullptr};
+      TGraph* mctrack_hypo_zy = nullptr;
+      TGraph* mctrack_hypo_xy = nullptr;      
 	
       if ( bestmatch_iclust>=0 ) {
+	// if we have a best match
+
+	// make graph for hypothesis cluster
 	int nbestpts[kNumQTypes] = {0};
 	QCluster_t* qc = &(_qcluster_v[bestmatch_iclust]);
 	//std::cout << "qc[" << iclust << "] npoints: " << qc->size() << std::endl;
@@ -1809,11 +1854,31 @@ namespace larflow {
 	for (int i=0; i<kNumQTypes; i++) {
 	  bestmatchclust_zy[i]->Draw("P");
 	}
+
+	// make graph for mctruth for hypothesis
+	if ( bestmatch_iclust==truthmatch_idx ) {
+	  mctrack_hypo_zy = mctrack_data;
+	  mctrack_hypo_xy = mctrack_data_xy;
+	}
+	else {
+	  const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[qc->mctrackid] ];
+	  mctrack_hypo_zy = new TGraph( mct.size() );
+	  mctrack_hypo_xy = new TGraph( mct.size() );	
+	  for (int istep=0; istep<(int)mct.size(); istep++) {
+	    mctrack_hypo_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
+	    mctrack_hypo_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
+	  }
+	  mctrack_hypo_zy->SetLineColor(kMagenta);
+	  mctrack_hypo_zy->SetLineWidth(1);
+	  mctrack_hypo_xy->SetLineColor(kMagenta);
+	  mctrack_hypo_xy->SetLineWidth(1);
+	}
 	
       }// if has best match
+
       
-      if ( mctrack_data )
-	mctrack_data->Draw("L");
+      if ( mctrack_hypo_zy )
+	mctrack_hypo_zy->Draw("L");
       
       hypoxy.cd();
       bgxy.Draw();
@@ -1823,8 +1888,8 @@ namespace larflow {
 	  bestmatchclust_xy[i]->Draw("P");
 	}
       }
-      if ( mctrack_data_xy )
-	mctrack_data_xy->Draw("L");      
+      if ( mctrack_hypo_xy )
+	mctrack_hypo_xy->Draw("L");      
 
       // finally hist pad
       histpad.cd();
@@ -1920,6 +1985,11 @@ namespace larflow {
 	delete mctrack_data;
       if ( mctrack_data_xy )
 	delete mctrack_data_xy;
+
+      if ( mctrack_hypo_zy && bestmatch_iclust!=truthmatch_idx ) {
+	delete mctrack_hypo_zy;
+	delete mctrack_hypo_xy;
+      }
 
       for (int ic=0; ic<(int)hclust_v.size(); ic++) {
 	delete hclust_v[ic];

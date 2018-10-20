@@ -12,6 +12,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 
 #include "LArFlowFlashMatch.h"
 
@@ -72,7 +73,9 @@ int main( int nargs, char** argv ) {
     larlite::event_opflash* ev_opflash_beam   = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashBeam" );
     larlite::event_opflash* ev_opflash_cosmic = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashCosmic" );
 
-    larcv::EventImage2D* ev_larcv = (larcv::EventImage2D*)iolarcv.get_data( "image2d", "wire" );
+    larcv::EventImage2D* ev_larcv   = (larcv::EventImage2D*)iolarcv.get_data( "image2d", "wire" );
+    larcv::EventChStatus* ev_status = (larcv::EventChStatus*)iolarcv.get_data( "chstatus", "wire" );
+    algo.loadChStatus( ev_status );
 
     std::cout << "number of clusters: " << ev_cluster->size() << std::endl;
     std::cout << "number of beam flashes: " << ev_opflash_beam->size() << std::endl;

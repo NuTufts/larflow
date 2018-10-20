@@ -12,6 +12,7 @@
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 
 class TRandom3;
 namespace larutil {
@@ -47,7 +48,8 @@ namespace larflow {
 		     const bool ignorelast=true);
 
     void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
-
+    void loadChStatus( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; };
+    
     std::vector<larlite::larflowcluster> exportMatchedTracks();
     
 
@@ -274,7 +276,11 @@ namespace larflow {
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
     void clearMCTruthInfo();
     void setFitParsWithTruthMatch();    
-    
+
+    // ChStatus Info
+    // ----------------------------------------------
+    const larcv::EventChStatus* _evstatus;
+
   };
     
     
