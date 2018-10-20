@@ -624,8 +624,8 @@ namespace larflow {
     
   }
 
-  std::vector<LArFlowFlashMatch::FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
-										   const std::vector<larlite::opflash>& cosmic_flashes ) {
+  std::vector<FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
+								const std::vector<larlite::opflash>& cosmic_flashes ) {
 
     const larutil::Geometry* geo       = larutil::Geometry::GetME();
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
@@ -841,7 +841,8 @@ namespace larflow {
     return true;
   }
   
-  LArFlowFlashMatch::FlashHypo_t& LArFlowFlashMatch::getHypothesisWithOrigIndex( int flashidx, int clustidx ) {
+  FlashHypo_t& LArFlowFlashMatch::getHypothesisWithOrigIndex( int flashidx, int clustidx ) {
+    
     flashclusterpair_t fcpair( flashidx, clustidx );
     auto it = m_flash_hypo_map.find( fcpair );
     if ( it==m_flash_hypo_map.end() ) {
