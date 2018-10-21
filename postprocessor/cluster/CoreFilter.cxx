@@ -111,7 +111,17 @@ namespace larflow {
     return out;
   }
   
-  
+  int CoreFilter::getIndexOfLargestCluster() const {
+    int maxn = 0;
+    int maxn_idx = 0;
+    for (int idx=0; idx<(int)_clusters_v.size(); idx++) {
+      if ( (int)_clusters_v[idx].size()>maxn ) {
+	maxn = _clusters_v[idx].size();
+	maxn_idx = idx;
+      }
+    }
+    return maxn_idx;
+  }
 
 
 

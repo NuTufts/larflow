@@ -32,7 +32,7 @@ namespace larflow {
   protected:
     
     void buildCore();
-    void fillGaps();
+    void fillClusterGapsUsingCorePCA();
     
   };
 

@@ -17,7 +17,7 @@ namespace larflow {
     _cluster(&qcluster)
   {
     buildCore();
-
+    fillClusterGapsUsingCorePCA();
   }
 
   void QClusterCore::buildCore() {
@@ -138,8 +138,106 @@ namespace larflow {
     
   }//end of define core
 
-  void QClusterCore::fillGaps() {
+  void QClusterCore::fillClusterGapsUsingCorePCA() {
     
-  }
+    const float kGapMin_cm = 6.0; // cm
+    const float kGapStepLenMin_cm = 1.0; // cm
+    const float kGapStepLenMax_cm = 3.0; // cm
+
+    larlite::pcaxis& pca = _pca_core;
+    if ( pca.getEigenVectors().size()==0 ) {
+      // not core
+      return;
+    }
+    
+    // we project points on the pca line
+    // define eigen line
+    Eigen::Vector3f origin( pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] );
+    Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
+    Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
+    //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
+
+    struct ProjPoint_t {
+      int idx;
+      float s;
+      bool operator< ( const ProjPoint_t& rhs ) const {
+	if ( s < rhs.s ) return true;
+	return false;
+      };
+    };
+
+    std::vector< ProjPoint_t > orderedline;
+    orderedline.reserve( _core.size() );
+    for ( size_t icore=0; icore<_core.size(); icore++ ) {
+      Eigen::Map< Eigen::Vector3f >  ept( _core[icore].xyz.data() );
+      Eigen::Vector3f projpt = pcaline.projection( ept );
+      float s = (projpt-origin).norm();
+      float coss = vec.dot(projpt-origin);
+      ProjPoint_t pjpt;
+      pjpt.idx = icore;
+      pjpt.s = ( coss<0 ) ? -s : s;
+      orderedline.push_back( pjpt );
+    }
+    std::sort( orderedline.begin(), orderedline.end() );
+
+    // now loop through and look for gaps
+    // keep track of average gap -- help us set the filler point density
+    float avegap = 0.;
+    int nfillgaps = 0;
+    std::vector< int > gapstarts;
+    for ( size_t ipt=0; ipt+1<orderedline.size(); ipt++ ) {
+
+      // cannot have gap between two EXT pts
+      
+      float gap = fabs(orderedline[ipt+1].s - orderedline[ipt].s);
+      //std::cout << " orderedline[" << ipt << "] gap=" << gap << " s0=" << orderedline[ipt].s << std::endl;
+      if ( gap>kGapMin_cm )  {
+	gapstarts.push_back( ipt );	
+      }
+      else {
+	avegap += gap;
+	nfillgaps++;
+      }
+    }
+    if ( nfillgaps>0 )
+      avegap /= float(nfillgaps);
+
+    std::cout << "[QClusterCore::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
+    if ( nfillgaps==0 ) // no need to do anything!
+      return;
+    
+    // add gap points
+    _gapfill_qcluster.clear();
+    for ( auto& idxgap : gapstarts ) {
+      // get the projected point info
+      ProjPoint_t& start = orderedline[idxgap];
+      ProjPoint_t& end   = orderedline[idxgap+1];
+      // get the points
+      Eigen::Map< Eigen::Vector3f > startpt( _core[start.idx].xyz.data() );
+      Eigen::Map< Eigen::Vector3f > endpt( _core[end.idx].xyz.data() );
+      Eigen::ParametrizedLine< float, 3 > gapline = Eigen::ParametrizedLine<float,3>::Through( startpt, endpt );
+      float gaplen = (endpt-startpt).norm();
+      // step len
+      float steplen = ( avegap < kGapStepLenMax_cm ) ? avegap : kGapStepLenMax_cm;
+      steplen = ( steplen > kGapStepLenMin_cm ) ? steplen : kGapStepLenMin_cm;
+      int nsteps = (int)(gaplen/steplen) + 1;
+      steplen = gaplen/float(nsteps);
+      float tickstart = _core[ start.idx ].tick;
+      float tickend   = _core[ end.idx ].tick;
+      float dticklen = (tickend-tickstart)/float(nsteps);
+      for (int istep=0; istep<nsteps; istep++) {
+	float s = steplen*((float)istep+0.5);
+	Eigen::Vector3f gappt = gapline.pointAt( s );
+	QPoint_t qpt;
+	qpt.xyz.resize(3,0);
+	for (int i=0; i<3; i++) qpt.xyz[i] = gappt(i);
+	qpt.type = kGapFill;
+	qpt.pixeladc = steplen;
+	qpt.tick = tickstart + dticklen*((float)istep+0.5);
+	_gapfill_qcluster.emplace_back( std::move(qpt) );
+      }
+    }//end of gap starts loop
+    
+  }//end of fillgaps
 
 }
