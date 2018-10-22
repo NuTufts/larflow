@@ -25,6 +25,9 @@
 #include "cluster/CoreFilter.h"
 #include "cluster/CilantroPCA.h"
 
+// flashmatch code
+#include "FlashMatchCandidate.h"
+
 namespace larflow {
 
   LArFlowFlashMatch::LArFlowFlashMatch()
@@ -483,135 +486,6 @@ namespace larflow {
     }//end of cluster loop
     
   }
-
-  // void LArFlowFlashMatch::applyGapFill( std::vector<QCluster_t>& qcluster_v ) {
-  //   int iclust=0;
-  //   for ( auto& cluster : qcluster_v ) {
-  //     std::cout << "[LArFlowFlashMatch::applyGapFill][INFO] Filling clusteridx=" << iclust << std::endl;
-  //     fillClusterGapsUsingCorePCA( cluster );
-  //     iclust++;
-  //   }
-  // }
-  
-  // void LArFlowFlashMatch::fillClusterGapsUsingCorePCA( QCluster_t& cluster ) {
-  //   std::vector< std::vector<float> > clusterpts( cluster.size() ); // this copy is unfortunate
-  //   for (size_t ihit=0; ihit<cluster.size(); ihit++ ) {
-  //     clusterpts[ihit].resize(3);
-  //     for (int i=0; i<3; i++ ) clusterpts[ihit][i] = cluster[ihit].xyz[i];
-  //   }
-
-  //   const float kGapMin_cm = 6.0; // cm
-  //   const float kGapStepLenMin_cm = 1.0; // cm
-  //   const float kGapStepLenMax_cm = 3.0; // cm
-  //   // int minneighbors = 3;
-  //   // int minclusterpoints = 5;
-  //   // float maxdist = 10.0;
-  //   // CoreFilter corealgo( clusterpts, minneighbors, maxdist );
-  //   // std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
-  //   // std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
-    
-  //   // // get pca of core points
-  //   // CilantroPCA pcalgo( core );
-  //   //larlite::pcaxis pca = pcalgo.getpcaxis();
-  //   larlite::pcaxis pca = _pca_qcluster_v[cluster.idx];
-  //   if ( pca.getEigenVectors().size()==0 ) {
-  //     // not core
-  //     return;
-  //   }
-    
-  //   // we project points on the pca line
-  //   // define eigen line
-  //   Eigen::Vector3f origin( pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] );
-  //   Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
-  //   Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
-  //   //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
-
-  //   struct ProjPoint_t {
-  //     int idx;
-  //     float s;
-  //     bool operator< ( const ProjPoint_t& rhs ) const {
-  // 	if ( s < rhs.s ) return true;
-  // 	return false;
-  //     };
-  //   };
-
-  //   // extract core points from cluster
-
-  //   std::vector< ProjPoint_t > orderedline;
-  //   orderedline.reserve( cluster.size() );
-  //   for ( size_t icore=0; icore<cluster.size(); icore++ ) {
-  //     if ( cluster[icore].type==kNonCore )
-  // 	continue;
-  //     Eigen::Map< Eigen::Vector3f >  ept( cluster[icore].xyz.data() );
-  //     Eigen::Vector3f projpt = pcaline.projection( ept );
-  //     float s = (projpt-origin).norm();
-  //     float coss = vec.dot(projpt-origin);
-  //     ProjPoint_t pjpt;
-  //     pjpt.idx = icore;
-  //     pjpt.s = ( coss<0 ) ? -s : s;
-  //     orderedline.push_back( pjpt );
-  //   }
-  //   std::sort( orderedline.begin(), orderedline.end() );
-
-  //   // now loop through and look for gaps
-  //   // keep track of average gap -- help us set the filler point density
-  //   float avegap = 0.;
-  //   int nfillgaps = 0;
-  //   std::vector< int > gapstarts;
-  //   for ( size_t ipt=0; ipt+1<orderedline.size(); ipt++ ) {
-
-  //     // cannot have gap between two EXT pts
-      
-  //     float gap = fabs(orderedline[ipt+1].s - orderedline[ipt].s);
-  //     //std::cout << " orderedline[" << ipt << "] gap=" << gap << " s0=" << orderedline[ipt].s << std::endl;
-  //     if ( gap>kGapMin_cm )  {
-  // 	gapstarts.push_back( ipt );	
-  //     }
-  //     else {
-  // 	avegap += gap;
-  // 	nfillgaps++;
-  //     }
-  //   }
-  //   if ( nfillgaps>0 )
-  //     avegap /= float(nfillgaps);
-
-  //   std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
-  //   if ( nfillgaps==0 ) // no need to do anything!
-  //     return;
-
-  //   // add gap points
-  //   for ( auto& idxgap : gapstarts ) {
-  //     // get the projected point info
-  //     ProjPoint_t& start = orderedline[idxgap];
-  //     ProjPoint_t& end   = orderedline[idxgap+1];
-  //     // get the points
-  //     Eigen::Map< Eigen::Vector3f > startpt( cluster[start.idx].xyz.data() );
-  //     Eigen::Map< Eigen::Vector3f > endpt( cluster[end.idx].xyz.data() );
-  //     Eigen::ParametrizedLine< float, 3 > gapline = Eigen::ParametrizedLine<float,3>::Through( startpt, endpt );
-  //     float gaplen = (endpt-startpt).norm();
-  //     // step len
-  //     float steplen = ( avegap < kGapStepLenMax_cm ) ? avegap : kGapStepLenMax_cm;
-  //     steplen = ( steplen > kGapStepLenMin_cm ) ? steplen : kGapStepLenMin_cm;
-  //     int nsteps = (int)(gaplen/steplen) + 1;
-  //     steplen = gaplen/float(nsteps);
-  //     float tickstart = cluster[ start.idx ].tick;
-  //     float tickend   = cluster[ end.idx ].tick;
-  //     float dticklen = (tickend-tickstart)/float(nsteps);
-  //     for (int istep=0; istep<nsteps; istep++) {
-  // 	float s = steplen*((float)istep+0.5);
-  // 	Eigen::Vector3f gappt = gapline.pointAt( s );
-  // 	QPoint_t qpt;
-  // 	qpt.xyz.resize(3,0);
-  // 	for (int i=0; i<3; i++) qpt.xyz[i] = gappt(i);
-  // 	qpt.type = kGapFill;
-  // 	qpt.pixeladc = steplen;
-  // 	qpt.tick = tickstart + dticklen*((float)istep+0.5);
-  // 	cluster.emplace_back( std::move(qpt) );
-  //     }
-  //   }//end of gap starts loop
-    
-  // }
-
   std::vector<FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
 								const std::vector<larlite::opflash>& cosmic_flashes ) {
 
@@ -754,65 +628,9 @@ namespace larflow {
 	  continue;
 
 	const QCluster_t& qcluster = qcluster_v[iq];
-	
-	FlashHypo_t hypo;
-	hypo.resize(npmts,0.0);
-	hypo.clusteridx = iq;     // use original
-	hypo.flashidx   = iflash; // use original
-	hypo.tot_intpc = 0.;
-	hypo.tot_outtpc = 0.;
-	float norm = 0.0;
-	for ( size_t ihit=0; ihit<qcluster.size(); ihit++ ) {
-	  const QPoint_t& qhit = qcluster[ihit];
-	  double xyz[3];
-	  xyz[1] = qhit.xyz[1];
-	  xyz[2] = qhit.xyz[2];
-	  xyz[0] = (qhit.tick - flash.tpc_tick)*0.5*driftv;
 
-	  if ( xyz[0]>250.0 )
-	    continue; // i dont trust the hypotheses here
-	  
-	  const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
-
-	  if ( vis && vis->size()==npmts) {
-	    for (int ich=0; ich<npmts; ich++) {
-	      float q  = qhit.pixeladc;
-	      float pe = 0.;
-	      if ( qhit.type==kCore || qhit.type==kNonCore) {
-		// q is a pixel values
-		pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
-		hypo.tot_intpc += pe;
-	      }
-	      else if ( qhit.type==kExt ) {
-		// outside tpc, what is stored is the track length
-		pe = q*outoftpc_len2adc;
-		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
-		hypo.tot_outtpc += pe;
-	      }
-	      else if ( qhit.type==kGapFill ) {
-		pe = q*gapfill_len2adc;
-		pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
-		hypo.tot_intpc += pe;
-	      }
-	      else {
-		throw std::runtime_error("[LArFlowFlashMatch::buildFlashHypotheses][ERROR] unrecognized qpoint type");
-	      }
-
-	      hypo[ich] += pe;
-	      norm += pe;
-	    }
-	  }
-	  else if ( vis->size()>0 && vis->size()!=npmts ) {
-	    throw std::runtime_error("[LArFlowFlashMatch::buildFlashHypotheses][ERROR] unexpected visibility size");
-	  }
-	}
-	
-	// normalize
-	hypo.tot = norm;
-	if ( norm>0 ) {
-	  for (size_t ich=0; ich<hypo.size(); ich++)
-	    hypo[ich] /= norm;
-	}
+	float xoffset = (flash.tpc_tick-3200)*0.5*driftv;
+	FlashHypo_t hypo = FlashMatchCandidate::buildFlashHypothesis( flash, qcluster, xoffset );
 
 	// store
 	int idx = m_flash_hypo_v.size();
@@ -820,7 +638,7 @@ namespace larflow {
 	m_flash_hypo_v.emplace_back( std::move(hypo) );
       }//end of loop over clusters
     }//end of loop over flashes
-
+    
   }
 
   bool LArFlowFlashMatch::hasHypothesis( int flashidx, int clustidx ) {

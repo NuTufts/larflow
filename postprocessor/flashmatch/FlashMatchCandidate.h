@@ -1,9 +1,14 @@
 #ifndef __FLASHMATCHCANDIDATE_H__
 #define __FLASHMATCHCANDIDATE_H__
 
+// LArCV2 data
+#include "larcv/core/DataFormat/EventChStatus.h"
+#include "larcv/core/DataFormat/ChStatus.h"
+
 // larlite
 #include "DataFormat/pcaxis.h"
 
+// larflow
 #include "FlashMatchTypes.h"
 #include "QClusterCore.h"
 
@@ -23,6 +28,8 @@ namespace larflow {
     float _maxch_pe;
     int   _maxch;
 
+    const larcv::EventChStatus* _evstatus;
+
     QCluster_t _offset_qcluster; // basically a copy of the core, but with the xoffset applied
     QCluster_t _entering_qcluster;
     QCluster_t _exiting_qcluster;
@@ -33,11 +40,14 @@ namespace larflow {
     FlashHypo_t _exiting_hypo;
     FlashHypo_t _gapfill_hypo;
 
+    static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
+    void dumpMatchImage();
+    void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; };
+    
   protected:
 
     // Flash Hypothesis Building Routines
     // ----------------------------------
-    FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster );
     
     // define the core, non-core, and their respective principle components
     void defineCore();
