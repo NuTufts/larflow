@@ -1404,12 +1404,15 @@ namespace larflow {
       
       const QCluster_t& qcluster = _qcluster_v[iclust];
       const QClusterCore& qcore  = _qcore_v[iclust];
+      const QCluster_t& qfill = qcore._gapfill_qcluster;
 
       // make graph of core and non-core
       TGraph* gcore_zy    = new TGraph( qcore._core.size() );
       TGraph* gcore_xy    = new TGraph( qcore._core.size() );     
       TGraph* gnoncore_zy = new TGraph( qcore._noncore_hits );
       TGraph* gnoncore_xy = new TGraph( qcore._noncore_hits );
+      TGraph* gfill_zy = new TGraph( qfill.size() );
+      TGraph* gfill_xy = new TGraph( qfill.size() );
       
       for ( int iq=0; iq<(int)qcore._core.size(); iq++ ) {
 	gcore_zy->SetPoint( iq, qcore._core[iq].xyz[2], qcore._core[iq].xyz[1] );
@@ -1425,16 +1428,42 @@ namespace larflow {
       }
       gnoncore_zy->Set(inoncore);
       gnoncore_xy->Set(inoncore);
+      for ( int iq=0; iq<(int)qfill.size(); iq++ ) {
+	gfill_zy->SetPoint( iq, qfill[iq].xyz[2], qfill[iq].xyz[1] );
+	gfill_xy->SetPoint( iq, qfill[iq].xyz[0], qfill[iq].xyz[1] );	
+      }      
 
       gcore_zy->SetMarkerColor(kRed);
       gcore_xy->SetMarkerColor(kRed);      
       gnoncore_zy->SetMarkerColor(kBlack);
       gnoncore_xy->SetMarkerColor(kBlack);
-      TGraph* g_v[4] = { gcore_zy, gcore_xy, gnoncore_zy, gnoncore_xy };
-      for (int i=0; i<4; i++) {
+      gfill_zy->SetMarkerColor(kBlue);
+      gfill_xy->SetMarkerColor(kBlue);
+      TGraph* g_v[6] = { gcore_zy, gcore_xy, gnoncore_zy, gnoncore_xy, gfill_zy, gfill_xy };
+      for (int i=0; i<6; i++) {
 	g_v[i]->SetMarkerStyle(20);
 	g_v[i]->SetMarkerSize(0.3);
       }
+
+      // PCA lines
+      TGraph* gcore_zy_pca = new TGraph(3);
+      TGraph* gcore_xy_pca = new TGraph(3);      
+      const larlite::pcaxis& pc = qcore._pca_core;
+      gcore_zy_pca->SetPoint( 0,
+			      pc.getAvePosition()[2] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[2][0],
+			      pc.getAvePosition()[1] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
+      gcore_zy_pca->SetPoint( 1, pc.getAvePosition()[2], pc.getAvePosition()[1] );
+      gcore_zy_pca->SetPoint( 2,
+			      pc.getAvePosition()[2] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[2][0],
+			      pc.getAvePosition()[1] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
+      gcore_xy_pca->SetPoint( 0,
+			      pc.getAvePosition()[0] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[0][0],
+			      pc.getAvePosition()[1] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
+      gcore_xy_pca->SetPoint( 1, pc.getAvePosition()[0], pc.getAvePosition()[1] );
+      gcore_xy_pca->SetPoint( 2,
+			      pc.getAvePosition()[0] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[0][0],
+			      pc.getAvePosition()[1] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
+      
 
       // Set the pads
       c2d.Clear();
@@ -1459,6 +1488,8 @@ namespace larflow {
 
       gnoncore_zy->Draw("P");
       gcore_zy->Draw("P");
+      gfill_zy->Draw("P");
+      gcore_zy_pca->Draw("L");      
 
       dataxy.cd();
       bgxy.Draw();
@@ -1466,6 +1497,8 @@ namespace larflow {
 
       gnoncore_xy->Draw("P");
       gcore_xy->Draw("P");
+      gfill_xy->Draw("P");
+      gcore_xy_pca->Draw("L");
 
 
       char canvname[50];
@@ -1476,7 +1509,9 @@ namespace larflow {
       delete gnoncore_zy;
       delete gnoncore_xy;      
       delete gcore_zy;
-      delete gcore_xy;      
+      delete gcore_xy;
+      delete gcore_zy_pca;
+      delete gcore_xy_pca;      
     }
 
     // clean up vis items

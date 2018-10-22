@@ -31,15 +31,23 @@ namespace larflow {
     cilantro::KDTree3f tree(_points);    
     
     int iidx = -1;
-    std::vector<int> clusterlabel_v(npoints,-1);
+    std::vector<int> clusterlabel_v(npoints,-1); // -2=noise, -1=unvisited
     std::vector<Cluster_t> dbscan_clust_v;
     Cluster_t noise;
     noise.clear();
 
-    for ( int ipt=0; ipt<npoints; ipt++) {
+    int ipos = 0;
+    std::vector<int> queue_v;
+    queue_v.reserve(npoints);
+    queue_v.push_back(0);
+
+    while ( ipos<queue_v.size() || queue_v.size()<clusterlabel_v.size() ) {
+      int ipt = queue_v[ipos];      
+      ipos++;
       const Eigen::Vector3f& pt = _points[ipt];
 
       int pastlabel = clusterlabel_v[ipt];
+      //std::cout << "pt[" << ipt << "] label=" << pastlabel << " queuesize=" << queue_v.size() << " queuepos=" << ipos << std::endl;      
       
       // get neighbors to point
       cilantro::NeighborSet<float> nn;
@@ -48,8 +56,8 @@ namespace larflow {
       //std::cout << "[larflow::DBSCAN::makeClusters][DEBUG] ipt=" << " nneighbors=" << nn.size() << " pastlabel=" << pastlabel << std::endl;
       
       if ( nn.size()<minhits ) {
-	// label point as noise (-1)
-	clusterlabel_v[ipt] = -1;
+	// label point as noise (-2)
+	clusterlabel_v[ipt] = -2;
 	noise.push_back( ipt );
       }
       else {
@@ -72,10 +80,26 @@ namespace larflow {
 	  int nn_label = clusterlabel_v[ nn[inn].index ];
 	  if ( nn_label==-1 ) {
 	    clusterlabel_v[ nn[inn].index ] = pastlabel; // set to this cluster's index
+	    // push into queue
+	    queue_v.push_back( nn[inn].index );
 	  }
-	  // else we leave it alone
+	  else if ( nn_label>=0 && nn_label!=pastlabel ) {
+	    //std::cout << "[larflow::DBSCAN][ERROR] neighbor points got different labels: current=" << pastlabel << " neighbor=" << nn_label << "!" << std::endl;
+	    throw std::runtime_error("[larflow::DBSCAN][ERROR] neighbor points got different labels!");
+	  }
+
 	}
       }
+
+      if ( ipos==queue_v.size() && queue_v.size()<clusterlabel_v.size() ) {
+	// find next seed
+	for ( int i=0; i<clusterlabel_v.size(); i++) {
+	  if ( clusterlabel_v[i]==-1 ) {
+	    queue_v.push_back( i );
+	    break;
+	  }
+	}
+      }//end of reseed queue
     }//end of pt loop
 
     // std::cout << "[larflow::DBSCAN::makeCluster][DEBUG2] enter to continue." << std::endl;

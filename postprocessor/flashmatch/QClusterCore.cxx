@@ -24,10 +24,12 @@ namespace larflow {
   void QClusterCore::buildCore() {
     
     int minneighbors = 3;
-    int minclusterpoints = 5;
-    float maxdist = 15.0;
-    float fMaxDistFromPCAcore = 15.0;
+    int minclusterpoints = 3;
+    float maxdist = 20.0;
+    float fMaxDistFromPCAcore = 10.0;
 
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] Build core for QCLUSTER[" << _cluster->idx << "]" << std::endl;
+    
     // const larutil::Geometry* geo = larutil::Geometry::GetME();
     // const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
     // const float  driftv = larp->DriftVelocity();    
@@ -45,6 +47,7 @@ namespace larflow {
     std::cout << "[larflow::QClusterCore::buildCore][DEBUG] core filter split into =" << corealgo.getNumClusters() << std::endl;
 
     // we take a guess that the largest cluster is the core
+    // SHOULD BE LARGEST AND STRAIGHTEST
     int largest_idx = corealgo.getIndexOfLargestCluster();
     std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core idx=" << largest_idx << std::endl;
     if ( largest_idx<0 ) {
@@ -78,13 +81,17 @@ namespace larflow {
 
     std::set< int > joinlist;
     int joinsize = largestcore_size;
-    int numsubclusts = corealgo.getNumClusters();
+    int numsubclusts = (int)corealgo.getNumClusters()-1; // skip the last, that's the noise clusters
     for ( int iclust=0; iclust<numsubclusts; iclust++ ) {
       if ( iclust==largest_idx ) continue;
       std::cout << "test: " << iclust << std::endl;
       bool join2core = false;
       std::vector<int> subclustidx_v = corealgo.getClusterIndices(iclust);
-      std::cout << "size=" << subclustidx_v.size() << " numclusters=" << corealgo.getNumClusters() << std::endl;
+      std::cout << "size=" << subclustidx_v.size() << " numclusters=" << corealgo.getNumClusters() << std::endl;      
+
+      if ( subclustidx_v.size()<minclusterpoints )
+	continue;
+
       for (auto& idx : subclustidx_v ) {
 	std::cout << "[" << iclust << "] idx=" << idx << std::endl;
 	Eigen::Map< Eigen::Vector3f > testpt( clusterpts[idx].data() );
