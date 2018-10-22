@@ -20,7 +20,10 @@ namespace larflow {
     const QCluster_t*  _cluster;   // source cluster data
     const QClusterCore* _core;
     float _xoffset;
+    float _maxch_pe;
+    int   _maxch;
 
+    QCluster_t _offset_qcluster; // basically a copy of the core, but with the xoffset applied
     QCluster_t _entering_qcluster;
     QCluster_t _exiting_qcluster;
     
@@ -34,14 +37,17 @@ namespace larflow {
 
     // Flash Hypothesis Building Routines
     // ----------------------------------
-
+    FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster );
+    
     // define the core, non-core, and their respective principle components
     void defineCore();
 
     // extend the core to the detector edge from the most likely entering end
     //  and past the TPC boundaries in so far as it improves the flash-match
+    int _usefront; // use the positive eigen vector end to extend, use the negative end
     void ExtendEnteringEnd();
-
+    void ExtendExitingEnd();
+    
     // extend core on the exiting end
     //   only continues as long as flash-match improved
     

@@ -646,6 +646,7 @@ namespace larflow {
 	flashdata[iflash].tpc_tick  = tpc_trigger_tick + flash.Time()/0.5;
 	flashdata[iflash].tpc_trigx = flash.Time()*driftv; // x-assuming x=0 occurs when t=trigger
 	flashdata[iflash].maxch     = maxpmtch;
+	flashdata[iflash].idx       = iflash;
 	Double_t pmtpos[3];
 	geo->GetOpChannelPosition( maxpmtch, pmtpos );	
 	flashdata[iflash].maxchposz   = pmtpos[2];
@@ -654,11 +655,11 @@ namespace larflow {
 	for (size_t ich=0; ich<npmts; ich++)
 	  flashdata[iflash][ich] /= flashdata[iflash].tot;
 	iflash++;
-
+	
 	std::cout << "dataflash[" << iflash-1 << "] tick=" << flashdata[iflash-1].tpc_tick << " totpe=" << flashdata[iflash-1].tot << std::endl;
       }//end of flash loop
     }//end of container loop
-
+    
     return flashdata;
   }
 
