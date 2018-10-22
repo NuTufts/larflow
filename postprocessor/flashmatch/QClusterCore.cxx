@@ -84,15 +84,49 @@ namespace larflow {
       }
     }
 
+    // collect final core points, get pca, sort by projection
+    std::vector< std::vector<float> > finalcorepts;
+    std::vector< int > finalcore_idx;
+    finalcorepts.reserve(joinsize);
+    finalcore_idx.reserve(joinsize);
+    for (auto& idx : core_indices ) {
+      finalcorepts.push_back( (*_cluster)[idx].xyz );
+      finalcore_idx.push_back( idx );
+    }
+    for ( auto& iclust : joinlist )  {
+      for (auto& idx : corealgo.getClusterIndices().at(iclust) ) {
+     	finalcorepts.push_back( (*_cluster)[idx].xyz );
+	finalcore_idx.push_back( idx );
+      }
+    }
+    
+    // pca's
+    CilantroPCA finalcorepca( finalcorepts );
+    _pca_core = finalcorepca.getpcaxis();
+
+    Eigen::Vector3f origin2( _pca_core.getAvePosition()[0],     _pca_core.getAvePosition()[1],     _pca_core.getAvePosition()[2] );
+    Eigen::Vector3f vec2(    _pca_core.getEigenVectors()[0][0], _pca_core.getEigenVectors()[1][0], _pca_core.getEigenVectors()[2][0] );
+    Eigen::ParametrizedLine< float, 3 > coreline2( origin2, vec2 );
+
+    std::vector< ProjPoint_t > proj_v;
+    for (int icore=0; icore<(int)finalcorepts.size(); icore++) {
+      Eigen::Map< Eigen::Vector3f >  ept( finalcorepts[icore].data() );
+      Eigen::Vector3f projpt = coreline2.projection( ept );
+      float s = (projpt-origin2).norm();
+      float coss = vec2.dot(projpt-origin2);
+      ProjPoint_t pjpt;
+      pjpt.idx = finalcore_idx[icore];;
+      pjpt.s = ( coss<0 ) ? -s : s;
+      proj_v.push_back( pjpt );
+    }
+    
+    std::sort(proj_v.begin(), proj_v.end());
+
     // make core, make non-core points
     _core.clear();
     _core.reserve( joinsize );
-    for (auto& idx : core_indices ) {
-      _core.push_back( (*_cluster)[idx] );
-    }
-    for ( auto& iclust : joinlist )  {
-      for (auto& idx : corealgo.getClusterIndices().at(iclust) )
-	_core.push_back( (*_cluster)[idx] );
+    for (auto& projpt : proj_v ) {
+      _core.push_back( (*_cluster)[projpt.idx] );
     }
     _core.idx = (*_cluster).idx;
     _core.mctrackid = (*_cluster).mctrackid;
@@ -105,23 +139,13 @@ namespace larflow {
 
       QCluster_t qnoncore;
       for (auto& idx : corealgo.getClusterIndices().at(iclust) )
-	qnoncore.push_back( (*_cluster)[idx] );
+    	qnoncore.push_back( (*_cluster)[idx] );
       qnoncore.idx = (*_cluster).idx;
       qnoncore.mctrackid = (*_cluster).mctrackid;
       qnoncore.truthmatched_flashidx = (*_cluster).truthmatched_flashidx;
       
       _noncore.emplace_back( std::move(qnoncore) );
     }
-
-    // pca's
-    //CilantroPCA corepc_algo( core );
-    //larlite::pcaxis corepca = corepc_algo.getpcaxis();
-    std::vector< std::vector<float> > finalcorepts(_core.size());
-    for ( int ihit=0; ihit<(int)_core.size(); ihit++ ) {
-      finalcorepts[ihit] = _core[ihit].xyz;
-    }
-    CilantroPCA finalcorepca( finalcorepts );
-    _pca_core = finalcorepca.getpcaxis();
 
     // non-core pca
     for ( int inoncore=0; inoncore<(int)_noncore.size(); inoncore++ ) {
@@ -135,6 +159,7 @@ namespace larflow {
       _pca_noncore.push_back( noncorepca.getpcaxis() );
     }//noncore loop
 
+    
     
   }//end of define core
 
@@ -156,15 +181,6 @@ namespace larflow {
     Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
     Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
     //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
-
-    struct ProjPoint_t {
-      int idx;
-      float s;
-      bool operator< ( const ProjPoint_t& rhs ) const {
-	if ( s < rhs.s ) return true;
-	return false;
-      };
-    };
 
     std::vector< ProjPoint_t > orderedline;
     orderedline.reserve( _core.size() );

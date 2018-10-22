@@ -31,6 +31,15 @@ namespace larflow {
     
   protected:
     
+    struct ProjPoint_t {
+      int idx;
+      float s;
+      bool operator< ( const ProjPoint_t& rhs ) const {
+	if ( s < rhs.s ) return true;
+	return false;
+      };
+    };
+
     void buildCore();
     void fillClusterGapsUsingCorePCA();
     

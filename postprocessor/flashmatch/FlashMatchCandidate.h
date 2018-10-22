@@ -38,12 +38,9 @@ namespace larflow {
     // define the core, non-core, and their respective principle components
     void defineCore();
 
-    // fill gap within the core
-    //void fillGap();
-
     // extend the core to the detector edge from the most likely entering end
     //  and past the TPC boundaries in so far as it improves the flash-match
-    //void ExtendEnteringEnd();
+    void ExtendEnteringEnd();
 
     // extend core on the exiting end
     //   only continues as long as flash-match improved
