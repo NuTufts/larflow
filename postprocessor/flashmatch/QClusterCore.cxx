@@ -8,6 +8,7 @@
 #include "SelectionTool/OpT0Finder/PhotonLibrary/PhotonVisibilityService.h"
 
 // cluster
+#include "cluster/DBSCAN.h"
 #include "cluster/CoreFilter.h"
 #include "cluster/CilantroPCA.h"
 
@@ -24,31 +25,42 @@ namespace larflow {
     
     int minneighbors = 3;
     int minclusterpoints = 5;
-    float maxdist = 10.0;
+    float maxdist = 15.0;
+    float fMaxDistFromPCAcore = 15.0;
 
     // const larutil::Geometry* geo = larutil::Geometry::GetME();
     // const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
     // const float  driftv = larp->DriftVelocity();    
-
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] input cluster size=" << _cluster->size() << std::endl;
+    
     std::vector< std::vector<float> > clusterpts;
     clusterpts.reserve(_cluster->size()); // need to define a non-copy way to do this ...
     for ( auto const& qhit : *_cluster ) {
-      std::vector<float> qpt = qhit.xyz;
-      // substract the flash time
-      // float xoffset = (_flashdata->tpc_tick-3200)*0.5*driftv;
-      // qpt[0] -= xoffset;
       clusterpts.push_back( qhit.xyz );
     }
-
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] number of cluster points=" << clusterpts.size() << std::endl;
+    
     // core filter
     CoreFilter corealgo( clusterpts, minneighbors, maxdist );
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] core filter split into =" << corealgo.getNumClusters() << std::endl;
 
     // we take a guess that the largest cluster is the core
     int largest_idx = corealgo.getIndexOfLargestCluster();
-    const std::vector<int>& core_indices = corealgo.getClusterIndices().at(largest_idx);
-    std::vector< std::vector<float> > core(core_indices.size());
-    int icore=0;
-    for ( auto const& idx : core_indices ) {
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core idx=" << largest_idx << std::endl;
+    if ( largest_idx<0 ) {
+      // null core -- what to do
+      assert(false);
+      return;
+    }
+    
+    std::vector<int> core_indices = corealgo.getClusterIndices( largest_idx );
+    size_t largestcore_size = core_indices.size();
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core size: " << largestcore_size << std::endl;
+    std::vector< std::vector<float> > core(largestcore_size);
+
+    
+    for ( size_t icore=0; icore<core_indices.size(); icore++) {
+      int idx = core_indices.at(icore);
       core[icore] = clusterpts[idx];
     }
 
@@ -61,28 +73,33 @@ namespace larflow {
     Eigen::Vector3f vec( corepca.getEigenVectors()[0][0], corepca.getEigenVectors()[1][0], corepca.getEigenVectors()[2][0] );
     Eigen::ParametrizedLine< float, 3 > coreline( origin, vec );
 
+    
     // loose addition, just one points need to be close
+
     std::set< int > joinlist;
-    int joinsize = core_indices.size();
-    for ( int iclust=0; iclust<(int)corealgo.getClusterIndices().size(); iclust++ ) {
-
+    int joinsize = largestcore_size;
+    int numsubclusts = corealgo.getNumClusters();
+    for ( int iclust=0; iclust<numsubclusts; iclust++ ) {
       if ( iclust==largest_idx ) continue;
-
+      std::cout << "test: " << iclust << std::endl;
       bool join2core = false;
-      for (auto& idx : corealgo.getClusterIndices().at(iclust) ) {
+      std::vector<int> subclustidx_v = corealgo.getClusterIndices(iclust);
+      std::cout << "size=" << subclustidx_v.size() << " numclusters=" << corealgo.getNumClusters() << std::endl;
+      for (auto& idx : subclustidx_v ) {
+	std::cout << "[" << iclust << "] idx=" << idx << std::endl;
 	Eigen::Map< Eigen::Vector3f > testpt( clusterpts[idx].data() );
 	float dist = coreline.distance(testpt); // eigen is great
-	if ( dist < 10.0 ) {
+	if ( dist < fMaxDistFromPCAcore ) {
 	  join2core = true;
 	  break;
 	}
       }
-
+      
       if (join2core ) {
 	joinlist.insert( iclust );
-	joinsize += corealgo.getClusterIndices().at(iclust).size();
+	joinsize += subclustidx_v.size();
       }
-    }
+    }//end of loop over subclusters
 
     // collect final core points, get pca, sort by projection
     std::vector< std::vector<float> > finalcorepts;
@@ -94,11 +111,16 @@ namespace larflow {
       finalcore_idx.push_back( idx );
     }
     for ( auto& iclust : joinlist )  {
-      for (auto& idx : corealgo.getClusterIndices().at(iclust) ) {
+      std::cout << " add non core iclustidx=" << iclust << std::endl;
+      std::vector<int> noncoreidx = corealgo.getClusterIndices(iclust);
+      if (noncoreidx.size()==0)
+	continue;
+      for (auto& idx : noncoreidx ) {
      	finalcorepts.push_back( (*_cluster)[idx].xyz );
 	finalcore_idx.push_back( idx );
       }
     }
+
     
     // pca's
     CilantroPCA finalcorepca( finalcorepts );
@@ -119,7 +141,6 @@ namespace larflow {
       pjpt.s = ( coss<0 ) ? -s : s;
       proj_v.push_back( pjpt );
     }
-    
     std::sort(proj_v.begin(), proj_v.end());
 
     // make core, make non-core points
@@ -133,12 +154,13 @@ namespace larflow {
     _core.truthmatched_flashidx = (*_cluster).truthmatched_flashidx;
 
     // not core
-    for ( int iclust=0; iclust<iclust<(int)corealgo.getClusterIndices().size(); iclust++ ) {
+    for ( int iclust=0; iclust<(int)numsubclusts; iclust++ ) {
       auto it = joinlist.find(iclust);
       if ( it!=joinlist.end() ) continue;
+      if ( corealgo.getClusterIndices(iclust).size()==0 ) continue;
 
       QCluster_t qnoncore;
-      for (auto& idx : corealgo.getClusterIndices().at(iclust) )
+      for (auto& idx : corealgo.getClusterIndices(iclust) )
     	qnoncore.push_back( (*_cluster)[idx] );
       qnoncore.idx = (*_cluster).idx;
       qnoncore.mctrackid = (*_cluster).mctrackid;
@@ -146,21 +168,22 @@ namespace larflow {
       
       _noncore.emplace_back( std::move(qnoncore) );
     }
-
+    
     // non-core pca
+    _noncore_hits = 0;
     for ( int inoncore=0; inoncore<(int)_noncore.size(); inoncore++ ) {
       QCluster_t& qnoncore = _noncore[inoncore];
       
       std::vector< std::vector<float> > noncorepts(qnoncore.size());
       for ( int ihit=0; ihit<(int)qnoncore.size(); ihit++ ) {
 	noncorepts[ihit] = qnoncore[ihit].xyz;
+	_noncore_hits++;
       }
       CilantroPCA noncorepca( noncorepts );
       _pca_noncore.push_back( noncorepca.getpcaxis() );
     }//noncore loop
 
-    
-    
+    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] defined core" << std::endl;
   }//end of define core
 
   void QClusterCore::fillClusterGapsUsingCorePCA() {

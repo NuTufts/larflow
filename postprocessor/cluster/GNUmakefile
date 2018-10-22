@@ -24,15 +24,21 @@ LIBS     += `larcv-config --libs`
 LIBS     += `larlitecv-config --libs`
 LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
 
+# SPECIFY LIB
 LIB = ../lib/libLArFlowCluster3D.so
 
+# SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
+BINSRCS = dev_truthcluster.cxx reco_cluster.cxx
 
-all: $(LIB) dev_truthcluster reco_cluster
+BINS = $(basename $(BINSRCS))
+SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
+OBJS = $(SRCS:.cxx=.o)
 
-../lib/libLArFlowCluster3D.so: TruthCluster.o CilantroPCA.o CilantroSpectral.o RecoCluster.o DBSCAN.o CoreFilter.o
+all: $(LIB) $(BINS)
+
+../lib/libLArFlowCluster3D.so: $(OBJS)
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
-	@echo "<< compiling $< >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 dev_truthcluster: $(LIB) dev_truthcluster.cxx
@@ -41,3 +47,5 @@ dev_truthcluster: $(LIB) dev_truthcluster.cxx
 reco_cluster: $(LIB) reco_cluster.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
 
+clean:
+	rm $(LIB) *.o

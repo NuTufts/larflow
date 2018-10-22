@@ -17,6 +17,7 @@
 // larflowflashmatch
 #include "FlashMatchTypes.h"
 #include "FlashMatchCandidate.h"
+#include "QClusterCore.h"
 
 class TRandom3;
 namespace larutil {
@@ -61,7 +62,8 @@ namespace larflow {
     // vectors for storing the events data flashes and reconstructed qclusters
     std::vector<FlashData_t> _flashdata_v;
     std::vector<QCluster_t>  _qcluster_v;
-    std::vector<larlite::pcaxis>  _pca_qcluster_v; // pca, useful
+    std::vector<QClusterCore> _qcore_v;
+    //std::vector<larlite::pcaxis>  _pca_qcluster_v; // pca, useful
     
     // QCluster Tools
     // ----------------------------------------------
@@ -72,9 +74,9 @@ namespace larflow {
 				bool ignorelast=true );
     
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
-    //    project into u,v. collect hits there.
-    void fillClusterGapsUsingCorePCA( QCluster_t& cluster );
-    void applyGapFill( std::vector<QCluster_t>& qcluster_v );
+    //    project into u,v. collect hits there. (offloaded to qclustercore)
+    /* void fillClusterGapsUsingCorePCA( QCluster_t& cluster ); */
+    /* void applyGapFill( std::vector<QCluster_t>& qcluster_v ); */
     
     // 3) hits/pixels not part of cluster (pixel got flowed to wrong place), but clearly inside neighborhood of pixels
     //    we collect that as charge as well
@@ -111,6 +113,7 @@ namespace larflow {
     float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
     float chi2Comparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );    
     void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
+    void dumpQClusterImages();
 
     // Flash Hypothesis Building
     // -------------------------

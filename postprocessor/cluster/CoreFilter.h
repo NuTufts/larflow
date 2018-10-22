@@ -28,19 +28,17 @@ namespace larflow {
     larlite::larflowcluster           getCore( int min_hits_in_subcluster, const larlite::larflowcluster& cluster );
     std::vector< std::vector<float> > getCore( int min_hits_in_subcluster, const std::vector< std::vector<float> >& cluster );
     larlite::larflowcluster getNonCore( int min_hits_in_subcluster, const larlite::larflowcluster& cluster );
+    std::vector<int> getClusterIndices( int icluster );
     std::vector< int > getPointIndices( bool core, int min_hits_in_subcluster );
-    const std::vector< DBSCAN::Cluster_t > getClusterIndices() const { return _clusters_v; };
+    //const std::vector< larflow::DBSCAN::Cluster_t > getClusterIndices() const { return _clusters_v; };
     int getIndexOfLargestCluster() const;
+    int getNumClusters() const { return _clusters_v.size(); };
     
   protected:
 
     int _min_neighbors;
     float _maxdist;
-    std::vector< DBSCAN::Cluster_t > _clusters_v; // from the dbscan results
-
-    
-    
-
+    std::vector< larflow::DBSCAN::Cluster_t > _clusters_v; // from the dbscan results
     
     
   };

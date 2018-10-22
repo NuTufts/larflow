@@ -93,15 +93,12 @@ namespace larflow {
     
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
-    _pca_qcluster_v.clear();
     // we ignore last cluster because sometimes we put store unclustered hits in that entry
     if ( ignorelast ) {
       _qcluster_v.resize( clusters.size()-1 );
-      _pca_qcluster_v.reserve( clusters.size()-1 );
     }
     else {
       _qcluster_v.resize( clusters.size() );
-      _pca_qcluster_v.reserve( clusters.size() );      
     }
 
     // we build up the charge clusters that are easy to grab
@@ -117,11 +114,14 @@ namespace larflow {
       doFlash2MCTrackMatching( _flashdata_v );
       doTruthCluster2FlashTruthMatching( _flashdata_v, _qcluster_v );
       bool appendtoclusters = true;
-      buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
+      //buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
     }
-
+    //dumpMatchImages( _flashdata_v, false, false );
+    dumpQClusterImages();
+    assert(false);
+    
     // modifications to fill gaps
-    applyGapFill( _qcluster_v );
+    //applyGapFill( _qcluster_v );
 
     // we have to build up charge in dead regions in the Y-plane
     // [TODO]
@@ -378,6 +378,7 @@ namespace larflow {
 	qclusters.resize( lfclusters.size() );
     }
 
+    // build the qclusters -- associating 3D position and grabbing charge pixel value from 2D image
     const larcv::ImageMeta& src_meta = img_v[src_plane].meta();
 
     int nclusters = lfclusters.size();
@@ -472,157 +473,144 @@ namespace larflow {
       // all are meant to augment track-like clusters
       // what about neutrinos? showers? 2nd-pca axis analysis tells us not to do this
 
-      int minneighbors = 3;
-      int minclusterpoints = 5;
-      float maxdist = 10.0;
-      CoreFilter corealgo( clusterpts, minneighbors, maxdist );
-      std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
-      std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
-      for (auto& idx : coreidx_v ) {
-	qcluster[idx].type = kCore;
-      }
-    
-      // get pca of core points
-      if ( core.size()>=3 ) {
-	CilantroPCA pcalgo( core );
-	larlite::pcaxis pca = pcalgo.getpcaxis();
-	_pca_qcluster_v.emplace_back(pca);
-      }else {
-	larlite::pcaxis pca;
-	_pca_qcluster_v.push_back( pca );
-      }
+      // Define the QClusterCore -- this tries to identify, using DBSCAN, a core cluster
+      // Removes small, floating clusters (that come from truth clustering, probably less so for reco-clustering)
+      // Also defines the central PCA, and orders the core hits as a function of projection
+      //  along the pca line. Useful for later operations
+      QClusterCore qcore( qcluster );
+      _qcore_v.emplace_back( std::move(qcore) );
       
     }//end of cluster loop
     
   }
 
-  void LArFlowFlashMatch::applyGapFill( std::vector<QCluster_t>& qcluster_v ) {
-    int iclust=0;
-    for ( auto& cluster : qcluster_v ) {
-      std::cout << "[LArFlowFlashMatch::applyGapFill][INFO] Filling clusteridx=" << iclust << std::endl;
-      fillClusterGapsUsingCorePCA( cluster );
-      iclust++;
-    }
-  }
+  // void LArFlowFlashMatch::applyGapFill( std::vector<QCluster_t>& qcluster_v ) {
+  //   int iclust=0;
+  //   for ( auto& cluster : qcluster_v ) {
+  //     std::cout << "[LArFlowFlashMatch::applyGapFill][INFO] Filling clusteridx=" << iclust << std::endl;
+  //     fillClusterGapsUsingCorePCA( cluster );
+  //     iclust++;
+  //   }
+  // }
   
-  void LArFlowFlashMatch::fillClusterGapsUsingCorePCA( QCluster_t& cluster ) {
-    std::vector< std::vector<float> > clusterpts( cluster.size() ); // this copy is unfortunate
-    for (size_t ihit=0; ihit<cluster.size(); ihit++ ) {
-      clusterpts[ihit].resize(3);
-      for (int i=0; i<3; i++ ) clusterpts[ihit][i] = cluster[ihit].xyz[i];
-    }
+  // void LArFlowFlashMatch::fillClusterGapsUsingCorePCA( QCluster_t& cluster ) {
+  //   std::vector< std::vector<float> > clusterpts( cluster.size() ); // this copy is unfortunate
+  //   for (size_t ihit=0; ihit<cluster.size(); ihit++ ) {
+  //     clusterpts[ihit].resize(3);
+  //     for (int i=0; i<3; i++ ) clusterpts[ihit][i] = cluster[ihit].xyz[i];
+  //   }
 
-    const float kGapMin_cm = 6.0; // cm
-    const float kGapStepLenMin_cm = 1.0; // cm
-    const float kGapStepLenMax_cm = 3.0; // cm
-    // int minneighbors = 3;
-    // int minclusterpoints = 5;
-    // float maxdist = 10.0;
-    // CoreFilter corealgo( clusterpts, minneighbors, maxdist );
-    // std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
-    // std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
+  //   const float kGapMin_cm = 6.0; // cm
+  //   const float kGapStepLenMin_cm = 1.0; // cm
+  //   const float kGapStepLenMax_cm = 3.0; // cm
+  //   // int minneighbors = 3;
+  //   // int minclusterpoints = 5;
+  //   // float maxdist = 10.0;
+  //   // CoreFilter corealgo( clusterpts, minneighbors, maxdist );
+  //   // std::vector< std::vector<float> > core = corealgo.getCore( minclusterpoints, clusterpts );
+  //   // std::vector<int> coreidx_v = corealgo.getPointIndices( true, minclusterpoints );
     
-    // // get pca of core points
-    // CilantroPCA pcalgo( core );
-    //larlite::pcaxis pca = pcalgo.getpcaxis();
-    larlite::pcaxis pca = _pca_qcluster_v[cluster.idx];
-    if ( pca.getEigenVectors().size()==0 ) {
-      // not core
-      return;
-    }
+  //   // // get pca of core points
+  //   // CilantroPCA pcalgo( core );
+  //   //larlite::pcaxis pca = pcalgo.getpcaxis();
+  //   larlite::pcaxis pca = _pca_qcluster_v[cluster.idx];
+  //   if ( pca.getEigenVectors().size()==0 ) {
+  //     // not core
+  //     return;
+  //   }
     
-    // we project points on the pca line
-    // define eigen line
-    Eigen::Vector3f origin( pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] );
-    Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
-    Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
-    //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
+  //   // we project points on the pca line
+  //   // define eigen line
+  //   Eigen::Vector3f origin( pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] );
+  //   Eigen::Vector3f vec( pca.getEigenVectors()[0][0], pca.getEigenVectors()[1][0], pca.getEigenVectors()[2][0] );
+  //   Eigen::ParametrizedLine< float, 3 > pcaline( origin, vec );
+  //   //std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][DEBUG] pca-origin=" << origin.transpose() << "  vec=" << vec.transpose() << std::endl;
 
-    struct ProjPoint_t {
-      int idx;
-      float s;
-      bool operator< ( const ProjPoint_t& rhs ) const {
-	if ( s < rhs.s ) return true;
-	return false;
-      };
-    };
+  //   struct ProjPoint_t {
+  //     int idx;
+  //     float s;
+  //     bool operator< ( const ProjPoint_t& rhs ) const {
+  // 	if ( s < rhs.s ) return true;
+  // 	return false;
+  //     };
+  //   };
 
-    // extract core points from cluster
+  //   // extract core points from cluster
 
-    std::vector< ProjPoint_t > orderedline;
-    orderedline.reserve( cluster.size() );
-    for ( size_t icore=0; icore<cluster.size(); icore++ ) {
-      if ( cluster[icore].type==kNonCore )
-	continue;
-      Eigen::Map< Eigen::Vector3f >  ept( cluster[icore].xyz.data() );
-      Eigen::Vector3f projpt = pcaline.projection( ept );
-      float s = (projpt-origin).norm();
-      float coss = vec.dot(projpt-origin);
-      ProjPoint_t pjpt;
-      pjpt.idx = icore;
-      pjpt.s = ( coss<0 ) ? -s : s;
-      orderedline.push_back( pjpt );
-    }
-    std::sort( orderedline.begin(), orderedline.end() );
+  //   std::vector< ProjPoint_t > orderedline;
+  //   orderedline.reserve( cluster.size() );
+  //   for ( size_t icore=0; icore<cluster.size(); icore++ ) {
+  //     if ( cluster[icore].type==kNonCore )
+  // 	continue;
+  //     Eigen::Map< Eigen::Vector3f >  ept( cluster[icore].xyz.data() );
+  //     Eigen::Vector3f projpt = pcaline.projection( ept );
+  //     float s = (projpt-origin).norm();
+  //     float coss = vec.dot(projpt-origin);
+  //     ProjPoint_t pjpt;
+  //     pjpt.idx = icore;
+  //     pjpt.s = ( coss<0 ) ? -s : s;
+  //     orderedline.push_back( pjpt );
+  //   }
+  //   std::sort( orderedline.begin(), orderedline.end() );
 
-    // now loop through and look for gaps
-    // keep track of average gap -- help us set the filler point density
-    float avegap = 0.;
-    int nfillgaps = 0;
-    std::vector< int > gapstarts;
-    for ( size_t ipt=0; ipt+1<orderedline.size(); ipt++ ) {
+  //   // now loop through and look for gaps
+  //   // keep track of average gap -- help us set the filler point density
+  //   float avegap = 0.;
+  //   int nfillgaps = 0;
+  //   std::vector< int > gapstarts;
+  //   for ( size_t ipt=0; ipt+1<orderedline.size(); ipt++ ) {
 
-      // cannot have gap between two EXT pts
+  //     // cannot have gap between two EXT pts
       
-      float gap = fabs(orderedline[ipt+1].s - orderedline[ipt].s);
-      //std::cout << " orderedline[" << ipt << "] gap=" << gap << " s0=" << orderedline[ipt].s << std::endl;
-      if ( gap>kGapMin_cm )  {
-	gapstarts.push_back( ipt );	
-      }
-      else {
-	avegap += gap;
-	nfillgaps++;
-      }
-    }
-    if ( nfillgaps>0 )
-      avegap /= float(nfillgaps);
+  //     float gap = fabs(orderedline[ipt+1].s - orderedline[ipt].s);
+  //     //std::cout << " orderedline[" << ipt << "] gap=" << gap << " s0=" << orderedline[ipt].s << std::endl;
+  //     if ( gap>kGapMin_cm )  {
+  // 	gapstarts.push_back( ipt );	
+  //     }
+  //     else {
+  // 	avegap += gap;
+  // 	nfillgaps++;
+  //     }
+  //   }
+  //   if ( nfillgaps>0 )
+  //     avegap /= float(nfillgaps);
 
-    std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
-    if ( nfillgaps==0 ) // no need to do anything!
-      return;
+  //   std::cout << "[LArFlowFlashMatch::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
+  //   if ( nfillgaps==0 ) // no need to do anything!
+  //     return;
 
-    // add gap points
-    for ( auto& idxgap : gapstarts ) {
-      // get the projected point info
-      ProjPoint_t& start = orderedline[idxgap];
-      ProjPoint_t& end   = orderedline[idxgap+1];
-      // get the points
-      Eigen::Map< Eigen::Vector3f > startpt( cluster[start.idx].xyz.data() );
-      Eigen::Map< Eigen::Vector3f > endpt( cluster[end.idx].xyz.data() );
-      Eigen::ParametrizedLine< float, 3 > gapline = Eigen::ParametrizedLine<float,3>::Through( startpt, endpt );
-      float gaplen = (endpt-startpt).norm();
-      // step len
-      float steplen = ( avegap < kGapStepLenMax_cm ) ? avegap : kGapStepLenMax_cm;
-      steplen = ( steplen > kGapStepLenMin_cm ) ? steplen : kGapStepLenMin_cm;
-      int nsteps = (int)(gaplen/steplen) + 1;
-      steplen = gaplen/float(nsteps);
-      float tickstart = cluster[ start.idx ].tick;
-      float tickend   = cluster[ end.idx ].tick;
-      float dticklen = (tickend-tickstart)/float(nsteps);
-      for (int istep=0; istep<nsteps; istep++) {
-	float s = steplen*((float)istep+0.5);
-	Eigen::Vector3f gappt = gapline.pointAt( s );
-	QPoint_t qpt;
-	qpt.xyz.resize(3,0);
-	for (int i=0; i<3; i++) qpt.xyz[i] = gappt(i);
-	qpt.type = kGapFill;
-	qpt.pixeladc = steplen;
-	qpt.tick = tickstart + dticklen*((float)istep+0.5);
-	cluster.emplace_back( std::move(qpt) );
-      }
-    }//end of gap starts loop
+  //   // add gap points
+  //   for ( auto& idxgap : gapstarts ) {
+  //     // get the projected point info
+  //     ProjPoint_t& start = orderedline[idxgap];
+  //     ProjPoint_t& end   = orderedline[idxgap+1];
+  //     // get the points
+  //     Eigen::Map< Eigen::Vector3f > startpt( cluster[start.idx].xyz.data() );
+  //     Eigen::Map< Eigen::Vector3f > endpt( cluster[end.idx].xyz.data() );
+  //     Eigen::ParametrizedLine< float, 3 > gapline = Eigen::ParametrizedLine<float,3>::Through( startpt, endpt );
+  //     float gaplen = (endpt-startpt).norm();
+  //     // step len
+  //     float steplen = ( avegap < kGapStepLenMax_cm ) ? avegap : kGapStepLenMax_cm;
+  //     steplen = ( steplen > kGapStepLenMin_cm ) ? steplen : kGapStepLenMin_cm;
+  //     int nsteps = (int)(gaplen/steplen) + 1;
+  //     steplen = gaplen/float(nsteps);
+  //     float tickstart = cluster[ start.idx ].tick;
+  //     float tickend   = cluster[ end.idx ].tick;
+  //     float dticklen = (tickend-tickstart)/float(nsteps);
+  //     for (int istep=0; istep<nsteps; istep++) {
+  // 	float s = steplen*((float)istep+0.5);
+  // 	Eigen::Vector3f gappt = gapline.pointAt( s );
+  // 	QPoint_t qpt;
+  // 	qpt.xyz.resize(3,0);
+  // 	for (int i=0; i<3; i++) qpt.xyz[i] = gappt(i);
+  // 	qpt.type = kGapFill;
+  // 	qpt.pixeladc = steplen;
+  // 	qpt.tick = tickstart + dticklen*((float)istep+0.5);
+  // 	cluster.emplace_back( std::move(qpt) );
+  //     }
+  //   }//end of gap starts loop
     
-  }
+  // }
 
   std::vector<FlashData_t> LArFlowFlashMatch::collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
 								const std::vector<larlite::opflash>& cosmic_flashes ) {
@@ -1335,6 +1323,173 @@ namespace larflow {
     std::cout << "[Total " << totcompat << "]" << std::endl;
   }
 
+  void LArFlowFlashMatch::dumpQClusterImages() {
+    
+    gStyle->SetOptStat(0);
+    
+    const larutil::Geometry* geo = larutil::Geometry::GetME();
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
+    const float  driftv = larp->DriftVelocity();    
+    
+    TCanvas c2d("c2d","pmt flash", 1200, 600);
+    TPad datayz("pad1", "",0.0,0.5,1.0,1.0);
+    TPad dataxy("pad2", "",0.0,0.0,1.0,0.5);
+    datayz.SetRightMargin(0.05);
+    datayz.SetLeftMargin(0.05);    
+    dataxy.SetRightMargin(0.05);
+    dataxy.SetLeftMargin(0.05);    
+
+    // shapes/hists used for each plot
+    TH2D bg("hyz","",105,-20,1050, 120, -130, 130);
+    TH2D bgxy("hxy","",25,-300,550, 120, -130, 130);
+    TBox boxzy( 0, -116.5, 1036, 116.5 );
+    boxzy.SetFillStyle(0);
+    boxzy.SetLineColor(kBlack);
+    boxzy.SetLineWidth(1);
+    TBox boxxy( 0, -116.5, 256, 116.5 );
+    boxxy.SetFillStyle(0);
+    boxxy.SetLineColor(kBlack);
+    boxxy.SetLineWidth(1);
+
+    // badch indicator
+    std::vector< TBox* > zy_deadregions;
+    for (int p=2; p<3; p++) {
+      const larcv::ChStatus& status = _evstatus->status( p );
+      int maxchs = ( p<=1 ) ? 2400 : 3456;
+      bool inregion = false;
+      int regionstart = -1;
+      int currentregionwire = -1;
+      for (int ich=0; ich<maxchs; ich++) {
+	
+	if ( !inregion && status.status(ich)!=4 ) {
+	  inregion = true;
+	  regionstart = ich;
+	  currentregionwire = ich;
+	}
+	else if ( inregion && status.status(ich)!=4 ) {
+	  currentregionwire = ich;
+	}
+	else if ( inregion && status.status(ich)==4 ) {
+	  // end a region, make a box!
+	  TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
+	  badchs->SetFillColor( 19 );
+	  badchs->SetLineColor( 0 );
+	  zy_deadregions.push_back( badchs );
+	  inregion = false;
+	}
+      }
+    }//end of plane loop for dead channels
+
+    // pmt markers
+    std::vector<TEllipse*> pmtmarkers_v(32,0);
+    std::vector<TText*>    chmarkers_v(32,0);    
+    for (int ich=0; ich<32; ich++) {
+      int opdet = geo->OpDetFromOpChannel(ich);
+      double xyz[3];
+      geo->GetOpChannelPosition( ich, xyz );
+      
+      pmtmarkers_v[ich] = new TEllipse(xyz[2],xyz[1], 10.0, 10.0);
+      pmtmarkers_v[ich]->SetLineColor(kBlack);
+
+      char pmtname[10];
+      sprintf(pmtname,"%02d",ich);
+      chmarkers_v[ich] = new TText(xyz[2]-10.0,xyz[1]-5.0,pmtname);
+      chmarkers_v[ich]->SetTextSize(0.04);
+    }
+    
+    // make charge graphs
+    for (int iclust=0; iclust<(int)_qcluster_v.size(); iclust++) {
+
+      std::cout << "[larflow::LArFlowFlashMatch::dumpQClusterImages][INFO] Cluster " << iclust << std::endl;
+      
+      const QCluster_t& qcluster = _qcluster_v[iclust];
+      const QClusterCore& qcore  = _qcore_v[iclust];
+
+      // make graph of core and non-core
+      TGraph* gcore_zy    = new TGraph( qcore._core.size() );
+      TGraph* gcore_xy    = new TGraph( qcore._core.size() );     
+      TGraph* gnoncore_zy = new TGraph( qcore._noncore_hits );
+      TGraph* gnoncore_xy = new TGraph( qcore._noncore_hits );
+      
+      for ( int iq=0; iq<(int)qcore._core.size(); iq++ ) {
+	gcore_zy->SetPoint( iq, qcore._core[iq].xyz[2], qcore._core[iq].xyz[1] );
+	gcore_xy->SetPoint( iq, qcore._core[iq].xyz[0], qcore._core[iq].xyz[1] );	
+      }
+      int inoncore = 0;
+      for (auto const& qnoncore : qcore._noncore ) {
+	for ( int iq=0; iq<(int)qnoncore.size(); iq++ ) {
+	  gnoncore_zy->SetPoint( inoncore, qnoncore[iq].xyz[2], qnoncore[iq].xyz[1] );
+	  gnoncore_xy->SetPoint( inoncore, qnoncore[iq].xyz[0], qnoncore[iq].xyz[1] );
+	  inoncore++;
+	}
+      }
+      gnoncore_zy->Set(inoncore);
+      gnoncore_xy->Set(inoncore);
+
+      gcore_zy->SetMarkerColor(kRed);
+      gcore_xy->SetMarkerColor(kRed);      
+      gnoncore_zy->SetMarkerColor(kBlack);
+      gnoncore_xy->SetMarkerColor(kBlack);
+      TGraph* g_v[4] = { gcore_zy, gcore_xy, gnoncore_zy, gnoncore_xy };
+      for (int i=0; i<4; i++) {
+	g_v[i]->SetMarkerStyle(20);
+	g_v[i]->SetMarkerSize(0.3);
+      }
+
+      // Set the pads
+      c2d.Clear();
+      c2d.Draw();
+      c2d.cd();
+      
+      // Draw the pads
+      datayz.Draw();
+      dataxy.Draw();
+
+      datayz.cd();
+      bg.Draw();
+      boxzy.Draw();
+      for ( auto& pbadchbox : zy_deadregions ) {
+	pbadchbox->Draw();
+      }
+      
+      for (int ich=0; ich<32; ich++) {
+	pmtmarkers_v[ich]->Draw();
+	chmarkers_v[ich]->Draw();
+      }
+
+      gnoncore_zy->Draw("P");
+      gcore_zy->Draw("P");
+
+      dataxy.cd();
+      bgxy.Draw();
+      boxxy.Draw();
+
+      gnoncore_xy->Draw("P");
+      gcore_xy->Draw("P");
+
+
+      char canvname[50];
+      sprintf( canvname, "flashmatch_qclustimg_%02d.png", iclust );
+      c2d.SaveAs( canvname );
+
+      // clean up
+      delete gnoncore_zy;
+      delete gnoncore_xy;      
+      delete gcore_zy;
+      delete gcore_xy;      
+    }
+
+    // clean up vis items
+    for (int ich=0; ich<32; ich++) {
+      delete pmtmarkers_v[ich];
+      delete chmarkers_v[ich];
+    }
+    for (int i=0; i<(int)zy_deadregions.size(); i++) {
+      delete zy_deadregions[i];
+    }
+    
+  }
+  
   void LArFlowFlashMatch::dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch ) {
     // ===================================================
     // Dump images for debug
@@ -1344,7 +1499,8 @@ namespace larflow {
     //  we also plot the best chi2 and best maxdist match
     //  finally, we plot the truth-matched hypothesis
     // ===================================================
-    
+
+    /*
     gStyle->SetOptStat(0);
     
     const larutil::Geometry* geo = larutil::Geometry::GetME();
@@ -1398,7 +1554,6 @@ namespace larflow {
 	  TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
 	  badchs->SetFillColor( 19 );
 	  badchs->SetLineColor( 0 );
-	  //badchs->SetFillStyle( 3005 );
 	  zy_deadregions.push_back( badchs );
 	  inregion = false;
 	}
@@ -1414,6 +1569,7 @@ namespace larflow {
       int ncompat = 0;
 
       // get data histogram
+      // -------------------
       TH1D hdata("hdata","",32,0,32);
       float norm = 1.;
       if ( !shapeonly ) {
@@ -1435,18 +1591,19 @@ namespace larflow {
       if ( flashdata_v[iflash].mctrackid>=0 )
 	mctrack_match = true;
 
+
       // record some info for text for canvas
-      int bestchi2_idx = -1;
-      float bestchi2 = -1;
-      float bestchi2_peratio = -1.0;
-      int bestmaxdist_idx = -1;
-      float bestmaxdist = -1;
-      float bestmaxdist_peratio = -1.0;
-      int bestfmatch_idx = -1;
-      float matchscore_best = 0;
-      const FlashHypo_t* bestchi2_hypo = nullptr;
-      const FlashHypo_t* bestmaxdist_hypo = nullptr;
-      const FlashHypo_t* bestfmatch_hypo = nullptr;
+      // int bestchi2_idx = -1;
+      // float bestchi2 = -1;
+      // float bestchi2_peratio = -1.0;
+      // int bestmaxdist_idx = -1;
+      // float bestmaxdist = -1;
+      // float bestmaxdist_peratio = -1.0;
+      // int bestfmatch_idx = -1;
+      // float matchscore_best = 0;
+      // const FlashHypo_t* bestchi2_hypo = nullptr;
+      // const FlashHypo_t* bestmaxdist_hypo = nullptr;
+      // const FlashHypo_t* bestfmatch_hypo = nullptr;
 
       int truthmatch_idx = -1;
       float truthmatch_chi2 = -1;
@@ -2001,7 +2158,7 @@ namespace larflow {
       tbestfmatch = nullptr;
       
     } //end of flash loop
-    
+    */
   }
 
   float LArFlowFlashMatch::calcNLL( bool print ) {

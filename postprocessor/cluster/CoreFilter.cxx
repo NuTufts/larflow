@@ -18,7 +18,8 @@ namespace larflow {
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, cluster );
-    
+
+    std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
   }
   
   CoreFilter::CoreFilter( const larlite::larflowcluster& cluster , const int min_neighbors, const float maxdist  )
@@ -73,6 +74,24 @@ namespace larflow {
     // std::cout << "[CoreFilter::getPointIndices] GetCore=" << core
     //  	      << ": size=" << out.size() << std::endl;
     
+    return out;
+  }
+
+  std::vector<int> CoreFilter::getClusterIndices( int iclust) {
+
+    std::vector< int > out;
+    out.clear();
+
+    if ( iclust<0 || iclust >= (int)_clusters_v.size() ) {
+      std::cout << "return index list with size=" << out.size() << " for clust=" << iclust << std::endl;
+      return out;
+    }
+    
+    for ( auto const& hitidx : _clusters_v[iclust] ) {
+      //std::cout << " [" << iclust << "]: " << hitidx << std::endl;
+      out.push_back( hitidx );
+    }
+
     return out;
   }
   

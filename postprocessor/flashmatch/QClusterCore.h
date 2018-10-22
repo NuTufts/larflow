@@ -26,6 +26,7 @@ namespace larflow {
     larlite::pcaxis _pca_core;
     std::vector< QCluster_t > _noncore;
     std::vector< larlite::pcaxis > _pca_noncore;
+    int _noncore_hits;
     
     QCluster_t _gapfill_qcluster;
     

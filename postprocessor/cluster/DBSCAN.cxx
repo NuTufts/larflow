@@ -34,6 +34,7 @@ namespace larflow {
     std::vector<int> clusterlabel_v(npoints,-1);
     std::vector<Cluster_t> dbscan_clust_v;
     Cluster_t noise;
+    noise.clear();
 
     for ( int ipt=0; ipt<npoints; ipt++) {
       const Eigen::Vector3f& pt = _points[ipt];
@@ -58,7 +59,9 @@ namespace larflow {
 	  clusterlabel_v[ipt] = iidx;
 	  pastlabel = iidx;
 	  // create a new cluster (empty)
-	  dbscan_clust_v.push_back( Cluster_t() );
+	  Cluster_t newclust;
+	  newclust.clear();
+	  dbscan_clust_v.emplace_back( std::move(newclust) );
 	}
 	// node, which has min neighbors to the cluster it is now labeled as
 	// note, we only get added to cluster if we past the min neighbors requirement
