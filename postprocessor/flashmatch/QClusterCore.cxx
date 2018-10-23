@@ -22,6 +22,8 @@ namespace larflow {
   }
 
   void QClusterCore::buildCore() {
+
+    _core.clear();
     
     int minneighbors = 3;
     int minclusterpoints = 3;
@@ -151,7 +153,6 @@ namespace larflow {
     std::sort(proj_v.begin(), proj_v.end());
 
     // make core, make non-core points
-    _core.clear();
     _core.reserve( joinsize );
     for (auto& projpt : proj_v ) {
       _core.push_back( (*_cluster)[projpt.idx] );

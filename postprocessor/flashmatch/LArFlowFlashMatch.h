@@ -139,12 +139,14 @@ namespace larflow {
     };
     std::map<flashclusterpair_t,int> m_flash_hypo_map;   // using orig index
     std::map<flashclusterpair_t,int> m_flash_hypo_remap; // using reduced indexing
-    std::vector< FlashHypo_t > m_flash_hypo_v;
+    std::vector< FlashHypo_t > m_flash_hypo_v; // DEPRECATED
+    std::vector< FlashMatchCandidate > m_matchcandidate_hypo_v; // builflashhypotheses builds this
     void  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
 				const std::vector<QCluster_t>& qcluster_v );
     FlashHypo_t& getHypothesisWithOrigIndex( int flashidx, int clustidx );
     bool hasHypothesis( int flashidx, int clustidx );
-
+    int getMatchIndexFromOrigIndices( int flashidx, int clustidx );
+    
     // Match refinement
     // ----------------------------
     std::vector<int> _flashdata_best_hypo_chi2_idx;

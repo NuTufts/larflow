@@ -1,6 +1,9 @@
 #ifndef __FLASHMATCHCANDIDATE_H__
 #define __FLASHMATCHCANDIDATE_H__
 
+// eigen
+#include <Eigen/Dense>
+
 // LArCV2 data
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/ChStatus.h"
@@ -28,11 +31,17 @@ namespace larflow {
     float _maxch_pe;
     int   _maxch;
 
+    bool _hasevstatus;
     const larcv::EventChStatus* _evstatus;
 
     QCluster_t _offset_qcluster; // basically a copy of the core, but with the xoffset applied
+    QCluster_t _offset_qgap;     // copy of the core cluster gap points, but with the xoffset applied    
     QCluster_t _entering_qcluster;
     QCluster_t _exiting_qcluster;
+    Eigen::Vector3f _topend;
+    Eigen::Vector3f _botend;
+    float _toptick;
+    float _bottick;
     
     FlashHypo_t _corehypo;
     FlashHypo_t _noncorehypo;
@@ -42,7 +51,7 @@ namespace larflow {
 
     static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
     void dumpMatchImage();
-    void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; };
+    void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; _hasevstatus=true; };
     
   protected:
 

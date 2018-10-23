@@ -106,10 +106,15 @@ namespace larflow {
 
     // we build up the charge clusters that are easy to grab
     buildInitialQClusters( clusters, _qcluster_v, img_v, 2, ignorelast );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] InitialQClusters and cores are built" << std::endl;
+    //std::cin.get();
 
     // collect the flashes
     _flashdata_v.clear();
     _flashdata_v = collectFlashInfo( beam_flashes, cosmic_flashes );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] Flash Data objects created" << std::endl;
+    //std::cin.get();
+    
     
     // MC matching
     if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
@@ -119,9 +124,11 @@ namespace larflow {
       bool appendtoclusters = true;
       //buildClusterExtensionsWithMCTrack(appendtoclusters, _qcluster_v );
     }
-    //dumpMatchImages( _flashdata_v, false, false );
-    dumpQClusterImages();
-    assert(false);
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] Flash Matching Performed" << std::endl;
+    //std::cin.get();
+    
+    //dumpQClusterImages();
+    //assert(false);
     
     // modifications to fill gaps
     //applyGapFill( _qcluster_v );
@@ -139,15 +146,29 @@ namespace larflow {
     std::cout << "Number of data flashes: " << _flashdata_v.size() << std::endl;
     std::cout << "Number of clusters: " << _qcluster_v.size() << std::endl;
     
-    // build compbatility matrix
+    // build initial compbatility matrix
     buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
-    
-    // now build hypotheses: we only do so for compatible pairs
-    buildFlashHypotheses( _flashdata_v, _qcluster_v );
-    
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] Initial Compatible matches formed" << std::endl;
+    //std::cin.get();
+        
     // refined compabtibility: incompatible-z
     bool adjust_pe_for_cosmic_disc = true;
     reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v, adjust_pe_for_cosmic_disc );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using shape analysis" << std::endl;
+    printCompatInfo( _flashdata_v, _qcluster_v );
+    //std::cin.get();
+
+
+    // now build hypotheses: we only do so for compatible pairs
+    buildFlashHypotheses( _flashdata_v, _qcluster_v );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] Compatible Flash-Cluster match hypotheses formed" << std::endl;
+    std::cin.get();
+
+
+    for ( auto& candidate : m_matchcandidate_hypo_v ) {
+      candidate.dumpMatchImage();
+    }
+    
     
     // define the fitting data members
     buildFittingData( _flashdata_v, _qcluster_v );
@@ -467,15 +488,6 @@ namespace larflow {
       }
       qcluster.mctrackid = maxid;
       
-      //std::cout << "[qcluster " << icluster << "] tick range: " << qcluster.min_tyz[0] << "," << qcluster.max_tyz[0] << std::endl;
-
-      // we do pca which will be useful for many downstream algorithms
-      //   1) pca used to define a core
-      //   2) pca used to build an extension
-      //   3) pca used to fill gaps in the core
-      // all are meant to augment track-like clusters
-      // what about neutrinos? showers? 2nd-pca axis analysis tells us not to do this
-
       // Define the QClusterCore -- this tries to identify, using DBSCAN, a core cluster
       // Removes small, floating clusters (that come from truth clustering, probably less so for reco-clustering)
       // Also defines the central PCA, and orders the core hits as a function of projection
@@ -602,7 +614,7 @@ namespace larflow {
   void LArFlowFlashMatch::buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
 						const std::vector<QCluster_t>&  qcluster_v ) {
     
-    // each cluster builds a hypothesis for each compatible flash
+    // each (flash,cluster) pair builds a hypothesis
 
     const larutil::Geometry* geo = larutil::Geometry::GetME();
     const phot::PhotonVisibilityService& photonlib = phot::PhotonVisibilityService::GetME( "uboone_photon_library_v6_70kV.root" );
@@ -615,8 +627,9 @@ namespace larflow {
 
 
     m_flash_hypo_map.clear();
-    m_flash_hypo_v.clear();
-    m_flash_hypo_v.reserve(flashdata_v.size()*qcluster_v.size());
+    m_flash_hypo_v.clear(); // deprecated
+    //m_flash_hypo_v.reserve(flashdata_v.size()*qcluster_v.size());
+    m_matchcandidate_hypo_v.reserve( flashdata_v.size()*qcluster_v.size() );
     
     for (int iflash=0; iflash<flashdata_v.size(); iflash++) {
 
@@ -626,21 +639,23 @@ namespace larflow {
 	int compat = getCompat( iflash, iq );
 	if ( compat!=0 && flash.truthmatched_clusteridx!=iq )
 	  continue;
-
+	
 	const QCluster_t& qcluster = qcluster_v[iq];
-
-	float xoffset = (flash.tpc_tick-3200)*0.5*driftv;
-	FlashHypo_t hypo = FlashMatchCandidate::buildFlashHypothesis( flash, qcluster, xoffset );
+	FlashMatchCandidate match_candidate( flash, qcluster );
+	match_candidate.setChStatusData( _evstatus );
 
 	// store
 	int idx = m_flash_hypo_v.size();
 	m_flash_hypo_map[ flashclusterpair_t((int)iflash,iq) ] = idx;
-	m_flash_hypo_v.emplace_back( std::move(hypo) );
+	m_matchcandidate_hypo_v.emplace_back( std::move(match_candidate) );
+
+	// DEBUG HACK
+	break;
       }//end of loop over clusters
     }//end of loop over flashes
     
   }
-
+  
   bool LArFlowFlashMatch::hasHypothesis( int flashidx, int clustidx ) {
     flashclusterpair_t fcpair( flashidx, clustidx );
     auto it = m_flash_hypo_map.find( fcpair );
@@ -659,6 +674,14 @@ namespace larflow {
     }
     int index = it->second;
     return m_flash_hypo_v[index];
+  }
+  
+  int LArFlowFlashMatch::getMatchIndexFromOrigIndices( int flashidx, int clustidx ) {
+    flashclusterpair_t fcpair( flashidx, clustidx );
+    auto it = m_flash_hypo_map.find( fcpair );
+    if ( it==m_flash_hypo_map.end() )
+      return -1;
+    return it->second;
   }
 
   void LArFlowFlashMatch::buildFittingData( const std::vector<FlashData_t>& flashdata_v,
@@ -959,8 +982,11 @@ namespace larflow {
 	if ( getCompat( iflash, iclust )!=0 )
 	  continue;
 
-	// get hypo
-	FlashHypo_t& hypo = getHypothesisWithOrigIndex( iflash, iclust );
+	const QCluster_t& qcluster = _qcore_v[iclust]._core;
+	
+	// build temporary flash for this
+	float xoffset = (flashdata.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	FlashHypo_t hypo = FlashMatchCandidate::buildFlashHypothesis( flashdata, qcluster, xoffset ); 
 
 	// for most-generous comparison, we renorm hypo flash to data total pe
 	// but we dont total predictions where flashdata is zero due to cosmic disc window

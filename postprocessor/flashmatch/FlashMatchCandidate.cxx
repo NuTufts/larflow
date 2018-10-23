@@ -1,8 +1,5 @@
 #include "FlashMatchCandidate.h"
 
-// eigen
-#include <Eigen/Dense>
-
 // ROOT
 #include "TStyle.h"
 #include "TCanvas.h"
@@ -34,7 +31,10 @@ namespace larflow {
     _flashdata(&fdata),
     _cluster(qcoredata._cluster),
     _core(&qcoredata),
-    _evstatus(nullptr)
+    _evstatus(nullptr),
+    _hasevstatus(false),
+    _topend(0,0,0),
+    _botend(0,0,0)
   {
     // when dealing with information from the core, we will need this offset
     _xoffset = (_flashdata->tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
@@ -47,21 +47,37 @@ namespace larflow {
       offsethit.type = kCore;
       _offset_qcluster.emplace_back( std::move(offsethit) );
     }
-
-    // we build the core hypo
+    _offset_qgap.clear();
+    _offset_qgap.reserve( _core->_gapfill_qcluster.size() );
+    for (auto const& gaphit : _core->_gapfill_qcluster ) {
+      QPoint_t offsethit = gaphit;
+      offsethit.xyz[0] -= _xoffset;
+      offsethit.type = kGapFill;
+      _offset_qgap.emplace_back( std::move(offsethit) );
+    }
+    
+    _noncorehypo.resize(32,0.0);
+    _entering_hypo.resize(32,0.0);
+    _exiting_hypo.resize(32,0.0);
+    
+    // we build the core and gap hypos
     _corehypo = buildFlashHypothesis( *_flashdata, _offset_qcluster, 0.0  );
+    _gapfill_hypo = buildFlashHypothesis( *_flashdata, _offset_qgap, 0.0 );
 
     // we identify the max pmt and its value -- we will use this to tune extensions
     _maxch = 0;
     _maxch_pe = 0;
     for (int ich=0; ich<(int)_flashdata->size(); ich++) {
-      if ( _flashdata->at(ich)>_maxch_pe ) {
-	_maxch = ich;
-	_maxch_pe = _flashdata->at(ich);
+      float datape = _flashdata->at(ich)*_flashdata->tot;
+      if ( datape>_maxch_pe ) {
+	_maxch    = ich;
+	_maxch_pe = datape;
       }
     }
 
-    
+    ExtendEnteringEnd();
+    ExtendExitingEnd();    
+
   }
 
 
@@ -97,7 +113,7 @@ namespace larflow {
 	continue; // i dont trust the hypotheses here
 	  
       const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
-
+      
       if ( vis && vis->size()==npmts) {
 	for (int ich=0; ich<npmts; ich++) {
 	  float q  = qhit.pixeladc;
@@ -144,7 +160,10 @@ namespace larflow {
   void FlashMatchCandidate::ExtendEnteringEnd() {
     // we have to find which end we think is entering (cosmic assumptoin)
     // we pick the top-most end
-    
+    _entering_qcluster.clear();
+    _entering_hypo.resize(32,0.0);
+    float steplen = 1.0;    
+	
     // we've sorted along pca lines, so grab the ends, average over n points
     const QCluster_t& core = _core->_core;
     size_t nptscore = core.size();
@@ -162,26 +181,32 @@ namespace larflow {
       for (int i=0; i<3; i++) 
 	avepos[0][i] += core[ipt].xyz[i]/float(npoint_ave);
       for (int i=0; i<3; i++) 
-	avepos[1][i] += core[(int)nptscore-ipt].xyz[i]/float(npoint_ave);
+	avepos[1][i] += core[(int)nptscore-ipt-1].xyz[i]/float(npoint_ave);
       avepos[0][3] += core[ipt].tick/float(npoint_ave);
-      avepos[1][3] += core[(int)nptscore-ipt].tick/float(npoint_ave);			   
+      avepos[1][3] += core[(int)nptscore-ipt-1].tick/float(npoint_ave);			   
     }
     avepos[0][0] -= _xoffset;
     avepos[1][0] -= _xoffset;    
     
     // choose the top-most end
     _usefront = 0;
-    Eigen::Vector3f topend(0,0,0);
-    float toptick = 0;
+    _topend = Eigen::Vector3f(0,0,0);
+    _botend = Eigen::Vector3f(0,0,0);    
+    _toptick = 0;
+    _bottick  = 0;
     if ( avepos[0][1]>avepos[1][1] ) {
-      for (int i=0; i<3; i++) topend(i) = avepos[0][i];
+      for (int i=0; i<3; i++) _topend(i) = avepos[0][i];
+      for (int i=0; i<3; i++) _botend(i) = avepos[1][i];      
       _usefront = 1;
-      toptick = avepos[0][3];
+      _toptick = avepos[0][3];
+      _bottick = avepos[1][3];
     }
     else {
-      for (int i=0; i<3; i++) topend(i) = avepos[1][i];
+      for (int i=0; i<3; i++) _topend(i) = avepos[1][i];
+      for (int i=0; i<3; i++) _botend(i) = avepos[0][i];      
       _usefront = 0;
-      toptick = avepos[1][3];
+      _toptick = avepos[1][3];
+      _bottick = avepos[0][3];      
     }
 
     // extend the points, to the edge of the detector
@@ -192,27 +217,33 @@ namespace larflow {
     Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
 			    _core->_pca_core.getEigenVectors()[1][0],
 			    _core->_pca_core.getEigenVectors()[2][0] );
+
+    if ( pcavec.norm()<0.01 ) {
+      return;
+    }
+    
     // determine sign of pca-axis
-    float extsign = ( (topend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
+    float extsign = ( (_topend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
 
     bool intpc = true;
     bool isanode = false;
-    float steplen = 3.0; // 
-    _entering_qcluster.clear();
+    int istep = 0;
     while (intpc) {
-      Eigen::Vector3f currentpos = topend + extsign*steplen*pcavec;
+      Eigen::Vector3f currentpos = _topend + (extsign*steplen*float(istep))*pcavec;
       // check the position
       if ( currentpos(0)<0 ) {
 	// went through the anode!
 	isanode = true;
 	intpc   = false;
       }
-      else if ( currentpos(0)>250 || currentpos(1)>120.0 || currentpos(1)<-120 ) {
+      else if ( currentpos(0)>250 || currentpos(1)>120.0 || currentpos(1)<-120 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
 	intpc = false;
+	isanode = false;
       }
       
       if ( intpc ) {
 	// create the hit
+	std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
@@ -222,7 +253,7 @@ namespace larflow {
 	qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
 	_entering_qcluster.emplace_back( std::move(qpt) );
       }
-      
+      istep++;
     }
 
     if ( isanode ) {
@@ -231,10 +262,12 @@ namespace larflow {
       // to do this, we need hypothesis to have been formed
       _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
       float _maxdiff = _entering_hypo[_maxch] - _maxch_pe;
+      std::cout << "Is ANODE: extend to match maxpmt" << std::endl;
+      istep = 0;
       while ( _maxdiff<0 ) {
 	// we extend the entering cluster
 	Eigen::Map< Eigen::Vector3f > endpos( _entering_qcluster.back().xyz.data() );
-	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
+	Eigen::Vector3f extpos = endpos + (extsign*steplen*float(istep))*pcavec;
 	// make hit
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
@@ -244,8 +277,8 @@ namespace larflow {
 	qpt.fromplaneid = -1;
 	qpt.type = kExt;
 	_entering_qcluster.emplace_back( std::move(qpt) );
-
-	if ( extpos(0) < -20 ) {
+	
+	if ( extpos(0) < -50 || extpos(1)>120 || extpos(1)<-120 || extpos(2)<-50 || extpos(2)>1100 ) {
 	  // limit this adjustment
 	  break;
 	}
@@ -253,18 +286,153 @@ namespace larflow {
 	// update the hypothesis
 	_entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
 	_maxdiff = _entering_hypo[_maxch] - _maxch_pe;
+	std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+		  << "  _hypomax=" << _entering_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+	istep++;
       }
     }
     //entering extension finished
+
+    // set final hypo
+    _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
+
   }
 
   void FlashMatchCandidate::ExtendExitingEnd() {
-    // now the exiting end.
-    // we only keep extending if it improves the match
+    // we have to find which end we think is entering (cosmic assumptoin)
+    // we pick the top-most end
+    _exiting_qcluster.clear();
+    _exiting_hypo.resize(32,0.0);
+    float steplen = 1.0; //
+	
+    // extend entering, choose its end, we use the opposite
+    // we extend thrpugh the tpc
+    // if it improves the shape match (CDF maxdist), we keep
+    // else we destroy
+    // if helps, and we go through the anode, we extend further
+    
+    // extend the points, to the edge of the detector, only if it improves the shape match
+    // we need a direction: pca. for now just use the current pca
+    Eigen::Vector3f centerpos( _core->_pca_core.getAvePosition()[0]-_xoffset,
+			       _core->_pca_core.getAvePosition()[1],
+			       _core->_pca_core.getAvePosition()[2] );
+    Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
+			    _core->_pca_core.getEigenVectors()[1][0],
+			    _core->_pca_core.getEigenVectors()[2][0] );
+
+    if ( pcavec.norm()<0.01 ) {
+      return;
+    }
+    
+    // determine sign of pca-axis
+    float extsign = ( (_botend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
+
+    bool intpc = true;
+    bool isanode = false;
+    int istep = 0;
+    while (intpc) {
+      Eigen::Vector3f currentpos = _botend + (extsign*steplen*float(istep))*pcavec;
+      // check the position
+      if ( currentpos(0)<0 ) {
+	// went through the anode!
+	isanode = true;
+	intpc   = false;
+      }
+      else if ( currentpos(0)>250 || currentpos(1)>120.0 || currentpos(1)<-120 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
+	intpc = false;
+	isanode = false;
+      }
+      
+      if ( intpc ) {
+	// create the hit
+	std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
+	QPoint_t qpt;
+	qpt.xyz.resize(3,0);
+	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
+	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
+	qpt.pixeladc = steplen; 
+	qpt.fromplaneid = -1;
+	qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+	_exiting_qcluster.emplace_back( std::move(qpt) );
+      }
+      istep++;
+    }
+
+    // shape tests
+    float maxdist_orig = 0.;
+    float maxdist_wext = 0.;
+    // need hypo
+    _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+    // orig hypo
+    float orig_cdf = 0.;
+    float ext_cdf = 0.;
+    float data_cdf;
+    for (int ich=0; ich<32; ich++) {
+      float origpe = _corehypo[ich]*_corehypo.tot;
+      float extpe  = origpe + _exiting_hypo[ich]*_exiting_hypo.tot;
+      float datape = (*_flashdata)[ich] * _flashdata->tot;
+      orig_cdf += origpe;
+      ext_cdf  += extpe;
+      data_cdf += datape;
+      
+      float dist_orig  = fabs(orig_cdf-data_cdf);
+      float dist_extpe = fabs(ext_cdf-data_cdf);
+      if ( dist_orig>maxdist_orig )
+	maxdist_orig = dist_orig;
+      if ( dist_extpe>maxdist_wext )
+	maxdist_wext = dist_extpe;
+    }
+
+    if ( maxdist_wext > maxdist_orig ) {
+      // worse with extension
+      _exiting_hypo.clear();
+      _exiting_hypo.resize(32,0);
+      _exiting_qcluster.clear();
+      return;
+    }
+
+    if ( isanode ) {
+      // we pierced the anode.
+      // we keep stepping until the maxpe is matched (stop if we alreay are over)
+      // to do this, we need hypothesis to have been formed
+      _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+      float _maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
+      std::cout << "Is ANODE: extend EXITING to match maxpmt" << std::endl;
+      istep = 0;
+      while ( _maxdiff<0 ) {
+	// we extend the exiting cluster
+	Eigen::Map< Eigen::Vector3f > endpos( _exiting_qcluster.back().xyz.data() );
+	Eigen::Vector3f extpos = endpos + (extsign*steplen*float(istep))*pcavec;
+	// make hit
+	QPoint_t qpt;
+	qpt.xyz.resize(3,0);
+	for (int i=0; i<3; i++) qpt.xyz[i] = extpos(i);
+	qpt.tick = extpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
+	qpt.pixeladc = steplen;
+	qpt.fromplaneid = -1;
+	qpt.type = kExt;
+	_exiting_qcluster.emplace_back( std::move(qpt) );
+
+	if ( extpos(0) < -50 || extpos(1)>120 || extpos(1)<-120 || extpos(2)<-50 || extpos(2)>1100 ) {
+	  // limit this adjustment
+	  break;
+	}
+
+	// update the hypothesis
+	_exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+	_maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
+	std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+		  << "  _hypomax=" << _exiting_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+	istep++;
+      }
+    }
+    //exiting extension finished
+    
+    // set final value
+    _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
     
   }
-
-
+  
   void FlashMatchCandidate::dumpMatchImage() {
     
     // ===================================================
@@ -276,6 +444,7 @@ namespace larflow {
     //  finally, we plot the truth-matched hypothesis
     // ===================================================
 
+    std::cout << "[FlashMatchCandidate::dumpMatchImage][DEBUG] start" << std::endl;
     
     gStyle->SetOptStat(0);
     
@@ -308,31 +477,33 @@ namespace larflow {
 
     // badch indicator
     std::vector< TBox* > zy_deadregions;
-    for (int p=2; p<3; p++) {
-      const larcv::ChStatus& status = _evstatus->status( p );
-      int maxchs = ( p<=1 ) ? 2400 : 3456;
-      bool inregion = false;
-      int regionstart = -1;
-      int currentregionwire = -1;
-      for (int ich=0; ich<maxchs; ich++) {
-	
-	if ( !inregion && status.status(ich)!=4 ) {
-	  inregion = true;
-	  regionstart = ich;
-	  currentregionwire = ich;
-	}
-	else if ( inregion && status.status(ich)!=4 ) {
-	  currentregionwire = ich;
-	}
-	else if ( inregion && status.status(ich)==4 ) {
-	  // end a region, make a box!
-	  TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
-	  badchs->SetFillColor( 19 );
-	  badchs->SetLineColor( 0 );
-	  zy_deadregions.push_back( badchs );
-	  inregion = false;
-	}
+    if ( _hasevstatus ) {
+      for (int p=2; p<3; p++) {
+	const larcv::ChStatus& status = _evstatus->status( p );
+	int maxchs = ( p<=1 ) ? 2400 : 3456;
+	bool inregion = false;
+	int regionstart = -1;
+	int currentregionwire = -1;
+	for (int ich=0; ich<maxchs; ich++) {
 	  
+	  if ( !inregion && status.status(ich)!=4 ) {
+	    inregion = true;
+	    regionstart = ich;
+	    currentregionwire = ich;
+	  }
+	  else if ( inregion && status.status(ich)!=4 ) {
+	    currentregionwire = ich;
+	  }
+	  else if ( inregion && status.status(ich)==4 ) {
+	    // end a region, make a box!
+	    TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
+	    badchs->SetFillColor( 19 );
+	    badchs->SetLineColor( 0 );
+	    zy_deadregions.push_back( badchs );
+	    inregion = false;
+	  }
+	  
+	}
       }
     }
 
@@ -375,7 +546,7 @@ namespace larflow {
     sprintf( hname, "htot_%d", iclust);
     TH1D* hhypotot = new TH1D(hname, "", 32, 0, 32 );
     hhypotot->SetLineWidth(2.0);
-    hhypotot->SetLineColor(kBlack);
+    hhypotot->SetLineColor(kBlue);
 
     sprintf( hname, "hcore_%d", iclust);
     TH1D* hhypocore = new TH1D(hname, "", 32, 0, 32 );
@@ -394,14 +565,20 @@ namespace larflow {
 
     sprintf( hname, "hgap_%d", iclust);
     TH1D* hhypogap = new TH1D(hname, "", 32, 0, 32 );
-    hhypogap->SetLineColor(kOrange+3);
+    hhypogap->SetLineColor(kOrange);
     hhypogap->SetLineWidth(1.0);
 
     std::vector< TH1D* > hclust_v = {hhypocore,hhypoenter,hhypoexit,hhypogap,hhypotot};
     for (int ich=0; ich<32; ich++ ) {
       hhypocore->SetBinContent(ich+1,_corehypo[ich]*_corehypo.tot);
       hhypoenter->SetBinContent(ich+1,_entering_hypo[ich]*_entering_hypo.tot);
-      hhypotot->SetBinContent( ich+1, _corehypo[ich]*_corehypo.tot+_entering_hypo[ich]*_entering_hypo.tot );
+      hhypoexit->SetBinContent(ich+1,_exiting_hypo[ich]*_exiting_hypo.tot);
+      hhypogap->SetBinContent (ich+1, _gapfill_hypo[ich]*_gapfill_hypo.tot );
+      float tot = _corehypo[ich]*_corehypo.tot;
+      tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
+      tot += _entering_hypo[ich]*_entering_hypo.tot;
+      tot += _exiting_hypo[ich]*_exiting_hypo.tot;
+      hhypotot->SetBinContent( ich+1, tot );
     }
     
     // pe ratio of hypothesis
@@ -449,14 +626,14 @@ namespace larflow {
       float radius = ( pe>50 ) ? 50 : pe;
       datamarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
       datamarkers_v[ich]->SetFillColor(kRed);
-
-      float hypope = (hhypotot->Integral());
+      
+      float hypope = (hhypotot->GetBinContent(ich+1));
       if ( hypope>10 )
 	hypope = 10 + (hypope-10)*0.10;
       radius = ( hypope>50 ) ? 50 : hypope;
       hypomarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
-      hypomarkers_v[ich]->SetFillColor(kOrange);
-
+      hypomarkers_v[ich]->SetFillColor(kGreen+2);
+    }
     // if ( truthmatch_hypo ) {
     //   float truthpe = (truthmatch_hypo->at(ich)*truthmatch_hypo->tot);
     //   if ( truthpe>10 )
@@ -524,6 +701,45 @@ namespace larflow {
       // 	mctrack_data_xy->SetLineWidth(1);
       // }
 
+
+    // make graphs for hypothesis cluster
+    // ----------------------------------
+    TGraph* clust_zy[4] = {nullptr};
+    TGraph* clust_xy[4] = {nullptr};
+    TGraph* mctrack_hypo_zy = nullptr;
+    TGraph* mctrack_hypo_xy = nullptr;
+    Int_t clust_colors[4] = { kRed, kOrange, kCyan, kMagenta };
+	
+    const QCluster_t* clustertypes[4] = { &_offset_qcluster, &_offset_qgap, &_entering_qcluster, &_exiting_qcluster };
+    for (int i=0; i<4; i++) {
+
+      
+      const QCluster_t* qc = clustertypes[i];
+      if (qc==nullptr || qc->size()==0)
+	continue;
+
+      std::cout << "make tgraph for type[" << i << "] with " << qc->size() << " points" << std::endl;
+      
+      clust_zy[i] = new TGraph(qc->size());
+      clust_xy[i] = new TGraph(qc->size());
+
+      
+      clust_zy[i]->SetMarkerSize(0.3);
+      clust_xy[i]->SetMarkerSize(0.3);
+      
+      clust_zy[i]->SetMarkerStyle(20);
+      clust_xy[i]->SetMarkerStyle(20);
+      
+      for (int ipt=0; ipt<(int)qc->size(); ipt++) {
+	const QPoint_t& qpt = (*qc)[ipt];
+	clust_zy[i]->SetPoint(ipt,qpt.xyz[2], qpt.xyz[1] );
+	clust_xy[i]->SetPoint(ipt,qpt.xyz[0], qpt.xyz[1] );
+      }
+
+      clust_zy[i]->SetMarkerColor( clust_colors[i] );
+      clust_xy[i]->SetMarkerColor( clust_colors[i] );      
+    }
+          
     // ======================
     // BUILD PLOT
     // ======================
@@ -561,6 +777,7 @@ namespace larflow {
 
     for (int ich=0; ich<32; ich++)
       chmarkers_v[ich]->Draw();
+    
       
     // XY: DATA
     // --------
@@ -590,54 +807,13 @@ namespace larflow {
       // if ( truthmatch_hypo )
       // 	truthmarkers_v[ich]->Draw();
     }
-      
-    TGraph* bestmatchclust_zy[kNumQTypes] = {nullptr};
-    TGraph* bestmatchclust_xy[kNumQTypes] = {nullptr};
-    TGraph* mctrack_hypo_zy = nullptr;
-    TGraph* mctrack_hypo_xy = nullptr;      
-	
-    // if ( bestmatch_iclust>=0 ) {
-    //   // if we have a best match
-      
-    //   // make graph for hypothesis cluster
-    //   int nbestpts[kNumQTypes] = {0};
-    //   QCluster_t* qc = &(_qcluster_v[bestmatch_iclust]);
-    // 	//std::cout << "qc[" << iclust << "] npoints: " << qc->size() << std::endl;
-    //   for (int i=0; i<kNumQTypes; i++) {
-    // 	bestmatchclust_zy[i] = new TGraph(qc->size());
-    // 	bestmatchclust_xy[i] = new TGraph(qc->size());
-	
-    // 	bestmatchclust_zy[i]->SetMarkerSize(0.3);
-    // 	bestmatchclust_xy[i]->SetMarkerSize(0.3);
-	
-    // 	bestmatchclust_zy[i]->SetMarkerStyle(20);
-    // 	bestmatchclust_xy[i]->SetMarkerStyle(20);
-	
-    //   }
-    //   float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;	
-    //   for (int ipt=0; ipt<(int)qc->size(); ipt++) {
-    // 	const QPoint_t& bestq = (*qc)[ipt];
-    // 	bestmatchclust_zy[bestq.type]->SetPoint(nbestpts[bestq.type],bestq.xyz[2], bestq.xyz[1] );
-    // 	bestmatchclust_xy[bestq.type]->SetPoint(nbestpts[bestq.type],bestq.xyz[0]-xoffset, bestq.xyz[1] );
-    // 	nbestpts[bestq.type]++;
-    //   }
-    //   for (int i=0; i<kNumQTypes; i++) {
-    // 	bestmatchclust_zy[i]->Set(nbestpts[i]);
-    // 	bestmatchclust_xy[i]->Set(nbestpts[i]);
-    //   }
-      
-    //   bestmatchclust_zy[kGapFill]->SetMarkerColor(kRed);	
-    //   bestmatchclust_xy[kGapFill]->SetMarkerColor(kRed);
-      
-    //   bestmatchclust_zy[kExt]->SetMarkerColor(kGreen+3);	
-    //   bestmatchclust_xy[kExt]->SetMarkerColor(kGreen+3);
-      
-    //   bestmatchclust_zy[kNonCore]->SetMarkerColor(kYellow+2);
-    //   bestmatchclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
-      
-    //   for (int i=0; i<kNumQTypes; i++) {
-    // 	bestmatchclust_zy[i]->Draw("P");
-    //   }
+
+    // cluster points
+    for (int i=0; i<4; i++) {
+      if ( clust_zy[i] )
+	clust_zy[i]->Draw("P");
+    }
+    
       
     //   // make graph for mctruth for hypothesis
     //   if ( bestmatch_iclust==truthmatch_idx ) {
@@ -673,7 +849,14 @@ namespace larflow {
     //   }
     // }
     // if ( mctrack_hypo_xy )
-    //   mctrack_hypo_xy->Draw("L");      
+    //   mctrack_hypo_xy->Draw("L");
+
+    // cluster points
+    for (int i=0; i<4; i++) {
+      if ( clust_xy[i] )
+	clust_xy[i]->Draw("P");
+    }
+    
 
     // finally hist pad
     histpad.cd();
@@ -738,7 +921,7 @@ namespace larflow {
     
     c2d.Update();
     char cname[100];
-    sprintf(cname,"hflashmatchcand_flashid%d_clusterid.png",iflash,iclust);
+    sprintf(cname,"hflashmatchcand_flashid%02d_clusterid%02d.png",iflash,iclust);
     c2d.SaveAs(cname);
 
     std::cout << "clean up" << std::endl;
@@ -755,26 +938,26 @@ namespace larflow {
       delete pmarker;
       pmarker = nullptr;
     }
-    // for (int i=0; i<kNumQTypes; i++) {
+    for (int i=0; i<4; i++) {
     //   if ( truthclust_zy[i] )
     // 	delete truthclust_zy[i];
     //   if ( truthclust_xy[i] )
     // 	delete truthclust_xy[i];
-    //   if ( bestmatchclust_zy[i] )
-    // 	delete bestmatchclust_zy[i];
-    //   if ( bestmatchclust_xy[i] )
-    // 	delete bestmatchclust_xy[i];
+      if ( clust_zy[i] )
+    	delete clust_zy[i];
+      if ( clust_xy[i] )
+    	delete clust_xy[i];
     // }
     // if (mctrack_data)
     //   delete mctrack_data;
     // if ( mctrack_data_xy )
     //   delete mctrack_data_xy;
     
-    // if ( mctrack_hypo_zy && bestmatch_iclust!=truthmatch_idx ) {
+    // if ( mctrack_hypo_zy && _iclust!=truthmatch_idx ) {
     //   delete mctrack_hypo_zy;
     //   delete mctrack_hypo_xy;
-    // }
-    
+    }
+      
     for (int ic=0; ic<(int)hclust_v.size(); ic++) {
       delete hclust_v[ic];
     }
@@ -783,10 +966,6 @@ namespace larflow {
     // delete tbestfmatch;
     // tbestfmatch = nullptr;
     
-    }//end of dump images
-  
-  
-    
-  }
+  }//end of dumpimage
 
 }

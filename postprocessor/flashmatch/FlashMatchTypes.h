@@ -46,6 +46,13 @@ namespace larflow {
   };
     
   struct FlashHypo_t : public std::vector<float> {
+  FlashHypo_t() :
+    clusteridx(-1),
+      flashidx(-1),
+      tot(0.0),
+      tot_intpc(0.0),
+      tot_outtpc(0.0)
+	{};
     int clusteridx;
     int flashidx;
     float tot;
