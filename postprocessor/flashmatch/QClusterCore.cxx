@@ -30,28 +30,24 @@ namespace larflow {
     float maxdist = 20.0;
     float fMaxDistFromPCAcore = 10.0;
 
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] Build core for QCLUSTER[" << _cluster->idx << "]" << std::endl;
-    
-    // const larutil::Geometry* geo = larutil::Geometry::GetME();
-    // const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
-    // const float  driftv = larp->DriftVelocity();    
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] input cluster size=" << _cluster->size() << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] Build core for QCLUSTER[" << _cluster->idx << "]" << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] input cluster size=" << _cluster->size() << std::endl;
     
     std::vector< std::vector<float> > clusterpts;
     clusterpts.reserve(_cluster->size()); // need to define a non-copy way to do this ...
     for ( auto const& qhit : *_cluster ) {
       clusterpts.push_back( qhit.xyz );
     }
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] number of cluster points=" << clusterpts.size() << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] number of cluster points=" << clusterpts.size() << std::endl;
     
     // core filter
     CoreFilter corealgo( clusterpts, minneighbors, maxdist );
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] core filter split into =" << corealgo.getNumClusters() << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] core filter split into =" << corealgo.getNumClusters() << std::endl;
 
     // we take a guess that the largest cluster is the core
     // SHOULD BE LARGEST AND STRAIGHTEST
     int largest_idx = corealgo.getIndexOfLargestCluster();
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core idx=" << largest_idx << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core idx=" << largest_idx << std::endl;
     if ( largest_idx<0 ) {
       // null core -- what to do
       assert(false);
@@ -60,7 +56,7 @@ namespace larflow {
     
     std::vector<int> core_indices = corealgo.getClusterIndices( largest_idx );
     size_t largestcore_size = core_indices.size();
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core size: " << largestcore_size << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] largest core size: " << largestcore_size << std::endl;
     std::vector< std::vector<float> > core(largestcore_size);
 
     
@@ -86,16 +82,13 @@ namespace larflow {
     int numsubclusts = (int)corealgo.getNumClusters()-1; // skip the last, that's the noise clusters
     for ( int iclust=0; iclust<numsubclusts; iclust++ ) {
       if ( iclust==largest_idx ) continue;
-      std::cout << "test: " << iclust << std::endl;
       bool join2core = false;
       std::vector<int> subclustidx_v = corealgo.getClusterIndices(iclust);
-      std::cout << "size=" << subclustidx_v.size() << " numclusters=" << corealgo.getNumClusters() << std::endl;      
 
       if ( subclustidx_v.size()<minclusterpoints )
 	continue;
 
       for (auto& idx : subclustidx_v ) {
-	std::cout << "[" << iclust << "] idx=" << idx << std::endl;
 	Eigen::Map< Eigen::Vector3f > testpt( clusterpts[idx].data() );
 	float dist = coreline.distance(testpt); // eigen is great
 	if ( dist < fMaxDistFromPCAcore ) {
@@ -120,7 +113,6 @@ namespace larflow {
       finalcore_idx.push_back( idx );
     }
     for ( auto& iclust : joinlist )  {
-      std::cout << " add non core iclustidx=" << iclust << std::endl;
       std::vector<int> noncoreidx = corealgo.getClusterIndices(iclust);
       if (noncoreidx.size()==0)
 	continue;
@@ -191,7 +183,7 @@ namespace larflow {
       _pca_noncore.push_back( noncorepca.getpcaxis() );
     }//noncore loop
 
-    std::cout << "[larflow::QClusterCore::buildCore][DEBUG] defined core" << std::endl;
+    //std::cout << "[larflow::QClusterCore::buildCore][DEBUG] defined core" << std::endl;
   }//end of define core
 
   void QClusterCore::fillClusterGapsUsingCorePCA() {
@@ -249,7 +241,7 @@ namespace larflow {
     if ( nfillgaps>0 )
       avegap /= float(nfillgaps);
 
-    std::cout << "[QClusterCore::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
+    //std::cout << "[QClusterCore::fillClusterGapsUsingCorePCA][INFO] number gaps to fill=" << gapstarts.size() << " avegap=" << avegap << std::endl;
     if ( nfillgaps==0 ) // no need to do anything!
       return;
     

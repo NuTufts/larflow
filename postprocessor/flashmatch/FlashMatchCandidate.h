@@ -52,10 +52,14 @@ namespace larflow {
     FlashHypo_t _gapfill_hypo;
 
     static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
+    static float getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo );
+    static float getPERatio( const FlashData_t& flashdata, const FlashHypo_t& flashhypo );
     void dumpMatchImage();
     void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; _hasevstatus=true; };
-
     void addMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v );
+    FlashHypo_t getHypothesis( bool withextensions, bool suppresscosmicdisc, float cosmicdiscthresh=10.0 );
+    bool isTruthMatch();
+
     
   protected:
 

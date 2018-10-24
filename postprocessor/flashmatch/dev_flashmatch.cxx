@@ -62,6 +62,8 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
+  algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
+  
 
   for (int ientry=0; ientry<nentries; ientry++) {
     
@@ -88,16 +90,22 @@ int main( int nargs, char** argv ) {
     
     larflow::LArFlowFlashMatch::Results_t result = algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
 
-    std::vector<larlite::larflowcluster> outclusters = algo.exportMatchedTracks();
-    larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "truthflashmatched" );
-    for ( auto& lfcluster : outclusters ) {
-      ev_outcluster->emplace_back( std::move(lfcluster) );
-    }
+    // std::vector<larlite::larflowcluster> outclusters = algo.exportMatchedTracks();
+    // larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "truthflashmatched" );
+    // for ( auto& lfcluster : outclusters ) {
+    //   ev_outcluster->emplace_back( std::move(lfcluster) );
+    // }
+    
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
     outlarlite.next_event(); // saves and clears
+
+    algo.clearEvent();
+    
     break;
   }
 
+  algo.writeAnaFile();
+  
   outlarlite.close();
   io.close();
   iolarcv.finalize();

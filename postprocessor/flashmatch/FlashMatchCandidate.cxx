@@ -162,6 +162,38 @@ namespace larflow {
 
     return hypo;
   }
+
+  float FlashMatchCandidate::getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo ) {
+
+    float hypo_cdf = 0.;
+    float data_cdf = 0.;
+    float maxdist = 0.;
+    std::vector<float> hypo(32,0.0);
+    std::vector<float> data(32,0.0);
+    for (int ich=0; ich<32; ich++) {
+      float hypo_pe = flashhypo[ich]*flashhypo.tot;
+      float data_pe = flashdata[ich]*flashdata.tot;
+      hypo_cdf += hypo_pe;
+      data_cdf += data_pe;
+      hypo[ich] = hypo_cdf;
+      data[ich] = data_cdf;
+    }
+
+    for (int ich=0; ich<32; ich++) {
+      data[ich] /= data_cdf;
+      hypo[ich] /= hypo_cdf;
+      float dist = fabs(data[ich]-hypo[ich]);
+      if ( maxdist<dist )
+	maxdist = dist;
+    }
+    
+    return maxdist;
+  }
+
+  float FlashMatchCandidate::getPERatio( const FlashData_t& flashdata, const FlashHypo_t& flashhypo ) {
+    float peratio = fabs(flashdata.tot-flashhypo.tot)/flashdata.tot;
+    return peratio;
+  }
   
   void FlashMatchCandidate::ExtendEnteringEnd() {
     // we have to find which end we think is entering (cosmic assumptoin)
@@ -390,7 +422,10 @@ namespace larflow {
     // orig hypo
     float orig_cdf = 0.;
     float ext_cdf = 0.;
-    float data_cdf;
+    float data_cdf = 0.;
+    std::vector<float> orig_v(32,0.0);
+    std::vector<float> ext_v(32,0.0);
+    std::vector<float> data_v(32,0.0);    
     for (int ich=0; ich<32; ich++) {
       float origpe = _corehypo[ich]*_corehypo.tot;
       float extpe  = origpe + _exiting_hypo[ich]*_exiting_hypo.tot;
@@ -398,15 +433,30 @@ namespace larflow {
       orig_cdf += origpe;
       ext_cdf  += extpe;
       data_cdf += datape;
-      
-      float dist_orig  = fabs(orig_cdf-data_cdf);
-      float dist_extpe = fabs(ext_cdf-data_cdf);
-      if ( dist_orig>maxdist_orig )
-	maxdist_orig = dist_orig;
-      if ( dist_extpe>maxdist_wext )
-	maxdist_wext = dist_extpe;
+      orig_v[ich] = orig_cdf;
+      ext_v[ich]  = ext_cdf;
+      data_v[ich] = data_cdf;
     }
 
+    if ( orig_cdf>0 && ext_cdf>0 && data_cdf>0 ) {
+    
+      for (int ich=0; ich<32; ich++) {
+	float dist_orig  = fabs(orig_v[ich]/orig_cdf-data_v[ich]/data_cdf);
+	float dist_extpe = fabs(ext_v[ich]/ext_cdf-data_v[ich]/data_cdf);
+	if ( dist_orig>maxdist_orig )
+	  maxdist_orig = dist_orig;
+	if ( dist_extpe>maxdist_wext )
+	  maxdist_wext = dist_extpe;
+      }
+      
+    }
+    else {
+      if ( orig_cdf==0 )
+	maxdist_orig = 1.0;
+      if ( ext_cdf==0 )
+	maxdist_wext = 1.0;
+    }
+    
     if ( maxdist_wext > maxdist_orig ) {
       // worse with extension
       _exiting_hypo.clear();
@@ -457,6 +507,51 @@ namespace larflow {
     
   }
 
+  FlashHypo_t FlashMatchCandidate::getHypothesis( bool withextensions, bool suppresscosmicdisc, float cosmicdiscthresh ) {
+    
+    FlashHypo_t out;
+    out.clusteridx = _cluster->idx;
+    out.flashidx   = _flashdata->idx;
+    out.tot = 0.;
+    out.tot_intpc = 0.;
+    out.tot_outtpc = 0.;
+
+    float intpc_tot  = 0.;
+    float outtpc_tot = 0.;
+    out.resize(32,0);
+    for (int ich=0; ich<32; ich++) {
+      out[ich]  += _corehypo[ich]*_corehypo.tot;
+      intpc_tot += _corehypo[ich]*_corehypo.tot;
+      if ( withextensions) {
+	out[ich]   += _entering_hypo[ich]*_entering_hypo.tot;
+	out[ich]   += _exiting_hypo[ich]*_entering_hypo.tot;
+	outtpc_tot += _entering_hypo[ich]*_entering_hypo.tot;
+	outtpc_tot += _exiting_hypo[ich]*_entering_hypo.tot;
+      }
+      out[ich]  += _gapfill_hypo[ich]*_gapfill_hypo.tot;
+      intpc_tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
+    }
+
+    float disccosmic_removed = 0.;
+    for (int ich=0; ich<32; ich++) {
+      if ( suppresscosmicdisc && out[ich] < cosmicdiscthresh ) {
+	disccosmic_removed += out[ich];
+	out[ich] = 0.;
+      }
+      out.tot += out[ich];
+    }
+    out.tot_intpc -= disccosmic_removed;
+    
+    // finally, norm
+    if ( out.tot>0 ) {
+      for (int ich=0; ich<32; ich++) {
+	out[ich] /= out.tot;
+      }
+    }
+    
+    return out;
+  }
+  
   void FlashMatchCandidate::addMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v ) {
 
     _mctrack_v = &mctrack_v;
@@ -504,6 +599,12 @@ namespace larflow {
     }
 
     //std::cout << "[FlashMatchCandidate::addMCTrackInfo][DEBUG] flashtruth_mctrack=" << _flash_mctrackid << " clustertruth_mctrackid=" << _cluster_mctrackid << std::endl;
+  }
+
+  bool FlashMatchCandidate::isTruthMatch() {
+    if ( _flash_mctrackid>=0 && _cluster_mctrackid>=0  && _flash_mctrackid==_cluster_mctrackid )
+      return true;
+    return false;
   }
   
   void FlashMatchCandidate::dumpMatchImage() {

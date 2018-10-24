@@ -124,6 +124,8 @@ namespace larflow {
 							 const std::vector<larlite::larflowcluster>& clusters,
 							 const std::vector<larcv::Image2D>& img_v,
 							 const bool ignorelast ) {
+
+    Results_t result_output;
     
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
@@ -192,7 +194,7 @@ namespace larflow {
     // now build hypotheses: we only do so for compatible pairs
     buildFlashHypotheses( _flashdata_v, _qcluster_v );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Compatible Flash-Cluster match hypotheses formed" << std::endl;
-    std::cin.get();
+    //std::cin.get();
 
     if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
       // we provide truth info to the candidates
@@ -202,11 +204,20 @@ namespace larflow {
     }
 
     for ( auto& candidate : m_matchcandidate_hypo_v ) {
-      //candidate.dumpMatchImage();
+      if ( candidate.isTruthMatch() )
+	candidate.dumpMatchImage();
     }
 
     // second refinement
     secondMatchRefinement();
+    printCompatInfo( _flashdata_v, _qcluster_v );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] Finished Second Reduction" << std::endl;
+    //std::cin.get();
+
+    if ( true ) {
+      std::cout << "EARLY EXIT" << std::endl;
+      return result_output;
+    }
     
     // define the fitting data members
     buildFittingData( _flashdata_v, _qcluster_v );
@@ -421,7 +432,9 @@ namespace larflow {
       std::cout << std::endl;
     }
     std::cout << "FIN" << std::endl;
-    dumpMatchImages( _flashdata_v, false, true );    
+    dumpMatchImages( _flashdata_v, false, true );
+
+    return result_output;
   }
 
   // ==============================================================================
@@ -2624,18 +2637,55 @@ namespace larflow {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // second match refinement
+  // ---------------------------------------------------------------------
   void LArFlowFlashMatch::secondMatchRefinement() {
     // we take the flashmatchcandidate objects in m_matchcandidate_hypo_v and
     // reject matches based on
     // 1) pe ratio
     // 2) maxdist
+    
+    int matchidx = 0;
+    int flashidx = 0;
+    int clustidx = 0;
     for ( auto& matchcandidate : m_matchcandidate_hypo_v ) {
+      
+      matchcandidate.getFlashClusterIndex( flashidx, clustidx );
+
+      if ( matchcandidate.isTruthMatch() )
+	_truthmatch = 1;
+      else
+	_truthmatch = 0;
+
+      FlashHypo_t match_wext = matchcandidate.getHypothesis( true,  true, 10.0 );
+      FlashHypo_t match_orig = matchcandidate.getHypothesis( false, true, 10.0 );
+      
+      _maxdist_wext = FlashMatchCandidate::getMaxDist( *(matchcandidate._flashdata),  match_wext );
+      _peratio_wext = FlashMatchCandidate::getPERatio( *(matchcandidate._flashdata),  match_wext );
+      _maxdist_orig = FlashMatchCandidate::getMaxDist( *(matchcandidate._flashdata),  match_orig );
+      _peratio_orig = FlashMatchCandidate::getPERatio( *(matchcandidate._flashdata),  match_orig );
+
+      _maxdist_red2 = ( _maxdist_wext < _maxdist_orig ) ? _maxdist_wext : _maxdist_orig;
+      _peratio_red2 = ( _peratio_wext < _peratio_orig ) ? _peratio_wext : _peratio_orig;
+
+      _redstep = 2;
+      if ( _save_ana_tree )
+	_anatree->Fill();
+
+      if ( fabs(_peratio_red2)>1.0 ) {
+	setCompat( flashidx, clustidx, 5 );
+      }
+      else if ( _maxdist_red2>0.5 ) {
+	setCompat( flashidx, clustidx, 6 );
+      }
+      
     }
   }
 
   // ---------------------------------------------------------------------
   // Ana Tree
-  // 
+  // ---------------------------------------------------------------------
   void LArFlowFlashMatch::saveAnaVariables( std::string anafilename ) {
     _ana_filename = anafilename;
     setupAnaTree();
@@ -2644,12 +2694,14 @@ namespace larflow {
   void LArFlowFlashMatch::setupAnaTree() {
     _fanafile = new TFile( _ana_filename.c_str(), "recreate" );
     _anatree  = new TTree("flashmatchana", "LArFlow FlashMatch Ana Tree");
-    _anatree->Branch("redstep", &_redstep, "redstep/I");
-    _anatree->Branch("truthmatch", &_truthmatch, "truthmatch/I");
+    _anatree->Branch("redstep",      &_redstep,      "redstep/I");
+    _anatree->Branch("truthmatch",   &_truthmatch,   "truthmatch/I");
     _anatree->Branch("maxdist_orig", &_maxdist_orig, "maxdist_orig/F");
     _anatree->Branch("peratio_orig", &_peratio_orig, "peratio_orig/F");
     _anatree->Branch("maxdist_wext", &_maxdist_wext, "maxdist_wext/F");
     _anatree->Branch("peratio_wext", &_peratio_wext, "peratio_wext/F");
+    _anatree->Branch("maxdist",      &_maxdist_red2, "maxdist/F");
+    _anatree->Branch("peratio",      &_peratio_red2, "peratio/F");
     _save_ana_tree   = true;
     _anafile_written = false;    
   }

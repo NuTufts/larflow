@@ -268,6 +268,8 @@ namespace larflow {
     float _peratio_orig;
     float _maxdist_wext;
     float _peratio_wext;
+    float _maxdist_red2;
+    float _peratio_red2;
     bool  _save_ana_tree;
     bool  _anafile_written;
     void setupAnaTree();

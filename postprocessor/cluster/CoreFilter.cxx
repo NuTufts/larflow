@@ -19,7 +19,7 @@ namespace larflow {
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, cluster );
 
-    std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
+    //std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
   }
   
   CoreFilter::CoreFilter( const larlite::larflowcluster& cluster , const int min_neighbors, const float maxdist  )
@@ -83,7 +83,7 @@ namespace larflow {
     out.clear();
 
     if ( iclust<0 || iclust >= (int)_clusters_v.size() ) {
-      std::cout << "return index list with size=" << out.size() << " for clust=" << iclust << std::endl;
+      //std::cout << "return index list with size=" << out.size() << " for clust=" << iclust << std::endl;
       return out;
     }
     
