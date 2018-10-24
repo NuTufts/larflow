@@ -2673,10 +2673,10 @@ namespace larflow {
       if ( _save_ana_tree )
 	_anatree->Fill();
 
-      if ( fabs(_peratio_red2)>1.0 ) {
+      if ( fabs(_peratio_red2)>0.5 ) {
 	setCompat( flashidx, clustidx, 5 );
       }
-      else if ( _maxdist_red2>0.5 ) {
+      else if ( _maxdist_red2>0.25 ) {
 	setCompat( flashidx, clustidx, 6 );
       }
       

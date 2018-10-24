@@ -96,7 +96,7 @@ namespace larflow {
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
-    const float gapfill_len2adc  = (100.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
+    const float gapfill_len2adc  = (80.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
     const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
 
 
@@ -179,9 +179,15 @@ namespace larflow {
       data[ich] = data_cdf;
     }
 
+    if ( (hypo_cdf==0 && data_cdf>0) || (data_cdf==0 && hypo_cdf>0) ) {
+      return 1.0;
+    }
+    
     for (int ich=0; ich<32; ich++) {
-      data[ich] /= data_cdf;
-      hypo[ich] /= hypo_cdf;
+      if ( data_cdf>0 )
+	data[ich] /= data_cdf;
+      if ( hypo_cdf>0 )
+	hypo[ich] /= hypo_cdf;
       float dist = fabs(data[ich]-hypo[ich]);
       if ( maxdist<dist )
 	maxdist = dist;
@@ -291,7 +297,7 @@ namespace larflow {
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
-	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
+	qpt.tick   = (currentpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
 	qpt.pixeladc = steplen; 
 	qpt.fromplaneid = -1;
 	if ( intpc )
@@ -314,7 +320,7 @@ namespace larflow {
       while ( _maxdiff<0 ) {
 	// we extend the entering cluster
 	Eigen::Map< Eigen::Vector3f > endpos( _entering_qcluster.back().xyz.data() );
-	Eigen::Vector3f extpos = endpos + (extsign*steplen*float(istep))*pcavec;
+	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
 	// make hit
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
@@ -476,7 +482,7 @@ namespace larflow {
       while ( _maxdiff<0 ) {
 	// we extend the exiting cluster
 	Eigen::Map< Eigen::Vector3f > endpos( _exiting_qcluster.back().xyz.data() );
-	Eigen::Vector3f extpos = endpos + (extsign*steplen*float(istep))*pcavec;
+	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
 	// make hit
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
@@ -524,9 +530,9 @@ namespace larflow {
       intpc_tot += _corehypo[ich]*_corehypo.tot;
       if ( withextensions) {
 	out[ich]   += _entering_hypo[ich]*_entering_hypo.tot;
-	out[ich]   += _exiting_hypo[ich]*_entering_hypo.tot;
+	out[ich]   += _exiting_hypo[ich]*_exiting_hypo.tot;
 	outtpc_tot += _entering_hypo[ich]*_entering_hypo.tot;
-	outtpc_tot += _exiting_hypo[ich]*_entering_hypo.tot;
+	outtpc_tot += _exiting_hypo[ich]*_exiting_hypo.tot;
       }
       out[ich]  += _gapfill_hypo[ich]*_gapfill_hypo.tot;
       intpc_tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
@@ -716,12 +722,19 @@ namespace larflow {
     
     // build hypothesis histogram
     // different components as well
-    char hname[20];
-    sprintf( hname, "htot_%d", iclust);
-    TH1D* hhypotot = new TH1D(hname, "", 32, 0, 32 );
-    hhypotot->SetLineWidth(2.0);
-    hhypotot->SetLineColor(kBlue);
+    char hname_wext[20];
+    sprintf( hname_wext, "htotwext_%d", iclust);
+    TH1D* hhypotot_wext = new TH1D(hname_wext, "", 32, 0, 32 );
+    hhypotot_wext->SetLineWidth(2.0);
+    hhypotot_wext->SetLineColor(kBlue);
 
+    char hname_orig[20];
+    sprintf( hname_orig, "htotorig_%d", iclust);
+    TH1D* hhypotot_orig = new TH1D(hname_orig, "", 32, 0, 32 );
+    hhypotot_orig->SetLineWidth(2.0);
+    hhypotot_orig->SetLineColor(38);
+
+    char hname[50];
     sprintf( hname, "hcore_%d", iclust);
     TH1D* hhypocore = new TH1D(hname, "", 32, 0, 32 );
     hhypocore->SetLineColor(kRed);
@@ -741,23 +754,22 @@ namespace larflow {
     TH1D* hhypogap = new TH1D(hname, "", 32, 0, 32 );
     hhypogap->SetLineColor(kOrange);
     hhypogap->SetLineWidth(1.0);
-
-    std::vector< TH1D* > hclust_v = {hhypocore,hhypoenter,hhypoexit,hhypogap,hhypotot};
+    
+    FlashHypo_t hypo_wext = getHypothesis( true,  true, 10.0 );
+    FlashHypo_t hypo_orig = getHypothesis( false, true, 10.0 );
+    std::vector< TH1D* > hclust_v = {hhypocore,hhypoenter,hhypoexit,hhypogap,hhypotot_wext, hhypotot_orig};
+    
     for (int ich=0; ich<32; ich++ ) {
       hhypocore->SetBinContent(ich+1,_corehypo[ich]*_corehypo.tot);
       hhypoenter->SetBinContent(ich+1,_entering_hypo[ich]*_entering_hypo.tot);
       hhypoexit->SetBinContent(ich+1,_exiting_hypo[ich]*_exiting_hypo.tot);
       hhypogap->SetBinContent (ich+1, _gapfill_hypo[ich]*_gapfill_hypo.tot );
-      float tot = _corehypo[ich]*_corehypo.tot;
-      tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
-      tot += _entering_hypo[ich]*_entering_hypo.tot;
-      tot += _exiting_hypo[ich]*_exiting_hypo.tot;
-      hhypotot->SetBinContent( ich+1, tot );
+      hhypotot_wext->SetBinContent( ich+1, hypo_wext[ich]*hypo_wext.tot );
+      hhypotot_orig->SetBinContent( ich+1, hypo_orig[ich]*hypo_orig.tot );
     }
-    
-    // pe ratio of hypothesis
-    float hypo_norm = hhypotot->Integral();
-    float peratio = fabs(hypo_norm/norm-1.0);
+
+    if ( max < hhypotot_wext->GetMaximum() ) max = hhypotot_wext->GetMaximum();
+    if ( max < hhypotot_orig->GetMaximum() ) max = hhypotot_orig->GetMaximum();
     
     // ============================
     // DRAW 2D PLOT
@@ -788,7 +800,6 @@ namespace larflow {
     // draw pmt data markers
     std::vector<TEllipse*> datamarkers_v(32,0);
     std::vector<TEllipse*> hypomarkers_v(32,0);
-    //std::vector<TEllipse*> truthmarkers_v(32,0);
       
     for (int ich=0; ich<32; ich++) {
       int opdet = geo->OpDetFromOpChannel(ich);
@@ -801,7 +812,7 @@ namespace larflow {
       datamarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
       datamarkers_v[ich]->SetFillColor(kRed);
       
-      float hypope = (hhypotot->GetBinContent(ich+1));
+      float hypope = (hhypotot_wext->GetBinContent(ich+1));
       if ( hypope>10 )
 	hypope = 10 + (hypope-10)*0.10;
       radius = ( hypope>50 ) ? 50 : hypope;
@@ -1021,32 +1032,27 @@ namespace larflow {
     // finally hist pad
     histpad.cd();
     hdata.Draw("hist");
+    hdata.SetMaximum( max*1.1 );
     for (int ihist=0; ihist<(int)hclust_v.size(); ihist++) {
       hclust_v[ihist]->Draw("hist same");
     }
-    
-    // if ( tophistidx<hclust_v.size() )
-    //   hclust_v[tophistidx]->Draw("hist same");
 
-
-    // // text summary
-    // char ztruth[100];
-    // if ( truthmatch_idx<0 )
-    // 	sprintf( ztruth,"No truth-match");
-    // else
-    // 	sprintf( ztruth,"Truth-match idx (green): %d",truthmatch_idx );
+    // text summary
+    char ztruth[100];
+    if ( isTruthMatch() ) 
+      sprintf( ztruth,"Truth-match");
+    else
+      sprintf( ztruth,"Not a truth-match");
     
-    // char ztruthscores[100];
-    // if ( truthmatch_idx<0 )
-    // 	sprintf( ztruthscores, "Truth-Chi2=NA  Truth-Maxdist=NA" );
-    // else
-    // 	sprintf( ztruthscores, "Truth-Chi2=%.2f  Truth-Maxdist=%.2f peratio=%.2f", truthmatch_chi2, truthmatch_maxdist, truthmatch_peratio );
+    char ztruthscores[100];
+    float maxdist_wext = getMaxDist( *_flashdata, hypo_wext );
+    float maxdist_orig = getMaxDist( *_flashdata, hypo_orig );
+    sprintf( ztruthscores, "MaxDist(w/Ext)=%.3f  MaxDist(orig)=%.3f", maxdist_wext, maxdist_orig );
     
-    // char zbestchi[100];
-    // if ( bestchi2_idx>=0 )
-    // 	sprintf( zbestchi, "Best Chi2 idx (cyan): %d  Chi2=%.1f peratio=%.2f", bestchi2_idx, bestchi2, bestchi2_peratio );
-    // else
-    // 	sprintf( zbestchi, "No chi2 match" );
+    char zperatio[100];
+    float peratio_west = getPERatio( *_flashdata, hypo_wext );
+    float peratio_orig = getPERatio( *_flashdata, hypo_orig );
+    sprintf( zperatio, "PERatio(w/EXT)=%.2f  PERatio(orig)=%.2f", peratio_west, peratio_orig );
     
     // char zbestmaxdist[100];
     // if ( bestmaxdist_idx>=0 )
@@ -1058,20 +1064,20 @@ namespace larflow {
     // if ( usefmatch )
     // 	sprintf( zbestfmatch, "Best fmatch index: %d fmatch=%.2f", bestfmatch_idx, matchscore_best );
     
-    // TText ttruth(0.6,0.85,ztruth);
-    // TText ttruthscore(0.6,0.80,ztruthscores);
-    // TText tbestchi(0.6,0.75,zbestchi);
+    TText ttruth(0.6,0.85,ztruth);
+    TText ttruthscore(0.6,0.80,ztruthscores);
+    TText tperatio(0.6,0.75,zperatio);
     // TText tbestmaxdist(0.6,0.70,zbestmaxdist);
     // TText* tbestfmatch = nullptr;
     // if ( usefmatch )
     // 	tbestfmatch = new TText(0.6,0.65,zbestfmatch);
     
-    // ttruth.SetNDC(true);
-    // ttruth.Draw();
-    // ttruthscore.SetNDC(true);      
-    // ttruthscore.Draw();
-    // tbestchi.SetNDC(true);
-    // tbestchi.Draw();
+    ttruth.SetNDC(true);
+    ttruth.Draw();
+    ttruthscore.SetNDC(true);      
+    ttruthscore.Draw();
+    tperatio.SetNDC(true);
+    tperatio.Draw();
     // tbestmaxdist.SetNDC(true);
     // tbestmaxdist.Draw();
     // if ( usefmatch ) {
