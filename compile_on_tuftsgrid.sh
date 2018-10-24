@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # workdir
-workdir=/cluster/kappa/wongjiradlab/twongj01/larflow/
+workdir=$1
+#workdir=/cluster/kappa/wongjiradlab/twongj01/larflow/
 
 cd $workdir
 
