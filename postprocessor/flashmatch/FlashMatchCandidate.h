@@ -31,6 +31,7 @@ namespace larflow {
     float _xoffset;
     float _maxch_pe;
     int   _maxch;
+    void getFlashClusterIndex( int& flashidx, int& clustidx ) { flashidx=_flashdata->idx; clustidx=_cluster->idx; };
 
     bool _hasevstatus;
     const larcv::EventChStatus* _evstatus;

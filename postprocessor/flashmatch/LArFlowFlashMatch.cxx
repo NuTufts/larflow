@@ -49,7 +49,11 @@ namespace larflow {
       _parsdefined(false),
       _psce(nullptr),
       kFlashMatchedDone(false),
-      _evstatus(nullptr)
+      _evstatus(nullptr),
+      _fanafile(nullptr),
+      _anatree(nullptr),
+      _save_ana_tree(false),
+      _anafile_written(false)
   {
 
     // define bins in z-dimension and assign pmt channels to them
@@ -87,6 +91,33 @@ namespace larflow {
     // random generators
     _rand = new TRandom3( 4357 );
   }
+
+  LArFlowFlashMatch::~LArFlowFlashMatch() {
+    delete _rand;
+    resetCompatibilityMatrix();
+    clearFittingData();
+    clearFitParameters();
+    clearMCTruthInfo();
+    if ( _fanafile && _anafile_written )
+      writeAnaFile();
+    if ( _anatree )
+      delete _anatree;
+    if ( _fanafile )
+      _fanafile->Close();
+  }
+
+  void LArFlowFlashMatch::clearEvent() {
+    _flashdata_v.clear();
+    _qcluster_v.clear();
+    _qcore_v.clear();
+    resetCompatibilityMatrix();
+    clearMatchHypotheses();
+    clearFirstRefinementVariables();
+    clearFittingData();
+    clearFitParameters();
+    clearMCTruthInfo();
+    _evstatus = nullptr;
+  }
   
   LArFlowFlashMatch::Results_t LArFlowFlashMatch::match( const std::vector<larlite::opflash>& beam_flashes,
 							 const std::vector<larlite::opflash>& cosmic_flashes,
@@ -116,7 +147,7 @@ namespace larflow {
     //std::cin.get();
     
     
-    // MC matching
+    // MC matching: for origina flash and cluster
     if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
       std::cout << "[LArFlowFlashMatch::match][INFO] Doing MCTrack truth-reco matching" << std::endl;
       doFlash2MCTrackMatching( _flashdata_v );
@@ -171,9 +202,11 @@ namespace larflow {
     }
 
     for ( auto& candidate : m_matchcandidate_hypo_v ) {
-      candidate.dumpMatchImage();
+      //candidate.dumpMatchImage();
     }
-    
+
+    // second refinement
+    secondMatchRefinement();
     
     // define the fitting data members
     buildFittingData( _flashdata_v, _qcluster_v );
@@ -605,7 +638,7 @@ namespace larflow {
     std::cout << "------------------------------------------" << std::endl;      
   }
 
-  void LArFlowFlashMatch::resetCompatibiltyMatrix() {
+  void LArFlowFlashMatch::resetCompatibilityMatrix() {
     _nflashes = 0;
     _nqclusters = 0;
     _nelements = 0;
@@ -620,20 +653,8 @@ namespace larflow {
 						const std::vector<QCluster_t>&  qcluster_v ) {
     
     // each (flash,cluster) pair builds a hypothesis
-
-    const larutil::Geometry* geo = larutil::Geometry::GetME();
-    const phot::PhotonVisibilityService& photonlib = phot::PhotonVisibilityService::GetME( "uboone_photon_library_v6_70kV.root" );
-    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
-    const float driftv = larp->DriftVelocity();
-    const size_t npmts = 32;
-    const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
-    const float gapfill_len2adc  = (60.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field        
-    const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
-
-
     m_flash_hypo_map.clear();
     m_flash_hypo_v.clear(); // deprecated
-    //m_flash_hypo_v.reserve(flashdata_v.size()*qcluster_v.size());
     m_matchcandidate_hypo_v.reserve( flashdata_v.size()*qcluster_v.size() );
     
     for (int iflash=0; iflash<flashdata_v.size(); iflash++) {
@@ -653,12 +674,18 @@ namespace larflow {
 	int idx = m_flash_hypo_v.size();
 	m_flash_hypo_map[ flashclusterpair_t((int)iflash,iq) ] = idx;
 	m_matchcandidate_hypo_v.emplace_back( std::move(match_candidate) );
-
+	
 	// DEBUG HACK
 	//break;
       }//end of loop over clusters
     }//end of loop over flashes
     
+  }
+
+  void LArFlowFlashMatch::clearMatchHypotheses() {
+    m_flash_hypo_map.clear();
+    m_flash_hypo_v.clear();
+    m_matchcandidate_hypo_v.clear();
   }
   
   bool LArFlowFlashMatch::hasHypothesis( int flashidx, int clustidx ) {
@@ -687,6 +714,15 @@ namespace larflow {
     if ( it==m_flash_hypo_map.end() )
       return -1;
     return it->second;
+  }
+
+  void LArFlowFlashMatch::getFlashClusterIndexFromMatchIndex( int matchidx, int& flashidx, int& clustidx ) {
+    if ( matchidx<0 || matchidx>m_matchcandidate_hypo_v.size() ) {
+      flashidx = -1;
+      clustidx = -1;
+      return;
+    }
+    m_matchcandidate_hypo_v.at(matchidx).getFlashClusterIndex( flashidx, clustidx );
   }
 
   void LArFlowFlashMatch::buildFittingData( const std::vector<FlashData_t>& flashdata_v,
@@ -1128,6 +1164,15 @@ namespace larflow {
     std::cout << "total number of weights: " << int(nweights) << std::endl;
     std::cout << "Weighted scale-factor mean: "   << _fweighted_scalefactor_mean  << std::endl;
     std::cout << "Weighted scale-factor variance (stdev): " << _fweighted_scalefactor_var << " ("  << _fweighted_scalefactor_sig << ")" << std::endl;
+  }
+
+  void LArFlowFlashMatch::clearFirstRefinementVariables() {
+    _flashdata_best_hypo_chi2_idx.clear();
+    _flashdata_best_hypo_chi2.clear();
+    _flashdata_best_hypo_maxdist_idx.clear();
+    _flashdata_best_hypo_maxdist.clear();
+    _clustdata_best_hypo_chi2_idx.clear();
+    _clustdata_best_hypo_maxdist_idx.clear();
   }
 
   void LArFlowFlashMatch::printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v ) {
@@ -2579,6 +2624,41 @@ namespace larflow {
     }
   }
 
+  void LArFlowFlashMatch::secondMatchRefinement() {
+    // we take the flashmatchcandidate objects in m_matchcandidate_hypo_v and
+    // reject matches based on
+    // 1) pe ratio
+    // 2) maxdist
+    for ( auto& matchcandidate : m_matchcandidate_hypo_v ) {
+    }
+  }
 
+  // ---------------------------------------------------------------------
+  // Ana Tree
+  // 
+  void LArFlowFlashMatch::saveAnaVariables( std::string anafilename ) {
+    _ana_filename = anafilename;
+    setupAnaTree();
+  }
   
+  void LArFlowFlashMatch::setupAnaTree() {
+    _fanafile = new TFile( _ana_filename.c_str(), "recreate" );
+    _anatree  = new TTree("flashmatchana", "LArFlow FlashMatch Ana Tree");
+    _anatree->Branch("redstep", &_redstep, "redstep/I");
+    _anatree->Branch("truthmatch", &_truthmatch, "truthmatch/I");
+    _anatree->Branch("maxdist_orig", &_maxdist_orig, "maxdist_orig/F");
+    _anatree->Branch("peratio_orig", &_peratio_orig, "peratio_orig/F");
+    _anatree->Branch("maxdist_wext", &_maxdist_wext, "maxdist_wext/F");
+    _anatree->Branch("peratio_wext", &_peratio_wext, "peratio_wext/F");
+    _save_ana_tree   = true;
+    _anafile_written = false;    
+  }
+
+  void LArFlowFlashMatch::writeAnaFile() {
+    if ( _save_ana_tree ) {
+      _fanafile->cd();
+      _anatree->Write();
+      _anafile_written = true;
+    }
+  }
 }

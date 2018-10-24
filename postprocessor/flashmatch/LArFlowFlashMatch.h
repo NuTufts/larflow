@@ -3,6 +3,8 @@
 
 #include <vector>
 
+// ROOT
+
 // larlite
 #include "DataFormat/opflash.h"
 #include "DataFormat/larflow3dhit.h"
@@ -20,6 +22,8 @@
 #include "QClusterCore.h"
 
 class TRandom3;
+class TFile;
+class TTree;
 namespace larutil {
   class SpaceChargeMicroBooNE;
 }
@@ -32,7 +36,7 @@ namespace larflow {
   public:
 
     LArFlowFlashMatch();
-    virtual ~LArFlowFlashMatch() {};
+    virtual ~LArFlowFlashMatch();
 
     struct Results_t {
       /* std::vector<larlite::opflash*> flash_v; */
@@ -56,7 +60,10 @@ namespace larflow {
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; };
     
     std::vector<larlite::larflowcluster> exportMatchedTracks();
-          
+    void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
+    void writeAnaFile();
+    void clearEvent();
+    
   protected:
 
     // vectors for storing the events data flashes and reconstructed qclusters
@@ -100,7 +107,7 @@ namespace larflow {
     int* _nclusters_compat_wflash; // [nflashes]
     bool _compatibility_defined;
     void buildFullCompatibilityMatrix( const std::vector<FlashData_t>&, const std::vector<QCluster_t>& );
-    void resetCompatibiltyMatrix();
+    void resetCompatibilityMatrix();
     inline int  getCompat( int iflash, int iqcluster )  { return *(m_compatibility + _nqclusters*iflash + iqcluster); };
     inline void setCompat( int iflash, int iqcluster, int compat ) { *(m_compatibility + _nqclusters*iflash + iqcluster) = compat; };
     void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
@@ -138,7 +145,6 @@ namespace larflow {
       };
     };
     std::map<flashclusterpair_t,int> m_flash_hypo_map;   // using orig index
-    std::map<flashclusterpair_t,int> m_flash_hypo_remap; // using reduced indexing
     std::vector< FlashHypo_t > m_flash_hypo_v; // DEPRECATED
     std::vector< FlashMatchCandidate > m_matchcandidate_hypo_v; // builflashhypotheses builds this
     void  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
@@ -146,6 +152,8 @@ namespace larflow {
     FlashHypo_t& getHypothesisWithOrigIndex( int flashidx, int clustidx );
     bool hasHypothesis( int flashidx, int clustidx );
     int getMatchIndexFromOrigIndices( int flashidx, int clustidx );
+    void getFlashClusterIndexFromMatchIndex( int matchidx, int& flashidx, int& clustidx );
+    void clearMatchHypotheses();
     
     // Match refinement
     // ----------------------------
@@ -164,6 +172,7 @@ namespace larflow {
     void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 					 const std::vector<QCluster_t>&  qcluster_v,
 					 bool adjust_pe_for_cosmic_disc );
+    void clearFirstRefinementVariables();
     
     // Build Fit Parameter matrices
     // ----------------------------
@@ -177,6 +186,7 @@ namespace larflow {
     std::vector<int> _match_clustidx_orig;    
     std::map<int,int> _flash_reindex; // original -> reindex
     std::map<int,int> _clust_reindex; // original -> reindex
+    std::map<flashclusterpair_t,int> m_flash_hypo_remap; // using reduced indexing
     float* m_flash_hypo;   // [nclusters_red][npmts]
     float* m_flash_data;   // [nflashes_red][npmts]
     float* m_flashhypo_norm;
@@ -240,6 +250,27 @@ namespace larflow {
     // ChStatus Info
     // ----------------------------------------------
     const larcv::EventChStatus* _evstatus;
+
+
+    // secondMatchRefinement
+    // ---------------------
+    void secondMatchRefinement();
+
+
+    // analysis variable tree
+    // ----------------------
+    std::string _ana_filename;
+    TFile* _fanafile;
+    TTree* _anatree;
+    int   _redstep;
+    int   _truthmatch;    
+    float _maxdist_orig;
+    float _peratio_orig;
+    float _maxdist_wext;
+    float _peratio_wext;
+    bool  _save_ana_tree;
+    bool  _anafile_written;
+    void setupAnaTree();
 
   };
     
