@@ -34,3 +34,19 @@ source /usr/local/root/release/bin/thisroot.sh
 
 source configure.sh
 source build.sh
+
+# build photolib tools
+cd larlite/UserDev/SelectionTool/OpT0Finder/
+make
+
+# post-processor
+cd $workdir
+cd postprocessor
+make clean
+make
+
+cd flashmatch
+make
+
+# return home
+cd $workdir
