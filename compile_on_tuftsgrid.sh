@@ -7,7 +7,7 @@ workdir=$1
 cd $workdir
 
 # get right branch
-#git checkout flashmatch_refactor
+git checkout cilantro_test
 
 # setup submodules
 git submodule init
