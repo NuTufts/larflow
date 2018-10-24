@@ -3,6 +3,31 @@ import os,sys,time
 from collections import OrderedDict
 import argparse
 
+# ----------------------------------------------------------------------
+# PARSE ARGUMENTS 
+
+whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through LArFlow.')
+whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
+whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
+whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
+whole_view_parser.add_argument( "-f", "--flowdir",      required=True, type=str, help="Flow direction. Choose from [Y2U,Y2V]")
+whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
+whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
+whole_view_parser.add_argument( "-b", "--batchsize",    default=1,     type=int, help="batch size" )
+whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
+whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
+whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
+whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
+whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
+whole_view_parser.add_argument( "-d", "--debug",        action="store_true", default=False, help="run in debug mode. uses hardcoded parameters for dev" )
+whole_view_parser.add_argument( "-a", "--saveadc",      action="store_true", default=False, help="save cropped ADC as well" )
+
+args = whole_view_parser.parse_args(sys.argv)
+
+# -------------------------------------------------------------------
+
+
+
 # numpy
 import numpy as np
 
@@ -120,24 +145,11 @@ class WholeImageLoader:
 if __name__=="__main__":
 
     # ARGUMENTS DEFINTION/PARSER
-    if len(sys.argv)>1:
-        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through LArFlow.')
-        whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
-        whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
-        whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
-        whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
-        whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
-        whole_view_parser.add_argument( "-b", "--batchsize",    default=2,     type=int, help="batch size" )
-        whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
-        whole_view_parser.add_argument( "-v", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
-        whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
-        whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
-        whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
-
-        args = whole_view_parser.parse_args(sys.argv)
+    if not args.debug:
         input_larcv_filename  = args.input
         output_larcv_filename = args.output
         checkpoint_data       = args.checkpoint
+        FLOWDIR               = args.flowdir.upper()
         gpuid                 = args.gpuid
         checkpoint_gpuid      = args.chkpt_gpuid
         batch_size            = args.batchsize
@@ -145,6 +157,8 @@ if __name__=="__main__":
         nprocess_events       = args.nevents
         stitch                = args.stitch
         use_half              = args.use_half
+        ismc                  = args.ismc
+        save_cropped_adc      = args.saveadc
     else:
 
         # for testing
@@ -162,14 +176,14 @@ if __name__=="__main__":
         stitch = False
         use_half = True
         
-        FLOWDIR="y2v"
+        FLOWDIR="Y2V"
 
-        if FLOWDIR=="y2u":
+        if FLOWDIR=="Y2U":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
             output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
             ismc = True # saves flow and visi images
             save_cropped_adc = True  # saves cropped adc
-        elif FLOWDIR=="y2v":
+        elif FLOWDIR=="Y2V":
             checkpoint_data = "../weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
             output_larcv_filename = "/media/hdd1/nutufts/larflow_testdata/testdata/larcv_larflow_y2v_5482426_95_testsample082918.root"
             # remove for y2v so we can hadd with y2u output                        
@@ -179,7 +193,8 @@ if __name__=="__main__":
             raise RuntimeError("invalid flowdir")
 
 
-
+    if FLOWDIR not in ["Y2U","Y2V"]:
+        raise ValueError("Required argument '--flowdir' must be [ Y2U, Y2V ]")
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
@@ -190,10 +205,12 @@ if __name__=="__main__":
     model.eval()
 
     # set planes
-    if FLOWDIR=="y2u":
+    if FLOWDIR=="Y2U":
         target_plane = 0
-    elif FLOWDIR=="y2v":
+    elif FLOWDIR=="Y2V":
         target_plane = 1
+    else:
+        raise ValueError("invalid FLOWDIR value")
 
     # output IOManager
     if stitch:
@@ -235,6 +252,7 @@ if __name__=="__main__":
         
         tentry = time.time()
         
+        # get the input data: data loader reads in whole view and splits and crops
         tdata = time.time()
         splitimg_bbox_v = inputdata.get_entry(ientry)
         nimgs = splitimg_bbox_v.size() 
@@ -245,14 +263,14 @@ if __name__=="__main__":
             larflow_cropped_dict = None
         else:
             larflow_cropped_dict = inputdata.get_larflow_cropped()
-            print "LArFlow Cropper Produced: "
-            print "  adc: ",larflow_cropped_dict["adc"].image2d_array().size()
-            if ismc:
-                print "  visi: ",larflow_cropped_dict["visi"].image2d_array().size()
-                print "  flow: ",larflow_cropped_dict["flow"].image2d_array().size()
-            else:
-                print "  visi: None-not MC"
-                print "  flow: None-not MC"
+            #print "LArFlow Cropper Produced: "
+            #print "  adc: ",larflow_cropped_dict["adc"].image2d_array().size()
+            #if ismc:
+            #    print "  visi: ",larflow_cropped_dict["visi"].image2d_array().size()
+            #    print "  flow: ",larflow_cropped_dict["flow"].image2d_array().size()
+            #else:
+            #    print "  visi: None-not MC"
+            #    print "  flow: None-not MC"
         tdata = time.time()-tdata
         timing["++load_larcv_data:ubcroplarflow"] += tdata
         if verbose:
@@ -262,7 +280,7 @@ if __name__=="__main__":
             print "number of images in whole-view split: ",nimgs
 
 
-        # get input adc images
+        # get input wholeview adc images
         talloc = time.time()
         ev_img = inputdata.io.get_data("image2d","wire")
         img_v = ev_img.image2d_array()
@@ -353,7 +371,7 @@ if __name__=="__main__":
                 image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
                 target_meta.append( larcv.ImageMeta( bb_v[target_plane], 512, 832 ) )
 
-                # if not stiching, save crops
+                # if not stiching, save crops, we might be saving these
                 if not stitch:
                     flowcrops = {"flow":[],"visi":[],"adc":[]}
                     for ii in xrange(0,3):
@@ -377,6 +395,7 @@ if __name__=="__main__":
                 print "batch using ",len(image_meta)," slots"
         
             # filled batch, make tensors
+            # --------------------------
             source_t = torch.from_numpy( source_np ).to(device=torch.device("cuda:%d"%(gpuid)))
             target_t = torch.from_numpy( target_np ).to(device=torch.device("cuda:%d"%(gpuid)))
             if use_half:
@@ -408,15 +427,18 @@ if __name__=="__main__":
                 if stitch:
                     stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
                 else:
-                    # we save flow image and crops for each prediction\
+                    # save cropped images
+                    #--------------------
+                    # prediction images
                     evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR))
                     evoutpred.append( flow_lcv )                    
+
+                    # input cropped source and target image
                     if save_cropped_adc:
                         evoutadc  = outputdata.get_data("image2d","adc")
                         for img in flowcrop_batch[ib]["adc"]:
                             evoutadc.append( img )
-
-                    
+                    # save truth flow and visi crops
                     if ismc:
                         evoutvisi = outputdata.get_data("image2d","pixvisi")
                         evoutflow = outputdata.get_data("image2d","pixflow")                                            
