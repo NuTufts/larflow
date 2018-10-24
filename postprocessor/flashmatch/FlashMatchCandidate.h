@@ -10,6 +10,7 @@
 
 // larlite
 #include "DataFormat/pcaxis.h"
+#include "DataFormat/mctrack.h"
 
 // larflow
 #include "FlashMatchTypes.h"
@@ -52,6 +53,8 @@ namespace larflow {
     static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
     void dumpMatchImage();
     void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; _hasevstatus=true; };
+
+    void addMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v );
     
   protected:
 
@@ -70,7 +73,15 @@ namespace larflow {
     // extend core on the exiting end
     //   only continues as long as flash-match improved
     
-    
+    // MCTrack info for flash-mctrack and cluster-mctrack matching
+    const std::vector< larlite::mctrack >* _mctrack_v;
+    int _flash_mctrackid;
+    int _flash_mctrackidx;
+    int _cluster_mctrackid;
+    int _cluster_mctrackidx;    
+    const larlite::mctrack* _flash_mctrack;
+    const larlite::mctrack* _cluster_mctrack;
+
     
   };
 

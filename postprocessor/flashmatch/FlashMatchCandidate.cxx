@@ -34,7 +34,13 @@ namespace larflow {
     _evstatus(nullptr),
     _hasevstatus(false),
     _topend(0,0,0),
-    _botend(0,0,0)
+    _botend(0,0,0),
+    _flash_mctrackid(-1),
+    _flash_mctrackidx(-1),
+    _cluster_mctrackid(-1),
+    _cluster_mctrackidx(-1),
+    _flash_mctrack(nullptr),
+    _cluster_mctrack(nullptr)
   {
     // when dealing with information from the core, we will need this offset
     _xoffset = (_flashdata->tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
@@ -90,7 +96,7 @@ namespace larflow {
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
-    const float gapfill_len2adc  = (60.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field        
+    const float gapfill_len2adc  = (100.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
     const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
 
 
@@ -225,10 +231,11 @@ namespace larflow {
     // determine sign of pca-axis
     float extsign = ( (_topend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
 
+    bool indet = true;
     bool intpc = true;
     bool isanode = false;
     int istep = 0;
-    while (intpc) {
+    while (indet) {
       Eigen::Vector3f currentpos = _topend + (extsign*steplen*float(istep))*pcavec;
       // check the position
       if ( currentpos(0)<0 ) {
@@ -236,21 +243,29 @@ namespace larflow {
 	isanode = true;
 	intpc   = false;
       }
-      else if ( currentpos(0)>250 || currentpos(1)>120.0 || currentpos(1)<-120 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
+      else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
 	intpc = false;
 	isanode = false;
       }
+
+      if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+	indet = false;
+	break;
+      }
       
-      if ( intpc ) {
+      if ( indet ) {
 	// create the hit
-	std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
+	//std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
 	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
 	qpt.pixeladc = steplen; 
 	qpt.fromplaneid = -1;
-	qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+	if ( intpc )
+	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+	else
+	  qpt.type = kExt;
 	_entering_qcluster.emplace_back( std::move(qpt) );
       }
       istep++;
@@ -262,7 +277,7 @@ namespace larflow {
       // to do this, we need hypothesis to have been formed
       _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
       float _maxdiff = _entering_hypo[_maxch] - _maxch_pe;
-      std::cout << "Is ANODE: extend to match maxpmt" << std::endl;
+      //std::cout << "Is ANODE: extend to match maxpmt" << std::endl;
       istep = 0;
       while ( _maxdiff<0 ) {
 	// we extend the entering cluster
@@ -278,7 +293,7 @@ namespace larflow {
 	qpt.type = kExt;
 	_entering_qcluster.emplace_back( std::move(qpt) );
 	
-	if ( extpos(0) < -50 || extpos(1)>120 || extpos(1)<-120 || extpos(2)<-50 || extpos(2)>1100 ) {
+	if ( extpos(0) < -50 || extpos(1)>117+20 || extpos(1)<-117-20 || extpos(2)<-20 || extpos(2)>1056 ) {
 	  // limit this adjustment
 	  break;
 	}
@@ -286,16 +301,16 @@ namespace larflow {
 	// update the hypothesis
 	_entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
 	_maxdiff = _entering_hypo[_maxch] - _maxch_pe;
-	std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
-		  << "  _hypomax=" << _entering_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+	// 	  << "  _hypomax=" << _entering_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
 	istep++;
       }
     }
     //entering extension finished
-
+    
     // set final hypo
     _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
-
+    
   }
 
   void FlashMatchCandidate::ExtendExitingEnd() {
@@ -327,10 +342,11 @@ namespace larflow {
     // determine sign of pca-axis
     float extsign = ( (_botend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
 
+    bool indet = true;    
     bool intpc = true;
     bool isanode = false;
     int istep = 0;
-    while (intpc) {
+    while (indet) {
       Eigen::Vector3f currentpos = _botend + (extsign*steplen*float(istep))*pcavec;
       // check the position
       if ( currentpos(0)<0 ) {
@@ -338,21 +354,29 @@ namespace larflow {
 	isanode = true;
 	intpc   = false;
       }
-      else if ( currentpos(0)>250 || currentpos(1)>120.0 || currentpos(1)<-120 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
+      else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
 	intpc = false;
 	isanode = false;
       }
+
+      if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+	indet = false;
+	break;
+      }
       
-      if ( intpc ) {
+      if ( indet ) {
 	// create the hit
-	std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
+	//std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
 	QPoint_t qpt;
 	qpt.xyz.resize(3,0);
 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
 	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
 	qpt.pixeladc = steplen; 
 	qpt.fromplaneid = -1;
-	qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+	if ( intpc )
+	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+	else
+	  qpt.type = kExt; // we need it to set the light yield according to in-tpc gap fill levels
 	_exiting_qcluster.emplace_back( std::move(qpt) );
       }
       istep++;
@@ -397,7 +421,7 @@ namespace larflow {
       // to do this, we need hypothesis to have been formed
       _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
       float _maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
-      std::cout << "Is ANODE: extend EXITING to match maxpmt" << std::endl;
+      //std::cout << "Is ANODE: extend EXITING to match maxpmt" << std::endl;
       istep = 0;
       while ( _maxdiff<0 ) {
 	// we extend the exiting cluster
@@ -412,17 +436,17 @@ namespace larflow {
 	qpt.fromplaneid = -1;
 	qpt.type = kExt;
 	_exiting_qcluster.emplace_back( std::move(qpt) );
-
-	if ( extpos(0) < -50 || extpos(1)>120 || extpos(1)<-120 || extpos(2)<-50 || extpos(2)>1100 ) {
+	
+	if ( extpos(0) < -50 || extpos(1)>137 || extpos(1)<-137 || extpos(2)<-20 || extpos(2)>1058 ) {
 	  // limit this adjustment
 	  break;
 	}
-
+	
 	// update the hypothesis
 	_exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
 	_maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
-	std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
-		  << "  _hypomax=" << _exiting_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+	// 	  << "  _hypomax=" << _exiting_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
 	istep++;
       }
     }
@@ -431,6 +455,55 @@ namespace larflow {
     // set final value
     _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
     
+  }
+
+  void FlashMatchCandidate::addMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v ) {
+
+    _mctrack_v = &mctrack_v;
+    
+    const ::larutil::TimeService* tsv = ::larutil::TimeService::GetME(false);
+
+    int   nmatch        = 0;
+    int   best_trackid  =  -1;      
+    int   best_trackidx =  -1;      
+    float best_dtick    = 1e9;
+    std::vector< int > mctrackid_matches;  // mctrackid
+    std::vector< int > mctrackidx_matches; // vector index
+    
+    int imctrack=-1;    
+    for (auto& mct : *_mctrack_v ) {
+      imctrack++;
+
+      float track_tick = mct.Start().T()*1.0e-3/0.5 + 3200;
+      float flash_time = tsv->OpticalG4Time2TDC( mct.Start().T() );
+      
+      float dtick = fabs(_flashdata->tpc_tick - track_tick);
+      if ( dtick < 5 ) { // space charge?
+	nmatch++;
+	mctrackidx_matches.push_back( imctrack );
+	mctrackid_matches.push_back( mct.TrackID() );
+	if ( dtick < best_dtick ) {
+	  best_dtick = dtick;
+	  best_trackidx = imctrack;
+	  best_trackid  = mct.TrackID();
+	}
+      }
+
+      if ( _cluster->mctrackid==mct.TrackID() ) {
+	_cluster_mctrackidx = imctrack;
+	_cluster_mctrackid  = mct.TrackID();
+	_cluster_mctrack    = &mct;
+      }
+    }//end of mctrack loop
+
+    // for now, just use the closest match
+    _flash_mctrackid  = best_trackid;
+    _flash_mctrackidx = best_trackidx;
+    if ( best_trackidx>=0 ) {
+      _flash_mctrack    = &( _mctrack_v->at( best_trackidx ) );
+    }
+
+    //std::cout << "[FlashMatchCandidate::addMCTrackInfo][DEBUG] flashtruth_mctrack=" << _flash_mctrackid << " clustertruth_mctrackid=" << _cluster_mctrackid << std::endl;
   }
   
   void FlashMatchCandidate::dumpMatchImage() {
@@ -683,24 +756,37 @@ namespace larflow {
     //   truthclust_zy[kNonCore]->SetMarkerColor(kYellow+2);
     //   truthclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
 
-      // // mc-track: of truth match if it exists
-      // TGraph* mctrack_data    = nullptr;
-      // TGraph* mctrack_data_xy = nullptr;      
-      // if ( mctrack_match ) {
-      // 	const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ];
-      // 	std::cout << "matchedmctrack[" << flashdata_v[iflash].mctrackid << "] npoints: " << mct.size() << std::endl;	
-      // 	mctrack_data    = new TGraph( mct.size() );
-      // 	mctrack_data_xy = new TGraph( mct.size() );	
-      // 	for (int istep=0; istep<(int)mct.size(); istep++) {
-      // 	  mctrack_data->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
-      // 	  mctrack_data_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
-      // 	}
-      // 	mctrack_data->SetLineColor(kBlue);
-      // 	mctrack_data->SetLineWidth(1);
-      // 	mctrack_data_xy->SetLineColor(kBlue);
-      // 	mctrack_data_xy->SetLineWidth(1);
-      // }
+    // mc-track that is truth matched to flash
+    TGraph* mctrack_trueflash_zy = nullptr;
+    TGraph* mctrack_trueflash_xy = nullptr;      
+    if ( _flash_mctrack ) {
+      mctrack_trueflash_zy = new TGraph( _flash_mctrack->size() );
+      mctrack_trueflash_xy = new TGraph( _flash_mctrack->size() );	
+      for (int istep=0; istep<(int)_flash_mctrack->size(); istep++) {
+	mctrack_trueflash_zy->SetPoint(istep, (*_flash_mctrack)[istep].Z(), (*_flash_mctrack)[istep].Y() );
+	mctrack_trueflash_xy->SetPoint(istep, (*_flash_mctrack)[istep].X(), (*_flash_mctrack)[istep].Y() );
+      }
+      mctrack_trueflash_zy->SetLineColor(kBlue);
+      mctrack_trueflash_zy->SetLineWidth(1);
+      mctrack_trueflash_xy->SetLineColor(kBlue);
+      mctrack_trueflash_xy->SetLineWidth(1);
+    }
 
+    TGraph* mctrack_trueclust_zy = nullptr;
+    TGraph* mctrack_trueclust_xy = nullptr;    
+    if ( _cluster_mctrack ) {
+      mctrack_trueclust_zy = new TGraph( _cluster_mctrack->size() );
+      mctrack_trueclust_xy = new TGraph( _cluster_mctrack->size() );	
+      for (int istep=0; istep<(int)_cluster_mctrack->size(); istep++) {
+	mctrack_trueclust_zy->SetPoint(istep, (*_cluster_mctrack)[istep].Z(), (*_cluster_mctrack)[istep].Y() );
+	mctrack_trueclust_xy->SetPoint(istep, (*_cluster_mctrack)[istep].X(), (*_cluster_mctrack)[istep].Y() );
+      }
+      mctrack_trueclust_zy->SetLineColor(46);
+      mctrack_trueclust_zy->SetLineWidth(1);
+      mctrack_trueclust_xy->SetLineColor(46);
+      mctrack_trueclust_xy->SetLineWidth(1);
+    }
+      
 
     // make graphs for hypothesis cluster
     // ----------------------------------
@@ -772,8 +858,8 @@ namespace larflow {
     //   for (int i=0; i<kNumQTypes; i++) 
     // 	truthclust_zy[i]->Draw("P");
     // }
-    // if ( mctrack_data )
-    //   mctrack_data->Draw("L");
+    if ( mctrack_trueflash_zy )
+      mctrack_trueflash_zy->Draw("L");
 
     for (int ich=0; ich<32; ich++)
       chmarkers_v[ich]->Draw();
@@ -788,8 +874,8 @@ namespace larflow {
     //   for (int i=0; i<kNumQTypes; i++)
     // 	truthclust_xy[i]->Draw("P");
     // }
-    // if ( mctrack_data_xy )
-    //   mctrack_data_xy->Draw("L");
+    if ( mctrack_trueflash_xy )    
+      mctrack_trueflash_xy->Draw("L");
       
     // YZ-2D plots: hypothesis
     // -----------------------
@@ -803,9 +889,8 @@ namespace larflow {
     for (int ich=0; ich<32; ich++) {
       hypomarkers_v[ich]->Draw();
       pmtmarkers_v[ich]->Draw();
-      chmarkers_v[ich]->Draw();
       // if ( truthmatch_hypo )
-      // 	truthmarkers_v[ich]->Draw();
+      //    truthmarkers_v[ich]->Draw();
     }
 
     // cluster points
@@ -813,51 +898,25 @@ namespace larflow {
       if ( clust_zy[i] )
 	clust_zy[i]->Draw("P");
     }
-    
-      
-    //   // make graph for mctruth for hypothesis
-    //   if ( bestmatch_iclust==truthmatch_idx ) {
-    // 	mctrack_hypo_zy = mctrack_data;
-    // 	mctrack_hypo_xy = mctrack_data_xy;
-    //   }
-    // 	else {
-    // 	  const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[qc->mctrackid] ];
-    // 	  mctrack_hypo_zy = new TGraph( mct.size() );
-    // 	  mctrack_hypo_xy = new TGraph( mct.size() );	
-    // 	  for (int istep=0; istep<(int)mct.size(); istep++) {
-    // 	    mctrack_hypo_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
-    // 	    mctrack_hypo_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
-    // 	  }
-    // 	  mctrack_hypo_zy->SetLineColor(kMagenta);
-    // 	  mctrack_hypo_zy->SetLineWidth(1);
-    // 	  mctrack_hypo_xy->SetLineColor(kMagenta);
-    // 	  mctrack_hypo_xy->SetLineWidth(1);
-    // 	}
-	
-    //   }// if has best match
+    if ( mctrack_trueclust_zy )    
+      mctrack_trueclust_zy->Draw("L");
 
-      
-      // if ( mctrack_hypo_zy )
-      // 	mctrack_hypo_zy->Draw("L");
-      
+    for (int ich=0; ich<32; ich++)
+      chmarkers_v[ich]->Draw();
+                
     hypoxy.cd();
     bgxy.Draw();
     boxxy.Draw();
-    // if ( bestmatch_iclust>=0 ) {
-    //   for (int i=0; i<kNumQTypes; i++) {
-    // 	bestmatchclust_xy[i]->Draw("P");
-    //   }
-    // }
-    // if ( mctrack_hypo_xy )
-    //   mctrack_hypo_xy->Draw("L");
 
     // cluster points
     for (int i=0; i<4; i++) {
       if ( clust_xy[i] )
 	clust_xy[i]->Draw("P");
     }
-    
 
+    if ( mctrack_trueclust_xy )    
+      mctrack_trueclust_xy->Draw("L");    
+    
     // finally hist pad
     histpad.cd();
     hdata.Draw("hist");
@@ -956,6 +1015,15 @@ namespace larflow {
     // if ( mctrack_hypo_zy && _iclust!=truthmatch_idx ) {
     //   delete mctrack_hypo_zy;
     //   delete mctrack_hypo_xy;
+    }
+
+    if ( mctrack_trueflash_zy ) {
+      delete mctrack_trueflash_zy;
+      delete mctrack_trueflash_xy;
+    }
+    if ( mctrack_trueclust_zy ) {
+      delete mctrack_trueclust_zy;
+      delete mctrack_trueclust_xy;
     }
       
     for (int ic=0; ic<(int)hclust_v.size(); ic++) {

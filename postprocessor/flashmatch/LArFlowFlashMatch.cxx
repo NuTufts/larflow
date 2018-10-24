@@ -150,7 +150,7 @@ namespace larflow {
     buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Initial Compatible matches formed" << std::endl;
     //std::cin.get();
-        
+
     // refined compabtibility: incompatible-z
     bool adjust_pe_for_cosmic_disc = true;
     reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v, adjust_pe_for_cosmic_disc );
@@ -158,12 +158,17 @@ namespace larflow {
     printCompatInfo( _flashdata_v, _qcluster_v );
     //std::cin.get();
 
-
     // now build hypotheses: we only do so for compatible pairs
     buildFlashHypotheses( _flashdata_v, _qcluster_v );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Compatible Flash-Cluster match hypotheses formed" << std::endl;
     std::cin.get();
 
+    if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
+      // we provide truth info to the candidates
+      for ( auto& candidate : m_matchcandidate_hypo_v ) {
+	candidate.addMCTrackInfo( *_mctrack_v );
+      }      
+    }
 
     for ( auto& candidate : m_matchcandidate_hypo_v ) {
       candidate.dumpMatchImage();
@@ -650,7 +655,7 @@ namespace larflow {
 	m_matchcandidate_hypo_v.emplace_back( std::move(match_candidate) );
 
 	// DEBUG HACK
-	break;
+	//break;
       }//end of loop over clusters
     }//end of loop over flashes
     
