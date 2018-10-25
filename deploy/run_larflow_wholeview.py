@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # builtins
 import os,sys,time
 from collections import OrderedDict
@@ -18,11 +19,11 @@ whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",    
 whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
 whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
 whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
-whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
+whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
 whole_view_parser.add_argument( "-d", "--debug",        action="store_true", default=False, help="run in debug mode. uses hardcoded parameters for dev" )
 whole_view_parser.add_argument( "-a", "--saveadc",      action="store_true", default=False, help="save cropped ADC as well" )
 
-args = whole_view_parser.parse_args(sys.argv)
+args = whole_view_parser.parse_args(sys.argv[1:])
 
 # -------------------------------------------------------------------
 
@@ -156,7 +157,7 @@ if __name__=="__main__":
         verbose               = args.verbose
         nprocess_events       = args.nevents
         stitch                = args.stitch
-        use_half              = args.use_half
+        use_half              = args.usehalf
         ismc                  = args.ismc
         save_cropped_adc      = args.saveadc
     else:
@@ -430,7 +431,7 @@ if __name__=="__main__":
                     # save cropped images
                     #--------------------
                     # prediction images
-                    evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR))
+                    evoutpred = outputdata.get_data("image2d","larflow_%s"%(FLOWDIR.lower()))
                     evoutpred.append( flow_lcv )                    
 
                     # input cropped source and target image
