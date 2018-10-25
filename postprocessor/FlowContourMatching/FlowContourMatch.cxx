@@ -35,11 +35,13 @@ namespace larflow {
   const int FlowContourMatch::kTargetPlane[2] = { 0, 1 };
   
   FlowContourMatch::FlowContourMatch() {
-    m_score_matrix = NULL;
-    m_plot_scorematrix = NULL;
+    for (int i=0; i<2; i++) {
+      m_score_matrix[i] = NULL;
+      m_plot_scorematrix[i] = NULL;
+      m_tar_img2ctrindex[i] = NULL;
+    }
     m_src_img2ctrindex = NULL;
-    m_tar_img2ctrindex = NULL;
-
+      
     // parameters: see header for descriptions
     kTargetChargeRadius = 2;
 
@@ -55,12 +57,12 @@ namespace larflow {
 
   void FlowContourMatch::clear( bool clear2d, bool clear3d, int flowdir ) {
     if ( clear2d ) {
-      // needs to be cleared for each subimage
-      delete [] m_score_matrix;
-      delete m_plot_scorematrix;
-      m_score_matrix = NULL;
-      m_plot_scorematrix = NULL;
-      if ( flowdir>=0 ) {
+      // needs to be cleared for each subimage (entry)
+      if ( flowdir>=0 ) {      
+	delete m_score_matrix[flowdir];
+	delete m_plot_scorematrix[flowdir];
+	m_score_matrix[flowdir]     = nullptr;
+	m_plot_scorematrix[flowdir] = nullptr;
 	m_flowdata[flowdir].clear();
 	m_src_targets[flowdir].clear();
       }
@@ -70,11 +72,11 @@ namespace larflow {
 	  m_src_targets[i].clear();
 	}
       }
-      delete m_src_img2ctrindex;
-      delete m_tar_img2ctrindex;
-      m_src_img2ctrindex = NULL;
-      m_tar_img2ctrindex = NULL;
-    }
+      delete m_src_img2ctrindex;      
+      m_src_img2ctrindex = nullptr;      
+      delete m_tar_img2ctrindex[flowdir];
+      m_tar_img2ctrindex[flowdir] = nullptr;
+    }//end of clear 2nd
     
     if (clear3d) {
       // needs to be cleared after every event
@@ -108,7 +110,7 @@ namespace larflow {
     if(runY2U && runY2V && flow_img.size()<2){
       throw std::runtime_error("FlowContourMatch::fillPlaneHitFlow: requested both planes but single flow image");  
     }
-
+    
     if(runY2U){
       std::cout << "Run Y2U Match" << std::endl;
       _match( FlowContourMatch::kY2U,
@@ -895,13 +897,13 @@ namespace larflow {
     const larcv::ImageMeta& srcmeta = src_adc.meta();
     const larcv::ImageMeta& tarmeta = tar_adc.meta();
     m_srcimg_meta = &srcmeta;
-    m_tarimg_meta = &tarmeta;
+    m_tarimg_meta[kflowdir] = &tarmeta;
     
     // allocate arrays for image pixel to contour index lookup
-    m_src_img2ctrindex = new int[m_srcimg_meta->cols()*m_srcimg_meta->rows()];
-    m_tar_img2ctrindex = new int[m_tarimg_meta->cols()*m_tarimg_meta->rows()];
-    memset( m_src_img2ctrindex, 0, sizeof(int)*m_srcimg_meta->cols()*m_srcimg_meta->rows() );
-    memset( m_tar_img2ctrindex, 0, sizeof(int)*m_tarimg_meta->cols()*m_tarimg_meta->rows() );    
+    m_src_img2ctrindex                       = new int[m_srcimg_meta->cols()*m_srcimg_meta->rows()];
+    m_tar_img2ctrindex[kflowdir]             = new int[m_tarimg_meta[kflowdir]->cols()*m_tarimg_meta[kflowdir]->rows()];
+    memset( m_src_img2ctrindex, 0,           sizeof(int)*m_srcimg_meta->cols()*m_srcimg_meta->rows() );
+    memset( m_tar_img2ctrindex[kflowdir], 0, sizeof(int)*m_tarimg_meta[kflowdir]->cols()*m_tarimg_meta[kflowdir]->rows() );    
     
     for ( int r=0; r<(int)srcmeta.rows(); r++) {
       
@@ -950,7 +952,7 @@ namespace larflow {
 	  double result =  cv::pointPolygonTest( ctr, pt, false );
 	  if ( result>=0 ) {
 	    tar_ctr_ids.insert( ictr );
-	    m_tar_img2ctrindex[ r*m_tarimg_meta->cols() + c ] = ictr;
+	    m_tar_img2ctrindex[kflowdir][ r*m_tarimg_meta[kflowdir]->cols() + c ] = ictr;
 	    //std::cout << ictr << " ";
 	    break;
 	  }
@@ -1043,35 +1045,35 @@ namespace larflow {
     // std::cout << "scr ncontours: " << m_src_ncontours << std::endl;
     // std::cout << "tar ncontours: " << m_tar_ncontours << std::endl;
 
-    if ( m_score_matrix!=NULL )
-      delete [] m_score_matrix;
+    if ( m_score_matrix[kflowdir]!=NULL )
+      delete m_score_matrix[kflowdir];
     
-    m_score_matrix = new double[m_src_ncontours*m_tar_ncontours[kflowdir]]; // should probably its own class
-    memset(m_score_matrix, 0, sizeof(double)*m_src_ncontours*m_tar_ncontours[kflowdir] );
+    m_score_matrix[kflowdir] = new double[m_src_ncontours*m_tar_ncontours[kflowdir]]; // should probably its own class
+    memset(m_score_matrix[kflowdir], 0, sizeof(double)*m_src_ncontours*m_tar_ncontours[kflowdir] );
     
     for ( auto it : m_flowdata[kflowdir] ) {
       FlowMatchData_t& flowdata = it.second;
       float score = _scoreMatch( flowdata );
       flowdata.score = score;
-      m_score_matrix[ flowdata.src_ctr_id*m_tar_ncontours[kflowdir] + flowdata.tar_ctr_id ] = score;
+      m_score_matrix[kflowdir][ flowdata.src_ctr_id*m_tar_ncontours[kflowdir] + flowdata.tar_ctr_id ] = score;
     }
 
     // normalize it
     for (int is=0; is<m_src_ncontours; is++) {
       float norm_s = 0;
       for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
-	norm_s += m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ];
+	norm_s += m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ];
       }
       if (norm_s>0 ) {
 	for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
-	  m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] /= norm_s;
+	  m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] /= norm_s;
 	}
       }
     }
     
   }
   
-  float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
+float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
     float score = 0.0;
     int nscores = 0;
     for ( auto const& flow : matchdata.matchingflow_v ) {
@@ -1086,14 +1088,14 @@ namespace larflow {
     // goal is to assign a cluster on the
     // source plane purely to one on the target
     //
-    // this function modifies m_score_matrix
+    // this function modifies m_score_matrix[kflowdir]
     //
     
     for (int is=0; is<m_src_ncontours; is++) {
       float max_s = -1.0;
       int   idx   = 0;
       for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
-	float score = m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ];
+	float score = m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ];
 	if ( score>max_s ) {
 	  max_s = 0;
 	  idx = it;
@@ -1102,9 +1104,9 @@ namespace larflow {
       if (max_s>0 ) {
 	for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
 	  if ( it!=idx )
-	    m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] = 0;
+	    m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] = 0;
 	  else
-	    m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] = 1.0;
+	    m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] = 1.0;
 	}
       }
     }
@@ -1129,21 +1131,21 @@ namespace larflow {
 
   TH2D& FlowContourMatch::plotScoreMatrix(const FlowDirection_t kflowdir) {
     if ( m_plot_scorematrix!=NULL ) {
-      delete m_plot_scorematrix;
+      delete m_plot_scorematrix[kflowdir];
     }
-    m_plot_scorematrix = new TH2D( "h2d_flowmatch_scorematrix", ";Source Contour;Target Contour",
-				  m_src_ncontours, 0, m_src_ncontours,
-				  m_tar_ncontours[kflowdir], 0, m_tar_ncontours[kflowdir] );
+    m_plot_scorematrix[kflowdir] = new TH2D( "h2d_flowmatch_scorematrix", ";Source Contour;Target Contour",
+					     m_src_ncontours, 0, m_src_ncontours,
+					     m_tar_ncontours[kflowdir], 0, m_tar_ncontours[kflowdir] );
     for (int is=0; is<m_src_ncontours; is++) {
       for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
-	m_plot_scorematrix->SetBinContent( is+1, it+1, m_score_matrix[ is*m_tar_ncontours[kflowdir] + it ] );
+	m_plot_scorematrix[kflowdir]->SetBinContent( is+1, it+1, m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] );
       }
     }
 
-    m_plot_scorematrix->SetMaximum(1.0);
-    m_plot_scorematrix->SetMinimum(0.0);	
+    m_plot_scorematrix[kflowdir]->SetMaximum(1.0);
+    m_plot_scorematrix[kflowdir]->SetMinimum(0.0);	
     
-    return *m_plot_scorematrix;
+    return *(m_plot_scorematrix[kflowdir]);
   }
 
   void FlowContourMatch::_make3Dhits( const larlite::event_hit& hit_v,
@@ -1309,8 +1311,8 @@ namespace larflow {
 	    int tarcolmax = pixinfo.col+kTargetChargeRadius;
 	    if ( tarcolmin<0 )
 	      tarcolmin = 0;
-	    if ( tarcolmax>=(int)m_tarimg_meta->cols() )
-	      tarcolmax = (int)m_tarimg_meta->cols() - 1;
+	    if ( tarcolmax>=(int)m_tarimg_meta[kflowdir]->cols() )
+	      tarcolmax = (int)m_tarimg_meta[kflowdir]->cols() - 1;
 
 	    // we look for the peak adc value between tarcolmin and tarcolmax
 	    float target_adc = 0; // <<
@@ -1329,11 +1331,11 @@ namespace larflow {
 
 	    // is this pixel in a (matched) contour
 	    bool incontour = false;
-	    int target_contour = m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + target_col) ];
+	    int target_contour = m_tar_img2ctrindex[kflowdir][ int(pixinfo.row*m_tarimg_meta[kflowdir]->cols() + target_col) ];
 	    if ( target_contour>0 ) {
 	      incontour = true;
 	    }
-
+	    
 	    // CONDITIONS FOR QUALITY LEVEL
 	    if ( incontour && oncharge ) {
 	      // quality level 1: oncharge and incontour	      
@@ -1354,11 +1356,11 @@ namespace larflow {
 	      int possearch_col = target_col+1;
 	      if ( possearch_col<0 )
 		possearch_col = 0;
-	      if ( possearch_col>=m_tarimg_meta->cols() )
-		possearch_col = m_tarimg_meta->cols()-1;	      
+	      if ( possearch_col>=m_tarimg_meta[kflowdir]->cols() )
+		possearch_col = m_tarimg_meta[kflowdir]->cols()-1;	      
 	      
-	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col-target_col<30 && possearch_col>target_col) {
-		if ( m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + possearch_col) ]==target_contour ) {
+	      while ( possearch_col<(int)m_tarimg_meta[kflowdir]->cols() && possearch_col-target_col<30 && possearch_col>target_col) {
+		if ( m_tar_img2ctrindex[kflowdir][ int(pixinfo.row*m_tarimg_meta[kflowdir]->cols() + possearch_col) ]==target_contour ) {
 		  // column in contour
 		  float tadc = tar_adc.pixel( pixinfo.row, possearch_col );
 		  if ( tadc>threshold ) {
@@ -1371,11 +1373,11 @@ namespace larflow {
 	      int negsearch_col = target_col-1;
 	      if ( negsearch_col<0 )
 		negsearch_col = 0;
-	      if ( negsearch_col>=m_tarimg_meta->cols() )
-		negsearch_col = m_tarimg_meta->cols()-1;	      
+	      if ( negsearch_col>=m_tarimg_meta[kflowdir]->cols() )
+		negsearch_col = m_tarimg_meta[kflowdir]->cols()-1;	      
 
 	      while ( negsearch_col>=0 && target_col-negsearch_col<30 && negsearch_col < target_col  ) {	      
-		if ( m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + negsearch_col) ]==target_contour ) {
+		if ( m_tar_img2ctrindex[kflowdir][ int(pixinfo.row*m_tarimg_meta[kflowdir]->cols() + negsearch_col) ]==target_contour ) {
 		  // column in contour
 		  float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
 		  if ( tadc>threshold ) {
@@ -1388,8 +1390,8 @@ namespace larflow {
 	      // bound results
 	      if ( negsearch_col<0 )
 		negsearch_col = 0;
-	      if ( possearch_col>=m_tarimg_meta->cols() )
-		possearch_col = m_tarimg_meta->cols()-1;
+	      if ( possearch_col>=m_tarimg_meta[kflowdir]->cols() )
+		possearch_col = m_tarimg_meta[kflowdir]->cols()-1;
 	      
 	      int negdist = abs(negsearch_col-target_col);
 	      int posdist = abs(possearch_col-target_col);
@@ -1425,12 +1427,12 @@ namespace larflow {
 	      int possearch_col = target_col+1;
 	      if ( possearch_col<0 )
 		possearch_col = 0;
-	      if ( possearch_col>=m_tarimg_meta->cols() )
-		possearch_col = m_tarimg_meta->cols()-1;	      
-	      while ( possearch_col<(int)m_tarimg_meta->cols() && possearch_col>target_col && possearch_col-target_col<50 ) {
+	      if ( possearch_col>=m_tarimg_meta[kflowdir]->cols() )
+		possearch_col = m_tarimg_meta[kflowdir]->cols()-1;	      
+	      while ( possearch_col<(int)m_tarimg_meta[kflowdir]->cols() && possearch_col>target_col && possearch_col-target_col<50 ) {
 		float tadc = tar_adc.pixel( pixinfo.row, possearch_col );		
 		if ( tadc > threshold )  {
-		  int target_contour_idx = m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + possearch_col) ];
+		  int target_contour_idx = m_tar_img2ctrindex[kflowdir][ int(pixinfo.row*m_tarimg_meta[kflowdir]->cols() + possearch_col) ];
 		  if ( used_contours.find( target_contour_idx )==used_contours.end() ) {
 		    // have not search this contour, provide a match candidate
 		    ClosestContourPix_t close_ctr_info;
@@ -1438,7 +1440,7 @@ namespace larflow {
 		    close_ctr_info.dist = abs(possearch_col - target_col);
 		    close_ctr_info.col	= possearch_col;
 		    close_ctr_info.adc  = tadc;		    
-		    close_ctr_info.scorematch = m_score_matrix[ int(src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx) ];
+		    close_ctr_info.scorematch = m_score_matrix[kflowdir][ int(src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx) ];
 		    matched_contour_list.push_back( close_ctr_info );
 		    used_contours.insert( target_contour_idx );
 		    found_candidate_contour = true;
@@ -1449,12 +1451,12 @@ namespace larflow {
 	      int negsearch_col = target_col-1;
 	      if ( negsearch_col<0 )
 		negsearch_col = 0;
-	      if ( negsearch_col>=m_tarimg_meta->cols() )
-		negsearch_col = m_tarimg_meta->cols()-1;	      
+	      if ( negsearch_col>=m_tarimg_meta[kflowdir]->cols() )
+		negsearch_col = m_tarimg_meta[kflowdir]->cols()-1;	      
 	      while ( negsearch_col>=0 && target_col-negsearch_col<50 && negsearch_col < target_col) {
 		float tadc = tar_adc.pixel( pixinfo.row, negsearch_col );
 		if (  tadc > threshold )  {
-		  int target_contour_idx = m_tar_img2ctrindex[ int(pixinfo.row*m_tarimg_meta->cols() + negsearch_col) ];
+		  int target_contour_idx = m_tar_img2ctrindex[kflowdir][ int(pixinfo.row*m_tarimg_meta[kflowdir]->cols() + negsearch_col) ];
 		  if ( used_contours.find( target_contour_idx )==used_contours.end() ) {
 		    // have not search this contour, provide a match candidate
 		    ClosestContourPix_t close_ctr_info;
@@ -1462,7 +1464,7 @@ namespace larflow {
 		    close_ctr_info.dist = abs(negsearch_col - target_col);
 		    close_ctr_info.col	= negsearch_col;
 		    close_ctr_info.adc  = tadc;		    
-		    close_ctr_info.scorematch = m_score_matrix[ src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx ];
+		    close_ctr_info.scorematch = m_score_matrix[kflowdir][ src_ctridx*m_tar_ncontours[kflowdir] + target_contour_idx ];
 		    matched_contour_list.push_back( close_ctr_info );
 		    used_contours.insert( target_contour_idx );
 		    found_candidate_contour = true;
@@ -1530,7 +1532,7 @@ namespace larflow {
 	      hitdata.maxamp       = 0;
 	      hitdata.hitidx       = hitidx;
 	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
-	      hitdata.targetwire   = m_tarimg_meta->pos_x( pixinfo.col );
+	      hitdata.targetwire   = m_tarimg_meta[kflowdir]->pos_x( pixinfo.col );
 	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
 	      hitdata.matchquality = -1;
 	      hitdata.dist2center  = 10000;  // large sentinal value
@@ -1548,7 +1550,7 @@ namespace larflow {
 	      hitdata.maxamp       = target_adc;
 	      hitdata.hitidx       = hitidx;
 	      hitdata.srcwire      = m_srcimg_meta->pos_x( pixinfo.srccol );
-	      hitdata.targetwire   = m_tarimg_meta->pos_x( target_col ); //< we used the column we found
+	      hitdata.targetwire   = m_tarimg_meta[kflowdir]->pos_x( target_col ); //< we used the column we found
 	      hitdata.pixtick      = m_srcimg_meta->pos_y( pixinfo.row );
 	      hitdata.matchquality = matchquality;
 	      hitdata.dist2center  = dist2center;
@@ -1597,7 +1599,7 @@ namespace larflow {
     for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
       const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
       if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
-	std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	//std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
     	continue;
       }
       // otherwise make a hit

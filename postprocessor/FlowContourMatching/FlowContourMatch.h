@@ -301,8 +301,8 @@ namespace larflow {
 
     int m_src_ncontours;      //< number of contours on source image
     int m_tar_ncontours[2];   //< number of contours on target image
-    double* m_score_matrix;   //< scores between source and target contours using flow information
-    TH2D* m_plot_scorematrix; //< histogram of score matrix for visualization
+    double* m_score_matrix[2];   //< scores between source and target contours using flow information
+    TH2D* m_plot_scorematrix[2]; //< histogram of score matrix for visualization
 
     struct TargetPix_t {
       //< information to store target pixel information. target comes from flow predictions.
@@ -314,12 +314,12 @@ namespace larflow {
     std::map< int, ContourTargets_t > m_src_targets[2];  //< for each source contour, a list of pixels in the source+target views that have been matched (one for each flowdir)
 
     const larcv::Image2D*   m_src_img;     // pointer to input source image
-    const larcv::Image2D*   m_flo_img;     // pointer to input flow prediction
-    const larcv::ImageMeta* m_srcimg_meta; // pointer to source image meta
-    const larcv::Image2D*   m_tar_img;     // pointer to input target image
-    const larcv::ImageMeta* m_tarimg_meta; // pointer to target image meta
+    const larcv::ImageMeta* m_srcimg_meta; // pointer to source image meta    
+    const larcv::Image2D*   m_flo_img[2];     // pointer to input flow prediction
+    const larcv::Image2D*   m_tar_img[2];     // pointer to input target image
+    const larcv::ImageMeta* m_tarimg_meta[2]; // pointer to target image meta
     int* m_src_img2ctrindex; //< array associating (row,col) to source contours
-    int* m_tar_img2ctrindex; //< array associating (row,col) to target contours
+    int* m_tar_img2ctrindex[2]; //< array associating (row,col) to target contours
 
     // key datamember in algo
     // stores info tying hits on source plane to flow determined after contour matching

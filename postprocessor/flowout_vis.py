@@ -10,7 +10,7 @@ argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL 
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
 argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
-argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall]")
+argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall,recovstruth]")
 argparser.add_argument("-l", "--light",    action='store_true',      help="use light background")
 args = argparser.parse_args(sys.argv[1:])
 
@@ -28,6 +28,7 @@ from ROOT import larutil
 
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
+#w = DetectorDisplay(background=(150,150,150,0.1))
 w = DetectorDisplay()
 
 w.show() # bring main 3D screen
@@ -184,16 +185,47 @@ for ihit in xrange(nhits):
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
 
 # truth plot
+cm_per_tick = larutil.LArProperties.GetME().DriftVelocity()*(larutil.DetectorProperties.GetME().SamplingRate()*1.0e-3)
+print "driftv: ",larutil.LArProperties.GetME().DriftVelocity()
+print "sampling rate:",larutil.DetectorProperties.GetME().SamplingRate()
+print "cm_per_tick=",cm_per_tick
+
 def extract_trackpts( mctrack, sce ):
     # convert mctrack points to image pixels
     steps_np = np.zeros( (mctrack.size(),3) )
     for istep in xrange(mctrack.size()):
         step = mctrack.at(istep)
         t = step.T()
-        steps_np[istep,:] = (step.X(),step.Y(),step.Z())
-    return
+        
+        tick = larutil.TimeService.GetME().TPCG4Time2Tick(t) + step.X()/(cm_per_tick)
+        #print "t=",t," -> tick(t)=",larutil.TimeService.GetME().TPCG4Time2Tick(t),"  tick(t)+pos/cmpertick=",tick
+        #x = (tick + larutil.TimeService.GetME().TriggerOffsetTPC()/(larutil.DetectorProperties.GetME().SamplingRate()*1.0e-3))*cm_per_tick
+        #x = tick
+        x  = (tick - 3200)*cm_per_tick
+        
+        steps_np[istep,:] = (x,step.Y(),step.Z()-500)
+    if mctrack.Origin()==2:
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(1,0,0,1),width=1.0)
+    else:
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(0,1,0,1),width=1.0)
+    #sys.exit(-1)
+    return mcplot
 
-#sce = larutil.SpaceChargeMicroBooNE()
+if args.mctruth is not None:
+    sce = larutil.SpaceChargeMicroBooNE()
+    iomc = larlite.storage_manager( larlite.storage_manager.kREAD )
+    iomc.add_in_filename( args.mctruth )
+    iomc.open()
+    iomc.go_to( args.entry )
+    evmctrack = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
+    nmctracks = evmctrack.size()
+    for itrk in xrange(nmctracks):
+        mctrack = evmctrack.at(itrk)
+        mcplot = extract_trackpts( mctrack, sce )
+        w.addVisItem( "mctrackidx%d"%(itrk), mcplot )
+    iomc.close()
+
+
 #print sce
         
 # make the plot

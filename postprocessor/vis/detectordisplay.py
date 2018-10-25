@@ -11,7 +11,7 @@ from vis.solidstreewidget import SolidsTreeWidget
 class DetectorDisplay(gl.GLViewWidget) :
     def __init__(self, use_cache=True, cache_dir="./pylardcache", 
                  daefile=os.path.dirname(__file__)+"/microboone_32pmts_nowires_cryostat.dae",
-                 background='w'):
+                 background=None):
         super(DetectorDisplay,self).__init__()
         self.treeitems = OrderedDict()
         self.daefile = daefile
@@ -26,6 +26,9 @@ class DetectorDisplay(gl.GLViewWidget) :
         self.drawn_user_items = {}
         self.user_item_tree = pg.TreeWidget()
         self.user_item_tree.setColumnCount(2)
+
+        if background is not None:
+            self.setBackgroundColor( background )
         
 
     def setMainWindow( self, window ):

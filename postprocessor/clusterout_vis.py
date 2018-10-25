@@ -27,7 +27,7 @@ from ROOT import larutil
 
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
-w = DetectorDisplay()
+w = DetectorDisplay(background=(100,100,100,0.1) )
 w.show() # bring main 3D screen
 w.solidswidget.show() # checkbox for parts of detector
 w.setWindowTitle('LArFlow Visualization')
@@ -50,7 +50,7 @@ io.add_in_filename( inputfile )
 io.open()
 
 # modes
-modes = ["core","core-only"]
+modes = ["core","core-only","spheres"]
 
 # get larflow clusters
 io.go_to(args.entry)
@@ -69,6 +69,20 @@ if args.pca:
 #        if hit.truthflag>0:
 #            ntruth += 1
 
+
+## Example 3:
+## sphere
+md = gl.MeshData.sphere(rows=10, cols=20, radius=3)
+#colors = np.random.random(size=(md.faceCount(), 4))
+#colors[:,3] = 0.3
+#colors[100:] = 0.0
+colors = np.ones((md.faceCount(), 4), dtype=float)
+colors[::2,0] = 0
+colors[:,1] = np.linspace(0, 1, colors.shape[0])
+md.setFaceColors(colors)
+#m3 = gl.GLMeshItem(meshdata=md, smooth=False)#, shader='balloon')
+#m3.translate(5, -5, 0)
+#w.addItem(m3)
 
 class clustercolorgen:
 
@@ -105,31 +119,39 @@ for icluster in xrange(nclusters):
     # we get positions, and also set color depending on type
     # note ntruth=0 unless colorscheme is recovstruth
     nhits = cluster.size()
-    pos_np = np.zeros( (nhits,3) )
-    colors = np.zeros( (nhits,4) )
 
-    # generate a color for this cluster
-    clustercol = colorgen.gencolor()
+    if args.mode == "sphere":
+        for ihit in xrange(nhits):
+            hit = cluster.at(ihit)
+            s = gl.GLMeshItem(meshdata=md,smooth=False)
+            s.translate( hit.at(0)-130.0, hit.at(1), hit.at(2)-500.0 )
+            clusterplotitems.append(s)
+    else:
+        
+        pos_np = np.zeros( (nhits,3) )
+        colors = np.zeros( (nhits,4) )
 
-    if icluster+1==nclusters:
-        # last one, reserve white
-        clustercol = np.ones( (3,) )
+        # generate a color for this cluster
+        clustercol = colorgen.gencolor()
 
-    for ihit in xrange(nhits):
-    
-        hit = cluster.at(ihit)
-        pos_np[ihit,0] = hit.at(0)-130.0
-        pos_np[ihit,1] = hit.at(1)
-        pos_np[ihit,2] = hit.at(2)-500.0
-        colors[ihit,0] = clustercol[0]
-        colors[ihit,1] = clustercol[1]
-        colors[ihit,2] = clustercol[2]
-        colors[ihit,3] = 0.5
+        if icluster+1==nclusters:
+            # last one, reserve white
+            clustercol = np.ones( (3,) )
+
+        for ihit in xrange(nhits):
+            hit = cluster.at(ihit)
+            pos_np[ihit,0] = hit.at(0)-130.0
+            pos_np[ihit,1] = hit.at(1)
+            pos_np[ihit,2] = hit.at(2)-500.0
+            colors[ihit,0] = clustercol[0]
+            colors[ihit,1] = clustercol[1]
+            colors[ihit,2] = clustercol[2]
+            colors[ihit,3] = 1.0
         
 
-    # cluster
-    hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
-    clusterplotitems.append( hitplot )
+        # cluster
+        hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=3.0, pxMode=False)
+        clusterplotitems.append( hitplot )
 
     # pca
     if args.pca and icluster+1<nclusters:
@@ -142,11 +164,12 @@ for icluster in xrange(nclusters):
         #print eigval[0],eigval[1],eigval[2]
         meanpos = pcaxis.getAvePosition()
         eigvec  = pcaxis.getEigenVectors()
+        eiglen  = sqrt(eigval[0])
 
         for j in xrange(3):
-            pcapoints[0,j] = meanpos[j] - eigvec[j][0]*100.0
+            pcapoints[0,j] = meanpos[j] - eigvec[j][0]*2*eiglen
             pcapoints[1,j] = meanpos[j]
-            pcapoints[2,j] = meanpos[j] + eigvec[j][0]*100.0
+            pcapoints[2,j] = meanpos[j] + eigvec[j][0]*2*eiglen
         for i in xrange(3):
             pcapoints[i,0] += -130.0
             pcapoints[i,2] += -500.0
@@ -221,6 +244,8 @@ for n,hitplot in enumerate(clusterplotitems):
         
     
 w.plotData()
+
+
 
 # start the app. close windows to end program
 sys.exit(app.exec_())
