@@ -58,24 +58,20 @@ namespace larflow {
   void FlowContourMatch::clear( bool clear2d, bool clear3d, int flowdir ) {
     if ( clear2d ) {
       // needs to be cleared for each subimage (entry)
-      if ( flowdir>=0 ) {      
-	delete m_score_matrix[flowdir];
-	delete m_plot_scorematrix[flowdir];
-	m_score_matrix[flowdir]     = nullptr;
-	m_plot_scorematrix[flowdir] = nullptr;
-	m_flowdata[flowdir].clear();
-	m_src_targets[flowdir].clear();
+      for (int i=0; i<2; i++) {
+	if ( flowdir>=0 && i!=flowdir ) continue;
+	
+	delete m_score_matrix[i];
+	delete m_plot_scorematrix[i];
+	m_score_matrix[i]     = nullptr;
+	m_plot_scorematrix[i] = nullptr;
+	m_flowdata[i].clear();
+	m_src_targets[i].clear();
+	delete m_tar_img2ctrindex[i];
+	m_tar_img2ctrindex[i] = nullptr;
       }
-      else {
-	for (int i=0; i<2; i++) {
-	  m_flowdata[i].clear();
-	  m_src_targets[i].clear();
-	}
-      }
-      delete m_src_img2ctrindex;      
-      m_src_img2ctrindex = nullptr;      
-      delete m_tar_img2ctrindex[flowdir];
-      m_tar_img2ctrindex[flowdir] = nullptr;
+      delete m_src_img2ctrindex;
+      m_src_img2ctrindex = nullptr;            
     }//end of clear 2nd
     
     if (clear3d) {
@@ -782,7 +778,7 @@ namespace larflow {
       break;
     }
 
-    // we clear the 2d data, but keep the hit data (which we will udate with _make3Dhits)
+    // we clear the 2d data, but keep the hit data (which we will update with _make3Dhits)
     clear( true, false, (int)flowdir );
     
     // first we create match data within the image
@@ -821,7 +817,7 @@ namespace larflow {
     // evhit_v (by address): vector of hits created from above threshold pixels
 
     evhit_v.clear();
-    evhit_v.reserve(1000);
+    evhit_v.reserve(10000);
     
     // we loop over all source pixels and make "hits" for all pixels above threshold
     int ihit = 0;
@@ -1209,14 +1205,20 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
     // std::cin.get();
 
     int numscoredhits = 0;
+    int not_on_src_plane = 0;
+    int not_in_bounds = 0;
+    int src_col_nomatch = 0;
+    int no_contour = 0;
     
     for (int hitidx=0; hitidx<(int)hit_v.size(); hitidx++) {
       // get hit for this index
       const larlite::hit& ahit = hit_v[hitidx];
 
       // is this on the source plane? if not, skip
-      if ( src_plane!=(int)ahit.WireID().planeID().Plane )
+      if ( src_plane!=(int)ahit.WireID().planeID().Plane ) {
+	not_on_src_plane++;
 	continue;
+      }
 
       // is it in the image (crop)
 
@@ -1225,6 +1227,7 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
       int hit_tend   = 2400+(int)ahit.EndTick();
       if ( hit_tend < m_srcimg_meta->min_y() || hit_tstart > m_srcimg_meta->max_y() ) {
 	// if not within the tick bounds, skip
+	not_in_bounds++;
 	continue;
       }
       if ( hit_tend >= m_srcimg_meta->max_y() )
@@ -1236,6 +1239,7 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
       int wire = (int)ahit.WireID().Wire;
       if ( wire < m_srcimg_meta->min_x() || wire >= m_srcimg_meta->max_x() ) {
 	// if not within wire bounds, skip
+	not_in_bounds++;
 	continue;
       }
 
@@ -1267,6 +1271,7 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
 	  
 	  if ( wirecol!=pixinfo.srccol ) {
 	    //std::cout << "source contour pixel does not match, skip. wirecol=" << wirecol << " pixinfo.srccol=" << pixinfo.srccol << std::endl;
+	    src_col_nomatch++;
 	    continue;
 	  }
 	  if ( rowstart <= pixinfo.row && pixinfo.row <= rowend ) {
@@ -1568,13 +1573,19 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
       if ( !foundcontour ) {
 	if ( _verbosity>1 )	
 	  std::cout << "pixel src(r,c)=(" << (rowstart+rowend)/2 << "," << wirecol << ") does not have matching source contour." << std::endl;
+	no_contour++;
       }
       else {
 	numscoredhits++;
       }
       
     }//end of hit index loop
-    std::cout << "number of scored hits: " << numscoredhits << std::endl;
+    std::cout << "number of scored hits: " << numscoredhits
+	      << " (no_contour=" << no_contour << ","
+	      << " src_col_nomatch=" << src_col_nomatch << ","
+	      << " not_in_bounds=" << not_in_bounds << ","
+	      << " not_on_srcplane=" << not_on_src_plane << ")"
+	      << std::endl;
 
     return;
   }
@@ -1676,7 +1687,7 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
       for (int hitidx=0; hitidx<(int)hit2flowdata.size(); hitidx++) {
 	const HitFlowData_t& hitdata = hit2flowdata[ hitidx ];
 	if (  hitdata.matchquality<=0 && !makehits_for_nonmatches ) {
-	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	  //std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
 	  continue;
 	}
 	// otherwise make a hit
@@ -1749,7 +1760,7 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
 	larlite::larflow3dhit::FlowDirection_t used_dir = larlite::larflow3dhit::kY2U;
 	if(require_3Dconsistency && plhit2flowdata.consistency3d[ hitidx ]>3) continue; //if require_3Dconsistency, skip if no consistency
 	if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && !makehits_for_nonmatches ) {
-	  std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
+	  //std::cout << "no good match for hitidx=" << hitidx << ", skip this hit if we haven't set the makehits_for_nonmatches flag" << std::endl;
 	  continue;
 	}
 	else if(hitdata0.matchquality<0 && hitdata1.matchquality<0 && makehits_for_nonmatches) {

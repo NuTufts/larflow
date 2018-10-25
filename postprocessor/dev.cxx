@@ -93,15 +93,34 @@ void event_changeout( larlite::storage_manager& dataco_output,
   return;
 }
 
-larcv::Image2D stitch_infill(larcv::IOManager& ioinfill,
-			     const larcv::Image2D& adcwhole,
-			     const larcv::EventChStatus* ev_chstatus,
-			     larflow::FlowContourMatch& matching_algo,
-			     int run, int subrun, int event, int entry){
+void stitch_infill(larcv::IOManager& ioinfill,
+		   const std::vector<larcv::Image2D>& adcwhole,
+		   const larcv::EventChStatus* ev_chstatus,
+		   std::vector< larcv::Image2D >& infill_whole_v,
+		   larflow::FlowContourMatch& matching_algo,
+		   int run, int subrun, int event, int entry){
 
 
-  larcv::Image2D trusted(adcwhole.meta());
-  larcv::Image2D infill_whole(adcwhole.meta());
+  std::vector< larcv::Image2D > trusted_v;
+  for ( auto const& img : adcwhole ) {
+    larcv::Image2D trusted( img.meta() );
+    trusted.paint(0);
+    trusted_v.emplace_back( std::move( trusted ) );
+  }
+  if ( infill_whole_v.size()!=adcwhole.size() ) {
+    // create new image set (whole size)
+    infill_whole_v.clear();
+    for ( auto const& img : adcwhole ) {
+      larcv::Image2D infill_whole( img.meta() );
+      infill_whole_v.emplace_back( std::move( infill_whole ) );
+    }
+  }
+  
+  // clear wholeview infill
+  for ( int iimg=0; iimg<(int)adcwhole.size(); iimg ) {
+    larcv::Image2D& infill = infill_whole_v[iimg];
+    infill.paint(0);
+  }
 
   int ientry = entry;
   ioinfill.read_entry( ientry );
@@ -111,8 +130,13 @@ larcv::Image2D stitch_infill(larcv::IOManager& ioinfill,
   int entryevent  = evinfill->event();
 
   bool ok = true;
+  int nstitched = 0;
   while ( entryrun==run && entrysubrun==subrun && entryevent==event && ok) {
-    matching_algo.stitchInfill(evinfill->as_vector()[2],trusted,infill_whole,*ev_chstatus);
+    for (int p=0; p<3; p++) {
+      matching_algo.stitchInfill(evinfill->as_vector()[p],trusted_v[p],infill_whole_v[p],*ev_chstatus);
+    }
+    nstitched++;
+    ientry++;
     ok = ioinfill.read_entry(ientry);
     if ( ok ) {
       evinfill = (larcv::EventImage2D*)ioinfill.get_data( "image2d", "infillCropped" );
@@ -121,7 +145,8 @@ larcv::Image2D stitch_infill(larcv::IOManager& ioinfill,
       entryevent  = evinfill->event();
     }
   }
-  return infill_whole;
+
+  std::cout << "stiched together: " << nstitched << std::endl;
 }
 
 int main( int nargs, char** argv ) {
@@ -169,7 +194,7 @@ int main( int nargs, char** argv ) {
   bool kVISUALIZE = false;
   bool kINSPECT   = false;
   bool use_hits   = false;
-  bool use_truth  = true;
+  bool use_truth  = false;
   bool has_reco2d = true;
   bool has_opreco = true;
   bool has_mcreco = true;
@@ -177,7 +202,7 @@ int main( int nargs, char** argv ) {
   bool has_ssnet  = false;
   bool makehits_useunmatched = false;
   bool makehits_require_3dconsistency = false;
-  int process_num_events = 2;
+  int process_num_events = -1;
 
   if ( input_reco2d_file.empty() || input_reco2d_file=="0" ) {
     use_hits = false;
@@ -260,6 +285,7 @@ int main( int nargs, char** argv ) {
   int current_subrunid = -1;
   int current_eventid  = -1;
   int nevents = 0;
+  int eventstart = 0;
 
   //whole image infill
   larcv::Image2D infill_whole_y;
@@ -270,7 +296,12 @@ int main( int nargs, char** argv ) {
   larlite::event_hit*   ev_hit      = nullptr;
   larcv::EventChStatus* ev_chstatus = nullptr;
 
-  for (int ientry=0; ientry<nentries; ientry++) {
+  // images to be made for each event
+  std::vector<larcv::Image2D> badch_v;
+  std::vector<larcv::Image2D> infill_whole_v; // infill output stitched into wholeview
+  std::vector<larcv::Image2D> img_fill_whole_v; // adc whole view + infill pixels marked in dead regions
+  
+  for (int ientry=eventstart*54; ientry<nentries; ientry++) {
 
     dataco.read_entry(ientry,"larcv");
 
@@ -288,7 +319,7 @@ int main( int nargs, char** argv ) {
     int subrunid = ev_wire->subrun();
     int eventid  = ev_wire->event();
     std::cout << "Loading entry: " << ientry << " (rse)=(" << runid << "," << subrunid << "," << eventid << ")" << std::endl;
-    if ( ientry==0 ) {
+    if ( ientry==eventstart*54 ) {
       // first entry, set the current_runid
       current_runid    = runid;
       current_subrunid = subrunid;
@@ -302,11 +333,10 @@ int main( int nargs, char** argv ) {
       std::cout << "new event: (" << runid << "," << subrunid << "," << eventid << ")" << std::endl;
       std::cout << "last event: (" << current_runid << "," << current_subrunid << "," << current_eventid << ")" << std::endl;
       nevents++;      
-      if ( nevents>=process_num_events )
+      if ( process_num_events>0 && nevents>=process_num_events )
 	break;
 
-      std::cout << "Event turn over. [enter] to continue." << std::endl;
-      std::cin.get();
+      std::cout << "Event turn over" << std::endl;
       
       event_changeout( dataco_output, dataco_whole, dataco_hits, matching_algo,
 		       current_runid, current_subrunid, current_eventid,
@@ -321,9 +351,9 @@ int main( int nargs, char** argv ) {
       current_subrunid = subrunid;
       current_eventid  = eventid;
       isnewevent = true;
-      
-      //clear whole infill
-      infill_whole_y.paint(0.0);
+
+      std::cout << "entry to continue" << std::endl;
+      std::cin.get();      
     }
     
 
@@ -341,13 +371,63 @@ int main( int nargs, char** argv ) {
       if ( !input_reco2d_file.empty() ) {
 	dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
 	ev_hit = ((larlite::event_hit*)dataco_hits.get_larlite_data(larlite::data::kHit, "gaushit"));
-	std::cout << "Number of hits: " << ev_hit->size() << std::endl;
+	std::cout << "Number of hits in New Event: " << ev_hit->size() << std::endl;
+      }
+
+      // create whole image + infill merger
+      if ( badch_v.size()==0 ) {
+	// fill for first time
+	for ( auto const& img : ev_wholeimg->as_vector() ) {
+	  larcv::Image2D badch( img.meta() );
+	  badch.paint(0.0);
+	  badch_v.emplace_back( std::move(badch) );
+	}
+      }
+      if ( infill_whole_v.size()==0 ) {
+	for ( auto const& img : ev_wholeimg->as_vector() ) {
+	  larcv::Image2D infill( img.meta() );
+	  infill.paint(0.0);
+	  infill_whole_v.emplace_back( std::move(infill) );
+	}
+      }
+      // add infill pixel markers to whole-view image
+      img_fill_whole_v.clear();
+      if ( img_fill_whole_v.size()==0 ) {
+	for ( auto const& img : ev_wholeimg->as_vector() ) {
+	  larcv::Image2D img_fill(img);
+	  img_fill_whole_v.emplace_back( std::move(img_fill) );
+	}
       }
       
+      // create a whole-image infills
+      if ( has_infill ) {
+	stitch_infill( dataco_infill, ev_wholeimg->as_vector(), ev_chstatus, infill_whole_v, matching_algo, runid, subrunid, eventid, ientry );
 
-      stitch_infill( dataco_infill, ev_wholeimg->as_vector()[2], ev_chstatus, matching_algo, runid, subrunid, eventid, ientry );
-    }
-    const std::vector<larcv::Image2D>& whole_v = ev_wholeimg->image2d_array();
+	//mask infill and add to adc
+	for ( int p=0; p<3; p++) {
+	  larcv::Image2D& infill   = infill_whole_v[p];
+	  larcv::Image2D& img_fill = img_fill_whole_v[p];
+	  larcv::Image2D infillmask( infill.meta() );
+	  infillmask.paint(0);
+	  matching_algo.maskInfill( infill, *ev_chstatus, 0.96, infillmask );
+	  matching_algo.addInfill(  infillmask, *ev_chstatus, 20.0,  img_fill );
+	}
+      }
+      
+      // if we use pixels to make hits, we need to extract them from the whole view
+      if ( !use_hits ) {
+	pixhits_v.clear();
+	std::cout << "Make pixhits from whole view of Y-plane" << std::endl;
+	std::cout << "  run=" << ev_wholeimg->run() << " subrun=" << ev_wholeimg->subrun() << " event=" << ev_wholeimg->event() << std::endl;
+	matching_algo.makeHitsFromWholeImagePixels( img_fill_whole_v[2], pixhits_v, 10.0 );
+      }
+
+      std::cout << "[ START OF NEW EVENT: Number of pixhits_v=" << pixhits_v.size() << " ]" << std::endl;
+    }//end of isnew to handle event-level images/quantities
+
+    
+    const std::vector<larcv::Image2D>& whole_v = ev_wholeimg->as_vector();
+    isnewevent = false;
     
   
     // Cropped info (per entry)
@@ -372,6 +452,22 @@ int main( int nargs, char** argv ) {
       if ( !ev_infill->valid() )
 	has_infill = false;
     }
+
+    //mask subimage
+    std::vector<larcv::Image2D> img_fill_v;
+    for ( size_t p=0; p<wire_v.size(); p++ ) {
+      const larcv::Image2D& adc_cropped = wire_v[p];
+      larcv::Image2D imgfill( adc_cropped );
+      larcv::Image2D infillmask( adc_cropped.meta() );
+      infillmask.paint(0);
+      
+      if ( has_infill ) {
+	// mask and fill cropped images
+	matching_algo.maskInfill( ev_infill->as_vector()[p], *ev_chstatus, 0.96, infillmask );
+	matching_algo.addInfill( infillmask, *ev_chstatus, 10.0, imgfill );
+      }
+      img_fill_v.emplace_back( std::move(imgfill) );
+    }
     
     // truth
     larcv::EventImage2D* ev_trueflow  = nullptr;
@@ -391,63 +487,26 @@ int main( int nargs, char** argv ) {
     else
       flow_v.push_back( larcv::Image2D() ); // dummy image
     
-    // make badch image (make blanks for now)
-    // make blank infill images
-    // copy adc images
-    std::vector<larcv::Image2D> badch_v;
-    std::vector<larcv::Image2D> infill_v;
-    std::vector<larcv::Image2D> img_fill_v;
-    for ( auto const& img : wire_v ) {
-      larcv::Image2D badch( img.meta() );
-      badch.paint(0.0);
-      badch_v.emplace_back( std::move(badch) );
-      larcv::Image2D infill( img.meta() );
-      larcv::Image2D img_fill( img.meta() );
-      infill.paint(0.0);
-      img_fill = img;
-      //mask infill and add to adc
-      if ( has_infill ) {
-	matching_algo.maskInfill(ev_infill->as_vector()[img.meta().id()], *ev_chstatus, 0.96, infill );
-	matching_algo.addInfill(infill, *ev_chstatus, 20.0,  img_fill );
-      }
-      //fill the vectors
-      infill_v.emplace_back( std::move(infill) );
-      img_fill_v.emplace_back( std::move(img_fill) );
-    }
-
-    // get cluster atomics for cropped u,v,y ADC image    
+    // get cluster atomics for cropped u,v,y ADC image (infill-filled if has_infill set)
     cluster_algo.clear();    
-    //cluster_algo.analyzeImages( img_v, badch_v, 20.0, 3 );
     cluster_algo.analyzeImages( img_fill_v, badch_v, 20.0, 3 );
-
-    //mask and add whole image infill
-    larcv::Image2D whole_y_cp = whole_v[2];
-    std::cout <<whole_y_cp.meta().dump() << std::endl;
-    if ( has_infill ) {
-      matching_algo.maskInfill(infill_whole_y, *ev_chstatus, 0.96, infill_whole_y );
-      matching_algo.addInfill( infill_whole_y, *ev_chstatus, 10.0, whole_y_cp );
-    }
 
     if ( use_hits ) {      
       if ( !use_truth ) {
 	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, *ev_hit, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       }
       else
-	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, *true_v, *ev_hit, 10.0, true, true );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, *true_v, *ev_hit, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
     }
     else {
-      // make hits from whole image
-      if ( pixhits_v.size()==0 )
-	//matching_algo.makeHitsFromWholeImagePixels( whole_v[2], pixhits_v, 10.0 );
-	matching_algo.makeHitsFromWholeImagePixels( whole_y_cp, pixhits_v, 10.0 );
       
       if ( !use_truth ) {
 	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
 	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
       }
       else
-	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, true_v, pixhits_v, 10.0, true, true );
-	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, *true_v, pixhits_v, 10.0, true, true );
+	//matching_algo.fillPlaneHitFlow(  cluster_algo, wire_v[2], wire_v, flow_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
+	matching_algo.fillPlaneHitFlow(  cluster_algo, img_fill_v[2], img_fill_v, *true_v, pixhits_v, 10.0, hasFlow[flowdir::kY2U], hasFlow[flowdir::kY2V] );
     }
 
     // update ssnet info
@@ -457,10 +516,11 @@ int main( int nargs, char** argv ) {
     else {
       std::cout << "Shower/track/endpt info not valid" << std::endl;
     }
-    // update infill labels
-    if ( has_infill && ev_infill->valid() && infill_v.size()==3 ) {
-      matching_algo.labelInfillHits( infill_v );
-      std::cout << "infill labels here" << std::endl;
+
+    // update infill labels in PlaneHitFlow objects
+    if ( has_infill && ev_infill->valid() && ev_infill->as_vector().size()==3 ) {
+      matching_algo.labelInfillHits( ev_infill->as_vector() );
+      std::cout << "infill labels here applied to planehitflow objects" << std::endl;
     }
     else {
       std::cout << "Infill info not valid" << std::endl;
