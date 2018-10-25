@@ -33,6 +33,7 @@ cd $workdir
 source /usr/local/root/release/bin/thisroot.sh
 
 source configure.sh
+#source clean.sh
 source build.sh
 
 # build photolib tools

@@ -12,6 +12,8 @@
 #include "DataFormat/opflash.h"
 #include "DataFormat/spacepoint.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/mctrack.h"
+#include "DataFormat/mcshower.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -52,6 +54,8 @@ void event_changeout( larlite::storage_manager& dataco_output,
   larlite::event_larflow3dhit* ev_larflowhit = (larlite::event_larflow3dhit*)dataco_output.get_data(larlite::data::kLArFlow3DHit,"flowhits");
   auto evout_opflash_beam   = (larlite::event_opflash*)dataco_output.get_data(larlite::data::kOpFlash, "simpleFlashBeam" );
   auto evout_opflash_cosmic = (larlite::event_opflash*)dataco_output.get_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
+  auto evout_mctrack        = (larlite::event_mctrack*) dataco_output.get_data(larlite::data::kMCTrack,  "mcreco" );
+  auto evout_mcshower       = (larlite::event_mcshower*)dataco_output.get_data(larlite::data::kMCShower, "mcreco" );
     
   // get mctrack
   const larlite::event_mctrack* ev_track = nullptr;
@@ -76,6 +80,15 @@ void event_changeout( larlite::storage_manager& dataco_output,
       evout_opflash_beam->emplace_back( std::move(flash) );
     for ( auto& flash : *ev_opflash_cosmic )
       evout_opflash_cosmic->emplace_back( std::move(flash) );
+  }
+  if (hasmcreco ) {
+    auto ev_mctrack   = (larlite::event_mctrack*) dataco_larlite.get_larlite_data(larlite::data::kMCTrack,  "mcreco" );
+    auto ev_mcshower  = (larlite::event_mcshower*)dataco_larlite.get_larlite_data(larlite::data::kMCShower, "mcreco" );
+    
+    for ( auto& mctrack :  *ev_mctrack )
+      evout_mctrack->emplace_back(  std::move(mctrack) );
+    for ( auto& mcshower : *ev_mcshower )
+      evout_mcshower->emplace_back( std::move(mcshower) );
   }
   
   // get the final hits made from flow
@@ -159,7 +172,7 @@ int main( int nargs, char** argv ) {
   // -------------------------------------------------------------
 
   // arg parsing
-  if ( nargs!=6 ) {
+  if ( nargs!=7 ) {
     std::cout << "usage:./dev [input dl larcv (larflow,infill,ssnet),cropped set] [supera] [reco2d] [opreco] [mcinfo]" << std::endl;
     std::cout << " if not providing one the elements, replace filename with '0'" << std::endl;
     return 0;
@@ -171,6 +184,8 @@ int main( int nargs, char** argv ) {
   std::string input_reco2d_file      = argv[3];
   std::string input_opreco_file      = argv[4];
   std::string input_mcinfo_file      = argv[5];
+
+  std::string output_file            = argv[6];
   
   TApplication app ("app",&nargs,argv);  
 
@@ -189,7 +204,6 @@ int main( int nargs, char** argv ) {
   // std::string input_mcinfo_file       = "";
   // std::string input_dlcosmictag_file  = "../testdata/larcv1_data/larcv2_larflow_bnbext_mcc9.root";
   
-  std::string output_larlite_file     = "output_flowmatch_larlite.root";
   
   bool kVISUALIZE = false;
   bool kINSPECT   = false;
@@ -213,14 +227,15 @@ int main( int nargs, char** argv ) {
   if ( input_mcinfo_file.empty() || input_mcinfo_file=="0" )
     has_mcreco = false;
     
-  if (use_truth && use_hits)
-    output_larlite_file = "output_truthmatch_larlite.root";
-  else if (!use_truth && use_hits) 
-    output_larlite_file = "output_flowmatch_larlite.root";
-  else if (use_truth && !use_hits)
-    output_larlite_file = "output_truthpixmatch_larlite.root";
-  else if (!use_truth && !use_hits)
-    output_larlite_file = "output_pixmatch_larlite.root";
+  //std::string output_larlite_file     = "output_flowmatch_larlite.root";
+  // if (use_truth && use_hits)
+  //   output_larlite_file = "output_truthmatch_larlite.root";
+  // else if (!use_truth && use_hits) 
+  //   output_larlite_file = "output_flowmatch_larlite.root";
+  // else if (use_truth && !use_hits)
+  //   output_larlite_file = "output_truthpixmatch_larlite.root";
+  // else if (!use_truth && !use_hits)
+  //   output_larlite_file = "output_pixmatch_larlite.root";
 
 
   std::cout << "===========================================" << std::endl;
@@ -231,6 +246,7 @@ int main( int nargs, char** argv ) {
   std::cout << " reco2d: " << input_reco2d_file << std::endl;
   std::cout << " opreco: " << input_opreco_file << std::endl;
   std::cout << " mcinfo: " << input_mcinfo_file << std::endl;
+  std::cout << " outfile: " << output_file << std::endl;
   
   using flowdir = larflow::FlowContourMatch;
 
@@ -270,7 +286,7 @@ int main( int nargs, char** argv ) {
 
   // output: 3D track hits
   larlite::storage_manager dataco_output( larlite::storage_manager::kWRITE );
-  dataco_output.set_out_filename( output_larlite_file );
+  dataco_output.set_out_filename( output_file );
   dataco_output.open();
   
   // cluster algo
