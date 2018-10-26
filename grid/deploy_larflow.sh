@@ -35,21 +35,30 @@ cd ${repodir}/deploy
 outfile_y2u=`printf /tmp/larflow_y2u_jobid%02d.root ${jobid}`
 outfile_y2v=`printf /tmp/larflow_y2v_jobid%02d.root ${jobid}`
 
-./run_larflow_wholeview.py -i $supera -o $outfile_y2u -c ${repodir}/weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar -f Y2U -g ${gpuid} -b 2 -n 20 --saveadc --ismc
-./run_larflow_wholeview.py -i $supera -o $outfile_y2v -c ${repodir}/weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar -f Y2V -g ${gpuid} -b 2 -n 20
+./run_larflow_wholeview.py -i $supera -o $outfile_y2u -c ${repodir}/weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar -f Y2U -g ${gpuid} -b 2 -n 20 --saveadc --ismc || exit
+./run_larflow_wholeview.py -i $supera -o $outfile_y2v -c ${repodir}/weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar -f Y2V -g ${gpuid} -b 2 -n 20 || exit
 
 outfile_hadd=`printf /tmp/larflow_jobid%02d.root ${jobid}`
 
-hadd -f ${outfile_hadd} ${outfile_y2u} ${outfile_y2v}
+hadd -f ${outfile_hadd} ${outfile_y2u} ${outfile_y2v} || exit
+rm $outfile_y2u
+rm $outfile_y2v
 
 # postprocessor
 outputpost=`printf /tmp/output_larflowhits_jobid%02d.root ${jobid}`
 
-cd ${repodir}/postprocessor
-echo "run: ./dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost}"
-rm ./pylardcache/*
-./dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost}
+#cd ${repodir}/postprocessor
+workdir=`printf /tmp/larflow_workdir_jobid%03d ${jobid}`
+mkdir -p $workdir
+cd $workdir
 
-mv ${outputpost} ${outputdir}/
+echo "run: ./dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${jobid}"
+dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${jobid} || exit
+
+mv ${outputpost} ${outputdir}/ || exit
+
+echo "CLEANUP"
+cd /tmp
+rm -r $workdir
 
 echo "DONE"

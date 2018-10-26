@@ -172,8 +172,8 @@ int main( int nargs, char** argv ) {
   // -------------------------------------------------------------
 
   // arg parsing
-  if ( nargs!=7 ) {
-    std::cout << "usage:./dev [input dl larcv (larflow,infill,ssnet),cropped set] [supera] [reco2d] [opreco] [mcinfo]" << std::endl;
+  if ( nargs!=8 ) {
+    std::cout << "usage:./dev [input dl larcv (larflow,infill,ssnet),cropped set] [supera] [reco2d] [opreco] [mcinfo] [outfile] [jobid]" << std::endl;
     std::cout << " if not providing one the elements, replace filename with '0'" << std::endl;
     return 0;
   }
@@ -186,6 +186,7 @@ int main( int nargs, char** argv ) {
   std::string input_mcinfo_file      = argv[5];
 
   std::string output_file            = argv[6];
+  std::string jobid                  = argv[7];
   
   TApplication app ("app",&nargs,argv);  
 
@@ -208,7 +209,7 @@ int main( int nargs, char** argv ) {
   bool kVISUALIZE = false;
   bool kINSPECT   = false;
   bool use_hits   = false;
-  bool use_truth  = false;
+  bool use_truth  = true;
   bool has_reco2d = true;
   bool has_opreco = true;
   bool has_mcreco = true;
@@ -247,6 +248,7 @@ int main( int nargs, char** argv ) {
   std::cout << " opreco: " << input_opreco_file << std::endl;
   std::cout << " mcinfo: " << input_mcinfo_file << std::endl;
   std::cout << " outfile: " << output_file << std::endl;
+  std::cout << " jobid: " << jobid << std::endl;
   
   using flowdir = larflow::FlowContourMatch;
 
@@ -262,11 +264,13 @@ int main( int nargs, char** argv ) {
   
   // data from whole-view image
   larlitecv::DataCoordinator dataco_whole;
+  dataco_whole.set_temp_filelistname( "flistwholeview_"+jobid );
   dataco_whole.add_inputfile( input_supera_file, "larcv" );
   dataco_whole.initialize();
   
   // hit (and mctruth) event data
   larlitecv::DataCoordinator dataco_hits;
+  dataco_hits.set_temp_filelistname( "flisthits_"+jobid );
   if ( !input_reco2d_file.empty() && input_reco2d_file!="0" ) 
     dataco_hits.add_inputfile( input_reco2d_file,  "larlite" );
   if ( !input_opreco_file.empty() && input_opreco_file!="0" ) {

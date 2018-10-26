@@ -11,7 +11,7 @@
 LARFLOW_REPO_DIR=/cluster/tufts/wongjiradlab/twongj01/larflow/
 LARFLOW_REPO_DIR_IC=/cluster/kappa/wongjiradlab/twongj01/larflow/
 FILELIST_DIR=${LARFLOW_REPO_DIR_IC}/grid/filelists/
-OUTPUT_DIR=${LARFLOW_REPO_DIR_IC}/grid/output/
+OUTPUT_DIR=${LARFLOW_REPO_DIR_IC}/grid/output/truthflow
 CONTAINER=${LARFLOW_REPO_DIR}/container/singularity-larbys-pytorch-0.4.1-nv384.66.img
 
 module load singularity
