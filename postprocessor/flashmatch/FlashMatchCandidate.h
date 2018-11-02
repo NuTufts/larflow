@@ -15,6 +15,7 @@
 // larflow
 #include "FlashMatchTypes.h"
 #include "QClusterCore.h"
+#include "QClusterComposite.h"
 
 namespace larflow {
 
@@ -22,12 +23,13 @@ namespace larflow {
   class FlashMatchCandidate {
   public:
 
-    FlashMatchCandidate( const FlashData_t& fdata, const QClusterCore& qcoredata );
+    FlashMatchCandidate( const FlashData_t& fdata, const QClusterComposite& qcomposite );
     virtual ~FlashMatchCandidate() {};
 
     const FlashData_t* _flashdata; // source flash data
     const QCluster_t*  _cluster;   // source cluster data
-    const QClusterCore* _core;
+    const QClusterComposite* _qcomposite;
+    
     float _xoffset;
     float _maxch_pe;
     int   _maxch;
@@ -35,21 +37,11 @@ namespace larflow {
 
     bool _hasevstatus;
     const larcv::EventChStatus* _evstatus;
-
-    QCluster_t _offset_qcluster; // basically a copy of the core, but with the xoffset applied
-    QCluster_t _offset_qgap;     // copy of the core cluster gap points, but with the xoffset applied    
-    QCluster_t _entering_qcluster;
-    QCluster_t _exiting_qcluster;
-    Eigen::Vector3f _topend;
-    Eigen::Vector3f _botend;
-    float _toptick;
-    float _bottick;
     
-    FlashHypo_t _corehypo;
-    FlashHypo_t _noncorehypo;
+    FlashHypo_t _core_hypo;
+    FlashHypo_t _gapfill_hypo;    
     FlashHypo_t _entering_hypo;
     FlashHypo_t _exiting_hypo;
-    FlashHypo_t _gapfill_hypo;
 
     static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
     static float getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo );
@@ -66,14 +58,11 @@ namespace larflow {
     // Flash Hypothesis Building Routines
     // ----------------------------------
     
-    // define the core, non-core, and their respective principle components
-    void defineCore();
-
     // extend the core to the detector edge from the most likely entering end
     //  and past the TPC boundaries in so far as it improves the flash-match
-    int _usefront; // use the positive eigen vector end to extend, use the negative end
-    void ExtendEnteringEnd();
-    void ExtendExitingEnd();
+    /* int _usefront; // use the positive eigen vector end to extend, use the negative end */
+    /* void ExtendEnteringEnd(); */
+    /* void ExtendExitingEnd(); */
     
     // extend core on the exiting end
     //   only continues as long as flash-match improved

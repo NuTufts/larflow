@@ -2,6 +2,7 @@
 #define __LARFLOW_FLASHMATCH__
 
 #include <vector>
+#include <set>
 
 // ROOT
 
@@ -50,8 +51,8 @@ namespace larflow {
     // Functions meant for users
     // --------------------------
     
-    Results_t match( const std::vector<larlite::opflash>& beam_flashes,
-		     const std::vector<larlite::opflash>& cosmic_flashes,
+    Results_t match( const larlite::event_opflash& beam_flashes,
+		     const larlite::event_opflash& cosmic_flashes,
 		     const std::vector<larlite::larflowcluster>& clusters,
 		     const std::vector<larcv::Image2D>& img_v,
 		     const bool ignorelast=true);
@@ -69,7 +70,7 @@ namespace larflow {
     // vectors for storing the events data flashes and reconstructed qclusters
     std::vector<FlashData_t> _flashdata_v;
     std::vector<QCluster_t>  _qcluster_v;
-    std::vector<QClusterCore> _qcore_v;
+    std::vector<QClusterComposite> _qcomposite_v;
     //std::vector<larlite::pcaxis>  _pca_qcluster_v; // pca, useful
     
     // QCluster Tools
@@ -90,8 +91,8 @@ namespace larflow {
 
     // Collection of the opflash data
     // -------------------------------
-    std::vector< FlashData_t > collectFlashInfo( const std::vector<larlite::opflash>& beam_flashes,
-						 const std::vector<larlite::opflash>& cosmic_flashes );
+    std::vector< FlashData_t > collectFlashInfo( const larlite::event_opflash& beam_flashes,
+						 const larlite::event_opflash& cosmic_flashes );
     
     // fitting strategies
     // 1) simple metropolist hastings using global-chi2 as function
@@ -117,10 +118,11 @@ namespace larflow {
     // need to define bins in z-dimension and assign pmt channels to them
     // this is for shape fit
     std::vector< std::vector<int> > _zbinned_pmtchs;
-    float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
+    //float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
     float chi2Comparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );    
     void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
     void dumpQClusterImages();
+    void dumpQCompositeImages();
 
     // Flash Hypothesis Building
     // -------------------------
@@ -234,6 +236,7 @@ namespace larflow {
     // ------------
     const std::vector<larlite::mctrack>* _mctrack_v;
     std::map<int,int> _mctrackid2index;
+    std::set<int>     _nu_mctrackid;
     std::vector<int> _flash_truthid;
     std::vector<int> _cluster_truthid;
     std::vector<int> _flash2truecluster;
@@ -263,7 +266,12 @@ namespace larflow {
     TFile* _fanafile;
     TTree* _anatree;
     int   _redstep;
-    int   _truthmatch;    
+    int   _truthmatch;
+    int   _isneutrino;
+    int   _intime;
+    int   _isbeam;
+    float _hypope;
+    float _datape;
     float _maxdist_orig;
     float _peratio_orig;
     float _maxdist_wext;
@@ -273,6 +281,7 @@ namespace larflow {
     bool  _save_ana_tree;
     bool  _anafile_written;
     void setupAnaTree();
+    void clearAnaVariables();
 
   };
     

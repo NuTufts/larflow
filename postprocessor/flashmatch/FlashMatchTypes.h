@@ -15,7 +15,7 @@ namespace larflow {
       fromplaneid = -1;
       type = kUnlabeled;
     };
-    std::vector<float> xyz; // (tick,y,z) coordinates
+    std::vector<float> xyz; // (x,y,z) coordinates
     float tick;
     float pixeladc;
     int   fromplaneid; // { 0:U, 1:V, 2:Y, 3:UV-ave }
@@ -23,11 +23,13 @@ namespace larflow {
   };
 
   struct FlashData_t : public std::vector<float> {
-    FlashData_t() { truthmatched_clusteridx=-1; mctrackid=-1; mctrackpdg=-1; };
+    FlashData_t() { truthmatched_clusteridx=-1; mctrackid=-1; mctrackpdg=-1; isneutrino=false; isbeam=false; intime=false; };
     int idx;
     int tpc_tick;
     int tpc_trigx;
     bool isbeam;
+    bool isneutrino;
+    bool intime;
     float tot;
     int mctrackid;
     int mctrackpdg;
@@ -37,12 +39,13 @@ namespace larflow {
   };
 
   struct QCluster_t : public std::vector<QPoint_t> {
-    QCluster_t() { truthmatched_flashidx=-1; mctrackid=-1; };
+    QCluster_t() { truthmatched_flashidx=-1; mctrackid=-1; isneutrino=false; };
     int idx;
     float min_tyz[3];
     float max_tyz[3];
     int mctrackid;
     int truthmatched_flashidx;
+    bool isneutrino;
   };
     
   struct FlashHypo_t : public std::vector<float> {

@@ -12,6 +12,7 @@ argparser.add_argument("-i", "--input",    required=True,  type=str, help="locat
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
 argparser.add_argument("-p", "--pca",      action='store_true',      help="plot pca")
 argparser.add_argument("-m", "--mode",     default="",     type=str, help="plotting mode")
+argparser.add_argument("-s", "--step",     action='store_true',      help="step through individual clusters")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -239,20 +240,20 @@ if args.mode in ["core","core-only"]:
         hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)        
         clusterplotitems.append( hitplot )
     
-# make the plot
-for n,hitplot in enumerate(clusterplotitems):
-    w.addVisItem( "cluster%d"%(n), hitplot )
-    w.plotData()
-    print "[enter] to go to next cluster"
-    raw_input()
-    w.clearVisItems()
-    hitplot.__pylard_transformed = True # hack
+# step through individual clusters
+if args.step:
+    for n,hitplot in enumerate(clusterplotitems):
+        w.addVisItem( "cluster%d"%(n), hitplot )
+        w.plotData()
+        print "[enter] to go to next cluster"
+        raw_input()
+        w.clearVisItems()
+        hitplot.__pylard_transformed = True # hack
 
+# all clusters at once
 w.clearVisItems()    
 for n,hitplot in enumerate(clusterplotitems):
-    print " has pylard_transformed: ",hasattr(hitplot,"__pylard_transformed" )
     w.addVisItem( "cluster%d"%(n), hitplot )
-
 w.plotData()
 
 

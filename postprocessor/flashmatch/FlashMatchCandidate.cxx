@@ -27,14 +27,16 @@ namespace larflow {
 
 
 
-  FlashMatchCandidate::FlashMatchCandidate( const FlashData_t& fdata, const QClusterCore& qcoredata ) :
+  FlashMatchCandidate::FlashMatchCandidate( const FlashData_t& fdata, const QClusterComposite& qcomposite ) :
     _flashdata(&fdata),
-    _cluster(qcoredata._cluster),
-    _core(&qcoredata),
+    _cluster(qcomposite._cluster),
+    _qcomposite(&qcomposite),
+    _xoffset(0),
+    _maxch_pe(0),
+    _maxch(0),
     _evstatus(nullptr),
     _hasevstatus(false),
-    _topend(0,0,0),
-    _botend(0,0,0),
+    _mctrack_v(nullptr),
     _flash_mctrackid(-1),
     _flash_mctrackidx(-1),
     _cluster_mctrackid(-1),
@@ -45,30 +47,14 @@ namespace larflow {
     // when dealing with information from the core, we will need this offset
     _xoffset = (_flashdata->tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
     // we create a qcluster where we subtract off the xoffset
-    _offset_qcluster.clear();
-    _offset_qcluster.reserve( _core->_core.size() );
-    for (auto const& corehit : _core->_core ) {
-      QPoint_t offsethit = corehit;
-      offsethit.xyz[0] -= _xoffset;
-      offsethit.type = kCore;
-      _offset_qcluster.emplace_back( std::move(offsethit) );
-    }
-    _offset_qgap.clear();
-    _offset_qgap.reserve( _core->_gapfill_qcluster.size() );
-    for (auto const& gaphit : _core->_gapfill_qcluster ) {
-      QPoint_t offsethit = gaphit;
-      offsethit.xyz[0] -= _xoffset;
-      offsethit.type = kGapFill;
-      _offset_qgap.emplace_back( std::move(offsethit) );
-    }
-    
-    _noncorehypo.resize(32,0.0);
+    _core_hypo.resize(32,0.0);
+    _gapfill_hypo.resize(32,0.0);            
     _entering_hypo.resize(32,0.0);
     _exiting_hypo.resize(32,0.0);
     
     // we build the core and gap hypos
-    _corehypo = buildFlashHypothesis( *_flashdata, _offset_qcluster, 0.0  );
-    _gapfill_hypo = buildFlashHypothesis( *_flashdata, _offset_qgap, 0.0 );
+    // _corehypo = buildFlashHypothesis( *_flashdata, *_qcomposite, 0.0  );
+    // _gapfill_hypo = buildFlashHypothesis( *_flashdata, _offset_qgap, 0.0 );
 
     // we identify the max pmt and its value -- we will use this to tune extensions
     _maxch = 0;
@@ -81,8 +67,8 @@ namespace larflow {
       }
     }
 
-    ExtendEnteringEnd();
-    ExtendExitingEnd();    
+    // ExtendEnteringEnd();
+    // ExtendExitingEnd();    
 
   }
 
@@ -98,7 +84,6 @@ namespace larflow {
     const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
     const float gapfill_len2adc  = (80.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
     const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
-
 
     FlashHypo_t hypo;
     hypo.resize(npmts,0.0);
@@ -201,317 +186,327 @@ namespace larflow {
     return peratio;
   }
   
-  void FlashMatchCandidate::ExtendEnteringEnd() {
-    // we have to find which end we think is entering (cosmic assumptoin)
-    // we pick the top-most end
-    _entering_qcluster.clear();
-    _entering_hypo.resize(32,0.0);
-    float steplen = 1.0;    
+  // void FlashMatchCandidate::ExtendEnteringEnd() {
+  //   // we have to find which end we think is entering (cosmic assumptoin)
+  //   // we pick the top-most end
+  //   _entering_qcluster.clear();
+  //   _entering_hypo.resize(32,0.0);
+  //   float steplen = 1.0;    
 	
-    // we've sorted along pca lines, so grab the ends, average over n points
-    const QCluster_t& core = _core->_core;
-    size_t nptscore = core.size();
-    int npoint_ave = 10;
-    if ( nptscore<10 )
-      npoint_ave = 1;
-    else if ( nptscore<20 )
-      npoint_ave = 3;
-    else if ( nptscore<50 )
-      npoint_ave = 5;
+  //   // we've sorted along pca lines, so grab the ends, average over n points
+  //   const QCluster_t& core = _core->_core;
+  //   size_t nptscore = core.size();
+  //   int npoint_ave = 10;
+  //   if ( nptscore<10 )
+  //     npoint_ave = 1;
+  //   else if ( nptscore<20 )
+  //     npoint_ave = 3;
+  //   else if ( nptscore<50 )
+  //     npoint_ave = 5;
 
 
-    float avepos[2][4] = {0};
-    for (int ipt=0; ipt<npoint_ave; ipt++) {
-      for (int i=0; i<3; i++) 
-	avepos[0][i] += core[ipt].xyz[i]/float(npoint_ave);
-      for (int i=0; i<3; i++) 
-	avepos[1][i] += core[(int)nptscore-ipt-1].xyz[i]/float(npoint_ave);
-      avepos[0][3] += core[ipt].tick/float(npoint_ave);
-      avepos[1][3] += core[(int)nptscore-ipt-1].tick/float(npoint_ave);			   
-    }
-    avepos[0][0] -= _xoffset;
-    avepos[1][0] -= _xoffset;    
+  //   float avepos[2][4] = {0};
+  //   for (int ipt=0; ipt<npoint_ave; ipt++) {
+  //     for (int i=0; i<3; i++) 
+  // 	avepos[0][i] += core[ipt].xyz[i]/float(npoint_ave);
+  //     for (int i=0; i<3; i++) 
+  // 	avepos[1][i] += core[(int)nptscore-ipt-1].xyz[i]/float(npoint_ave);
+  //     avepos[0][3] += core[ipt].tick/float(npoint_ave);
+  //     avepos[1][3] += core[(int)nptscore-ipt-1].tick/float(npoint_ave);			   
+  //   }
+  //   avepos[0][0] -= _xoffset;
+  //   avepos[1][0] -= _xoffset;    
     
-    // choose the top-most end
-    _usefront = 0;
-    _topend = Eigen::Vector3f(0,0,0);
-    _botend = Eigen::Vector3f(0,0,0);    
-    _toptick = 0;
-    _bottick  = 0;
-    if ( avepos[0][1]>avepos[1][1] ) {
-      for (int i=0; i<3; i++) _topend(i) = avepos[0][i];
-      for (int i=0; i<3; i++) _botend(i) = avepos[1][i];      
-      _usefront = 1;
-      _toptick = avepos[0][3];
-      _bottick = avepos[1][3];
-    }
-    else {
-      for (int i=0; i<3; i++) _topend(i) = avepos[1][i];
-      for (int i=0; i<3; i++) _botend(i) = avepos[0][i];      
-      _usefront = 0;
-      _toptick = avepos[1][3];
-      _bottick = avepos[0][3];      
-    }
+  //   // choose the top-most end
+  //   _usefront = 0;
+  //   _topend = Eigen::Vector3f(0,0,0);
+  //   _botend = Eigen::Vector3f(0,0,0);    
+  //   _toptick = 0;
+  //   _bottick  = 0;
+  //   if ( avepos[0][1]>avepos[1][1] ) {
+  //     for (int i=0; i<3; i++) _topend(i) = avepos[0][i];
+  //     for (int i=0; i<3; i++) _botend(i) = avepos[1][i];      
+  //     _usefront = 1;
+  //     _toptick = avepos[0][3];
+  //     _bottick = avepos[1][3];
+  //   }
+  //   else {
+  //     for (int i=0; i<3; i++) _topend(i) = avepos[1][i];
+  //     for (int i=0; i<3; i++) _botend(i) = avepos[0][i];      
+  //     _usefront = 0;
+  //     _toptick = avepos[1][3];
+  //     _bottick = avepos[0][3];      
+  //   }
 
-    // extend the points, to the edge of the detector
-    // we need a direction: pca. for now just use the current pca
-    Eigen::Vector3f centerpos( _core->_pca_core.getAvePosition()[0]-_xoffset,
-			       _core->_pca_core.getAvePosition()[1],
-			       _core->_pca_core.getAvePosition()[2] );
-    Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
-			    _core->_pca_core.getEigenVectors()[1][0],
-			    _core->_pca_core.getEigenVectors()[2][0] );
+  //   // extend the points, to the edge of the detector
+  //   // we need a direction: pca. for now just use the current pca
+  //   Eigen::Vector3f centerpos( _core->_pca_core.getAvePosition()[0]-_xoffset,
+  // 			       _core->_pca_core.getAvePosition()[1],
+  // 			       _core->_pca_core.getAvePosition()[2] );
+  //   Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
+  // 			    _core->_pca_core.getEigenVectors()[1][0],
+  // 			    _core->_pca_core.getEigenVectors()[2][0] );
 
-    if ( pcavec.norm()<0.01 ) {
-      return;
-    }
+  //   if ( pcavec.norm()<0.5 ) {
+  //     return;
+  //   }
+
+  //   for (int i=0; i<3; i++) {
+  //     if ( std::isnan(pcavec(i)) )
+  // 	return;
+  //   }    
     
-    // determine sign of pca-axis
-    float extsign = ( (_topend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
+  //   // determine sign of pca-axis
+  //   float extsign = ( (_topend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
 
-    bool indet = true;
-    bool intpc = true;
-    bool isanode = false;
-    int istep = 0;
-    while (indet) {
-      Eigen::Vector3f currentpos = _topend + (extsign*steplen*float(istep))*pcavec;
-      // check the position
-      if ( currentpos(0)<0 ) {
-	// went through the anode!
-	isanode = true;
-	intpc   = false;
-      }
-      else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
-	intpc = false;
-	isanode = false;
-      }
+  //   bool indet = true;
+  //   bool intpc = true;
+  //   bool isanode = false;
+  //   int istep = 0;
+  //   while (indet) {
+  //     Eigen::Vector3f currentpos = _topend + (extsign*steplen*float(istep))*pcavec;
+  //     // check the position
+  //     if ( currentpos(0)<0 ) {
+  // 	// went through the anode!
+  // 	isanode = true;
+  // 	intpc   = false;
+  //     }
+  //     else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
+  // 	isanode = false;	
+  // 	intpc   = false;
+  //     }
 
-      if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
-	indet = false;
-	break;
-      }
+  //     if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+  // 	indet = false;
+  // 	break;
+  //     }
       
-      if ( indet ) {
-	// create the hit
-	//std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
-	QPoint_t qpt;
-	qpt.xyz.resize(3,0);
-	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
-	qpt.tick   = (currentpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
-	qpt.pixeladc = steplen; 
-	qpt.fromplaneid = -1;
-	if ( intpc )
-	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
-	else
-	  qpt.type = kExt;
-	_entering_qcluster.emplace_back( std::move(qpt) );
-      }
-      istep++;
-    }
+  //     if ( indet ) {
+  // 	// create the hit
+  // 	//std::cout << "create extended hit@ " << currentpos.transpose() << " pcavec=" << pcavec.transpose() << std::endl;
+  // 	QPoint_t qpt;
+  // 	qpt.xyz.resize(3,0);
+  // 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
+  // 	qpt.tick   = (currentpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
+  // 	qpt.pixeladc = steplen; 
+  // 	qpt.fromplaneid = -1;
+  // 	if ( intpc )
+  // 	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+  // 	else
+  // 	  qpt.type = kExt;
+  // 	_entering_qcluster.emplace_back( std::move(qpt) );
+  //     }
+  //     istep++;
+  //   }
 
-    if ( isanode ) {
-      // we pierced the anode.
-      // we keep stepping until the maxpe is matched (stop if we alreay are over)
-      // to do this, we need hypothesis to have been formed
-      _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
-      float _maxdiff = _entering_hypo[_maxch] - _maxch_pe;
-      //std::cout << "Is ANODE: extend to match maxpmt" << std::endl;
-      istep = 0;
-      while ( _maxdiff<0 ) {
-	// we extend the entering cluster
-	Eigen::Map< Eigen::Vector3f > endpos( _entering_qcluster.back().xyz.data() );
-	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
-	// make hit
-	QPoint_t qpt;
-	qpt.xyz.resize(3,0);
-	for (int i=0; i<3; i++) qpt.xyz[i] = extpos(i);
-	qpt.tick = extpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
-	qpt.pixeladc = steplen;
-	qpt.fromplaneid = -1;
-	qpt.type = kExt;
-	_entering_qcluster.emplace_back( std::move(qpt) );
+  //   if ( isanode ) {
+  //     // we pierced the anode.
+  //     // we keep stepping until the maxpe is matched (stop if we alreay are over)
+  //     // to do this, we need hypothesis to have been formed
+  //     _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
+  //     float _maxdiff = _entering_hypo[_maxch] - _maxch_pe;
+  //     //std::cout << "Is ANODE: extend to match maxpmt" << std::endl;
+  //     istep = 0;
+  //     while ( _maxdiff<0 ) {
+  // 	// we extend the entering cluster
+  // 	Eigen::Map< Eigen::Vector3f > endpos( _entering_qcluster.back().xyz.data() );
+  // 	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
+  // 	// make hit
+  // 	QPoint_t qpt;
+  // 	qpt.xyz.resize(3,0);
+  // 	for (int i=0; i<3; i++) qpt.xyz[i] = extpos(i);
+  // 	qpt.tick = extpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
+  // 	qpt.pixeladc = steplen;
+  // 	qpt.fromplaneid = -1;
+  // 	qpt.type = kExt;
+  // 	_entering_qcluster.emplace_back( std::move(qpt) );
+
+  // 	if ( extpos(0) < -50 || extpos(0)>1 || extpos(1)>137 || extpos(1)<-137 || extpos(2)<-20 || extpos(2)>1058 ) {	
+  // 	  // limit this adjustment
+  // 	  break;
+  // 	}
+
+  // 	// update the hypothesis
+  // 	_entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
+  // 	_maxdiff = _entering_hypo[_maxch] - _maxch_pe;
+  // 	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+  // 	// 	  << "  _hypomax=" << _entering_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+  // 	istep++;
+  //     }
+  //   }
+  //   //entering extension finished
+    
+  //   // set final hypo
+  //   _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
+    
+  // }
+
+  // void FlashMatchCandidate::ExtendExitingEnd() {
+  //   // we have to find which end we think is entering (cosmic assumptoin)
+  //   // we pick the top-most end
+  //   _exiting_qcluster.clear();
+  //   _exiting_hypo.resize(32,0.0);
+  //   float steplen = 1.0; //
 	
-	if ( extpos(0) < -50 || extpos(1)>117+20 || extpos(1)<-117-20 || extpos(2)<-20 || extpos(2)>1056 ) {
-	  // limit this adjustment
-	  break;
-	}
-
-	// update the hypothesis
-	_entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
-	_maxdiff = _entering_hypo[_maxch] - _maxch_pe;
-	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
-	// 	  << "  _hypomax=" << _entering_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
-	istep++;
-      }
-    }
-    //entering extension finished
+  //   // extend entering, choose its end, we use the opposite
+  //   // we extend thrpugh the tpc
+  //   // if it improves the shape match (CDF maxdist), we keep
+  //   // else we destroy
+  //   // if helps, and we go through the anode, we extend further
     
-    // set final hypo
-    _entering_hypo = buildFlashHypothesis( *_flashdata, _entering_qcluster, 0.0 );
+  //   // extend the points, to the edge of the detector, only if it improves the shape match
+  //   // we need a direction: pca. for now just use the current pca
+  //   Eigen::Vector3f centerpos( _core->_pca_core.getAvePosition()[0]-_xoffset,
+  // 			       _core->_pca_core.getAvePosition()[1],
+  // 			       _core->_pca_core.getAvePosition()[2] );
+  //   Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
+  // 			    _core->_pca_core.getEigenVectors()[1][0],
+  // 			    _core->_pca_core.getEigenVectors()[2][0] );
+
+  //   if ( pcavec.norm()<0.5 ) {
+  //     return;
+  //   }
+
+  //   for (int i=0; i<3; i++) {
+  //     if ( std::isnan(pcavec(i)) )
+  // 	return;
+  //   }
     
-  }
+  //   // determine sign of pca-axis
+  //   float extsign = ( (_botend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
 
-  void FlashMatchCandidate::ExtendExitingEnd() {
-    // we have to find which end we think is entering (cosmic assumptoin)
-    // we pick the top-most end
-    _exiting_qcluster.clear();
-    _exiting_hypo.resize(32,0.0);
-    float steplen = 1.0; //
-	
-    // extend entering, choose its end, we use the opposite
-    // we extend thrpugh the tpc
-    // if it improves the shape match (CDF maxdist), we keep
-    // else we destroy
-    // if helps, and we go through the anode, we extend further
-    
-    // extend the points, to the edge of the detector, only if it improves the shape match
-    // we need a direction: pca. for now just use the current pca
-    Eigen::Vector3f centerpos( _core->_pca_core.getAvePosition()[0]-_xoffset,
-			       _core->_pca_core.getAvePosition()[1],
-			       _core->_pca_core.getAvePosition()[2] );
-    Eigen::Vector3f pcavec( _core->_pca_core.getEigenVectors()[0][0],
-			    _core->_pca_core.getEigenVectors()[1][0],
-			    _core->_pca_core.getEigenVectors()[2][0] );
+  //   bool indet = true;    
+  //   bool intpc = true;
+  //   bool isanode = false;
+  //   int istep = 0;
+  //   while (indet) {
+  //     Eigen::Vector3f currentpos = _botend + (extsign*steplen*float(istep))*pcavec;
+  //     // check the position
+  //     if ( currentpos(0)<0 ) {
+  // 	// went through the anode!
+  // 	isanode = true;
+  // 	intpc   = false;
+  //     }
+  //     else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
+  // 	intpc = false;
+  // 	isanode = false;
+  //     }
 
-    if ( pcavec.norm()<0.01 ) {
-      return;
-    }
-    
-    // determine sign of pca-axis
-    float extsign = ( (_botend-centerpos).dot(pcavec) > 0 ) ? 1.0 : -1.0;
-
-    bool indet = true;    
-    bool intpc = true;
-    bool isanode = false;
-    int istep = 0;
-    while (indet) {
-      Eigen::Vector3f currentpos = _botend + (extsign*steplen*float(istep))*pcavec;
-      // check the position
-      if ( currentpos(0)<0 ) {
-	// went through the anode!
-	isanode = true;
-	intpc   = false;
-      }
-      else if ( currentpos(0)>256 || currentpos(1)>117.0 || currentpos(1)<-117 || currentpos(2)<0 || currentpos(2)>1036.0 ) {
-	intpc = false;
-	isanode = false;
-      }
-
-      if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
-	indet = false;
-	break;
-      }
+  //     if ( currentpos(0)<0 || currentpos(0)>256 || currentpos(1)<-137 || currentpos(1)>137 || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+  // 	indet = false;
+  // 	break;
+  //     }
       
-      if ( indet ) {
-	// create the hit
-	//std::cout << "create extended hit@ " << currentpos.transpose() << std::endl;
-	QPoint_t qpt;
-	qpt.xyz.resize(3,0);
-	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
-	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
-	qpt.pixeladc = steplen; 
-	qpt.fromplaneid = -1;
-	if ( intpc )
-	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
-	else
-	  qpt.type = kExt; // we need it to set the light yield according to in-tpc gap fill levels
-	_exiting_qcluster.emplace_back( std::move(qpt) );
-      }
-      istep++;
-    }
+  //     if ( indet ) {
+  // 	// create the hit
+  // 	//std::cout << "create extended hit@ " << currentpos.transpose() << " pcavec=" << pcavec.transpose() << std::endl;	
+  // 	QPoint_t qpt;
+  // 	qpt.xyz.resize(3,0);
+  // 	for (int i=0; i<3; i++) qpt.xyz[i] = currentpos(i);
+  // 	qpt.tick   = (currentpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5) + 3200.0;
+  // 	qpt.pixeladc = steplen; 
+  // 	qpt.fromplaneid = -1;
+  // 	if ( intpc )
+  // 	  qpt.type = kGapFill; // we need it to set the light yield according to in-tpc gap fill levels
+  // 	else
+  // 	  qpt.type = kExt; // we need it to set the light yield according to in-tpc gap fill levels
+  // 	_exiting_qcluster.emplace_back( std::move(qpt) );
+  //     }
+  //     istep++;
+  //   }
 
-    // shape tests
-    float maxdist_orig = 0.;
-    float maxdist_wext = 0.;
-    // need hypo
-    _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
-    // orig hypo
-    float orig_cdf = 0.;
-    float ext_cdf = 0.;
-    float data_cdf = 0.;
-    std::vector<float> orig_v(32,0.0);
-    std::vector<float> ext_v(32,0.0);
-    std::vector<float> data_v(32,0.0);    
-    for (int ich=0; ich<32; ich++) {
-      float origpe = _corehypo[ich]*_corehypo.tot;
-      float extpe  = origpe + _exiting_hypo[ich]*_exiting_hypo.tot;
-      float datape = (*_flashdata)[ich] * _flashdata->tot;
-      orig_cdf += origpe;
-      ext_cdf  += extpe;
-      data_cdf += datape;
-      orig_v[ich] = orig_cdf;
-      ext_v[ich]  = ext_cdf;
-      data_v[ich] = data_cdf;
-    }
+  //   // shape tests
+  //   float maxdist_orig = 0.;
+  //   float maxdist_wext = 0.;
+  //   // need hypo
+  //   _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+  //   // orig hypo
+  //   float orig_cdf = 0.;
+  //   float ext_cdf = 0.;
+  //   float data_cdf = 0.;
+  //   std::vector<float> orig_v(32,0.0);
+  //   std::vector<float> ext_v(32,0.0);
+  //   std::vector<float> data_v(32,0.0);    
+  //   for (int ich=0; ich<32; ich++) {
+  //     float origpe = _corehypo[ich]*_corehypo.tot;
+  //     float extpe  = origpe + _exiting_hypo[ich]*_exiting_hypo.tot;
+  //     float datape = (*_flashdata)[ich] * _flashdata->tot;
+  //     orig_cdf += origpe;
+  //     ext_cdf  += extpe;
+  //     data_cdf += datape;
+  //     orig_v[ich] = orig_cdf;
+  //     ext_v[ich]  = ext_cdf;
+  //     data_v[ich] = data_cdf;
+  //   }
 
-    if ( orig_cdf>0 && ext_cdf>0 && data_cdf>0 ) {
+  //   if ( orig_cdf>0 && ext_cdf>0 && data_cdf>0 ) {
     
-      for (int ich=0; ich<32; ich++) {
-	float dist_orig  = fabs(orig_v[ich]/orig_cdf-data_v[ich]/data_cdf);
-	float dist_extpe = fabs(ext_v[ich]/ext_cdf-data_v[ich]/data_cdf);
-	if ( dist_orig>maxdist_orig )
-	  maxdist_orig = dist_orig;
-	if ( dist_extpe>maxdist_wext )
-	  maxdist_wext = dist_extpe;
-      }
+  //     for (int ich=0; ich<32; ich++) {
+  // 	float dist_orig  = fabs(orig_v[ich]/orig_cdf-data_v[ich]/data_cdf);
+  // 	float dist_extpe = fabs(ext_v[ich]/ext_cdf-data_v[ich]/data_cdf);
+  // 	if ( dist_orig>maxdist_orig )
+  // 	  maxdist_orig = dist_orig;
+  // 	if ( dist_extpe>maxdist_wext )
+  // 	  maxdist_wext = dist_extpe;
+  //     }
       
-    }
-    else {
-      if ( orig_cdf==0 )
-	maxdist_orig = 1.0;
-      if ( ext_cdf==0 )
-	maxdist_wext = 1.0;
-    }
+  //   }
+  //   else {
+  //     if ( orig_cdf==0 )
+  // 	maxdist_orig = 1.0;
+  //     if ( ext_cdf==0 )
+  // 	maxdist_wext = 1.0;
+  //   }
     
-    if ( maxdist_wext > maxdist_orig ) {
-      // worse with extension
-      _exiting_hypo.clear();
-      _exiting_hypo.resize(32,0);
-      _exiting_qcluster.clear();
-      return;
-    }
+  //   if ( maxdist_wext > maxdist_orig ) {
+  //     // worse with extension
+  //     _exiting_hypo.clear();
+  //     _exiting_hypo.resize(32,0);
+  //     _exiting_qcluster.clear();
+  //     return;
+  //   }
 
-    if ( isanode ) {
-      // we pierced the anode.
-      // we keep stepping until the maxpe is matched (stop if we alreay are over)
-      // to do this, we need hypothesis to have been formed
-      _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
-      float _maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
-      //std::cout << "Is ANODE: extend EXITING to match maxpmt" << std::endl;
-      istep = 0;
-      while ( _maxdiff<0 ) {
-	// we extend the exiting cluster
-	Eigen::Map< Eigen::Vector3f > endpos( _exiting_qcluster.back().xyz.data() );
-	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
-	// make hit
-	QPoint_t qpt;
-	qpt.xyz.resize(3,0);
-	for (int i=0; i<3; i++) qpt.xyz[i] = extpos(i);
-	qpt.tick = extpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
-	qpt.pixeladc = steplen;
-	qpt.fromplaneid = -1;
-	qpt.type = kExt;
-	_exiting_qcluster.emplace_back( std::move(qpt) );
+  //   if ( isanode ) {
+  //     // we pierced the anode.
+  //     // we keep stepping until the maxpe is matched (stop if we alreay are over)
+  //     // to do this, we need hypothesis to have been formed
+  //     _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+  //     float _maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
+  //     //std::cout << "Is ANODE: extend EXITING to match maxpmt" << std::endl;
+  //     istep = 0;
+  //     while ( _maxdiff<0 ) {
+  // 	// we extend the exiting cluster
+  // 	Eigen::Map< Eigen::Vector3f > endpos( _exiting_qcluster.back().xyz.data() );
+  // 	Eigen::Vector3f extpos = endpos + (extsign*steplen)*pcavec;
+  // 	// make hit
+  // 	QPoint_t qpt;
+  // 	qpt.xyz.resize(3,0);
+  // 	for (int i=0; i<3; i++) qpt.xyz[i] = extpos(i);
+  // 	qpt.tick = extpos(0)/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
+  // 	qpt.pixeladc = steplen;
+  // 	qpt.fromplaneid = -1;
+  // 	qpt.type = kExt;
+  // 	_exiting_qcluster.emplace_back( std::move(qpt) );
 	
-	if ( extpos(0) < -50 || extpos(1)>137 || extpos(1)<-137 || extpos(2)<-20 || extpos(2)>1058 ) {
-	  // limit this adjustment
-	  break;
-	}
+  // 	if ( extpos(0) < -50 || extpos(0)>1 || extpos(1)>137 || extpos(1)<-137 || extpos(2)<-20 || extpos(2)>1058 ) {
+  // 	  // limit this adjustment
+  // 	  break;
+  // 	}
 	
-	// update the hypothesis
-	_exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
-	_maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
-	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
-	// 	  << "  _hypomax=" << _exiting_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
-	istep++;
-      }
-    }
-    //exiting extension finished
+  // 	// update the hypothesis
+  // 	_exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+  // 	_maxdiff = _exiting_hypo[_maxch] - _maxch_pe;
+  // 	// std::cout << "extpos[0]=" << extpos[0] << " maxdiff=" << _maxdiff
+  // 	// 	  << "  _hypomax=" << _exiting_hypo[_maxch] << " " << " _datamax=" << _maxch_pe << std::endl;
+  // 	istep++;
+  //     }
+  //   }
+  //   //exiting extension finished
     
-    // set final value
-    _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
+  //   // set final value
+  //   _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
     
-  }
+  // }
 
   FlashHypo_t FlashMatchCandidate::getHypothesis( bool withextensions, bool suppresscosmicdisc, float cosmicdiscthresh ) {
     
@@ -522,38 +517,38 @@ namespace larflow {
     out.tot_intpc = 0.;
     out.tot_outtpc = 0.;
 
-    float intpc_tot  = 0.;
-    float outtpc_tot = 0.;
-    out.resize(32,0);
-    for (int ich=0; ich<32; ich++) {
-      out[ich]  += _corehypo[ich]*_corehypo.tot;
-      intpc_tot += _corehypo[ich]*_corehypo.tot;
-      if ( withextensions) {
-	out[ich]   += _entering_hypo[ich]*_entering_hypo.tot;
-	out[ich]   += _exiting_hypo[ich]*_exiting_hypo.tot;
-	outtpc_tot += _entering_hypo[ich]*_entering_hypo.tot;
-	outtpc_tot += _exiting_hypo[ich]*_exiting_hypo.tot;
-      }
-      out[ich]  += _gapfill_hypo[ich]*_gapfill_hypo.tot;
-      intpc_tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
-    }
+    // float intpc_tot  = 0.;
+    // float outtpc_tot = 0.;
+    // out.resize(32,0);
+    // for (int ich=0; ich<32; ich++) {
+    //   out[ich]  += _corehypo[ich]*_corehypo.tot;
+    //   intpc_tot += _corehypo[ich]*_corehypo.tot;
+    //   if ( withextensions) {
+    // 	out[ich]   += _entering_hypo[ich]*_entering_hypo.tot;
+    // 	out[ich]   += _exiting_hypo[ich]*_exiting_hypo.tot;
+    // 	outtpc_tot += _entering_hypo[ich]*_entering_hypo.tot;
+    // 	outtpc_tot += _exiting_hypo[ich]*_exiting_hypo.tot;
+    //   }
+    //   out[ich]  += _gapfill_hypo[ich]*_gapfill_hypo.tot;
+    //   intpc_tot += _gapfill_hypo[ich]*_gapfill_hypo.tot;
+    // }
 
-    float disccosmic_removed = 0.;
-    for (int ich=0; ich<32; ich++) {
-      if ( suppresscosmicdisc && out[ich] < cosmicdiscthresh ) {
-	disccosmic_removed += out[ich];
-	out[ich] = 0.;
-      }
-      out.tot += out[ich];
-    }
-    out.tot_intpc -= disccosmic_removed;
+    // float disccosmic_removed = 0.;
+    // for (int ich=0; ich<32; ich++) {
+    //   if ( suppresscosmicdisc && out[ich] < cosmicdiscthresh ) {
+    // 	disccosmic_removed += out[ich];
+    // 	out[ich] = 0.;
+    //   }
+    //   out.tot += out[ich];
+    // }
+    // out.tot_intpc -= disccosmic_removed;
     
-    // finally, norm
-    if ( out.tot>0 ) {
-      for (int ich=0; ich<32; ich++) {
-	out[ich] /= out.tot;
-      }
-    }
+    // // finally, norm
+    // if ( out.tot>0 ) {
+    //   for (int ich=0; ich<32; ich++) {
+    // 	out[ich] /= out.tot;
+    //   }
+    // }
     
     return out;
   }
@@ -610,6 +605,8 @@ namespace larflow {
   bool FlashMatchCandidate::isTruthMatch() {
     if ( _flash_mctrackid>=0 && _cluster_mctrackid>=0  && _flash_mctrackid==_cluster_mctrackid )
       return true;
+    if ( _flashdata->truthmatched_clusteridx==_cluster->idx )
+      return true;
     return false;
   }
   
@@ -625,7 +622,7 @@ namespace larflow {
     // ===================================================
 
     std::cout << "[FlashMatchCandidate::dumpMatchImage][DEBUG] start" << std::endl;
-    
+    /*    
     gStyle->SetOptStat(0);
     
     const larutil::Geometry* geo = larutil::Geometry::GetME();
@@ -796,7 +793,7 @@ namespace larflow {
     
     // hypothesis flash
     // ----------------
-      
+
     // draw pmt data markers
     std::vector<TEllipse*> datamarkers_v(32,0);
     std::vector<TEllipse*> hypomarkers_v(32,0);
@@ -819,54 +816,6 @@ namespace larflow {
       hypomarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
       hypomarkers_v[ich]->SetFillColor(kGreen+2);
     }
-    // if ( truthmatch_hypo ) {
-    //   float truthpe = (truthmatch_hypo->at(ich)*truthmatch_hypo->tot);
-    //   if ( truthpe>10 )
-    // 	    truthpe = 10 + (truthpe-10)*0.10;
-    //   float radius = ( truthpe>50 ) ? 50 : truthpe;
-    //   truthmarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
-    //   truthmarkers_v[ich]->SetFillStyle(0);
-    //   truthmarkers_v[ich]->SetLineColor(kMagenta);
-    //   truthmarkers_v[ich]->SetLineWidth(3);
-    // }	
-
-    // projections for truthmatch cluster
-    // TGraph* truthclust_zy[ kNumQTypes ]= {nullptr};
-    // TGraph* truthclust_xy[ kNumQTypes ]= {nullptr};
-    // int ntruthpts[ kNumQTypes ] = {0};
-    // if ( qtruth && qtruth->size()>0 ) {
-    //   //std::cout << "qtruth[" << flashdata_v[iflash].truthmatched_clusteridx << "] npoints: " << qtruth->size() << std::endl;
-    //   for (int iqt=0; iqt<kNumQTypes; iqt++) {
-    // 	truthclust_zy[iqt] = new TGraph(qtruth->size());
-    // 	truthclust_xy[iqt] = new TGraph(qtruth->size());
-    //   }
-    //   float xoffset = (flashdata_v[iflash].tpc_tick-3200)*0.5*driftv;
-    //   for (int ipt=0; ipt<(int)qtruth->size(); ipt++) {
-    // 	const QPoint_t& truthq = (*qtruth)[ipt];
-    // 	truthclust_zy[ truthq.type ]->SetPoint(ntruthpts[truthq.type],truthq.xyz[2], truthq.xyz[1] );
-    // 	truthclust_xy[ truthq.type ]->SetPoint(ntruthpts[truthq.type],truthq.xyz[0]-xoffset, truthq.xyz[1] );
-    // 	ntruthpts[truthq.type]++;
-    //   }
-    // 	//std::cout << "qtruth[0] = " << qtruth->at(ipt).xyz[0]-xoffset << " (w/ offset=" << xoffset << ")" << std::endl;
-    //   for ( int iqt=0; iqt<kNumQTypes; iqt++ ) {
-    // 	truthclust_zy[iqt]->Set( ntruthpts[iqt] );
-    // 	truthclust_xy[iqt]->Set( ntruthpts[iqt] );
-	
-    // 	truthclust_zy[iqt]->Set( ntruthpts[iqt] );
-    // 	truthclust_xy[iqt]->Set( ntruthpts[iqt] );
-	
-    // 	truthclust_zy[iqt]->SetMarkerSize(0.3);
-    // 	truthclust_zy[iqt]->SetMarkerStyle( 20 );
-	
-    // 	truthclust_xy[iqt]->SetMarkerSize(0.3);
-    // 	truthclust_xy[iqt]->SetMarkerStyle( 20 );
-    //   }
-    //   truthclust_zy[kGapFill]->SetMarkerColor(kRed);	
-    //   truthclust_xy[kGapFill]->SetMarkerColor(kRed);
-    //   truthclust_zy[kExt]->SetMarkerColor(kGreen+3);	
-    //   truthclust_xy[kExt]->SetMarkerColor(kGreen+3);
-    //   truthclust_zy[kNonCore]->SetMarkerColor(kYellow+2);
-    //   truthclust_xy[kNonCore]->SetMarkerColor(kYellow+2);
 
     // mc-track that is truth matched to flash
     TGraph* mctrack_trueflash_zy = nullptr;
@@ -1140,7 +1089,9 @@ namespace larflow {
     
     // delete tbestfmatch;
     // tbestfmatch = nullptr;
-    
+
+
+    */    
   }//end of dumpimage
 
 }
