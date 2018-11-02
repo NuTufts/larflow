@@ -27,7 +27,8 @@ from ROOT import larutil
 
 # create app and 3D viewer widget that shows MicroBooNE Mesh scene
 app = QtGui.QApplication([])
-w = DetectorDisplay(background=(100,100,100,0.1) )
+#w = DetectorDisplay(background=(100,100,100,0.1) )
+w = DetectorDisplay()
 w.show() # bring main 3D screen
 w.solidswidget.show() # checkbox for parts of detector
 w.setWindowTitle('LArFlow Visualization')
@@ -241,8 +242,17 @@ if args.mode in ["core","core-only"]:
 # make the plot
 for n,hitplot in enumerate(clusterplotitems):
     w.addVisItem( "cluster%d"%(n), hitplot )
-        
-    
+    w.plotData()
+    print "[enter] to go to next cluster"
+    raw_input()
+    w.clearVisItems()
+    hitplot.__pylard_transformed = True # hack
+
+w.clearVisItems()    
+for n,hitplot in enumerate(clusterplotitems):
+    print " has pylard_transformed: ",hasattr(hitplot,"__pylard_transformed" )
+    w.addVisItem( "cluster%d"%(n), hitplot )
+
 w.plotData()
 
 

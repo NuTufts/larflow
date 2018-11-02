@@ -33,78 +33,100 @@ namespace larflow {
     int iidx = -1;
     std::vector<int> clusterlabel_v(npoints,-1); // -2=noise, -1=unvisited
     std::vector<Cluster_t> dbscan_clust_v;
-    Cluster_t noise;
-    noise.clear();
 
-    int ipos = 0;
-    std::vector<int> queue_v;
-    queue_v.reserve(npoints);
-    queue_v.push_back(0);
+    enum { kNoise=-2, kUnlabeled=-1 };
+    
+    // visit every point at least once
+    for ( int ipt=0; ipt<npoints; ipt++ ) {
 
-    while ( ipos<queue_v.size() || queue_v.size()<clusterlabel_v.size() ) {
-      int ipt = queue_v[ipos];      
-      ipos++;
+      if ( clusterlabel_v[ipt]!=kUnlabeled ) {
+	// previously labeled
+	continue;
+      }
+
+      // get point
       const Eigen::Vector3f& pt = _points[ipt];
-
-      int pastlabel = clusterlabel_v[ipt];
-      //std::cout << "pt[" << ipt << "] label=" << pastlabel << " queuesize=" << queue_v.size() << " queuepos=" << ipos << std::endl;      
       
       // get neighbors to point
       cilantro::NeighborSet<float> nn;
-      tree.kNNInRadiusSearch( pt, maxkdneighbors, maxdist, nn);
-      
-      //std::cout << "[larflow::DBSCAN::makeClusters][DEBUG] ipt=" << " nneighbors=" << nn.size() << " pastlabel=" << pastlabel << std::endl;
-      
+      tree.radiusSearch( pt, maxdist, nn);
+
+      // is it dense enough?
       if ( nn.size()<minhits ) {
 	// label point as noise (-2)
-	clusterlabel_v[ipt] = -2;
+	clusterlabel_v[ipt] = kNoise;
+	continue;
+      }      
+
+      // dense enough, get a new cluster label and define new cluster
+      int clustlabel = dbscan_clust_v.size();
+      Cluster_t cluster;
+      cluster.clear();
+      cluster.reserve(100);
+      // add current point
+      cluster.push_back( ipt ); 
+      
+      // establish a queue for the set of neighbors to visit
+      std::vector<int> queue_v;
+      queue_v.reserve(npoints);
+
+      // load with initial neighbors
+      for ( auto& neighbor : nn )
+	queue_v.push_back(neighbor.index);
+
+      // traverse queue
+      int iqueue = 0;      
+      while ( iqueue<queue_v.size() ) {
+	int index = queue_v[iqueue];      
+	iqueue++;
+
+	int pastlabel = clusterlabel_v[index];
+	//std::cout << "pt[" << ipt << "] label=" << pastlabel << " queuesize=" << queue_v.size() << " queuepos=" << ipos << std::endl;      
+	//std::cout << "[larflow::DBSCAN::makeClusters][DEBUG] ipt=" << " nneighbors=" << nn.size() << " pastlabel=" << pastlabel << std::endl;
+
+	if ( pastlabel==kNoise ) {
+	  // override noise label with this one
+	  clusterlabel_v[index] = clustlabel;
+	  cluster.push_back(index);
+	}
+	else if (pastlabel>=0 ) {
+	  // already labeled
+	}
+	else {
+	  // unlabeled (-1)
+	  
+	  // assign label
+	  clusterlabel_v[index] = clustlabel;
+	  cluster.push_back(index);	  
+
+	  // find this one's neighbors
+	  const Eigen::Vector3f& pt2 = _points[index];	  
+	  cilantro::NeighborSet<float> nn2;
+	  tree.radiusSearch( pt2, maxdist, nn2);
+	  
+	  if ( nn2.size()>=minhits ) {
+	    // point is dense enough, add neighbors to queue if unlabeled
+	    for ( auto& neighbor : nn2 ) {
+	      if ( clusterlabel_v[ neighbor.index ]==kUnlabeled )
+		queue_v.push_back( neighbor.index );
+	    }
+	  }
+	}
+      }//while queue is not finished
+
+      // store cluster
+      dbscan_clust_v.emplace_back( std::move(cluster) );
+      
+    }//end of outer point loop
+
+    // collect noise points
+    Cluster_t noise;
+    noise.clear();
+    for ( int ipt=0; ipt<npoints; ipt++ ) {
+      if ( clusterlabel_v[ipt]==kNoise )
 	noise.push_back( ipt );
-      }
-      else {
-	if ( pastlabel==-1 ) {
-	  // start a cluster index
-	  iidx++;
-	  clusterlabel_v[ipt] = iidx;
-	  pastlabel = iidx;
-	  // create a new cluster (empty)
-	  Cluster_t newclust;
-	  newclust.clear();
-	  dbscan_clust_v.emplace_back( std::move(newclust) );
-	}
-	// node, which has min neighbors to the cluster it is now labeled as
-	// note, we only get added to cluster if we past the min neighbors requirement
-	dbscan_clust_v[pastlabel].push_back(ipt);
-	
-	// set labels of neighbors
-	for ( int inn=0; inn<(int)nn.size(); inn++) {
-	  int nn_label = clusterlabel_v[ nn[inn].index ];
-	  if ( nn_label==-1 ) {
-	    clusterlabel_v[ nn[inn].index ] = pastlabel; // set to this cluster's index
-	    // push into queue
-	    queue_v.push_back( nn[inn].index );
-	  }
-	  else if ( nn_label>=0 && nn_label!=pastlabel ) {
-	    //std::cout << "[larflow::DBSCAN][ERROR] neighbor points got different labels: current=" << pastlabel << " neighbor=" << nn_label << "!" << std::endl;
-	    throw std::runtime_error("[larflow::DBSCAN][ERROR] neighbor points got different labels!");
-	  }
-
-	}
-      }
-
-      if ( ipos==queue_v.size() && queue_v.size()<clusterlabel_v.size() ) {
-	// find next seed
-	for ( int i=0; i<clusterlabel_v.size(); i++) {
-	  if ( clusterlabel_v[i]==-1 ) {
-	    queue_v.push_back( i );
-	    break;
-	  }
-	}
-      }//end of reseed queue
-    }//end of pt loop
-
-    // std::cout << "[larflow::DBSCAN::makeCluster][DEBUG2] enter to continue." << std::endl;
-    // std::cin.get();
-
+    }
+    
     // append noise to cluster vector
     dbscan_clust_v.emplace_back( std::move(noise) );
 

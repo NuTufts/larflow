@@ -1,12 +1,17 @@
 #include "TruthCluster.h"
 
 #include <map>
+#include <set>
 
 namespace larflow {
 
-  std::vector< std::vector<const larlite::larflow3dhit*> > TruthCluster::clusterHits( const std::vector<larlite::larflow3dhit>& hits, bool return_unassigned ) {
+  std::vector< std::vector<const larlite::larflow3dhit*> > TruthCluster::clusterHits( const std::vector<larlite::larflow3dhit>& hits,
+										      const std::vector<larlite::mctrack>&  mctrack_v,
+										      const std::vector<larlite::mcshower>& mcshower_v,
+										      bool use_ancestor_id,
+										      bool return_unassigned ) {
 
-    std::vector<Cluster_t> cluster_info = createClustersByTrackID( hits );
+    std::vector<Cluster_t> cluster_info = createClustersByTrackID( hits, mctrack_v, mcshower_v, use_ancestor_id );
 
     Cluster_t unmatched = cluster_info.back(); // last entry is the unmatched hits cluster (a copy)
     cluster_info.pop_back(); // remove last element from list
@@ -45,28 +50,65 @@ namespace larflow {
     return output;
   }
   
-  std::vector<TruthCluster::Cluster_t> TruthCluster::createClustersByTrackID( const std::vector<larlite::larflow3dhit>& hit_v ) {
+  std::vector<TruthCluster::Cluster_t> TruthCluster::createClustersByTrackID( const std::vector<larlite::larflow3dhit>& hit_v,
+									      const std::vector<larlite::mctrack>&  mctrack_v,
+									      const std::vector<larlite::mcshower>& mcshower_v,
+									      bool use_ancestor_id ) 
+  {
+
     std::vector<TruthCluster::Cluster_t> output;
     output.reserve(50);
 
     std::map<int,int> trackid2index;
+
+    std::map<int,int> id2ancestor;
+    std::set<int> neutrino;
+    if ( use_ancestor_id ) {
+      for ( auto const& mct : mctrack_v ) {
+	int tid = mct.TrackID();
+	int aid = mct.AncestorTrackID();
+	if ( mct.Origin()==2 )	
+	  id2ancestor[tid] = aid;
+	else {
+	  id2ancestor[tid] = -2; // neutrino!
+	  neutrino.insert(tid);
+	}
+      }
+      for ( auto const& mcs : mcshower_v ) {
+	int sid = mcs.TrackID();
+	int aid = mcs.AncestorTrackID();
+	if ( mcs.Origin()==2 )	
+	  id2ancestor[sid] = aid;
+	else {
+	  id2ancestor[sid] = -2; // neutrino!
+	  neutrino.insert(sid);
+	}
+      }
+    }
 
     Cluster_t notruthhits;
     notruthhits.trackid = -1;
 
     for (auto const& hit : hit_v ) {
       if ( hit.truthflag>0 ) {
-	auto it = trackid2index.find( hit.trackid );
-
+	int clusterid = hit.trackid;
+	if ( use_ancestor_id && clusterid>=0 ) {
+	  auto it_aid = id2ancestor.find( clusterid );
+	  // replace trackid with ancestorid
+	  if ( it_aid != id2ancestor.end() )
+	    clusterid = it_aid->second;
+	}
+	auto it = trackid2index.find( clusterid );
+	
 	if ( it==trackid2index.end() ) {
 	  // create new cluster
 	  Cluster_t info;
-	  info.trackid = hit.trackid;
+	  info.trackid = clusterid;
 	  info.phits.push_back( &hit ); // store address
 	  // put into vector
 	  output.emplace_back( std::move(info) );
 	  int idx = output.size()-1;
-	  trackid2index[hit.trackid] = idx;
+	  trackid2index[clusterid] = idx;
 	}
 	else {
 	  // already exists!
@@ -79,13 +121,13 @@ namespace larflow {
 	notruthhits.phits.push_back( &hit );
       }
     }
-
+    
     // calculate axis-aligned bounding boxes for clusters
     for ( auto& cluster : output ) {
       // set first location
       for (int i=0; i<3; i++)
 	cluster.aabbox[i][0] = cluster.aabbox[i][1] = cluster.phits.front()->X_truth[i];
-
+      
       for ( auto& phit : cluster.phits ) {
 	for (int i=0; i<3; i++) {
 	  if ( phit->X_truth[i] < cluster.aabbox[i][0] )

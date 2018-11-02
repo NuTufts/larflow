@@ -4,6 +4,8 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/pcaxis.h"
+#include "DataFormat/mctrack.h"
+#include "DataFormat/mcshower.h"
 
 #include "TruthCluster.h"
 
@@ -19,6 +21,11 @@ int main( int nargs, char** argv ) {
   // std::string opreco_input    = argv[3];
   // std::string mcinfo_input    = argv[4];
 
+  std::string cluster_outputfile = argv[2];
+
+  bool use_ancestor_id   = true;   
+  bool return_unassigned = true;
+  
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
   io.add_in_filename( larflow_input );
@@ -32,8 +39,9 @@ int main( int nargs, char** argv ) {
 
   // output
   larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
-  io_out.set_out_filename( "output_dev_truthcluster_truepixflow.root" );
-  //io_out.set_out_filename( "output_dev_truthcluster_recopixflow.root" );
+  //io_out.set_out_filename( "output_dev_truthcluster_truepixflow.root" );
+  //io_out.set_out_filename( "output_dev_mcc8_truthcluster_recopixflow.root" );
+  io_out.set_out_filename( cluster_outputfile );
   io_out.open();
 
   // Truth Cluster
@@ -46,9 +54,11 @@ int main( int nargs, char** argv ) {
     io.go_to( ientry );
     
     larlite::event_larflow3dhit* ev_hits = (larlite::event_larflow3dhit*)io.get_data( larlite::data::kLArFlow3DHit, "flowhits" );
+    larlite::event_mctrack*  ev_mctrack   = (larlite::event_mctrack*) io.get_data( larlite::data::kMCTrack,  "mcreco" );
+    larlite::event_mcshower* ev_mcshower  = (larlite::event_mcshower*)io.get_data( larlite::data::kMCShower, "mcreco" );    
 
     std::cout << "number of hits: " << ev_hits->size() << std::endl;
-    std::vector< std::vector<const larlite::larflow3dhit*> > clusters = clusteralgo.clusterHits( *ev_hits, true );
+    std::vector< std::vector<const larlite::larflow3dhit*> > clusters = clusteralgo.clusterHits( *ev_hits, *ev_mctrack, *ev_mcshower, use_ancestor_id, return_unassigned );
 
     std::cout << "truthcluster returned with " << clusters.size() << " clusters" << std::endl;
     larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"flowtruthclusters");
