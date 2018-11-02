@@ -1528,7 +1528,7 @@ namespace larflow {
     
 
     // shapes/hists used for each plot
-    TH2D bg("hyz","",105,-20,1050, 120, -130, 130);
+    TH2D bg("hyz","",100,-50,1080, 120, -130, 130);
     TH2D bgxy("hxy","",25,-300,550, 120, -130, 130);
     TBox boxzy( 0, -116.5, 1036, 116.5 );
     boxzy.SetFillStyle(0);
@@ -1622,15 +1622,59 @@ namespace larflow {
 	float radius = ( pe>50 ) ? 50 : pe;
 	datamarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
 	datamarkers_v[ich]->SetFillColor(29);
-	std::cout << "dataflash[" << ich << "] " << pe << std::endl;
       }
 
+      // truth-matched track for flash
+      TGraph* mctrack_data_zy = nullptr;
+      TGraph* mctrack_data_xy = nullptr;
+      bool mctrack_match = false;
+      if ( flash.mctrackid>=0 )
+	mctrack_match = true;      
+      if ( mctrack_match ) {
+	const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[flash.mctrackid] ];
+	mctrack_data_zy  = new TGraph( mct.size() );
+	mctrack_data_xy = new TGraph( mct.size() );	
+	for (int istep=0; istep<(int)mct.size(); istep++) {
+	  mctrack_data_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
+	  mctrack_data_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
+	}
+	mctrack_data_zy->SetLineColor(kBlue);
+	mctrack_data_zy->SetLineWidth(1);
+	mctrack_data_xy->SetLineColor(kBlue);
+	mctrack_data_xy->SetLineWidth(1);
+      }
+
+      std::vector< TGraph* > mctrack_clustertruth_xy_v;
+      std::vector< TGraph* > mctrack_clustertruth_zy_v;      
       for (size_t iclust=0; iclust<_qcluster_v.size(); iclust++) {
-	
+
 	int compat = getCompat( iflash, iclust );
 	if ( compat!=0 )
 	  continue;
 
+	const QCluster_t& qclust = _qcluster_v[iclust];
+
+	// truth matched to track cluster
+	TGraph* mctrack_hypo_zy = nullptr;
+	TGraph* mctrack_hypo_xy = nullptr;
+	bool has_clust_truthmatch = false;
+	if ( qclust.mctrackid>=0 ) {
+	  has_clust_truthmatch = true;
+	  const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[qclust.mctrackid] ];
+	  mctrack_hypo_zy = new TGraph( mct.size() );
+	  mctrack_hypo_xy = new TGraph( mct.size() );	
+	  for (int istep=0; istep<(int)mct.size(); istep++) {
+	    mctrack_hypo_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
+	    mctrack_hypo_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
+	  }
+	  mctrack_hypo_zy->SetLineColor(kMagenta);
+	  mctrack_hypo_zy->SetLineWidth(1);
+	  mctrack_hypo_xy->SetLineColor(kMagenta);
+	  mctrack_hypo_xy->SetLineWidth(1);
+	  mctrack_clustertruth_xy_v.push_back( mctrack_hypo_xy );
+	  mctrack_clustertruth_zy_v.push_back( mctrack_hypo_zy );	  
+	}
+	
 	//std::cout << "[larflow::LArFlowFlashMatch::dumpQClusterImages][INFO] Cluster " << iclust << std::endl;
 	const QClusterComposite& qcomposite  = _qcomposite_v[iclust];
 	std::vector<TGraph> gtrack_v = qcomposite.getTGraphs( xoffset );
@@ -1649,11 +1693,11 @@ namespace larflow {
 	  }
 	}
 	nclusters_drawn++;
-      }
+      }//end of cluster loop
 
-      // -----------------------------------
-      // YZ-2D PLOT: FLASH-DATA/TRUTH TRACK
-      // -----------------------------------
+      // ----------------------------------------------
+      // TOP YZ-2D PLOT: FLASH-DATA/FLASH TRUTH TRACK
+      // ----------------------------------------------
       datayz.cd();
       bg.Draw();
       boxzy.Draw();
@@ -1672,10 +1716,13 @@ namespace larflow {
       
       for (int ich=0; ich<32; ich++)
 	chmarkers_v[ich]->Draw();
+
+      if ( mctrack_match )
+	mctrack_data_zy->Draw("L");
       
-      // -----------------------------------
-      // XY-2D PLOT: FLASH-DATA/TRUTH TRACK
-      // -----------------------------------
+      // ---------------------------------------------
+      // TOP XY-2D PLOT: FLASH-DATA/FLASH TRUTH TRACK
+      // ---------------------------------------------
       dataxy.cd();
       bgxy.Draw();
       boxxy.Draw();
@@ -1683,11 +1730,48 @@ namespace larflow {
       for (size_t ig=0; ig<graphs_xy_v.size(); ig++ ) {
 	graphs_xy_v[ig].Draw("P");
       }
-     
+
+      if ( mctrack_match )
+	mctrack_data_xy->Draw("L");
+      
+      // --------------------------------------------------
+      // BOTTOM YZ-2D PLOT: FLASH-HYPO/CLUSTER TRUTH TRACK
+      // --------------------------------------------------
+      hypoyz.cd();
+      bg.Draw();
+      boxzy.Draw();
+      for ( auto& pbadchbox : zy_deadregions ) {
+	pbadchbox->Draw();
+      }
+      
+      for (int ich=0; ich<32; ich++) {
+	pmtmarkers_v[ich]->Draw();	  
+	// hypo
+      }
+
+      for ( auto& ptrack : mctrack_clustertruth_zy_v )
+	ptrack->Draw("L");
+      
+      for (int ich=0; ich<32; ich++)
+	chmarkers_v[ich]->Draw();
+      
+      // -----------------------------------------------------
+      // BOTTOM XY-2D PLOT: FLASH-HYPO/TRUTH TRACK FOR CLUSTER
+      // -----------------------------------------------------
+      hypoxy.cd();
+      bgxy.Draw();
+      boxxy.Draw();
+            
+      for ( auto& ptrack : mctrack_clustertruth_xy_v )
+	ptrack->Draw("L");
+
 
       c2d.Update();
       c2d.Draw();
-      c2d.SaveAs("qcomposite.png");
+
+      char cname[100];
+      sprintf(cname,"qcomposite_flash%02d.png",iflash);
+      c2d.SaveAs(cname);
 
       std::cout << "number of clusters draw: " << nclusters_drawn << std::endl;
       std::cout << "graph_zy: " << graphs_zy_v.size() << std::endl;
@@ -1697,9 +1781,18 @@ namespace larflow {
 
       for (int ich=0; ich<32; ich++) {
 	delete datamarkers_v[ich];
-	delete chmarkers_v[ich];
       }
 
+      if ( mctrack_match ) {
+	delete mctrack_data_zy;
+	delete mctrack_data_xy;
+      }
+
+      for ( auto& ptrack : mctrack_clustertruth_zy_v )
+	delete ptrack;
+      for ( auto& ptrack : mctrack_clustertruth_xy_v )
+	delete ptrack;
+      
       
     }//end of flash loop
 
