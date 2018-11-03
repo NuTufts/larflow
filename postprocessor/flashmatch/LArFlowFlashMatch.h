@@ -159,10 +159,6 @@ namespace larflow {
     
     // Match refinement
     // ----------------------------
-    std::vector<int> _flashdata_best_hypo_chi2_idx;
-    std::vector<float> _flashdata_best_hypo_chi2;    
-    std::vector<int> _flashdata_best_hypo_maxdist_idx;
-    std::vector<float> _flashdata_best_hypo_maxdist;    
     std::vector<int> _clustdata_best_hypo_chi2_idx;
     std::vector<int> _clustdata_best_hypo_maxdist_idx;
     float _fMaxDistCut;
@@ -171,6 +167,20 @@ namespace larflow {
     float _fweighted_scalefactor_var;
     float _fweighted_scalefactor_sig;
     float _ly_neg_prob;
+    struct Comparison_t {
+      Comparison_t()
+      : chi2(0),
+	maxdist(0),
+	bestidx_chi2(-1),
+	bestidx_maxdist(1)
+      {};
+      float chi2;
+      float maxdist;
+      int bestidx_chi2;
+      int bestidx_maxdist;
+    };
+    std::vector< Comparison_t > _flashdata_bestmatch;
+    std::vector< Comparison_t > _clustdata_bestmatch;
     void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 					 const std::vector<QCluster_t>&  qcluster_v,
 					 bool adjust_pe_for_cosmic_disc );

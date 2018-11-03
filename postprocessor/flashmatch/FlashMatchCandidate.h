@@ -44,7 +44,7 @@ namespace larflow {
     FlashHypo_t _exiting_hypo;
 
     static FlashHypo_t buildFlashHypothesis( const FlashData_t& flashdata, const QCluster_t&  qcluster, const float xoffset );
-    static float getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo );
+    static float getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo, bool isnormed=true );
     static float getPERatio( const FlashData_t& flashdata, const FlashHypo_t& flashhypo );
     void dumpMatchImage();
     void setChStatusData( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; _hasevstatus=true; };

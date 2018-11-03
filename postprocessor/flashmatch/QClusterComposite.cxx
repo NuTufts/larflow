@@ -6,6 +6,7 @@
 #include "LArUtil/TimeService.h"
 #include "SelectionTool/OpT0Finder/PhotonLibrary/PhotonVisibilityService.h"
 
+#include "FlashMatchCandidate.h"
 
 namespace larflow {
 
@@ -172,7 +173,7 @@ namespace larflow {
     return;
   }
 
-  void QClusterComposite::generateFlashCompositeHypo( const FlashData_t& flash ) {
+  FlashCompositeHypo_t QClusterComposite::generateFlashCompositeHypo( const FlashData_t& flash, const bool apply_ext ) const {
     
     // we use the hypothesis to define the offset
     float xoffset = (flash.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
@@ -190,70 +191,184 @@ namespace larflow {
 
     const QCluster_t* qclusters[4] = { &_core._core, &_core._gapfill_qcluster, &_entering_qcluster, &_exiting_qcluster };
     
-    FlashHypo_t hypo;
-    hypo.resize(npmts,0.0);
-    hypo.clusteridx = _cluster->idx; 
-    hypo.flashidx   = flash.idx;
-    hypo.tot_intpc = 0.;
-    hypo.tot_outtpc = 0.;
-    float norm = 0.0;
-    for ( int i=0; i<4; i++) {
-      // add different contributions
-      const QCluster_t& qcluster = *(qclusters[i]);
+    FlashCompositeHypo_t hypo_composite;
+
+    // hypo for core+gaps and enter inside the det
+    int enter_stophit_idx = 0;
+    for ( int icomp=0; icomp<3; icomp++) {
+
+      if ( !apply_ext && icomp==2 )
+	break;
+
+      const QCluster_t& qcluster = *(qclusters[icomp]);
+      FlashHypo_t* h = nullptr;
+      switch( icomp ) {
+      case 0:
+	h = &(hypo_composite.core);
+	break;
+      case 1:
+	h = &(hypo_composite.gap);
+	break;
+      case 2:
+	h = &(hypo_composite.enter);
+	break;
+      };
+      
       for ( size_t ihit=0; ihit<qcluster.size(); ihit++ ) {
-	const QPoint_t& qhit = qcluster[ihit];
-	double xyz[3];
-	xyz[0] = qhit.xyz[0] - xoffset;
-	xyz[1] = qhit.xyz[1];
-	xyz[2] = qhit.xyz[2];
+      	const QPoint_t& qhit = qcluster[ihit];
+      	double xyz[3];
+      	xyz[0] = qhit.xyz[0] - xoffset;
+      	xyz[1] = qhit.xyz[1];
+      	xyz[2] = qhit.xyz[2];
       
-	if ( xyz[0]>250.0 )
-	  continue; // i dont trust the hypotheses here
-	  
-	const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
-      
-	if ( vis && vis->size()==npmts) {
-	  for (int ich=0; ich<npmts; ich++) {
-	    float q  = qhit.pixeladc;
-	    float pe = 0.;
-	    if ( qhit.type==kCore || qhit.type==kNonCore) {
-	      // q is a pixel values
-	      pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
-	      hypo.tot_intpc += pe;
-	    }
-	    else if ( qhit.type==kExt ) {
-	      // outside tpc, what is stored is the track length
-	      pe = q*outoftpc_len2adc;
-	      pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
-	      hypo.tot_outtpc += pe;
-	    }
-	    else if ( qhit.type==kGapFill ) {
-	      pe = q*gapfill_len2adc;
-	      pe *= (*vis)[ geo->OpDetFromOpChannel( ich ) ];
-	      hypo.tot_intpc += pe;
-	    }
-	    else {
-	      throw std::runtime_error("[QClusterComposite::buildFlashCompositeHypo][ERROR] unrecognized qpoint type");
-	    }
-	    
-	    hypo[ich] += pe;
-	    norm += pe;
+       	if ( xyz[0]>250.0 )
+       	  continue; // i dont trust the hypotheses here
+
+	if ( icomp==2 ) {
+	  // ignore out of TPC for entering extension
+	  enter_stophit_idx = icomp;
+	  if ( xyz[0]<0 || xyz[0]>250.0 || 
+	       xyz[1]<-117.0 || xyz[1]>117.0 ||
+	       xyz[2]<0 || xyz[2]>1036.0 ) {
+	    break;
 	  }
 	}
-	else if ( vis->size()>0 && vis->size()!=npmts ) {
-	  throw std::runtime_error("[QClusterComposite::buildFlashCompositeHypo][ERROR] unexpected visibility size");
+	  
+       	const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
+      
+      	if ( vis && vis->size()==npmts) {
+       	  for (int ich=0; ich<npmts; ich++) {
+	    float q  = qhit.pixeladc;
+	    float pe = 0.;
+	    switch(icomp) {
+	    case 0:
+	      //core
+	      pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
+	      break;
+	    case 1:
+	    case 2:
+	      // gaps
+	      pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	      break;
+	    }
+	    h->tot_intpc += pe;
+	    h->tot       += pe;
+	    (*h)[ich] += pe;
+	  }
+	}
+       	else if ( vis->size()>0 && vis->size()!=npmts ) {
+       	  throw std::runtime_error("[QClusterComposite::buildFlashCompositeHypo][ERROR] unexpected visibility size");
 	}
 
       }//end of hit loop
+
+    }/// end of (core,gap) loop
+
+    if (!apply_ext)
+      return hypo_composite;
+
+    // entering portion outside of the tpc
+    // we use the entire contribution until we get to the detector, then we continue to add if we improve the maxdist
+    FlashHypo_t pre_enter_outside = hypo_composite.makeHypo();
+    // compare
+    float current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside );
+    const QCluster_t& qenter = *(qclusters[2]);    
+    for ( int ihit=enter_stophit_idx; ihit<(int)qenter.size(); ihit++ ) {
+      const QPoint_t& qhit = qenter[ihit];
+      double xyz[3];
+      xyz[0] = qhit.xyz[0] - xoffset;
+      xyz[1] = qhit.xyz[1];
+      xyz[2] = qhit.xyz[2];
+
+      if ( xyz[0]>250 )
+	break;
       
-    }//end of component loops
-	
-    // normalize
-    hypo.tot = norm;
-    if ( norm>0 ) {
-      for (size_t ich=0; ich<hypo.size(); ich++)
-	hypo[ich] /= norm;
+      const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );      
+      
+      std::vector<float> dpe_v(32,0);
+      float dpe_tot = 0.;
+      for (size_t ich=0; ich<32; ich++) {
+	float q  = qhit.pixeladc;
+	float pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	pre_enter_outside[ich] += pe;
+	pre_enter_outside.tot += pe;
+	pre_enter_outside.tot_outtpc += pe;
+	dpe_v[ich] = pe;
+	dpe_tot += pe;
+      }
+
+      float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside, false );
+      if ( maxdist > current_maxdist ) {
+	// stop
+	break;
+      }
+
+      // else, update the composite
+      for ( size_t ich=0; ich<32; ich++ ) {
+	hypo_composite.enter[ich] += dpe_v[ich];
+      }
+      hypo_composite.tot += dpe_tot;
+      hypo_composite.tot_outtpc += dpe_tot;
     }
+
+    // now the exiting extension
+    // only extend if we improve the comparison
+    FlashHypo_t pre_exit_outside = hypo_composite.makeHypo();
+    current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside );
+    const QCluster_t& qexit = *(qclusters[3]);
+    for ( int ihit=0; ihit<(int)qexit.size(); ihit++ ) {
+      const QPoint_t& qhit = qexit[ihit];
+      double xyz[3];
+      xyz[0] = qhit.xyz[0] - xoffset;
+      xyz[1] = qhit.xyz[1];
+      xyz[2] = qhit.xyz[2];
+
+      if ( xyz[0]>250 )
+	break;
+
+      bool intpc = true;
+      if ( xyz[0]<0 || xyz[0]>250.0 || 
+	       xyz[1]<-117.0 || xyz[1]>117.0 ||
+	   xyz[2]<0 || xyz[2]>1036.0 ) {
+	intpc = false;
+      }
+      
+      const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );      
+      std::vector<float> dpe_v(32,0);
+      float dpe_tot = 0.;
+      
+      for (size_t ich=0; ich<32; ich++) {
+	float q  = qhit.pixeladc;
+	float pe = 0;
+	if ( intpc )
+	  pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	else
+	  pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	pre_exit_outside[ich] += pe;
+	pre_exit_outside.tot += pe;
+	pre_exit_outside.tot_outtpc += pe;
+	dpe_v[ich] = pe;
+	dpe_tot += pe;
+      }
+
+      float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside, false );
+      if ( maxdist > current_maxdist ) {
+	// stop
+	break;
+      }
+
+      // else, update the composite
+      for ( size_t ich=0; ich<32; ich++ ) {
+	hypo_composite.enter[ich] += dpe_v[ich];
+      }
+      hypo_composite.tot += dpe_tot;
+      if ( intpc )
+	hypo_composite.tot_intpc += dpe_tot;
+      else
+	hypo_composite.tot_outtpc += dpe_tot;
+    }
+
+    return hypo_composite;
     
   }
 
@@ -438,5 +553,6 @@ namespace larflow {
   //   _exiting_hypo = buildFlashHypothesis( *_flashdata, _exiting_qcluster, 0.0 );
     
   // }
+
   
 }

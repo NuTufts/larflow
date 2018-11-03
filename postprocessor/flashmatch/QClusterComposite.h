@@ -35,7 +35,7 @@ namespace larflow {
     
     // generate a hypothesis.
     // the data flash tells us which part of the extension to use
-    void generateFlashCompositeHypo( const FlashData_t& flash );
+    FlashCompositeHypo_t generateFlashCompositeHypo( const FlashData_t& flash, bool apply_ext ) const;
     std::vector< TGraph > getTGraphs( float xoffset ) const;
   protected:
 

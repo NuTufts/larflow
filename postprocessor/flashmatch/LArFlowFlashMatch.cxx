@@ -180,16 +180,15 @@ namespace larflow {
     buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Initial Compatible matches formed" << std::endl;
 
-    dumpQCompositeImages();
-    assert(false);
-
-
     // refined compabtibility: incompatible-z
     bool adjust_pe_for_cosmic_disc = true;
     reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v, adjust_pe_for_cosmic_disc );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using shape analysis" << std::endl;
     printCompatInfo( _flashdata_v, _qcluster_v );
-    //std::cin.get();
+
+    dumpQCompositeImages();
+    assert(false);
+    
 
     // now build hypotheses: we only do so for compatible pairs
     buildFlashHypotheses( _flashdata_v, _qcluster_v );
@@ -1036,15 +1035,14 @@ namespace larflow {
   void LArFlowFlashMatch::reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 							  const std::vector<QCluster_t>&  qcluster_v,
 							  bool adjust_pe_for_cosmic_disc ) {
+    // FIRST STAGE REDUCTION
     // from this function we reduced number of possible flash-cluster matches
     // this is done by
     // (1) comparing shape (CDF maxdist) and chi2
     // (2) for chi2, if adjust_pe_for_cosmic_disc, we try to account for pe lost due to cosmic disc threshold
     
-    _flashdata_best_hypo_maxdist_idx.resize(flashdata_v.size(),-1);
-    _flashdata_best_hypo_maxdist.resize(flashdata_v.size(),-1);
-    _flashdata_best_hypo_chi2_idx.resize(flashdata_v.size(),-1);
-    _flashdata_best_hypo_chi2.resize(flashdata_v.size(),-1);
+    _flashdata_bestmatch.clear();
+    _flashdata_bestmatch.resize( flashdata_v.size() );
     
     _clustdata_best_hypo_maxdist_idx.resize(qcluster_v.size(),-1);
     _clustdata_best_hypo_chi2_idx.resize(qcluster_v.size(),-1);    
@@ -1056,6 +1054,8 @@ namespace larflow {
     for (int iflash=0; iflash<flashdata_v.size(); iflash++) {
       
       const FlashData_t& flashdata = flashdata_v[iflash];
+      float xoffset = (flashdata.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+      
       std::vector< int > clustmatches;
       std::vector< float > maxdist;
       float bestdist = 2.0;
@@ -1065,13 +1065,12 @@ namespace larflow {
       
       for (int iclust=0; iclust<qcluster_v.size(); iclust++) {
 
-
 	if ( _save_ana_tree ) {
 	  // clear ana tree variables
 	  clearAnaVariables();
 	}
 
-	// set truth for flashes
+	// set ana tree variables
 	if ( flashdata.mctrackid>=0 ) {
 	  _truthmatch = (flashdata.truthmatched_clusteridx==iclust) ? 1 : 0;
 	}
@@ -1091,121 +1090,120 @@ namespace larflow {
 	  continue;
 	}
 
-	const QCluster_t& qcluster = *(_qcomposite_v[iclust]._cluster);
+	const QClusterComposite& qcomposite = _qcomposite_v[iclust];
 	
-	// build temporary flash for this
-	float xoffset = (flashdata.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-	FlashHypo_t hypo = FlashMatchCandidate::buildFlashHypothesis( flashdata, qcluster, xoffset );
+	// build flash hypothesis for qcluster-iflash pair
+	FlashCompositeHypo_t comphypo_wext  = qcomposite.generateFlashCompositeHypo( flashdata, true );
+	FlashCompositeHypo_t comphypo_noext = qcomposite.generateFlashCompositeHypo( flashdata, false );
 
-	// for most-generous comparison, we renorm hypo flash to data total pe
-	// but we dont total predictions where flashdata is zero due to cosmic disc window
+	FlashHypo_t hypo_wext = comphypo_wext.makeHypo();
+	FlashHypo_t hypo_noext = comphypo_noext.makeHypo();	
 
-	// get the total pot, for overlapping pmts
-	float hypo_renorm = 0.; // vis-only normalization, only including flashdata channel > 0
-	// float hypo_pe_belowcosmicdisc_thresh = 0.;
-	// for (size_t ich=0; ich<flashdata.size(); ich++) {
-	//   float chpe = hypo[ich]*hypo.tot;
-	//   if ( flashdata[ich]>0 || flashdata.isbeam ) {
-	//     hypo_renorm += chpe;
-	//   }
-	//   if ( chpe < _fCosmicDiscThreshold ) {
-	//     hypo_pe_belowcosmicdisc_thresh += chpe;
-	//   }
-	// }
-	hypo_renorm = hypo.tot;
-
-	if ( hypo_renorm == 0.0 ) {
-	  // no overlap between data and hypo -- good, can reject
-	  if ( _save_ana_tree ) {
-	    _redstep = 1;
-	    _maxdist_orig = 1.0; // this is basically the test we did
-	    _anatree->Fill();
-	  }
-	  setCompat(iflash,iclust,3); // no overlap
-	  
+	float maxdist_wext  = FlashMatchCandidate::getMaxDist( flashdata, hypo_wext, false );
+	float maxdist_noext = FlashMatchCandidate::getMaxDist( flashdata, hypo_noext, false );	
+	
+	// remove clearly bad matches
+	float maxdist = ( maxdist_wext<maxdist_noext ) ? maxdist_wext : maxdist_noext;
+	if ( maxdist > 0.5 ) {
+	  setCompat(iflash,iclust,4); // fails shape match
 	}
-	else {
-	  //FlashHypo_t& copy = hypo;
-	  // give ourselves a new working copy
-	  FlashHypo_t copy(hypo);
+	
+	
+	// float hypo_renorm = 0.;
+	// if ( hypo_renorm == 0.0 ) {
+	//   // no overlap between data and hypo -- good, can reject
+	//   if ( _save_ana_tree ) {
+	//     _redstep = 1;
+	//     _maxdist_orig = 1.0; // this is basically the test we did
+	//     _anatree->Fill();
+	//   }
+	//   setCompat(iflash,iclust,3); // no overlap
 	  
-	  //float hypo_scale = flashdata.tot/(hypo_renorm/hypo.tot); // we want
-	  float hypo_scale = flashdata.tot;
-	  //std::cout << "data.tot=" << flashdata.tot << " hypo_scale=" << hypo_scale << " copy.tot=" << copy.tot << " copy.size=" << copy.size() << std::endl;
+	// }
+	// else {
+	//   //FlashHypo_t& copy = hypo;
+	//   // give ourselves a new working copy
+	//   FlashHypo_t copy(hypo);
 	  
-	  // we enforce cosmic dic. threshold by scaling hypo to data and zero-ing below threshold
-	  copy.tot = 0.0; // copy norm
-	  for (size_t ich=0; ich<hypo.size(); ich++) {
-	    float copychpred = hypo[ich]*hypo_scale;
-	    if ( adjust_pe_for_cosmic_disc && copychpred<_fCosmicDiscThreshold )
-	      copy[ich] = 0.;
-	    else
-	      copy[ich] = copychpred;
-	    //std::cout << "copy.chpred=" << copy[ich] << " vs. chpred=" << copychpred << std::endl;	  
-	    copy.tot += copy[ich];
-	  }
-	  //std::cout << "copy.tot=" << copy.tot << std::endl;
-	  if ( copy.tot==0 ) {
-	    setCompat(iflash,iclust,3);
-	    if ( _save_ana_tree ) { 	    
-	      _redstep = 1;
-	      _maxdist_orig = 1.0; // this is basically the test we did
-	      _anatree->Fill();
-	    }
-	    continue;
-	  }
-
-	  // normalize
-	  for (size_t ich=0; ich<flashdata.size(); ich++)
-	    copy[ich] /= copy.tot;
+	//   //float hypo_scale = flashdata.tot/(hypo_renorm/hypo.tot); // we want
+	//   float hypo_scale = flashdata.tot;
+	//   //std::cout << "data.tot=" << flashdata.tot << " hypo_scale=" << hypo_scale << " copy.tot=" << copy.tot << " copy.size=" << copy.size() << std::endl;
 	  
-	  float maxdist = FlashMatchCandidate::getMaxDist( flashdata, copy );
-	  float chi2    = chi2Comparison( copy, flashdata, flashdata.tot, copy.tot );
+	//   // we enforce cosmic dic. threshold by scaling hypo to data and zero-ing below threshold
+	//   copy.tot = 0.0; // copy norm
+	//   for (size_t ich=0; ich<hypo.size(); ich++) {
+	//     float copychpred = hypo[ich]*hypo_scale;
+	//     if ( adjust_pe_for_cosmic_disc && copychpred<_fCosmicDiscThreshold )
+	//       copy[ich] = 0.;
+	//     else
+	//       copy[ich] = copychpred;
+	//     //std::cout << "copy.chpred=" << copy[ich] << " vs. chpred=" << copychpred << std::endl;	  
+	//     copy.tot += copy[ich];
+	//   }
+	//   //std::cout << "copy.tot=" << copy.tot << std::endl;
+	//   if ( copy.tot==0 ) {
+	//     setCompat(iflash,iclust,3);
+	//     if ( _save_ana_tree ) { 	    
+	//       _redstep = 1;
+	//       _maxdist_orig = 1.0; // this is basically the test we did
+	//       _anatree->Fill();
+	//     }
+	//     continue;
+	//   }
+
+	//   // normalize
+	//   for (size_t ich=0; ich<flashdata.size(); ich++)
+	//     copy[ich] /= copy.tot;
 	  
-	  hyposcale_v.push_back( copy.tot/flashdata.tot  ); // save data/mc ratio
-	  scaleweight_v.push_back( exp(-0.5*chi2 ) );
-
-	  //std::cout << "hyposcale=" << hypo_scale << "  chi2=" << chi2 << std::endl;
-
-	  if ( maxdist>_fMaxDistCut ) {
-	    setCompat(iflash,iclust,4); // fails shape match
-	    if ( _save_ana_tree ) {
-	      _redstep = 1;
-	      _maxdist_orig = maxdist; // this is basically the test we did
-	      _peratio_orig = FlashMatchCandidate::getPERatio( flashdata, copy );
-	      _anatree->Fill();
-	    }
-	    continue;
-	  }
-
-	  // update bests for flash
-	  if ( maxdist < bestdist ) {
-	    bestdist = maxdist;
-	    bestidx = iclust;
-	  }
-	  if ( chi2 < bestchi2 || bestchi2<0 ) {
-	    bestchi2 = chi2;
-	    bestchi2_idx = iclust;
-	  }
-
-	  // update bests for clust
-	  // if ( maxdist < _clustdata_best_hypo_maxdist[iclust] ) {
-	  //   _clustdata_best_hypo_maxdist_idx[iclust] = iflash;
-	  //   std::cout << "update best cluster flash: maxdist=" << maxdist << " idx=" << iflash << std::endl;
-	  // }
-	  // if ( chi2 < _clustdata_best_hypo_chi2[iclust] ) {
-	  //   _clustdata_best_hypo_chi2_idx[iclust] = iflash;
-	  // }
+	//   float maxdist = FlashMatchCandidate::getMaxDist( flashdata, copy );
+	//   float chi2    = chi2Comparison( copy, flashdata, flashdata.tot, copy.tot );
 	  
-	}//end of if valid renorm
+	//   hyposcale_v.push_back( copy.tot/flashdata.tot  ); // save data/mc ratio
+	//   scaleweight_v.push_back( exp(-0.5*chi2 ) );
 
+	//   //std::cout << "hyposcale=" << hypo_scale << "  chi2=" << chi2 << std::endl;
+
+	//   if ( maxdist>_fMaxDistCut ) {
+	//     setCompat(iflash,iclust,4); // fails shape match
+	//     if ( _save_ana_tree ) {
+	//       _redstep = 1;
+	//       _maxdist_orig = maxdist; // this is basically the test we did
+	//       _peratio_orig = FlashMatchCandidate::getPERatio( flashdata, copy );
+	//       _anatree->Fill();
+	//     }
+	//     continue;
+	//   }
+
+	//   // update bests for flash
+	//   if ( maxdist < bestdist ) {
+	//     bestdist = maxdist;
+	//     bestidx = iclust;
+	//   }
+	//   if ( chi2 < bestchi2 || bestchi2<0 ) {
+	//     bestchi2 = chi2;
+	//     bestchi2_idx = iclust;
+	//   }
+
+	//   // update bests for clust
+	//   // if ( maxdist < _clustdata_best_hypo_maxdist[iclust] ) {
+	//   //   _clustdata_best_hypo_maxdist_idx[iclust] = iflash;
+	//   //   std::cout << "update best cluster flash: maxdist=" << maxdist << " idx=" << iflash << std::endl;
+	//   // }
+	//   // if ( chi2 < _clustdata_best_hypo_chi2[iclust] ) {
+	//   //   _clustdata_best_hypo_chi2_idx[iclust] = iflash;
+	//   // }
+	  
+	// }//end of if valid renorm
+
+
+	
       }//end of cluster loop
 
       // store bests
-      _flashdata_best_hypo_maxdist_idx[iflash] = bestidx;
-      _flashdata_best_hypo_maxdist[iflash]     = bestdist;
-      _flashdata_best_hypo_chi2_idx[iflash]    = bestchi2_idx;
-      _flashdata_best_hypo_chi2[iflash]        = bestchi2;
+      // _flashdata_best_hypo_maxdist_idx[iflash] = bestidx;
+      // _flashdata_best_hypo_maxdist[iflash]     = bestdist;
+      // _flashdata_best_hypo_chi2_idx[iflash]    = bestchi2_idx;
+      // _flashdata_best_hypo_chi2[iflash]        = bestchi2;
 
     }//end of flash loop
 
@@ -1253,10 +1251,10 @@ namespace larflow {
   }
 
   void LArFlowFlashMatch::clearFirstRefinementVariables() {
-    _flashdata_best_hypo_chi2_idx.clear();
-    _flashdata_best_hypo_chi2.clear();
-    _flashdata_best_hypo_maxdist_idx.clear();
-    _flashdata_best_hypo_maxdist.clear();
+    // _flashdata_best_hypo_chi2_idx.clear();
+    // _flashdata_best_hypo_chi2.clear();
+    // _flashdata_best_hypo_maxdist_idx.clear();
+    // _flashdata_best_hypo_maxdist.clear();
     _clustdata_best_hypo_chi2_idx.clear();
     _clustdata_best_hypo_maxdist_idx.clear();
   }
@@ -1282,10 +1280,10 @@ namespace larflow {
       for ( auto& idx : compatidx ) {
 	bool bestmaxdist = false;
 	bool bestchi2 = false;
-	if ( _flashdata_best_hypo_maxdist_idx.size()==_nflashes && _flashdata_best_hypo_maxdist_idx[iflash]==idx )
-	  bestmaxdist = true;
-	if ( _flashdata_best_hypo_chi2_idx.size()==_nflashes && _flashdata_best_hypo_chi2_idx[iflash]==idx )
-	  bestchi2 = true;
+	// if ( _flashdata_best_hypo_maxdist_idx.size()==_nflashes && _flashdata_best_hypo_maxdist_idx[iflash]==idx )
+	//   bestmaxdist = true;
+	// if ( _flashdata_best_hypo_chi2_idx.size()==_nflashes && _flashdata_best_hypo_chi2_idx[iflash]==idx )
+	//   bestchi2 = true;
 
 	std::cout << " ";
 	if ( bestchi2 )
@@ -1777,7 +1775,7 @@ namespace larflow {
       std::cout << "graph_zy: " << graphs_zy_v.size() << std::endl;
       std::cout << "graph_xy: " << graphs_xy_v.size() << std::endl;            
       std::cout << "[enter to continue]" << std::endl;
-      std::cin.get();
+      //std::cin.get();
 
       for (int ich=0; ich<32; ich++) {
 	delete datamarkers_v[ich];

@@ -148,7 +148,7 @@ namespace larflow {
     return hypo;
   }
 
-  float FlashMatchCandidate::getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo ) {
+  float FlashMatchCandidate::getMaxDist( const FlashData_t& flashdata, const FlashHypo_t& flashhypo, bool isnormed ) {
 
     float hypo_cdf = 0.;
     float data_cdf = 0.;
@@ -156,8 +156,12 @@ namespace larflow {
     std::vector<float> hypo(32,0.0);
     std::vector<float> data(32,0.0);
     for (int ich=0; ich<32; ich++) {
-      float hypo_pe = flashhypo[ich]*flashhypo.tot;
-      float data_pe = flashdata[ich]*flashdata.tot;
+      float hypo_pe = flashhypo[ich];
+      float data_pe = flashdata[ich];
+      if ( isnormed ) {
+	hypo_pe  *= flashhypo.tot;
+	data_pe  *= flashdata.tot;
+      }
       hypo_cdf += hypo_pe;
       data_cdf += data_pe;
       hypo[ich] = hypo_cdf;

@@ -49,18 +49,58 @@ namespace larflow {
   };
     
   struct FlashHypo_t : public std::vector<float> {
-  FlashHypo_t() :
-    clusteridx(-1),
+    FlashHypo_t()
+      : clusteridx(-1),
       flashidx(-1),
       tot(0.0),
       tot_intpc(0.0),
       tot_outtpc(0.0)
-	{};
+	{ resize(32,0.0); };
     int clusteridx;
     int flashidx;
     float tot;
     float tot_intpc;
     float tot_outtpc;
+  };
+
+  struct FlashCompositeHypo_t {
+    FlashHypo_t core;
+    FlashHypo_t gap;
+    FlashHypo_t enter;
+    FlashHypo_t exit;
+    int clusteridx;
+    int flashidx;
+    float tot;
+    float tot_intpc;
+    float tot_outtpc;
+    
+  FlashCompositeHypo_t()
+    : clusteridx(-1),
+      flashidx(-1),
+      tot(0.),
+      tot_intpc(0.),
+      tot_outtpc(0.)
+    {};
+    
+    float PE(int ich ) const {
+      return  core[ich]+gap[ich]+enter[ich]+exit[ich];
+    };
+    float TotalPE() const {
+      float tot = 0.;
+      for (int ich=0; ich<32; ich++) tot += PE(ich);
+      return tot;
+    };
+    FlashHypo_t makeHypo() const {
+      FlashHypo_t hypo;
+      hypo.resize(32,0);
+      for (int ich=0; ich<32; ich++) { hypo[ich] = PE(ich); };
+      hypo.tot_intpc  = core.tot_intpc+gap.tot_intpc+enter.tot_intpc+exit.tot_intpc;
+      hypo.tot_outtpc = core.tot_outtpc+gap.tot_outtpc+enter.tot_outtpc+exit.tot_outtpc;
+      hypo.tot = core.tot+gap.tot+enter.tot+exit.tot;
+      hypo.flashidx = flashidx;
+      hypo.clusteridx = clusteridx;
+      return hypo;
+    };
   };
  
 }// end of namespace
