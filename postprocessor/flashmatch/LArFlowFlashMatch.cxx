@@ -31,8 +31,9 @@
 namespace larflow {
 
   LArFlowFlashMatch::LArFlowFlashMatch()
-    : m_compatibility(nullptr),
-      _nclusters_compat_wflash(nullptr),
+    : _clusters_defined(false),
+      _flashes_defined(false),
+      m_compatibility(nullptr),
       _compatibility_defined(false),
       _reindexed(false),     
       m_flash_hypo(nullptr),
@@ -107,9 +108,8 @@ namespace larflow {
   }
 
   void LArFlowFlashMatch::clearEvent() {
-    _flashdata_v.clear();
-    _qcluster_v.clear();
-    _qcomposite_v.clear();
+    clearClusterData();
+    clearFlashData();
     resetCompatibilityMatrix();
     clearMatchHypotheses();
     clearFirstRefinementVariables();
@@ -446,6 +446,9 @@ namespace larflow {
     // we take the larflow 3dhit clusters and convert them into QCluster_t objects
     // these are then used to build QClusterComposite objects, which
     //  are able to generate flash-hypotheses in a number of configurations
+
+    if ( _clusters_defined )
+      throw std::runtime_error("[LArFlowFlashMatch::buildInitialQClusters][ERROR] Clusters redefined. Must clear first.");
     
     if ( ignorelast ) {
       if ( qclusters.size()!=lfclusters.size()-1 )
@@ -550,11 +553,27 @@ namespace larflow {
       _qcomposite_v.emplace_back( std::move(qcomp) );
       
     }//end of cluster loop
-    
+
+    _clusters_defined = true;
   }
+
+  void LArFlowFlashMatch::clearClusterData() {
+    _qcomposite_v.clear();
+    _qcluster_v.clear();
+    _clusters_defined = false;
+  }
+
+
+  // ==============================================================================
+  // DATA FLASH
+  // -------------------------------------------------------------------------------
+  
   std::vector<FlashData_t> LArFlowFlashMatch::collectFlashInfo( const larlite::event_opflash& beam_flashes,
 								const larlite::event_opflash& cosmic_flashes ) {
 
+    if ( _flashes_defined )
+      throw std::runtime_error("[LArFlowFlashMatch::collectFlashInfo][ERROR] flash data redefined. must clear first.");
+    
     const larutil::Geometry* geo       = larutil::Geometry::GetME();
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
     //const size_t npmts = geo->NOpDets();
@@ -625,12 +644,30 @@ namespace larflow {
 	iflash++;	
       }//end of flash loop
     }//end of container loop
+
+    _flashes_defined = true;
     
     return flashdata;
   }
 
+  void LArFlowFlashMatch::clearFlashData() {
+    _flashdata_v.clear();
+    _flashes_defined = false;
+  }
+
+  // ==============================================================
+  // COMPATIBILITY MATRIX
+  // ==============================================================
+  
   void LArFlowFlashMatch::buildFullCompatibilityMatrix( const std::vector< FlashData_t >& flash_v,
 							const std::vector< QCluster_t>& qcluster_v ) {
+
+    // asserts to remind myself what depends on what
+    assert( _flashes_defined && _clusters_defined );
+
+    if ( _compatibility_defined )
+      throw std::runtime_error("[LArFlowFlashMatch::buildFullCompatibilityMatrix][ERROR] compatibility matrix redefined. clear first.");
+    
     if ( m_compatibility )
       delete [] m_compatibility;
 
@@ -638,45 +675,27 @@ namespace larflow {
     _nqclusters = qcluster_v.size();
     _nelements  = _nflashes*_nqclusters;
     m_compatibility = new int[ _nelements ];
-    _nclusters_compat_wflash = new int[_nflashes];
-    memset( _nclusters_compat_wflash, 0, sizeof(int)*_nflashes );
+    _compatibility_defined = true;
+  }
 
-    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
-    const float max_drifttime_ticks = (256.0+20.0)/larp->DriftVelocity()/0.5; // allow some slop
-
-    //std::cout << "max drifttime in ticks: " << max_drifttime_ticks << std::endl;
-    
-    // we mark the compatibility of clusters
+  void LArFlowFlashMatch::printCompatSummary() {
     int ncompatmatches = 0;
-    for (size_t iflash=0; iflash<flash_v.size(); iflash++) {
-      const FlashData_t& flash = flash_v[iflash];
-      
-      for ( size_t iq=0; iq<qcluster_v.size(); iq++) {
-	const QCluster_t& qcluster = qcluster_v[iq];
-
-	float dtick_min = qcluster.min_tyz[0] - flash.tpc_tick;
-	float dtick_max = qcluster.max_tyz[0] - flash.tpc_tick;
-
-	// must happen after (allow for some slop)
-	if ( dtick_min < -10 || dtick_max < -10 ) {
-	  setCompat( iflash, iq, 1 ); // too early
-	}
-	else if ( dtick_min > max_drifttime_ticks ) {
-	  setCompat( iflash, iq, 2 ); // too late
-	}
-	else {
-	  setCompat( iflash, iq, 0 ); // ok
-	  ncompatmatches++;
-	  _nclusters_compat_wflash[iflash] += 1;
-	}
+    for (size_t iflash=0; iflash<_flashdata_v.size(); iflash++) {
+      for (size_t iclust=0; iclust<_qcluster_v.size(); iclust++) {
+	if ( getCompat(iflash,iclust)==kUncut ) ncompatmatches++;
       }
     }
-    _compatibility_defined = true;
+    std::cout << "===========================================" << std::endl;
+    std::cout << "FLASH-CLUSTER COMPATIBILITY SUMMARY" << std::endl;
     std::cout << "number of compat flash-cluster matches: " << ncompatmatches << std::endl;
     std::cout << "------------------------------------------" << std::endl;
     std::cout << "NUM COMPAT CLUSTERS PER FLASH" << std::endl;
-    for (size_t iflash=0; iflash<flash_v.size(); iflash++)
-      std::cout << "[dataflash " << iflash << "] " << _nclusters_compat_wflash[iflash] << std::endl;
+    for (size_t iflash=0; iflash<_flashdata_v.size(); iflash++) {
+      int nclustmatches = 0;
+      for (size_t iclust=0; iclust<_qcluster_v.size(); iclust++)
+	if ( getCompat(iflash,iclust)==kUncut ) nclustmatches++;
+      std::cout << "[dataflash " << iflash << "] " << nclustmatches << std::endl;
+    }
     std::cout << "------------------------------------------" << std::endl;      
   }
 
@@ -685,9 +704,7 @@ namespace larflow {
     _nqclusters = 0;
     _nelements = 0;
     _compatibility_defined = false;
-    delete [] _nclusters_compat_wflash;
     delete [] m_compatibility;    
-    _nclusters_compat_wflash = nullptr;
     m_compatibility = nullptr;
   }
 
@@ -1032,6 +1049,41 @@ namespace larflow {
     return chi2;
   }
 
+  // =================================================================================================
+  // MATCH REJECTION METHODS
+  // =================================================================================================
+
+  void LArFlowFlashMatch::reduceUsingTiming() {
+
+    // check for required methods run
+    assert( _compatibility_defined );
+    
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
+    const float max_drifttime_ticks = (256.0+20.0)/larp->DriftVelocity()/0.5; // allow some slop
+    
+    for (size_t iflash=0; iflash<_flashdata_v.size(); iflash++) {
+      const FlashData_t& flash = _flashdata_v[iflash];
+      
+      for ( size_t iq=0; iq<_qcluster_v.size(); iq++) {
+	const QCluster_t& qcluster = _qcluster_v[iq];
+	
+	float dtick_min = qcluster.min_tyz[0] - flash.tpc_tick;
+	float dtick_max = qcluster.max_tyz[0] - flash.tpc_tick;
+
+	// must happen after (allow for some slop)
+	if ( dtick_min < -10 || dtick_max < -10 ) {
+	  setCompat( iflash, iq, kWrongTime ); // too early
+	}
+	else if ( dtick_min > max_drifttime_ticks ) {
+	  setCompat( iflash, iq, kWrongTime ); // too late
+	}
+	else {
+	  setCompat( iflash, iq, kUncut ); // ok
+	}
+      }
+    }
+  }
+  
   void LArFlowFlashMatch::reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 							  const std::vector<QCluster_t>&  qcluster_v,
 							  bool adjust_pe_for_cosmic_disc ) {
@@ -1768,7 +1820,7 @@ namespace larflow {
       c2d.Draw();
 
       char cname[100];
-      sprintf(cname,"qcomposite_flash%02d.png",iflash);
+      sprintf(cname,"qcomposite_flash%02d.png",(int)iflash);
       c2d.SaveAs(cname);
 
       std::cout << "number of clusters draw: " << nclusters_drawn << std::endl;

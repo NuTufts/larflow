@@ -67,19 +67,23 @@ namespace larflow {
     
   protected:
 
+    // define enum to track rejection reason
+    typedef enum { kUncut=0, kWrongTime, kBadExtension, kNoOverlap, kFirstShapeCut, kPERatio, kFirstFit, kFinalFit } CutReason_t;
+    
     // vectors for storing the events data flashes and reconstructed qclusters
-    std::vector<FlashData_t> _flashdata_v;
-    std::vector<QCluster_t>  _qcluster_v;
+    std::vector<FlashData_t>       _flashdata_v;
+    std::vector<QCluster_t>        _qcluster_v;
     std::vector<QClusterComposite> _qcomposite_v;
-    //std::vector<larlite::pcaxis>  _pca_qcluster_v; // pca, useful
     
     // QCluster Tools
     // ----------------------------------------------
     // 1) first naive adc sum on pixel intensities
+    bool _clusters_defined;
     void buildInitialQClusters( const std::vector<larlite::larflowcluster>&,
 				std::vector<QCluster_t>&,
 				const std::vector<larcv::Image2D>&, int src_plane,
 				bool ignorelast=true );
+    void clearClusterData();
     
     // 2) replace charge from dead regions in y-wires: connect points in 3d near dead region end.
     //    project into u,v. collect hits there. (offloaded to qclustercore)
@@ -91,8 +95,10 @@ namespace larflow {
 
     // Collection of the opflash data
     // -------------------------------
+    bool _flashes_defined;
     std::vector< FlashData_t > collectFlashInfo( const larlite::event_opflash& beam_flashes,
 						 const larlite::event_opflash& cosmic_flashes );
+    void clearFlashData();
     
     // fitting strategies
     // 1) simple metropolist hastings using global-chi2 as function
@@ -105,14 +111,18 @@ namespace larflow {
     int  _nflashes;   // row
     int  _nqclusters; // col
     int  _nelements;  // row*col
-    int* _nclusters_compat_wflash; // [nflashes]
     bool _compatibility_defined;
     void buildFullCompatibilityMatrix( const std::vector<FlashData_t>&, const std::vector<QCluster_t>& );
     void resetCompatibilityMatrix();
     inline int  getCompat( int iflash, int iqcluster )  { return *(m_compatibility + _nqclusters*iflash + iqcluster); };
     inline void setCompat( int iflash, int iqcluster, int compat ) { *(m_compatibility + _nqclusters*iflash + iqcluster) = compat; };
     void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
+    void printCompatSummary();
 
+    // Timing Based Match rejection
+    // ----------------------------
+    void reduceUsingTiming();
+    
     // shape-only comparison code
     // --------------------------
     // need to define bins in z-dimension and assign pmt channels to them
