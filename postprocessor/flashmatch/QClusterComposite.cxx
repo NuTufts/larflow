@@ -76,11 +76,11 @@ namespace larflow {
     float xoffset = 0;
     if ( _pcavec(0) > 0 ) {
       // we shift the closest end to 0, back to the origin
-      xoffset = -botend(0);
+      xoffset = -_posfront(0);
     }
     else {
       // we shift the closest end to the cathode back to the cathode
-      xoffset = 256.0 - botend(0);
+      xoffset = 256.0 - _posback(0);
     }
 
     bool indet = true;
@@ -89,7 +89,7 @@ namespace larflow {
       Eigen::Vector3f currentpos = topend + (extsign*_fExtStepLen*(float(istep)+0.5))*_pcavec;
       currentpos(0) += xoffset;
 
-      if ( currentpos(0)>256 || currentpos(0)<-50 ||
+      if ( currentpos(0)>280 || currentpos(0)<-50 ||
 	   currentpos(1)>137.0 || currentpos(1)<-137
 	   || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
 	indet = false;

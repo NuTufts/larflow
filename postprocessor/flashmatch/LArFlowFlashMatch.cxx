@@ -83,6 +83,8 @@ namespace larflow {
 
     // more default parameters
     _fMaxDistCut = 0.5;
+    _fPERatioCut = 2.0;
+    _fMaxEnterExt = 30.0;
     _fCosmicDiscThreshold = 10.0;
     _fclustsum_weight = 1e2;
     _fflashsum_weight = 0.5e2;
@@ -112,7 +114,6 @@ namespace larflow {
     clearFlashData();
     resetCompatibilityMatrix();
     clearMatchHypotheses();
-    clearFirstRefinementVariables();
     clearFittingData();
     clearFitParameters();
     clearMCTruthInfo();
@@ -178,12 +179,28 @@ namespace larflow {
     
     // build initial compbatility matrix
     buildFullCompatibilityMatrix( _flashdata_v, _qcluster_v );
-    std::cout << "[LArFlowFlashMatch::match][DEBUG] Initial Compatible matches formed" << std::endl;
+
+    // reduce using time compatibility
+    reduceUsingTiming();
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce using timing" << std::endl;        
+    printCompatSummary();
 
     // refined compabtibility: incompatible-z
-    bool adjust_pe_for_cosmic_disc = true;
-    reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v, adjust_pe_for_cosmic_disc );
+    reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using shape analysis" << std::endl;
+    printCompatSummary();
+
+    // refined compabtibility: incompatible-z
+    reduceMatchesWithShapeAnalysis( _flashdata_v, _qcluster_v );
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using shape analysis" << std::endl;
+    printCompatSummary();
+
+    // refined compabtibility: entering length
+    reduceUsingEnteringLength();
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using entering length" << std::endl;
+    printCompatSummary();
+    
+    std::cout << "[LArFlowFlashMatch::match][DEBUG] PREFIT COMPATIBILITY" << std::endl;
     printCompatInfo( _flashdata_v, _qcluster_v );
 
     dumpQCompositeImages();
@@ -675,6 +692,7 @@ namespace larflow {
     _nqclusters = qcluster_v.size();
     _nelements  = _nflashes*_nqclusters;
     m_compatibility = new int[ _nelements ];
+    _compat_cutvars.resize( _nelements );
     _compatibility_defined = true;
   }
 
@@ -706,11 +724,14 @@ namespace larflow {
     _compatibility_defined = false;
     delete [] m_compatibility;    
     m_compatibility = nullptr;
+    _compat_cutvars.clear();
   }
 
   void LArFlowFlashMatch::buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
 						const std::vector<QCluster_t>&  qcluster_v ) {
-    
+
+    // DEPRECATED
+    // ----------
     // each (flash,cluster) pair builds a hypothesis
     m_flash_hypo_map.clear();
     m_flash_hypo_v.clear(); // deprecated
@@ -982,8 +1003,8 @@ namespace larflow {
       auto it = _clust_reindex.find( iclust );
       if ( it==_clust_reindex.end() )
 	continue; // not paired
-      int bestflashidx = _clustdata_best_hypo_chi2_idx[iclust];
-      int reflashidx   = _flash_reindex[bestflashidx];
+      int bestflashidx = 0; // BROKEN!!
+      int reflashidx   = 0; // BROKEN!!
       int reclustidx   = (*it).second;
       int imatch = getMatchIndex( reflashidx, reclustidx );
       *(fmatch+imatch) = 1.0;
@@ -1069,80 +1090,110 @@ namespace larflow {
 	
 	float dtick_min = qcluster.min_tyz[0] - flash.tpc_tick;
 	float dtick_max = qcluster.max_tyz[0] - flash.tpc_tick;
+	CutVars_t& cutvar = getCutVars(iflash,iq);
 
 	// must happen after (allow for some slop)
 	if ( dtick_min < -10 || dtick_max < -10 ) {
+	  cutvar.dtick_window = ( dtick_max<0 ) ? dtick_max : dtick_min;
+	  cutvar.cutfailed = kWrongTime;
 	  setCompat( iflash, iq, kWrongTime ); // too early
 	}
 	else if ( dtick_min > max_drifttime_ticks ) {
+	  cutvar.dtick_window = dtick_min-max_drifttime_ticks;
+	  cutvar.cutfailed = kWrongTime;	  
 	  setCompat( iflash, iq, kWrongTime ); // too late
 	}
 	else {
+	  cutvar.dtick_window = dtick_min;
 	  setCompat( iflash, iq, kUncut ); // ok
 	}
       }
     }
   }
+
+  void LArFlowFlashMatch::reduceUsingEnteringLength() {
+    // we remove obviously incorrect matches
+    // for those with a very linear shape, assume its muon-like
+    // ask if entering extensin makes sense
+    //   -- are we traversing too much non-dead regions?
+    for (size_t iflash=0; iflash<_flashdata_v.size(); iflash++) {
+      const FlashData_t& flash = _flashdata_v[iflash];
+      float xoffset = (flash.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+      
+      for ( size_t iq=0; iq<_qcluster_v.size(); iq++) {
+	if ( getCompat(iflash,iq)!=kUncut ) continue;
+
+	
+	// what are we doing? if we have to use the entering extension to traverse
+	// a large part of the detector (not in a dead region)
+	// to get to the visible core, its probably not correct.
+	// also, we require that the w/ extension portion is needed.
+
+	CutVars_t& cutvar = getCutVars( iflash,iq );
+
+	// we only want to do this kind of analysis if the cut passes because of the
+	// the use of extensions
+
+	bool used_maxdist_wext = ( cutvar.maxdist_wext  < cutvar.maxdist_noext );
+	bool used_peratio_wext = ( cutvar.maxdist_noext < cutvar.maxdist_noext );
+
+	if ( !used_maxdist_wext && !used_peratio_wext )
+	  continue;
+
+	// have to consider the edge of the detector image cutting off muon
+	float maxtick = flash.tpc_tick + 256.0/(0.5*larutil::LArProperties::GetME()->DriftVelocity());
+	float mintick = flash.tpc_tick;
+
+	// how much in the x-direction, do I expect to have been cut off?
+	float adjusted_xmin = 0;
+	float adjusted_xmax = 250;
+	if ( maxtick> 2400+1008*6 ) {
+	  adjusted_xmax = (maxtick-(2400+1008*6))*(0.5*larutil::LArProperties::GetME()->DriftVelocity());
+	}
+	else if ( mintick<2400 ) {
+	  adjusted_xmin = (2400-mintick)*(0.5*larutil::LArProperties::GetME()->DriftVelocity());
+	}
+	
+	// how long is the extension throught the detector?
+	const QCluster_t& qenter = _qcomposite_v[ iq ]._entering_qcluster;
+	cutvar.enterlen = 0;
+	for ( size_t ipt=0; ipt<qenter.size(); ipt++ ) {
+	  const QPoint_t& qpt = qenter[ipt];
+	  float xyz[3] = { qpt.xyz[0]-xoffset, qpt.xyz[1], qpt.xyz[2] };
+	  
+	  if ( xyz[0]>adjusted_xmin && xyz[0]<adjusted_xmax && xyz[1]>-117 && xyz[1]<117 && xyz[2]>0 && xyz[2]<1036 )
+	    cutvar.enterlen += qpt.pixeladc;
+	}
+	
+	if ( cutvar.enterlen>_fMaxEnterExt ) {
+	  cutvar.cutfailed = kEnterLength;
+	  setCompat(iflash,iq,kEnterLength);
+	}
+
+      }
+    }
+  }
   
   void LArFlowFlashMatch::reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
-							  const std::vector<QCluster_t>&  qcluster_v,
-							  bool adjust_pe_for_cosmic_disc ) {
+							  const std::vector<QCluster_t>&  qcluster_v ) {
     // FIRST STAGE REDUCTION
     // from this function we reduced number of possible flash-cluster matches
     // this is done by
     // (1) comparing shape (CDF maxdist) and chi2
     // (2) for chi2, if adjust_pe_for_cosmic_disc, we try to account for pe lost due to cosmic disc threshold
-    
-    _flashdata_bestmatch.clear();
-    _flashdata_bestmatch.resize( flashdata_v.size() );
-    
-    _clustdata_best_hypo_maxdist_idx.resize(qcluster_v.size(),-1);
-    _clustdata_best_hypo_chi2_idx.resize(qcluster_v.size(),-1);    
-
-    std::vector<float> hyposcale_v;
-    std::vector<float> scaleweight_v;    
-    hyposcale_v.reserve( flashdata_v.size()*qcluster_v.size() );
-    
+        
     for (int iflash=0; iflash<flashdata_v.size(); iflash++) {
       
       const FlashData_t& flashdata = flashdata_v[iflash];
       float xoffset = (flashdata.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-      
-      std::vector< int > clustmatches;
-      std::vector< float > maxdist;
-      float bestdist = 2.0;
-      int bestidx = -1;
-      int bestchi2_idx = -1;
-      float bestchi2 = -1;
-      
+            
       for (int iclust=0; iclust<qcluster_v.size(); iclust++) {
 
-	if ( _save_ana_tree ) {
-	  // clear ana tree variables
-	  clearAnaVariables();
-	}
-
-	// set ana tree variables
-	if ( flashdata.mctrackid>=0 ) {
-	  _truthmatch = (flashdata.truthmatched_clusteridx==iclust) ? 1 : 0;
-	}
-	else
-	  _truthmatch = -1;
-	_intime     = (flashdata.intime) ? 1 : 0;
-	_isneutrino = (flashdata.isneutrino) ? 1 : 0;
-	_isbeam     = (flashdata.isbeam) ? 1 : 0;
-	_datape     = flashdata.tot;
-	
-	if ( getCompat( iflash, iclust )!=0 ) {
-	  // fails time-overlap compatibility
-	  if (_save_ana_tree ) {
-	    _redstep = 0;
-	    _anatree->Fill();
-	  }
+	if ( getCompat( iflash, iclust )!=kUncut )
 	  continue;
-	}
-
+       
 	const QClusterComposite& qcomposite = _qcomposite_v[iclust];
+	CutVars_t& cutvar = getCutVars( iflash, iclust );
 	
 	// build flash hypothesis for qcluster-iflash pair
 	FlashCompositeHypo_t comphypo_wext  = qcomposite.generateFlashCompositeHypo( flashdata, true );
@@ -1151,164 +1202,31 @@ namespace larflow {
 	FlashHypo_t hypo_wext = comphypo_wext.makeHypo();
 	FlashHypo_t hypo_noext = comphypo_noext.makeHypo();	
 
-	float maxdist_wext  = FlashMatchCandidate::getMaxDist( flashdata, hypo_wext, false );
-	float maxdist_noext = FlashMatchCandidate::getMaxDist( flashdata, hypo_noext, false );	
+	cutvar.maxdist_wext  = FlashMatchCandidate::getMaxDist( flashdata, hypo_wext, false );
+	cutvar.maxdist_noext = FlashMatchCandidate::getMaxDist( flashdata, hypo_noext, false );
+	
 	
 	// remove clearly bad matches
-	float maxdist = ( maxdist_wext<maxdist_noext ) ? maxdist_wext : maxdist_noext;
-	if ( maxdist > 0.5 ) {
-	  setCompat(iflash,iclust,4); // fails shape match
+	float maxdist = ( cutvar.maxdist_wext<cutvar.maxdist_noext ) ? cutvar.maxdist_wext : cutvar.maxdist_noext;
+	if ( maxdist > _fMaxDistCut ) {
+	  cutvar.cutfailed = kFirstShapeCut;
+	  setCompat(iflash,iclust,kFirstShapeCut); // fails shape match
 	}
 	
-	
-	// float hypo_renorm = 0.;
-	// if ( hypo_renorm == 0.0 ) {
-	//   // no overlap between data and hypo -- good, can reject
-	//   if ( _save_ana_tree ) {
-	//     _redstep = 1;
-	//     _maxdist_orig = 1.0; // this is basically the test we did
-	//     _anatree->Fill();
-	//   }
-	//   setCompat(iflash,iclust,3); // no overlap
-	  
-	// }
-	// else {
-	//   //FlashHypo_t& copy = hypo;
-	//   // give ourselves a new working copy
-	//   FlashHypo_t copy(hypo);
-	  
-	//   //float hypo_scale = flashdata.tot/(hypo_renorm/hypo.tot); // we want
-	//   float hypo_scale = flashdata.tot;
-	//   //std::cout << "data.tot=" << flashdata.tot << " hypo_scale=" << hypo_scale << " copy.tot=" << copy.tot << " copy.size=" << copy.size() << std::endl;
-	  
-	//   // we enforce cosmic dic. threshold by scaling hypo to data and zero-ing below threshold
-	//   copy.tot = 0.0; // copy norm
-	//   for (size_t ich=0; ich<hypo.size(); ich++) {
-	//     float copychpred = hypo[ich]*hypo_scale;
-	//     if ( adjust_pe_for_cosmic_disc && copychpred<_fCosmicDiscThreshold )
-	//       copy[ich] = 0.;
-	//     else
-	//       copy[ich] = copychpred;
-	//     //std::cout << "copy.chpred=" << copy[ich] << " vs. chpred=" << copychpred << std::endl;	  
-	//     copy.tot += copy[ich];
-	//   }
-	//   //std::cout << "copy.tot=" << copy.tot << std::endl;
-	//   if ( copy.tot==0 ) {
-	//     setCompat(iflash,iclust,3);
-	//     if ( _save_ana_tree ) { 	    
-	//       _redstep = 1;
-	//       _maxdist_orig = 1.0; // this is basically the test we did
-	//       _anatree->Fill();
-	//     }
-	//     continue;
-	//   }
+	// also do pe cut, since we have hypotheses
+	cutvar.peratio_wext  = (hypo_wext.tot  - flashdata.tot)/flashdata.tot;
+	cutvar.peratio_noext = (hypo_noext.tot - flashdata.tot)/flashdata.tot;
+	float peratio = ( cutvar.peratio_wext < cutvar.peratio_noext ) ? cutvar.peratio_wext : cutvar.peratio_noext;
 
-	//   // normalize
-	//   for (size_t ich=0; ich<flashdata.size(); ich++)
-	//     copy[ich] /= copy.tot;
-	  
-	//   float maxdist = FlashMatchCandidate::getMaxDist( flashdata, copy );
-	//   float chi2    = chi2Comparison( copy, flashdata, flashdata.tot, copy.tot );
-	  
-	//   hyposcale_v.push_back( copy.tot/flashdata.tot  ); // save data/mc ratio
-	//   scaleweight_v.push_back( exp(-0.5*chi2 ) );
-
-	//   //std::cout << "hyposcale=" << hypo_scale << "  chi2=" << chi2 << std::endl;
-
-	//   if ( maxdist>_fMaxDistCut ) {
-	//     setCompat(iflash,iclust,4); // fails shape match
-	//     if ( _save_ana_tree ) {
-	//       _redstep = 1;
-	//       _maxdist_orig = maxdist; // this is basically the test we did
-	//       _peratio_orig = FlashMatchCandidate::getPERatio( flashdata, copy );
-	//       _anatree->Fill();
-	//     }
-	//     continue;
-	//   }
-
-	//   // update bests for flash
-	//   if ( maxdist < bestdist ) {
-	//     bestdist = maxdist;
-	//     bestidx = iclust;
-	//   }
-	//   if ( chi2 < bestchi2 || bestchi2<0 ) {
-	//     bestchi2 = chi2;
-	//     bestchi2_idx = iclust;
-	//   }
-
-	//   // update bests for clust
-	//   // if ( maxdist < _clustdata_best_hypo_maxdist[iclust] ) {
-	//   //   _clustdata_best_hypo_maxdist_idx[iclust] = iflash;
-	//   //   std::cout << "update best cluster flash: maxdist=" << maxdist << " idx=" << iflash << std::endl;
-	//   // }
-	//   // if ( chi2 < _clustdata_best_hypo_chi2[iclust] ) {
-	//   //   _clustdata_best_hypo_chi2_idx[iclust] = iflash;
-	//   // }
-	  
-	// }//end of if valid renorm
-
-
+	if ( fabs(peratio) > _fPERatioCut ) {
+	  cutvar.cutfailed = kFirstPERatio;
+	  setCompat(iflash,iclust,kFirstPERatio);
+	}
 	
       }//end of cluster loop
 
-      // store bests
-      // _flashdata_best_hypo_maxdist_idx[iflash] = bestidx;
-      // _flashdata_best_hypo_maxdist[iflash]     = bestdist;
-      // _flashdata_best_hypo_chi2_idx[iflash]    = bestchi2_idx;
-      // _flashdata_best_hypo_chi2[iflash]        = bestchi2;
-
     }//end of flash loop
-
-    if ( true ) {
-      TCanvas c("c","c",800,600);
-      TH1D hscale("hscale", "",50,0,1e3);
-      for ( size_t i=0; i<hyposcale_v.size(); i++) {
-	hscale.Fill( hyposcale_v[i], scaleweight_v[i] );
-      }
-      hscale.Draw("hist");
-      c.Update();
-      c.Draw();
-      c.SaveAs("hyposcale.png");
-    }
-
-    // calculate weight-mean light-yield value;
-    _fweighted_scalefactor_mean  = 0.;
-    _fweighted_scalefactor_var = 0.;
-    _fweighted_scalefactor_sig = 0.;    
-    float totweight = 0;
-    float xxsum = 0;
-    float xsum  = 0;
-    float nweights  = 0;
-    for ( size_t i=0; i<hyposcale_v.size(); i++) {
-      float scale = hyposcale_v[i];
-      float weight = scaleweight_v[i];
-
-      if ( weight>1.0e-6 ) {
-	xsum  += scale*weight;
-	xxsum += scale*scale*weight;
-	totweight += weight;
-	nweights += 1.0;
-      }
-    }
-    _fweighted_scalefactor_mean  = xsum/totweight;
-    _fweighted_scalefactor_var = (xxsum - 2.0*xsum*_fweighted_scalefactor_mean + totweight*_fweighted_scalefactor_mean*_fweighted_scalefactor_mean)/(totweight*(nweights-1.0)/nweights);
-    _fweighted_scalefactor_sig = sqrt( _fweighted_scalefactor_var );
-    //float x_zero = _fweighted_scalefactor_mean/_fweighted_scalefactor_sig;
-    //_ly_neg_prob = 0.5*TMath::Erf( x_zero );
-
-    std::cout << "total weight: " << totweight << std::endl;
-    std::cout << "total number of weights: " << int(nweights) << std::endl;
-    std::cout << "Weighted scale-factor mean: "   << _fweighted_scalefactor_mean  << std::endl;
-    std::cout << "Weighted scale-factor variance (stdev): " << _fweighted_scalefactor_var << " ("  << _fweighted_scalefactor_sig << ")" << std::endl;
-  }
-
-  void LArFlowFlashMatch::clearFirstRefinementVariables() {
-    // _flashdata_best_hypo_chi2_idx.clear();
-    // _flashdata_best_hypo_chi2.clear();
-    // _flashdata_best_hypo_maxdist_idx.clear();
-    // _flashdata_best_hypo_maxdist.clear();
-    _clustdata_best_hypo_chi2_idx.clear();
-    _clustdata_best_hypo_maxdist_idx.clear();
+    
   }
 
   void LArFlowFlashMatch::printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v ) {
@@ -1352,208 +1270,6 @@ namespace larflow {
       totcompat += ncompat;
     }
     std::cout << "[Total " << totcompat << " compatible matches]" << std::endl;
-  }
-
-  void LArFlowFlashMatch::dumpQClusterImages() {
-    /*
-    gStyle->SetOptStat(0);
-    
-    const larutil::Geometry* geo = larutil::Geometry::GetME();
-    const larutil::LArProperties* larp = larutil::LArProperties::GetME();    
-    const float  driftv = larp->DriftVelocity();    
-    
-    TCanvas c2d("c2d","pmt flash", 1200, 600);
-    TPad datayz("pad1", "",0.0,0.5,1.0,1.0);
-    TPad dataxy("pad2", "",0.0,0.0,1.0,0.5);
-    datayz.SetRightMargin(0.05);
-    datayz.SetLeftMargin(0.05);    
-    dataxy.SetRightMargin(0.05);
-    dataxy.SetLeftMargin(0.05);    
-
-    // shapes/hists used for each plot
-    TH2D bg("hyz","",105,-20,1050, 120, -130, 130);
-    TH2D bgxy("hxy","",25,-300,550, 120, -130, 130);
-    TBox boxzy( 0, -116.5, 1036, 116.5 );
-    boxzy.SetFillStyle(0);
-    boxzy.SetLineColor(kBlack);
-    boxzy.SetLineWidth(1);
-    TBox boxxy( 0, -116.5, 256, 116.5 );
-    boxxy.SetFillStyle(0);
-    boxxy.SetLineColor(kBlack);
-    boxxy.SetLineWidth(1);
-
-    // badch indicator
-    std::vector< TBox* > zy_deadregions;
-    for (int p=2; p<3; p++) {
-      const larcv::ChStatus& status = _evstatus->status( p );
-      int maxchs = ( p<=1 ) ? 2400 : 3456;
-      bool inregion = false;
-      int regionstart = -1;
-      int currentregionwire = -1;
-      for (int ich=0; ich<maxchs; ich++) {
-	
-	if ( !inregion && status.status(ich)!=4 ) {
-	  inregion = true;
-	  regionstart = ich;
-	  currentregionwire = ich;
-	}
-	else if ( inregion && status.status(ich)!=4 ) {
-	  currentregionwire = ich;
-	}
-	else if ( inregion && status.status(ich)==4 ) {
-	  // end a region, make a box!
-	  TBox* badchs = new TBox( (float)(0.3*regionstart), -115, (float)(0.3*currentregionwire), 115 );
-	  badchs->SetFillColor( 19 );
-	  badchs->SetLineColor( 0 );
-	  zy_deadregions.push_back( badchs );
-	  inregion = false;
-	}
-      }
-    }//end of plane loop for dead channels
-
-    // pmt markers
-    std::vector<TEllipse*> pmtmarkers_v(32,0);
-    std::vector<TText*>    chmarkers_v(32,0);    
-    for (int ich=0; ich<32; ich++) {
-      int opdet = geo->OpDetFromOpChannel(ich);
-      double xyz[3];
-      geo->GetOpChannelPosition( ich, xyz );
-      
-      pmtmarkers_v[ich] = new TEllipse(xyz[2],xyz[1], 10.0, 10.0);
-      pmtmarkers_v[ich]->SetLineColor(kBlack);
-
-      char pmtname[10];
-      sprintf(pmtname,"%02d",ich);
-      chmarkers_v[ich] = new TText(xyz[2]-10.0,xyz[1]-5.0,pmtname);
-      chmarkers_v[ich]->SetTextSize(0.04);
-    }
-    
-    // make charge graphs
-    for (int iclust=0; iclust<(int)_qcluster_v.size(); iclust++) {
-
-      std::cout << "[larflow::LArFlowFlashMatch::dumpQClusterImages][INFO] Cluster " << iclust << std::endl;
-      
-      const QCluster_t& qcluster = _qcluster_v[iclust];
-      const QClusterComposite& qcore  = _qcomposite_v[iclust];
-      const QCluster_t& qfill = qcore._gapfill_qcluster;
-
-      // make graph of core and non-core
-      TGraph* gcore_zy    = new TGraph( qcore._core.size() );
-      TGraph* gcore_xy    = new TGraph( qcore._core.size() );     
-      TGraph* gnoncore_zy = new TGraph( qcore._noncore_hits );
-      TGraph* gnoncore_xy = new TGraph( qcore._noncore_hits );
-      TGraph* gfill_zy = new TGraph( qfill.size() );
-      TGraph* gfill_xy = new TGraph( qfill.size() );
-      
-      for ( int iq=0; iq<(int)qcore._core.size(); iq++ ) {
-	gcore_zy->SetPoint( iq, qcore._core[iq].xyz[2], qcore._core[iq].xyz[1] );
-	gcore_xy->SetPoint( iq, qcore._core[iq].xyz[0], qcore._core[iq].xyz[1] );	
-      }
-      int inoncore = 0;
-      for (auto const& qnoncore : qcore._noncore ) {
-	for ( int iq=0; iq<(int)qnoncore.size(); iq++ ) {
-	  gnoncore_zy->SetPoint( inoncore, qnoncore[iq].xyz[2], qnoncore[iq].xyz[1] );
-	  gnoncore_xy->SetPoint( inoncore, qnoncore[iq].xyz[0], qnoncore[iq].xyz[1] );
-	  inoncore++;
-	}
-      }
-      gnoncore_zy->Set(inoncore);
-      gnoncore_xy->Set(inoncore);
-      for ( int iq=0; iq<(int)qfill.size(); iq++ ) {
-	gfill_zy->SetPoint( iq, qfill[iq].xyz[2], qfill[iq].xyz[1] );
-	gfill_xy->SetPoint( iq, qfill[iq].xyz[0], qfill[iq].xyz[1] );	
-      }      
-
-      gcore_zy->SetMarkerColor(kRed);
-      gcore_xy->SetMarkerColor(kRed);      
-      gnoncore_zy->SetMarkerColor(kBlack);
-      gnoncore_xy->SetMarkerColor(kBlack);
-      gfill_zy->SetMarkerColor(kBlue);
-      gfill_xy->SetMarkerColor(kBlue);
-      TGraph* g_v[6] = { gcore_zy, gcore_xy, gnoncore_zy, gnoncore_xy, gfill_zy, gfill_xy };
-      for (int i=0; i<6; i++) {
-	g_v[i]->SetMarkerStyle(20);
-	g_v[i]->SetMarkerSize(0.3);
-      }
-
-      // PCA lines
-      TGraph* gcore_zy_pca = new TGraph(3);
-      TGraph* gcore_xy_pca = new TGraph(3);      
-      const larlite::pcaxis& pc = qcore._pca_core;
-      gcore_zy_pca->SetPoint( 0,
-			      pc.getAvePosition()[2] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[2][0],
-			      pc.getAvePosition()[1] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
-      gcore_zy_pca->SetPoint( 1, pc.getAvePosition()[2], pc.getAvePosition()[1] );
-      gcore_zy_pca->SetPoint( 2,
-			      pc.getAvePosition()[2] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[2][0],
-			      pc.getAvePosition()[1] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
-      gcore_xy_pca->SetPoint( 0,
-			      pc.getAvePosition()[0] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[0][0],
-			      pc.getAvePosition()[1] - 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
-      gcore_xy_pca->SetPoint( 1, pc.getAvePosition()[0], pc.getAvePosition()[1] );
-      gcore_xy_pca->SetPoint( 2,
-			      pc.getAvePosition()[0] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[0][0],
-			      pc.getAvePosition()[1] + 2.0*sqrt(pc.getEigenValues()[0])*pc.getEigenVectors()[1][0]);
-      
-
-      // Set the pads
-      c2d.Clear();
-      c2d.Draw();
-      c2d.cd();
-      
-      // Draw the pads
-      datayz.Draw();
-      dataxy.Draw();
-
-      datayz.cd();
-      bg.Draw();
-      boxzy.Draw();
-      for ( auto& pbadchbox : zy_deadregions ) {
-	pbadchbox->Draw();
-      }
-      
-      for (int ich=0; ich<32; ich++) {
-	pmtmarkers_v[ich]->Draw();
-	chmarkers_v[ich]->Draw();
-      }
-
-      gnoncore_zy->Draw("P");
-      gcore_zy->Draw("P");
-      gfill_zy->Draw("P");
-      gcore_zy_pca->Draw("L");      
-
-      dataxy.cd();
-      bgxy.Draw();
-      boxxy.Draw();
-
-      gnoncore_xy->Draw("P");
-      gcore_xy->Draw("P");
-      gfill_xy->Draw("P");
-      gcore_xy_pca->Draw("L");
-
-
-      char canvname[50];
-      sprintf( canvname, "flashmatch_qclustimg_%02d.png", iclust );
-      c2d.SaveAs( canvname );
-
-      // clean up
-      delete gnoncore_zy;
-      delete gnoncore_xy;      
-      delete gcore_zy;
-      delete gcore_xy;
-      delete gcore_zy_pca;
-      delete gcore_xy_pca;      
-    }
-
-    // clean up vis items
-    for (int ich=0; ich<32; ich++) {
-      delete pmtmarkers_v[ich];
-      delete chmarkers_v[ich];
-    }
-    for (int i=0; i<(int)zy_deadregions.size(); i++) {
-      delete zy_deadregions[i];
-    }
-    */
   }
 
 
@@ -1657,6 +1373,11 @@ namespace larflow {
       std::vector< TGraph > graphs_zy_v;
       std::vector< TGraph > graphs_xy_v;
       int nclusters_drawn = 0;
+      char histname_data[50];
+      sprintf(histname_data,"hflashdata_%d",iflash);
+      TH1D hflashdata(histname_data,"",32,0,32);
+      hflashdata.SetLineWidth(3);
+      hflashdata.SetLineColor(kBlack);
 
       std::vector<TEllipse*> datamarkers_v(32,0);
       float norm = flash.tot;
@@ -1667,6 +1388,8 @@ namespace larflow {
 	geo->GetOpChannelPosition( ich, xyz );
 	
 	float pe   = (flash[ich]*norm);
+	hflashdata.SetBinContent( ich+1, pe );
+	
 	if ( pe>10 )
 	  pe = 10 + (pe-10)*0.10;
 	float radius = ( pe>50 ) ? 50 : pe;
@@ -1694,8 +1417,10 @@ namespace larflow {
 	mctrack_data_xy->SetLineWidth(1);
       }
 
+      // BEGIN CLUSTER LOOP
       std::vector< TGraph* > mctrack_clustertruth_xy_v;
-      std::vector< TGraph* > mctrack_clustertruth_zy_v;      
+      std::vector< TGraph* > mctrack_clustertruth_zy_v;
+      std::vector< TH1D* > flash_hypotheses_v;
       for (size_t iclust=0; iclust<_qcluster_v.size(); iclust++) {
 
 	int compat = getCompat( iflash, iclust );
@@ -1703,6 +1428,7 @@ namespace larflow {
 	  continue;
 
 	const QCluster_t& qclust = _qcluster_v[iclust];
+	CutVars_t& cutvars = getCutVars(iflash,iclust);
 
 	// truth matched to track cluster
 	TGraph* mctrack_hypo_zy = nullptr;
@@ -1742,6 +1468,31 @@ namespace larflow {
 	      graphs_xy_v.emplace_back( std::move(g) );
 	  }
 	}
+
+
+	FlashCompositeHypo_t comphypo_wext  = qcomposite.generateFlashCompositeHypo( flash, true );
+	FlashCompositeHypo_t comphypo_noext = qcomposite.generateFlashCompositeHypo( flash, false );
+
+	FlashHypo_t hypo_wext = comphypo_wext.makeHypo();
+	FlashHypo_t hypo_noext = comphypo_noext.makeHypo();	
+
+	char histname1[100];
+	sprintf(histname1, "hhypo_flash%d_clust%d", iflash, iclust );
+	TH1D* hhypo = new TH1D(histname1,"",32,0,32);
+	if ( cutvars.maxdist_wext > cutvars.maxdist_noext )
+	  hhypo->SetLineStyle( 2 );
+	if ( iclust==flash.truthmatched_clusteridx ) {
+	  hhypo->SetLineColor(kGreen+2);
+	  hhypo->SetLineWidth( 2 );
+	}
+	
+	for (int ich=0; ich<32; ich++) {
+	  if ( cutvars.maxdist_wext < cutvars.maxdist_noext )
+	    hhypo->SetBinContent( ich+1, hypo_wext[ich] );
+	  else
+	    hhypo->SetBinContent( ich+1, hypo_noext[ich] ); 
+	}
+	flash_hypotheses_v.push_back( hhypo );
 	nclusters_drawn++;
       }//end of cluster loop
 
@@ -1815,6 +1566,13 @@ namespace larflow {
       for ( auto& ptrack : mctrack_clustertruth_xy_v )
 	ptrack->Draw("L");
 
+      // -------------------------------
+      // FLASH PE
+      // -------------------------------
+      histpad.cd();
+      hflashdata.Draw("hist");
+      for ( auto& phist : flash_hypotheses_v )
+	phist->Draw("hist same");
 
       c2d.Update();
       c2d.Draw();
@@ -1842,7 +1600,8 @@ namespace larflow {
 	delete ptrack;
       for ( auto& ptrack : mctrack_clustertruth_xy_v )
 	delete ptrack;
-      
+      for ( auto& phist : flash_hypotheses_v )
+	delete phist;
       
     }//end of flash loop
 
@@ -2620,7 +2379,7 @@ namespace larflow {
     }
 
     // lightyield prior
-    float nll_ly = (*flightyield - _fweighted_scalefactor_mean)*(*flightyield - _fweighted_scalefactor_mean)/_fweighted_scalefactor_var;
+    float nll_ly = (*flightyield - _fweighted_scalefactor_mean)*(*flightyield - _fweighted_scalefactor_mean)/_fweighted_scalefactor_sig;
 
     float nll = nll_data + _fclustsum_weight*nll_clustsum + _fflashsum_weight*nll_flashsum + _fl1norm_weight*nll_l1norm + _flightyield_weight*nll_ly;
     if ( print )
