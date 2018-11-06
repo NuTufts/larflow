@@ -91,7 +91,7 @@ namespace larflow {
 
       if ( currentpos(0)>280 || currentpos(0)<-50 ||
 	   currentpos(1)>137.0 || currentpos(1)<-137
-	   || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+	   || currentpos(2)<-50 || currentpos(2)>1086.0 ) {
 	indet = false;
       }
       
@@ -147,9 +147,9 @@ namespace larflow {
       Eigen::Vector3f currentpos = botend + (extsign*_fExtStepLen*(float(istep)+0.5))*_pcavec;
       currentpos(0) += xoffset;
 
-      if ( currentpos(0)>256 || currentpos(0)<-50 ||
+      if ( currentpos(0)>300 || currentpos(0)<-80 ||
 	   currentpos(1)>137.0 || currentpos(1)<-137
-	   || currentpos(2)<-20 || currentpos(2)>1056.0 ) {
+	   || currentpos(2)<-50 || currentpos(2)>1086.0 ) {
 	indet = false;
       }
       
@@ -226,7 +226,7 @@ namespace larflow {
 
 	if ( icomp==2 ) {
 	  // ignore out of TPC for entering extension
-	  enter_stophit_idx = icomp;
+	  enter_stophit_idx = ihit;
 	  if ( xyz[0]<0 || xyz[0]>250.0 || 
 	       xyz[1]<-117.0 || xyz[1]>117.0 ||
 	       xyz[2]<0 || xyz[2]>1036.0 ) {
@@ -247,7 +247,7 @@ namespace larflow {
 	      break;
 	    case 1:
 	    case 2:
-	      // gaps
+	      // gaps for inside tpc
 	      pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
 	      break;
 	    }
@@ -272,7 +272,9 @@ namespace larflow {
     FlashHypo_t pre_enter_outside = hypo_composite.makeHypo();
     // compare
     float current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside );
-    const QCluster_t& qenter = *(qclusters[2]);    
+    const QCluster_t& qenter = *(qclusters[2]);
+    int nenter_used = 0;
+    float nenter_pe = 0.;
     for ( int ihit=enter_stophit_idx; ihit<(int)qenter.size(); ihit++ ) {
       const QPoint_t& qhit = qenter[ihit];
       double xyz[3];
@@ -298,8 +300,7 @@ namespace larflow {
       }
 
       float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside, false );
-      if ( maxdist > current_maxdist ) {
-	// stop
+      if ( maxdist-0.05 > current_maxdist ) {
 	break;
       }
 
@@ -309,11 +310,21 @@ namespace larflow {
       }
       hypo_composite.tot += dpe_tot;
       hypo_composite.tot_outtpc += dpe_tot;
+      nenter_used++;
+      nenter_pe += dpe_tot;
     }
+    
+    std::cout << "[QClusterComposite::generateFlashCompositeHypo][ERROR] "
+	      << " nenter_used=" << nenter_used << " of qexit.size=" << qenter.size()
+	      << " padded=" << nenter_pe
+	      << std::endl;
 
+    
     // now the exiting extension
     // only extend if we improve the comparison
     FlashHypo_t pre_exit_outside = hypo_composite.makeHypo();
+    int nexit_used = 0;
+    float pe_added = 0;
     current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside );
     const QCluster_t& qexit = *(qclusters[3]);
     for ( int ihit=0; ihit<(int)qexit.size(); ihit++ ) {
@@ -333,41 +344,53 @@ namespace larflow {
 	intpc = false;
       }
       
-      const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );      
+      const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
       std::vector<float> dpe_v(32,0);
-      float dpe_tot = 0.;
-      
-      for (size_t ich=0; ich<32; ich++) {
-	float q  = qhit.pixeladc;
-	float pe = 0;
-	if ( intpc )
-	  pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
-	else
-	  pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
-	pre_exit_outside[ich] += pe;
-	pre_exit_outside.tot += pe;
-	pre_exit_outside.tot_outtpc += pe;
-	dpe_v[ich] = pe;
-	dpe_tot += pe;
-      }
+      float dpe_tot = 0.;      
 
+      if ( vis && vis->size()==npmts) {
+	for (size_t ich=0; ich<32; ich++) {
+	  float q  = qhit.pixeladc;
+	  float pe = 0;
+	  if ( intpc )
+	    pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	  else
+	    pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)]; // fudge
+	  pre_exit_outside[ich] += pe;
+	  pre_exit_outside.tot += pe;
+	  pre_exit_outside.tot_outtpc += pe;
+	  dpe_v[ich] = pe;
+	  dpe_tot += pe;
+	  pe_added += pe;
+	}
+      }//end of vis loop
+    
+      
       float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside, false );
-      if ( maxdist > current_maxdist ) {
+      if ( maxdist-0.05 > current_maxdist ) {
 	// stop
 	break;
       }
-
+      
+      
       // else, update the composite
       for ( size_t ich=0; ich<32; ich++ ) {
-	hypo_composite.enter[ich] += dpe_v[ich];
+	hypo_composite.exit[ich] += dpe_v[ich];
       }
       hypo_composite.tot += dpe_tot;
       if ( intpc )
 	hypo_composite.tot_intpc += dpe_tot;
       else
 	hypo_composite.tot_outtpc += dpe_tot;
+      
+      nexit_used++;
     }
 
+    std::cout << "[QClusterComposite::generateFlashCompositeHypo][DEBUG] "
+	      << " nexit_used=" << nexit_used << " of qexit.size=" << qexit.size()
+	      << " padded=" << pe_added
+	      << std::endl;
+    
     return hypo_composite;
     
   }

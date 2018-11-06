@@ -193,6 +193,9 @@ namespace larflow {
     setInitialFlashMatchVector();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Fitter Loaded" << std::endl;
 
+    dumpQCompositeImages();
+    assert(false);
+
     _fitter.fitSGD( 10000,500, false, 1.0 );
 
     

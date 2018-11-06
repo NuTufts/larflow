@@ -232,28 +232,31 @@ namespace larflow {
     /* void secondMatchRefinement(); */
 
 
-    /* // analysis variable tree */
-    /* // ---------------------- */
-    /* std::string _ana_filename; */
-    /* TFile* _fanafile; */
-    /* TTree* _anatree; */
-    /* int   _redstep; */
-    /* int   _truthmatch; */
-    /* int   _isneutrino; */
-    /* int   _intime; */
-    /* int   _isbeam; */
-    /* float _hypope; */
-    /* float _datape; */
-    /* float _maxdist_orig; */
-    /* float _peratio_orig; */
-    /* float _maxdist_wext; */
-    /* float _peratio_wext; */
-    /* float _maxdist_red2; */
-    /* float _peratio_red2; */
-    /* bool  _save_ana_tree; */
-    /* bool  _anafile_written; */
-    /* void setupAnaTree(); */
-    /* void clearAnaVariables(); */
+    // analysis variable tree
+    // ----------------------
+    std::string _ana_filename;
+    TFile* _fanafile;
+    TTree* _anatree;
+    int   _cutfailed;
+    int   _truthmatch;
+    int   _isneutrino;
+    int   _intime;
+    int   _isbeam;
+    int   _usedext;
+    float _hypope;
+    float _datape;
+
+    // cut vars
+    float _dtick_window;
+    float _maxdist_best;
+    float _peratio_best;
+    float _enterlen;
+    float _fmatch;
+    
+    bool  _save_ana_tree;
+    bool  _anafile_written;
+    void setupAnaTree();
+    void clearAnaVariables();
 
   };
     
