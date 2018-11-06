@@ -32,7 +32,7 @@ LIB = ../lib/libLArFlowFlashMatch.so
 
 all: $(LIB) dev_flashmatch
 
-../lib/libLArFlowFlashMatch.so: FlashMatchTypes.o LArFlowFlashMatch.o QClusterCore.o QClusterComposite.o FlashMatchCandidate.o 
+../lib/libLArFlowFlashMatch.so: FlashMatchTypes.o LArFlowFlashMatch.o QClusterCore.o QClusterComposite.o FlashMatchCandidate.o LassoFlashMatch.o
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"

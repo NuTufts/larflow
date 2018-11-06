@@ -62,7 +62,7 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
-  algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
+  //algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
   
   int nprocessed = 0;
   for (int ientry=0; ientry<nentries; ientry++) {
@@ -92,7 +92,8 @@ int main( int nargs, char** argv ) {
     std::cout << "number of mctracks: " << ev_mctrack->size() << std::endl;
     algo.loadMCTrackInfo( *ev_mctrack, true );
     
-    larflow::LArFlowFlashMatch::Results_t result = algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
+    //larflow::LArFlowFlashMatch::Results_t result = algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
+    algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
     std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
     // std::vector<larlite::larflowcluster> outclusters = algo.exportMatchedTracks();
     // larlite::event_larflowcluster* ev_outcluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "truthflashmatched" );
@@ -110,7 +111,7 @@ int main( int nargs, char** argv ) {
       break;
   }
 
-  algo.writeAnaFile();
+  //algo.writeAnaFile();
   
   outlarlite.close();
   io.close();

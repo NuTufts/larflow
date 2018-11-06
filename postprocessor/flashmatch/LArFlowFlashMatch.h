@@ -21,6 +21,7 @@
 #include "FlashMatchTypes.h"
 #include "FlashMatchCandidate.h"
 #include "QClusterCore.h"
+#include "LassoFlashMatch.h"
 
 class TRandom3;
 class TFile;
@@ -38,31 +39,22 @@ namespace larflow {
 
     LArFlowFlashMatch();
     virtual ~LArFlowFlashMatch();
-
-    struct Results_t {
-      /* std::vector<larlite::opflash*> flash_v; */
-      /* std::vector<larlite::larflowcluster*> cluster_v; */
-      /* std::vector< std::vector<float> > flash2cluster_weights_v; */
-      /* std::vector< std::vector<int> > forbidden_matches_v; */
-      /* std::vector< std::vector<float> > chi2; */
-      float global_chi2;
-    };
     
     // Functions meant for users
     // --------------------------
     
-    Results_t match( const larlite::event_opflash& beam_flashes,
-		     const larlite::event_opflash& cosmic_flashes,
-		     const std::vector<larlite::larflowcluster>& clusters,
-		     const std::vector<larcv::Image2D>& img_v,
-		     const bool ignorelast=true);
+    void match( const larlite::event_opflash& beam_flashes,
+		const larlite::event_opflash& cosmic_flashes,
+		const std::vector<larlite::larflowcluster>& clusters,
+		const std::vector<larcv::Image2D>& img_v,
+		const bool ignorelast=true);
 
     void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
-    void loadChStatus( const larcv::EventChStatus* evstatus ) { _evstatus = evstatus; };
+    void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
     
     std::vector<larlite::larflowcluster> exportMatchedTracks();
-    void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
-    void writeAnaFile();
+    //void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
+    //void writeAnaFile();
     void clearEvent();
     
   protected:
@@ -131,6 +123,9 @@ namespace larflow {
 
       // entering length
       float enterlen;
+
+      // first fit
+      float fit1fmatch;
     };
 
     // flash-cluster compatability matrix
@@ -165,38 +160,6 @@ namespace larflow {
     void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
     void dumpQCompositeImages();
 
-    // Flash Hypothesis Building
-    // -------------------------
-    struct flashclusterpair_t {
-      int flashidx;
-      int clustidx;
-      flashclusterpair_t( int fid, int cid )
-      : flashidx(fid), clustidx(cid)
-      {};
-      bool operator==(const flashclusterpair_t &rhs) const {
-        return flashidx == rhs.flashidx && clustidx == rhs.clustidx;
-      };
-      bool operator<(const flashclusterpair_t& rhs) const
-      {
-	if ( flashidx<rhs.flashidx) return true;
-	else if ( flashidx>rhs.flashidx) return false;
-	else {
-	  if ( clustidx<rhs.clustidx ) return true;
-	  else return false;
-	}
-	return false; // should never get here
-      };
-    };
-    std::map<flashclusterpair_t,int> m_flash_hypo_map;   // using orig index
-    std::vector< FlashHypo_t > m_flash_hypo_v; // DEPRECATED
-    std::vector< FlashMatchCandidate > m_matchcandidate_hypo_v; // builflashhypotheses builds this
-    void  buildFlashHypotheses( const std::vector<FlashData_t>& flashdata_v,
-				const std::vector<QCluster_t>& qcluster_v );
-    FlashHypo_t& getHypothesisWithOrigIndex( int flashidx, int clustidx );
-    bool hasHypothesis( int flashidx, int clustidx );
-    int getMatchIndexFromOrigIndices( int flashidx, int clustidx );
-    void getFlashClusterIndexFromMatchIndex( int matchidx, int& flashidx, int& clustidx );
-    void clearMatchHypotheses();
     
     // Match refinement
     // ----------------------------
@@ -211,64 +174,35 @@ namespace larflow {
     // ----------------------------
     void reduceUsingEnteringLength();
     
-    // Build Fit Parameter matrices
-    // ----------------------------
-    float _fweighted_scalefactor_sig;
-    float _fweighted_scalefactor_mean;    
-    int _nmatches;         // {(flash,cluster) ordered pairs, unrolled
-    int _nflashes_red;     // (flash w/ matches)
-    int _nclusters_red;    // (clusters w/ matches)
-    bool _reindexed;       // have we reindexed the compatible flashes/clusters
-    std::vector<int> _match_flashidx;    
-    std::vector<int> _match_clustidx;
-    std::vector<int> _match_flashidx_orig;
-    std::vector<int> _match_clustidx_orig;    
-    std::map<int,int> _flash_reindex; // original -> reindex
-    std::map<int,int> _clust_reindex; // original -> reindex
-    std::map<flashclusterpair_t,int> m_flash_hypo_remap; // using reduced indexing
-    float* m_flash_hypo;   // [nclusters_red][npmts]
-    float* m_flash_data;   // [nflashes_red][npmts]
-    float* m_flashhypo_norm;
-    float* m_flashdata_norm;
-    int*   m_iscosmic;
-    int* _pair2index;      // [flashreindex][cluster-reindex], value is match-index
-    int getMatchIndex( int reflashidx, int reclustidx ) { return *(_pair2index + reflashidx*_nclusters_red + reclustidx); };
-    bool doOrigIndexPairHaveMatch( int flashidx_orig, int clustidx_orig );
-    void buildFittingData(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
-    void clearFittingData();
 
-    // Define fit parameters
-    // ---------------------
-    // possible matches unrolled into 1D vector with _nmatches elements
-    float* flightyield;
-    float* fmatch;         // [_nmatches]
-    float* fmatch_nll;     // [_nmatches]
-    float* fmatch_maxdist; // [_nmatches]
-    float* fpmtweight;     // [_nflashes_red*32]
-    bool _parsdefined;
-    void defineFitParameters();
-    void clearFitParameters();
-    void zeroMatchVector();
-    std::vector<float> getMatchScoresForCluster( int icluster );    
-					 
-    // Set Initial Fit Point
-    // ----------------------------
-    void setInitialFitPoint(const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>&  qcluster_v );
-
-    // Calc NLL (given state)
-    // ----------------------
-    float _fclustsum_weight;
-    float _fflashsum_weight;    
-    float _fl1norm_weight;
-    float _flightyield_weight;
-    float calcNLL(bool print=false);
-
-    // Proposal Generation
-    // -------------------
+    // lasso fitter
+    // ---------------
     TRandom3* _rand;
-    float generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
-			    std::vector<float>& match_v, float& ly  );
-
+    bool _parsdefined;
+    LassoFlashMatch _fitter;
+    struct MatchPair_t {
+      int flashidx;
+      int clusteridx;
+      MatchPair_t()
+      : flashidx(-1),
+	clusteridx(-1)
+      {};
+      MatchPair_t( int fidx, int clidx )
+      : flashidx(fidx),
+	clusteridx(clidx)
+      {};
+      bool operator< ( const MatchPair_t& rhs ) const {
+	if ( flashidx<rhs.flashidx ) return true;
+	else if ( flashidx==rhs.flashidx && clusteridx<rhs.clusteridx ) return true;
+	return false;
+      };
+    };
+    std::map< MatchPair_t, int > _pair2matchidx;
+    std::map< int, MatchPair_t > _matchidx2pair;
+    void prepareFitter();
+    void setInitialFlashMatchVector();
+    void reduceUsingFitResults();    
+					 
     // MCTrack Info
     // ------------
     const std::vector<larlite::mctrack>* _mctrack_v;
@@ -279,8 +213,8 @@ namespace larflow {
     std::vector<int> _flash2truecluster;
     std::vector<int> _cluster2trueflash;
     larutil::SpaceChargeMicroBooNE* _psce;
-    bool kDoTruthMatching;
-    bool kFlashMatchedDone;
+    bool _kDoTruthMatching;
+    bool _kFlashMatchedDone;
     void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
     void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
@@ -289,36 +223,37 @@ namespace larflow {
 
     // ChStatus Info
     // ----------------------------------------------
+    bool  _has_chstatus;
     const larcv::EventChStatus* _evstatus;
 
 
-    // secondMatchRefinement
-    // ---------------------
-    void secondMatchRefinement();
+    /* // secondMatchRefinement */
+    /* // --------------------- */
+    /* void secondMatchRefinement(); */
 
 
-    // analysis variable tree
-    // ----------------------
-    std::string _ana_filename;
-    TFile* _fanafile;
-    TTree* _anatree;
-    int   _redstep;
-    int   _truthmatch;
-    int   _isneutrino;
-    int   _intime;
-    int   _isbeam;
-    float _hypope;
-    float _datape;
-    float _maxdist_orig;
-    float _peratio_orig;
-    float _maxdist_wext;
-    float _peratio_wext;
-    float _maxdist_red2;
-    float _peratio_red2;
-    bool  _save_ana_tree;
-    bool  _anafile_written;
-    void setupAnaTree();
-    void clearAnaVariables();
+    /* // analysis variable tree */
+    /* // ---------------------- */
+    /* std::string _ana_filename; */
+    /* TFile* _fanafile; */
+    /* TTree* _anatree; */
+    /* int   _redstep; */
+    /* int   _truthmatch; */
+    /* int   _isneutrino; */
+    /* int   _intime; */
+    /* int   _isbeam; */
+    /* float _hypope; */
+    /* float _datape; */
+    /* float _maxdist_orig; */
+    /* float _peratio_orig; */
+    /* float _maxdist_wext; */
+    /* float _peratio_wext; */
+    /* float _maxdist_red2; */
+    /* float _peratio_red2; */
+    /* bool  _save_ana_tree; */
+    /* bool  _anafile_written; */
+    /* void setupAnaTree(); */
+    /* void clearAnaVariables(); */
 
   };
     
