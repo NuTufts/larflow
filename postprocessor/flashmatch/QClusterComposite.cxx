@@ -314,10 +314,10 @@ namespace larflow {
       nenter_pe += dpe_tot;
     }
     
-    std::cout << "[QClusterComposite::generateFlashCompositeHypo][ERROR] "
-	      << " nenter_used=" << nenter_used << " of qexit.size=" << qenter.size()
-	      << " padded=" << nenter_pe
-	      << std::endl;
+    // std::cout << "[QClusterComposite::generateFlashCompositeHypo][ERROR] "
+    // 	      << " nenter_used=" << nenter_used << " of qexit.size=" << qenter.size()
+    // 	      << " padded=" << nenter_pe
+    // 	      << std::endl;
 
     
     // now the exiting extension
@@ -386,10 +386,10 @@ namespace larflow {
       nexit_used++;
     }
 
-    std::cout << "[QClusterComposite::generateFlashCompositeHypo][DEBUG] "
-	      << " nexit_used=" << nexit_used << " of qexit.size=" << qexit.size()
-	      << " padded=" << pe_added
-	      << std::endl;
+    // std::cout << "[QClusterComposite::generateFlashCompositeHypo][DEBUG] "
+    // 	      << " nexit_used=" << nexit_used << " of qexit.size=" << qexit.size()
+    // 	      << " padded=" << pe_added
+    // 	      << std::endl;
     
     return hypo_composite;
     

@@ -53,8 +53,8 @@ namespace larflow {
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
     
     std::vector<larlite::larflowcluster> exportMatchedTracks();
-    //void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
-    //void writeAnaFile();
+    void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
+    void writeAnaFile();
     void clearEvent();
     
   protected:
@@ -126,6 +126,9 @@ namespace larflow {
 
       // first fit
       float fit1fmatch;
+
+      // truth
+      float truthscore;
     };
 
     // flash-cluster compatability matrix
@@ -158,7 +161,7 @@ namespace larflow {
     //float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
     float chi2Comparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );    
     void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
-    void dumpQCompositeImages();
+    void dumpQCompositeImages( std::string prefix );
 
     
     // Match refinement
@@ -249,9 +252,14 @@ namespace larflow {
     // cut vars
     float _dtick_window;
     float _maxdist_best;
+    float _maxdist_wext;
+    float _maxdist_noext;    
     float _peratio_best;
+    float _peratio_wext;
+    float _peratio_noext;    
     float _enterlen;
     float _fmatch;
+    float _fmatch_truth;
     
     bool  _save_ana_tree;
     bool  _anafile_written;
