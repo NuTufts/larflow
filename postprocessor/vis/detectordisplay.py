@@ -135,6 +135,8 @@ class DetectorDisplay(gl.GLViewWidget) :
                 
     def clearVisItems( self ):
         for drawname in self.drawn_user_item_names:
+            #if hasattr(self.drawn_user_items[drawname], "__pylard_transformed" ):
+            #    delattr( self.drawn_user_items[drawname], "__pylard_transformed" )
             self.removeItem( self.drawn_user_items[drawname] )
         self.drawn_user_items = {}
         self.drawn_user_item_names = []
@@ -175,7 +177,7 @@ class DetectorDisplay(gl.GLViewWidget) :
                     else:
                         # not currently drawn, so keep moving
                         continue
-        print "items drawn in detdisplay: ",self.drawn_user_items
+        print "num items drawn in detdisplay: ",len(self.drawn_user_items)
         return
 
     def changeComponentState(self,compname,state):
