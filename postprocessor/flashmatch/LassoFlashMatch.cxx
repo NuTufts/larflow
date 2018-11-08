@@ -44,6 +44,7 @@ namespace larflow {
     _flashgroup_vv.clear();
     _flashidx2group_m.clear();
     _fmatch_v.clear();
+    _flastgrad_v.clear();
     _bpmt_vv.clear();
     _pair2match_m.clear();
 
@@ -104,6 +105,7 @@ namespace larflow {
 
     // add match parameter
     _fmatch_v.push_back(0.0);
+    _flastgrad_v.push_back(0.0);    
 
     _nmatches++;
     
@@ -712,6 +714,7 @@ namespace larflow {
     // do this by flashbundle
     for ( auto const& iflashidx : _flashindices ) {
       std::vector<int>& flashgroup  = _flashgroup_vv[ _flashidx2group_m[iflashidx] ];
+      int iflashdata = _flashidx2data_m[iflashidx];
 
       // need the overall prediction for each 
       std::vector<float> hypotot(_npmts,0);
@@ -723,16 +726,16 @@ namespace larflow {
       }
       
       // also need data
-      const std::vector<float>& flashdata = _flashdata_vv[ _flashidx2data_m[iflashidx] ];
+      const std::vector<float>& flashdata = _flashdata_vv[ iflashdata ];
       std::vector<float> databmod( flashdata );  // a copy
 
       // grab the output b-vector if requested
-      std::vector<float>* pb_v = nullptr;
+      std::vector<float>* pb_v   = nullptr;
       std::vector<float>* pgradb = nullptr;
       if ( _use_b_terms ) {
-	pgradb = &( gradb_vv.at( _flashidx2data_m[iflashidx] ) );
+	pgradb = &( gradb_vv.at( iflashdata ) );
 	pgradb->resize( flashdata.size(), 0.0 );
-	pb_v = &_bpmt_vv.at( _flashidx2data_m[iflashidx] );
+	pb_v = &_bpmt_vv.at( iflashdata );
 	for ( size_t ich=0; ich<flashdata.size(); ich++ ) {
 	  databmod[ich] *= (1-(*pb_v)[ich]);
 	  if ( databmod[ich]<0 ) databmod[ich] = 0.;
@@ -760,8 +763,8 @@ namespace larflow {
 
       if ( _use_b_terms ) {
 	for (int ich=0; ich<_npmts; ich++) {
-	  float obs = flashdata[ich];
-	  float obswb = obs*(1-(*pb_v)[ich]);
+	  float obs   = flashdata[ich];
+	  float obswb = databmod[ich];
 	  if ( obswb<1.0e-3 ) obswb = 1.0e-3;
 	  if ( obs>0 )
 	    (*pgradb)[ich] = obs*(log(obswb)-log(hypotot[ich]));
@@ -802,16 +805,12 @@ namespace larflow {
     std::vector<float> l2grad    = get_gradL2_df( fmask );
     std::vector< std::vector<float> > b2loss    = gradBloss();
     
-    std::vector<float> df(_nmatches,0);
-    float gradmag = 0.;
     for ( size_t imatch=0; imatch<_nmatches; imatch++ ) {
-      df[imatch] = scoregrad[imatch] + _cluster_weight*clustgrad[imatch] + _l1weight*l1grad[imatch] + _l2weight*l2grad[imatch];
-      gradmag += df[imatch]*df[imatch];
+      _flastgrad_v[imatch] = scoregrad[imatch] + _cluster_weight*clustgrad[imatch] + _l1weight*l1grad[imatch] + _l2weight*l2grad[imatch];
     }
-    //std::cout << " |grad|=" << sqrt(gradmag) << std::endl;
     
     for ( size_t imatch=0; imatch<_nmatches; imatch++ ) {
-      _fmatch_v[imatch] -= lr*df[imatch];
+      _fmatch_v[imatch] -= lr*_flastgrad_v[imatch];
     }
     
     if ( _use_b_terms ) {
@@ -875,6 +874,20 @@ namespace larflow {
 	std::cout << "(" << _fmatch_v[imatch] << ")";	  
       std::cout << std::endl;
     }
+  }
+
+  void LassoFlashMatch::printFmatch() {
+    std::cout << "===============================================" << std::endl;
+    std::cout << "[LassoFlashMatch::printFMatch]" << std::endl;
+    for (int imatch=0; imatch<_nmatches; imatch++)
+      std::cout << "[" << imatch << "|"
+		<< " flashidx=" << _match2flashidx_v[imatch]
+		<< " clustidx=" << _match2clusteridx_v[imatch]
+		<< "] "
+		<< _fmatch_v[imatch]
+		<< " grad=" << _flastgrad_v[imatch]
+		<< std::endl;
+    std::cout << "===============================================" << std::endl;    
   }
 
   void LassoFlashMatch::printClusterGroups( bool printgrads ) {

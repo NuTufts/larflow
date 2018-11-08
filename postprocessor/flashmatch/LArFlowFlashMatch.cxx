@@ -212,28 +212,28 @@ namespace larflow {
     // setup learning schedule
     // two stages: first use SGD to minimize with noise
     LassoFlashMatch::LearningConfig_t epoch1;
-    epoch1.iter_start = 0;
-    epoch1.iter_end   = 20000;
+    epoch1.iter_start =  0;
+    epoch1.iter_end   =  30000;
     epoch1.lr = 1.0e-5;
     epoch1.use_sgd = true;
     epoch1.matchfrac = 0.5; // introduce noise
     LassoFlashMatch::LearningConfig_t epoch2;
-    epoch2.iter_start = 20001;
-    epoch2.iter_end   = 30000;
-    epoch2.lr = 1.0e-5;
+    epoch2.iter_start =  30001;
+    epoch2.iter_end   =  60000;
+    epoch2.lr = 1.0e-4;
     epoch2.use_sgd = false;
     epoch2.matchfrac = 1.0; // introduce noise
     // last stage, setting to global min
     LassoFlashMatch::LearningConfig_t epoch3;
-    epoch3.iter_start = 20001;
-    epoch3.iter_end   = 30000;
-    epoch3.lr = 1.0e-4;
+    epoch3.iter_start =  60001;
+    epoch3.iter_end   = 120000;
+    epoch3.lr = 1.0e-5;
     epoch3.use_sgd = false;
     epoch3.matchfrac = 1.0; // introduce noise
     _fitter.addLearningScheduleConfig( epoch1 );
     _fitter.addLearningScheduleConfig( epoch2 );
-    //_fitter.addLearningScheduleConfig( epoch3 );    
-    _fitter.fitSGD( 30000,-1, true, 0.5 );
+    _fitter.addLearningScheduleConfig( epoch3 );    
+    _fitter.fitSGD( 60000,-1, true, 0.5 );
     
     // set compat from fit
     reduceUsingFitResults();
@@ -242,11 +242,8 @@ namespace larflow {
     _fitter.printState(false);      
     _fitter.printClusterGroups();
     _fitter.printFlashBundles( false );
-    _fitter.printBterms();    
-    
-    dumpQCompositeImages( "postfit" );
-    assert(false);
-
+    _fitter.printBterms();
+    _fitter.printFmatch();
     
     return;
   }
@@ -584,13 +581,13 @@ namespace larflow {
 	// to get to the visible core, its probably not correct.
 	// also, we require that the w/ extension portion is needed.
 
-	CutVars_t& cutvar = getCutVars( iflash,iq );
+	CutVars_t& cutvar = getCutVars( iflash, iq);
 
 	// we only want to do this kind of analysis if the cut passes because of the
 	// the use of extensions
 
-	bool used_maxdist_wext = ( cutvar.maxdist_wext  < cutvar.maxdist_noext );
-	bool used_peratio_wext = ( cutvar.maxdist_noext < cutvar.maxdist_noext );
+	bool used_maxdist_wext = ( cutvar.maxdist_wext < cutvar.maxdist_noext );
+	bool used_peratio_wext = ( cutvar.peratio_wext < cutvar.peratio_noext );
 
 	if ( !used_maxdist_wext && !used_peratio_wext )
 	  continue;
@@ -660,7 +657,6 @@ namespace larflow {
 	cutvar.maxdist_wext  = FlashMatchCandidate::getMaxDist( flashdata, hypo_wext, false );
 	cutvar.maxdist_noext = FlashMatchCandidate::getMaxDist( flashdata, hypo_noext, false );
 	
-	
 	// remove clearly bad matches
 	float maxdist = ( cutvar.maxdist_wext<cutvar.maxdist_noext ) ? cutvar.maxdist_wext : cutvar.maxdist_noext;
 	if ( maxdist > _fMaxDistCut ) {
@@ -671,7 +667,9 @@ namespace larflow {
 	// also do pe cut, since we have hypotheses
 	cutvar.peratio_wext  = (hypo_wext.tot  - flashdata.tot)/flashdata.tot;
 	cutvar.peratio_noext = (hypo_noext.tot - flashdata.tot)/flashdata.tot;
-	float peratio = ( cutvar.peratio_wext < cutvar.peratio_noext ) ? cutvar.peratio_wext : cutvar.peratio_noext;
+	float peratio  = ( cutvar.peratio_wext < cutvar.peratio_noext ) ? cutvar.peratio_wext : cutvar.peratio_noext;
+	cutvar.pe_hypo = ( cutvar.maxdist_wext < cutvar.maxdist_noext ) ? hypo_wext.tot : hypo_noext.tot;
+	cutvar.pe_data = flashdata.tot;
 
 	if ( fabs(peratio) > _fPERatioCut ) {
 	  cutvar.cutfailed = kFirstPERatio;
@@ -690,11 +688,9 @@ namespace larflow {
       int iclust = _matchidx2pair[imatch].clusteridx;
 
       CutVars_t& cutvars = getCutVars( iflash, iclust );
-
-      float fmatch = _fitter._fmatch_v[imatch];
-      if ( fmatch<0.2 ) {
+      cutvars.fit1fmatch = _fitter._fmatch_v[imatch];
+      if ( cutvars.fit1fmatch<0.05 ) {
 	cutvars.cutfailed = kFirstFit;
-	cutvars.fit1fmatch = fmatch;
 	setCompat( iflash, iclust, kFirstFit );
       }
     }
@@ -1684,7 +1680,7 @@ namespace larflow {
     _anatree->Branch("fmatch_truth", &_fmatch_truth, "fmatch_truth/F");
     
     _save_ana_tree   = true;
-    _anafile_written = false;    
+    _anafile_written = false;
   }
 
   void LArFlowFlashMatch::clearAnaVariables() {
@@ -1727,6 +1723,8 @@ namespace larflow {
 	_cutfailed  = cutvars.cutfailed;
 	if ( flash.truthmatched_clusteridx==iclust )
 	  _truthmatch = 1;
+	else
+	  _truthmatch = 0;
 
 	_isbeam     = (flash.isbeam) ? 1 : 0;
 	_isneutrino = (cluster.isneutrino) ? 1 : 0;
@@ -1758,7 +1756,7 @@ namespace larflow {
 	    _fmatch_truth = _fitter._fmatch_v.at(it_pair->second);
 	  }
 	}
-
+	
 	_anatree->Fill();
 	
       }// end of cluster loop

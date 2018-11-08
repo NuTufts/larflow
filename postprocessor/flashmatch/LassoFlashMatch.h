@@ -72,7 +72,8 @@ namespace larflow {
     void printState( bool printfmatch );
     void printClusterGroups( bool printgrads=false );
     void printFlashBundles( bool printgrads=false );
-    void printBterms();    
+    void printBterms();
+    void printFmatch();    
     void setLossFunction( ScoreType_t scoretype ) { _scorer = scoretype; };
     void setUseBterms( bool use_b_terms );
 
@@ -101,6 +102,7 @@ namespace larflow {
     std::vector< std::vector<int> >   _flashgroup_vv;       // each inner vector holds match indices that apply to same flash
     std::map<int,int>                 _flashidx2group_m;    // map from flashidx to group index
     std::vector<float>                _fmatch_v;
+    std::vector<float>                _flastgrad_v;             
     std::vector< std::vector<float> > _bpmt_vv;             // pull terms to adjust data to account for light due to non-tpc
 
     std::map< std::pair<int,int>, int > _pair2match_m;
