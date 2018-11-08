@@ -36,6 +36,7 @@ namespace larflow {
     _clusteridx2group_m.clear();
     _match2clusteridx_v.clear();
     _match_hypo_vv.clear();
+    
     _flashindices.clear();
     _flashdata_vv.clear();
     _flashidx2data_m.clear();
@@ -49,7 +50,7 @@ namespace larflow {
     // learning schedule vars
     _learning_v.clear();
     _iter2learning.clear();
-    
+    _index_current_config = -1;
   }  
 
   // ===========================================================================

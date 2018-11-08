@@ -157,6 +157,7 @@ namespace larflow {
     CutVars_t& getCutVars( int iflash, int iqcluster ) { return _compat_cutvars.at( _nqclusters*iflash + iqcluster ); };
     void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
     void printCompatSummary();
+    void clearMatchVariables();
 
     
     // Timing Based Match rejection
@@ -214,7 +215,8 @@ namespace larflow {
     std::map< int, MatchPair_t > _matchidx2pair;
     void prepareFitter();
     void setInitialFlashMatchVector();
-    void reduceUsingFitResults();    
+    void reduceUsingFitResults();
+    void clearFitter();
 					 
     // MCTrack Info
     // ------------

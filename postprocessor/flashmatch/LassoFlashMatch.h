@@ -77,7 +77,7 @@ namespace larflow {
     void setUseBterms( bool use_b_terms );
 
     
-    int _npmts;
+    const int _npmts;
     ScoreType_t _scorer;
     Minimizer_t _min_method;
     bool _bundle_flashes;

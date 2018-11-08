@@ -48,7 +48,11 @@ namespace larflow {
       _psce(nullptr),
       _kDoTruthMatching(false),
       _kFlashMatchedDone(false),
-      _fitter(32)
+      _fitter(32),
+      _fanafile(nullptr),
+      _anatree(nullptr),
+      _save_ana_tree(false),
+      _anafile_written(false)
   {
 
     // define bins in z-dimension and assign pmt channels to them
@@ -86,22 +90,21 @@ namespace larflow {
 
   LArFlowFlashMatch::~LArFlowFlashMatch() {
     delete _rand;
-    resetCompatibilityMatrix();
-    clearMCTruthInfo();
-    // if ( _fanafile && _anafile_written )
-    //   writeAnaFile();
-    // if ( _anatree )
-    //   delete _anatree;
-    // if ( _fanafile )
-    //   _fanafile->Close();
+    clearEvent();
+    if ( _fanafile ) {
+      if ( !_anafile_written ) writeAnaFile();
+      _fanafile->Close();
+    }
   }
 
   void LArFlowFlashMatch::clearEvent() {
-    clearClusterData();
-    clearFlashData();
+    clearFitter();
     resetCompatibilityMatrix();
     clearMCTruthInfo();
+    clearClusterData();
+    clearFlashData();    
     _evstatus = nullptr;
+    _has_chstatus = false;
   }
   
   void LArFlowFlashMatch::match( const larlite::event_opflash& beam_flashes,
@@ -779,6 +782,14 @@ namespace larflow {
     }
 
 
+  }
+
+  // clear and reset fitter
+  void LArFlowFlashMatch::clearFitter() {
+    _parsdefined = false;
+    _pair2matchidx.clear();
+    _matchidx2pair.clear();
+    _fitter.clear();
   }
 
   // Set Initial fmatch vector using best fit
