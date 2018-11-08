@@ -970,7 +970,7 @@ namespace larflow {
 	mctrack_match = true;      
       if ( mctrack_match ) {
 	const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[flash.mctrackid] ];
-	mctrack_data_zy  = new TGraph( mct.size() );
+	mctrack_data_zy = new TGraph( mct.size() );
 	mctrack_data_xy = new TGraph( mct.size() );	
 	for (int istep=0; istep<(int)mct.size(); istep++) {
 	  mctrack_data_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
