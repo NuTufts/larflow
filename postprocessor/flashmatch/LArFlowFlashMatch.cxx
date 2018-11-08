@@ -100,9 +100,6 @@ namespace larflow {
     clearClusterData();
     clearFlashData();
     resetCompatibilityMatrix();
-    //clearMatchHypotheses();
-    //clearFittingData();
-    //clearFitParameters();
     clearMCTruthInfo();
     _evstatus = nullptr;
   }
@@ -247,249 +244,7 @@ namespace larflow {
     dumpQCompositeImages( "postfit" );
     assert(false);
 
-    // now build hypotheses: we only do so for compatible pairs
-    //buildFlashHypotheses( _flashdata_v, _qcluster_v );
-    std::cout << "[LArFlowFlashMatch::match][DEBUG] Compatible Flash-Cluster match hypotheses formed" << std::endl;
-    //std::cin.get();
-
-    // if ( kDoTruthMatching && _mctrack_v!=nullptr ) {
-    //   // we provide truth info to the candidates
-    //   for ( auto& candidate : m_matchcandidate_hypo_v ) {
-    // 	candidate.addMCTrackInfo( *_mctrack_v );
-    //   }      
-    // }
-
-    // for ( auto& candidate : m_matchcandidate_hypo_v ) {
-    //   if ( candidate.isTruthMatch() )
-    // 	candidate.dumpMatchImage();
-    // }
-
-    // // second refinement
-    // secondMatchRefinement();
-    // printCompatInfo( _flashdata_v, _qcluster_v );
-    // std::cout << "[LArFlowFlashMatch::match][DEBUG] Finished Second Reduction" << std::endl;
-    // //std::cin.get();
-
-    if ( true ) {
-      std::cout << "EARLY EXIT" << std::endl;
-      return;
-    }
     
-    // define the fitting data members
-    // buildFittingData( _flashdata_v, _qcluster_v );
-    
-    // // define fit parameter variables
-    // defineFitParameters();
-
-
-    // if ( kDoTruthMatching ) {
-    //   std::cout << "[larflow:::LArFlowFlashMatch::match][INFO] Setting Fit Parameters using truth flashmatch" << std::endl;
-    //   setFitParsWithTruthMatch();
-    // }
-    // else {
-    //   // find initial best fit to start
-    //   std::cout << "[larflow:::LArFlowFlashMatch::match][INFO] Setting Fit Parameters using reco flashmatch" << std::endl;      
-    //   setInitialFitPoint( _flashdata_v, _qcluster_v );
-    // }
-
-    // fit: gradient descent
-
-    // fit: MCMC
-    //runMCMC;
-
-    // build flash-posteriors
-    //calcFlashPosteriors;
-    // *flightyield = 1.0;
-    // _fweighted_scalefactor_sig  = 0.5;
-    // _fweighted_scalefactor_mean = 1.0;    
-
-    // printCompatInfo( _flashdata_v, _qcluster_v );
-    // dumpMatchImages( _flashdata_v, false, false );
-    // assert(false);
-
-    // int nsamples = 500000;
-    // int naccept = 0;
-    
-    // // save the current state
-    // int step = 0;
-    // int step_accepted = 0;
-    // float state_ly = *flightyield;
-    // std::vector<float> state_v(_nmatches,0.0);
-    // memcpy( state_v.data(), fmatch, _nmatches*sizeof(float) );
-    // float lastnll = calcNLL(true);
-
-    // std::cout << "[enter to start]" << std::endl;
-    // std::cin.get();
-
-    // // proposal vars
-    // float proposal_ly = 0.;
-    // std::vector<float> proposal_v(_nmatches,0.0);
-    // float proposal_nll;
-    // int dstate;
-    
-    // // accumulation
-    // TFile fout("out_mcmc_flash.root", "recreate");
-    // TTree tmcmc("mcmc","MCMC");
-    // char brname_state[100];
-    // sprintf( brname_state, "state_v[%d]/F", _nmatches );
-    
-    // tmcmc.Branch("step", &step, "step/I" );
-    // tmcmc.Branch("accepted", &step_accepted, "accepted/I" );    
-    // tmcmc.Branch("naccepted", &naccept, "naccepted/I" );    
-    // tmcmc.Branch("state_v",state_v.data(), brname_state );
-    // tmcmc.Branch("dstate",&dstate,"dstate/I");
-    // tmcmc.Branch("ly", &state_ly, "ly/F" );
-    // tmcmc.Branch("nll", &lastnll, "nll/F" );
-    // tmcmc.Fill();
-    
-    // int n_ave_updates = 0;
-    // std::vector<float> ave_v(_nmatches,0.0);
-    // float best_nll = 1.0e9;
-    // float best_ly  = 1.0;
-    // float ave_ly   = 0.0;
-    
-    // auto start = std::clock();    
-    
-    // for (int i=1; i<nsamples; i++) {
-    //   step = i;
-    //   if ( step%10000==0 )
-    // 	std::cout << "step[" << step << "]" << std::endl;
-      
-    //   // set initial proposal value to current state
-    //   memcpy( proposal_v.data(), state_v.data(), sizeof(float)*_nmatches );
-    //   proposal_ly = state_ly;
-
-    //   // generate proposal. by effect.
-    //   dstate = (int)generateProposal( 0.5, 0.0, 0.05, proposal_v, proposal_ly );
-      
-    //   // set the fit variables to calc nll
-    //   memcpy( fmatch, proposal_v.data(), sizeof(float)*_nmatches );
-    //   *flightyield = proposal_ly;
-      
-    //   // accept or reject
-    //   float proposal_nll = calcNLL(step%10000==0);
-    //   bool accept = true;
-    //   //std::cout << "step[" << i << "] (proposalLL<lastnll)=" << (proposal_nll<lastnll) << " ";
-    //   if ( proposal_nll>lastnll )  {
-    // 	// worse step, so we have to decide to reject or not
-    // 	float logratio = -0.5*(proposal_nll-lastnll);
-    // 	//std::cout << " logratio=" << logratio;
-    // 	if ( logratio>-1e4 ) {
-    // 	  // give it a chance to jump. ay other prob, forget about it
-    // 	  float mc = _rand->Uniform();
-    // 	  if ( mc > exp(logratio) ) {
-    // 	    //std::cout << "  drew step change (" << mc << ">" << exp(logratio) << ") ";
-    // 	    accept = false; // we reject
-    // 	  }
-    // 	}
-    // 	else
-    // 	  accept = false;
-    //   }
-      
-    //   if ( accept ) {
-    // 	// update state
-    // 	//std::cout << "  accept" << std::endl;
-
-    // 	// copy proposal to state_v, state_ly
-    // 	memcpy( state_v.data(), proposal_v.data(), sizeof(float)*_nmatches );
-    // 	state_ly = proposal_ly;
-    // 	lastnll = proposal_nll;
-    // 	step_accepted = 1;
-    // 	naccept++;
-    //   }
-    //   else {
-    // 	//std::cout << "  reject" << std::endl;
-    // 	step_accepted = 0;	
-    //   }
-
-    //   if ( step>nsamples/2 ) {
-    // 	// start to update after burn in
-    // 	n_ave_updates += 1;
-    // 	for (int i=0; i<_nmatches; i++) {
-    // 	  ave_v[i] += state_v[i];
-    // 	}
-    // 	ave_ly += state_ly;
-    //   }
-      
-    //   tmcmc.Fill();
-    // }//end of mcmc loop
-    
-    // for (int i=0; i<_nmatches; i++) {
-    //   ave_v[i] /= float(n_ave_updates);
-    // }
-    // ave_ly  /= float(n_ave_updates);    
-    
-    // double tnll_s = (std::clock() - start) / (double)(CLOCKS_PER_SEC);
-    // std::cout << "Time: " << tnll_s << " s (per sample: " << tnll_s/float(1000)/float(nsamples) << " ms)" << std::endl;
-    // std::cout << "num accepted proposals: " << naccept << " out of " << nsamples << std::endl;    
-    // // set with ending state
-    // std::cout << "Set average state. ave_ly=" << ave_ly << std::endl;
-    // memcpy( fmatch, ave_v.data(), sizeof(float)*_nmatches );
-    // *flightyield = ave_ly;
-    // calcNLL(true);
-    // tmcmc.Write();
-    // fout.Close();
-
-    // std::cout << "ave match vector" << std::endl;
-    // for (int imatch=0; imatch<_nmatches; imatch++) {
-    //   std::cout << "imatch[" << imatch << "] "
-    // 		<< "flash=" << _match_flashidx_orig[imatch] << " "
-    // 		<< "clust=" << _match_clustidx_orig[imatch] << " "
-    // 		<< "ave=" << ave_v[imatch] << std::endl;
-    // }
-
-    // std::cout << std::endl;
-
-    // std::cout << "distribution over clusters" << std::endl;
-    // for (int iclust=0; iclust<_nqclusters; iclust++) {
-    //   auto it_clust = _clust_reindex.find( iclust );
-    //   if ( it_clust==_clust_reindex.end() )
-    // 	continue;
-
-    //   int reclust = it_clust->second;
-    //   std::cout << "cluster[" << iclust << ": truthflash=" << _qcluster_v[iclust].truthmatched_flashidx << "] ";
-      
-    //   // find non-zero flash
-    //   for (int iflash=0; iflash<_nflashes; iflash++) {
-    // 	auto it_flash = _flash_reindex.find( iflash );
-    // 	if ( it_flash==_flash_reindex.end() )
-    // 	  continue;
-
-    // 	int reflash = it_flash->second;
-    // 	int imatch = getMatchIndex( reflash, reclust );
-    // 	if ( ave_v[imatch]>0.05 ) {
-    // 	  std::cout << "fl[" << iflash << "]=" << ave_v[imatch] <<  " ";
-    // 	}
-    //   }
-    //   std::cout << std::endl;
-    // }
-
-    // std::cout << "distribution over flashes" << std::endl;
-    // for (int iflash=0; iflash<_nflashes; iflash++) {
-    //   auto it_flash = _flash_reindex.find( iflash );
-    //   if ( it_flash==_flash_reindex.end() )
-    // 	continue;
-
-    //   int reflash = it_flash->second;
-    //   std::cout << "flash[" << iflash << ": truthcluster=" << _flashdata_v[iflash].truthmatched_clusteridx << "] ";
-      
-    //   // find non-zero flash
-    //   for (int iclust=0; iclust<_nqclusters; iclust++) {
-    // 	auto it_clust = _clust_reindex.find( iclust );
-    // 	if ( it_clust==_clust_reindex.end() )
-    // 	  continue;
-
-    // 	int reclust = it_clust->second;
-    // 	int imatch = getMatchIndex( reflash, reclust );
-    // 	if ( ave_v[imatch]>0.05 ) {
-    // 	  std::cout << "cl[" << iclust << "]=" << ave_v[imatch] <<  " ";
-    // 	}
-    //   }
-    //   std::cout << std::endl;
-    // }
-    // std::cout << "FIN" << std::endl;
-    // dumpMatchImages( _flashdata_v, false, true );
-
     return;
   }
 
@@ -1417,112 +1172,6 @@ namespace larflow {
   
 
   /*
-  float LArFlowFlashMatch::calcNLL( bool print ) {
-
-
-    // calculate agreement
-    float nll_data = 0.;
-
-    // fit to data
-    for (int imatch=0; imatch<_nmatches; imatch++) {
-      float hyponorm = *(m_flashhypo_norm + imatch)*(*flightyield);
-      float datanorm = *(m_flashdata_norm + imatch);
-
-      float nll_match = 0.;
-      float maxdist_match = 0;
-      float cdf_data[32] = {0.};
-      float cdf_pred[32] = {0.};
-      for (int ich=0; ich<32; ich++) {
-	float pred = *(m_flash_hypo + imatch*32 + ich );
-	float obs  = *(m_flash_data + imatch*32 + ich );
-	pred *= hyponorm;
-	obs  *= datanorm;
-	if ( m_iscosmic[imatch]==1 && pred<_fCosmicDiscThreshold )
-	  pred = 1.0e-3;
-	if ( pred<1.0e-3 )
-	  pred = 1.0e-3;
-
-	float nll_bin = (pred-obs);
-	if ( obs>0 )
-	  nll_bin += obs*(log(obs)-log(pred));
-	//std::cout << "[" << imatch << "][" << ich << "] pred=" << pred << " obs=" << obs << " nllbin=" << nll_bin << std::endl;
-	nll_match += 2.0*nll_bin;
-
-	if ( ich==0 )
-	  cdf_data[ich] = obs;
-	else
-	  cdf_data[ich] = cdf_data[ich-1] + obs;
-	
-	if ( ich==0 )
-	  cdf_pred[ich] = pred;
-	else
-	  cdf_pred[ich] = cdf_pred[ich-1] + pred;
-
-	float cdf_dist = 0.;
-	if ( (datanorm==0 && hyponorm!=0 ) || (datanorm!=0 && hyponorm==0 ) )
-	  cdf_dist = 1.0;
-	else 
-	  cdf_dist = fabs( cdf_data[ich]/datanorm - cdf_pred[ich]/hyponorm );
-	if ( cdf_dist > maxdist_match )
-	  maxdist_match = cdf_dist;
-      }
-
-      // store values
-      *(fmatch_nll + imatch) = nll_match;
-      *(fmatch_maxdist + imatch) = maxdist_match;
-      
-      // accumulate for system
-      nll_data += nll_match*fmatch[imatch];
-    }
-
-    // constraints:
-    float nll_clustsum = 0.;
-    //for each cluster. sum of pairs to flashes should be 1
-    for (int iclust=0; iclust<_nclusters_red; iclust++) {
-      float clustsum = 0.;
-      for (int iflash=0; iflash<_nflashes_red; iflash++) {
-	int imatch = getMatchIndex( iflash, iclust );
-	if ( imatch>=0 )
-	  clustsum += *(fmatch+ imatch );
-      }
-      nll_clustsum += (clustsum-1.0)*(clustsum-1.0);
-      //std::cout << "clustsum[" << iclust << "] " << clustsum << std::endl;
-    }
-
-    float nll_flashsum = 0.;
-    //for each flash. sum of pairs to flashes should be 1 for the most part
-    for (int iflash=0; iflash<_nflashes_red; iflash++) {
-      float flashsum = 0.;
-      for (int iclust=0; iclust<_nclusters_red; iclust++) {
-	int imatch = getMatchIndex( iflash, iclust );
-	if ( imatch>=0 )
-	  flashsum += *(fmatch+ imatch );
-      }
-      nll_flashsum += (flashsum-1.0)*(flashsum-1.0);
-      //std::cout << "clustsum[" << iclust << "] " << clustsum << std::endl;
-    }
-    
-    // L1 norm: enforce sparsity
-    float nll_l1norm = 0;
-    for (int imatch=0; imatch<_nmatches; imatch++) {
-      nll_l1norm += fabs(fmatch[imatch]);
-    }
-
-    // lightyield prior
-    float nll_ly = (*flightyield - _fweighted_scalefactor_mean)*(*flightyield - _fweighted_scalefactor_mean)/_fweighted_scalefactor_sig;
-
-    float nll = nll_data + _fclustsum_weight*nll_clustsum + _fflashsum_weight*nll_flashsum + _fl1norm_weight*nll_l1norm + _flightyield_weight*nll_ly;
-    if ( print )
-      std::cout << "NLL(ly=" << *flightyield << "): nll_tot=" << nll
-		<< ":  nll_data=" << nll_data
-		<< " + nll_clustsum=" << nll_clustsum
-		<< " + nll_flashsum=" << nll_flashsum	
-		<< " + l1norm=" << nll_l1norm
-		<< " nll_ly=" << nll_ly << "" << std::endl; 
-    
-    return nll;
-  }
-
   float LArFlowFlashMatch::generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
 					     std::vector<float>& match_v, float& ly  ) {
     // generate number of flips
@@ -1624,12 +1273,12 @@ namespace larflow {
 	}
       }
       // FOR DEBUG
-      std::cout << "mctrack[" << mct.TrackID() << ",origin=" << mct.Origin() << "] pdg=" << mct.PdgCode()
-      		<< " E=" << mct.Start().E() 
-      		<< " T()=" << mct.Start().T() << " track_tick=" << track_tick << " optick=" << flash_time
-      		<< " best_flashidx="  << best_flashidx << " "
-      		<< " best_dtick=" << best_dtick
-      		<< " nmatched=" << nmatch << std::endl;
+      // std::cout << "mctrack[" << mct.TrackID() << ",origin=" << mct.Origin() << "] pdg=" << mct.PdgCode()
+      // 		<< " E=" << mct.Start().E() 
+      // 		<< " T()=" << mct.Start().T() << " track_tick=" << track_tick << " optick=" << flash_time
+      // 		<< " best_flashidx="  << best_flashidx << " "
+      // 		<< " best_dtick=" << best_dtick
+      // 		<< " nmatched=" << nmatch << std::endl;
     }
 
     // now loop over flashes
@@ -1657,7 +1306,7 @@ namespace larflow {
 	bool isnu = false;	
 	for (int i=0; i<(int)id.size(); i++) {
 	  bool trackisnu = (_nu_mctrackid.find(id[i])!=_nu_mctrackid.end());
-	  std::cout << "  multiple-truthmatches[" << i << "] id=" << id[i] << " mid=" << mid[i] << " pdg=" << pdg[i] << " dz=" << dz[i] << " isnu=" << trackisnu << std::endl;
+	  //std::cout << "  multiple-truthmatches[" << i << "] id=" << id[i] << " mid=" << mid[i] << " pdg=" << pdg[i] << " dz=" << dz[i] << " isnu=" << trackisnu << std::endl;
 	  if ( (id[i]==mid[i] && dz[i]<closestz) || (trackisnu && flashdata_v[iflash].intime) ) {
 	    idx = id[i];
 	    pdgx = pdg[i];
@@ -1673,15 +1322,15 @@ namespace larflow {
 	
       }// if multipl matched ids
       int nmcpts = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ].size();
-      std::cout << "FlashMCtrackMatch[" << iflash << "] "
-		<< "tick=" << flashdata_v[iflash].tpc_tick << " "
-		<< "nmatches=" << id.size() << " "
-		<< "trackid=" << flashdata_v[iflash].mctrackid << " "
-		<< "pdg=" << flashdata_v[iflash].mctrackpdg << " "
-		<< "isnu=" << flashdata_v[iflash].isneutrino << " "
-		<< "intime=" << flashdata_v[iflash].intime << " "
-		<< "isbeam=" << flashdata_v[iflash].isbeam << " "			
-		<< "nmcpts=" << nmcpts << std::endl;
+      // std::cout << "FlashMCtrackMatch[" << iflash << "] "
+      // 		<< "tick=" << flashdata_v[iflash].tpc_tick << " "
+      // 		<< "nmatches=" << id.size() << " "
+      // 		<< "trackid=" << flashdata_v[iflash].mctrackid << " "
+      // 		<< "pdg=" << flashdata_v[iflash].mctrackpdg << " "
+      // 		<< "isnu=" << flashdata_v[iflash].isneutrino << " "
+      // 		<< "intime=" << flashdata_v[iflash].intime << " "
+      // 		<< "isbeam=" << flashdata_v[iflash].isbeam << " "			
+      // 		<< "nmcpts=" << nmcpts << std::endl;
     }
     _kFlashMatchedDone = true;
   }
@@ -1953,7 +1602,7 @@ namespace larflow {
 
 
   void LArFlowFlashMatch::setFitParsWithTruthMatch() {
-    // set the fitter parameters
+    // set the fitter parameters using truth-matching
     
     if ( !_kFlashMatchedDone ) {
       throw std::runtime_error("[larflow::LArFlowFlashMatch::setFitParsWithTruthMatch][ERROR] Truth-based flash-matching not yet done.");
@@ -1989,68 +1638,7 @@ namespace larflow {
     }
 
   }
-  
-  // ---------------------------------------------------------------------
-  // second match refinement
-  // ---------------------------------------------------------------------
-  /*
-  void LArFlowFlashMatch::secondMatchRefinement() {
-    // we take the flashmatchcandidate objects in m_matchcandidate_hypo_v and
-    // reject matches based on
-    // 1) pe ratio
-    // 2) maxdist
     
-    int matchidx = 0;
-    int flashidx = 0;
-    int clustidx = 0;
-    for ( auto& matchcandidate : m_matchcandidate_hypo_v ) {
-      
-      matchcandidate.getFlashClusterIndex( flashidx, clustidx );
-
-      if ( _flashdata_v[flashidx].mctrackid>=0 ) {
-	if ( matchcandidate.isTruthMatch() )
-	_truthmatch = 1;
-	else
-	  _truthmatch = 0;
-      }
-      else
-	_truthmatch = -1;
-
-      FlashHypo_t match_wext = matchcandidate.getHypothesis( true,  true, 10.0 );
-      FlashHypo_t match_orig = matchcandidate.getHypothesis( false, true, 10.0 );
-      
-      _maxdist_wext = FlashMatchCandidate::getMaxDist( *(matchcandidate._flashdata),  match_wext );
-      _peratio_wext = FlashMatchCandidate::getPERatio( *(matchcandidate._flashdata),  match_wext );
-      _maxdist_orig = FlashMatchCandidate::getMaxDist( *(matchcandidate._flashdata),  match_orig );
-      _peratio_orig = FlashMatchCandidate::getPERatio( *(matchcandidate._flashdata),  match_orig );
-
-      _maxdist_red2 = ( _maxdist_wext < _maxdist_orig ) ? _maxdist_wext : _maxdist_orig;
-      _peratio_red2 = ( _peratio_wext < _peratio_orig ) ? _peratio_wext : _peratio_orig;
-
-      _isbeam = (_flashdata_v[flashidx].isbeam) ? 1 : 0;
-      _isneutrino = (_qcluster_v[clustidx].isneutrino) ? 1 : 0;
-      _intime = (_flashdata_v[flashidx].intime) ? 1 : 0;
-      
-
-      if ( fabs(_peratio_red2)>0.5 ) {
-	_redstep = 2;
-	setCompat( flashidx, clustidx, 5 );
-      }
-      else if ( _maxdist_red2>0.25 ) {
-	_redstep = 2;	
-	setCompat( flashidx, clustidx, 6 );
-      }
-      else {
-	_redstep = 3;
-      }
-
-      if (_save_ana_tree)
-	_anatree->Fill();
-      
-    }
-  }
-  */
-  
   // ---------------------------------------------------------------------
   // Ana Tree
   // ---------------------------------------------------------------------
@@ -2063,6 +1651,9 @@ namespace larflow {
   void LArFlowFlashMatch::setupAnaTree() {
     _fanafile = new TFile( _ana_filename.c_str(), "recreate" );
     _anatree  = new TTree("flashmatchana", "LArFlow FlashMatch Ana Tree");
+    _anatree->Branch("run",          &_run,          "run/I");
+    _anatree->Branch("subrun",       &_subrun,       "subrun/I");
+    _anatree->Branch("event",        &_event,        "event/I");
     _anatree->Branch("cutfailed",    &_cutfailed,    "cutfailed/I");
     _anatree->Branch("truthmatch",   &_truthmatch,   "truthmatch/I");
     _anatree->Branch("isneutrino",   &_isneutrino,   "isneutrino/I");        
@@ -2104,9 +1695,67 @@ namespace larflow {
     _fmatch = 0;
     _fmatch_truth=0;
   }
+
+  void LArFlowFlashMatch::setRSE( int run, int subrun, int event ) {
+    _run = run;
+    _subrun = subrun;
+    _event = event;
+  }
+  
+  void LArFlowFlashMatch::saveAnaMatchData() {
+
+    for (int iflash=0; iflash<_flashdata_v.size(); iflash++) {
+      
+      const FlashData_t&    flash = _flashdata_v[iflash];
+      
+      for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
+	
+	const QCluster_t& cluster = _qcluster_v[iclust];
+	CutVars_t& cutvars = getCutVars(iflash,iclust);
+    
+	_cutfailed  = cutvars.cutfailed;
+	if ( flash.truthmatched_clusteridx==iclust )
+	  _truthmatch = 1;
+
+	_isbeam     = (flash.isbeam) ? 1 : 0;
+	_isneutrino = (cluster.isneutrino) ? 1 : 0;
+	_intime     = (flash.intime) ? 1 : 0;
+	
+	_hypope     = 0;
+	_datape     = 0;
+	
+	_dtick_window  = cutvars.dtick_window;
+	_maxdist_wext  = cutvars.maxdist_wext;
+	_maxdist_noext = cutvars.maxdist_noext;
+	_maxdist_best  = (_maxdist_wext<_maxdist_noext) ? _maxdist_wext : _maxdist_noext;
+    
+	_peratio_wext  = cutvars.peratio_wext;
+	_peratio_noext = cutvars.peratio_noext;
+	_peratio_best  = (_peratio_wext<_peratio_noext) ? _peratio_wext : _peratio_noext;
+
+	_enterlen      = cutvars.enterlen;
+	_fmatch        = cutvars.fit1fmatch;
+
+	// find truthmatch
+	_fmatch_truth = -1.0;
+	if ( flash.truthmatched_clusteridx>=0 ) {
+	  MatchPair_t pair;
+	  pair.flashidx   = iflash;
+	  pair.clusteridx = flash.truthmatched_clusteridx;
+	  auto it_pair = _pair2matchidx.find(pair);
+	  if ( it_pair!=_pair2matchidx.end() ) {
+	    _fmatch_truth = _fitter._fmatch_v.at(it_pair->second);
+	  }
+	}
+
+	_anatree->Fill();
+	
+      }// end of cluster loop
+    }//end of flash loop
+  }
   
   void LArFlowFlashMatch::writeAnaFile() {
-    if ( _save_ana_tree ) {
+    if ( _save_ana_tree && !_anafile_written ) {
       _fanafile->cd();
       _anatree->Write();
       _anafile_written = true;

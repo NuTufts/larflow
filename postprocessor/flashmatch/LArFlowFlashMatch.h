@@ -48,14 +48,18 @@ namespace larflow {
 		const std::vector<larlite::larflowcluster>& clusters,
 		const std::vector<larcv::Image2D>& img_v,
 		const bool ignorelast=true);
+    void setRSE( int run, int subrun, int event );    
+    void clearEvent();    
 
     void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
-    
-    std::vector<larlite::larflowcluster> exportMatchedTracks();
-    void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" );
-    void writeAnaFile();
-    void clearEvent();
+
+    void saveAnaMatchData(); // call per event
+    void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" ); // call at begining
+    void writeAnaFile(); // call at end
+
+
+    std::vector<larlite::larflowcluster> exportMatchedTracks();    
     
   protected:
 
@@ -104,9 +108,13 @@ namespace larflow {
 	dtick_window(0),
 	maxdist_wext(-1),
 	maxdist_noext(-1),
+	pe_hypo(-1),
+	pe_data(-1),
 	peratio_wext(-1),
 	peratio_noext(-1),
-	enterlen(-1)
+	enterlen(-1),
+	fit1fmatch(-1),
+	truthscore(-1)
       {};
       CutReason_t cutfailed;
 
@@ -118,6 +126,8 @@ namespace larflow {
       float maxdist_noext;
 
       // peratio comparison
+      float pe_hypo;
+      float pe_data;
       float peratio_wext;
       float peratio_noext;
 
@@ -229,17 +239,14 @@ namespace larflow {
     bool  _has_chstatus;
     const larcv::EventChStatus* _evstatus;
 
-
-    /* // secondMatchRefinement */
-    /* // --------------------- */
-    /* void secondMatchRefinement(); */
-
-
     // analysis variable tree
     // ----------------------
     std::string _ana_filename;
     TFile* _fanafile;
     TTree* _anatree;
+    int   _run;
+    int   _subrun;
+    int   _event;
     int   _cutfailed;
     int   _truthmatch;
     int   _isneutrino;
