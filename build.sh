@@ -4,7 +4,9 @@ cd larlite
 make
 cd UserDev/BasicTool
 make
-cd ../..
+cd ../SelectionTool/OpT0Finder
+make
+cd ../../..
 
 cd ../Geo2D
 make
