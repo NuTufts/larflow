@@ -1,22 +1,14 @@
 Bootstrap: docker
-From: twongjirad/larbys-pytorch:6.12.04_cuda8.0_larcv2nutufts_pytorch0.4
+From: twongjirad/larflow:latest
 
 %post
-  echo "START POST SCRIPT"
-  apt-get -y update
-  apt-get -y install vim wget perl python python-pip python-dev
-  cd /usr/local
-  rm -rf gpu4singularity
-  git clone https://github.com/twongjirad/gpu4singularity
-  cd gpu4singularity
-  git checkout 384.66
-  chmod a+rx gpu4singularity
-  echo "GPU 4 SINGULARITY"
-  ./gpu4singularity --full-url=http://us.download.nvidia.com/XFree86/Linux-x86_64/384.66/NVIDIA-Linux-x86_64-384.66.run --nvidia-version 384.66
-  cd ../
-  rm -rf gpu4singularity
-  apt-get autoremove -y
-  apt-get clean -y  
+  echo "LARFLOW POST"
+  cd /usr/local/
+  git clone https://github.com/NuTufts/larflow.git
+  cd larflow
+  git checkout cilantro_test
+  bash -c "source compile_on_tuftsgrid.sh /usr/local/larflow"
+  cp /tmp/uboone_photon_library_v6_70kV_EnhancedExtraTPCVis.root /usr/local/larflow/larlite/UserDev/SelectionTool/OpT0Finder/PhotonLibrary/dat/
   mkdir -p /cluster/home
   mkdir -p /cluster/kappa
   mkdir -p /cluster/shared
