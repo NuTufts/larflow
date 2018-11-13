@@ -44,7 +44,7 @@ import torch
 from larflow_funcs import load_model
 
 class WholeImageLoader:
-    def __init__(self,larcv_input_file, ismc=True):
+    def __init__(self,larcv_input_file, ismc=True,workdir="./"):
 
         # we setup a larcv IOManager for read mode
         self.io = larcv.IOManager( larcv.IOManager.kREAD )
@@ -71,10 +71,10 @@ class WholeImageLoader:
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
         """
-        fcfg = open("ubsplit.cfg",'w')
+        fcfg = open(workdir+"/ubsplit.cfg",'w')
         print >>fcfg,ubsplit_cfg
         fcfg.close()
-        split_pset = larcv.CreatePSetFromFile( "ubsplit.cfg", "UBSplitDetector" )
+        split_pset = larcv.CreatePSetFromFile( workdir+"./ubsplit.cfg", "UBSplitDetector" )
         self.split_algo = larcv.UBSplitDetector()
         self.split_algo.configure(split_pset)
         self.split_algo.initialize()
@@ -105,10 +105,10 @@ class WholeImageLoader:
         UseVectorizedCode: true
         IsMC: {}
         """
-        flowcrop_cfg = open("ublarflowcrop.cfg",'w')
+        flowcrop_cfg = open(workdir+"/ublarflowcrop.cfg",'w')
         print >>flowcrop_cfg,lfcrop_cfg.format( str(ismc).lower() )
         flowcrop_cfg.close()
-        flowcrop_pset = larcv.CreatePSetFromFile( "ublarflowcrop.cfg", "UBLArFlowCrop" )
+        flowcrop_pset = larcv.CreatePSetFromFile( workdir+"/ublarflowcrop.cfg", "UBLArFlowCrop" )
         self.flowcrop_algo = larcv.UBCropLArFlow()
         self.flowcrop_algo.configure( flowcrop_pset )
         self.flowcrop_algo.initialize()
