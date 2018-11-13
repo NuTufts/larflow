@@ -22,6 +22,7 @@ whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", def
 whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
 whole_view_parser.add_argument( "-d", "--debug",        action="store_true", default=False, help="run in debug mode. uses hardcoded parameters for dev" )
 whole_view_parser.add_argument( "-a", "--saveadc",      action="store_true", default=False, help="save cropped ADC as well" )
+whole_view_parser.add_argument( "-w", "--workdir",      default="", type=str, help="set working directory" )
 
 args = whole_view_parser.parse_args(sys.argv[1:])
 
@@ -160,6 +161,7 @@ if __name__=="__main__":
         use_half              = args.usehalf
         ismc                  = args.ismc
         save_cropped_adc      = args.saveadc
+        workdir               = args.workdir
     else:
 
         # for testing
@@ -176,6 +178,7 @@ if __name__=="__main__":
         nprocess_events = -1
         stitch = False
         use_half = True
+        workdir="./"
         
         FLOWDIR="Y2V"
 
@@ -198,7 +201,7 @@ if __name__=="__main__":
         raise ValueError("Required argument '--flowdir' must be [ Y2U, Y2V ]")
 
     # load data
-    inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
+    inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc, workdir=workdir )
     
     # load model
     model = load_model( checkpoint_data, gpuid=gpuid, checkpointgpu=checkpoint_gpuid, use_half=use_half )
