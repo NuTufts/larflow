@@ -18,7 +18,7 @@ import torch
 from infill_funcs import load_model
 
 class WholeImageLoader:
-    def __init__(self,larcv_input_file, ismc=True):
+    def __init__(self,larcv_input_file, ismc=True, workdir="./"):
         """ This class prepares the data.  
         It passes each event through ubsplitdet to make subimages.
         The bbox and adcs from these images are passed to ubcropinfill to crop the truth images.
@@ -51,10 +51,10 @@ class WholeImageLoader:
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
         """
-        fcfg = open("ubsplit.cfg",'w')
+        fcfg = open(workdir+"/ubsplit.cfg",'w')
         print >>fcfg,ubsplit_cfg
         fcfg.close()
-        split_pset = larcv.CreatePSetFromFile( "ubsplit.cfg", "UBSplitDetector" )
+        split_pset = larcv.CreatePSetFromFile( workdir+"/ubsplit.cfg", "UBSplitDetector" )
         self.split_algo = larcv.UBSplitDetector()
         self.split_algo.configure(split_pset)
         self.split_algo.initialize()
@@ -81,10 +81,10 @@ class WholeImageLoader:
         LimitOverlap: false
         MaxOverlapFraction: -1
         """
-        infillcrop_cfg = open("infillcrop.cfg",'w')
+        infillcrop_cfg = open(workdir+"/infillcrop.cfg",'w')
         print >>infillcrop_cfg,infillcrop_cfg_str
         infillcrop_cfg.close()
-        infillcrop_pset = larcv.CreatePSetFromFile( "infillcrop.cfg", "UBCropInfill" )
+        infillcrop_pset = larcv.CreatePSetFromFile( workdir+"/infillcrop.cfg", "UBCropInfill" )
         self.infillcrop_algo = larcv.UBCropInfill()
         self.infillcrop_algo.configure( infillcrop_pset )
         self.infillcrop_algo.initialize()
@@ -123,12 +123,12 @@ if __name__=="__main__":
         whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through Infill.')
         whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
         whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
-        whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
+        whole_view_parser.add_argument( "-cd","--checkpointdir",required=True, type=str, help="location of model checkpoint file directory")
         whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
         whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
         whole_view_parser.add_argument( "-b", "--batchsize",    default=2,     type=int, help="batch size" )
         whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
-        whole_view_parser.add_argument( "-v", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
+        whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
         whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
         whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
         whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
@@ -136,7 +136,7 @@ if __name__=="__main__":
         args = whole_view_parser.parse_args(sys.argv)
         input_larcv_filename  = args.input
         output_larcv_filename = args.output
-        checkpoint_data       = args.checkpoint
+        checkpoint_data       = [ args.checkpointdir+"/devfiltered_infill_final_checkpoint_%splane.tar" for p in ("u","v","y") ]
         gpuid                 = args.gpuid
         checkpoint_gpuid      = args.chkpt_gpuid
         batch_size            = args.batchsize
