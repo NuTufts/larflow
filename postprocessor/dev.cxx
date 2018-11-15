@@ -140,11 +140,12 @@ void stitch_infill(larcv::IOManager& ioinfill,
   }
   
   // clear wholeview infill
-  for ( int iimg=0; iimg<(int)adcwhole.size(); iimg ) {
+  for ( int iimg=0; iimg<(int)adcwhole.size(); iimg++ ) {
     larcv::Image2D& infill = infill_whole_v[iimg];
     infill.paint(0);
   }
 
+  std::cout << "stitchsearch (" << run << "," << subrun << "," << event << ") read_entry=" << entry << std::endl;
   int ientry = entry;
   ioinfill.read_entry( ientry );
   auto evinfill = (larcv::EventImage2D*)ioinfill.get_data( "image2d", "infillCropped" );
