@@ -189,6 +189,7 @@ struct InputArgs_t {
       makehits_useunmatched(false),
       makehits_require_3dconsistency(false),
       process_num_events(-1),
+      jobid(-1),
       kVISUALIZE(false),
       kINSPECT(false)
   {};
@@ -249,30 +250,54 @@ struct Arg_t {
 InputArgs_t parseArgs( int nargs, char** argv ) {
 
   std::vector< Arg_t > commands;
-  commands.push_back( Arg_t("-c",  "combined (cropped) dlcosmictag file") );
-  commands.push_back( Arg_t("-y2u","individual (cropped) y2u file") );
-  commands.push_back( Arg_t("-y2v","individual (cropped) y2v file") );
-  commands.push_back( Arg_t("-adc","individual (cropped) adc file") );
+  commands.push_back( Arg_t("-c",  "combined (cropped) dlcosmictag file [required or provide individual files below]") );
+  commands.push_back( Arg_t("-y2u","individual (cropped) y2u file [required if combined not provided]") );
+  commands.push_back( Arg_t("-y2v","individual (cropped) y2v file [required if combined not provided]") );
+  commands.push_back( Arg_t("-adc","individual (cropped) adc file [required if combined not provided]") );
   commands.push_back( Arg_t("-in", "individual (cropped) infill file") );
   commands.push_back( Arg_t("-ss", "individual (cropped) ssnet file") );
+  commands.push_back( Arg_t("-su", "event supera larcv file [required]") );
+  commands.push_back( Arg_t("-oll","output larflow larlite file [required]") );
+  commands.push_back( Arg_t("-olc","output larflow larcv file [required]") );  
   commands.push_back( Arg_t("-mc", "event mcinfo larlite file") );
   commands.push_back( Arg_t("-op", "event opreco larlite file") );
-  commands.push_back( Arg_t("-re", "event reco2d larlite file") );
-  commands.push_back( Arg_t("-su", "event supera larcv file") );
-  commands.push_back( Arg_t("-oll",  "output larflow larlite file") );
-  commands.push_back( Arg_t("-olc",  "output larflow larcv file") );
+  commands.push_back( Arg_t("-re", "event reco2d larlite file [required if use-hits]") );
   commands.push_back( Arg_t("-j",  "jobid") );
+  commands.push_back( Arg_t("-n",  "number of events to run") );
+  commands.push_back( Arg_t("--use-truth",  "Use pixelflow truth") );
+  commands.push_back( Arg_t("--use-hits",   "Use gaushits as seeds to 3d hits") );
+  commands.push_back( Arg_t("--use-require-3dconsist", "use 3d consistency cut") );
+  commands.push_back( Arg_t("--use-unmatched", "use unmatched hits") );
+  commands.push_back( Arg_t("--vis", "visualize cropped image matching") );
+  commands.push_back( Arg_t("--inspect", "inspect visualization") );
+
+  bool printhelp = false;
+  for ( int iarg=1; iarg<nargs; iarg++ )
+    if ( std::string(argv[iarg])=="-h" ) printhelp = true;
+  
+  if ( nargs==1 || printhelp ) {
+    std::cout << "-------------------------------" << std::endl;
+    std::cout << "Dev arguments" << std::endl;
+    for ( auto const& arg : commands ) {
+      std::cout << "  " << arg.flag << "  :: " << arg.help << std::endl;
+    }
+    throw std::runtime_error("end of help");
+  }
 
   InputArgs_t argconfig;
   argconfig.use_combined_dlcosmictag = false;
   
   for ( int iarg=1; iarg<nargs; iarg++ ) {
+
+    if ( argv[iarg][0]!='-' )
+      continue;
+
+    bool commandmatched = false;
     for ( auto const& command : commands ) {
-
-      if ( argv[iarg][0]!='-' )
-	continue;
-
-      if ( argv[iarg]==command.flag ) {
+      
+      if ( std::string(argv[iarg])==command.flag ) {
+	commandmatched = true;
+	std::string strflag = argv[iarg];
 	
 	if ( command.flag=="-c" ) {
 	  argconfig.use_combined_dlcosmictag = true;
@@ -327,17 +352,21 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	else if ( command.flag=="-n" )
 	  argconfig.process_num_events = std::atoi(argv[iarg+1]);
 
+	break;
       }//end of if command flag matched
-      else {
-	std::stringstream ss;
-	ss << "unrecognized command: " << argv[iarg];
-	throw std::runtime_error(ss.str());
-      }
+    }
+
+    if ( !commandmatched ) {
+      std::stringstream ss;
+      ss << "unrecognized command: '" << argv[iarg]<< "'";
+      throw std::runtime_error(ss.str());
     }
 
   }//end of loop over arguments
 
-  // consistency check
+  // Configuration Check
+  // -------------------
+  
   if ( argconfig.use_hits && !argconfig.has_reco2d ) {
     throw std::runtime_error("set to use hits, but no reco2d file with gaushits");  
   }
@@ -353,6 +382,9 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
   if ( !argconfig.outputset_larlite || !argconfig.outputset_larcv ) {
     throw std::runtime_error("failed to set both output larcv and larlite filenames");
   }
+
+  if ( argconfig.jobid<0 ) argconfig.jobid=0;
+  
   return argconfig;
 }
 
@@ -367,12 +399,6 @@ int main( int nargs, char** argv ) {
   // -------------------------------------------------------------
 
   // arg parsing
-  if ( nargs!=9 ) {
-    std::cout << "usage:./dev [input dl larcv (larflow,infill,ssnet),cropped set] [supera] [reco2d] [opreco] [mcinfo] [outfile] [jobid]" << std::endl;
-    std::cout << " if not providing one the elements, replace filename with '0'" << std::endl;
-    return 0;
-  }
-
   InputArgs_t inputargs = parseArgs( nargs, argv );
   
   TApplication app ("app",&nargs,argv);  
