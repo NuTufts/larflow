@@ -155,6 +155,7 @@ void stitch_infill(larcv::IOManager& ioinfill,
   bool ok = true;
   int nstitched = 0;
   while ( entryrun==run && entrysubrun==subrun && entryevent==event && ok) {
+    std::cout << "stitchsearch (" << run << "," << subrun << "," << event << ") ientry=" << ientry << std::endl;
     for (int p=0; p<3; p++) {
       matching_algo.stitchInfill(evinfill->as_vector()[p],trusted_v[p],infill_whole_v[p],*ev_chstatus);
     }
@@ -512,6 +513,7 @@ int main( int nargs, char** argv ) {
   int current_runid    = -1;
   int current_subrunid = -1;
   int current_eventid  = -1;
+  int current_ientrystart = -1;
   int nevents = 0;
   int eventstart = 0;
 
@@ -552,6 +554,7 @@ int main( int nargs, char** argv ) {
       current_runid    = runid;
       current_subrunid = subrunid;
       current_eventid  = eventid;
+      current_ientrystart = ientry;
       isnewevent = true;
     }
 
@@ -578,6 +581,7 @@ int main( int nargs, char** argv ) {
       current_runid    = runid;
       current_subrunid = subrunid;
       current_eventid  = eventid;
+      current_ientrystart = ientry;
       isnewevent = true;
 
       std::cout << "entry to continue" << std::endl;
@@ -630,7 +634,7 @@ int main( int nargs, char** argv ) {
       // create a whole-image infills
       if ( inputargs.has_infill ) {
 	std::cout << "perform infill stitch" << std::endl;
-	stitch_infill( dataco_infill, ev_wholeimg->as_vector(), ev_chstatus, infill_whole_v, matching_algo, runid, subrunid, eventid, ientry );
+	stitch_infill( dataco_infill, ev_wholeimg->as_vector(), ev_chstatus, infill_whole_v, matching_algo, current_runid, current_subrunid, current_eventid, current_ientrystart );
 
 	//mask infill and add to adc
 	for ( int p=0; p<3; p++) {
