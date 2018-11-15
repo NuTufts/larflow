@@ -599,6 +599,10 @@ int main( int nargs, char** argv ) {
 
       // channel status
       ev_chstatus = (larcv::EventChStatus*) dataco_wholelarcv.get_data("chstatus","wire");
+      std::cout << "chstatus size: " << ev_chstatus->chstatus_map().size() << std::endl;
+      for ( auto const& itchstatus : ev_chstatus->chstatus_map() ) {
+	std::cout << " projection: " << itchstatus.first << " entries=" << itchstatus.second.as_vector().size() << std::endl;
+      }
       
       // sync up larlite data
       if ( inputargs.has_reco2d ) {
