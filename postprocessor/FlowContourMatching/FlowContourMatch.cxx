@@ -247,6 +247,7 @@ namespace larflow {
     const larcv::ChStatus& status = ev_chstatus.status(infill.meta().id());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<infill.meta().cols(); col++){
+      if ( (col+(int)infill.meta().min_x())>=(int)st_v.size() ) continue; // bounds check
       if(st_v[col+infill.meta().min_x()]==4) continue; //if good ch skip
       for(int row=0; row<infill.meta().rows(); row++){
 	if(infill.pixel(row,col)<score_thresh) continue; //infill score threshold
@@ -273,6 +274,7 @@ namespace larflow {
     const larcv::ChStatus& status = ev_chstatus.status(masked_infill.meta().id());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<masked_infill.meta().cols(); col++){
+      if ( (col+(int)masked_infill.meta().min_x())>=(int)st_v.size() ) continue; // bounds check
       if(st_v[col+masked_infill.meta().min_x()]==4) continue; //if good ch skip
       for(int row=0; row<masked_infill.meta().rows(); row++){
 	if(masked_infill.pixel(row,col)<1) continue; //masked infill
