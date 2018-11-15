@@ -271,6 +271,17 @@ namespace larflow {
     //---------
     // edited adc image
     //
+
+    // int maxcol = img_fill_v.meta().cols();
+    // int maxcol_plane = maxcol;
+    // if ( img_fill_v.meta().id()<2 ) {
+    //   maxcol_plane = img_fill_v.meta().col(2399)+1; // maxwire
+    // }
+    // else {
+    //   maxcol_plane = img_fill_v.meta().col(3455)+1; // maxwire
+    // }
+    // maxcol = ( maxcol>maxcol_plane) ? maxcol_plane : maxcol;
+    
     const larcv::ChStatus& status = ev_chstatus.status(masked_infill.meta().id());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<masked_infill.meta().cols(); col++){
@@ -820,13 +831,23 @@ namespace larflow {
 
     evhit_v.clear();
     evhit_v.reserve(10000);
+
+    int maxcol = src_adc.meta().cols();
+    int maxcol_plane = maxcol;
+    if ( src_adc.meta().id()<2 ) {
+      maxcol_plane = src_adc.meta().col(2399)+1; // maxwire
+    }
+    else {
+      maxcol_plane = src_adc.meta().col(3455)+1; // maxwire
+    }
+    maxcol = ( maxcol>maxcol_plane) ? maxcol_plane : maxcol;
     
     // we loop over all source pixels and make "hits" for all pixels above threshold
     int ihit = 0;
     for (int irow=0; irow<(int)src_adc.meta().rows(); irow++) {
       float hit_tick = src_adc.meta().pos_y( irow )-2400.0;
       
-      for (int icol=0; icol<(int)src_adc.meta().cols(); icol++) {
+      for (int icol=0; icol<maxcol; icol++) {
 	float pixval = src_adc.pixel( irow, icol );
 	if (pixval<threshold )
 	  continue;
