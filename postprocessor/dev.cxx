@@ -597,8 +597,8 @@ int main( int nargs, char** argv ) {
       current_ientrystart = ientry;
       isnewevent = true;
 
-      std::cout << "entry to continue" << std::endl;
-      std::cin.get();      
+      //std::cout << "entry to continue" << std::endl;
+      //std::cin.get();      
     }
     
 
@@ -619,8 +619,11 @@ int main( int nargs, char** argv ) {
       // sync up larlite data
       if ( inputargs.has_reco2d || inputargs.has_opreco || inputargs.has_mcreco ) {
 	find_rse_entry( dataco_hits, current_runid, current_subrunid, current_eventid, iwholelarlite_index );
+      }
+
+      if ( inputargs.has_reco2d ) {
 	ev_hit = ((larlite::event_hit*)dataco_hits.get_data(larlite::data::kHit, "gaushit"));
-	std::cout << "Number of hits in New Event: " << ev_hit->size() << std::endl;
+	std::cout << "Number of reco2d hits in New Event: " << ev_hit->size() << std::endl;
       }
 
       // create whole image + infill merger
