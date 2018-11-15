@@ -500,8 +500,10 @@ int main( int nargs, char** argv ) {
     dataco_hits.add_in_filename( inputargs.input_opreco );
   if ( inputargs.has_mcreco )
     dataco_hits.add_in_filename( inputargs.input_mcinfo );
-  if ( inputargs.has_opreco || inputargs.has_mcreco || inputargs.has_reco2d )
+  if ( inputargs.has_opreco || inputargs.has_mcreco || inputargs.has_reco2d ) {
+    std::cout << "dataco_hits: open file" << std::endl;
     dataco_hits.open();
+  }
 
   // output: 3D track hits
   larlite::storage_manager dataco_output( larlite::storage_manager::kWRITE );
