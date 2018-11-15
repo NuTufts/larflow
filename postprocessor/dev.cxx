@@ -492,7 +492,7 @@ int main( int nargs, char** argv ) {
   int iwholelarcv_index = 0;
   
   // hit (and mctruth) event data
-  larlite::storage_manager dataco_hits;
+  larlite::storage_manager dataco_hits( larlite::storage_manager::kREAD );
   int iwholelarlite_index = 0;
   if ( inputargs.has_reco2d )
     dataco_hits.add_in_filename( inputargs.input_reco2d );
