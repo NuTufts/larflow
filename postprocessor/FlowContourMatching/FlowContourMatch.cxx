@@ -683,7 +683,7 @@ namespace larflow {
 				       std::vector<float>& X,
 				       FlowDirection_t flowdir) {
 
-    if ( hit_y2u.srcwire<0 ) {
+    if ( hit_y2u.srcwire<0 || hit_y2u.srcwire>=3456) {
       // this hit has no flow-match data
       X[0] = -1;
       X[1] = -1;
@@ -692,7 +692,7 @@ namespace larflow {
     }
     // for debug
     //std::cout << __PRETTY_FUNCTION__ << "src wire=" << hit_y2u.srcwire << " tar(u)=" << hit_y2u.targetwire << std::endl;
-    if ( hit_y2u.targetwire<0 ) {
+    if ( hit_y2u.targetwire<0 || hit_y2u.targetwire>=2400 ) {
       // flow is out of the plane (track how this happend).
       // for now, we do not have a vaule
       X[0] = -1;
