@@ -629,6 +629,7 @@ int main( int nargs, char** argv ) {
       
       // create a whole-image infills
       if ( inputargs.has_infill ) {
+	std::cout << "perform infill stitch" << std::endl;
 	stitch_infill( dataco_infill, ev_wholeimg->as_vector(), ev_chstatus, infill_whole_v, matching_algo, runid, subrunid, eventid, ientry );
 
 	//mask infill and add to adc
