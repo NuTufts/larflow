@@ -21,7 +21,7 @@ SUBDIRS = ContourTools FlowContourMatching cluster
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 EXEC += test_mc
-
+EXEC += dump2json
 
 all: obj $(EXEC) 
 
