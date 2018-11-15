@@ -461,6 +461,8 @@ int main( int nargs, char** argv ) {
     dataco.add_in_file( inputargs.input_cropped_adc );
     if ( inputargs.has_ssnet )
       dataco.add_in_file( inputargs.input_ssnet );
+    if ( inputargs.has_infill )
+      dataco.add_in_file( inputargs.input_infill );
   }
   dataco.initialize();
 
