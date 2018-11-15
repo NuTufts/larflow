@@ -366,14 +366,20 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	  argconfig.output_larcv = argv[iarg+1];
 	  argconfig.outputset_larcv = true;
 	}
-	else if ( command.flag=="-op" ) 
+	else if ( command.flag=="-op" ) {
 	  argconfig.input_opreco = argv[iarg+1];
+	  argconfig.has_opreco = true;
+	}
 	else if ( command.flag=="-su" )
 	  argconfig.input_supera = argv[iarg+1];
-	else if ( command.flag=="-mc" )
+	else if ( command.flag=="-mc" ) {
 	  argconfig.input_mcinfo = argv[iarg+1];
-	else if ( command.flag=="-re" )
+	  argconfig.has_mcreco = true;	  
+	}
+	else if ( command.flag=="-re" ) {
 	  argconfig.input_reco2d = argv[iarg+1];
+	  argconfig.has_reco2d = true;
+	}
 	else if ( command.flag=="-j" )
 	  argconfig.jobid = std::atoi(argv[iarg+1]);
 	else if ( command.flag=="--vis")
