@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 
 // ROOT
 #include "TCanvas.h"
@@ -175,7 +176,8 @@ void stitch_infill(larcv::IOManager& ioinfill,
 struct InputArgs_t {
   
   InputArgs_t()
-    : outputset(false),
+    : outputset_larcv(false),
+      outputset_larlite(false),
       use_combined_dlcosmictag(false),
       use_hits(false),
       use_truth(false),
@@ -212,7 +214,8 @@ struct InputArgs_t {
 
   // Output params
   // -------------
-  bool outputset;
+  bool outputset_larlite;
+  bool outputset_larcv;  
   std::string output_larlite;
   std::string output_larcv;
 
@@ -326,22 +329,23 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 
       }//end of if command flag matched
       else {
-	std::cout << "unrecognized command: " << argv[iarg] << std::endl;
-	throw std::runtime_error();
+	std::stringstream ss;
+	ss << "unrecognized command: " << argv[iarg];
+	throw std::runtime_error(ss.str());
       }
     }
 
   }//end of loop over arguments
 
   // consistency check
-  if ( argconfig.use_hits && !argconfig.has_reco ) {
+  if ( argconfig.use_hits && !argconfig.has_reco2d ) {
     throw std::runtime_error("set to use hits, but no reco2d file with gaushits");  
   }
-
+  
   if ( !argconfig.use_combined_dlcosmictag ) {
-    if ( inputargs.input_larflow_y2u.empty() 
-	 || inputargs.input_larflow_y2v.empty()
-	 || inputargs.input_cropped_adc.empty() ) {
+    if ( argconfig.input_larflow_y2u.empty() 
+	 || argconfig.input_larflow_y2v.empty()
+	 || argconfig.input_cropped_adc.empty() ) {
       throw std::runtime_error("missing required cropped file: y2u, y2v, adc");
     }
   }
@@ -448,7 +452,7 @@ int main( int nargs, char** argv ) {
   if ( inputargs.has_opreco )
     dataco_hits.add_inputfile( inputargs.input_opreco,  "larlite" );
   if ( inputargs.has_mcreco )
-    dataco_hits.add_inputfile( inputargs.input_mcreco,  "larlite" );
+    dataco_hits.add_inputfile( inputargs.input_mcinfo,  "larlite" );
   if ( inputargs.has_opreco || inputargs.has_mcreco || inputargs.has_reco2d )
     dataco_hits.initialize();
 
@@ -631,7 +635,7 @@ int main( int nargs, char** argv ) {
       ev_showerimg = (larcv::EventImage2D*)  dataco.get_data("image2d", "ssnetCropped_shower");
       ev_endptimg  = (larcv::EventImage2D*)  dataco.get_data("image2d", "ssnetCropped_endpt");
       if ( !ev_trackimg->valid() || !ev_showerimg->valid() || !ev_endptimg->valid() )
-	has_ssnet = false;
+	inputargs.has_ssnet = false;
     }
     
     //infill prediction (unmasked)
@@ -766,12 +770,12 @@ int main( int nargs, char** argv ) {
 	    larflow::FlowContourMatch::ContourTargets_t& targetlist = it_src_targets->second;
 	    nflowpoints = targetlist.size();
 	    src_flowpix[iflow].Set( targetlist.size() );
-	    if ( use_truth )
+	    if ( inputargs.use_truth )
 	      src_truthflow[iflow].Set( targetlist.size() );
 	    int ipixt = 0;
 	    for ( auto& pix_t : targetlist ) {
 	      src_flowpix[iflow].SetPoint(ipixt, tar_meta[iflow]->pos_x( pix_t.col ), tar_meta[iflow]->pos_y(pix_t.row) );
-	      if ( use_truth ) {
+	      if ( inputargs.use_truth ) {
 		int truthflow = -10000;
 		truthflow = (*true_v)[iflow].pixel( pix_t.row, pix_t.srccol );	  
 		try {
@@ -891,7 +895,7 @@ int main( int nargs, char** argv ) {
 	  g.Draw("L");
 	}
 	//gtarhits.Draw("P");
-	if ( use_truth ) {
+	if ( inputargs.use_truth ) {
 	  src_truthflow[0].SetMarkerStyle(25);      
 	  src_truthflow[0].SetMarkerSize(0.2);
 	  src_truthflow[0].SetMarkerColor(kMagenta);
@@ -909,7 +913,7 @@ int main( int nargs, char** argv ) {
 	  g.Draw("L");
 	}
 	//gtarhits.Draw("P");
-	if ( use_truth ) {
+	if ( inputargs.use_truth ) {
 	  src_truthflow[1].SetMarkerStyle(25);      
 	  src_truthflow[1].SetMarkerSize(0.2);
 	  src_truthflow[1].SetMarkerColor(kMagenta);
