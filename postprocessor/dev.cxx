@@ -403,36 +403,6 @@ int main( int nargs, char** argv ) {
   
   TApplication app ("app",&nargs,argv);  
 
-  // hard-coded test-paths for dev
-  // common source files
-  // std::string input_supera_file       = "../testdata/larcv_5482426_95.root";  
-  // std::string input_reco2d_file       = "../testdata/larlite_reco2d_5482426_95.root";
-  // std::string input_opreco_file       = "../testdata/larlite_opreco_5482426_95.root";
-  // std::string input_mcinfo_file       = "../testdata/larlite_mcinfo_5482426_95.root";
-  // std::string input_dlcosmictag_file  = "../testdata/smallsample/larcv_dlcosmictag_5482426_95_smallsample082918.root";
-  
-  // extbnb (mcc9) example
-  // std::string input_supera_file       = "../testdata/larcv1_data/larcv2_wholeview_bnbext_mcc9.root";
-  // std::string input_reco2d_file       = "../testdata/larcv1_data/larlite_reco2d_a5b67944-607c-49df-9e7d-8881f88bcc0c.root";
-  // std::string input_opreco_file       = "";
-  // std::string input_mcinfo_file       = "";
-  // std::string input_dlcosmictag_file  = "../testdata/larcv1_data/larcv2_larflow_bnbext_mcc9.root";
-  
-  
-  // bool kVISUALIZE = false;
-  // bool kINSPECT   = false;
-  // bool use_hits   = false;
-  // bool use_truth  = true;
-  // bool has_reco2d = true;
-  // bool has_opreco = true;
-  // bool has_mcreco = true;
-  // bool has_infill = false;
-  // bool has_ssnet  = false;
-  // bool makehits_useunmatched = false;
-  // bool makehits_require_3dconsistency = false;
-  // int process_num_events = -1;
-
-
   std::cout << "===========================================" << std::endl;
   std::cout << " Dev LArFlow Post-Processor " << std::endl;
   std::cout << " -------------------------- " << std::endl;
