@@ -174,6 +174,7 @@ void stitch_infill(larcv::IOManager& ioinfill,
 
 void find_rse_entry( larcv::IOManager& io, int run, int subrun, int event, int& current_entry, std::string img2d_producer="wire" ) {
   // searches for run, subrun, entry in IOManager
+  std::cout << "find_rse_entry[LARCV]: look for (" << run << "," << subrun << "," << event << ") current_entry=" << current_entry << std::endl;
   for (int ipass=0; ipass<2; ipass++) {
     bool found_match = false;
     for ( int ientry=current_entry; ientry<io.get_n_entries(); ientry++ ) {
@@ -188,10 +189,12 @@ void find_rse_entry( larcv::IOManager& io, int run, int subrun, int event, int& 
     if ( !found_match ) current_entry=0;
     else break;
   }
+  std::cout << "find_rse_entry[LARCV]: found (" << run << "," << subrun << "," << event << ") @ entry=" << current_entry << std::endl;
 }
 
 void find_rse_entry( larlite::storage_manager& io, int run, int subrun, int event, int& current_entry ) {
-  // searches for run, subrun, entry in IOManager
+  // searches for run, subrun, entry in larlite
+  std::cout << "find_rse_entry[larlite]: look for (" << run << "," << subrun << "," << event << ") current_entry=" << current_entry << std::endl;  
   for (int ipass=0; ipass<2; ipass++) {
     bool found_match = false;
     for ( int ientry=current_entry; ientry<io.get_entries(); ientry++ ) {
@@ -205,6 +208,7 @@ void find_rse_entry( larlite::storage_manager& io, int run, int subrun, int even
     if ( !found_match ) current_entry=0;
     else break;
   }
+  std::cout << "find_rse_entry[larlite]: found (" << run << "," << subrun << "," << event << ") @ entry=" << current_entry << std::endl;  
 }
 
 
