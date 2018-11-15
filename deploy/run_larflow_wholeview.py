@@ -17,6 +17,7 @@ whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int,
 whole_view_parser.add_argument( "-b", "--batchsize",    default=1,     type=int, help="batch size" )
 whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
 whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
+whole_view_parser.add_argument( "-t", "--adc-threshold",default=5.0,   type=float, help="process number of events (-1=all)")
 whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
 whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
 whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
@@ -162,6 +163,7 @@ if __name__=="__main__":
         ismc                  = args.ismc
         save_cropped_adc      = args.saveadc
         workdir               = args.workdir
+        threshold             = args.adc_threshold
     else:
 
         # for testing
@@ -179,6 +181,7 @@ if __name__=="__main__":
         stitch = False
         use_half = True
         workdir="./"
+        threshold = 5.0
         
         FLOWDIR="Y2V"
 
@@ -295,6 +298,10 @@ if __name__=="__main__":
         eventid  = ev_img.event()
         print "ADC Input image. Nimgs=",img_v.size()," (rse)=",(runid,subrunid,eventid)
 
+        # get chstatus, which we will use to zero out info
+        ev_chstatus = inputdata.io.get_data("chstatus","wire")
+        chstatus_np = larcv.as_ndarray( ev_chstatus )
+
         # setup stitcher
         if stitch:
             stitcher.setupEvent( img_v )
@@ -337,6 +344,7 @@ if __name__=="__main__":
             image_meta = []
             target_meta = []
             flowcrop_batch = [] # only filled if not stitching
+            status_batch = []
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
                 iimg = 3*iset 
@@ -365,11 +373,13 @@ if __name__=="__main__":
                     #sign of bad image
                     image_meta.append(None) 
                     target_meta.append(None)
+                    status_batch.append(None)
                     continue
 
                 # crops in numpy array
                 source_np[ib,0,:,:] = img_np[2,0,bounds[2][0]:bounds[2][2],bounds[2][1]:bounds[2][3]] # yplane
                 target_np[ib,0,:,:] = img_np[target_plane,0,bounds[0][0]:bounds[0][2],bounds[0][1]:bounds[0][3]] # uplane
+                status_batch.append( chstatus_np[2,bounds[2][1]:bounds[2][3]] )
                 
                 # store region of image
                 image_meta.append(  larcv.ImageMeta( bb_v[2], 512, 832 ) )
@@ -425,10 +435,38 @@ if __name__=="__main__":
             outmeta = out_v[0].meta()
             for ib in xrange(min(batch_size,len(image_meta))):
                 if image_meta[ib] is None:
+                    # bad image for whatever reason
                     continue
-                img_slice = flow_np[ib,0,:]
-                flow_lcv = larcv.as_image2d_meta( img_slice, image_meta[ib] )
+                flow_slice = flow_np[ib,0,:,:]
+                #print "flow_slice non-zero (pre-mask): ",(flow_slice!=0).sum()
+
+                # we want to suppress values where chstatus is good and adc value below threshold
+                # setting uninteresting pixels to zero is important for good file size
+                thresh_slice = (source_np[ib,0,:,:]<threshold)
+                adcgoodch_slice = source_np[ib,0,:,status_batch[ib]==4].transpose((1,0))
+                
+
+                #print "flow_np: ",flow_np.shape
+                #print "flow_slice: ",flow_slice.shape
+                #print "source_np: ",source_np.shape
+                #print "status_batch[ib]: ",status_batch[ib].shape
+                #print "adc_goodch_slice: ",adcgoodch_slice.shape
+                #print "above thresh goodch slice: ",(adcgoodch_slice>=threshold).sum()
+                #print "below thresh goodch slice: ",(adcgoodch_slice<threshold).sum()
+                nmasked = 0
+                for n,goodch in enumerate( np.nditer( status_batch[ib] ) ):
+                    if goodch==4:
+                        nmasked += (flow_slice[:,n]<threshold).sum()
+                        flow_slice[:,n][ source_np[ib,0,:,n]<threshold ] = 0
+
+                # zero regions in good channel list and below threshold
+                #print "nmasked estimate: ",nmasked
+                #print "flow_slice non-zero (post-mask): ",(flow_slice!=0).sum()
+
+                flow_lcv = larcv.as_image2d_meta( flow_slice, image_meta[ib] )
                 if stitch:
+                    # load cropped info into stitcher
+                    # -------------------------------
                     stitcher.insertFlowSubimage( flow_lcv, target_meta[ib] )
                 else:
                     # save cropped images

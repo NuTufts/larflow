@@ -127,23 +127,25 @@ if __name__=="__main__":
         whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
         whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
         whole_view_parser.add_argument( "-b", "--batchsize",    default=2,     type=int, help="batch size" )
-        whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
+        whole_view_parser.add_argument( "-v", "--verbose",      action="store_true", default=False, help="verbose output")
         whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
         whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
         whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
-        whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
+        whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
 
-        args = whole_view_parser.parse_args(sys.argv)
+        args = whole_view_parser.parse_args(sys.argv[1:])
         input_larcv_filename  = args.input
         output_larcv_filename = args.output
-        checkpoint_data       = [ args.checkpointdir+"/devfiltered_infill_final_checkpoint_%splane.tar" for p in ("u","v","y") ]
+        checkpoint_data       = [ args.checkpointdir+"/devfiltered_infill_final_checkpoint_%splane.tar"%(p) for p in ("u","v","y") ]
         gpuid                 = args.gpuid
         checkpoint_gpuid      = args.chkpt_gpuid
         batch_size            = args.batchsize
         verbose               = args.verbose
         nprocess_events       = args.nevents
         stitch                = args.stitch
-        use_half              = args.use_half
+        use_half              = args.usehalf
+        ismc                  = args.ismc
+        save_cropped_adc      = False
     else:
 
         # for testing
@@ -212,7 +214,7 @@ if __name__=="__main__":
     if nprocess_events>=0:
         nevts = nprocess_events
 
-    for ientry in range(nevts):
+    for ientry in xrange(nevts):
 
         if verbose:
             print "=== [ENTRY %d] ==="%(ientry)
@@ -259,6 +261,10 @@ if __name__=="__main__":
         eventid  = ev_img.event()
         print "Whole-view ADC Input image. Nimgs=",img_v.size()," (rse)=",(runid,subrunid,eventid)
 
+        # get chstatus, which we will use to zero out info
+        ev_chstatus = inputdata.io.get_data("chstatus","wire")
+        chstatus_np = larcv.as_ndarray( ev_chstatus )
+
         # setup stitcher
         if stitch:
             stitcher.setupEvent( img_v )
@@ -304,6 +310,7 @@ if __name__=="__main__":
             # save meta information for the batch
             image_meta = {0:[],1:[],2:[]}
             infill_batch = [] # holds larcv data for batch
+            bounds_batch = []
             for ib in range(batch_size):
                 # set index of first U-plane image in the cropper set
                 iimg = 3*iset
@@ -326,6 +333,7 @@ if __name__=="__main__":
                             print "  plane ",ip,": ",bbb.dump()
                         isbad = True
                     bounds.append( (rmin,cmin,rmax,cmax) )
+                bounds_batch.append(bounds)
                     
                 # we have to get the row, col bounds in the source image
                 if isbad:
@@ -381,6 +389,27 @@ if __name__=="__main__":
                 pred_infill = models[p].forward( source_t )
                 # get result tensor
                 result_np[p] = pred_infill.detach().exp().cpu().numpy().astype(np.float32)
+
+                #print "number of non-zero entries (pre-status mask): ",(result_np[p]!=0).sum()
+                #print "number of non-zero entries (on-class) (pre-status mask): ",(result_np[p][:,1,:,:]!=0).sum()
+
+                # for each item in batch, we get chstatus of range
+                goodch_frac = 0
+                allch_tot = 0
+                for ib in xrange(result_np[p].shape[0]):
+                    chstatus_b = chstatus_np[p,bounds_batch[ib][p][1]:bounds_batch[ib][p][3] ]
+                    goodch_frac += (chstatus_b==4).sum()
+                    allch_tot += chstatus_b.shape[0]
+                    
+                    # get rows where column is goodchannel, and set to zero
+                    # both scores
+                    result_np[p][ib,0,:,chstatus_b==4] = 0
+                    result_np[p][ib,1,:,chstatus_b==4] = 0
+
+                #print "number of non-zero entries (post-status mask) (all batches, one plane): ",(result_np[p]!=0).sum()
+                #print "number of non-zero entries (on-class) (pre-status mask) (all batches, one plane): ",(result_np[p][:,1,:,:]!=0).sum()
+                #print "batchsize=",result_np[p].shape[0]
+                #print "goodchfrac: ",float(goodch_frac)/float(allch_tot)
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun

@@ -18,7 +18,7 @@ import torch
 from segment_funcs import load_model
 
 class WholeImageLoader:
-    def __init__(self,larcv_input_file, ismc=True):
+    def __init__(self,larcv_input_file, ismc=True, workdir="./"):
         """ This class prepares the data.  
         It passes each event through ubsplitdet to make subimages.
         The bbox and adcs from these images are passed to ubcropssnet to crop the truth images.
@@ -51,10 +51,10 @@ class WholeImageLoader:
         MaxRandomAttempts: 1000
         MinFracPixelsInCrop: 0.0
         """
-        fcfg = open("ubsplit.cfg",'w')
+        fcfg = open(workdir+"/ubsplit.cfg",'w')
         print >>fcfg,ubsplit_cfg
         fcfg.close()
-        split_pset = larcv.CreatePSetFromFile( "ubsplit.cfg", "UBSplitDetector" )
+        split_pset = larcv.CreatePSetFromFile( workdir+"/ubsplit.cfg", "UBSplitDetector" )
         self.split_algo = larcv.UBSplitDetector()
         self.split_algo.configure(split_pset)
         self.split_algo.initialize()
@@ -81,10 +81,10 @@ class WholeImageLoader:
         LimitOverlap: false
         MaxOverlapFraction: -1
         """
-        ssnetcrop_cfg = open("ssnetcrop.cfg",'w')
+        ssnetcrop_cfg = open(workdir+"/ssnetcrop.cfg",'w')
         print >>ssnetcrop_cfg,ssnetcrop_cfg_str
         ssnetcrop_cfg.close()
-        ssnetcrop_pset = larcv.CreatePSetFromFile( "ssnetcrop.cfg", "UBCropSegment" )
+        ssnetcrop_pset = larcv.CreatePSetFromFile( workdir+"/ssnetcrop.cfg", "UBCropSegment" )
         self.ssnetcrop_algo = larcv.UBCropSegment()
         self.ssnetcrop_algo.configure( ssnetcrop_pset )
         self.ssnetcrop_algo.initialize()
@@ -120,30 +120,34 @@ if __name__=="__main__":
 
     # ARGUMENTS DEFINTION/PARSER
     if len(sys.argv)>1:
-        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through Ssnet.')
+        whole_view_parser = argparse.ArgumentParser(description='Process whole-image views through SSnet.')
         whole_view_parser.add_argument( "-i", "--input",        required=True, type=str, help="location of input larcv file" )
         whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
-        whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
+        whole_view_parser.add_argument( "-cd","--checkpointdir",required=True, type=str, help="location of model checkpoint file directory")
         whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
         whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
         whole_view_parser.add_argument( "-b", "--batchsize",    default=2,     type=int, help="batch size" )
-        whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
-        whole_view_parser.add_argument( "-v", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
+        whole_view_parser.add_argument( "-v", "--verbose",      action="store_true", default=False, help="verbose output")
+        whole_view_parser.add_argument( "-n", "--nevents",      default=-1,    type=int, help="process number of events (-1=all)")
         whole_view_parser.add_argument( "-s", "--stitch",       action="store_true", default=False, help="stitch info from cropped images into whole view again. else save cropped info." )
+        whole_view_parser.add_argument( "-t", "--adc-threshold",default=10.0,  type=float, help="ADC threshold, below which scores set to 0" )
         whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", default=False, help="use flag if input file is MC or not" )
-        whole_view_parser.add_argument( "-h", "--usehalf",      action="store_true", default=False, help="use half-precision values" )
+        whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
 
-        args = whole_view_parser.parse_args(sys.argv)
+        args = whole_view_parser.parse_args(sys.argv[1:])
         input_larcv_filename  = args.input
         output_larcv_filename = args.output
-        checkpoint_data       = args.checkpoint
+        checkpoint_data       = [ args.checkpointdir+"/devfiltered_endpoint_model_best_%s.tar"%(p) for p in ("u","v","y") ]
         gpuid                 = args.gpuid
         checkpoint_gpuid      = args.chkpt_gpuid
         batch_size            = args.batchsize
         verbose               = args.verbose
         nprocess_events       = args.nevents
         stitch                = args.stitch
-        use_half              = args.use_half
+        use_half              = args.usehalf
+        ismc                  = args.ismc
+        save_cropped_adc      = False
+        threshold             = args.adc_threshold
     else:
 
         # for testing
@@ -166,6 +170,7 @@ if __name__=="__main__":
         ismc = False # saves flow and visi images
         save_cropped_adc = False # remove for y2v so we can hadd with y2u output
         use_half = True
+        threshold = 10.0
 
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc )
@@ -383,6 +388,8 @@ if __name__=="__main__":
                 pred_ssnet = models[p].forward( source_t )
                 # get result tensor
                 result_np[p] = pred_ssnet.detach().exp().cpu().numpy().astype(np.float32)
+                for ch in xrange( result_np[p].shape[1] ):
+                    result_np[p][:,ch,:,:][ source_np[p][:,0,:,:]<threshold ] = 0.0
                 
             torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
