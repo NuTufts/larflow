@@ -39,8 +39,8 @@
 
 void event_changeout( larlite::storage_manager& dataco_output,
 		      larcv::IOManager& larcv_output,
-		      larlitecv::DataCoordinator& dataco_whole,
-		      larlitecv::DataCoordinator& dataco_larlite,
+		      larcv::IOManager& dataco_wholelarcv,
+		      larlite::storage_manager& dataco_larlite,
 		      larflow::FlowContourMatch& matching_algo,
 		      const int runid,
 		      const int subrunid,
@@ -62,14 +62,14 @@ void event_changeout( larlite::storage_manager& dataco_output,
   // get mctrack
   const larlite::event_mctrack* ev_track = nullptr;
   if ( hasmcreco ) {
-    dataco_larlite.goto_event( runid, subrunid, eventid, "larlite" );
-    ev_track = (larlite::event_mctrack*)dataco_larlite.get_larlite_data(larlite::data::kMCTrack, "mcreco");
+    //dataco_larlite.goto_event( runid, subrunid, eventid, "larlite" );
+    ev_track = (larlite::event_mctrack*)dataco_larlite.get_data(larlite::data::kMCTrack, "mcreco");
   }
   
   // get supera images
-  dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
-  larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");
-  larcv::EventChStatus* ev_chstatus = (larcv::EventChStatus*)dataco_whole.get_larcv_data("chstatus","wire");
+  //dataco_wholelarcv.goto_event( runid, subrunid, eventid, "larcv" );
+  larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_wholelarcv.get_data("image2d","wire");
+  larcv::EventChStatus* ev_chstatus = (larcv::EventChStatus*)dataco_wholelarcv.get_data("chstatus","wire");
   for ( auto const& img : ev_wholeimg->as_vector() ) {
     evout_wire->append( img );
     evout_chstatus->insert( ev_chstatus->status( img.meta().id() ) );
@@ -81,8 +81,8 @@ void event_changeout( larlite::storage_manager& dataco_output,
   
   // get opreco to save into output file
   if ( hasopreco ) {
-    auto ev_opflash_beam   = (larlite::event_opflash*)dataco_larlite.get_larlite_data(larlite::data::kOpFlash, "simpleFlashBeam" );
-    auto ev_opflash_cosmic = (larlite::event_opflash*)dataco_larlite.get_larlite_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
+    auto ev_opflash_beam   = (larlite::event_opflash*)dataco_larlite.get_data(larlite::data::kOpFlash, "simpleFlashBeam" );
+    auto ev_opflash_cosmic = (larlite::event_opflash*)dataco_larlite.get_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
     
     for ( auto& flash : *ev_opflash_beam )
       evout_opflash_beam->emplace_back( std::move(flash) );
@@ -90,8 +90,8 @@ void event_changeout( larlite::storage_manager& dataco_output,
       evout_opflash_cosmic->emplace_back( std::move(flash) );
   }
   if (hasmcreco ) {
-    auto ev_mctrack   = (larlite::event_mctrack*) dataco_larlite.get_larlite_data(larlite::data::kMCTrack,  "mcreco" );
-    auto ev_mcshower  = (larlite::event_mcshower*)dataco_larlite.get_larlite_data(larlite::data::kMCShower, "mcreco" );
+    auto ev_mctrack   = (larlite::event_mctrack*) dataco_larlite.get_data(larlite::data::kMCTrack,  "mcreco" );
+    auto ev_mcshower  = (larlite::event_mcshower*)dataco_larlite.get_data(larlite::data::kMCShower, "mcreco" );
     
     for ( auto& mctrack :  *ev_mctrack )
       evout_mctrack->emplace_back(  std::move(mctrack) );
@@ -170,6 +170,41 @@ void stitch_infill(larcv::IOManager& ioinfill,
   }
 
   std::cout << "stiched together: " << nstitched << std::endl;
+}
+
+void find_rse_entry( larcv::IOManager& io, int run, int subrun, int event, int& current_entry, std::string img2d_producer="wire" ) {
+  // searches for run, subrun, entry in IOManager
+  for (int ipass=0; ipass<2; ipass++) {
+    bool found_match = false;
+    for ( int ientry=current_entry; ientry<io.get_n_entries(); ientry++ ) {
+      io.read_entry(ientry);
+      auto evimg = (larcv::EventImage2D*)io.get_data("image2d",img2d_producer);
+      if ( run==evimg->run() && subrun==evimg->subrun() && event==evimg->event() ) {
+	found_match = true;
+	current_entry = ientry;
+	break;
+      }
+    }
+    if ( !found_match ) current_entry=0;
+    else break;
+  }
+}
+
+void find_rse_entry( larlite::storage_manager& io, int run, int subrun, int event, int& current_entry ) {
+  // searches for run, subrun, entry in IOManager
+  for (int ipass=0; ipass<2; ipass++) {
+    bool found_match = false;
+    for ( int ientry=current_entry; ientry<io.get_entries(); ientry++ ) {
+      io.go_to(ientry);
+      if ( run==io.run_id() && subrun==io.subrun_id() && event==io.event_id() ) {
+	found_match = true;
+	current_entry = ientry;
+	break;
+      }
+    }
+    if ( !found_match ) current_entry=0;
+    else break;
+  }
 }
 
 
@@ -435,22 +470,22 @@ int main( int nargs, char** argv ) {
   std::stringstream strjobid;
   strjobid << inputargs.jobid;
 
-  larlitecv::DataCoordinator dataco_whole;
-  dataco_whole.set_temp_filelistname( "flistwholeview_"+strjobid.str() );
-  dataco_whole.add_inputfile( inputargs.input_supera, "larcv" );
-  dataco_whole.initialize();
+  larcv::IOManager dataco_wholelarcv(larcv::IOManager::kREAD);
+  dataco_wholelarcv.add_in_file( inputargs.input_supera );
+  dataco_wholelarcv.initialize();
+  int iwholelarcv_index = 0;
   
   // hit (and mctruth) event data
-  larlitecv::DataCoordinator dataco_hits;
-  dataco_hits.set_temp_filelistname( "flisthits_"+strjobid.str() );
+  larlite::storage_manager dataco_hits;
+  int iwholelarlite_index = 0;
   if ( inputargs.has_reco2d )
-    dataco_hits.add_inputfile( inputargs.input_reco2d,  "larlite" );
+    dataco_hits.add_in_filename( inputargs.input_reco2d );
   if ( inputargs.has_opreco )
-    dataco_hits.add_inputfile( inputargs.input_opreco,  "larlite" );
+    dataco_hits.add_in_filename( inputargs.input_opreco );
   if ( inputargs.has_mcreco )
-    dataco_hits.add_inputfile( inputargs.input_mcinfo,  "larlite" );
+    dataco_hits.add_in_filename( inputargs.input_mcinfo );
   if ( inputargs.has_opreco || inputargs.has_mcreco || inputargs.has_reco2d )
-    dataco_hits.initialize();
+    dataco_hits.open();
 
   // output: 3D track hits
   larlite::storage_manager dataco_output( larlite::storage_manager::kWRITE );
@@ -527,7 +562,7 @@ int main( int nargs, char** argv ) {
 
       std::cout << "Event turn over" << std::endl;
       
-      event_changeout( dataco_output, io_larcvout, dataco_whole, dataco_hits, matching_algo,
+      event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
 		       current_runid, current_subrunid, current_eventid,
 		       inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
 
@@ -550,16 +585,16 @@ int main( int nargs, char** argv ) {
     if ( isnewevent ) {
 
       // load up the whole-view images from the supera file
-      dataco_whole.goto_event( runid, subrunid, eventid, "larcv" );
-      ev_wholeimg  = (larcv::EventImage2D*) dataco_whole.get_larcv_data("image2d","wire");      
+      find_rse_entry( dataco_wholelarcv, current_runid, current_subrunid, current_eventid, iwholelarcv_index, "wire" );
+      ev_wholeimg  = (larcv::EventImage2D*) dataco_wholelarcv.get_data("image2d","wire");      
 
       // channel status
-      ev_chstatus = (larcv::EventChStatus*) dataco_whole.get_larcv_data("chstatus","wire");
+      ev_chstatus = (larcv::EventChStatus*) dataco_wholelarcv.get_data("chstatus","wire");
       
       // sync up larlite data
       if ( inputargs.has_reco2d ) {
-	dataco_hits.goto_event( runid, subrunid, eventid, "larlite" );
-	ev_hit = ((larlite::event_hit*)dataco_hits.get_larlite_data(larlite::data::kHit, "gaushit"));
+	find_rse_entry( dataco_hits, current_runid, current_subrunid, current_eventid, iwholelarlite_index );
+	ev_hit = ((larlite::event_hit*)dataco_hits.get_data(larlite::data::kHit, "gaushit"));
 	std::cout << "Number of hits in New Event: " << ev_hit->size() << std::endl;
       }
 
@@ -944,11 +979,13 @@ int main( int nargs, char** argv ) {
   }//end of entry loop
 
   // save the data from the last event
-  event_changeout( dataco_output, io_larcvout, dataco_whole, dataco_hits, matching_algo,
+  event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
 		   current_runid, current_subrunid, current_eventid,
 		   inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
   
   std::cout << "Finalize output." << std::endl;
+  dataco_hits.close();
+  dataco_wholelarcv.finalize();
   dataco_output.close();
   io_larcvout.finalize();
   
