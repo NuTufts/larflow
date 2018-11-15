@@ -23,6 +23,8 @@ int main( int nargs, char** argv ) {
   std::string input_larcv   = argv[3];
   std::string input_mcinfo  = argv[4];
 
+  std::string output_flashmatch = argv[5];
+  
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
   io.add_in_filename( input_cluster );
@@ -36,7 +38,7 @@ int main( int nargs, char** argv ) {
 
   // output
   larlite::storage_manager outlarlite( larlite::storage_manager::kWRITE );
-  io.set_out_filename( "output_dev_flashmatch.root" );
+  io.set_out_filename( output_flashmatch );
   io.open();
   
   int nentries       = io.get_entries();
