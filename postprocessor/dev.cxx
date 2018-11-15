@@ -76,8 +76,10 @@ void event_changeout( larlite::storage_manager& dataco_output,
   }
   
   // fill mctruth
-  if ( hasmcreco )
+  if ( hasmcreco ) {
+    std::cout << "[event changeout] provide mctrack info for truth matching" << std::endl;
     matching_algo.mctrack_match(*ev_track,ev_wholeimg->as_vector());
+  }
   
   // get opreco to save into output file
   if ( hasopreco ) {
@@ -613,7 +615,7 @@ int main( int nargs, char** argv ) {
       }
       
       // sync up larlite data
-      if ( inputargs.has_reco2d ) {
+      if ( inputargs.has_reco2d || inputargs.has_opreco || inputargs.has_mcreco ) {
 	find_rse_entry( dataco_hits, current_runid, current_subrunid, current_eventid, iwholelarlite_index );
 	ev_hit = ((larlite::event_hit*)dataco_hits.get_data(larlite::data::kHit, "gaushit"));
 	std::cout << "Number of hits in New Event: " << ev_hit->size() << std::endl;
@@ -668,7 +670,9 @@ int main( int nargs, char** argv ) {
 	matching_algo.makeHitsFromWholeImagePixels( img_fill_whole_v[2], pixhits_v, 10.0 );
       }
 
+      std::cout << "========================================================================" << std::endl;
       std::cout << "[ START OF NEW EVENT: Number of pixhits_v=" << pixhits_v.size() << " ]" << std::endl;
+      std::cout << "========================================================================" << std::endl;
     }//end of isnew to handle event-level images/quantities
 
     
