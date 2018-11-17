@@ -1904,4 +1904,54 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
     return output_hit3d_v;    
   }
 
+  std::vector<larcv::Image2D> FlowContourMatch::makeStitchedFlowImages( const std::vector<larcv::Image2D>& img_v ) {
+    std::vector< larlite::larflow3dhit > hit_v = get3Dhits_2pl( false, false );
+    std::vector<larcv::Image2D> outimg_v;
+
+    larcv::Image2D y2uimg( img_v[0].meta() );
+    larcv::Image2D y2vimg( img_v[1].meta() );
+    larcv::Image2D srcimg( img_v[2].meta() );
+    y2uimg.paint(0.0);
+    y2vimg.paint(0.0);
+    srcimg.paint(0.0);
+
+    std::cout << "[FlowContourMatch::makeStichedFlowImages] start" << std::endl;
+    for (int i=0; i<3; i++)
+      std::cout << "  " <<img_v[i].meta().dump() << std::endl;
+	
+    for ( auto& hit : hit_v ) {
+      if ( hit[0]==hit[2] && hit[0]==hit[1] && hit[0]==-1 ) continue; // bad hit
+      if ( hit.tick >=img_v[2].meta().min_y() && hit.tick<img_v[2].meta().max_y()
+	   && hit.srcwire>=img_v[2].meta().min_x() && hit.srcwire<img_v[2].meta().max_x() ) {
+	
+	int row = img_v[2].meta().row( hit.tick );
+	int col = img_v[2].meta().col( hit.srcwire );
+	std::cout << "hit: src(" << row << "," << col << ")";
+	
+	if ( hit.flowdir==larlite::larflow3dhit::kY2U )  {
+	  srcimg.set_pixel( row, col, hit.targetwire[0]-hit.srcwire );
+	  if ( img_v[0].meta().min_x()<=hit.targetwire[kY2U] && img_v[0].meta().max_x()>hit.targetwire[kY2U] ) {
+	    y2uimg.set_pixel( row, img_v[0].meta().col(hit.targetwire[0]), img_v[2].pixel(row,col) );
+	    std::cout << " target(" << row << "," << img_v[0].meta().col(hit.targetwire[0]) << ")";
+	  }	  
+	}
+	else {
+	  srcimg.set_pixel( row, col, hit.targetwire[1]-hit.srcwire );
+	  if ( img_v[1].meta().min_x()<=hit.targetwire[kY2V] && img_v[1].meta().max_x()>hit.targetwire[kY2V] ) {
+	    y2vimg.set_pixel( row, img_v[1].meta().col(hit.targetwire[kY2V]), img_v[2].pixel(row,col) );
+	    std::cout << " target(" << row << "," << img_v[1].meta().col(hit.targetwire[1]) << ")";
+	  }	  
+	}
+	std::cout << std::endl;
+	
+      }// if inside image
+    }// hit loop
+
+    outimg_v.emplace_back( std::move(y2uimg) );	
+    outimg_v.emplace_back( std::move(y2vimg) );	
+    outimg_v.emplace_back( std::move(srcimg) );
+    
+    return outimg_v;
+  }
+
 }

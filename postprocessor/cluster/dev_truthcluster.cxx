@@ -17,10 +17,6 @@ int main( int nargs, char** argv ) {
   std::cout << "Dev Truth Cluster" << std::endl;
 
   std::string larflow_input   = argv[1];
-  // std::string larcv_input     = argv[2];
-  // std::string opreco_input    = argv[3];
-  // std::string mcinfo_input    = argv[4];
-
   std::string cluster_outputfile = argv[2];
 
   bool use_ancestor_id   = true;   
@@ -31,16 +27,8 @@ int main( int nargs, char** argv ) {
   io.add_in_filename( larflow_input );
   io.open();
 
-  // eventually want to merge inputs here
-  // larlite::storage_manager io_larlite( larlite::storage_manager::kREAD );
-  // io_larlite.add_in_filename( opreco_input );
-  // io_larlite.add_in_filename( mcinfo_input );
-  // io_larlite.open();
-
   // output
   larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
-  //io_out.set_out_filename( "output_dev_truthcluster_truepixflow.root" );
-  //io_out.set_out_filename( "output_dev_mcc8_truthcluster_recopixflow.root" );
   io_out.set_out_filename( cluster_outputfile );
   io_out.open();
 

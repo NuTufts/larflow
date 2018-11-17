@@ -214,6 +214,12 @@ namespace larflow {
     // (call before getting 3d hits)
     //------------------------------
     void labelInfillHits( const std::vector<larcv::Image2D>& masked_infill);
+
+    // diagnostic image
+    // make stitched flow image using same information
+    // that forms the 3d hits
+    // --------------------------------------
+    std::vector<larcv::Image2D> makeStitchedFlowImages( const std::vector<larcv::Image2D>& img_v );
     
     // algorithm sub-functions
     // ------------------------
