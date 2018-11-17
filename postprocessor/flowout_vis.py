@@ -192,7 +192,9 @@ print "cm_per_tick=",cm_per_tick
 
 def extract_trackpts( mctrack, sce ):
     # convert mctrack points to image pixels
-    steps_np = np.zeros( (mctrack.size(),3) )
+    steps_np  = np.zeros( (mctrack.size(),3) )
+    colors_np = np.zeros( (mctrack.size(),4) )
+    colors_np[:,3] = 1
     for istep in xrange(mctrack.size()):
         step = mctrack.at(istep)
         t = step.T()
@@ -204,8 +206,12 @@ def extract_trackpts( mctrack, sce ):
         x  = (tick - 3200)*cm_per_tick
         
         steps_np[istep,:] = (x,step.Y(),step.Z()-500)
+        if tick<2400-2400 or tick>8448-2400:
+            colors_np[istep,2] = 1
+        else:
+            colors_np[istep,0] = 1
     if mctrack.Origin()==2:
-        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(1,0,0,1),width=1.0)
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=colors_np,width=1.0)
     else:
         mcplot = gl.GLLinePlotItem(pos=steps_np,color=(0,1,0,1),width=1.0)
     #sys.exit(-1)

@@ -11,6 +11,7 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/mctrack.h"
+#include "DataFormat/mcshower.h"
 #include "DataFormat/pcaxis.h"
 
 // larcv
@@ -51,7 +52,7 @@ namespace larflow {
     void setRSE( int run, int subrun, int event );    
     void clearEvent();    
 
-    void loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching=true );
+    void loadMCTrackInfo(  const std::vector<larlite::mctrack>&  mctrack_v, const std::vector<larlite::mcshower>& mcshower_v, bool do_truth_matching=true );
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
 
     void saveAnaMatchData(); // call per event
@@ -220,13 +221,16 @@ namespace larflow {
 					 
     // MCTrack Info
     // ------------
-    const std::vector<larlite::mctrack>* _mctrack_v;
+    const std::vector<larlite::mctrack>*  _mctrack_v;
+    const std::vector<larlite::mcshower>* _mcshower_v;    
     std::map<int,int> _mctrackid2index;
     std::set<int>     _nu_mctrackid;
     std::vector<int> _flash_truthid;
     std::vector<int> _cluster_truthid;
     std::vector<int> _flash2truecluster;
     std::vector<int> _cluster2trueflash;
+    std::vector< std::vector<const larlite::mctrack*> >  _flash_matched_mctracks_v;
+    std::vector< std::vector<const larlite::mcshower*> > _flash_matched_mcshowers_v;
     larutil::SpaceChargeMicroBooNE* _psce;
     bool _kDoTruthMatching;
     bool _kFlashMatchedDone;

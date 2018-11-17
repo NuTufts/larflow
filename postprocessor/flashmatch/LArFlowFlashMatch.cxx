@@ -13,6 +13,7 @@
 #include "TGraph.h"
 #include "TText.h"
 #include "TStyle.h"
+#include "TMarker.h"
 
 // larlite
 #include "LArUtil/Geometry.h"
@@ -187,7 +188,7 @@ namespace larflow {
     _fitter.setUseBterms(true);
     prepareFitter();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Fitter Loaded" << std::endl;
-    //dumpQCompositeImages( "prefit" );
+    dumpQCompositeImages( "prefit" );
 
     if ( _kDoTruthMatching && _kFlashMatchedDone ) {
       setFitParsWithTruthMatch();
@@ -233,7 +234,7 @@ namespace larflow {
     _fitter.addLearningScheduleConfig( epoch1 );
     _fitter.addLearningScheduleConfig( epoch2 );
     _fitter.addLearningScheduleConfig( epoch3 );    
-    _fitter.fitSGD( 60000,-1, true, 0.5 );
+    _fitter.fitSGD( 120000,-1, true, 0.5 );
     
     // set compat from fit
     reduceUsingFitResults();
@@ -244,6 +245,7 @@ namespace larflow {
     _fitter.printFlashBundles( false );
     _fitter.printBterms();
     _fitter.printFmatch();
+    dumpQCompositeImages( "postfit" );
     
     return;
   }
@@ -402,57 +404,71 @@ namespace larflow {
     for (int n=0; n<2; n++) {
       for ( auto const& flash : *flashtypes[n] ) {
 
-	if ( n==1 && flash.Time()<22.5 ) {
+	if ( n==1 && flash.Time()>=0 && flash.Time()<=22.5 ) {
 	  // cosmic disc within beam window, skip
 	  continue;
 	}
 	
-	FlashData_t newflash;
+	FlashData_t newflash[4];
+
+	for (int iwfm=0; iwfm<4; iwfm++) {
+	  newflash[iwfm].resize( npmts, 0.0 );
+	  newflash[iwfm].tot = 0.;
+	  
+	  float maxpmtpe = 0.;
+	  int maxpmtch = 0;
+	  
+	  //int choffset = (n==1 && flash.nOpDets()>npmts) ? 200 : 0;
+	  int choffset = iwfm*100;
 	
-	newflash.resize( npmts, 0.0 );
-	newflash.tot = 0.;
-	float maxpmtpe = 0.;
-	int maxpmtch = 0;
+	  for (size_t ich=0; ich<npmts; ich++) {
+	    float pe = flash.PE( choffset + ich );
+	    newflash[iwfm][ich] = pe;
+	    newflash[iwfm].tot += pe;
+	    if ( pe > maxpmtpe ) {
+	      maxpmtpe = pe;
+	      maxpmtch = ich;
+	    }
+	  }
+	  newflash[iwfm].tpc_tick  = tpc_trigger_tick + flash.Time()/0.5;
+	  newflash[iwfm].tpc_trigx = flash.Time()*driftv; // x-assuming x=0 occurs when t=trigger
+	  newflash[iwfm].maxch     = maxpmtch;
+	  newflash[iwfm].idx       = iflash;
+	  newflash[iwfm].isbeam    = ( n==0 ) ? true : false;
+	  if ( n==0 && flash.Time()>1.0 && flash.Time()<3.8 )
+	    newflash[iwfm].intime = true;
+	  else
+	    newflash[iwfm].intime = false;
 	
-	//int choffset = (n==1 && flash.nOpDets()>npmts) ? 200 : 0;
-	int choffset = 0;
+	  Double_t pmtpos[3];
+	  geo->GetOpChannelPosition( maxpmtch, pmtpos );	
+	  newflash[iwfm].maxchposz   = pmtpos[2];
 	
-	for (size_t ich=0; ich<npmts; ich++) {
-	  float pe = flash.PE( choffset + ich );
-	  newflash[ich] = pe;
-	  newflash.tot += pe;
-	  if ( pe > maxpmtpe ) {
-	    maxpmtpe = pe;
-	    maxpmtch = ich;
+	  // normalize
+	  if (newflash[iwfm].tot>0) {
+	    for (size_t ich=0; ich<npmts; ich++)
+	      newflash[iwfm][ich] /= newflash[iwfm].tot;
 	  }
 	}
-	newflash.tpc_tick  = tpc_trigger_tick + flash.Time()/0.5;
-	newflash.tpc_trigx = flash.Time()*driftv; // x-assuming x=0 occurs when t=trigger
-	newflash.maxch     = maxpmtch;
-	newflash.idx       = iflash;
-	newflash.isbeam    = ( n==0 ) ? true : false;
-	if ( n==0 && flash.Time()>1.0 && flash.Time()<3.8 )
-	  newflash.intime = true;
-	else
-	  newflash.intime = false;
-	
-	Double_t pmtpos[3];
-	geo->GetOpChannelPosition( maxpmtch, pmtpos );	
-	newflash.maxchposz   = pmtpos[2];
-	
-	// normalize
-	if (newflash.tot>0) {
-	  for (size_t ich=0; ich<npmts; ich++)
-	    newflash[ich] /= newflash.tot;
-	}
 
+
+        int imaxwfm = 0;
+	float maxwfm = 0;
 	std::cout << "dataflash[" << iflash << "] "
-		  << " tick=" << newflash.tpc_tick
-		  << " totpe=" << newflash.tot
-		  << " dT=" << flash.Time() << " us (intime=" << newflash.intime << ") "
-		  << std::endl;
+		  << " tick=" << newflash[0].tpc_tick
+		  << " totpe=" << newflash[0].tot
+		  << " dT=" << flash.Time() << " us (intime=" << newflash[0].intime << ") ";
+	std::cout << " PE[ ";
+	for (int iwfm=0; iwfm<4; iwfm++) {
+	  std::cout << newflash[iwfm].tot << " ";
+	  if ( newflash[iwfm].tot>maxwfm ) {
+	    maxwfm = newflash[iwfm].tot;
+	    imaxwfm = iwfm;
+	  }
+	}
+	std::cout << "]" << std::endl;
 	
-	flashdata.emplace_back( std::move(newflash) );	
+	flashdata.emplace_back( std::move(newflash[imaxwfm]) );	
 	iflash++;	
       }//end of flash loop
     }//end of container loop
@@ -539,19 +555,23 @@ namespace larflow {
       
       for ( size_t iq=0; iq<_qcluster_v.size(); iq++) {
 	const QCluster_t& qcluster = _qcluster_v[iq];
-	
+
+	// calculate the x-bounds if the cluster is truly matched to this cluster
 	float dtick_min = qcluster.min_tyz[0] - flash.tpc_tick;
 	float dtick_max = qcluster.max_tyz[0] - flash.tpc_tick;
+	float xpos_min = dtick_min*0.5*larp->DriftVelocity();
+	float xpos_max = dtick_max*0.5*larp->DriftVelocity();
+	
 	CutVars_t& cutvar = getCutVars(iflash,iq);
 
 	// must happen after (allow for some slop)
-	if ( dtick_min < -10 || dtick_max < -10 ) {
-	  cutvar.dtick_window = ( dtick_max<0 ) ? dtick_max : dtick_min;
+	if ( xpos_min < -10.0 ) {
+	  cutvar.dtick_window = dtick_min;
 	  cutvar.cutfailed = kWrongTime;
 	  setCompat( iflash, iq, kWrongTime ); // too early
 	}
-	else if ( dtick_min > max_drifttime_ticks ) {
-	  cutvar.dtick_window = dtick_min-max_drifttime_ticks;
+	else if ( xpos_max > 256.0+10.0 ) {
+	  cutvar.dtick_window = dtick_max;
 	  cutvar.cutfailed = kWrongTime;	  
 	  setCompat( iflash, iq, kWrongTime ); // too late
 	}
@@ -707,6 +727,7 @@ namespace larflow {
     std::cout << "{}=bestchi2  ()=bestmaxdist" << std::endl;
     int totcompat = 0;
     for (int iflash=0; iflash<_nflashes; iflash++) {
+      const FlashData_t& flash = flashdata_v[iflash];
       int ncompat = 0;
       std::vector<int> compatidx;
       for (int iclust=0; iclust<_nqclusters; iclust++) {
@@ -716,8 +737,12 @@ namespace larflow {
 	}
       }
       std::cout << "flash[" << iflash << "] [Tot: " << ncompat << "] ";
-      if ( flashdata_v[iflash].mctrackid>=0 )
-	std::cout << "[truthclust=" << flashdata_v[iflash].truthmatched_clusteridx << "] ";
+      std::cout << "[mctrackid=" << flash.mctrackid << " ";
+      if ( flash.visible==1 )
+	std::cout << "truthclusteridx=" << flash.truthmatched_clusteridx << "] ";
+      else
+	std::cout << "no vis cluster] ";
+      
       for ( auto& idx : compatidx ) {
 	bool bestmaxdist = false;
 	bool bestchi2 = false;
@@ -959,23 +984,62 @@ namespace larflow {
       }
 
       // truth-matched track for flash
-      TGraph* mctrack_data_zy = nullptr;
-      TGraph* mctrack_data_xy = nullptr;
+      std::vector<TGraph*> mctrack_data_zy;
+      std::vector<TGraph*> mctrack_data_xy;
+      std::vector<TMarker*> mcstart_zy;
+      std::vector<TMarker*> mcstart_xy;      
       bool mctrack_match = false;
-      if ( flash.mctrackid>=0 )
-	mctrack_match = true;      
-      if ( mctrack_match ) {
-	const larlite::mctrack& mct = (*_mctrack_v)[ _mctrackid2index[flash.mctrackid] ];
-	mctrack_data_zy = new TGraph( mct.size() );
-	mctrack_data_xy = new TGraph( mct.size() );	
-	for (int istep=0; istep<(int)mct.size(); istep++) {
-	  mctrack_data_zy->SetPoint(istep, mct[istep].Z(), mct[istep].Y() );
-	  mctrack_data_xy->SetPoint(istep, mct[istep].X(), mct[istep].Y() );
+      if ( _flash_matched_mctracks_v[iflash].size()>0 || _flash_matched_mcshowers_v[iflash].size()>0 ) {
+	if ( flash.mctrackid>=0 ) mctrack_match = true;      
+
+	// we make a graph for each shower and track
+	for ( auto const& pmct : _flash_matched_mctracks_v[iflash] ) {
+
+	  TMarker* m_zy = new TMarker( pmct->Start().Z(), pmct->Start().Y(), 30 );
+	  TMarker* m_xy = new TMarker( pmct->Start().X(), pmct->Start().Y(), 30 );
+	  mcstart_zy.push_back( m_zy );
+	  mcstart_xy.push_back( m_xy );
+	  std::cout << " [flash " << iflash << "] track steps = " << pmct->size() << std::endl;
+	  if ( pmct->size()==0 ) continue;
+	      
+	  TGraph* gmc_zy = new TGraph( pmct->size() );
+	  TGraph* gmc_xy = new TGraph( pmct->size() );
+	  for (int istep=0; istep<(int)pmct->size(); istep++) {
+	    gmc_zy->SetPoint(istep, (*pmct)[istep].Z(), (*pmct)[istep].Y() );
+	    gmc_xy->SetPoint(istep, (*pmct)[istep].X(), (*pmct)[istep].Y() );
+	  }
+	  gmc_zy->SetLineColor(kBlue);
+	  gmc_zy->SetLineWidth(1);
+	  gmc_xy->SetLineColor(kBlue);
+	  gmc_xy->SetLineWidth(1);
+	  mctrack_data_zy.push_back( gmc_zy );
+	  mctrack_data_xy.push_back( gmc_xy );
 	}
-	mctrack_data_zy->SetLineColor(kBlue);
-	mctrack_data_zy->SetLineWidth(1);
-	mctrack_data_xy->SetLineColor(kBlue);
-	mctrack_data_xy->SetLineWidth(1);
+
+	for ( auto const& pshr : _flash_matched_mcshowers_v[iflash] ) {
+
+	  TMarker* m_zy = new TMarker( pshr->Start().Z(), pshr->Start().Y(), 30 );
+	  TMarker* m_xy = new TMarker( pshr->Start().X(), pshr->Start().Y(), 30 );
+	  mcstart_zy.push_back( m_zy );
+	  mcstart_xy.push_back( m_xy );
+	  
+	  TGraph* gmc_zy = new TGraph( 2 ); // we draw a triangle
+	  TGraph* gmc_xy = new TGraph( 2 );
+	  gmc_zy->SetPoint(0, pshr->Start().Z(), pshr->Start().Y() );
+	  gmc_xy->SetPoint(0, pshr->Start().X(), pshr->Start().Y() );
+
+	  
+	  gmc_zy->SetPoint(1, pshr->Start().Z() + 14.0*pshr->StartDir().Z(), pshr->Start().Y() + 14.0*pshr->StartDir().Y() );
+	  gmc_xy->SetPoint(1, pshr->Start().X() + 14.0*pshr->StartDir().X(), pshr->Start().Y() + 14.0*pshr->StartDir().Y() );
+	  
+	  gmc_zy->SetLineColor(kRed);
+	  gmc_zy->SetLineWidth(1);
+	  gmc_xy->SetLineColor(kRed);
+	  gmc_xy->SetLineWidth(1);
+	  mctrack_data_zy.push_back( gmc_zy );
+	  mctrack_data_xy.push_back( gmc_xy );
+	}
+	
       }
 
       // BEGIN CLUSTER LOOP
@@ -1079,8 +1143,10 @@ namespace larflow {
       for (int ich=0; ich<32; ich++)
 	chmarkers_v[ich]->Draw();
 
-      if ( mctrack_match )
-	mctrack_data_zy->Draw("L");
+      for ( auto const& m : mcstart_zy )
+	m->Draw();
+      for ( auto const& mct : mctrack_data_zy )
+	mct->Draw("L");
       
       // ---------------------------------------------
       // TOP XY-2D PLOT: FLASH-DATA/FLASH TRUTH TRACK
@@ -1093,8 +1159,10 @@ namespace larflow {
 	graphs_xy_v[ig].Draw("P");
       }
 
-      if ( mctrack_match )
-	mctrack_data_xy->Draw("L");
+      for ( auto const& m : mcstart_xy )
+	m->Draw();      
+      for ( auto const& mct : mctrack_data_xy )
+	mct->Draw("L");
       
       // --------------------------------------------------
       // BOTTOM YZ-2D PLOT: FLASH-HYPO/CLUSTER TRUTH TRACK
@@ -1152,10 +1220,14 @@ namespace larflow {
 	delete datamarkers_v[ich];
       }
 
-      if ( mctrack_match ) {
-	delete mctrack_data_zy;
-	delete mctrack_data_xy;
-      }
+      for ( auto& pmct : mctrack_data_zy )
+	delete pmct;
+      for ( auto& pmct : mctrack_data_xy )
+	delete pmct;
+      for ( auto& pm : mcstart_zy )
+	delete pm;
+      for ( auto& pm : mcstart_xy )
+	delete pm;
 
       for ( auto& ptrack : mctrack_clustertruth_zy_v )
 	delete ptrack;
@@ -1177,56 +1249,18 @@ namespace larflow {
     }
   }
   
-
-  /*
-  float LArFlowFlashMatch::generateProposal( const float hamdist_mean, const float lydist_mean, const float lydist_sigma,
-					     std::vector<float>& match_v, float& ly  ) {
-    // generate number of flips
-    //int nflips = _rand->Poisson( hamdist_mean );
-    int nflips = (int)fabs(_rand->Exp(hamdist_mean));
-    
-    // draw index
-    std::set<int> flip_idx;
-    while ( nflips>0 && flip_idx.size()!=nflips ) {
-      int idx = _rand->Integer( _nmatches );
-      flip_idx.insert(idx);
-    }
-    
-    // generate ly change
-    float proposal_ly = -1.;
-    float dly = 0.;
-    while (proposal_ly<0) {
-      dly = _rand->Gaus( 0, lydist_sigma );
-      proposal_ly = ly + dly;
-    }
-    ly = proposal_ly;
-
-
-    // copy state vector
-    //match_v.resize( _nmatches );
-    //memcpy( match_v.data(), fmatch, sizeof(float)*_nmatches );
-    // do the flips
-    for (auto& idx : flip_idx ) {
-      match_v[idx] = (match_v[idx]>0.5 ) ? 0.0 : 1.0;
-    }
-
-    // return prob of jump
-    float prob_hamdist = TMath::Poisson( hamdist_mean, nflips );
-    float prob_ly      = TMath::Gaus( dly/lydist_sigma );
-    
-    return float(flip_idx.size());
-  }
-  */
-  
   // ==============================================================================================
   // MC TRUTH FUNCTIONS
   // ==============================================================================================
   
-  void LArFlowFlashMatch::loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v, bool do_truth_matching ) {
+  void LArFlowFlashMatch::loadMCTrackInfo( const std::vector<larlite::mctrack>& mctrack_v,
+					   const std::vector<larlite::mcshower>& mcshower_v,
+					   bool do_truth_matching ) {
     _mctrack_v = &mctrack_v;
+    _mcshower_v = &mcshower_v;    
     _kDoTruthMatching = do_truth_matching;
     _kFlashMatchedDone = false;
-    std::cout << "[LArFlowFlashMatch::loadMCTrackInfo][INFO] Loaded MC tracks." << std::endl;
+    std::cout << "[LArFlowFlashMatch::loadMCTrackInfo][INFO] Loaded MC tracks and showers." << std::endl;
   }
 
   void LArFlowFlashMatch::doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ) {
@@ -1238,12 +1272,18 @@ namespace larflow {
     // note on TimeService: if not initialized from root file via GetME(true)
     // needs trig_offset hack in tufts_larflow branch head
     const ::larutil::TimeService* tsv = ::larutil::TimeService::GetME(false);
+    const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
 
-    std::vector<std::vector<int>>   track_id_match_v(flashdata_v.size());
-    std::vector<std::vector<int>>   track_pdg_match_v(flashdata_v.size());
-    std::vector<std::vector<int>>   track_mid_match_v(flashdata_v.size());
-    std::vector<std::vector<float>> track_E_match_v(flashdata_v.size());
-    std::vector<std::vector<float>> track_dz_match_v(flashdata_v.size());
+    _flash_matched_mctracks_v.clear();
+    _flash_matched_mcshowers_v.clear();
+    _flash_matched_mctracks_v.resize(  flashdata_v.size() );
+    _flash_matched_mcshowers_v.resize( flashdata_v.size() );
+
+    std::vector< std::vector<int> >   track_id_match_v(flashdata_v.size());
+    std::vector< std::vector<int> >   track_pdg_match_v(flashdata_v.size());
+    std::vector< std::vector<int> >   track_mid_match_v(flashdata_v.size());
+    std::vector< std::vector<float> > track_E_match_v(flashdata_v.size());
+    std::vector< std::vector<float> > track_dz_match_v(flashdata_v.size());
     
     int imctrack=-1;
     _mctrackid2index.clear();
@@ -1273,6 +1313,7 @@ namespace larflow {
 	  track_E_match_v[iflash].push_back( mct.Start().E() );
 	  track_dz_match_v[iflash].push_back( fabs( mct.Start().Z()-flashdata_v[iflash].maxchposz) );
 	  nmatch++;
+	  _flash_matched_mctracks_v[iflash].push_back( &mct );
 	}
 	if ( best_dtick > dtick ) {
 	  best_dtick    = dtick;
@@ -1288,57 +1329,160 @@ namespace larflow {
       // 		<< " nmatched=" << nmatch << std::endl;
     }
 
-    // now loop over flashes
-    for (size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
-      std::vector<int>& id = track_id_match_v[iflash];
-      std::vector<int>& pdg = track_pdg_match_v[iflash];
-      std::vector<int>& mid = track_mid_match_v[iflash];
-      std::vector<float>& dz = track_dz_match_v[iflash];      
+    // Match showers
+    int imcshower = 0;
+    for (auto& mcs : *_mcshower_v ) {
+      imcshower++;      
 
-      if ( id.size()==1 ) {
-	// easy!!
-	flashdata_v[iflash].mctrackid  = id.front();
-	flashdata_v[iflash].mctrackpdg = pdg.front();
-	if ( _nu_mctrackid.find( id[0] )!=_nu_mctrackid.end()  )
-	  flashdata_v[iflash].isneutrino = true;
-	  
-      }
-      else if (id.size()>1 ) {
-	// to resolve multiple options.
-	// (1) favor id==mid && pdg=|13| (muon) -- from these, pick best time
-	int nmatches = 0;
-	int idx = -1;
-	int pdgx = -1;
-	float closestz = 10000;
-	bool isnu = false;	
-	for (int i=0; i<(int)id.size(); i++) {
-	  bool trackisnu = (_nu_mctrackid.find(id[i])!=_nu_mctrackid.end());
-	  //std::cout << "  multiple-truthmatches[" << i << "] id=" << id[i] << " mid=" << mid[i] << " pdg=" << pdg[i] << " dz=" << dz[i] << " isnu=" << trackisnu << std::endl;
-	  if ( (id[i]==mid[i] && dz[i]<closestz) || (trackisnu && flashdata_v[iflash].intime) ) {
-	    idx = id[i];
-	    pdgx = pdg[i];
-	    closestz = dz[i];
-	    //nmatches++;
-	    if ( trackisnu )
-	      isnu = true;
-	  }
+      // get time
+      //float track_tick = tsv->TPCG4Time2Tick( mct.Start().T() );
+      float track_tick = mcs.Start().T()*1.0e-3/0.5 + 3200;
+      float flash_time = tsv->OpticalG4Time2TDC( mcs.Start().T() );
+      
+      int nmatch = 0;
+      int   best_flashidx =   -1;      
+      float best_dtick    = 1e9;
+      for ( size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
+	float dtick = fabs(flashdata_v[iflash].tpc_tick - track_tick);
+	if ( dtick < 10 ) { 
+	  _flash_matched_mcshowers_v[iflash].push_back( &mcs );
 	}
-	flashdata_v[iflash].mctrackid = idx;
-	flashdata_v[iflash].mctrackpdg = pdgx;
-	flashdata_v[iflash].isneutrino = isnu;
+      }
+    }//end of shower loop
+
+    std::cout << "====================================" << std::endl;
+    std::cout << "MCTRACK/MCSHOWER MATCHES" << std::endl;
+    std::cout << "------------------------" << std::endl;    
+    for (size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
+      
+      std::cout << "[Flash " <<  iflash << " matches]  flash_tick=" << flashdata_v[iflash].tpc_tick << std::endl;
+
+      FlashData_t& flash = flashdata_v[iflash];
+      // set some truth-defaults
+      flash.isneutrino = false;
+      flash.visible = 1;
+      flash.truthmatched_clusteridx = -1;
+      flash.mctrackid = -1;
+
+      int nvis_steps = 0;      
+      for ( auto const& ptrk : _flash_matched_mctracks_v[iflash] ) {
+	float track_tick = ptrk->Start().T()*1.0e-3/0.5 + 3200;
+	float dtick      = fabs(flashdata_v[iflash].tpc_tick - track_tick);
+	if ( ptrk->Origin()==1 )
+	  flash.isneutrino = true;
+	for ( auto const& step : *ptrk ) {
+	  float tick = step.T()*1.0e-3/0.5+3200 + step.X()/cm_per_tick;
+	  if ( tick>=2400 && tick<8448 )
+	    nvis_steps += 1;
+	}
 	
-      }// if multipl matched ids
-      int nmcpts = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ].size();
-      // std::cout << "FlashMCtrackMatch[" << iflash << "] "
-      // 		<< "tick=" << flashdata_v[iflash].tpc_tick << " "
-      // 		<< "nmatches=" << id.size() << " "
-      // 		<< "trackid=" << flashdata_v[iflash].mctrackid << " "
-      // 		<< "pdg=" << flashdata_v[iflash].mctrackpdg << " "
-      // 		<< "isnu=" << flashdata_v[iflash].isneutrino << " "
-      // 		<< "intime=" << flashdata_v[iflash].intime << " "
-      // 		<< "isbeam=" << flashdata_v[iflash].isbeam << " "			
-      // 		<< "nmcpts=" << nmcpts << std::endl;
+	std::cout << "  mctrack[" << ptrk->TrackID() << ",origin=" << ptrk->Origin() << "] pdg=" << ptrk->PdgCode()
+		  << " ancestor=" << ptrk->AncestorTrackID()
+		  << " E=" << ptrk->Start().E() 
+		  << " T()=" << ptrk->Start().T()
+		  << " Start()=(" << ptrk->Start().X() << "," << ptrk->Start().Y() << "," << ptrk->Start().Z() << ")"
+		  << " tracktick=" << track_tick
+		  << " dtick=" << dtick
+		  << std::endl;
+	if ( flash.mctrackid<0 ) {
+	  flash.mctrackid  = ptrk->AncestorTrackID();
+	  flash.mctrackpdg = ptrk->PdgCode();
+	}
+      }
+      
+      for ( auto const& pshr : _flash_matched_mcshowers_v[iflash] ) {
+	float track_tick = pshr->Start().T()*1.0e-3/0.5 + 3200;
+	float dtick      = fabs(flashdata_v[iflash].tpc_tick - track_tick);	
+	std::cout << "  mcshower[" << pshr->TrackID() << ",origin=" << pshr->Origin() << "] pdg=" << pshr->PdgCode()
+		  << " ancestor=" << pshr->AncestorTrackID()	  
+		  << " E=" << pshr->Start().E() 
+		  << " T()=" << pshr->Start().T()
+		  << " Start()=(" << pshr->Start().X() << "," << pshr->Start().Y() << "," << pshr->Start().Z() << ")"	  
+		  << " tracktick=" << track_tick
+		  << " dtick=" << dtick	  
+		  << std::endl;
+	float start_tick =  pshr->Start().T()*1.0e-3/0.5 + 3200 + pshr->Start().X()/cm_per_tick;
+	if ( start_tick>=2400 && start_tick<8448
+	     && pshr->Start().E()>10.0 // arbitrary 10 MeV limit
+	     && pshr->Start().X()>0 && pshr->Start().X()<256
+	     && fabs(pshr->Start().Y())<116.0
+	     && pshr->Start().Z()>0 && pshr->Start().Z()<1036.0 ) 
+	  nvis_steps += 1;
+	if ( flash.mctrackid<0 ) {
+	  flash.mctrackid = pshr->AncestorTrackID();
+	  flash.mctrackpdg = pshr->PdgCode();
+	}
+      }
+      
+      // if no visible steps
+      if ( nvis_steps==0 ) {
+	// not in the tpc, so nothing to match
+	flash.visible = 0;
+      }
+      else {
+	flash.visible = 1;
+      }
+
+      // determinations
+      std::cout << "  flash-is-visible:  " << flash.visible << std::endl;
+      std::cout << "  flash-is-neutrino: " << flash.isneutrino << std::endl;
+      std::cout << "  flash-mctrackid:   " << flash.mctrackid << std::endl;    
+
     }
+    std::cout << "====================================" << std::endl;
+    
+    // now loop over flashes
+    // [Ithink this is deprecated]
+    // for (size_t iflash=0; iflash<flashdata_v.size(); iflash++) {
+    //   std::vector<int>& id = track_id_match_v[iflash];
+    //   std::vector<int>& pdg = track_pdg_match_v[iflash];
+    //   std::vector<int>& mid = track_mid_match_v[iflash];
+    //   std::vector<float>& dz = track_dz_match_v[iflash];      
+
+    //   if ( id.size()==1 ) {
+    // 	// easy!!
+    // 	flashdata_v[iflash].mctrackid  = id.front();
+    // 	flashdata_v[iflash].mctrackpdg = pdg.front();
+    // 	if ( _nu_mctrackid.find( id[0] )!=_nu_mctrackid.end()  )
+    // 	  flashdata_v[iflash].isneutrino = true;
+	  
+    //   }
+    //   else if (id.size()>1 ) {
+    // 	// to resolve multiple options.
+    // 	// (1) favor id==mid && pdg=|13| (muon) -- from these, pick best time
+    // 	int nmatches = 0;
+    // 	int idx = -1;
+    // 	int pdgx = -1;
+    // 	float closestz = 10000;
+    // 	bool isnu = false;	
+    // 	for (int i=0; i<(int)id.size(); i++) {
+    // 	  bool trackisnu = (_nu_mctrackid.find(id[i])!=_nu_mctrackid.end());
+    // 	  //std::cout << "  multiple-truthmatches[" << i << "] id=" << id[i] << " mid=" << mid[i] << " pdg=" << pdg[i] << " dz=" << dz[i] << " isnu=" << trackisnu << std::endl;
+    // 	  if ( (id[i]==mid[i] && dz[i]<closestz) || (trackisnu && flashdata_v[iflash].intime) ) {
+    // 	    idx = id[i];
+    // 	    pdgx = pdg[i];
+    // 	    closestz = dz[i];
+    // 	    //nmatches++;
+    // 	    if ( trackisnu )
+    // 	      isnu = true;
+    // 	  }
+    // 	}
+    // 	flashdata_v[iflash].mctrackid = idx;
+    // 	flashdata_v[iflash].mctrackpdg = pdgx;
+    // 	flashdata_v[iflash].isneutrino = isnu;
+	
+    //   }// if multipl matched ids
+    //   int nmcpts = (*_mctrack_v)[ _mctrackid2index[flashdata_v[iflash].mctrackid] ].size();
+    //   std::cout << "FlashMCtrackMatch[" << iflash << "] "
+    //   		<< "tick=" << flashdata_v[iflash].tpc_tick << " "
+    //   		<< "nmatches=" << id.size() << " "
+    //   		<< "trackid=" << flashdata_v[iflash].mctrackid << " "
+    //   		<< "pdg=" << flashdata_v[iflash].mctrackpdg << " "
+    //   		<< "isnu=" << flashdata_v[iflash].isneutrino << " "
+    //   		<< "intime=" << flashdata_v[iflash].intime << " "
+    //   		<< "isbeam=" << flashdata_v[iflash].isbeam << " "			
+    //   		<< "nmcpts=" << nmcpts << std::endl;
+    // }//end of flash loop
     _kFlashMatchedDone = true;
   }
 
@@ -1346,6 +1490,8 @@ namespace larflow {
     for (int iflash=0; iflash<(int)flashdata_v.size(); iflash++) {
       FlashData_t& flash = flashdata_v[iflash];
 
+      if ( flash.visible==0 ) continue;
+      
       for (int iclust=0; iclust<(int)qcluster_v.size(); iclust++) {
 	QCluster_t& cluster = qcluster_v[iclust];
 	bool isnu = _nu_mctrackid.find( cluster.mctrackid )!=_nu_mctrackid.end();
@@ -1504,13 +1650,16 @@ namespace larflow {
   // }
 
   void LArFlowFlashMatch::clearMCTruthInfo() {
-    _mctrack_v = nullptr;
+    _mctrack_v  = nullptr;
+    _mcshower_v = nullptr;
     _mctrackid2index.clear();
     _nu_mctrackid.clear();
     _flash_truthid.clear();
     _cluster_truthid.clear();
     _flash2truecluster.clear();
     _cluster2trueflash.clear();
+    _flash_matched_mctracks_v.clear();
+    _flash_matched_mcshowers_v.clear();
     delete _psce;
     _psce = nullptr;
     _kDoTruthMatching  = false;

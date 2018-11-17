@@ -582,9 +582,15 @@ int main( int nargs, char** argv ) {
 
       std::cout << "Event turn over" << std::endl;
       
+      // save flow used across the image
+      std::vector<larcv::Image2D> usedflow_v = matching_algo.makeStitchedFlowImages( ev_wholeimg->as_vector() );
+      auto ev_usedflow = (larcv::EventImage2D*) io_larcvout.get_data("image2d","hitflow");
+      ev_usedflow->emplace( std::move(usedflow_v) );
+      
       event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
 		       current_runid, current_subrunid, current_eventid,
 		       inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
+
 
       // clear the algo
       matching_algo.clear();
@@ -1009,10 +1015,17 @@ int main( int nargs, char** argv ) {
 
   }//end of entry loop
 
-  // save the data from the last event
+  // save flow used across the image
+  std::vector<larcv::Image2D> usedflow_v = matching_algo.makeStitchedFlowImages( ev_wholeimg->as_vector() );
+  auto ev_usedflow = (larcv::EventImage2D*) io_larcvout.get_data("image2d","hitflow");
+  ev_usedflow->emplace( std::move(usedflow_v) );
+
+  // save the data from the last event  
   event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
 		   current_runid, current_subrunid, current_eventid,
 		   inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
+
+  
   
   std::cout << "Finalize output." << std::endl;
   dataco_hits.close();

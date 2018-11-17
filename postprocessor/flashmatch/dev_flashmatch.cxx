@@ -7,6 +7,7 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/mctrack.h"
+#include "DataFormat/mcshower.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -89,12 +90,14 @@ int main( int nargs, char** argv ) {
     for ( int icosmic = 0; icosmic < (int)ev_opflash_cosmic->size(); icosmic++ )
       std::cout << " cosmic[" << icosmic << "] " << ev_opflash_cosmic->at(icosmic).TotalPE() << " nopdets=" << ev_opflash_cosmic->at(icosmic).nOpDets() << std::endl;
     
-    larlite::event_mctrack* ev_mctrack = (larlite::event_mctrack*)io.get_data( larlite::data::kMCTrack, "mcreco" );
-    std::cout << "number of mctracks: " << ev_mctrack->size() << std::endl;
+    larlite::event_mctrack*  ev_mctrack  = (larlite::event_mctrack*) io.get_data( larlite::data::kMCTrack,  "mcreco" );
+    larlite::event_mcshower* ev_mcshower = (larlite::event_mcshower*)io.get_data( larlite::data::kMCShower, "mcreco" );    
+    std::cout << "number of mctracks: "  << ev_mctrack->size()  << std::endl;
+    std::cout << "number of mcshowers: " << ev_mcshower->size() << std::endl;    
 
     // prep algo
     algo.loadChStatus( ev_status );    
-    algo.loadMCTrackInfo( *ev_mctrack, true );
+    algo.loadMCTrackInfo( *ev_mctrack, *ev_mcshower, true );
     algo.setRSE( io.run_id(), io.subrun_id(), io.event_id() );
     
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
