@@ -1807,39 +1807,46 @@ namespace larflow {
   void LArFlowFlashMatch::setupAnaTree() {
     _fanafile = new TFile( _ana_filename.c_str(), "recreate" );
     _anatree  = new TTree("flashmatchana", "LArFlow FlashMatch Ana Tree");
-    _anatree->Branch("run",          &_run,          "run/I");
-    _anatree->Branch("subrun",       &_subrun,       "subrun/I");
-    _anatree->Branch("event",        &_event,        "event/I");
-    _anatree->Branch("cutfailed",    &_cutfailed,    "cutfailed/I");
-    _anatree->Branch("truthmatch",   &_truthmatch,   "truthmatch/I");
-    _anatree->Branch("isneutrino",   &_isneutrino,   "isneutrino/I");        
-    _anatree->Branch("intime",       &_intime,       "intime/I");        
-    _anatree->Branch("isbeam",       &_isbeam,       "isbeam/I");
-    _anatree->Branch("hypope",       &_hypope,       "hypope/F");
-    _anatree->Branch("datape",       &_datape,       "datape/F");
-    _anatree->Branch("dtickwin",     &_dtick_window, "dtickwin/F");
-    _anatree->Branch("maxdist",      &_maxdist_best, "maxdist/F");
-    _anatree->Branch("maxdist_wext", &_maxdist_wext, "maxdist_wext/F");
-    _anatree->Branch("maxdist_noext",&_maxdist_noext,"maxdist_noext/F");
-    _anatree->Branch("peratio",      &_peratio_best, "peratio/F");
-    _anatree->Branch("peratio_wext", &_peratio_wext, "peratio_wext/F");
-    _anatree->Branch("peratio_noext",&_peratio_noext,"peratio_noext/F");
-    _anatree->Branch("enterlen",     &_enterlen,     "enterlen/F");
-    _anatree->Branch("fmatch",       &_fmatch,       "fmatch/F");
-    _anatree->Branch("fmatch_truth", &_fmatch_truth, "fmatch_truth/F");
+    _anatree->Branch("run",              &_run,              "run/I");
+    _anatree->Branch("subrun",           &_subrun,           "subrun/I");
+    _anatree->Branch("event",            &_event,            "event/I");
+    _anatree->Branch("flash_isneutrino", &_flash_isneutrino, "flash_isneutrino/I");        
+    _anatree->Branch("flash_intime",     &_flash_intime,      "flash_intime/I");        
+    _anatree->Branch("flash_isbeam",     &_flash_isbeam,      "flash_isbeam/I");
+    _anatree->Branch("flash_isvisible",  &_flash_isvisible,   "flash_isvisible/I");
+    _anatree->Branch("flash_mcid",       &_flash_mcid,        "flash_mcid/I");
+    
+    _anatree->Branch("truthmatched",     &_truthmatched,      "truthmatched/I");
+    _anatree->Branch("cutfailed",        &_cutfailed,         "cutfailed/I");    
+    _anatree->Branch("hypope",           &_hypope,            "hypope/F");
+    _anatree->Branch("datape",           &_datape,            "datape/F");
+    _anatree->Branch("dtickwin",         &_dtick_window,      "dtickwin/F");
+    _anatree->Branch("maxdist",          &_maxdist_best,      "maxdist/F");
+    _anatree->Branch("maxdist_wext",     &_maxdist_wext,      "maxdist_wext/F");
+    _anatree->Branch("maxdist_noext",    &_maxdist_noext,     "maxdist_noext/F");
+    _anatree->Branch("peratio",          &_peratio_best,      "peratio/F");
+    _anatree->Branch("peratio_wext",     &_peratio_wext,      "peratio_wext/F");
+    _anatree->Branch("peratio_noext",    &_peratio_noext,     "peratio_noext/F");
+    _anatree->Branch("enterlen",         &_enterlen,          "enterlen/F");
+    _anatree->Branch("fmatch",           &_fmatch,            "fmatch/F");
+    _anatree->Branch("fmatch_truth",     &_fmatch_truth,      "fmatch_truth/F");
     
     _save_ana_tree   = true;
     _anafile_written = false;
   }
 
   void LArFlowFlashMatch::clearAnaVariables() {
-    _cutfailed  = -1;
-    _truthmatch = -1;
-    _isneutrino = 0;
-    _intime     = 0;
-    _isbeam     = 0;
-    _hypope     = 0;
-    _datape     = 0;
+
+    _flash_mcid       = -1;
+    _flash_isvisible  = -1;
+    _flash_isneutrino = 0;
+    _flash_intime     = 0;
+    _flash_isbeam     = 0;
+
+    _cutfailed    = -1;
+    _truthmatched = -1;    
+    _hypope       = 0;
+    _datape       = 0;
     _dtick_window = 0;
     _maxdist_best = -1;
     _maxdist_wext = -1;
@@ -1863,6 +1870,12 @@ namespace larflow {
     for (int iflash=0; iflash<_flashdata_v.size(); iflash++) {
       
       const FlashData_t&    flash = _flashdata_v[iflash];
+
+      _flash_isbeam     = (flash.isbeam)     ? 1 : 0;
+      _flash_isneutrino = (flash.isneutrino) ? 1 : 0;
+      _flash_intime     = (flash.intime) ? 1 : 0;
+      _flash_isvisible  = flash.visible;
+      _flash_mcid       = flash.mctrackid;
       
       for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
 	
@@ -1870,17 +1883,13 @@ namespace larflow {
 	CutVars_t& cutvars = getCutVars(iflash,iclust);
     
 	_cutfailed  = cutvars.cutfailed;
-	if ( flash.truthmatched_clusteridx==iclust )
-	  _truthmatch = 1;
+	if ( flash.truthmatched_clusteridx>=0 && flash.truthmatched_clusteridx==iclust )
+	  _truthmatched = 1;
 	else
-	  _truthmatch = 0;
-
-	_isbeam     = (flash.isbeam) ? 1 : 0;
-	_isneutrino = (cluster.isneutrino) ? 1 : 0;
-	_intime     = (flash.intime) ? 1 : 0;
+	  _truthmatched = 0;
 	
-	_hypope     = 0;
-	_datape     = 0;
+	_hypope     = cutvars.pe_hypo;
+	_datape     = cutvars.pe_data;
 	
 	_dtick_window  = cutvars.dtick_window;
 	_maxdist_wext  = cutvars.maxdist_wext;
@@ -1894,7 +1903,7 @@ namespace larflow {
 	_enterlen      = cutvars.enterlen;
 	_fmatch        = cutvars.fit1fmatch;
 
-	// find truthmatch
+	// find actual truthmatch (to compare)
 	_fmatch_truth = -1.0;
 	if ( flash.truthmatched_clusteridx>=0 ) {
 	  MatchPair_t pair;

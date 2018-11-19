@@ -249,16 +249,19 @@ namespace larflow {
     // ----------------------
     std::string _ana_filename;
     TFile* _fanafile;
-    TTree* _anatree;
+    TTree* _anatree;   // results per potential flash-cluster match
+    TTree* _flashtree; // results per flash
     int   _run;
     int   _subrun;
     int   _event;
     int   _cutfailed;
-    int   _truthmatch;
-    int   _isneutrino;
-    int   _intime;
-    int   _isbeam;
-    int   _usedext;
+    int   _flash_isneutrino;
+    int   _flash_intime;
+    int   _flash_isbeam;
+    int   _flash_isvisible;
+    int   _flash_mcid;
+    int   _truthmatched; // flash-cluster    
+    int   _usedext; // cluster
     float _hypope;
     float _datape;
 

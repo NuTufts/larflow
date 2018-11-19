@@ -36,7 +36,6 @@ namespace larflow {
     virtual ~FlowMatchData_t() { matchingflow_v.clear(); }
 
     FlowMatchData_t( const FlowMatchData_t& s );          // copy constructor
-    //FlowMatchData_t& operator=(const FlowMatchData_t &s); // asignment operator
     
     int src_ctr_id;
     int tar_ctr_id;
@@ -193,6 +192,9 @@ namespace larflow {
 		       const std::vector<larcv::Image2D>& img_v,
 		       ::larutil::SpaceChargeMicroBooNE* psce=NULL,
 		       const ::larutil::TimeService* ptsv=NULL);
+
+    void label_mcid_w_ancestor_img(const std::vector<larcv::Image2D>& ancestor_v,
+				   const std::vector<larcv::Image2D>& adcimg_v);
 
 
     // Get final output: larflow3dhit

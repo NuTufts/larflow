@@ -22,6 +22,7 @@ INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 EXEC += test_mc
 EXEC += dump2json
+EXEC += ana_flowhits
 
 all: obj $(EXEC) 
 

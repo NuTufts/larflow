@@ -629,8 +629,41 @@ namespace larflow {
       img_coords[1+1] = 0;
     }
     return img_coords;
-  }  
+  }
 
+  // ----------------------------------
+  // TRUTH MATCH WITH ANCESTOR IMAGES
+  // ----------------------------------
+
+  void FlowContourMatch::label_mcid_w_ancestor_img( const std::vector<larcv::Image2D>& ancestor_v,
+						    const std::vector<larcv::Image2D>& adcimg_v) {
+
+    std::vector<HitFlowData_t>* pflowdata[2] = { nullptr, nullptr };
+    
+    if ( m_plhit2flowdata.ranY2U )
+      pflowdata[0] = &(m_plhit2flowdata.Y2U);
+    if ( m_plhit2flowdata.ranY2V )
+      pflowdata[1] = &(m_plhit2flowdata.Y2V);
+    
+    if ( !pflowdata[0] && !pflowdata[1] ) {
+      throw std::runtime_error("[FlowContourMatch::mctrack_match_w_ancestor_img] No hit information filled yet");
+    }
+
+    for ( int iflow=0; iflow<2; iflow++) {
+      if ( !pflowdata[iflow] ) continue;
+      std::vector<HitFlowData_t>& flowdata = *(pflowdata[iflow]);
+      
+      for ( auto& hit : flowdata ) {
+	if ( hit.srcwire<0 || hit.pixtick<0 ) continue;
+	int col = ancestor_v[2].meta().col( hit.srcwire );
+	int row = ancestor_v[2].meta().row( hit.pixtick );
+	int mcid = ancestor_v[2].pixel( row, col );
+	float adc = adcimg_v[2].pixel( row, col );
+	hit.trackid = mcid;
+      }
+    }
+  }
+  
   // =====================================================================
   // INTERNAL FUNCTIONS
   // --------------------
