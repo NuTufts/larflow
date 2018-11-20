@@ -36,6 +36,232 @@
 // FlowContourMatching
 #include "FlowContourMatching/FlowContourMatch.h"
 
+struct InputArgs_t {
+  
+  InputArgs_t()
+    : outputset_larcv(false),
+      outputset_larlite(false),
+      use_combined_dlcosmictag(false),
+      use_hits(false),
+      use_truth(false),
+      has_reco2d(false),
+      has_opreco(false),
+      has_mcreco(false),
+      has_infill(false),
+      has_ssnet(false),
+      use_ancestor_img(false),
+      makehits_useunmatched(false),
+      makehits_require_3dconsistency(false),
+      process_num_events(-1),
+      jobid(-1),
+      kVISUALIZE(false),
+      kINSPECT(false)
+  {};
+
+  // LArCV input (cropped)
+  // ----------------------
+  bool use_combined_dlcosmictag;
+  // if use_combined_dlcosmictag=True
+  std::string input_dlcosmictag; 
+  // if use_combined_dlcosmictag=False
+  std::string input_larflow_y2u;
+  std::string input_larflow_y2v;
+  std::string input_cropped_adc;
+  std::string input_infill;
+  std::string input_ssnet;
+
+  // Event data
+  // ----------
+  std::string input_supera;
+  std::string input_mcinfo;
+  std::string input_reco2d;
+  std::string input_opreco;
+
+  // Output params
+  // -------------
+  bool outputset_larlite;
+  bool outputset_larcv;  
+  std::string output_larlite;
+  std::string output_larcv;
+
+  // other pars
+  // ----------
+  int jobid;
+  bool use_hits;
+  bool use_truth;
+  bool has_reco2d;
+  bool has_opreco;
+  bool has_mcreco;
+  bool has_infill;
+  bool has_ssnet;
+  bool use_ancestor_img;
+  bool makehits_useunmatched;
+  bool makehits_require_3dconsistency;
+  int process_num_events;
+  bool kVISUALIZE;
+  bool kINSPECT;
+
+};
+
+struct Arg_t {
+  Arg_t( std::string f, std::string h ) 
+    : flag(f),
+      help(h)
+  {};
+  std::string flag;
+  std::string help;
+};
+
+InputArgs_t parseArgs( int nargs, char** argv ) {
+
+  std::vector< Arg_t > commands;
+  commands.push_back( Arg_t("-c",  "combined (cropped) dlcosmictag file [required or provide individual files below]") );
+  commands.push_back( Arg_t("-y2u","individual (cropped) y2u file [required if combined not provided]") );
+  commands.push_back( Arg_t("-y2v","individual (cropped) y2v file [required if combined not provided]") );
+  commands.push_back( Arg_t("-adc","individual (cropped) adc file [required if combined not provided]") );
+  commands.push_back( Arg_t("-in", "individual (cropped) infill file") );
+  commands.push_back( Arg_t("-ss", "individual (cropped) ssnet file") );
+  commands.push_back( Arg_t("-su", "event supera larcv file [required]") );
+  commands.push_back( Arg_t("-oll","output larflow larlite file [required]") );
+  commands.push_back( Arg_t("-olc","output larflow larcv file [required]") );  
+  commands.push_back( Arg_t("-mc", "event mcinfo larlite file") );
+  commands.push_back( Arg_t("-op", "event opreco larlite file") );
+  commands.push_back( Arg_t("-re", "event reco2d larlite file [required if use-hits]") );
+  commands.push_back( Arg_t("-j",  "jobid") );
+  commands.push_back( Arg_t("-n",  "number of events to run") );
+  commands.push_back( Arg_t("--use-truth",  "Use pixelflow truth") );
+  commands.push_back( Arg_t("--use-hits",   "Use gaushits as seeds to 3d hits") );
+  commands.push_back( Arg_t("--use-require-3dconsist", "use 3d consistency cut") );
+  commands.push_back( Arg_t("--use-unmatched", "use unmatched hits") );
+  commands.push_back( Arg_t("--use-ancestor-img","use ancestor image to make truth") );
+  commands.push_back( Arg_t("--vis", "visualize cropped image matching") );
+  commands.push_back( Arg_t("--inspect", "inspect visualization") );
+
+  bool printhelp = false;
+  for ( int iarg=1; iarg<nargs; iarg++ )
+    if ( std::string(argv[iarg])=="-h" ) printhelp = true;
+  
+  if ( nargs==1 || printhelp ) {
+    std::cout << "-------------------------------" << std::endl;
+    std::cout << "Dev arguments" << std::endl;
+    for ( auto const& arg : commands ) {
+      std::cout << "  " << arg.flag << "  :: " << arg.help << std::endl;
+    }
+    throw std::runtime_error("end of help");
+  }
+
+  InputArgs_t argconfig;
+  argconfig.use_combined_dlcosmictag = false;
+  
+  for ( int iarg=1; iarg<nargs; iarg++ ) {
+
+    if ( argv[iarg][0]!='-' )
+      continue;
+
+    bool commandmatched = false;
+    for ( auto const& command : commands ) {
+      
+      if ( std::string(argv[iarg])==command.flag ) {
+	commandmatched = true;
+	std::string strflag = argv[iarg];
+	
+	if ( command.flag=="-c" ) {
+	  argconfig.use_combined_dlcosmictag = true;
+	  argconfig.input_dlcosmictag = argv[iarg+1];
+	}
+	else if ( command.flag=="-y2u" )
+	  argconfig.input_larflow_y2u = argv[iarg+1];
+	else if ( command.flag=="-y2v" )
+	  argconfig.input_larflow_y2v = argv[iarg+1];
+	else if ( command.flag=="-adc" ) 
+	  argconfig.input_cropped_adc = argv[iarg+1];
+	else if ( command.flag=="-in" ) {
+	  argconfig.input_infill = argv[iarg+1];
+	  argconfig.has_infill = true;
+	}
+	else if ( command.flag=="-ss" ) {
+	  argconfig.input_ssnet = argv[iarg+1];
+	  argconfig.has_ssnet = argv[iarg+1];
+	}
+	else if ( command.flag=="-oll" ) {
+	  argconfig.output_larlite = argv[iarg+1];
+	  argconfig.outputset_larlite = true;
+	}
+	else if ( command.flag=="-olc" ) {
+	  argconfig.output_larcv = argv[iarg+1];
+	  argconfig.outputset_larcv = true;
+	}
+	else if ( command.flag=="-op" ) {
+	  argconfig.input_opreco = argv[iarg+1];
+	  argconfig.has_opreco = true;
+	}
+	else if ( command.flag=="-su" )
+	  argconfig.input_supera = argv[iarg+1];
+	else if ( command.flag=="-mc" ) {
+	  argconfig.input_mcinfo = argv[iarg+1];
+	  argconfig.has_mcreco = true;	  
+	}
+	else if ( command.flag=="-re" ) {
+	  argconfig.input_reco2d = argv[iarg+1];
+	  argconfig.has_reco2d = true;
+	}
+	else if ( command.flag=="-j" )
+	  argconfig.jobid = std::atoi(argv[iarg+1]);
+	else if ( command.flag=="--vis")
+	  argconfig.kVISUALIZE = true;
+	else if ( command.flag=="--inspect") {
+	  argconfig.kVISUALIZE = true;
+	  argconfig.kINSPECT = true;
+	}
+	else if ( command.flag=="--use-unmatched" )
+	  argconfig.makehits_useunmatched = true;
+	else if ( command.flag=="--use-require-3dconsist" )
+	  argconfig.makehits_require_3dconsistency = true;
+	else if ( command.flag=="--use-hits" )
+	  argconfig.use_hits = true;
+	else if ( command.flag=="--use-truth" )
+	  argconfig.use_truth = true;
+	else if ( command.flag=="--use-ancestor-img" ) {
+	  argconfig.use_ancestor_img = true;
+	}
+	else if ( command.flag=="-n" )
+	  argconfig.process_num_events = std::atoi(argv[iarg+1]);
+
+	break;
+      }//end of if command flag matched
+    }
+
+    if ( !commandmatched ) {
+      std::stringstream ss;
+      ss << "unrecognized command: '" << argv[iarg]<< "'";
+      throw std::runtime_error(ss.str());
+    }
+
+  }//end of loop over arguments
+
+  // Configuration Check
+  // -------------------
+  
+  if ( argconfig.use_hits && !argconfig.has_reco2d ) {
+    throw std::runtime_error("set to use hits, but no reco2d file with gaushits");  
+  }
+  
+  if ( !argconfig.use_combined_dlcosmictag ) {
+    if ( argconfig.input_larflow_y2u.empty() 
+	 || argconfig.input_larflow_y2v.empty()
+	 || argconfig.input_cropped_adc.empty() ) {
+      throw std::runtime_error("missing required cropped file: y2u, y2v, adc");
+    }
+  }
+
+  if ( !argconfig.outputset_larlite || !argconfig.outputset_larcv ) {
+    throw std::runtime_error("failed to set both output larcv and larlite filenames");
+  }
+
+  if ( argconfig.jobid<0 ) argconfig.jobid=0;
+  
+  return argconfig;
+}
 
 void event_changeout( larlite::storage_manager& dataco_output,
 		      larcv::IOManager& larcv_output,
@@ -45,9 +271,7 @@ void event_changeout( larlite::storage_manager& dataco_output,
 		      const int runid,
 		      const int subrunid,
 		      const int eventid,
-		      bool makehits_useunmatched,
-		      bool makehits_require_3dconsistency,
-		      bool hasopreco, bool hasmcreco) {
+		      const InputArgs_t& inputargs ) {
   
   std::cout << "event_changeout." << std::endl;
   // save the larflow3dhit vector
@@ -58,31 +282,40 @@ void event_changeout( larlite::storage_manager& dataco_output,
   auto evout_mcshower       = (larlite::event_mcshower*)dataco_output.get_data(larlite::data::kMCShower, "mcreco" );
   auto evout_wire           = (larcv::EventImage2D*) larcv_output.get_data("image2d","wire");
   auto evout_chstatus       = (larcv::EventChStatus*)larcv_output.get_data("chstatus","wire");
-    
-  // get mctrack
-  const larlite::event_mctrack* ev_track = nullptr;
-  if ( hasmcreco ) {
-    //dataco_larlite.goto_event( runid, subrunid, eventid, "larlite" );
-    ev_track = (larlite::event_mctrack*)dataco_larlite.get_data(larlite::data::kMCTrack, "mcreco");
-  }
-  
+
   // get supera images
-  //dataco_wholelarcv.goto_event( runid, subrunid, eventid, "larcv" );
   larcv::EventImage2D* ev_wholeimg  = (larcv::EventImage2D*) dataco_wholelarcv.get_data("image2d","wire");
   larcv::EventChStatus* ev_chstatus = (larcv::EventChStatus*)dataco_wholelarcv.get_data("chstatus","wire");
+  
+  // mctruth
+  const larlite::event_mctrack* ev_track = nullptr;
+  if ( inputargs.has_mcreco ) {
+    ev_track = (larlite::event_mctrack*)dataco_larlite.get_data(larlite::data::kMCTrack, "mcreco");
+  }
+
+  // mc-truth tagging of hits
+  if ( inputargs.has_mcreco ) {
+    std::cout << "[event changeout] provide mctrack info for truth matching" << std::endl;
+    matching_algo.mctrack_match(*ev_track,ev_wholeimg->as_vector());        
+  }
+  if ( inputargs.use_ancestor_img ) {
+    // use ancestor images
+    std::cout << "[event changeout] provide mctrack info via ancestor image" << std::endl;
+    auto ev_ancestor_img = (larcv::EventImage2D*) dataco_wholelarcv.get_data("image2d","ancestor");
+    if  ( ev_ancestor_img->as_vector().size()!=ev_wholeimg->as_vector().size() ) {
+      throw std::runtime_error("[event changeout] problem loading ancestor images as requested.");
+    }
+    matching_algo.label_mcid_w_ancestor_img( ev_ancestor_img->as_vector(), ev_wholeimg->as_vector() );
+  }
+  
+  // transfer image and chstatus data to output file
   for ( auto const& img : ev_wholeimg->as_vector() ) {
     evout_wire->append( img );
     evout_chstatus->insert( ev_chstatus->status( img.meta().id() ) );
   }
-  
-  // fill mctruth
-  if ( hasmcreco ) {
-    std::cout << "[event changeout] provide mctrack info for truth matching" << std::endl;
-    matching_algo.mctrack_match(*ev_track,ev_wholeimg->as_vector());
-  }
-  
+    
   // get opreco to save into output file
-  if ( hasopreco ) {
+  if ( inputargs.has_opreco ) {
     auto ev_opflash_beam   = (larlite::event_opflash*)dataco_larlite.get_data(larlite::data::kOpFlash, "simpleFlashBeam" );
     auto ev_opflash_cosmic = (larlite::event_opflash*)dataco_larlite.get_data(larlite::data::kOpFlash, "simpleFlashCosmic" );
     
@@ -91,7 +324,9 @@ void event_changeout( larlite::storage_manager& dataco_output,
     for ( auto& flash : *ev_opflash_cosmic )
       evout_opflash_cosmic->emplace_back( std::move(flash) );
   }
-  if (hasmcreco ) {
+
+  // transfer mctrack/mcshower info to output file
+  if ( inputargs.has_mcreco ) {
     auto ev_mctrack   = (larlite::event_mctrack*) dataco_larlite.get_data(larlite::data::kMCTrack,  "mcreco" );
     auto ev_mcshower  = (larlite::event_mcshower*)dataco_larlite.get_data(larlite::data::kMCShower, "mcreco" );
     
@@ -102,7 +337,8 @@ void event_changeout( larlite::storage_manager& dataco_output,
   }
   
   // get the final hits made from flow
-  std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( makehits_useunmatched, makehits_require_3dconsistency );
+  std::vector< larlite::larflow3dhit > whole_event_hits3d_v = matching_algo.get3Dhits_2pl( inputargs.makehits_useunmatched,
+											   inputargs.makehits_require_3dconsistency );
   
   std::cout << "Number of 3D (2-flow) hits: " << whole_event_hits3d_v.size() << std::endl;
   for ( auto& flowhit : whole_event_hits3d_v ) {
@@ -216,226 +452,6 @@ void find_rse_entry( larlite::storage_manager& io, int run, int subrun, int even
 }
 
 
-struct InputArgs_t {
-  
-  InputArgs_t()
-    : outputset_larcv(false),
-      outputset_larlite(false),
-      use_combined_dlcosmictag(false),
-      use_hits(false),
-      use_truth(false),
-      has_reco2d(false),
-      has_opreco(false),
-      has_mcreco(false),
-      has_infill(false),
-      has_ssnet(false),
-      makehits_useunmatched(false),
-      makehits_require_3dconsistency(false),
-      process_num_events(-1),
-      jobid(-1),
-      kVISUALIZE(false),
-      kINSPECT(false)
-  {};
-
-  // LArCV input (cropped)
-  // ----------------------
-  bool use_combined_dlcosmictag;
-  // if use_combined_dlcosmictag=True
-  std::string input_dlcosmictag; 
-  // if use_combined_dlcosmictag=False
-  std::string input_larflow_y2u;
-  std::string input_larflow_y2v;
-  std::string input_cropped_adc;
-  std::string input_infill;
-  std::string input_ssnet;
-
-  // Event data
-  // ----------
-  std::string input_supera;
-  std::string input_mcinfo;
-  std::string input_reco2d;
-  std::string input_opreco;
-
-  // Output params
-  // -------------
-  bool outputset_larlite;
-  bool outputset_larcv;  
-  std::string output_larlite;
-  std::string output_larcv;
-
-  // other pars
-  // ----------
-  int jobid;
-  bool use_hits;
-  bool use_truth;
-  bool has_reco2d;
-  bool has_opreco;
-  bool has_mcreco;
-  bool has_infill;
-  bool has_ssnet;
-  bool makehits_useunmatched;
-  bool makehits_require_3dconsistency;
-  int process_num_events;
-  bool kVISUALIZE;
-  bool kINSPECT;
-
-};
-
-struct Arg_t {
-  Arg_t( std::string f, std::string h ) 
-    : flag(f),
-      help(h)
-  {};
-  std::string flag;
-  std::string help;
-};
-
-InputArgs_t parseArgs( int nargs, char** argv ) {
-
-  std::vector< Arg_t > commands;
-  commands.push_back( Arg_t("-c",  "combined (cropped) dlcosmictag file [required or provide individual files below]") );
-  commands.push_back( Arg_t("-y2u","individual (cropped) y2u file [required if combined not provided]") );
-  commands.push_back( Arg_t("-y2v","individual (cropped) y2v file [required if combined not provided]") );
-  commands.push_back( Arg_t("-adc","individual (cropped) adc file [required if combined not provided]") );
-  commands.push_back( Arg_t("-in", "individual (cropped) infill file") );
-  commands.push_back( Arg_t("-ss", "individual (cropped) ssnet file") );
-  commands.push_back( Arg_t("-su", "event supera larcv file [required]") );
-  commands.push_back( Arg_t("-oll","output larflow larlite file [required]") );
-  commands.push_back( Arg_t("-olc","output larflow larcv file [required]") );  
-  commands.push_back( Arg_t("-mc", "event mcinfo larlite file") );
-  commands.push_back( Arg_t("-op", "event opreco larlite file") );
-  commands.push_back( Arg_t("-re", "event reco2d larlite file [required if use-hits]") );
-  commands.push_back( Arg_t("-j",  "jobid") );
-  commands.push_back( Arg_t("-n",  "number of events to run") );
-  commands.push_back( Arg_t("--use-truth",  "Use pixelflow truth") );
-  commands.push_back( Arg_t("--use-hits",   "Use gaushits as seeds to 3d hits") );
-  commands.push_back( Arg_t("--use-require-3dconsist", "use 3d consistency cut") );
-  commands.push_back( Arg_t("--use-unmatched", "use unmatched hits") );
-  commands.push_back( Arg_t("--vis", "visualize cropped image matching") );
-  commands.push_back( Arg_t("--inspect", "inspect visualization") );
-
-  bool printhelp = false;
-  for ( int iarg=1; iarg<nargs; iarg++ )
-    if ( std::string(argv[iarg])=="-h" ) printhelp = true;
-  
-  if ( nargs==1 || printhelp ) {
-    std::cout << "-------------------------------" << std::endl;
-    std::cout << "Dev arguments" << std::endl;
-    for ( auto const& arg : commands ) {
-      std::cout << "  " << arg.flag << "  :: " << arg.help << std::endl;
-    }
-    throw std::runtime_error("end of help");
-  }
-
-  InputArgs_t argconfig;
-  argconfig.use_combined_dlcosmictag = false;
-  
-  for ( int iarg=1; iarg<nargs; iarg++ ) {
-
-    if ( argv[iarg][0]!='-' )
-      continue;
-
-    bool commandmatched = false;
-    for ( auto const& command : commands ) {
-      
-      if ( std::string(argv[iarg])==command.flag ) {
-	commandmatched = true;
-	std::string strflag = argv[iarg];
-	
-	if ( command.flag=="-c" ) {
-	  argconfig.use_combined_dlcosmictag = true;
-	  argconfig.input_dlcosmictag = argv[iarg+1];
-	}
-	else if ( command.flag=="-y2u" )
-	  argconfig.input_larflow_y2u = argv[iarg+1];
-	else if ( command.flag=="-y2v" )
-	  argconfig.input_larflow_y2v = argv[iarg+1];
-	else if ( command.flag=="-adc" ) 
-	  argconfig.input_cropped_adc = argv[iarg+1];
-	else if ( command.flag=="-in" ) {
-	  argconfig.input_infill = argv[iarg+1];
-	  argconfig.has_infill = true;
-	}
-	else if ( command.flag=="-ss" ) {
-	  argconfig.input_ssnet = argv[iarg+1];
-	  argconfig.has_ssnet = argv[iarg+1];
-	}
-	else if ( command.flag=="-oll" ) {
-	  argconfig.output_larlite = argv[iarg+1];
-	  argconfig.outputset_larlite = true;
-	}
-	else if ( command.flag=="-olc" ) {
-	  argconfig.output_larcv = argv[iarg+1];
-	  argconfig.outputset_larcv = true;
-	}
-	else if ( command.flag=="-op" ) {
-	  argconfig.input_opreco = argv[iarg+1];
-	  argconfig.has_opreco = true;
-	}
-	else if ( command.flag=="-su" )
-	  argconfig.input_supera = argv[iarg+1];
-	else if ( command.flag=="-mc" ) {
-	  argconfig.input_mcinfo = argv[iarg+1];
-	  argconfig.has_mcreco = true;	  
-	}
-	else if ( command.flag=="-re" ) {
-	  argconfig.input_reco2d = argv[iarg+1];
-	  argconfig.has_reco2d = true;
-	}
-	else if ( command.flag=="-j" )
-	  argconfig.jobid = std::atoi(argv[iarg+1]);
-	else if ( command.flag=="--vis")
-	  argconfig.kVISUALIZE = true;
-	else if ( command.flag=="--inspect") {
-	  argconfig.kVISUALIZE = true;
-	  argconfig.kINSPECT = true;
-	}
-	else if ( command.flag=="--use-unmatched" )
-	  argconfig.makehits_useunmatched = true;
-	else if ( command.flag=="--use-require-3dconsist" )
-	  argconfig.makehits_require_3dconsistency = true;
-	else if ( command.flag=="--use-hits" )
-	  argconfig.use_hits = true;
-	else if ( command.flag=="--use-truth" )
-	  argconfig.use_truth = true;
-	else if ( command.flag=="-n" )
-	  argconfig.process_num_events = std::atoi(argv[iarg+1]);
-
-	break;
-      }//end of if command flag matched
-    }
-
-    if ( !commandmatched ) {
-      std::stringstream ss;
-      ss << "unrecognized command: '" << argv[iarg]<< "'";
-      throw std::runtime_error(ss.str());
-    }
-
-  }//end of loop over arguments
-
-  // Configuration Check
-  // -------------------
-  
-  if ( argconfig.use_hits && !argconfig.has_reco2d ) {
-    throw std::runtime_error("set to use hits, but no reco2d file with gaushits");  
-  }
-  
-  if ( !argconfig.use_combined_dlcosmictag ) {
-    if ( argconfig.input_larflow_y2u.empty() 
-	 || argconfig.input_larflow_y2v.empty()
-	 || argconfig.input_cropped_adc.empty() ) {
-      throw std::runtime_error("missing required cropped file: y2u, y2v, adc");
-    }
-  }
-
-  if ( !argconfig.outputset_larlite || !argconfig.outputset_larcv ) {
-    throw std::runtime_error("failed to set both output larcv and larlite filenames");
-  }
-
-  if ( argconfig.jobid<0 ) argconfig.jobid=0;
-  
-  return argconfig;
-}
 
 
 int main( int nargs, char** argv ) {
@@ -588,8 +604,7 @@ int main( int nargs, char** argv ) {
       ev_usedflow->emplace( std::move(usedflow_v) );
       
       event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
-		       current_runid, current_subrunid, current_eventid,
-		       inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
+		       current_runid, current_subrunid, current_eventid, inputargs );
 
 
       // clear the algo
@@ -621,6 +636,7 @@ int main( int nargs, char** argv ) {
       for ( auto const& itchstatus : ev_chstatus->chstatus_map() ) {
 	std::cout << " projection: " << itchstatus.first << " entries=" << itchstatus.second.as_vector().size() << std::endl;
       }
+      
       
       // sync up larlite data
       if ( inputargs.has_reco2d || inputargs.has_opreco || inputargs.has_mcreco ) {
@@ -1022,10 +1038,7 @@ int main( int nargs, char** argv ) {
 
   // save the data from the last event  
   event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
-		   current_runid, current_subrunid, current_eventid,
-		   inputargs.makehits_useunmatched, inputargs.makehits_require_3dconsistency, inputargs.has_opreco, inputargs.has_mcreco );
-
-  
+		   current_runid, current_subrunid, current_eventid, inputargs );
   
   std::cout << "Finalize output." << std::endl;
   dataco_hits.close();
