@@ -2,3 +2,4 @@ dev
 *.o
 *.so
 ana_flowhits
+dump2json
