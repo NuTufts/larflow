@@ -23,7 +23,7 @@ namespace larflow {
   };
 
   struct FlashData_t : public std::vector<float> {
-    FlashData_t() { truthmatched_clusteridx=-1; mctrackid=-1; mctrackpdg=-1; isneutrino=false; isbeam=false; intime=false; visible=1; };
+    FlashData_t() { truthmatched_clusteridx=-1; mctrackid=-1; mctrackpdg=-1; isneutrino=false; isbeam=false; intime=false; tpc_visible=1; img_visible=1; };
     int idx;
     int tpc_tick;
     int tpc_trigx;
@@ -31,7 +31,8 @@ namespace larflow {
     bool isneutrino;
     bool intime;
     float tot;
-    int visible;
+    int tpc_visible;
+    int img_visible;
     int mctrackid;
     int mctrackpdg;
     int truthmatched_clusteridx;

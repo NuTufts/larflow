@@ -117,8 +117,8 @@ int main( int nargs, char** argv ) {
     algo.clearEvent();    
     nprocessed++;
     
-    if ( nprocessed==3 )
-      break;
+    // if ( nprocessed==1 )
+    //   break;
   }
 
   std::cout << "[dev_flashmatch] write ana file" << std::endl;

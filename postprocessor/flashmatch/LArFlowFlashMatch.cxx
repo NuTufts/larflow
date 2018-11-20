@@ -54,6 +54,7 @@ namespace larflow {
       _fitter(32),
       _fanafile(nullptr),
       _anatree(nullptr),
+      _flashtree(nullptr),      
       _save_ana_tree(false),
       _anafile_written(false)
   {
@@ -220,20 +221,20 @@ namespace larflow {
     LassoFlashMatch::LearningConfig_t epoch1;
     epoch1.iter_start =  0;
     epoch1.iter_end   =  30000;
-    epoch1.lr = 1.0e-5;
+    epoch1.lr = 1.0e-6;
     epoch1.use_sgd = true;
     epoch1.matchfrac = 0.5; // introduce noise
     LassoFlashMatch::LearningConfig_t epoch2;
     epoch2.iter_start =  30001;
     epoch2.iter_end   =  60000;
-    epoch2.lr = 1.0e-4;
+    epoch2.lr = 1.0e-5;
     epoch2.use_sgd = false;
     epoch2.matchfrac = 1.0; // introduce noise
     // last stage, setting to global min
     LassoFlashMatch::LearningConfig_t epoch3;
     epoch3.iter_start =  60001;
     epoch3.iter_end   = 120000;
-    epoch3.lr = 1.0e-5;
+    epoch3.lr = 1.0e-6;
     epoch3.use_sgd = false;
     epoch3.matchfrac = 1.0; // introduce noise
     _fitter.addLearningScheduleConfig( epoch1 );
@@ -747,10 +748,12 @@ namespace larflow {
       }
       std::cout << "flash[" << iflash << "] [Tot: " << ncompat << "] ";
       std::cout << "[mctrackid=" << flash.mctrackid << " ";
-      if ( flash.visible==1 )
+      if ( flash.tpc_visible )
+	std::cout << " intpc ";
+      if ( flash.img_visible==1 )
 	std::cout << "truthclusteridx=" << flash.truthmatched_clusteridx << "] ";
       else
-	std::cout << "no vis cluster] ";
+	std::cout << "not-img-vis] ";
       
       for ( auto& idx : compatidx ) {
 	bool bestmaxdist = false;
@@ -1404,11 +1407,13 @@ namespace larflow {
       FlashData_t& flash = flashdata_v[iflash];
       // set some truth-defaults
       flash.isneutrino = false;
-      flash.visible = 1;
+      flash.tpc_visible = 1;
+      flash.img_visible = 1;      
       flash.truthmatched_clusteridx = -1;
       flash.mctrackid = -1;
 
-      int nvis_steps = 0;      
+      int nvis_steps = 0;
+      int ntpc_steps = 0;
       for ( auto const& ptrk : _flash_matched_mctracks_v[iflash] ) {
 	float track_tick = ptrk->Start().T()*1.0e-3/0.5 + 3200;
 	float dtick      = fabs(flashdata_v[iflash].tpc_tick - track_tick);
@@ -1419,6 +1424,7 @@ namespace larflow {
 	  if ( tick>=2400 && tick<8448 )
 	    nvis_steps += 1;
 	}
+	ntpc_steps += ptrk->size();
 	
 	std::cout << "  mctrack[" << ptrk->TrackID() << ",origin=" << ptrk->Origin() << "] pdg=" << ptrk->PdgCode()
 		  << " ancestor=" << ptrk->AncestorTrackID()
@@ -1436,7 +1442,9 @@ namespace larflow {
       
       for ( auto const& pshr : _flash_matched_mcshowers_v[iflash] ) {
 	float track_tick = pshr->Start().T()*1.0e-3/0.5 + 3200;
-	float dtick      = fabs(flashdata_v[iflash].tpc_tick - track_tick);	
+	float dtick      = fabs(flashdata_v[iflash].tpc_tick - track_tick);
+	if ( pshr->Origin()==1 )
+	  flash.isneutrino = true;
 	std::cout << "  mcshower[" << pshr->TrackID() << ",origin=" << pshr->Origin() << "] pdg=" << pshr->PdgCode()
 		  << " ancestor=" << pshr->AncestorTrackID()	  
 		  << " E=" << pshr->Start().E() 
@@ -1446,12 +1454,14 @@ namespace larflow {
 		  << " dtick=" << dtick	  
 		  << std::endl;
 	float start_tick =  pshr->Start().T()*1.0e-3/0.5 + 3200 + pshr->Start().X()/cm_per_tick;
-	if ( start_tick>=2400 && start_tick<8448
-	     && pshr->Start().E()>10.0 // arbitrary 10 MeV limit
+	if ( pshr->Start().E()>10.0 // arbitrary 10 MeV limit
 	     && pshr->Start().X()>0 && pshr->Start().X()<256
 	     && fabs(pshr->Start().Y())<116.0
-	     && pshr->Start().Z()>0 && pshr->Start().Z()<1036.0 ) 
-	  nvis_steps += 1;
+	     && pshr->Start().Z()>0 && pshr->Start().Z()<1036.0 )  {
+	  ntpc_steps += 1;
+	  if ( start_tick>=2400 && start_tick<8448 )
+	    nvis_steps += 1;
+	}
 	if ( flash.mctrackid<0 ) {
 	  flash.mctrackid = pshr->AncestorTrackID();
 	  flash.mctrackpdg = pshr->PdgCode();
@@ -1461,14 +1471,20 @@ namespace larflow {
       // if no visible steps
       if ( nvis_steps==0 ) {
 	// not in the tpc, so nothing to match
-	flash.visible = 0;
+	flash.img_visible = 0;
       }
       else {
-	flash.visible = 1;
+	flash.img_visible = 1;
       }
 
+      if ( ntpc_steps==0 )
+	flash.tpc_visible = 0;
+      else
+	flash.tpc_visible = 1;
+
       // determinations
-      std::cout << "  flash-is-visible:  " << flash.visible << std::endl;
+      std::cout << "  flash-is-img-visible:  " << flash.img_visible << std::endl;
+      std::cout << "  flash-is-tpc-visible:  " << flash.tpc_visible << std::endl;      
       std::cout << "  flash-is-neutrino: " << flash.isneutrino << std::endl;
       std::cout << "  flash-mctrackid:   " << flash.mctrackid << std::endl;    
 
@@ -1533,8 +1549,8 @@ namespace larflow {
   void LArFlowFlashMatch::doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v ) {
     for (int iflash=0; iflash<(int)flashdata_v.size(); iflash++) {
       FlashData_t& flash = flashdata_v[iflash];
-
-      if ( flash.visible==0 ) continue;
+      
+      if ( flash.tpc_visible==0 ) continue;
       
       for (int iclust=0; iclust<(int)qcluster_v.size(); iclust++) {
 	QCluster_t& cluster = qcluster_v[iclust];
@@ -1551,7 +1567,7 @@ namespace larflow {
       }
     }
   }
-
+  
   // void LArFlowFlashMatch::buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v ) {
   //   // we create hits outside the tpc for each truth-matched cluster
   //   // outside of TPC, so no field, no space-charge correction
@@ -1818,7 +1834,7 @@ namespace larflow {
       CutVars_t& cutvars = getCutVars(iflash,iclust);
       
       const FlashData_t& flash = _flashdata_v[iflash];
-      if ( flash.visible==1 && flash.truthmatched_clusteridx==iclust ) {
+      if ( flash.img_visible==1 && flash.truthmatched_clusteridx==iclust ) {
 	fmatch_truth[imatch] = 1;
 	cutvars.truthfmatch = 1;	
       }
@@ -1865,7 +1881,9 @@ namespace larflow {
     _anatree->Branch("flash_intime",     &_flash_intime,      "flash_intime/I");        
     _anatree->Branch("flash_isbeam",     &_flash_isbeam,      "flash_isbeam/I");
     _anatree->Branch("flash_isvisible",  &_flash_isvisible,   "flash_isvisible/I");
+    _anatree->Branch("flash_crosstpc",   &_flash_crosstpc,    "flash_crosstpc/I");    
     _anatree->Branch("flash_mcid",       &_flash_mcid,        "flash_mcid/I");
+    _anatree->Branch("flash_tick",       &_flash_tick,        "flash_tick/F");    
     
     _anatree->Branch("truthmatched",     &_truthmatched,      "truthmatched/I");
     _anatree->Branch("cutfailed",        &_cutfailed,         "cutfailed/I");    
@@ -1882,11 +1900,21 @@ namespace larflow {
     _anatree->Branch("fmatch",           &_fmatch,            "fmatch/F");
     _anatree->Branch("fmatch_truth",     &_fmatch_truth,      "fmatch_truth/F");
 
-    _flashtree = new TTree("flashana", "Variables for each flash");
+    _flashtree = new TTree("anaflashtree", "Variables for each flash");
     _flashtree->Branch("run",    &_run,    "run/I");
     _flashtree->Branch("subrun", &_subrun, "subrun/I");
     _flashtree->Branch("event",  &_event,  "event/I");
-    // what do I want to save here?
+    _flashtree->Branch("flash_isneutrino",  &_flash_isneutrino,  "flash_isneutrino/I");        
+    _flashtree->Branch("flash_intime",      &_flash_intime,      "flash_intime/I");        
+    _flashtree->Branch("flash_isbeam",      &_flash_isbeam,      "flash_isbeam/I");
+    _flashtree->Branch("flash_isvisible",   &_flash_isvisible,   "flash_isvisible/I");
+    _flashtree->Branch("flash_crosstpc",    &_flash_crosstpc,    "flash_crosstpc/I");    
+    _flashtree->Branch("flash_mcid",        &_flash_mcid,        "flash_mcid/I");
+    _flashtree->Branch("flash_bestclustidx",&_flash_bestclustidx,"flash_bestclustidx/I");
+    _flashtree->Branch("flash_bestfmatch",  &_flash_bestfmatch,  "flash_bestfmatch/F");
+    _flashtree->Branch("flash_truthfmatch", &_flash_truthfmatch, "flash_truthfmatch/F");
+    _flashtree->Branch("flash_tick",        &_flash_tick,        "flash_tick/F");    
+
     
     _save_ana_tree   = true;
     _anafile_written = false;
@@ -1931,9 +1959,15 @@ namespace larflow {
       _flash_isbeam     = (flash.isbeam)     ? 1 : 0;
       _flash_isneutrino = (flash.isneutrino) ? 1 : 0;
       _flash_intime     = (flash.intime) ? 1 : 0;
-      _flash_isvisible  = flash.visible;
+      _flash_isvisible  = flash.img_visible;
+      _flash_crosstpc   = flash.tpc_visible;
       _flash_mcid       = flash.mctrackid;
-      
+      _flash_tick       = flash.tpc_tick;
+
+      _flash_bestclustidx = -1;
+      _flash_bestfmatch = -1;      
+      _flash_truthfmatch   = -1; 
+	
       for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
 	
 	const QCluster_t& cluster = _qcluster_v[iclust];
@@ -1960,6 +1994,14 @@ namespace larflow {
 	_enterlen      = cutvars.enterlen;
 	_fmatch        = cutvars.fit1fmatch;
 
+	if ( _truthmatched==1 )
+	  _flash_truthfmatch = _fmatch;
+
+	if ( _fmatch>=0 && _flash_bestfmatch<_fmatch ) {
+	  _flash_bestfmatch = _fmatch;
+	  _flash_bestclustidx = iclust;
+	}
+
 	// find actual truthmatch (to compare)
 	_fmatch_truth = -1.0;
 	if ( flash.truthmatched_clusteridx>=0 ) {
@@ -1975,6 +2017,8 @@ namespace larflow {
 	_anatree->Fill();
 	
       }// end of cluster loop
+
+      _flashtree->Fill();      
     }//end of flash loop
   }
   
@@ -1982,6 +2026,7 @@ namespace larflow {
     if ( _save_ana_tree && !_anafile_written ) {
       _fanafile->cd();
       _anatree->Write();
+      _flashtree->Write();            
       _anafile_written = true;
     }
   }

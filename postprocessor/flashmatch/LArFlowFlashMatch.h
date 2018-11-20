@@ -261,7 +261,12 @@ namespace larflow {
     int   _flash_intime;
     int   _flash_isbeam;
     int   _flash_isvisible;
+    int   _flash_crosstpc;
     int   _flash_mcid;
+    float _flash_bestfmatch;
+    float _flash_truthfmatch;
+    int   _flash_bestclustidx;
+    float _flash_tick;
     int   _truthmatched; // flash-cluster    
     int   _usedext; // cluster
     float _hypope;
