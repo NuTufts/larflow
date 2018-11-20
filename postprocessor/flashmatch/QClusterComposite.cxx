@@ -73,14 +73,21 @@ namespace larflow {
     float extsign = ( (topend-_centerpos).dot(_pcavec) > 0 ) ? 1.0 : -1.0;
 
     // how long do we need to extend?
+    // we want to shift so that vec has longest path out of detector
     float xoffset = 0;
-    if ( _pcavec(0) > 0 ) {
-      // we shift the closest end to 0, back to the origin
-      xoffset = -_posfront(0);
+    if ( extsign > 0 ) {
+      // pca goes to topend
+      if ( _pcavec(0)>0 ) // top end is in backhalf
+	xoffset = -botend(0); // shift botend to anode
+      else
+	xoffset = 256.0 - botend(0);	// shift botend to cathode
     }
     else {
-      // we shift the closest end to the cathode back to the cathode
-      xoffset = 256.0 - _posback(0);
+      // pca goes to botend
+      if ( _pcavec(0)<0 ) // top end is in backhalf
+	xoffset = -botend(0);
+      else
+	xoffset = 256.0 - botend(0);	      
     }
 
     bool indet = true;
@@ -132,13 +139,19 @@ namespace larflow {
     
     // how long do we need to extend?
     float xoffset = 0;
-    if ( _pcavec(0) > 0 ) {
-      // we shift the closest end to 0, back to the origin
-      xoffset = -topend(0);
+    if ( extsign > 0 ) {
+      // pca goes to botend
+      if ( _pcavec(0)>0 ) // top end is in backhalf
+	xoffset = -topend(0); // shift botend to anode
+      else
+	xoffset = 256.0 - topend(0);	// shift botend to cathode
     }
     else {
-      // we shift the closest end to the cathode back to the cathode
-      xoffset = 256.0-topend(0);
+      // pca goes to topend
+      if ( _pcavec(0)<0 ) // top end is in backhalf
+	xoffset = -topend(0);
+      else
+	xoffset = 256.0 - topend(0);	      
     }
     
     bool indet = true;
@@ -186,9 +199,9 @@ namespace larflow {
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
-    const float mev_per_pixval = 2.2/100.0;
+    const float mev_per_pixval = 1.0/50.0; // WAG
     const float pixval2photons = mev_per_pixval*40000*0.25*0.5*0.01; // [ mev/adc]*[phot/MeV]*[early frac muon]*[field quenching]*[pe/phot] this is a WAG!!!
-    const float gapfill_len2adc  = (80.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
+    const float gapfill_len2adc  = 3.5*(2.5/mev_per_pixval); // adc value per pixel for mip going 0.3 cm through pixel
     const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
 
     const QCluster_t* qclusters[4] = { &_core._core, &_core._gapfill_qcluster, &_entering_qcluster, &_exiting_qcluster };
@@ -232,12 +245,12 @@ namespace larflow {
       	xyz[1] = qhit.xyz[1];
       	xyz[2] = qhit.xyz[2];
       
-       	if ( xyz[0]>250.0 )
+       	if ( xyz[0]>256.0 )
        	  continue; // i dont trust the hypotheses here
 
 	if ( icomp==2 ) {
 	  // ignore out of TPC for entering extension
-	  if ( xyz[0]<0 || xyz[0]>250.0 || 
+	  if ( xyz[0]<0 || xyz[0]>256.0 || 
 	       xyz[1]<-117.0 || xyz[1]>117.0 ||
 	       xyz[2]<0 || xyz[2]>1036.0 ) {
 	    break;
@@ -286,9 +299,9 @@ namespace larflow {
     FlashHypo_t pre_enter_outside = hypo_composite.makeHypo();
     // compare
     float current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside );
-    float current_maxperatio = calcMaxPEratio( flash, pre_enter_outside );
+    float current_maxperatio = calcMaxPEratio( flash, pre_enter_outside );    
     const QCluster_t& qenter = *(qclusters[2]);
-    int nenter_used = 0;
+    //std::cout << "debug: pre-enter peratio=" << current_maxperatio << " (enter-outtpc-start=" << hypo_composite.nenter_used << " enter size=" << qenter.size() << ")" << std::endl;    
     float nenter_pe = 0.;
     for ( int ihit=hypo_composite.nenter_used; ihit<(int)qenter.size(); ihit++ ) {
       const QPoint_t& qhit = qenter[ihit];
@@ -297,7 +310,7 @@ namespace larflow {
       xyz[1] = qhit.xyz[1];
       xyz[2] = qhit.xyz[2];
 
-      if ( xyz[0]>250 )
+      if ( xyz[0]>256 )
 	break;
       
       const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );      
@@ -313,7 +326,7 @@ namespace larflow {
 	dpe_v[ich] = pe;
 	dpe_tot += pe;
       }
-
+      
       if ( !extend_using_maxpe ) {
 	// use max dist to extend
 	float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside, false );
@@ -325,7 +338,8 @@ namespace larflow {
 	// use peratio of max pmt in data flash
 	// good proxy for extension into anode?
 	float maxperatio = calcMaxPEratio( flash, pre_enter_outside );
-	if ( fabs(maxperatio-1.0) < fabs(current_maxperatio-1.0) ) {
+	//std::cout << "debug: continue-enter. new point=" << fabs(maxperatio) << " vs. " << fabs(current_maxperatio) << std::endl;	
+	if ( fabs(maxperatio) < fabs(current_maxperatio) ) {
 	  current_maxperatio = maxperatio;
 	}
 	else {
@@ -340,7 +354,7 @@ namespace larflow {
       }
       hypo_composite.tot += dpe_tot;
       hypo_composite.tot_outtpc += dpe_tot;
-      nenter_used++;
+      hypo_composite.nenter_used++;
       nenter_pe += dpe_tot;
     }
     
@@ -363,12 +377,12 @@ namespace larflow {
       xyz[1] = qhit.xyz[1];
       xyz[2] = qhit.xyz[2];
 
-      if ( xyz[0]>250 )
+      if ( xyz[0]>256 )
 	break;
 
       bool intpc = true;
-      if ( xyz[0]<0 || xyz[0]>250.0 || 
-	       xyz[1]<-117.0 || xyz[1]>117.0 ||
+      if ( xyz[0]<0 || xyz[0]>256.0 || 
+	   xyz[1]<-117.0 || xyz[1]>117.0 ||
 	   xyz[2]<0 || xyz[2]>1036.0 ) {
 	intpc = false;
       }
@@ -427,13 +441,13 @@ namespace larflow {
   std::vector< TGraph > QClusterComposite::getTGraphsAndHypotheses( const FlashData_t& flash, std::vector<TH1F*>& hypo_v ) const {
 
     float xoffset = (flash.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-    std::cout << "[QClusterComposite::getTGraphsAndHypotheses] xoffset=" << xoffset << std::endl;
+    //std::cout << "[QClusterComposite::getTGraphsAndHypotheses] xoffset=" << xoffset << std::endl;
 
     // first build hypotheses (so we can figure out extension lengths)
     FlashCompositeHypo_t hypo_wext  = generateFlashCompositeHypo( flash, true,  false );
     FlashCompositeHypo_t hypo_noext = generateFlashCompositeHypo( flash, false, false );
-    std::cout << "debug hypo-w/ext core=" << hypo_wext.core.tot << std::endl;
-    std::cout << "debug hypo-no/ext core=" << hypo_wext.core.tot << std::endl;    
+    //std::cout << "debug hypo-w/ext core="  << hypo_wext.core.tot << std::endl;
+    //std::cout << "debug hypo-no/ext core=" << hypo_noext.core.tot << std::endl;    
     
     if ( hypo_v.size()!=2 )
       hypo_v.resize(2,nullptr);
@@ -484,13 +498,17 @@ namespace larflow {
     int idx_maxpmt_data = 0;
     float pe_maxpmt_data = 0;
     for (int i=0; i<32; i++) {
-      if ( flash[i]>pe_maxpmt_data ) {
+      float pe = flash[i]*flash.tot;
+      if ( pe>pe_maxpmt_data ) {
 	idx_maxpmt_data = i;
-	pe_maxpmt_data = flash[i];
+	pe_maxpmt_data = pe;
       }
     }
 
+    //std::cout << "debug: data pe-maxpmt=" << pe_maxpmt_data << std::endl;
+    
     float pe_maxpmt_hypo = hypo[idx_maxpmt_data];
+    //std::cout << "debug: hypo pe-maxpmt=" << pe_maxpmt_hypo << std::endl;    
     if ( pe_maxpmt_hypo==0 && pe_maxpmt_data==0 )
       return 1;
     else if ( pe_maxpmt_hypo==0 )

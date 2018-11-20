@@ -291,20 +291,20 @@ namespace larflow {
     else
       throw std::runtime_error("[LassoFlashMatch::getTotalScore][ERROR] fmask size must either be 0 (don't use) or number of matches");
       
-      std::vector<float> score_values;
+    //std::vector<float> score_values;
     
     if ( !_bundle_flashes ) {
-      score_values.resize( _nmatches, 0);
+      //score_values.resize( _nmatches, 0);
       for (int imatch=0; imatch<_nmatches; imatch++) {
 	float matchscore = 0.;
 	if ( !use_fmask || (use_fmask && fmask[imatch]==1) )
 	  matchscore = scoreMatch(imatch);	  
-	score_values[imatch] = matchscore;
+	//score_values[imatch] = matchscore;
 	score += matchscore*_fmatch_v[imatch];
       }
     }
     else {
-      score_values.resize( _flashindices.size(), 0 );
+      //score_values.resize( _flashindices.size(), 0 );
       for (auto const& iflashidx : _flashindices ) {
 	float flash_score = 0.;
 	switch (_scorer) {
@@ -318,7 +318,7 @@ namespace larflow {
 	  assert(false);
 	  break;
 	};
-	score_values[iflashidx] = flash_score;
+	//score_values[iflashidx] = flash_score;
 	score += flash_score;
       }
     }
@@ -346,7 +346,7 @@ namespace larflow {
       scoreMatchMaxDist( imatch );
       break;
     default:
-      throw std::runtime_error("[LassoFlashMatch::scoreMatch][ERROR] score type not defined.");
+      throw std::runtime_error("[LassoFlashMatch::scoreMatch][ERROR] unbundled score type not defined.");
       break;
     }
     

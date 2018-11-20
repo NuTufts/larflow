@@ -17,6 +17,8 @@
 
 #include "LArFlowFlashMatch.h"
 
+
+
 int main( int nargs, char** argv ) {
 
   std::string input_cluster = argv[1];
@@ -67,7 +69,7 @@ int main( int nargs, char** argv ) {
   larflow::LArFlowFlashMatch algo;
   algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
 
-  int istart = 2;
+  int istart = 0;
   int nprocessed = 0;
   for (int ientry=istart; ientry<nentries; ientry++) {
     
@@ -102,8 +104,8 @@ int main( int nargs, char** argv ) {
     algo.loadMCTrackInfo( *ev_mctrack, *ev_mcshower, true );
     algo.setRSE( io.run_id(), io.subrun_id(), io.event_id() );
 
-    algo.dumpPrefitImages(true);
-    algo.dumpPostfitImages(true);
+    algo.dumpPrefitImages(false);
+    algo.dumpPostfitImages(false);
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
     std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
     
@@ -115,7 +117,7 @@ int main( int nargs, char** argv ) {
     algo.clearEvent();    
     nprocessed++;
     
-    if ( nprocessed==1 )
+    if ( nprocessed==3 )
       break;
   }
 

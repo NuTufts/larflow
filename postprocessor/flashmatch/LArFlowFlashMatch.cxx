@@ -193,8 +193,8 @@ namespace larflow {
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Fitter Loaded" << std::endl;
     if ( _fDumpPrefit )
       dumpQCompositeImages( "prefit" );
-    if ( true )
-      return;
+    if ( false )
+      return; // for debug
 
     if ( _kDoTruthMatching && _kFlashMatchedDone ) {
       setFitParsWithTruthMatch();
@@ -695,7 +695,7 @@ namespace larflow {
 	// also do pe cut, since we have hypotheses
 	cutvar.peratio_wext  = (hypo_wext.tot  - flashdata.tot)/flashdata.tot;
 	cutvar.peratio_noext = (hypo_noext.tot - flashdata.tot)/flashdata.tot;
-	float peratio  = ( cutvar.peratio_wext < cutvar.peratio_noext ) ? cutvar.peratio_wext : cutvar.peratio_noext;
+	float peratio  = ( fabs(cutvar.peratio_wext) < fabs(cutvar.peratio_noext) ) ? cutvar.peratio_wext : cutvar.peratio_noext;
 	cutvar.pe_hypo = ( cutvar.maxdist_wext < cutvar.maxdist_noext ) ? hypo_wext.tot : hypo_noext.tot;
 	cutvar.pe_data = flashdata.tot;
 
@@ -808,7 +808,7 @@ namespace larflow {
 	_pair2matchidx[ MatchPair_t( iflash, iclust ) ] = imatchidx;
 	_matchidx2pair[ imatchidx ] = MatchPair_t( iflash, iclust );
       }
-      std::cout << "after flash=" << iflash << std::endl;
+      std::cout << "[LArFlowFlashMatch::prepareFitter()] after flash=" << iflash << std::endl;
     }
 
 
@@ -953,10 +953,18 @@ namespace larflow {
       chmarkers_v[ich]->SetTextSize(0.04);
 
     }
+
+    std::cout << "==========================================================" << std::endl;
+    std::cout << "Dump QCompositeCluster DEBUG images" << std::endl;
+    std::cout << "==========================================================" << std::endl;    
+    std::cout << std::endl;
     
     // make charge graphs
     for (size_t iflash=0; iflash<_flashdata_v.size(); iflash++) {
 
+      std::cout << "[FLASH " << iflash << "]" << std::endl;
+      std::cout << "-----------------------------------------------" << std::endl;
+      
       // refresh the plot
       c2d.Clear();
       c2d.Draw();
@@ -997,6 +1005,7 @@ namespace larflow {
 	datamarkers_v[ich] = new TEllipse(xyz[2],xyz[1],radius,radius);
 	datamarkers_v[ich]->SetFillColor(29);
       }
+      std::cout << "  [data] total pe: " << hflashdata.Integral() << std::endl;
 
       // truth-matched track for flash
       std::vector<TGraph*> mctrack_data_zy;
@@ -1015,7 +1024,7 @@ namespace larflow {
 	  TMarker* m_xy = new TMarker( pmct->Start().X(), pmct->Start().Y(), 30 );
 	  mcstart_zy.push_back( m_zy );
 	  mcstart_xy.push_back( m_xy );
-	  std::cout << " [flash " << iflash << "] track steps = " << pmct->size() << std::endl;
+	  //std::cout << " [flash " << iflash << "] track steps = " << pmct->size() << std::endl;
 	  if ( pmct->size()==0 ) continue;
 	      
 	  TGraph* gmc_zy = new TGraph( pmct->size() );
@@ -1107,8 +1116,8 @@ namespace larflow {
 	sprintf(histname2, "hhypo_flash%d_clust%d_noext", (int)iflash, (int)iclust );
 	hypo_v[1] = new TH1F( histname2, "", 32, 0, 32 );
 	std::vector<TGraph> gtrack_v = qcomposite.getTGraphsAndHypotheses( flash, hypo_v );
-	std::cout << "hypo w/ext  " << histname1 << ": " << hypo_v[0]->Integral() << "  maxdist=" << cutvars.maxdist_wext << std::endl;
-	std::cout << "hypo no/ext " << histname2 << ": " << hypo_v[1]->Integral() << "  maxdist=" << cutvars.maxdist_noext << std::endl;
+	std::cout << "  [cluster " << iclust << "] hypo w/ext"  << histname1 << "=" << hypo_v[0]->Integral() << "  maxdist=" << cutvars.maxdist_wext << std::endl;
+	std::cout << "  [cluster " << iclust << "] hypo no/ext" << histname2 << "=" << hypo_v[1]->Integral() << "  maxdist=" << cutvars.maxdist_noext << std::endl;
 
 
 	Int_t colors[4] = { kRed, kOrange+2, kCyan, kMagenta };
@@ -1242,9 +1251,9 @@ namespace larflow {
       sprintf(cname,"%s_qcomposite_flash%02d.png",prefix.c_str(),(int)iflash);
       c2d.SaveAs(cname);
 
-      std::cout << "number of clusters draw: " << nclusters_drawn << std::endl;
-      std::cout << "graph_zy: " << graphs_zy_v.size() << std::endl;
-      std::cout << "graph_xy: " << graphs_xy_v.size() << std::endl;            
+      //std::cout << "number of clusters draw: " << nclusters_drawn << std::endl;
+      //std::cout << "graph_zy: " << graphs_zy_v.size() << std::endl;
+      //std::cout << "graph_xy: " << graphs_xy_v.size() << std::endl;            
       std::cout << "[enter to continue]" << std::endl;
       //std::cin.get();
 
@@ -1946,7 +1955,7 @@ namespace larflow {
     
 	_peratio_wext  = cutvars.peratio_wext;
 	_peratio_noext = cutvars.peratio_noext;
-	_peratio_best  = (_peratio_wext<_peratio_noext) ? _peratio_wext : _peratio_noext;
+	_peratio_best  = (fabs(_peratio_wext)<fabs(_peratio_noext)) ? _peratio_wext : _peratio_noext;
 
 	_enterlen      = cutvars.enterlen;
 	_fmatch        = cutvars.fit1fmatch;
