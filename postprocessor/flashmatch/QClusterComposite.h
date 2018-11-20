@@ -3,6 +3,7 @@
 
 // ROOT
 #include "TGraph.h"
+#include "TH1F.h"
 
 // eigen
 #include <Eigen/Dense>
@@ -35,8 +36,8 @@ namespace larflow {
     
     // generate a hypothesis.
     // the data flash tells us which part of the extension to use
-    FlashCompositeHypo_t generateFlashCompositeHypo( const FlashData_t& flash, bool apply_ext ) const;
-    std::vector< TGraph > getTGraphs( float xoffset ) const;
+    FlashCompositeHypo_t generateFlashCompositeHypo( const FlashData_t& flash, const bool apply_ext, const bool use_orig_qcluster=false ) const;
+    std::vector< TGraph > getTGraphsAndHypotheses( const FlashData_t& flash, std::vector< TH1F* >& hypo_v ) const;
   protected:
 
     // extend the core to the detector edge from the most likely entering end
@@ -44,6 +45,8 @@ namespace larflow {
     float _fExtStepLen;
     void ExtendEnteringEnd();
     void ExtendExitingEnd();
+
+    float calcMaxPEratio( const FlashData_t& flash, const FlashHypo_t& hypo ) const;    
     
 
 

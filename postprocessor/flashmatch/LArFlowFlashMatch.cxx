@@ -4,6 +4,7 @@
 // ROOT
 #include "TCanvas.h"
 #include "TH1D.h"
+#include "TH1F.h"
 #include "TRandom3.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -20,7 +21,6 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "LArUtil/TimeService.h"
-#include "SelectionTool/OpT0Finder/PhotonLibrary/PhotonVisibilityService.h"
 
 // larflow postprocessor
 #include "cluster/CoreFilter.h"
@@ -41,6 +41,8 @@ namespace larflow {
       _compatibility_defined(false),
       _fMaxDistCut(0),
       _fPERatioCut(0),
+      _fDumpPrefit(false),
+      _fDumpPostfit(false),
       _fMaxEnterExt(0),
       _fCosmicDiscThreshold(0),
       _rand(nullptr),
@@ -177,6 +179,7 @@ namespace larflow {
     std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using shape analysis" << std::endl;
     printCompatSummary();
 
+
     // refined compabtibility: entering length
     reduceUsingEnteringLength();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using entering length" << std::endl;
@@ -188,15 +191,17 @@ namespace larflow {
     _fitter.setUseBterms(true);
     prepareFitter();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] Fitter Loaded" << std::endl;
-    dumpQCompositeImages( "prefit" );
+    if ( _fDumpPrefit )
+      dumpQCompositeImages( "prefit" );
+    if ( true )
+      return;
 
     if ( _kDoTruthMatching && _kFlashMatchedDone ) {
       setFitParsWithTruthMatch();
     }
-
+    
     _fitter.setLossFunction( LassoFlashMatch::kNLL );
-    //_fitter.setLossFunction( LassoFlashMatch::kMaxDist );    
-    _fitter.printState(false);
+    _fitter.printState(false);    
     _fitter.printClusterGroups();
     _fitter.printFlashBundles( false );
 
@@ -208,7 +213,7 @@ namespace larflow {
     _fitter.printFlashBundles( false );
 
     std::cout << "About to start fit. [ENTER] to continue" << std::endl;
-    std::cin.get();
+    //std::cin.get();
     
     // setup learning schedule
     // two stages: first use SGD to minimize with noise
@@ -245,7 +250,9 @@ namespace larflow {
     _fitter.printFlashBundles( false );
     _fitter.printBterms();
     _fitter.printFmatch();
-    dumpQCompositeImages( "postfit" );
+
+    if ( _fDumpPostfit )
+      dumpQCompositeImages( "postfit" );
     
     return;
   }
@@ -334,8 +341,9 @@ namespace larflow {
 
 	int row = img_v[src_plane].meta().row( lfcluster[ihit].tick );
 	int col = img_v[src_plane].meta().col( lfcluster[ihit].srcwire );
-	qhit.pixeladc    = img_v[src_plane].pixel( row, col );
+	qhit.pixeladc    = img_v[src_plane].pixel( row, col ); // hmm (non?)
 	qhit.fromplaneid = src_plane;
+	//std::cout << "debug: (r,c)=(" << row << "," << col << ") pixeladc=" << qhit.pixeladc << " fromplane=" << qhit.fromplaneid << std::endl;
 
 	// mc track id
 	auto it=mctrackid_counts.find( lfcluster[ihit].trackid );
@@ -713,6 +721,7 @@ namespace larflow {
 	cutvars.cutfailed = kFirstFit;
 	setCompat( iflash, iclust, kFirstFit );
       }
+
     }
   }
 
@@ -890,6 +899,12 @@ namespace larflow {
     boxxy.SetFillStyle(0);
     boxxy.SetLineColor(kBlack);
     boxxy.SetLineWidth(1);
+    float imgedge_min = (2400-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+    float imgedge_max = (8448-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+    TBox box_imgedge_xy( imgedge_min, -116.5, imgedge_max, 116.5 );
+    box_imgedge_xy.SetLineColor(kBlue);
+    box_imgedge_xy.SetFillStyle(0);
+    box_imgedge_xy.SetLineWidth(1);
 
     // badch indicator
     std::vector< TBox* > zy_deadregions;
@@ -961,7 +976,7 @@ namespace larflow {
       int nclusters_drawn = 0;
       char histname_data[50];
       sprintf(histname_data,"hflashdata_%d",(int)iflash);
-      TH1D hflashdata(histname_data,"",32,0,32);
+      TH1F hflashdata(histname_data,"",32,0,32);
       hflashdata.SetLineWidth(3);
       hflashdata.SetLineColor(kBlack);
 
@@ -987,7 +1002,8 @@ namespace larflow {
       std::vector<TGraph*> mctrack_data_zy;
       std::vector<TGraph*> mctrack_data_xy;
       std::vector<TMarker*> mcstart_zy;
-      std::vector<TMarker*> mcstart_xy;      
+      std::vector<TMarker*> mcstart_xy;
+      TBox* mctrack_win_xy = nullptr;
       bool mctrack_match = false;
       if ( _flash_matched_mctracks_v[iflash].size()>0 || _flash_matched_mcshowers_v[iflash].size()>0 ) {
 	if ( flash.mctrackid>=0 ) mctrack_match = true;      
@@ -1017,7 +1033,7 @@ namespace larflow {
 	}
 
 	for ( auto const& pshr : _flash_matched_mcshowers_v[iflash] ) {
-
+	  
 	  TMarker* m_zy = new TMarker( pshr->Start().Z(), pshr->Start().Y(), 30 );
 	  TMarker* m_xy = new TMarker( pshr->Start().X(), pshr->Start().Y(), 30 );
 	  mcstart_zy.push_back( m_zy );
@@ -1040,12 +1056,17 @@ namespace larflow {
 	  mctrack_data_xy.push_back( gmc_xy );
 	}
 	
+	
+	mctrack_win_xy = new TBox( xoffset, -116.5, xoffset+256, 116.5 );
+	mctrack_win_xy->SetLineColor(kRed);
+	mctrack_win_xy->SetLineWidth(1);
+	mctrack_win_xy->SetFillStyle(0);
       }
 
       // BEGIN CLUSTER LOOP
       std::vector< TGraph* > mctrack_clustertruth_xy_v;
       std::vector< TGraph* > mctrack_clustertruth_zy_v;
-      std::vector< TH1D* > flash_hypotheses_v;
+      std::vector< TH1F* > flash_hypotheses_v;
       for (size_t iclust=0; iclust<_qcluster_v.size(); iclust++) {
 
 	int compat = getCompat( iflash, iclust );
@@ -1078,7 +1099,17 @@ namespace larflow {
 	
 	//std::cout << "[larflow::LArFlowFlashMatch::dumpQClusterImages][INFO] Cluster " << iclust << std::endl;
 	const QClusterComposite& qcomposite  = _qcomposite_v[iclust];
-	std::vector<TGraph> gtrack_v = qcomposite.getTGraphs( xoffset );
+	std::vector< TH1F* > hypo_v(2, nullptr);
+	char histname1[100];
+	sprintf(histname1, "hhypo_flash%d_clust%d_wext",  (int)iflash, (int)iclust );
+	hypo_v[0] = new TH1F( histname1, "", 32, 0, 32 );
+	char histname2[100];
+	sprintf(histname2, "hhypo_flash%d_clust%d_noext", (int)iflash, (int)iclust );
+	hypo_v[1] = new TH1F( histname2, "", 32, 0, 32 );
+	std::vector<TGraph> gtrack_v = qcomposite.getTGraphsAndHypotheses( flash, hypo_v );
+	std::cout << "hypo w/ext  " << histname1 << ": " << hypo_v[0]->Integral() << "  maxdist=" << cutvars.maxdist_wext << std::endl;
+	std::cout << "hypo no/ext " << histname2 << ": " << hypo_v[1]->Integral() << "  maxdist=" << cutvars.maxdist_noext << std::endl;
+
 
 	Int_t colors[4] = { kRed, kOrange+2, kCyan, kMagenta };
 	for ( size_t ig=0; ig<gtrack_v.size(); ig++) {
@@ -1094,28 +1125,23 @@ namespace larflow {
 	  }
 	}
 
+	TH1F* hhypo = nullptr;
 
-	FlashCompositeHypo_t comphypo_wext  = qcomposite.generateFlashCompositeHypo( flash, true );
-	FlashCompositeHypo_t comphypo_noext = qcomposite.generateFlashCompositeHypo( flash, false );
-
-	FlashHypo_t hypo_wext = comphypo_wext.makeHypo();
-	FlashHypo_t hypo_noext = comphypo_noext.makeHypo();	
-
-	char histname1[100];
-	sprintf(histname1, "hhypo_flash%d_clust%d", (int)iflash, (int)iclust );
-	TH1D* hhypo = new TH1D(histname1,"",32,0,32);
+	
+	if ( cutvars.maxdist_wext < cutvars.maxdist_noext ) {
+	  hhypo = hypo_v[0];
+	  delete hypo_v[1];
+	}
+	else {
+	  hhypo = hypo_v[1];
+	  delete hypo_v[0];
+	}
+		  
 	if ( cutvars.maxdist_wext > cutvars.maxdist_noext )
 	  hhypo->SetLineStyle( 2 );
 	if ( iclust==flash.truthmatched_clusteridx ) {
 	  hhypo->SetLineColor(kGreen+2);
 	  hhypo->SetLineWidth( 2 );
-	}
-	
-	for (int ich=0; ich<32; ich++) {
-	  if ( cutvars.maxdist_wext < cutvars.maxdist_noext )
-	    hhypo->SetBinContent( ich+1, hypo_wext[ich] );
-	  else
-	    hhypo->SetBinContent( ich+1, hypo_noext[ich] ); 
 	}
 	flash_hypotheses_v.push_back( hhypo );
 	nclusters_drawn++;
@@ -1137,6 +1163,7 @@ namespace larflow {
       }
       
       for (size_t ig=0; ig<graphs_zy_v.size(); ig++ ) {
+	if ( graphs_zy_v[ig].GetN()==0 ) continue;
 	graphs_zy_v[ig].Draw("P");
       }	
       
@@ -1153,9 +1180,11 @@ namespace larflow {
       // ---------------------------------------------
       dataxy.cd();
       bgxy.Draw();
+      box_imgedge_xy.Draw();
       boxxy.Draw();
       
       for (size_t ig=0; ig<graphs_xy_v.size(); ig++ ) {
+	if ( graphs_xy_v[ig].GetN()==0 ) continue;	
 	graphs_xy_v[ig].Draw("P");
       }
 
@@ -1163,6 +1192,9 @@ namespace larflow {
 	m->Draw();      
       for ( auto const& mct : mctrack_data_xy )
 	mct->Draw("L");
+      if ( mctrack_win_xy ) {
+	mctrack_win_xy->Draw();
+      }
       
       // --------------------------------------------------
       // BOTTOM YZ-2D PLOT: FLASH-HYPO/CLUSTER TRUTH TRACK
@@ -1235,6 +1267,9 @@ namespace larflow {
 	delete ptrack;
       for ( auto& phist : flash_hypotheses_v )
 	delete phist;
+
+      if ( mctrack_win_xy )
+	delete mctrack_win_xy;
       
     }//end of flash loop
 
@@ -1771,27 +1806,34 @@ namespace larflow {
       int imatch = it_match.first;
       int iflash = it_match.second.flashidx;
       int iclust = it_match.second.clusteridx;
-
+      CutVars_t& cutvars = getCutVars(iflash,iclust);
+      
       const FlashData_t& flash = _flashdata_v[iflash];
-      if ( flash.truthmatched_clusteridx==iclust )
+      if ( flash.visible==1 && flash.truthmatched_clusteridx==iclust ) {
 	fmatch_truth[imatch] = 1;
-      else
+	cutvars.truthfmatch = 1;	
+      }
+      else {
 	fmatch_truth[imatch] = 0.;
+	cutvars.truthfmatch = 0;
+      }
+      
     }
 
     _fitter.setFMatch( fmatch_truth );
 
-    for ( auto& it_match : _matchidx2pair ) {
+    // what am i trying to measure here?
+    // for ( auto& it_match : _matchidx2pair ) {
       
-      int imatch = it_match.first;
-      int iflash = it_match.second.flashidx;
-      int iclust = it_match.second.clusteridx;
+    //   int imatch = it_match.first;
+    //   int iflash = it_match.second.flashidx;
+    //   int iclust = it_match.second.clusteridx;
 
-      CutVars_t& cutvars = getCutVars(iflash,iclust);
+    //   CutVars_t& cutvars = getCutVars(iflash,iclust);
       
-      cutvars.truthscore = _fitter.scoreMatch( imatch );
+    //   cutvars.truthfmatch = _fitter.scoreMatch( imatch );
 
-    }
+    // }
 
   }
     
@@ -1806,7 +1848,7 @@ namespace larflow {
   
   void LArFlowFlashMatch::setupAnaTree() {
     _fanafile = new TFile( _ana_filename.c_str(), "recreate" );
-    _anatree  = new TTree("flashmatchana", "LArFlow FlashMatch Ana Tree");
+    _anatree  = new TTree("matchana", "Variables for each flash-cluster candidate match");
     _anatree->Branch("run",              &_run,              "run/I");
     _anatree->Branch("subrun",           &_subrun,           "subrun/I");
     _anatree->Branch("event",            &_event,            "event/I");
@@ -1830,6 +1872,12 @@ namespace larflow {
     _anatree->Branch("enterlen",         &_enterlen,          "enterlen/F");
     _anatree->Branch("fmatch",           &_fmatch,            "fmatch/F");
     _anatree->Branch("fmatch_truth",     &_fmatch_truth,      "fmatch_truth/F");
+
+    _flashtree = new TTree("flashana", "Variables for each flash");
+    _flashtree->Branch("run",    &_run,    "run/I");
+    _flashtree->Branch("subrun", &_subrun, "subrun/I");
+    _flashtree->Branch("event",  &_event,  "event/I");
+    // what do I want to save here?
     
     _save_ana_tree   = true;
     _anafile_written = false;

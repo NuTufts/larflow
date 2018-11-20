@@ -39,8 +39,8 @@ int main( int nargs, char** argv ) {
 
   // output
   larlite::storage_manager outlarlite( larlite::storage_manager::kWRITE );
-  io.set_out_filename( output_flashmatch );
-  io.open();
+  outlarlite.set_out_filename( output_flashmatch );
+  outlarlite.open();
   
   int nentries       = io.get_entries();
   int nentries_larcv = iolarcv.get_n_entries();
@@ -66,11 +66,13 @@ int main( int nargs, char** argv ) {
   // algo
   larflow::LArFlowFlashMatch algo;
   algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
-  
+
+  int istart = 2;
   int nprocessed = 0;
-  for (int ientry=0; ientry<nentries; ientry++) {
+  for (int ientry=istart; ientry<nentries; ientry++) {
     
     io.go_to( ientry );
+    iolarcv.read_entry(ientry);
   
     larlite::event_larflowcluster* ev_cluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "flowtruthclusters" );
 
@@ -78,7 +80,7 @@ int main( int nargs, char** argv ) {
     larlite::event_opflash* ev_opflash_beam   = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashBeam" );
     larlite::event_opflash* ev_opflash_cosmic = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashCosmic" );
 
-    larcv::EventImage2D* ev_larcv   = (larcv::EventImage2D*) iolarcv.get_data( "image2d",  "wire" );
+    larcv::EventImage2D*  ev_larcv  = (larcv::EventImage2D*) iolarcv.get_data( "image2d",  "wire" );
     larcv::EventChStatus* ev_status = (larcv::EventChStatus*)iolarcv.get_data( "chstatus", "wire" );
 
     std::cout << "number of clusters: " << ev_cluster->size() << std::endl;
@@ -99,14 +101,16 @@ int main( int nargs, char** argv ) {
     algo.loadChStatus( ev_status );    
     algo.loadMCTrackInfo( *ev_mctrack, *ev_mcshower, true );
     algo.setRSE( io.run_id(), io.subrun_id(), io.event_id() );
-    
+
+    algo.dumpPrefitImages(true);
+    algo.dumpPostfitImages(true);
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
     std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
     
     algo.saveAnaMatchData();
     
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
-    outlarlite.next_event(); // saves and clears
+    //outlarlite.next_event(); // saves and clears
 
     algo.clearEvent();    
     nprocessed++;
@@ -115,8 +119,10 @@ int main( int nargs, char** argv ) {
       break;
   }
 
+  std::cout << "[dev_flashmatch] write ana file" << std::endl;
   algo.writeAnaFile();
-  
+
+  std::cout << "[dev_flashmatch] close files and clean up" << std::endl;  
   outlarlite.close();
   io.close();
   iolarcv.finalize();

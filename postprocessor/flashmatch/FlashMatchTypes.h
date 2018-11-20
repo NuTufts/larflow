@@ -74,13 +74,17 @@ namespace larflow {
     float tot;
     float tot_intpc;
     float tot_outtpc;
+    int nenter_used;
+    int nexit_used;
     
   FlashCompositeHypo_t()
     : clusteridx(-1),
       flashidx(-1),
       tot(0.),
       tot_intpc(0.),
-      tot_outtpc(0.)
+      tot_outtpc(0.),
+      nenter_used(0),
+      nexit_used(0)
     {};
     
     float PE(int ich ) const {

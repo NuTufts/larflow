@@ -173,7 +173,7 @@ namespace larflow {
     return;
   }
 
-  FlashCompositeHypo_t QClusterComposite::generateFlashCompositeHypo( const FlashData_t& flash, const bool apply_ext ) const {
+  FlashCompositeHypo_t QClusterComposite::generateFlashCompositeHypo( const FlashData_t& flash, const bool apply_ext, const bool use_orig_qcluster ) const {
     
     // we use the hypothesis to define the offset
     float xoffset = (flash.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
@@ -181,20 +181,31 @@ namespace larflow {
     // we generate the four componet hypotheses: core, gap, entering, exiting
 
     const larutil::Geometry* geo = larutil::Geometry::GetME();
-    const phot::PhotonVisibilityService& photonlib = phot::PhotonVisibilityService::GetME( "uboone_photon_library_v6_70kV.root" );
+    //const phot::PhotonVisibilityService& photonlib = phot::PhotonVisibilityService::GetME( "uboone_photon_library_v6_70kV.root" );
+    const phot::PhotonVisibilityService& photonlib = phot::PhotonVisibilityService::GetME( "uboone_photon_library_v6_70kV_EnhancedExtraTPCVis.root" );
     const larutil::LArProperties* larp = larutil::LArProperties::GetME();
     const float driftv = larp->DriftVelocity();
     const size_t npmts = 32;
-    const float pixval2photons = (2.2/40)*0.3*40000*0.5*0.01; // [mip mev/cm]/(adc/MeV)*[pixwidth cm]*[phot/MeV]*[pe/phot] this is a WAG!!!
+    const float mev_per_pixval = 2.2/100.0;
+    const float pixval2photons = mev_per_pixval*40000*0.25*0.5*0.01; // [ mev/adc]*[phot/MeV]*[early frac muon]*[field quenching]*[pe/phot] this is a WAG!!!
     const float gapfill_len2adc  = (80.0/0.3); // adc value per pixel for mip going 0.3 cm through pixel
     const float outoftpc_len2adc = 2.0*gapfill_len2adc; // adc value per pixel for mip going 0.3 cm through pixel, factor of 2 for no field
 
     const QCluster_t* qclusters[4] = { &_core._core, &_core._gapfill_qcluster, &_entering_qcluster, &_exiting_qcluster };
+    if ( use_orig_qcluster ) {
+      qclusters[0] = _cluster;
+    }
+
+    bool extend_using_maxpe = true; // otherwise using chi2
     
     FlashCompositeHypo_t hypo_composite;
+    hypo_composite.nenter_used = 0;
+    hypo_composite.nexit_used  = 0;
 
+    float debug_totq = 0.;
+    float debug_totintpc = 0.;
+    
     // hypo for core+gaps and enter inside the det
-    int enter_stophit_idx = 0;
     for ( int icomp=0; icomp<3; icomp++) {
 
       if ( !apply_ext && icomp==2 )
@@ -226,14 +237,14 @@ namespace larflow {
 
 	if ( icomp==2 ) {
 	  // ignore out of TPC for entering extension
-	  enter_stophit_idx = ihit;
 	  if ( xyz[0]<0 || xyz[0]>250.0 || 
 	       xyz[1]<-117.0 || xyz[1]>117.0 ||
 	       xyz[2]<0 || xyz[2]>1036.0 ) {
 	    break;
 	  }
+	  hypo_composite.nenter_used++;	  
 	}
-	  
+	
        	const std::vector<float>* vis = photonlib.GetAllVisibilities( xyz );
       
       	if ( vis && vis->size()==npmts) {
@@ -243,11 +254,12 @@ namespace larflow {
 	    switch(icomp) {
 	    case 0:
 	      //core
-	      pe = q*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
+	      pe = q*pixval2photons*(*vis)[ geo->OpDetFromOpChannel( ich ) ];
+	      debug_totq += q;	      
 	      break;
 	    case 1:
 	    case 2:
-	      // gaps for inside tpc
+	      // gaps for inside tpc and entering extension inside the tpc
 	      pe = q*gapfill_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
 	      break;
 	    }
@@ -259,10 +271,12 @@ namespace larflow {
        	else if ( vis->size()>0 && vis->size()!=npmts ) {
        	  throw std::runtime_error("[QClusterComposite::buildFlashCompositeHypo][ERROR] unexpected visibility size");
 	}
-
+	
       }//end of hit loop
+      
+    }/// end of (core,gap,enter-in-tpc) loop
 
-    }/// end of (core,gap) loop
+    //std::cout << "debug: core q=" << debug_totq << std::endl;
 
     if (!apply_ext)
       return hypo_composite;
@@ -272,10 +286,11 @@ namespace larflow {
     FlashHypo_t pre_enter_outside = hypo_composite.makeHypo();
     // compare
     float current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside );
+    float current_maxperatio = calcMaxPEratio( flash, pre_enter_outside );
     const QCluster_t& qenter = *(qclusters[2]);
     int nenter_used = 0;
     float nenter_pe = 0.;
-    for ( int ihit=enter_stophit_idx; ihit<(int)qenter.size(); ihit++ ) {
+    for ( int ihit=hypo_composite.nenter_used; ihit<(int)qenter.size(); ihit++ ) {
       const QPoint_t& qhit = qenter[ihit];
       double xyz[3];
       xyz[0] = qhit.xyz[0] - xoffset;
@@ -299,11 +314,26 @@ namespace larflow {
 	dpe_tot += pe;
       }
 
-      float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside, false );
-      if ( maxdist-0.05 > current_maxdist ) {
-	break;
+      if ( !extend_using_maxpe ) {
+	// use max dist to extend
+	float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_enter_outside, false );
+	if ( maxdist-0.05 > current_maxdist ) {
+	  break;
+	}
       }
-
+      else {
+	// use peratio of max pmt in data flash
+	// good proxy for extension into anode?
+	float maxperatio = calcMaxPEratio( flash, pre_enter_outside );
+	if ( fabs(maxperatio-1.0) < fabs(current_maxperatio-1.0) ) {
+	  current_maxperatio = maxperatio;
+	}
+	else {
+	  // stop entering extension
+	  break;
+	}
+      }
+      
       // else, update the composite
       for ( size_t ich=0; ich<32; ich++ ) {
 	hypo_composite.enter[ich] += dpe_v[ich];
@@ -323,7 +353,6 @@ namespace larflow {
     // now the exiting extension
     // only extend if we improve the comparison
     FlashHypo_t pre_exit_outside = hypo_composite.makeHypo();
-    int nexit_used = 0;
     float pe_added = 0;
     current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside );
     const QCluster_t& qexit = *(qclusters[3]);
@@ -383,7 +412,7 @@ namespace larflow {
       else
 	hypo_composite.tot_outtpc += dpe_tot;
       
-      nexit_used++;
+      hypo_composite.nexit_used++;
     }
 
     // std::cout << "[QClusterComposite::generateFlashCompositeHypo][DEBUG] "
@@ -395,15 +424,51 @@ namespace larflow {
     
   }
 
-  std::vector< TGraph > QClusterComposite::getTGraphs( float xoffset ) const {
+  std::vector< TGraph > QClusterComposite::getTGraphsAndHypotheses( const FlashData_t& flash, std::vector<TH1F*>& hypo_v ) const {
+
+    float xoffset = (flash.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+    std::cout << "[QClusterComposite::getTGraphsAndHypotheses] xoffset=" << xoffset << std::endl;
+
+    // first build hypotheses (so we can figure out extension lengths)
+    FlashCompositeHypo_t hypo_wext  = generateFlashCompositeHypo( flash, true,  false );
+    FlashCompositeHypo_t hypo_noext = generateFlashCompositeHypo( flash, false, false );
+    std::cout << "debug hypo-w/ext core=" << hypo_wext.core.tot << std::endl;
+    std::cout << "debug hypo-no/ext core=" << hypo_wext.core.tot << std::endl;    
+    
+    if ( hypo_v.size()!=2 )
+      hypo_v.resize(2,nullptr);
+    for ( int i=0; i<2; i++ ) {
+      if ( hypo_v[i]==nullptr ) {
+	// create one
+	if ( i==0 )
+	  hypo_v[i] = new TH1F("hhypo_qclustercomp_wext","",32,0,32);
+	else if (i==1)
+	  hypo_v[i] = new TH1F("hhypo_qclustercomp_noext","",32,0,32);	
+      }
+      else {
+	// reset
+	hypo_v[i]->Reset();
+      }
+    }
+    // fill the hypo plots
+    for ( int i=0; i<32; i++) {
+      hypo_v[0]->SetBinContent(i+1,hypo_wext.PE(i));
+      hypo_v[1]->SetBinContent(i+1,hypo_noext.PE(i));
+    }
+    
     const QCluster_t* qclusters[4] = { &_core._core, &_core._gapfill_qcluster, &_entering_qcluster, &_exiting_qcluster };
 
     std::vector< TGraph > graph_v;
     for (int i=0; i<4; i++) {
       const QCluster_t& cluster = *(qclusters[i]);
-      TGraph comp_xy( cluster.size() );
-      TGraph comp_zy( cluster.size() );      
-      for ( size_t i=0; i<cluster.size(); i++ ) {
+      int nhits = cluster.size();
+      if ( i==2 )
+	nhits = hypo_wext.nenter_used;
+      else if ( i==3 )
+	nhits = hypo_wext.nexit_used;
+      TGraph comp_xy( nhits );
+      TGraph comp_zy( nhits );      
+      for ( int i=0; i<nhits; i++ ) {
 	const QPoint_t& qpt = cluster[i];
 	comp_xy.SetPoint( i, qpt.xyz[0]-xoffset, qpt.xyz[1] );
 	comp_zy.SetPoint( i, qpt.xyz[2], qpt.xyz[1] );
@@ -413,6 +478,26 @@ namespace larflow {
     }
 
     return graph_v;
+  }
+
+  float QClusterComposite::calcMaxPEratio( const FlashData_t& flash, const FlashHypo_t& hypo ) const {
+    int idx_maxpmt_data = 0;
+    float pe_maxpmt_data = 0;
+    for (int i=0; i<32; i++) {
+      if ( flash[i]>pe_maxpmt_data ) {
+	idx_maxpmt_data = i;
+	pe_maxpmt_data = flash[i];
+      }
+    }
+
+    float pe_maxpmt_hypo = hypo[idx_maxpmt_data];
+    if ( pe_maxpmt_hypo==0 && pe_maxpmt_data==0 )
+      return 1;
+    else if ( pe_maxpmt_hypo==0 )
+      return 0;
+    
+    float peratio = fabs( pe_maxpmt_hypo-pe_maxpmt_data)/pe_maxpmt_data;
+    return peratio;
   }
   
   //   float steplen = 1.0; //

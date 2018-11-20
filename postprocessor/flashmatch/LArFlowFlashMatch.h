@@ -50,7 +50,9 @@ namespace larflow {
 		const std::vector<larcv::Image2D>& img_v,
 		const bool ignorelast=true);
     void setRSE( int run, int subrun, int event );    
-    void clearEvent();    
+    void clearEvent();
+    void dumpPrefitImages(bool dump)  { _fDumpPrefit  = dump; };
+    void dumpPostfitImages(bool dump) { _fDumpPostfit = dump; };    
 
     void loadMCTrackInfo(  const std::vector<larlite::mctrack>&  mctrack_v, const std::vector<larlite::mcshower>& mcshower_v, bool do_truth_matching=true );
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
@@ -115,7 +117,7 @@ namespace larflow {
 	peratio_noext(-1),
 	enterlen(-1),
 	fit1fmatch(-1),
-	truthscore(-1)
+	truthfmatch(-1)
       {};
       CutReason_t cutfailed;
 
@@ -139,7 +141,7 @@ namespace larflow {
       float fit1fmatch;
 
       // truth
-      float truthscore;
+      float truthfmatch;
     };
 
     // flash-cluster compatability matrix
@@ -170,9 +172,9 @@ namespace larflow {
     // need to define bins in z-dimension and assign pmt channels to them
     // this is for shape fit
     std::vector< std::vector<int> > _zbinned_pmtchs;
-    //float shapeComparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );
+    bool _fDumpPrefit;
+    bool _fDumpPostfit;
     float chi2Comparison( const FlashHypo_t& hypo, const FlashData_t& data, float data_norm=1.0, float hypo_norm=1.0 );    
-    void dumpMatchImages( const std::vector<FlashData_t>& flashdata_v, bool shapeonly, bool usefmatch );
     void dumpQCompositeImages( std::string prefix );
 
     
