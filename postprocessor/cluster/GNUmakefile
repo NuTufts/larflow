@@ -28,7 +28,7 @@ LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
 LIB = ../lib/libLArFlowCluster3D.so
 
 # SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
-BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx
+BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx ana_truthcluster.cxx
 
 BINS = $(basename $(BINSRCS))
 SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
@@ -42,6 +42,9 @@ all: $(LIB) $(BINS)
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 dev_truthcluster: $(LIB) dev_truthcluster.cxx
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+
+ana_truthcluster: $(LIB) ana_truthcluster.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
 
 reco_cluster: $(LIB) reco_cluster.cxx
