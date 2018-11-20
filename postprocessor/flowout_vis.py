@@ -10,7 +10,7 @@ argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL 
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
 argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
-argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,dwall,recovstruth]")
+argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,hasmctrackid,dwall,recovstruth]")
 argparser.add_argument("-l", "--light",    action='store_true',      help="use light background")
 args = argparser.parse_args(sys.argv[1:])
 
@@ -54,8 +54,8 @@ io.add_in_filename( inputfile )
 io.open()
 
 # color scheme
-schemes = ["colorbydefault","colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbydwall","colorbyrecovstruth"]
-shortschemes = ["default","ssnet","quality","flowdir","infill","3ddist","hastruth","dwall","recovstruth"]
+schemes = ["colorbydefault","colorbyssnet","colorbyquality","colorbyflowdir","colorbyinfill","colorby3ddist","colorbyhastruth","colorbyhasmctrackid","colorbydwall","colorbyrecovstruth"]
+shortschemes = ["default","ssnet","quality","flowdir","infill","3ddist","hastruth","hasmctrackid","dwall","recovstruth"]
 
 colorscheme = args.color
 if colorscheme in shortschemes:
@@ -155,6 +155,12 @@ for ihit in xrange(nhits):
             colors[ihit,:] = (0.,1.,0.,1.) # mctrack not matched
         else:
             colors[ihit,:] = (1.,1.,1.,1.) # kUnknown
+
+    elif colorscheme=="colorbyhasmctrackid":
+        if hit.trackid>=0:
+            colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
+        else:
+            colors[ihit,:] = (1.,0.,0.,1.) # kUnknown
 
     elif colorscheme=="colorbydwall":
         if hit.dWall>15.:
