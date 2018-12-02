@@ -83,8 +83,8 @@ namespace larflow {
     }
 
     // more default parameters
-    _fMaxDistCut = 0.5;
-    _fPERatioCut = 2.0;
+    _fMaxDistCut  = 0.5;
+    _fPERatioCut  = 3.0;
     _fMaxEnterExt = 30.0;
     _fCosmicDiscThreshold = 10.0;
 
@@ -240,8 +240,9 @@ namespace larflow {
     _fitter.addLearningScheduleConfig( epoch1 );
     _fitter.addLearningScheduleConfig( epoch2 );
     _fitter.addLearningScheduleConfig( epoch3 );    
-    _fitter.fitSGD( 120000,-1, true, 0.5 );
-    
+    //_fitter.fitSGD( 120000,-1, true, 0.5 );
+    _fitter.fitLASSO( 1e-1, 1e0 );
+
     // set compat from fit
     reduceUsingFitResults();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] POSTFIT COMPATIBILITY" << std::endl;
@@ -254,6 +255,9 @@ namespace larflow {
 
     if ( _fDumpPostfit )
       dumpQCompositeImages( "postfit" );
+
+    std::cout << "[ENTER] to continue" << std::endl;
+    std::cin.get();
     
     return;
   }
@@ -1726,37 +1730,31 @@ namespace larflow {
     _kFlashMatchedDone = false;
   }
 
-  std::vector<larlite::larflowcluster> LArFlowFlashMatch::exportMatchedTracks() {
-  //   // for each cluster, we use the best matching flash
-  //   const larutil::LArProperties* larp = larutil::LArProperties::GetME();
-  //   const float  usec_per_tick = 0.5; // usec per tick
-  //   const float  tpc_trigger_tick = 3200;
-  //   const float  driftv = larp->DriftVelocity();
+  std::vector<larlite::larflowcluster> LArFlowFlashMatch::exportMatchedClusters() {
+    // for each cluster, we use the best matching flash
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
+    const float  usec_per_tick = 0.5; // usec per tick
+    const float  tpc_trigger_tick = 3200;
+    const float  driftv = larp->DriftVelocity();
     
     std::vector<larlite::larflowcluster> lfcluster_v(_qcluster_v.size());
     
-  //   for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
-  //     const QCluster_t& cluster = _qcluster_v[iclust];
-  //     larlite::larflowcluster& lfcluster = lfcluster_v[iclust];
-  //     lfcluster.resize(cluster.size());
-      
-  //     // is it flash matched?
-  //     std::vector<float> matchscores = getMatchScoresForCluster(iclust);
-  //     float maxfmatch = 0.;
-  //     int   maxfmatch_idx = -1;      
-  //     for (int iflash=0; iflash<_flashdata_v.size(); iflash++) {
-  // 	if ( matchscores[iflash]>maxfmatch ) {
-  // 	  maxfmatch = matchscores[iflash];
-  // 	  maxfmatch_idx = iflash;
-  // 	}
-  //     }
+    // for (int iclust=0; iclust<_qcluster_v.size(); iclust++) {
 
-  //     float matched_flash_tick = 0;
-  //     float matched_flash_xoffset = 0;
-  //     if ( maxfmatch_idx>=0 ) {
-  // 	matched_flash_tick    = _flashdata_v[maxfmatch_idx].tpc_tick;
-  // 	matched_flash_xoffset = (matched_flash_tick-tpc_trigger_tick)*usec_per_tick/driftv;
-  //     }
+    //   // did we fit this?
+      
+    //   const QCluster_t& orig_cluster = _qcluster_v[iclust];
+    //   const QCluster_t& comp_cluster = _qcomposite_v[iclust];
+      
+
+      
+
+    //   float matched_flash_tick = 0;
+    //   float matched_flash_xoffset = 0;
+    //   if ( maxfmatch_idx>=0 ) {
+    // 	matched_flash_tick    = _flashdata_v[maxfmatch_idx].tpc_tick;
+    // 	matched_flash_xoffset = (matched_flash_tick-tpc_trigger_tick)*usec_per_tick/driftv;
+    //   }
       
   //     // transfer hit locations back to larlite
       
@@ -2030,5 +2028,6 @@ namespace larflow {
       _anafile_written = true;
     }
   }
+
 
 }

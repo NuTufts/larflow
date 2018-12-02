@@ -62,7 +62,8 @@ namespace larflow {
     void writeAnaFile(); // call at end
 
 
-    std::vector<larlite::larflowcluster> exportMatchedTracks();    
+    std::vector<larlite::larflowcluster> exportMatchedClusters(); // returns larflowclusters using best match
+    std::vector<larlite::larflowcluster> exportIntimeClusters();  // returns larflowclusters selected
     
   protected:
 

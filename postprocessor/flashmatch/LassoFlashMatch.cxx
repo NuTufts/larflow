@@ -35,12 +35,15 @@ namespace larflow {
     _clustergroup_vv.clear();
     _clusteridx2group_m.clear();
     _match2clusteridx_v.clear();
+    _match2clustgroup_v.clear();    
     _match_hypo_vv.clear();
     
     _flashindices.clear();
     _flashdata_vv.clear();
     _flashidx2data_m.clear();
+    _flashdata2idx_m.clear();    
     _match2flashidx_v.clear();
+    _match2flashgroup_v.clear();    
     _flashgroup_vv.clear();
     _flashidx2group_m.clear();
     _fmatch_v.clear();
@@ -63,7 +66,7 @@ namespace larflow {
     int imatchidx = _nmatches;
     if ( _clusterindices.find( iclustidx )==_clusterindices.end() ) {
       _clusterindices.insert( iclustidx );
-      int clustergroupidx = _clustergroup_vv.size();
+      int clustergroupidx = _clustergroup_vv.size();    
       _clusteridx2group_m[iclustidx] = clustergroupidx;
       _clustergroup_vv.push_back( std::vector<int>() );
     }
@@ -77,9 +80,11 @@ namespace larflow {
 
     // set maps
     _match2clusteridx_v.push_back( iclustidx );
+    _match2clustgroup_v.push_back( _clusteridx2group_m[iclustidx] );    
     _clustergroup_vv[ _clusteridx2group_m[iclustidx] ].push_back( imatchidx );
 		      
     _match2flashidx_v.push_back( iflashidx );
+    _match2flashgroup_v.push_back( _flashidx2group_m[iflashidx] );
     _flashgroup_vv[ _flashidx2group_m[iflashidx] ].push_back( imatchidx );
     
     // set flash data
@@ -87,6 +92,7 @@ namespace larflow {
       int idata = _flashdata_vv.size();
       _flashdata_vv.push_back( flash );
       _flashidx2data_m[iflashidx] = idata;
+      _flashdata2idx_m[idata] = iflashidx;
       std::vector< float > b_v( flash.size(), 0 );
       _bpmt_vv.emplace_back( std::move(b_v) );
     }
@@ -102,6 +108,7 @@ namespace larflow {
       // is normed
       for (int ich=0; ich<_npmts; ich++) _match_hypo_vv[imatchidx][ich] *= flash.tot;
     }
+    std::cout << "[matchpair iflash=" << iflashidx << " iclust=" << iclustidx << "] hypotot=" << norm << std::endl;
 
     // add match parameter
     _fmatch_v.push_back(0.0);
@@ -336,6 +343,8 @@ namespace larflow {
       return score+clusterconstraint+L1norm+L2bounds+b2loss;
   }
 
+  // =======================================================================
+  // --------
   // scores
   // ---------
 
@@ -566,7 +575,8 @@ namespace larflow {
 
     return l2loss;
   }
-  
+
+  // ======================================================================================================
   // ---------
   // Gradients
   // ---------
@@ -791,6 +801,59 @@ namespace larflow {
     
     return grad;
   }
+
+  // std::vector<float> LassoFlashMatch::gradLeastSquares( const std::vector<int>& fmask ) {
+  //   // gradient of L(f_{k}) = || y_{ij} - f_{k} x_{kj} ||^2 w.r.t f_{k}
+  //   // is 2 L(f_{k}) ( - sum{j} x_{kj} )
+
+  //   std::vector< float > gradf( nmatches(), 0 );
+    
+  //   // do this by flashbundle
+  //   for ( auto const& iflashidx : _flashindices ) {
+  //     // loop over 'u'
+      
+  //     std::vector<int>& flashgroup  = _flashgroup_vv[ _flashidx2group_m[iflashidx] ]; // 'F(m)'
+  //     int iflashdata = _flashidx2data_m[iflashidx]; // y_{u}
+
+  //     // need the overall prediction for each
+  //     // loop over clusters (which provide hypo) that pertain to this flash
+  //     // this is x_j = sum{k in F(k)} f_k x_{kj}
+  //     std::vector<float> hypotot(_npmts,0);
+  //     for (auto& imatchidx : flashgroup ) {
+  // 	if ( fmask[imatchidx]==0 ) continue;
+  // 	for (int ich=0; ich<_npmts; ich++) {
+  // 	  hypotot[ich] += _match_hypo_vv[imatchidx][ich]*_fmatch_v[imatchidx];
+  // 	  if ( hypotot[ich]<1.0e-3 ) hypotot[ich] = 1.0e-3;
+  // 	}
+  //     }
+      
+  //     // get data (y_{ij})
+  //     const std::vector<float>& flashdata = _flashdata_vv[ iflashdata ];
+  //     std::vector<float> databmod( flashdata );
+      
+  //     // calc residual (y_j - x_j)
+  //     std::vector<float> res(_npmtss,0);
+  //     float totres = 0.;
+  //     for (size_t j=0; _npmts; j++) {
+  // 	res[j] = flashdata[j] - hypotot[j];
+  // 	totres += res[j];
+  //     }
+
+  //     // gradient
+  //     for (auto& imatchidx : flashgroup ) {
+  // 	// index is 'm' but direct map to 'k' (the cluster)
+  // 	if ( fmask[imatchidx]==0 ) continue;
+	
+  // 	float tothypo = 0.;
+  // 	for ( size_t j=0; j<_npmts; j++ )
+  // 	  tothypo += _match_hypo_vv[imatchidx][ich]*_fmatch_v[imatchidx];
+  // 	gradf[ imatchidx ] +=  -2.0*totres*tothypo;
+  //     }
+      
+  //   }//end of loop over flashes
+
+  //   return gradf;
+  // }
   
   // ==================================================================================
   // Update rule for gradient descent fit
@@ -979,6 +1042,91 @@ namespace larflow {
     std::cout << "===============================================" << std::endl;
   }
 
+  void LassoFlashMatch::printClusterGroupsEigen( const Eigen::VectorXf& beta ) {
+    std::cout << "===============================================" << std::endl;
+    std::cout << "[LassoFlashMatch::printClusterGroups]" << std::endl;
+
+    for ( auto& clusteridx : _clusterindices ) {
+      int igroup = _clusteridx2group_m[clusteridx];
+      std::cout << " clustergroup[ clusteridx=" << clusteridx << ", groupid=" << igroup << "] ";
+      std::vector<int>& group = _clustergroup_vv[igroup];
+      float grouptot = 0.;
+      for ( auto& idx : group ) {
+	std::cout << " " << idx << "(" << beta(idx) << ")";
+	grouptot += beta(idx);
+      }
+      std::cout << " || grouptot=" << grouptot;
+      std::cout << std::endl;
+    }
+    std::cout << "===============================================" << std::endl;
+  }
+  
+  void LassoFlashMatch::printFlashBundlesEigen( const Eigen::MatrixXf& X,    const Eigen::VectorXf& Y,
+						const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha ) {
+    
+    std::cout << "===============================================" << std::endl;
+    std::cout << "[LassoFlashMatch::printFlashBundles]" << std::endl;
+
+    Eigen::VectorXf alpha1 = Eigen::VectorXf::Ones( Y.rows() ) + alpha;
+    Eigen::VectorXf Yalpha = Y.cwiseProduct(alpha1);
+    Eigen::VectorXf Pred   = X*beta;
+    float nobs = Yalpha.rows();
+
+    Eigen::VectorXf Rfull = Yalpha-Pred;
+    
+    float allflashres = 0.;
+    for ( auto& flashidx : _flashindices ) {
+      int igroup = _flashidx2group_m[flashidx];
+      std::vector<int>& group = _flashgroup_vv[igroup];
+      int iflashdata = _flashidx2data_m[flashidx];
+      std::vector<float>& flashdata = _flashdata_vv[ iflashdata ];
+      
+      // get total pe
+      float hypo_pe = 0.;
+      float data_pe = 0.;
+      float data_pe_chk  = 0.;      
+      float data_pe_bmod = 0.;
+      float bmod = 0.;
+      float res2 = 0.;
+      float totres = 0.;
+      for (size_t ich=0; ich<_npmts; ich++) {
+	hypo_pe      += Pred( _npmts*igroup+ich );
+	data_pe      += Y( _npmts*igroup+ich );
+	data_pe_chk  += flashdata[ich];
+	data_pe_bmod += Yalpha( _npmts*igroup+ich );
+	bmod         += alpha( _npmts*igroup+ich )*alpha( _npmts*igroup+ich );
+	float res    = Yalpha( _npmts*igroup+ich ) - Pred( _npmts*igroup+ich );
+	float err    = Y( _npmts*igroup+ich ) + 0.5*Pred( _npmts*igroup+ich );
+	float ols    = res*res;
+	if ( err>0 ) ols /= err;
+	res2 += ols;
+	totres += fabs(res);
+      }
+      bmod = sqrt(bmod);
+      res2 /= _npmts;
+      allflashres += totres;
+      
+      std::cout << " flashgroup[ flashidx=" << flashidx << ", groupid=" << igroup << ","
+		<< " data=" << data_pe << ","
+	        //<< " data(check)=" << data_pe_chk
+		<< " data(alpha)=" << data_pe_bmod << ","
+		<< " hypo=" << hypo_pe 
+		<< "] ";
+      std::cout << " [loss-OLS=" << res2
+		<< ", sum|res(w/alpha)|=" << totres
+		<< ", |alpha|=" << bmod << " "
+		<< "]";
+
+      for ( auto& idx : group ) {
+	std::cout << " " << idx << "(" << beta(idx) << ")";
+      }
+      std::cout << std::endl;      
+    }
+    std::cout << "total residual (w/alpha): " << allflashres << std::endl;
+    std::cout << "total resisual (w/alpha) from matrix: " << Rfull.cwiseAbs().sum() << std::endl;    
+    std::cout << "===============================================" << std::endl;
+  }
+  
   void LassoFlashMatch::printBterms() {
     std::cout << "===============================================" << std::endl;
     std::cout << "[LassoFlashMatch::printBterms]" << std::endl;
@@ -998,4 +1146,668 @@ namespace larflow {
     }
     
   }
+
+  // ======================================================================
+  // LARS OPTIMIZATION
+  // -------------------
+  /*
+  LassoFlashMatch::Result_t LassoFlashMatch::fitLARS( float learning_rate ) {
+    // least angle regression method
+
+    // set fmatch to zero
+    for (size_t m=0; m<_fmatch_v.size(); m++) _fmatch_v[m] = 0;
+
+    // start with all elements masked
+    std::vector<int> fmask( nmatches(), 0 ); // indexed in 'm'
+    std::vector<int> allon( nmatches(), 1 ); // keep around allon for convenience
+
+    // all pull terms are zero
+    
+    // because of the natural group-structure around the flashes, we apply LARS flash-wise
+    // 
+    // for each step, we want to find the x_{k} (summed over j) most correlated to y_{i}
+    // dL_i/dx_k = 2 L( f_{k} )( - sum{j}[ x_{kj} ] )
+    // dL_i/dx_k = 2 L( f )( - f_{k} )  :  hmm, this is always zero!
+    // it's the largest
+    // We use the x_{k} with the largest dL/df_k
+
+    // first setup, find largest correlate, and turn it on
+    std::vector<float> gradLS = gradLeastSquares( allon );
+    size_t imatch_strongest = 0;
+    float largestgrad = 0;
+    for (size_t m=0; m<gradLS.size(); m++) {
+      if ( fabs(gradLS[m])>largestgrad ) {
+	largestgrad = fabs(gradLS[m]);
+	imatch_strongest = m;
+      }
+    }
+    fmask[imatch_strongest] = 1;
+    
+    int num_on = 1;
+    int nsteps = 0;
+
+    while (num_on<nmatches()) {
+
+      std::vector<float> gradLS = gradLeastSquares( allon );
+
+      int numon_pre = num_on;
+
+      // take step in direction for active components only
+      for ( size_t m=0; m<nmatches(); m++ ) {
+	if ( fmask[m]==1 )
+	  _fmatch_v[m] = _fmatch_v[m] - learning_rate*gradLS[m];
+      }
+      
+      // calculate the grad norm for active components
+      float gradnorm = 0.;
+      for ( size_t m=0; m<nmatches(); m++ ) {
+	if ( fmask[m]==1 )
+	  gradnorm += gradLS[m]*gradLS[m];
+      }
+      gradnorm = sqrt(gradnorm);
+
+      // check if another component has as much gradient as joint gradnorm
+      int next_strongest = -1;
+      float largestgrad = 0;
+      for (size_t m=0; m<gradLS.size(); m++) {
+	float gradm = fabs(gradLS[m]);
+	if ( fmask[m]!=1 && gradm>gradnorm && gradm>largestgrad ) {
+	  largestgrad = gradm;
+	  next_strongest = (int)m;
+	}
+      }
+
+      // turn off zero'd components
+      for ( size_t m=0; m<nmatches(); m++ ) {
+	if ( _fmatch_v[m]<=0 ) {
+	  _fmatch_v[m] = 0;
+	  fmask[m] = 0;
+	}
+      }
+
+      // have a step with as strong a residual
+      if ( next_strongest>=0 )
+	fmask[next_strongest] = 1;
+      
+      num_on = 0;
+      for ( auto const& mask : fmask ) num_on += mask;
+
+      std::cout << "[step " << nsteps << "]" << std::endl;
+      std::cout << "  num on (pre-updated): " << numon_pre << std::endl;
+      std::cout << "  gradnorm: " << gradnorm << std::endl;
+      std::cout << "  activated channel: " << next_strongest << " grad=" <<  largestgrad << " (-1 means none)" << std::endl;
+      
+      nsteps++;
+    }
+  }
+
+  // LassoFlashMatch::Result_t LassoFlashMatch::fitLARS( float learning_rate ) {
+  //   // We take each cluster separately
+  //   // Each cluster is a source of partial hypotheses for several flashes
+  //   // 
+  // }
+  */  
+  
+  LassoFlashMatch::Result_t LassoFlashMatch::fitLASSO( const float lambda_clustergroup, const float lambda_l1norm ) {
+
+    // LASSO FIT
+    // ---------
+    // minimize: (Y-Xbeta)^2 + (lambda_clustergroup)*sum{cluster groups}( (theta^T*theta - 1.0)^2 ) + sum{i hypothesis} lamda_l1norm | beta_i |
+
+
+    // key constants
+    const int nclusters = _clusterindices.size();
+    const int nflashes  = _flashindices.size();
+    const int npmts     = 32;
+
+    // first we need to build the entire setup (sparse matrices might be better for this...)
+    Eigen::MatrixXf X(npmts*nflashes, nmatches()); // hypotheses coming from (flash,cluster) pairs (w/ 32 pmts)
+    Eigen::VectorXf Y(npmts*nflashes );            // the data, the observation are each PMTs, but easier to index with flash 
+    Eigen::VectorXf beta(nmatches());              // weights for hypotheses. we want groups within this vector to be sparse
+    Eigen::VectorXf alpha(npmts*nflashes);         // pmt-by-pmt modification, 1+alpha to help fit, basically a cheater param.
+    X.setZero();
+    Y.setZero();
+    beta.setZero();
+    alpha.setZero();
+    
+    // fill in data and MC to the full system matrices
+    for ( int m=0; m<nmatches(); m++ ) {
+      
+      int uflashidx = _match2flashidx_v[m];
+      int vclustidx = _match2clusteridx_v[m];
+
+      int k = _match2clustgroup_v[m];
+      int i = _match2flashgroup_v[m];
+
+      // fill in the data
+      for ( size_t jch=0; jch<32; jch++ ) {
+	Y( i*npmts + jch ) = _flashdata_vv[i][jch];      
+      }
+
+      // fill in hypotheses (predictors)
+      for ( size_t jch=0; jch<npmts; jch++ ) {      
+	X( i*npmts + jch, m) = _match_hypo_vv[m][jch];
+      }
+    }//end of match loop
+    
+    // // Need X normalized along hypothesis dimensions
+    // Eigen::MatrixXf Xnorm( npmts*nflashes, nmatches() );
+    // for ( size_t m=0; m<nmatches(); m++ ) {
+    //   float mnorm = X.col(m).norm();
+    //   if ( mnorm>1.0e-6 )
+    // 	Xnorm.col(m) = X.col(m).normalized();
+    // }
+
+    for ( size_t m=0; m<nmatches(); m++ )
+      beta(m) = _fmatch_v[m];
+    
+    // Take go through each cluster group
+    // -----------------------------------
+    // -- we use sparse-group LASSO approach
+    // -- tackle each group first
+    // -- then we perform LARS on degress of freedom within cluster group
+    // -- iterate until converge? if it does ...
+    typedef enum { kCoordDesc=0, kLARS, kELAR } LassoMin_t;
+    LassoMin_t minimizer = kCoordDesc;
+    // if true,  LARS (not impemented)
+    // if false, Coordinate descent
+
+    // loop will have to go here: while (notconverted) ...
+    bool  converged = false;
+    bool  firstcomponent = false;
+    float eps = 1.0e-3;
+    float learningrate = 1.0e-3;
+    int   maxiters = 10000;
+    float lambda_alpha_L2 = 1.0e-2; // cost balanced to cost of turning 
+
+    switch( minimizer ) {
+    case kCoordDesc:
+      //converged = solveCoordinateDescent( X, Y, beta, lambda_clustergroup, lambda_l1norm, learningrate, eps, maxiters, true );
+      converged = solveGradientDescent( X, Y, beta, alpha,
+					lambda_clustergroup, lambda_l1norm, lambda_alpha_L2,
+					learningrate, 0.0, eps, maxiters );
+      break;
+    default:
+      throw std::runtime_error("[LassoFlashMatch::fitLASSO] unrecognized optimization method");
+      break;
+    };
+
+    for ( size_t m=0; m<nmatches(); m++ ) {
+      _fmatch_v[m] = beta(m);
+    }
+    
+    Result_t r;
+    return r;
+  }
+
+  bool LassoFlashMatch::solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, Eigen::VectorXf& beta,
+						const float lambda_L1, const float lambda_L2, const float learning_rate,
+						const float convergence_threshold, const size_t max_iters, bool cycle_by_covar ) {
+
+    bool converged = false;
+    const int nflashes  = _flashindices.size();
+    const int npmts     = 32;
+    const int nclusters = _clusterindices.size();
+
+    size_t num_iter = 0;
+    float dbetanorm = convergence_threshold+1;
+    
+    std::cout << "[LassoFlashMatch::solveCoordinateDescent] start." << std::endl;
+    beta.setZero();
+    //std::cout << "beta: " << beta << std::endl;
+    //std::cin.get();
+
+    int update_match_idx = 0;
+    int updates_since_convergence_test = 0;
+    
+    Eigen::VectorXf Xnorm( nmatches() );
+    for ( size_t m=0; m<nmatches(); m++ )
+      Xnorm(m) = X.col(m).norm();
+
+    Eigen::VectorXf last_beta(beta);
+
+    // define struct for sorting parameter indices by largest covariance with the residuals
+    struct covar_t {
+      int idx;
+      float val;
+      bool operator<( const covar_t& rhs ) const {
+	if ( val<rhs.val ) return true;
+	return false;
+      };
+    };
+    std::vector< covar_t > covar_v( nmatches() );
+    
+    while ( !converged && num_iter<max_iters ) {
+
+      // each loop we update one-parameter
+      // check convergence after n-loops
+      // if we flag, cycle_by_cov, we update based on which has the highest covariance with the residual
+      
+      // loop through cluster groups
+      // for each variable in cluster group, perform minimization
+      // after complete update, check convergence.
+      // i guess it's that easy?
+
+      Eigen::VectorXf next_beta(beta);
+      
+      // current prediction
+      Eigen::VectorXf model = X*next_beta;
+      Eigen::VectorXf model_err = (0.5*model).cwiseAbs2(); // 50% prediction error
+      
+      // current full residual
+      Eigen::VectorXf Rfull = Y - model;
+
+      // current error
+      Eigen::VectorXf Rerr = (Y + model_err).cwiseSqrt();
+
+      for ( size_t r=0; r<Rerr.rows(); r++ ) {
+	if ( Rerr(r)>0 )
+	  Rfull(r) /= Rerr(r);
+      }
+
+      float maxcovar = -1;
+      if ( updates_since_convergence_test==0 ) {
+	// update the order variable
+	Eigen::VectorXf covar = (Rfull.transpose()*X);
+	for ( size_t m=0; m<nmatches(); m++ ) {
+	  covar_v[m].idx = m;
+	  covar_v[m].val = fabs(covar(m)/Xnorm(m));
+	}
+	if ( cycle_by_covar )
+	  std::sort( covar_v.begin(), covar_v.end() );
+      }
+      maxcovar = covar_v[ updates_since_convergence_test ].val;
+      update_match_idx = covar_v[ updates_since_convergence_test ].idx;
+
+      // for debug      
+      if ( false ) {
+	std::cout << "---------------------------------------------------" << std::endl;
+	std::cout << "start" << std::endl;
+	Eigen::VectorXf hypo = X*beta;
+	for (int iflash=0; iflash<nflashes; iflash++) {
+	  float totres = 0.;
+	  float totdata = 0.;
+	  float tothypo = 0.;
+	  for (int ipmt=0; ipmt<npmts; ipmt++) {
+	    totres  += Rfull( iflash*npmts + ipmt );
+	    totdata += Y( iflash*npmts + ipmt );
+	    tothypo += hypo( iflash*npmts + ipmt );
+	  }
+	  std::cout << "[iflash idx=" << iflash << " flashidx=" << _flashdata2idx_m[iflash] << "] "
+		    << " totdata=" << totdata
+		    << " tothypo=" << tothypo
+		    << " totres=" << totres
+		    << std::endl;
+	}
+	std::cout << "---------------------------------------------------" << std::endl;
+      }
+
+      // need to get the norm of the matches cluster group
+      int clustgroupidx = _match2clustgroup_v[update_match_idx];
+      const std::vector<int>& match_indices = _clustergroup_vv[clustgroupidx];
+      
+
+      Eigen::VectorXf antimask( nmatches() );
+      antimask.setOnes();
+      antimask( update_match_idx ) = 0.;
+
+      Eigen::VectorXf model_wo_par = X*(beta.cwiseProduct(antimask));
+      Eigen::VectorXf Res_wo_par = Y-model_wo_par; // residual w/o par
+      Eigen::VectorXf ResErr_wo_par = (Y + (0.5*model_wo_par).cwiseAbs2() ).cwiseSqrt();
+
+      // solving: 0 = X_k^t*(Y - X(not-group)*beta(not-notgroup) - X_k*beta_k) + 4*lambda_L2*(theta^t*theta-1)*beta_k
+      // let R(notk) = Y-X(notk)*beta(notk)
+      // then:    0 = X_k^t*R(notk) - {X_k^t*X_k + 4*lambda_L2*(theta^t*theta-1) }*beta_k
+
+      Eigen::VectorXf Xk = X.col( update_match_idx );
+
+      // beta estimate from LS + L2 (convex portion)
+      // --------------------------------------------
+      // first, get the solution to the convex-only function
+      float numer = Xk.transpose()*Res_wo_par;
+      float beta_ols = numer/(Xk.transpose()*Xk);
+
+      // the group param vector: extract the parameter subset from beta
+      int groupsize = match_indices.size();
+      Eigen::VectorXf theta(groupsize);
+      theta.setZero();
+      for ( size_t h=0; h<groupsize; h++ ) {
+	if ( match_indices[h]!=update_match_idx )
+	  theta(h) = beta( match_indices[h] );
+	else
+	  theta(h) = beta_ols;
+      }
+      
+      // how far away is the group from 1.0 w/ the new beta value?
+      float theta_norm_loss = (theta.transpose()*theta-1.0);
+
+      float denom = Xk.transpose()*Xk + 4*lambda_L2*theta_norm_loss; // the L2 term makes value smaller if group bigger than one, larger if smaller than one
+      float beta_convex = numer/denom; // convex solution
+      float lambdal1_normed = lambda_L1/(Xk.transpose()*Xk);
+      beta_convex = beta_ols; // skipping L2 group constraint for now
+
+      // soft-thresholded value, weakens pull 
+      float beta_lasso = fabs(beta_convex) - lambdal1_normed;
+      if ( beta_lasso<0 )  beta_lasso = 0; // soft-threshold application
+      if ( beta_convex<0 ) beta_lasso = 0; // should be -|beta_lasso|, but forcing non-negative terms
+      next_beta( update_match_idx ) = beta_lasso;
+
+      if ( true ) {
+	// for debug
+	Eigen::VectorXf Res_update = Y-X*next_beta;
+	std::cout << "[" << update_match_idx << "| f:" << _match2flashidx_v[ update_match_idx ] << " c:" << _match2clusteridx_v[ update_match_idx ] << "] "
+		  << " covar=" << maxcovar
+		  << " w-ols=" << numer/(Xk.transpose()*Xk)
+		  << " w-convex=" << beta_convex
+		  << " w-lasso=" << beta_lasso
+		  << " Xk^t*Res(not-k)=" << numer
+		  << " theta-norm=" << theta.transpose()*theta
+		  << " theta-norm-loss=" << theta_norm_loss
+		  << " convex-denom=" << denom
+		  << " Xk^t*Xk=" << Xk.transpose()*Xk
+		  << " Xk-sum=" << Xk.sum()
+		  << " |res-w-update|=" << Res_update.squaredNorm()
+		  << std::endl;
+
+      }      
+      
+      updates_since_convergence_test++;
+      
+      Eigen::VectorXf dbeta = next_beta-last_beta;
+      dbetanorm = dbeta.norm();
+
+      if ( updates_since_convergence_test>=nmatches() ) {
+	
+	if ( std::isnan(dbetanorm ) ) {
+	  std::cout << "[LassoFlashMatch::solveCoordinateDescent] next_beta now nan. stopping" << std::endl;
+	  std::cout << "beta: " << beta << std::endl;
+	  std::cout << "next_beta: " << next_beta << std::endl;
+	  break;
+	}
+	
+	if ( dbetanorm<convergence_threshold )
+	  converged = true;
+	else
+	  updates_since_convergence_test = 0;
+
+	// for debug
+	if ( true ) {
+	  std::cout << "====================================================================" << std::endl;
+	  std::cout << "[LassoFlashMatch::solveCoordinateDescent] iter=" << num_iter << " dbetanorm=" << dbetanorm << std::endl;
+	  
+	  for ( size_t m=0; m<nmatches(); m++) _fmatch_v[m] = next_beta(m);
+	  // std::cout << "beta: " << beta.transpose() << std::endl;
+	  // std::cout << "next: " << next_beta.transpose() << std::endl;
+	  printClusterGroups(false);
+	  printFlashBundles(false);
+	  Eigen::VectorXf hypo = X*next_beta;
+	  for (int iflash=0; iflash<nflashes; iflash++) {
+	    float totres = 0.;
+	    float totdata = 0.;
+	    float tothypo = 0.;
+	    for (int ipmt=0; ipmt<npmts; ipmt++) {
+	      totres  += Rfull( iflash*npmts + ipmt );
+	      totdata += Y( iflash*npmts + ipmt );
+	      tothypo += hypo( iflash*npmts + ipmt );
+	    }
+	    std::cout << "[iflash idx=" << iflash << " flashidx=" << _flashdata2idx_m[iflash] << "] "
+		      << " totdata=" << totdata
+		      << " tothypo=" << tothypo
+		      << " totres=" << totres
+		      << std::endl;
+	  }
+	  
+	}
+
+	last_beta = next_beta; // set last beta
+	num_iter++;
+	std::cin.get();	
+      }// end of full-cycle update
+
+      // update beta
+      std::cout << "update beta" << std::endl;
+      beta = next_beta;
+      
+    }//end of if converges loop
+    
+    return converged;
+  }
+  
+  bool LassoFlashMatch::solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+					      Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+  					      const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+					      const float learning_rate, const float stocastic_prob,
+					      const float convergence_threshold, const size_t max_iters ) {
+
+    // not as efficient it seems, but at least i know what to do here
+    
+    bool converged = false;
+    const int nflashes  = _flashindices.size();
+    const int npmts     = 32;
+    const int nclusters = _clusterindices.size();
+    bool debug = false;
+
+    size_t num_iter = 0;
+    float dbetanorm = convergence_threshold+1;
+
+    std::cout << "[LassoFlashMatch::solveGradientDescent] start." << std::endl;
+
+    // number of Y entries that are non-zero
+    float nobs = Y.rows();
+    
+    while ( !converged && num_iter<max_iters ) {
+
+      // loop through cluster groups
+      // for each variable in cluster group, perform minimization
+      // after complete update, check convergence.
+      // i guess it's that easy?
+
+      // current full residual
+      Eigen::VectorXf model     = X*beta;
+      Eigen::VectorXf model_err = 0.5*model;
+
+      Eigen::VectorXf alpha1 = Eigen::VectorXf::Ones(Y.rows()) + alpha;
+      Eigen::VectorXf Yalpha = Y.cwiseProduct(alpha1);
+      Eigen::VectorXf Rfull  = Yalpha-model;
+      Eigen::VectorXf Rerr2  = Y+model_err;
+
+      Eigen::VectorXf Rnorm( Rfull );
+      for ( size_t r=0; r<Rfull.rows(); r++ ) {
+	if ( Rerr2(r)>0 )
+	  Rnorm(r) = Rfull(r)/(Rerr2(r)*nobs);
+	else
+	  Rnorm(r) = Rfull(r)/nobs;
+      }
+
+      // Current Loss
+      // ------------
+      float current_ols_loss = Rfull.transpose()*Rnorm;
+      
+      float current_l1_beta      = 0;
+      for ( size_t m=0; m<nmatches(); m++ )
+	current_l1_beta += lambda_L1*fabs( beta(m) );
+      
+      float current_l2_betagroup = 0;
+      std::vector<float> group_theta_loss( nclusters, 0);      
+      for ( size_t l=0; l<nclusters; l++ ) {
+	const std::vector<int>& match_indices = _clustergroup_vv[l];
+	float theta_loss = 0.;
+	for ( auto const& m : match_indices ) theta_loss += beta(m);
+	group_theta_loss[l] = theta_loss-1;
+	current_l2_betagroup += lambda_L2*group_theta_loss[l]*group_theta_loss[l];
+      }
+      
+      float current_l2_alpha = 0;
+      for ( size_t r=0; r<alpha.rows(); r++ )
+	current_l2_alpha += lambda_alpha_L2*alpha(r)*alpha(r);
+
+      float current_total_loss = current_ols_loss + current_l1_beta + current_l2_betagroup + current_l2_alpha;
+
+      float current_tot_res     = 0.;      
+      float current_tot_resnorm = 0.;
+      for ( size_t r=0; r<Rnorm.rows(); r++ ) {
+	current_tot_resnorm += fabs(Rnorm(r));
+	current_tot_res     += fabs(Rfull(r));
+      }
+      
+      // gradient on beta
+      // ----------------
+      
+      // OLS Gradient
+      Eigen::VectorXf gradOLS  = -(X.transpose()*Rnorm);
+
+      Eigen::VectorXf gradL2( nmatches() );
+      gradL2.setZero();
+
+      for ( size_t l=0; l<nclusters; l++ ) {
+	
+  	// Define subset matrices for the cluster group
+  	// ---------------------------------------------
+
+  	// subset of hypotheses using same physical cluster
+  	const std::vector<int>& match_indices = _clustergroup_vv[l];
+  	int nhypos = match_indices.size(); 
+	
+  	// the rest of the single parameters are to be updated as if it were a 1D problem
+  	//float theta_norm_loss = (theta.transpose()*theta-1.0);
+	float theta_norm_loss = group_theta_loss[l];
+	
+  	for ( size_t k=0; k<nhypos; k++ )
+	  gradL2( match_indices[k] ) = 2*lambda_L2*theta_norm_loss*beta(k);
+
+      }
+
+      // beta grad on L1 norm on matches
+      // -------------------------------
+      Eigen::VectorXf gradL1( nmatches() );
+      gradL1.setZero();      
+      for ( size_t m=0; m<nmatches(); m++ ) {
+
+	// L1 not differentialble: soft-threshold function for gradient
+	// to do so, we need to calculate the OLS solution
+	Eigen::VectorXf antimask( nmatches() );
+	antimask.setOnes();
+	antimask( m ) = 0.;
+
+	Eigen::VectorXf model_wo_par   = X*(beta.cwiseProduct(antimask));
+	Eigen::VectorXf Res_wo_par     = Yalpha - model_wo_par; // residual w/o par
+	Eigen::VectorXf Xk = X.col( m );
+	Eigen::VectorXf XkErrNorm( Xk );
+	for ( size_t r=0; r<Y.rows(); r++ ) {
+	  if ( Rerr2(r)>0 )
+	    XkErrNorm(r) /= (Rerr2(r)*nobs);
+	  else
+	    XkErrNorm(r) /= nobs;
+	}
+	float Xknorm       = Xk.transpose()*XkErrNorm;
+	Eigen::VectorXf ResNorm_wo_par( Res_wo_par );
+	for ( size_t r=0; r<Res_wo_par.rows(); r++ ) {
+	  if ( Rerr2(r)>0 )
+	    ResNorm_wo_par(r) /= (Rerr2(r)*nobs);
+	  else
+	    ResNorm_wo_par(r) /= nobs;
+	}
+
+	// solution (with L2 group loss)
+	float cluster_group_loss = group_theta_loss[ _match2clustgroup_v[m] ];
+	float XkR          = Xk.transpose()*ResNorm_wo_par;
+	float numer        = XkR + 2*lambda_L2*( cluster_group_loss - beta(m) ); // last term we remove current beta
+	float beta_ols     = numer/(Xknorm - 2*lambda_L2);
+
+	float lambdal1_normed = lambda_L1/Xknorm;
+	if ( beta_ols<-lambdal1_normed )   gradL1(m) =  lambdal1_normed;
+	else if (beta_ols>lambdal1_normed) gradL1(m) = -lambdal1_normed;
+	else gradL1(m) = 0;
+	
+      } //end of cluster group loop
+
+      Eigen::VectorXf total_grad = gradOLS + gradL2 + gradL1;
+      Eigen::VectorXf next_beta  = beta - learning_rate*total_grad;
+
+      for ( size_t m=0; m<nmatches(); m++ ) {
+	if ( next_beta(m)<0 ) next_beta(m) = 0;
+	if ( next_beta(m)>2 ) next_beta(m) = 2;
+      }
+
+      // gradient on alpha
+      // ------------------
+      Eigen::VectorXf grad_alpha = Y.cwiseProduct( Rnorm ) + 2*lambda_alpha_L2*alpha;
+      Eigen::VectorXf next_alpha = alpha - learning_rate*grad_alpha;
+      // enforce hard limits
+      for ( size_t r=0; r<alpha.rows(); r++ ) {
+	if ( next_alpha(r)<-1 ) next_alpha(r) = -1;
+      }
+      
+      // calculate change in beta
+      // ------------------------
+      float dbetanorm = (next_beta-beta).norm();
+
+      // calculate change in alpha
+      // -------------------------
+      Eigen::VectorXf dalpha = next_alpha-alpha;
+      float dalphanorm = dalpha.norm();
+
+      if ( std::isnan(dbetanorm) || std::isnan(dalphanorm) ) {
+  	std::cout << "[LassoFlashMatch::solveCoordinateDescent] next_beta now nan. stopping" << std::endl;
+  	std::cout << "beta: " << beta << std::endl;
+  	std::cout << "next_beta: " << next_beta << std::endl;
+  	break;
+      }
+
+      // total diff norm
+      // ---------------
+      float total_diff_norm = sqrt( dbetanorm*dbetanorm + dalphanorm*dalphanorm );
+
+      // calculate loss
+      // --------------
+      if ( total_diff_norm<convergence_threshold )
+  	converged = true;
+
+      // for debug
+      if ( debug ) {
+
+	std::cout << "====================================================================" << std::endl;
+	std::cout << "[LassoFlashMatch::solveGradientDescent] iter=" << num_iter << " dbetanorm=" << dbetanorm << std::endl;
+
+	std::cout << "beta grad" << std::endl;
+	std::cout << "---------" << std::endl;
+	std::cout << "gradLS: " << gradOLS.transpose() << std::endl;
+	std::cout << "gradL2: " << gradL2.transpose() << std::endl;
+	std::cout << "gradL1: " << gradL1.transpose() << std::endl;
+	std::cout << "totgrad: " << total_grad.transpose() << std::endl;
+	std::cout << "total-grad norm: "  << total_grad.norm() << std::endl;
+	std::cout << "dbetanorm: " << dbetanorm << std::endl;
+	std::cout << std::endl;
+	std::cout << "alpha grad" << std::endl;
+	std::cout << "----------" << std::endl;
+	std::cout << "alpha-grad norm: " << grad_alpha.norm() << std::endl;
+	std::cout << "dalpha: " << dalphanorm << std::endl;
+	std::cout << std::endl;
+	std::cout << "total norm: " << total_diff_norm << std::endl;
+	std::cout << std::endl;
+	std::cout << "Last Total Loss: " << current_total_loss << " = "
+		  << " ols(" << current_ols_loss << ")"
+		  << " betal1(" << current_l1_beta << ")"
+		  << " betagroupl2(" << current_l2_betagroup << ")"
+		  << " alphal2(" << current_l2_alpha << ")"
+		  << std::endl;
+	std::cout << "Total |res(w/alpha)|=" << current_tot_res << std::endl;
+	std::cout << "Total |res(w/alpha)/err|=" << current_tot_resnorm << std::endl;	
+
+	// update so bundles are upgraded properly
+  	printClusterGroupsEigen( next_beta );
+  	printFlashBundlesEigen( X, Y, next_beta, alpha );
+	std::cin.get();	
+      }
+      
+      beta  = next_beta;
+      alpha = next_alpha;
+      num_iter++;
+      
+    }//end of if converges loop
+
+    return converged;
+  }
+  
+	
 }

@@ -369,6 +369,7 @@ namespace larflow {
     FlashHypo_t pre_exit_outside = hypo_composite.makeHypo();
     float pe_added = 0;
     current_maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside );
+    current_maxperatio = calcMaxPEratio( flash, pre_exit_outside );
     const QCluster_t& qexit = *(qclusters[3]);
     for ( int ihit=0; ihit<(int)qexit.size(); ihit++ ) {
       const QPoint_t& qhit = qexit[ihit];
@@ -408,13 +409,23 @@ namespace larflow {
 	}
       }//end of vis loop
     
-      
-      float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside, false );
-      if ( maxdist-0.05 > current_maxdist ) {
-	// stop
-	break;
+
+      if ( !extend_using_maxpe ) {
+	float maxdist = FlashMatchCandidate::getMaxDist( flash, pre_exit_outside, false );
+	if ( maxdist-0.05 > current_maxdist ) {
+	  // stop
+	  break;
+	}
       }
-      
+      else {
+	float maxperatio = calcMaxPEratio( flash, pre_exit_outside );
+	if ( fabs(maxperatio) < fabs(current_maxperatio ) ) {
+	  current_maxperatio = maxperatio;
+	}
+	else {
+	  break;
+	}
+      }
       
       // else, update the composite
       for ( size_t ich=0; ich<32; ich++ ) {
