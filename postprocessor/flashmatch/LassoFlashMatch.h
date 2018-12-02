@@ -53,16 +53,32 @@ namespace larflow {
   public:
     
     typedef enum { kMaxDist=0, kMaxDistZbins, kNLL } ScoreType_t;
-    typedef enum { kMinuit=0, kStochGrad, kMCMC }    Minimizer_t;
+    typedef enum { kCoordDesc=0, kGradDesc } Minimizer_t;    
 
     struct Result_t {
-      float totscore;
-      float score;
-      float cluster_constraint;
-      float L1norm;
-      float L2bounds;
-      float b2loss;
-      bool isweighted;
+      float totloss;           // last total loss
+      float ls_loss;           // loss from Least Squares
+      float beta_l1loss;       // loss from l1 beta constraint
+      float betagroup_l2loss;  // loss from l2 beta-group constraint
+      float alpha_l2loss;      // loss from l2 alpha constraint
+      float betabounds_l2loss; // loss from enforcing beta>0 and beta<1.0 (deprecated)
+      float dbetanorm;         // norm of beta gradient at last step
+      float dalphanorm;        // norm of alpha gradient from last step
+      float dloss;             // change in loss in last step
+      int   numiters;          // number of iterations taken (complete par set update)
+      bool  converged;         // fit converged
+      Result_t() 
+      : totloss(0),
+	ls_loss(0),
+	beta_l1loss(0),
+	betagroup_l2loss(0),
+	alpha_l2loss(0),
+	dbetanorm(0),
+	dalphanorm(0),
+	dloss(0),
+	numiters(0),
+	converged(false)
+      {};
     };
 
     struct Grad_t {
@@ -100,7 +116,7 @@ namespace larflow {
       float matchfrac;
     };
     
-    LassoFlashMatch( const int npmts, ScoreType_t score=kMaxDist, Minimizer_t min_method=kStochGrad, bool bundle_flashes=true, bool use_b_terms=false );
+    LassoFlashMatch( const int npmts, ScoreType_t score=kMaxDist, Minimizer_t min_method=kCoordDesc, bool bundle_flashes=true, bool use_b_terms=false );
     virtual ~LassoFlashMatch();
 
     int  addMatchPair(int iflashidx, int iclusteridx, const FlashData_t& flash, const FlashHypo_t& hypo );
@@ -218,19 +234,31 @@ namespace larflow {
     LearningConfig_t getLearningConfig( int iter );
 
     // optimization methods
-    bool solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
-				 Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
-				 const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
-				 const float learning_rate, 
-				 const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
+    Result_t solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+				     Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+				     const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+				     const float greediness,
+				     const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
 
-    bool solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
-			       Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
-			       const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
-			       const float learning_rate, const float stocastic_prob,
-			       const float convergence_threshold, const size_t max_iters );
+    Result_t solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+				   Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+				   const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+				   const float learning_rate, const float stocastic_prob,
+				   const float convergence_threshold, const size_t max_iters );
+
+    // tool functions for optimization methods
+    void buildLSvectors( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+			 const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha,
+			 const float model_frac_err,
+			 Eigen::VectorXf& Yalpha, Eigen::VectorXf& model,
+			 Eigen::VectorXf& R, Eigen::VectorXf& Rnormed );    
+    float calculateChi2Loss( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+			     const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha,
+			     const float lambda_beta_L1, const float lambda_betagroup_L2,
+			     const float lambda_alpha_L2, Result_t* result=nullptr );
     void printFlashBundlesEigen( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha );
     void printClusterGroupsEigen( const Eigen::VectorXf& beta );
+    
     
 
     
