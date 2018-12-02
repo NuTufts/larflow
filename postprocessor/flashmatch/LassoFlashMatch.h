@@ -103,10 +103,13 @@ namespace larflow {
     LassoFlashMatch( const int npmts, ScoreType_t score=kMaxDist, Minimizer_t min_method=kStochGrad, bool bundle_flashes=true, bool use_b_terms=false );
     virtual ~LassoFlashMatch();
 
-    int addMatchPair(int iflashidx, int iclusteridx, const FlashData_t& flash, const FlashHypo_t& hypo );    
+    int  addMatchPair(int iflashidx, int iclusteridx, const FlashData_t& flash, const FlashHypo_t& hypo );
+    void provideTruthPair( int iflashidx, int iclustidx );
     void clear();
+    
     Result_t fitSGD( const int niters, const int niters_per_print=1000, const bool use_sgd=false, const float matchfrac=0.5 );
     Result_t fitLASSO( const float lambda_clustergroup, const float lambda_l1norm );
+    
     Result_t eval( bool isweighted );
     Grad_t   evalGrad( bool isweighted );
     void setWeights( float cluster_constraint, float l1weight, float l2weight ) { _cluster_weight=cluster_constraint; _l1weight=l1weight; _l2weight=l2weight; };
@@ -166,7 +169,11 @@ namespace larflow {
 
     std::vector< std::vector<float> > _bpmt_vv;             // pull terms to adjust data to account for light due to non-tpc: b_{ij} terms
 
-    std::map< std::pair<int,int>, int > _pair2match_m;      
+    std::map< std::pair<int,int>, int > _pair2match_m;
+
+    std::map<int,int> _truthpair_flash2cluster_idx;
+    std::map<int,int> _truthpair_cluster2flash_idx;
+    
 
 
     void setFMatch( int imatch, float fmatch );
@@ -211,8 +218,10 @@ namespace larflow {
     LearningConfig_t getLearningConfig( int iter );
 
     // optimization methods
-    bool solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, Eigen::VectorXf& beta,
-				 const float lambda_L1, const float lambda_L2, const float learning_rate,
+    bool solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+				 Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+				 const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+				 const float learning_rate, 
 				 const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
 
     bool solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,

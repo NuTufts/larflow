@@ -51,6 +51,10 @@ namespace larflow {
     _bpmt_vv.clear();
     _pair2match_m.clear();
 
+    // truth-matching for stdout
+    _truthpair_flash2cluster_idx.clear();
+    _truthpair_cluster2flash_idx.clear();
+
     // learning schedule vars
     _learning_v.clear();
     _iter2learning.clear();
@@ -58,8 +62,8 @@ namespace larflow {
   }  
 
   // ===========================================================================
-  // SETUP FLASH/CLUSTER PAIRS
-  // --------------------------
+  // USER INPUTS: SETUP FLASH/CLUSTER PAIRS
+  // ---------------------------------------
 
   int  LassoFlashMatch::addMatchPair( int iflashidx, int iclustidx, const FlashData_t& flash, const FlashHypo_t& hypo ) {
 
@@ -108,7 +112,7 @@ namespace larflow {
       // is normed
       for (int ich=0; ich<_npmts; ich++) _match_hypo_vv[imatchidx][ich] *= flash.tot;
     }
-    std::cout << "[matchpair iflash=" << iflashidx << " iclust=" << iclustidx << "] hypotot=" << norm << std::endl;
+    //std::cout << "[matchpair iflash=" << iflashidx << " iclust=" << iclustidx << "] hypotot=" << norm << std::endl;
 
     // add match parameter
     _fmatch_v.push_back(0.0);
@@ -129,6 +133,14 @@ namespace larflow {
 
 
     return imatchidx;
+  }
+
+  // --------------------------------------------
+  // USER INPUTS: TRUTH PAIRS (FOR DEBUG+OUTPUT)
+  // --------------------------------------------
+  void LassoFlashMatch::provideTruthPair( int iflashidx, int iclustidx ) {
+    _truthpair_flash2cluster_idx[iflashidx] = iclustidx;
+    _truthpair_cluster2flash_idx[iclustidx] = iflashidx;
   }
 
   // ===========================================================================
@@ -1307,7 +1319,7 @@ namespace larflow {
     // -- tackle each group first
     // -- then we perform LARS on degress of freedom within cluster group
     // -- iterate until converge? if it does ...
-    typedef enum { kCoordDesc=0, kLARS, kELAR } LassoMin_t;
+    typedef enum { kCoordDesc=0, kGradDesc, kLARS, kELAR } LassoMin_t;
     LassoMin_t minimizer = kCoordDesc;
     // if true,  LARS (not impemented)
     // if false, Coordinate descent
@@ -1322,7 +1334,11 @@ namespace larflow {
 
     switch( minimizer ) {
     case kCoordDesc:
-      //converged = solveCoordinateDescent( X, Y, beta, lambda_clustergroup, lambda_l1norm, learningrate, eps, maxiters, true );
+      converged = solveCoordinateDescent( X, Y, beta, alpha,
+					  lambda_clustergroup, lambda_l1norm, lambda_alpha_L2,
+					  learningrate, eps, maxiters, true );
+      break;
+    case kGradDesc:
       converged = solveGradientDescent( X, Y, beta, alpha,
 					lambda_clustergroup, lambda_l1norm, lambda_alpha_L2,
 					learningrate, 0.0, eps, maxiters );
@@ -1330,32 +1346,44 @@ namespace larflow {
     default:
       throw std::runtime_error("[LassoFlashMatch::fitLASSO] unrecognized optimization method");
       break;
-    };
+    }
 
+    // store beta terms
     for ( size_t m=0; m<nmatches(); m++ ) {
       _fmatch_v[m] = beta(m);
+    }
+
+    // store alpha terms
+    _bpmt_vv.resize( _flashindices.size() );
+    for ( auto& flashidx : _flashindices ) {
+      int igroup = _flashidx2group_m[flashidx];
+      _bpmt_vv[igroup].resize( _npmts, 0 );
+      for ( size_t ich=0; ich<_npmts; ich++ )
+	_bpmt_vv[igroup][ich] = alpha( igroup*_npmts + ich );
     }
     
     Result_t r;
     return r;
   }
 
-  bool LassoFlashMatch::solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, Eigen::VectorXf& beta,
-						const float lambda_L1, const float lambda_L2, const float learning_rate,
+  bool LassoFlashMatch::solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+						Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+						const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+						const float learning_rate,
 						const float convergence_threshold, const size_t max_iters, bool cycle_by_covar ) {
 
     bool converged = false;
     const int nflashes  = _flashindices.size();
     const int npmts     = 32;
     const int nclusters = _clusterindices.size();
+    const int nobs      = alpha.rows();
+    bool debug = false;
 
     size_t num_iter = 0;
     float dbetanorm = convergence_threshold+1;
     
     std::cout << "[LassoFlashMatch::solveCoordinateDescent] start." << std::endl;
     beta.setZero();
-    //std::cout << "beta: " << beta << std::endl;
-    //std::cin.get();
 
     int update_match_idx = 0;
     int updates_since_convergence_test = 0;
@@ -1371,11 +1399,12 @@ namespace larflow {
       int idx;
       float val;
       bool operator<( const covar_t& rhs ) const {
-	if ( val<rhs.val ) return true;
+	if ( val>rhs.val ) return true;
 	return false;
       };
     };
     std::vector< covar_t > covar_v( nmatches() );
+    std::vector< covar_t > covar_alpha_v( alpha.rows() );
     
     while ( !converged && num_iter<max_iters ) {
 
@@ -1391,182 +1420,131 @@ namespace larflow {
       Eigen::VectorXf next_beta(beta);
       
       // current prediction
-      Eigen::VectorXf model = X*next_beta;
-      Eigen::VectorXf model_err = (0.5*model).cwiseAbs2(); // 50% prediction error
+      Eigen::VectorXf model     = X*next_beta;
+      Eigen::VectorXf model_err = 0.5*model;
       
       // current full residual
       Eigen::VectorXf Rfull = Y - model;
 
       // current error
-      Eigen::VectorXf Rerr = (Y + model_err).cwiseSqrt();
-
-      for ( size_t r=0; r<Rerr.rows(); r++ ) {
-	if ( Rerr(r)>0 )
-	  Rfull(r) /= Rerr(r);
-      }
-
-      float maxcovar = -1;
-      if ( updates_since_convergence_test==0 ) {
-	// update the order variable
-	Eigen::VectorXf covar = (Rfull.transpose()*X);
-	for ( size_t m=0; m<nmatches(); m++ ) {
-	  covar_v[m].idx = m;
-	  covar_v[m].val = fabs(covar(m)/Xnorm(m));
-	}
-	if ( cycle_by_covar )
-	  std::sort( covar_v.begin(), covar_v.end() );
-      }
-      maxcovar = covar_v[ updates_since_convergence_test ].val;
-      update_match_idx = covar_v[ updates_since_convergence_test ].idx;
-
-      // for debug      
-      if ( false ) {
-	std::cout << "---------------------------------------------------" << std::endl;
-	std::cout << "start" << std::endl;
-	Eigen::VectorXf hypo = X*beta;
-	for (int iflash=0; iflash<nflashes; iflash++) {
-	  float totres = 0.;
-	  float totdata = 0.;
-	  float tothypo = 0.;
-	  for (int ipmt=0; ipmt<npmts; ipmt++) {
-	    totres  += Rfull( iflash*npmts + ipmt );
-	    totdata += Y( iflash*npmts + ipmt );
-	    tothypo += hypo( iflash*npmts + ipmt );
-	  }
-	  std::cout << "[iflash idx=" << iflash << " flashidx=" << _flashdata2idx_m[iflash] << "] "
-		    << " totdata=" << totdata
-		    << " tothypo=" << tothypo
-		    << " totres=" << totres
-		    << std::endl;
-	}
-	std::cout << "---------------------------------------------------" << std::endl;
-      }
-
-      // need to get the norm of the matches cluster group
-      int clustgroupidx = _match2clustgroup_v[update_match_idx];
-      const std::vector<int>& match_indices = _clustergroup_vv[clustgroupidx];
-      
-
-      Eigen::VectorXf antimask( nmatches() );
-      antimask.setOnes();
-      antimask( update_match_idx ) = 0.;
-
-      Eigen::VectorXf model_wo_par = X*(beta.cwiseProduct(antimask));
-      Eigen::VectorXf Res_wo_par = Y-model_wo_par; // residual w/o par
-      Eigen::VectorXf ResErr_wo_par = (Y + (0.5*model_wo_par).cwiseAbs2() ).cwiseSqrt();
-
-      // solving: 0 = X_k^t*(Y - X(not-group)*beta(not-notgroup) - X_k*beta_k) + 4*lambda_L2*(theta^t*theta-1)*beta_k
-      // let R(notk) = Y-X(notk)*beta(notk)
-      // then:    0 = X_k^t*R(notk) - {X_k^t*X_k + 4*lambda_L2*(theta^t*theta-1) }*beta_k
-
-      Eigen::VectorXf Xk = X.col( update_match_idx );
-
-      // beta estimate from LS + L2 (convex portion)
-      // --------------------------------------------
-      // first, get the solution to the convex-only function
-      float numer = Xk.transpose()*Res_wo_par;
-      float beta_ols = numer/(Xk.transpose()*Xk);
-
-      // the group param vector: extract the parameter subset from beta
-      int groupsize = match_indices.size();
-      Eigen::VectorXf theta(groupsize);
-      theta.setZero();
-      for ( size_t h=0; h<groupsize; h++ ) {
-	if ( match_indices[h]!=update_match_idx )
-	  theta(h) = beta( match_indices[h] );
+      Eigen::VectorXf Rerr2 = Y + model_err;
+      Eigen::VectorXf Rnorm( Rerr2.rows() );
+      for ( size_t r=0; r<Rerr2.rows(); r++ ) {
+	if ( Rerr2(r)>0 )
+	  Rnorm(r) = 1.0/( Rerr2(r)*float(nobs) );
 	else
-	  theta(h) = beta_ols;
+	  Rnorm(r) = 0.;
       }
       
-      // how far away is the group from 1.0 w/ the new beta value?
-      float theta_norm_loss = (theta.transpose()*theta-1.0);
+      // determine order of updates
+      Eigen::VectorXf covar = Rfull.transpose()*X;
+      for ( size_t m=0; m<nmatches(); m++ ) {
+	covar_v[m].idx = m;
+	covar_v[m].val = fabs(covar(m)/Xnorm(m));
+      }
+      if ( cycle_by_covar )
+	std::sort( covar_v.begin(), covar_v.end() );
 
-      float denom = Xk.transpose()*Xk + 4*lambda_L2*theta_norm_loss; // the L2 term makes value smaller if group bigger than one, larger if smaller than one
-      float beta_convex = numer/denom; // convex solution
-      float lambdal1_normed = lambda_L1/(Xk.transpose()*Xk);
-      beta_convex = beta_ols; // skipping L2 group constraint for now
+      for ( auto const& covar : covar_v )  {
+	
+	update_match_idx = covar.idx;
 
-      // soft-thresholded value, weakens pull 
-      float beta_lasso = fabs(beta_convex) - lambdal1_normed;
-      if ( beta_lasso<0 )  beta_lasso = 0; // soft-threshold application
-      if ( beta_convex<0 ) beta_lasso = 0; // should be -|beta_lasso|, but forcing non-negative terms
-      next_beta( update_match_idx ) = beta_lasso;
-
-      if ( true ) {
-	// for debug
-	Eigen::VectorXf Res_update = Y-X*next_beta;
-	std::cout << "[" << update_match_idx << "| f:" << _match2flashidx_v[ update_match_idx ] << " c:" << _match2clusteridx_v[ update_match_idx ] << "] "
-		  << " covar=" << maxcovar
-		  << " w-ols=" << numer/(Xk.transpose()*Xk)
-		  << " w-convex=" << beta_convex
-		  << " w-lasso=" << beta_lasso
-		  << " Xk^t*Res(not-k)=" << numer
-		  << " theta-norm=" << theta.transpose()*theta
-		  << " theta-norm-loss=" << theta_norm_loss
-		  << " convex-denom=" << denom
-		  << " Xk^t*Xk=" << Xk.transpose()*Xk
-		  << " Xk-sum=" << Xk.sum()
-		  << " |res-w-update|=" << Res_update.squaredNorm()
-		  << std::endl;
-
-      }      
+	// need to get the norm of the matches cluster group
+	int clustgroupidx = _match2clustgroup_v[update_match_idx];
+	const std::vector<int>& match_indices = _clustergroup_vv[clustgroupidx];
       
-      updates_since_convergence_test++;
+	Eigen::VectorXf antimask( nmatches() );
+	antimask.setOnes();
+	antimask( update_match_idx ) = 0.;
+
+	Eigen::VectorXf model_wo_par = X*beta.cwiseProduct(antimask);
+	Eigen::VectorXf Res_wo_par   = Y-model_wo_par; 
+
+	// solving: 0       = X_k^t*(Y - X(not-group)*beta(not-notgroup) - X_k*beta_k) + 4*lambda_L2*(theta^t*theta-1)*beta_k
+	// let      R(notk) = Y-X(notk)*beta(notk)
+	// then:    0       = X_k^t*R(notk) - {X_k^t*X_k + 4*lambda_L2*(theta^t*theta-1) }*beta_k
+
+	float theta_loss_wo_par = -1;
+	for ( auto const& k : match_indices ) {
+	  if ( k!=update_match_idx )
+	    theta_loss_wo_par += next_beta(k);
+	}
+	Eigen::VectorXf Xk = X.col( update_match_idx );
+
+	// beta estimate from LS + L2 (convex portion)
+	// --------------------------------------------
+	// first, get the solution to the convex-only function
+	float numer = Xk.transpose()*(Res_wo_par.cwiseProduct(Rnorm)) - 2*lambda_L2*theta_loss_wo_par;
+	float denom = Xk.transpose()*(Xk.cwiseProduct(Rnorm)) + 2*lambda_L2;
+	float lambdal1_normed = lambda_L1/( Xnorm(update_match_idx)*Xnorm(update_match_idx) );
+	
+	float beta_convex = numer/denom;
+
+	// soft-thresholded value, weakens pull 
+	float beta_lasso = fabs(beta_convex) - lambdal1_normed;
+	if ( beta_lasso<0 ) beta_lasso;
+	else {
+	  if ( beta_convex<0 )
+	    beta_lasso *= -1.0;
+	}
+
+	// force positive only values
+	if ( beta_lasso<0 )
+	  beta_lasso = 0.;
+
+	// update beta parameter
+	next_beta( update_match_idx ) = beta_lasso;
+	
+	if ( debug ) {
+	  // for debug
+	  Eigen::VectorXf Res_update = Y-X*next_beta;
+	  float beta_ols = Xk.transpose()*Res_wo_par.cwiseProduct(Rnorm);
+	  beta_ols /= Xk.transpose()*Xk;
+	  float theta_norm_loss = theta_loss_wo_par + beta_lasso;
+	  std::cout << "[" << update_match_idx << "| f:" << _match2flashidx_v[ update_match_idx ] << " c:" << _match2clusteridx_v[ update_match_idx ] << "] "
+		    << " covar=" << covar.val
+		    << " lambdaL1_normed=" << lambdal1_normed
+		    << " w-ols=" << beta_ols
+		    << " w-convex=" << beta_convex
+		    << " w-lasso=" << beta_lasso
+		    << " Xk^t*Res(not-k)=" << numer
+		    << " theta-norm-loss=" << theta_norm_loss
+		    << " convex-denom=" << denom
+		    << " Xk-sum=" << Xk.sum()
+		    << " sum|res-w-update|=" << Res_update.cwiseAbs().sum()
+		    << std::endl;
+
+	}
+      }//end of covar loop
       
-      Eigen::VectorXf dbeta = next_beta-last_beta;
+      // full beta update has been performed
+      Eigen::VectorXf dbeta = next_beta-beta;
       dbetanorm = dbeta.norm();
 
-      if ( updates_since_convergence_test>=nmatches() ) {
+      if ( std::isnan(dbetanorm ) ) {
+	std::cout << "[LassoFlashMatch::solveCoordinateDescent] next_beta now nan. stopping" << std::endl;
+	std::cout << "beta: " << beta << std::endl;
+	std::cout << "next_beta: " << next_beta << std::endl;
+	break;
+      }
 	
-	if ( std::isnan(dbetanorm ) ) {
-	  std::cout << "[LassoFlashMatch::solveCoordinateDescent] next_beta now nan. stopping" << std::endl;
-	  std::cout << "beta: " << beta << std::endl;
-	  std::cout << "next_beta: " << next_beta << std::endl;
-	  break;
-	}
-	
-	if ( dbetanorm<convergence_threshold )
-	  converged = true;
-	else
-	  updates_since_convergence_test = 0;
+      if ( dbetanorm<convergence_threshold )
+	converged = true;
 
-	// for debug
-	if ( true ) {
-	  std::cout << "====================================================================" << std::endl;
-	  std::cout << "[LassoFlashMatch::solveCoordinateDescent] iter=" << num_iter << " dbetanorm=" << dbetanorm << std::endl;
+      // for debug
+      if ( debug ) {
+	std::cout << "====================================================================" << std::endl;
+	std::cout << "[LassoFlashMatch::solveCoordinateDescent] iter=" << num_iter << " dbetanorm=" << dbetanorm << std::endl;
 	  
-	  for ( size_t m=0; m<nmatches(); m++) _fmatch_v[m] = next_beta(m);
-	  // std::cout << "beta: " << beta.transpose() << std::endl;
-	  // std::cout << "next: " << next_beta.transpose() << std::endl;
-	  printClusterGroups(false);
-	  printFlashBundles(false);
-	  Eigen::VectorXf hypo = X*next_beta;
-	  for (int iflash=0; iflash<nflashes; iflash++) {
-	    float totres = 0.;
-	    float totdata = 0.;
-	    float tothypo = 0.;
-	    for (int ipmt=0; ipmt<npmts; ipmt++) {
-	      totres  += Rfull( iflash*npmts + ipmt );
-	      totdata += Y( iflash*npmts + ipmt );
-	      tothypo += hypo( iflash*npmts + ipmt );
-	    }
-	    std::cout << "[iflash idx=" << iflash << " flashidx=" << _flashdata2idx_m[iflash] << "] "
-		      << " totdata=" << totdata
-		      << " tothypo=" << tothypo
-		      << " totres=" << totres
-		      << std::endl;
-	  }
-	  
-	}
+	printClusterGroupsEigen(next_beta);
+	printFlashBundlesEigen(X,Y,next_beta,alpha);
 
-	last_beta = next_beta; // set last beta
-	num_iter++;
 	std::cin.get();	
       }// end of full-cycle update
 
       // update beta
-      std::cout << "update beta" << std::endl;
       beta = next_beta;
+      num_iter++;      
       
     }//end of if converges loop
     
