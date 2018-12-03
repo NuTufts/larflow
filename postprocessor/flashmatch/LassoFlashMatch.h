@@ -81,6 +81,32 @@ namespace larflow {
       {};
     };
 
+    struct LassoConfig_t {
+      
+      Minimizer_t minimizer;    // method to perform minimization
+      float match_l1;          // L1 penalty on activating a match
+      float clustergroup_l2;   // L2 penalty to constain solution to one activated match per physical cluster
+      float adjustpe_l2;       // L2 penalty to adjust the pe value in a pmt (to account for out-of-tpc charge)
+      int maxiterations;       // maximum number of iterations
+      float convergence_limit; // minimum change in total loss required to stop in converged state
+      float greediness;        // [Coordinate descent only] how much to move to new solution, value between (0,1.0]
+      bool  cycle_by_cov;      // [Coordinate descent only] if true, cycle through match parameters using largest covariance with residual
+      float learning_rate;     // [Gradient descent only] factor applied to gradient for parameter update
+
+      // constructor with some suggested defaults
+      LassoConfig_t()
+      : minimizer(kCoordDesc),
+	match_l1(10.0),
+	clustergroup_l2(1.0),
+	adjustpe_l2(1.0e-2),
+	maxiterations(100000),
+	convergence_limit(1.0e-4),
+	greediness(0.5),
+	cycle_by_cov(true),
+	learning_rate(1.0e-3)
+      {};
+    };    
+
     struct Grad_t {
       // For NLL and MaxDist fits
       std::vector<float> score;
@@ -115,6 +141,7 @@ namespace larflow {
       bool use_sgd;
       float matchfrac;
     };
+
     
     LassoFlashMatch( const int npmts, ScoreType_t score=kMaxDist, Minimizer_t min_method=kCoordDesc, bool bundle_flashes=true, bool use_b_terms=false );
     virtual ~LassoFlashMatch();
@@ -122,12 +149,16 @@ namespace larflow {
     int  addMatchPair(int iflashidx, int iclusteridx, const FlashData_t& flash, const FlashHypo_t& hypo );
     void provideTruthPair( int iflashidx, int iclustidx );
     void clear();
+
+    Result_t fitLASSO( const LassoConfig_t& config );
+    Result_t fitLASSO( const int maxiters,
+		       const float lambda_match_l1, const float lambda_clustergroup_l2,
+		       const float lambda_peadjust_l2, const float greediness );
     
-    Result_t fitSGD( const int niters, const int niters_per_print=1000, const bool use_sgd=false, const float matchfrac=0.5 );
-    Result_t fitLASSO( const float lambda_clustergroup, const float lambda_l1norm );
+    Result_t fitSGD( const int niters, const int niters_per_print=1000, const bool use_sgd=false, const float matchfrac=0.5 ); // [deprecated]
     
-    Result_t eval( bool isweighted );
-    Grad_t   evalGrad( bool isweighted );
+    Result_t eval( bool isweighted ); // [deprecated]
+    Grad_t   evalGrad( bool isweighted ); // [deprecated]
     void setWeights( float cluster_constraint, float l1weight, float l2weight ) { _cluster_weight=cluster_constraint; _l1weight=l1weight; _l2weight=l2weight; };
     void addLearningScheduleConfig( LearningConfig_t config ) { _learning_v.push_back(config); };
     void printState( bool printfmatch );

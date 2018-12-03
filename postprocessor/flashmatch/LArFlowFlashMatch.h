@@ -219,7 +219,7 @@ namespace larflow {
     std::map< int, MatchPair_t > _matchidx2pair;
     void prepareFitter();
     void setInitialFlashMatchVector();
-    void reduceUsingFitResults();
+    void reduceUsingFitResults( const float score_threshold );
     void clearFitter();
 					 
     // MCTrack Info

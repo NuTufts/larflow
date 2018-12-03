@@ -240,18 +240,19 @@ namespace larflow {
     _fitter.addLearningScheduleConfig( epoch1 );
     _fitter.addLearningScheduleConfig( epoch2 );
     _fitter.addLearningScheduleConfig( epoch3 );    
-    //_fitter.fitSGD( 120000,-1, true, 0.5 );
-    _fitter.fitLASSO( 1e-1, 1e0 );
+
+    LassoFlashMatch::LassoConfig_t lasso_cfg;
+    _fitter.fitLASSO( lasso_cfg );
 
     // set compat from fit
-    reduceUsingFitResults();
+    reduceUsingFitResults( 0.05 );
     std::cout << "[LArFlowFlashMatch::match][DEBUG] POSTFIT COMPATIBILITY" << std::endl;
     printCompatInfo( _flashdata_v, _qcluster_v );
     _fitter.printState(false);      
     _fitter.printClusterGroups();
     _fitter.printFlashBundles( false );
-    _fitter.printBterms();
-    _fitter.printFmatch();
+    //_fitter.printBterms();
+    //_fitter.printFmatch();
 
     if ( _fDumpPostfit )
       dumpQCompositeImages( "postfit" );
@@ -715,18 +716,17 @@ namespace larflow {
     
   }
 
-  void LArFlowFlashMatch::reduceUsingFitResults() {
+  void LArFlowFlashMatch::reduceUsingFitResults( const float score_threshold) {
     for ( int imatch=0; imatch<_fitter._nmatches; imatch++ ) {
       int iflash = _matchidx2pair[imatch].flashidx;
       int iclust = _matchidx2pair[imatch].clusteridx;
 
       CutVars_t& cutvars = getCutVars( iflash, iclust );
       cutvars.fit1fmatch = _fitter._fmatch_v[imatch];
-      if ( cutvars.fit1fmatch<0.05 ) {
+      if ( cutvars.fit1fmatch<score_threshold ) {
 	cutvars.cutfailed = kFirstFit;
 	setCompat( iflash, iclust, kFirstFit );
       }
-
     }
   }
 

@@ -1260,8 +1260,22 @@ namespace larflow {
   //   // 
   // }
   */  
+
+  LassoFlashMatch::Result_t LassoFlashMatch::fitLASSO( const int maxiters,
+						       const float match_l1, const float clustergroup_l2,
+						       const float peadjust_l2, const float greediness ) {
+    LassoConfig_t config;
+    config.maxiterations = maxiters;
+    config.match_l1 = match_l1;
+    config.clustergroup_l2 = clustergroup_l2;
+    config.adjustpe_l2 = peadjust_l2;
+    config.greediness = greediness;
+
+    return fitLASSO( config );
+    
+  }
   
-  LassoFlashMatch::Result_t LassoFlashMatch::fitLASSO( const float lambda_clustergroup, const float lambda_l1norm ) {
+  LassoFlashMatch::Result_t LassoFlashMatch::fitLASSO( const LassoConfig_t& config ) {
 
     // LASSO FIT
     // ---------
@@ -1314,20 +1328,7 @@ namespace larflow {
     for ( size_t m=0; m<nmatches(); m++ )
       beta(m) = _fmatch_v[m];
     
-    // Take go through each cluster group
-    // -----------------------------------
-    // -- we use sparse-group LASSO approach
-    // -- tackle each group first
-    // -- then we perform LARS on degress of freedom within cluster group
-    // -- iterate until converge? if it does ...
-    typedef enum { kCoordDesc=0, kGradDesc, kLARS, kELAR } LassoMin_t;
-    LassoMin_t minimizer = kCoordDesc;
-    // if true,  LARS (not impemented)
-    // if false, Coordinate descent
 
-    // loop will have to go here: while (notconverted) ...
-    bool  converged = false;
-    bool  firstcomponent = false;
     float eps = 1.0e-4;
     float learningrate = 1.0e-3;
     float greediness   = 0.5; // how much between the old and new solution do we move?
@@ -1336,18 +1337,20 @@ namespace larflow {
 
     Result_t fitresult;
 
-    switch( minimizer ) {
+    switch( config.minimizer ) {
     case kCoordDesc:
       // fast, but can be a little greedy, so should run several times to choose meta-parameters
       fitresult = solveCoordinateDescent( X, Y, beta, alpha,
-					  lambda_clustergroup, lambda_l1norm, lambda_alpha_L2,
-					  greediness, eps, maxiters, true );
+					  config.match_l1, config.clustergroup_l2, config.adjustpe_l2,					  
+					  config.greediness,
+					  config.convergence_limit, config.maxiterations, config.cycle_by_cov );
       break;
     case kGradDesc:
       // slow and can be tricky to converge without small learning rate, but author understands how this should work more than CoordDescent
       fitresult = solveGradientDescent( X, Y, beta, alpha,
-					lambda_clustergroup, lambda_l1norm, lambda_alpha_L2,
-					learningrate, 0.0, eps, maxiters );
+					config.match_l1, config.clustergroup_l2, config.adjustpe_l2,
+					config.learning_rate, 0.0,
+					config.convergence_limit, config.maxiterations );
       break;
     default:
       throw std::runtime_error("[LassoFlashMatch::fitLASSO] unrecognized optimization method");
