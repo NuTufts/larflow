@@ -21,10 +21,13 @@ namespace larflow {
       _l2weight(1e4),
       _bweight(1e3),
       _nmatches(0)
-  {}
+  {
+    _rand = new TRandom3( 1234 );
+  }
   
   LassoFlashMatch::~LassoFlashMatch() {
     clear();
+    delete _rand;
   }
 
   void LassoFlashMatch::clear() {
@@ -114,6 +117,12 @@ namespace larflow {
     }
     //std::cout << "[matchpair iflash=" << iflashidx << " iclust=" << iclustidx << "] hypotot=" << norm << std::endl;
 
+    // create match object
+    Match_t amatch( imatchidx, iflashidx, iclustidx, _flashidx2group_m[iflashidx], _clusteridx2group_m[iclustidx],
+		    _flashgroup_vv[ _flashidx2group_m[iflashidx] ],
+		    _clustergroup_vv[ _clusteridx2group_m[iclustidx] ] );
+    _matchinfo_v.emplace_back( std::move(amatch) );
+
     // add match parameter
     _fmatch_v.push_back(0.0);
     _flastgrad_v.push_back(0.0);    
@@ -148,8 +157,6 @@ namespace larflow {
   // --------------------------
 
   LassoFlashMatch::Result_t LassoFlashMatch::fitSGD( const int niters, const int niters_per_print, const bool use_sgd, const float matchfrac ) {
-
-    TRandom3 rand(1234);
 
     float lr = 1.0e-3;
 
@@ -194,7 +201,7 @@ namespace larflow {
       if ( config.use_sgd ) {
 	fmask_v.resize( _nmatches, 0 );
 	for ( size_t imatch=0; imatch<_nmatches; imatch++ )  {
-	  if ( rand.Uniform()<config.matchfrac ) fmask_v[imatch] = 1;
+	  if ( _rand->Uniform()<config.matchfrac ) fmask_v[imatch] = 1;
 	  else nmasked++;
 	}
       }
@@ -1341,6 +1348,7 @@ namespace larflow {
     case kCoordDesc:
       // fast, but can be a little greedy, so should run several times to choose meta-parameters
       fitresult = solveCoordinateDescent( X, Y, beta, alpha,
+					  _match2clustgroup_v, _clustergroup_vv,
 					  config.match_l1, config.clustergroup_l2, config.adjustpe_l2,					  
 					  config.greediness,
 					  config.convergence_limit, config.maxiterations, config.cycle_by_cov );
@@ -1376,6 +1384,8 @@ namespace larflow {
 
   LassoFlashMatch::Result_t LassoFlashMatch::solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
 								     Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+								     const std::vector<int>& match2clustergroup,
+								     const std::vector< std::vector<int> >& clustergroup_vv,
 								     const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
 								     const float greediness,
 								     const float convergence_threshold, const size_t max_iters, bool cycle_by_covar ) {
@@ -1383,10 +1393,8 @@ namespace larflow {
     Result_t result;
     result.converged = false;
 
-    const int nflashes  = _flashindices.size();
-    const int npmts     = 32;
-    const int nclusters = _clusterindices.size();
-    const int nobs      = alpha.rows();
+    const int nclusters = clustergroup_vv.size();
+    const int nobs      = Y.rows();
     bool debug = true;
 
     if ( greediness<0 || greediness>1.0 ) {
@@ -1460,8 +1468,10 @@ namespace larflow {
 	update_match_idx = covar.idx;
 
 	// need to get the norm of the matches cluster group
-	int clustgroupidx = _match2clustgroup_v[update_match_idx];
-	const std::vector<int>& match_indices = _clustergroup_vv[clustgroupidx];
+	// int clustgroupidx = _match2clustgroup_v[update_match_idx];
+	// const std::vector<int>& match_indices = _clustergroup_vv[clustgroupidx];
+	int clustergroupidx = match2clustergroup[update_match_idx];
+	const std::vector<int>& match_indices = clustergroup_vv[clustergroupidx];
       
 	Eigen::VectorXf antimask = Eigen::VectorXf::Ones( next_beta.rows() );
 	antimask( update_match_idx ) = 0.;
@@ -1900,6 +1910,41 @@ namespace larflow {
     
   }
 
+  // ==============================================================================
+  // Solve with subsampling
+  
+  void LassoFlashMatch::solveCoordDescentWithSubsampleCrossValidation( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+								       Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+								       const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+								       const float greediness, const float subsample_frac, const int nsubsamples,
+								       const float convergence_threshold, const size_t max_iters, bool cycle_by_covar ) {
+    // we run [nsubsamples] fits, removing [subsample_frac] flashes per trial
+    // this takes advantage of coordinate descent's speed to build for each match,
+    // an outcome distribution
+    //
+    // for those in the subsample, we solve using coord desc, keeping the other
+    //  matches fixed to zero.
+    
+    for ( size_t isample=0; isample<nsubsamples; isample++ ) {
+
+      // first draw sample
+      // we rebuild/map X,Y,beta,alpha to subsample system
+    }
+    
+  }
+
+  void LassoFlashMatch::shuffleFisherYates( std::vector<int>& vec ) {
+    int n = vec.size();
+    for (int i = n-1; i > 0; i--)  {
+      // Pick a random index from 0 to i
+      int j = _rand->Integer((int)(i+1));
+      // Swap arr[i] with the element at random index
+      int temp = vec[j];
+      vec[i] = vec[j];
+      vec[j] = temp;
+    }
+  }
+
   // ===============================================================================
   // Common/repeated calculations: modularize here for convenience and consistency
   // ------------------------------------------------------------------------------
@@ -1924,6 +1969,100 @@ namespace larflow {
       else
 	Rnormed(r) = 0.;
     }
+  }
+
+  LassoFlashMatch::SubSystem_t LassoFlashMatch::generateFlashRandomSubsample( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+									      const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha,
+									      const float subsample_frac ) {
+
+    SubSystem_t subsystem;
+    
+    const int nflashes = _flashindices.size();
+    const int nsubflashes = int(subsample_frac*nflashes);
+    const int npmts = 32;
+    std::vector< int > indices( nflashes, 0 );
+    for ( size_t i=1; i<nflashes; i++ ) indices[i] = i;
+    shuffleFisherYates( indices );
+
+    indices.resize(nsubflashes); // truncate
+
+    // we have to (1) count the number of matches that pertain to the subset of flashes
+    // we also have to collect the cluster groups for the subset of matches
+    int imatchidx = 0;
+    int iclustgroupidx = 0;
+    std::set<int> clusteridx_set;
+    
+    for ( int iflash=0; iflash<nsubflashes; iflash++ ) {
+
+      int flashidx    = indices[iflash];
+      int iflashgroup = _flashidx2data_m[flashidx];
+      const std::vector< int >& match_indices = _flashgroup_vv[ iflashgroup ];
+      for ( auto const& m : match_indices ) {
+	const Match_t& minfo = _matchinfo_v[m];
+	subsystem.submatchidx2fullmatchidx[ imatchidx ] = m;
+
+	// collect cluster group info
+	int clustidx   = minfo.clustidx;
+	int clustgroup = minfo.clustgroupidx;
+	if ( clusteridx_set.find(minfo.clustidx)==clusteridx_set.end() ) {
+	  // new clustidx
+	  std::vector<int> clustgroup_v(1,imatchidx);
+	  subsystem.clustgroup_vv.push_back( clustgroup_v );
+	  subsystem.match2clustgroup.push_back( iclustgroupidx );
+	  subsystem.clustidx2clustgroup[clustidx] = iclustgroupidx;
+	  
+	  iclustgroupidx++;
+	}
+	else {
+	  // existing clustidx in subgroup. append match.
+	  subsystem.clustgroup_vv[ subsystem.clustidx2clustgroup[ clustidx ] ].push_back( imatchidx );
+	}
+	Match_t submatch( imatchidx,
+			  minfo.flashidx, minfo.clustidx, iflash, subsystem.match2clustgroup[imatchidx],
+			  _flashgroup_vv[iflashgroup],
+			  subsystem.clustgroup_vv[ subsystem.match2clustgroup[imatchidx] ] );
+	
+	subsystem.matchinfo_v.emplace_back( std::move(submatch) );
+	imatchidx++;
+      }
+    }//end of flash loop
+    
+    int nobs     = nsubflashes*npmts;
+    int nmatches = imatchidx;
+    subsystem.X = new Eigen::MatrixXf( nobs, nmatches );
+    subsystem.Y = new Eigen::VectorXf( nobs );
+    subsystem.alpha = new Eigen::VectorXf( nobs );
+    subsystem.beta  = new Eigen::VectorXf( nmatches );
+    subsystem.X->setZero();
+    subsystem.Y->setZero();
+    subsystem.alpha->setZero();
+    subsystem.beta->setZero();
+
+    // fill Y,alpha
+    for ( int iflash=0; iflash<nsubflashes; iflash++ ) {
+      int flashidx    = indices[iflash];
+      int iflashgroup = _flashidx2data_m[flashidx];
+
+      for ( size_t ich=0; ich<npmts; ich++ ) {
+	(*subsystem.Y)( iflash*npmts + ich )     = Y( iflashgroup*npmts + ich);
+	(*subsystem.alpha)( iflash*npmts + ich ) = alpha( iflashgroup*npmts + ich);
+      }
+    }
+
+    // fill X,beta
+    for ( size_t isubm=0; isubm<subsystem.submatchidx2fullmatchidx.size(); isubm++ ) {
+      
+      int ifullm = subsystem.submatchidx2fullmatchidx[ isubm ];
+
+      int iflashgroup = subsystem.matchinfo_v[isubm].flashgroupidx;
+      for ( size_t ich=0; ich<npmts; ich++ )
+	(*subsystem.X)( iflashgroup*npmts + ich, isubm ) = X( _matchinfo_v[ifullm].flashgroupidx*npmts + ich, ifullm );
+
+      (*subsystem.beta)( isubm ) = beta( ifullm );
+      
+    }
+      
+    return subsystem;
   }
   
 	

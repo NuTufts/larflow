@@ -45,9 +45,10 @@
 //  match index 'm'
 // Additionally, we have a pull term for each y_{ij}, b_{ij}. This is to help with light made by charge outside the tpc that is not modeled.
 
+class TRandom3;
 
 namespace larflow {
-
+  
   class LassoFlashMatch {
 
   public:
@@ -173,7 +174,7 @@ namespace larflow {
     float fmatch( int iflashidx, int iclustidx ) const { return 0; };
     
     const int _npmts;
-    ScoreType_t _scorer;
+    ScoreType_t _scorer; // [deprecated]
     Minimizer_t _min_method;
     bool _bundle_flashes;
     bool _use_b_terms;
@@ -181,7 +182,8 @@ namespace larflow {
     float _l1weight;
     float _l2weight;
     float _bweight;
-
+    TRandom3* _rand;
+    
     // book-keeping indices
     // ---------------------
     // i: flash index
@@ -193,8 +195,34 @@ namespace larflow {
     // m: match index for candidate pair of (u,v) or equivalently (i,k)
     // F(i): flash group for {i} that points to same 'u' (but matched to different cluster 'v'), index with 'l'
     
-    
+
+    struct Match_t {
+      
+      int matchidx; // internal label for flash-cluster match candidate
+      int flashidx; // user label for observed flash
+      int clustidx; // user label for charge cluster that produces flash hypo for observed flash
+      int flashgroupidx;   // internal label for flash      
+      int clustgroupidx; // internal label for cluster
+      const std::vector<int>* clustgroup_v; // match indices that relate to same physical cluster (includes current index)
+      const std::vector<int>* flashgroup_v; // match indices that relate to same physical flash (includes current index)
+      
+      Match_t( int midx,
+	       int fidx, int cidx, int fgidx, int cgidx,
+	       const std::vector<int>& flashgroup_v, const std::vector<int>& clustgroup_v )
+      : matchidx(midx),
+	flashidx(fidx),
+	clustidx(cidx),
+	flashgroupidx(fgidx),
+	clustgroupidx(cgidx),
+	clustgroup_v(&clustgroup_v),
+	flashgroup_v(&flashgroup_v)
+      {};
+	
+    };
+
+    // eventually replace all this map BS with the above
     int _nmatches;
+    std::vector< Match_t >            _matchinfo_v;
     std::set< int >                   _clusterindices;      // cluster indices given by user (v)
     std::vector< std::vector<int> >   _clustergroup_vv;     // each inner vector holds match indices (m) that apply to same cluster indices (v), i.e. a list of G(k)
     std::map<int,int>                 _clusteridx2group_m;  // map from clusteridx to clustergroup_vv index (user index 'v' to internal G(k) index 'g')
@@ -210,6 +238,7 @@ namespace larflow {
     std::vector<int>                  _match2flashgroup_v;  // map from matchidx to flashgroup index (m to internal F(m) index 'l')
     std::vector< std::vector<int> >   _flashgroup_vv;       // each inner vector holds match indices that apply to same flash: F(m) index 'l'
     std::map<int,int>                 _flashidx2group_m;    // map from flashidx to group index ( u -> 'l' )
+    std::vector<bool>                 _flashalwaysfit_v;    // flag to always fit this flash, even when using subsampling coord desc or stochastic grad desc
     
     std::vector<float>                _fmatch_v;            // f_{m} terms (which can be mapped to f_{k} throw above)
     std::vector<float>                _flastgrad_v;         // gradient of objective function w.r.t to f_{m}
@@ -220,7 +249,35 @@ namespace larflow {
 
     std::map<int,int> _truthpair_flash2cluster_idx;
     std::map<int,int> _truthpair_cluster2flash_idx;
-    
+
+    // Defines a model subsystem to solve
+    struct SubSystem_t {
+
+      Eigen::MatrixXf* X;
+      Eigen::VectorXf* Y;
+      Eigen::VectorXf* beta;      
+      Eigen::VectorXf* alpha;
+
+      std::vector< Match_t > matchinfo_v;
+      std::vector<int> submatchidx2fullmatchidx;      
+      std::vector<int> match2clustgroup;
+      std::map<int,int> clustidx2clustgroup;
+      std::vector< std::vector<int> > clustgroup_vv;
+      
+      SubSystem_t()
+      : X(nullptr),
+	Y(nullptr),
+	alpha(nullptr),
+	beta(nullptr)
+      {};
+      ~SubSystem_t() {
+	delete X;
+	delete Y;
+	delete alpha;
+	delete beta;
+      };
+      
+    };
 
 
     void setFMatch( int imatch, float fmatch );
@@ -267,15 +324,24 @@ namespace larflow {
     // optimization methods
     Result_t solveCoordinateDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
 				     Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+				     const std::vector<int>& match2clustergroup,
+				     const std::vector< std::vector<int> >& clustergroup_vv,
 				     const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
-				     const float greediness,
-				     const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
+				     const float greediness, 
+				     const float convergence_threshold, const size_t max_iters,
+				     bool cycle_by_covar ); 
 
     Result_t solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
 				   Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
 				   const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
 				   const float learning_rate, const float stocastic_prob,
 				   const float convergence_threshold, const size_t max_iters );
+    
+    void solveCoordDescentWithSubsampleCrossValidation( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+							Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+							const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+							const float greediness, const float subsample_frac, const int nsubsamples,
+							const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
 
     // tool functions for optimization methods
     void buildLSvectors( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
@@ -289,9 +355,13 @@ namespace larflow {
 			     const float lambda_alpha_L2, Result_t* result=nullptr );
     void printFlashBundlesEigen( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha );
     void printClusterGroupsEigen( const Eigen::VectorXf& beta );
-    
-    
 
+
+    // Subsystem routines
+    void shuffleFisherYates( std::vector<int>& vec );    
+    SubSystem_t generateFlashRandomSubsample( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+					      const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha,
+					      const float subsample_frac );
     
 
     
