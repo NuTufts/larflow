@@ -49,6 +49,7 @@ struct InputArgs_t {
       has_mcreco(false),
       has_infill(false),
       has_ssnet(false),
+      has_larcvtruth(false),
       use_ancestor_img(false),
       makehits_useunmatched(false),
       makehits_require_3dconsistency(false),
@@ -73,6 +74,7 @@ struct InputArgs_t {
   // Event data
   // ----------
   std::string input_supera;
+  std::string input_larcvtruth;
   std::string input_mcinfo;
   std::string input_reco2d;
   std::string input_opreco;
@@ -92,6 +94,7 @@ struct InputArgs_t {
   bool has_reco2d;
   bool has_opreco;
   bool has_mcreco;
+  bool has_larcvtruth;
   bool has_infill;
   bool has_ssnet;
   bool use_ancestor_img;
@@ -125,6 +128,7 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
   commands.push_back( Arg_t("-oll","output larflow larlite file [required]") );
   commands.push_back( Arg_t("-olc","output larflow larcv file [required]") );  
   commands.push_back( Arg_t("-mc", "event mcinfo larlite file") );
+  commands.push_back( Arg_t("-lcvt", "event larcvtruth LArCV file (w/ ancestor image)") );  
   commands.push_back( Arg_t("-op", "event opreco larlite file") );
   commands.push_back( Arg_t("-re", "event reco2d larlite file [required if use-hits]") );
   commands.push_back( Arg_t("-j",  "jobid") );
@@ -200,6 +204,10 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	else if ( command.flag=="-mc" ) {
 	  argconfig.input_mcinfo = argv[iarg+1];
 	  argconfig.has_mcreco = true;	  
+	}
+	else if ( command.flag=="-lcvt" ) {
+	  argconfig.input_larcvtruth = argv[iarg+1];
+	  argconfig.has_larcvtruth = true;
 	}
 	else if ( command.flag=="-re" ) {
 	  argconfig.input_reco2d = argv[iarg+1];
@@ -504,6 +512,8 @@ int main( int nargs, char** argv ) {
 
   larcv::IOManager dataco_wholelarcv(larcv::IOManager::kREAD);
   dataco_wholelarcv.add_in_file( inputargs.input_supera );
+  if ( inputargs.has_larcvtruth )
+    dataco_wholelarcv.add_in_file( inputargs.input_larcvtruth );
   dataco_wholelarcv.initialize();
   int iwholelarcv_index = 0;
   
