@@ -141,9 +141,9 @@ int main( int nargs, char** argv ) {
 	int col = srcimg.meta().col( hit.srcwire );
 	int row = srcimg.meta().row( hit.tick );
 	
-	int label = 1;
+	int label = 1; // has hit
 	if ( hit.trackid>=0 )
-	  label = 2;
+	  label = 2;   // hit has mclabel
 	marker.set_pixel( row, col, label );
       }
       

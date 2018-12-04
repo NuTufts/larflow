@@ -90,14 +90,16 @@ namespace larflow {
     notruthhits.trackid = -1;
 
     for (auto const& hit : hit_v ) {
-      if ( hit.truthflag>0 ) {
+      if ( hit.trackid>=0 ) {
 	int clusterid = hit.trackid;
 	if ( use_ancestor_id && clusterid>=0 ) {
+	  // find ancestor id through dict
 	  auto it_aid = id2ancestor.find( clusterid );
 	  // replace trackid with ancestorid
 	  if ( it_aid != id2ancestor.end() )
 	    clusterid = it_aid->second;
 	}
+	// look 
 	auto it = trackid2index.find( clusterid );
 	
 	if ( it==trackid2index.end() ) {

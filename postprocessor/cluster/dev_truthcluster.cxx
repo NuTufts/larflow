@@ -38,6 +38,9 @@ int main( int nargs, char** argv ) {
   int nentries = io.get_entries();
 
   for (int ientry=0; ientry<nentries; ientry++) {
+
+    std::cout << "==========================================================" << std::endl;
+    std::cout << "[dev_truthcluster] Entry " << ientry << " of " << nentries << std::endl;
     
     io.go_to( ientry );
     
@@ -45,7 +48,8 @@ int main( int nargs, char** argv ) {
     larlite::event_mctrack*  ev_mctrack   = (larlite::event_mctrack*) io.get_data( larlite::data::kMCTrack,  "mcreco" );
     larlite::event_mcshower* ev_mcshower  = (larlite::event_mcshower*)io.get_data( larlite::data::kMCShower, "mcreco" );    
 
-    std::cout << "number of hits: " << ev_hits->size() << std::endl;
+    int numhits = ev_hits->size();
+    std::cout << "number of hits: " << numhits << std::endl;
     std::vector< std::vector<const larlite::larflow3dhit*> > clusters = clusteralgo.clusterHits( *ev_hits, *ev_mctrack, *ev_mcshower, use_ancestor_id, return_unassigned );
 
     std::cout << "truthcluster returned with " << clusters.size() << " clusters" << std::endl;
@@ -54,6 +58,14 @@ int main( int nargs, char** argv ) {
     larlite::event_pcaxis* ev_outpca             = (larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"flowtruthclusters");
     larlite::event_pcaxis* ev_outcorepca         = (larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"flowtruthcore");
 
+    io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
+    if ( numhits== 0 ) {
+      std::cout << "Event is empty. save empty entry and move on." << std::endl;
+      io_out.next_event();
+      continue;
+    }
+
+    
     int iclust=-1;
     for ( auto& hit_v : clusters ) {
       iclust++;
@@ -88,7 +100,7 @@ int main( int nargs, char** argv ) {
       }
     }
 
-    io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
+
 
     io_out.next_event();
   }
