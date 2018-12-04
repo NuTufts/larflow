@@ -44,6 +44,7 @@ struct InputArgs_t {
       use_combined_dlcosmictag(false),
       use_hits(false),
       use_truth(false),
+      has_supera(false),      
       has_reco2d(false),
       has_opreco(false),
       has_mcreco(false),
@@ -91,6 +92,7 @@ struct InputArgs_t {
   int jobid;
   bool use_hits;
   bool use_truth;
+  bool has_supera;  
   bool has_reco2d;
   bool has_opreco;
   bool has_mcreco;
@@ -138,6 +140,7 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
   commands.push_back( Arg_t("--use-require-3dconsist", "use 3d consistency cut") );
   commands.push_back( Arg_t("--use-unmatched", "use unmatched hits") );
   commands.push_back( Arg_t("--use-ancestor-img","use ancestor image to make truth") );
+  commands.push_back( Arg_t("--has-infill","use ancestor image to make truth") );
   commands.push_back( Arg_t("--vis", "visualize cropped image matching") );
   commands.push_back( Arg_t("--inspect", "inspect visualization") );
 
@@ -199,8 +202,10 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	  argconfig.input_opreco = argv[iarg+1];
 	  argconfig.has_opreco = true;
 	}
-	else if ( command.flag=="-su" )
+	else if ( command.flag=="-su" ) {
 	  argconfig.input_supera = argv[iarg+1];
+	  argconfig.has_supera = true;
+	}
 	else if ( command.flag=="-mc" ) {
 	  argconfig.input_mcinfo = argv[iarg+1];
 	  argconfig.has_mcreco = true;	  
@@ -232,6 +237,9 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	else if ( command.flag=="--use-ancestor-img" ) {
 	  argconfig.use_ancestor_img = true;
 	}
+	else if ( command.flag=="--has-infill" ) {
+	  argconfig.has_infill = true;
+	}
 	else if ( command.flag=="-n" )
 	  argconfig.process_num_events = std::atoi(argv[iarg+1]);
 
@@ -249,6 +257,10 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 
   // Configuration Check
   // -------------------
+
+  if ( !argconfig.has_supera ) {
+    throw std::runtime_error("must provide supera file");
+  }
   
   if ( argconfig.use_hits && !argconfig.has_reco2d ) {
     throw std::runtime_error("set to use hits, but no reco2d file with gaushits");  
@@ -380,6 +392,7 @@ void stitch_infill(larcv::IOManager& ioinfill,
     // create new image set (whole size)
     infill_whole_v.clear();
     for ( auto const& img : adcwhole ) {
+      std::cout << "[stich_infill] creating new image for infill still: " << img.meta().dump() << std::endl;
       larcv::Image2D infill_whole( img.meta() );
       infill_whole_v.emplace_back( std::move( infill_whole ) );
     }
@@ -500,11 +513,19 @@ int main( int nargs, char** argv ) {
 
   // we read ahead to stitch the infill image, so it gets its own feed
   larcv::IOManager dataco_infill( larcv::IOManager::kREAD );
-  if ( inputargs.use_combined_dlcosmictag )
-    dataco.add_in_file( inputargs.input_dlcosmictag );
-  else if ( inputargs.has_infill )
-    dataco_infill.add_in_file( inputargs.input_infill );
-  dataco_infill.initialize();
+  if ( inputargs.has_infill ) {
+    if ( inputargs.use_combined_dlcosmictag ) {
+      std::cout << "Has infill. Using combined file: " << inputargs.input_dlcosmictag << std::endl;
+      dataco_infill.add_in_file( inputargs.input_dlcosmictag );
+    }
+    else {
+      std::cout << "Has infill. Using separate file." << std::endl;      
+      dataco_infill.add_in_file( inputargs.input_infill );
+    }
+    std::cout << "dataco_infill initialed" << std::endl;
+    dataco_infill.initialize();    
+  }
+
   
   // data from whole-view image
   std::stringstream strjobid;
@@ -678,6 +699,7 @@ int main( int nargs, char** argv ) {
       img_fill_whole_v.clear();
       if ( img_fill_whole_v.size()==0 ) {
 	for ( auto const& img : ev_wholeimg->as_vector() ) {
+	  std::cout << "[dev] creating new image for infill stitch: " << img.meta().dump();
 	  larcv::Image2D img_fill(img);
 	  img_fill_whole_v.emplace_back( std::move(img_fill) );
 	}

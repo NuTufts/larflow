@@ -217,9 +217,9 @@ def extract_trackpts( mctrack, sce ):
         else:
             colors_np[istep,0] = 1
     if mctrack.Origin()==2:
-        mcplot = gl.GLLinePlotItem(pos=steps_np,color=colors_np,width=1.0)
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=colors_np,width=1.0) # cosmic
     else:
-        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(0,1,0,1),width=1.0)
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(1,0,1,1),width=1.0) # neutrino
     #sys.exit(-1)
     return mcplot
 
