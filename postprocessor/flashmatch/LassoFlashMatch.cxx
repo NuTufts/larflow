@@ -1344,6 +1344,7 @@ namespace larflow {
     float greediness   = 0.5; // how much between the old and new solution do we move?
     int   maxiters = 10000;
     float lambda_alpha_L2 = 1.0e-2; // cost balanced to cost of turning
+    int numsubsamples = 100;
 
     Result_t fitresult;
     bool debug = false;
@@ -1361,7 +1362,7 @@ namespace larflow {
       // fast, but can be a little greedy, so should run several times to choose meta-parameters
       fitresult = solveCoordDescentWithSubsampleCrossValidation( X, Y, beta, alpha,
 								 config.match_l1, config.clustergroup_l2, config.adjustpe_l2,					  
-								 config.greediness, 0.8, 100,
+								 config.greediness, 0.8, numsubsamples,
 								 config.convergence_limit, config.maxiterations, config.cycle_by_cov, debug );
       break;
     case kGradDesc:
@@ -1418,7 +1419,7 @@ namespace larflow {
     size_t num_iter = 0;
     float dbetanorm = convergence_threshold+1;
     
-    std::cout << "[LassoFlashMatch::solveCoordinateDescent] start." << std::endl;
+    std::cout << "[LassoFlashMatch::solveCoordinateDescent] start nbeta=" << nbeta << " nobs=" << nobs << std::endl;
     beta.setZero();
 
     int update_match_idx = 0;
@@ -1968,7 +1969,7 @@ namespace larflow {
       if ( subresult.converged ) {
 	for ( int isubm=0; isubm<subsys.nmatches; isubm++ ) {
 	  int ifullm = subsys.sub2fullmatchidx[isubm];
-	  int xbin = (*subsys.beta)(isubm)/100;
+	  int xbin = (*subsys.beta)(isubm)*100.0;
 	  if ( xbin>=0 && xbin<100 ) {
 	    result.subsamplebeta[ifullm][xbin]++;
 	  }
@@ -1976,8 +1977,10 @@ namespace larflow {
 	  subsamplebeta_nfills[ifullm] += 1;
 	}
       }
+
+      if ( isample%20==0 ) 
+	std::cout << "[LassoFlashMatch::subsampleCoordDescSolver] sample " << isample << " of " << nsubsamples << " - converged=" << subresult.converged << std::endl;
       
-      std::cout << "[LassoFlashMatch::subsampleCoordDescSolver] sample=" << isample << " converged=" << subresult.converged << std::endl;
       if ( debug ) {
 	
 	Eigen::VectorXf beta_sample  = Eigen::VectorXf::Zero( beta.rows() );
@@ -2009,7 +2012,7 @@ namespace larflow {
       // visualize score distribution
       gStyle->SetOptStat(0);
       TCanvas c("c","c",800,600);
-      TH2F h("subsamplebeta","",100,0,100,beta.rows(),0,beta.rows());
+      TH2F h("subsamplebeta","",100,0,1,beta.rows(),0,beta.rows());
       for ( size_t b=0; b<beta.rows(); b++ ) {
 	if (subsamplebeta_nfills[b]>0)
 	  // draw hist for debug
@@ -2099,6 +2102,10 @@ namespace larflow {
 
     indices.resize(nsubflashes); // truncate
 
+    // std::cout << "subsample flashgroupidx: ";
+    // for ( auto& fid : indices ) std::cout << fid << " ";
+    // std::cout << std::endl;
+
     // we have to (1) count the number of matches that pertain to the subset of flashes
     // we also have to collect the cluster groups for the subset of matches
     int imatchidx = 0;
@@ -2106,12 +2113,16 @@ namespace larflow {
     std::set<int> clusteridx_set;
     std::vector<int> clustergroup2idx_v( _clusterindices.size(), 0 );
     std::vector< std::vector<int> > subflashgroup_vv( nsubflashes );
+    subsystem.sub2fullmatchidx.clear();
+    subsystem.sub2fullobsidx.clear();
+    
     subsystem.sub2fullobsidx.resize( nsubflashes*npmts );
-    subsystem.sub2fullmatchidx.resize( nmatches(), -1 );
-
+    subsystem.sub2fullmatchidx.resize( beta.rows(), -1 );
+    
     for ( int iflash=0; iflash<nsubflashes; iflash++ ) {
 
-      int flashidx    = indices[iflash];
+      int igroup      = indices[iflash];
+      int flashidx    = _flashdata2idx_m[igroup];
       int iflashgroup = _flashidx2data_m[flashidx];
       for ( int ich=0; ich<npmts; ich++ ) {
 	subsystem.sub2fullobsidx[ iflash*npmts + ich ] = iflashgroup*npmts + ich;
@@ -2122,6 +2133,11 @@ namespace larflow {
 	const Match_t& minfo = _matchinfo_v[m];
 	subsystem.sub2fullmatchidx[ imatchidx ] = m;
 	subsystem.full2submatchidx_m[ m ] = imatchidx;
+
+	// std::cout << "subsample-matchidx [ sub " << imatchidx << " <--> full " << m << " ] "
+	// 	  << " flashidx=" << flashidx
+	// 	  << " flashgroup=" << iflashgroup << " (" << iflash << "/" << igroup << ")"
+	// 	  << " clusteridx=" << _match2clusteridx_v[m] << std::endl;
 	
 	// collect cluster group info
 	// int clustidx   = minfo.clustidx;
