@@ -19,6 +19,23 @@ namespace larflow {
     // std::cout << "[CilantroPCA::CilantroPCA] Eigenvectors: " << std::endl << _pca->getEigenVectors() << std::endl;
   }
 
+  CilantroPCA::CilantroPCA( const std::vector<larlite::larflow3dhit>& cluster ) {
+    // transfer points
+    _points.clear();
+    for ( auto const& hit : cluster ) {
+      bool hitok = true;
+      for ( int i=0; i<3; i++) {
+	if ( std::isnan(hit[i]) ) hitok = false;
+      }
+      _points.push_back( Eigen::Vector3f(hit[0],hit[1],hit[2]) );
+    }
+    _pca = new cilantro::PrincipalComponentAnalysis3f(_points);
+
+    // std::cout << "[CilantroPCA::CilantroPCA] Data mean: " << _pca->getDataMean().transpose() << std::endl;
+    // std::cout << "[CilantroPCA::CilantroPCA] Eigenvalues: " << _pca->getEigenValues().transpose() << std::endl;
+    // std::cout << "[CilantroPCA::CilantroPCA] Eigenvectors: " << std::endl << _pca->getEigenVectors() << std::endl;
+  }
+
   CilantroPCA::CilantroPCA( const std::vector< std::vector<float> >& cluster ) {
     // transfer points
     _points.clear();

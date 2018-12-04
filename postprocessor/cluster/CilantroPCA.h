@@ -4,6 +4,7 @@
 #include <vector>
 #include <cilantro/principal_component_analysis.hpp>
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/larflow3dhit.h"
 #include "DataFormat/pcaxis.h"
 
 namespace larflow {
@@ -12,6 +13,7 @@ namespace larflow {
   public:
 
     CilantroPCA( const larlite::larflowcluster& cluster );
+    CilantroPCA( const std::vector<larlite::larflow3dhit>& cluster );
     CilantroPCA( const std::vector< std::vector<float> >& cluster );
     virtual ~CilantroPCA();
 
