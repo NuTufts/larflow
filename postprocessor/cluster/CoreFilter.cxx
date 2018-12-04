@@ -15,9 +15,12 @@ namespace larflow {
     // core is the largest cluster
     // provide pca of this core cluster
     //
+    std::cout << "number of hits into dbscan: " << cluster.size() << std::endl;
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, cluster );
+    std::cout << "number of hits out of dbscan: " << _clusters_v.size() << std::endl;
+    
 
     //std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
   }
@@ -39,10 +42,11 @@ namespace larflow {
       fcluster[ilfhit] = cluster[ilfhit];
     }
 
+    std::cout << "number of hits into dbscan: " << fcluster.size() << std::endl;    
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, fcluster );
-    
+    std::cout << "number of hits out of dbscan: " << _clusters_v.size() << std::endl;    
   }
   
   CoreFilter::~CoreFilter() {
