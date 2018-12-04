@@ -115,8 +115,8 @@ namespace larflow {
     Cluster_t noclusterhits;
     
     if(algo=="spectral"){
-      //larflow::CilantroSpectral sc( hit_v, CilantroSpectral::kMaxDist, 40, 5, 10.0, -1.0 );
-      larflow::CilantroSpectral sc( hit_v,40,5 );
+      larflow::CilantroSpectral sc( hit_v, CilantroSpectral::kMaxDist, 40, 5, 10.0, -1.0 );
+      //larflow::CilantroSpectral sc( hit_v,40,5 );
       std::vector<std::vector<long unsigned int> > cpi;
       std::vector<long unsigned int> idx_mat;
       sc.get_cluster_indeces(cpi,idx_mat); // cpi = < <hit idx in cluster 0> <hit idx in cluster 1> ... <hit idx in cluster cpi.size()-1> >
