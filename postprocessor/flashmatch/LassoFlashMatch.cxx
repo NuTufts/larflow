@@ -1418,8 +1418,9 @@ namespace larflow {
 
     size_t num_iter = 0;
     float dbetanorm = convergence_threshold+1;
-    
-    std::cout << "[LassoFlashMatch::solveCoordinateDescent] start nbeta=" << nbeta << " nobs=" << nobs << std::endl;
+
+    if ( debug )
+      std::cout << "[LassoFlashMatch::solveCoordinateDescent] start nbeta=" << nbeta << " nobs=" << nobs << std::endl;
     beta.setZero();
 
     int update_match_idx = 0;
@@ -1955,7 +1956,7 @@ namespace larflow {
       memset( result.subsamplebeta[m].data(), 0, sizeof(int)*100 );
     std::vector<int> subsamplebeta_nfills( beta.rows(), 0 );
     
-    
+    int nconverged = 0;
     for ( size_t isample=0; isample<nsubsamples; isample++ ) {
 
       // first draw sample
@@ -1967,6 +1968,7 @@ namespace larflow {
 						   lambda_L1, lambda_L2, lambda_alpha_L2,
 						   greediness, convergence_threshold, max_iters, cycle_by_covar, false );
       if ( subresult.converged ) {
+	nconverged++;
 	for ( int isubm=0; isubm<subsys.nmatches; isubm++ ) {
 	  int ifullm = subsys.sub2fullmatchidx[isubm];
 	  int xbin = (*subsys.beta)(isubm)*100.0;
@@ -1979,7 +1981,8 @@ namespace larflow {
       }
 
       if ( isample%20==0 ) 
-	std::cout << "[LassoFlashMatch::subsampleCoordDescSolver] sample " << isample << " of " << nsubsamples << " - converged=" << subresult.converged << std::endl;
+	std::cout << "[LassoFlashMatch::subsampleCoordDescSolver] sample " << isample << " of " << nsubsamples
+		  << " - converged=" << nconverged << "/" << nsubsamples << std::endl;
       
       if ( debug ) {
 	
@@ -2190,8 +2193,9 @@ namespace larflow {
     // fill Y,alpha
     for ( int iflash=0; iflash<subsystem.nflashes; iflash++ ) {
 
-      int flashidx    = indices[iflash];
-      int iflashgroup = _flashidx2data_m[flashidx]; // (full group)
+      int igroup      = indices[iflash]; // full group index
+      int flashidx    = _flashdata2idx_m[igroup];   // full (and sub) group idx 
+      int iflashgroup = _flashidx2data_m[flashidx]; // (full group index)
 
       for ( size_t ich=0; ich<npmts; ich++ ) {
 	(*subsystem.Y)( iflash*npmts + ich )     = Y( iflashgroup*npmts + ich);
