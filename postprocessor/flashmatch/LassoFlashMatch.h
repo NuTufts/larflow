@@ -2,8 +2,11 @@
 #define __LASSO_FLASHMATCH__
 
 #include <vector>
+#include <array>
 #include <set>
 #include <map>
+
+#include "TH2F.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -54,7 +57,7 @@ namespace larflow {
   public:
     
     typedef enum { kMaxDist=0, kMaxDistZbins, kNLL } ScoreType_t;
-    typedef enum { kCoordDesc=0, kGradDesc } Minimizer_t;    
+    typedef enum { kCoordDesc=0, kGradDesc, kCoordDescSubsample } Minimizer_t;    
 
     struct Result_t {
       float totloss;           // last total loss
@@ -68,6 +71,8 @@ namespace larflow {
       float dloss;             // change in loss in last step
       int   numiters;          // number of iterations taken (complete par set update)
       bool  converged;         // fit converged
+      std::vector< std::array<int,100> > subsamplebeta; // [subsample coord desc-only] distribution of beta values in 100-bin histogram
+      std::vector< float > subsamplebeta_mean;          // [subsample coord desc-only] mean of beta distribution
       Result_t() 
       : totloss(0),
 	ls_loss(0),
@@ -203,8 +208,8 @@ namespace larflow {
       int clustidx; // user label for charge cluster that produces flash hypo for observed flash
       int flashgroupidx;   // internal label for flash      
       int clustgroupidx; // internal label for cluster
-      const std::vector<int>* clustgroup_v; // match indices that relate to same physical cluster (includes current index)
       const std::vector<int>* flashgroup_v; // match indices that relate to same physical flash (includes current index)
+      const std::vector<int>* clustgroup_v; // match indices that relate to same physical cluster (includes current index)      
       
       Match_t( int midx,
 	       int fidx, int cidx, int fgidx, int cgidx,
@@ -214,8 +219,8 @@ namespace larflow {
 	clustidx(cidx),
 	flashgroupidx(fgidx),
 	clustgroupidx(cgidx),
-	clustgroup_v(&clustgroup_v),
-	flashgroup_v(&flashgroup_v)
+	flashgroup_v(&flashgroup_v),
+	clustgroup_v(&clustgroup_v)
       {};
 	
     };
@@ -253,19 +258,32 @@ namespace larflow {
     // Defines a model subsystem to solve
     struct SubSystem_t {
 
+      int nmatches;
+      int nflashes;
+      int nclusters;
+      int npmts;
+      int nobs;
+      
       Eigen::MatrixXf* X;
       Eigen::VectorXf* Y;
       Eigen::VectorXf* beta;      
       Eigen::VectorXf* alpha;
 
       std::vector< Match_t > matchinfo_v;
-      std::vector<int> submatchidx2fullmatchidx;      
+      std::vector<int> sub2fullmatchidx;
+      std::map<int,int> full2submatchidx_m;
+      std::vector<int> sub2fullobsidx;
       std::vector<int> match2clustgroup;
       std::map<int,int> clustidx2clustgroup;
       std::vector< std::vector<int> > clustgroup_vv;
       
       SubSystem_t()
-      : X(nullptr),
+      : nmatches(0),
+	nflashes(0),
+	nclusters(0),
+	npmts(32),
+	nobs(0),
+	X(nullptr),
 	Y(nullptr),
 	alpha(nullptr),
 	beta(nullptr)
@@ -329,7 +347,7 @@ namespace larflow {
 				     const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
 				     const float greediness, 
 				     const float convergence_threshold, const size_t max_iters,
-				     bool cycle_by_covar ); 
+				     const bool cycle_by_covar, const bool debug ); 
 
     Result_t solveGradientDescent( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
 				   Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
@@ -337,11 +355,12 @@ namespace larflow {
 				   const float learning_rate, const float stocastic_prob,
 				   const float convergence_threshold, const size_t max_iters );
     
-    void solveCoordDescentWithSubsampleCrossValidation( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
-							Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
-							const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
-							const float greediness, const float subsample_frac, const int nsubsamples,
-							const float convergence_threshold, const size_t max_iters, bool cycle_by_covar );
+    Result_t solveCoordDescentWithSubsampleCrossValidation( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
+							    Eigen::VectorXf& beta, Eigen::VectorXf& alpha,
+							    const float lambda_L1, const float lambda_L2, const float lambda_alpha_L2,
+							    const float greediness, const float subsample_frac, const int nsubsamples,
+							    const float convergence_threshold, const size_t max_iters,
+							    const bool cycle_by_covar, const bool debug );
 
     // tool functions for optimization methods
     void buildLSvectors( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
@@ -351,6 +370,7 @@ namespace larflow {
 			 Eigen::VectorXf& R, Eigen::VectorXf& Rnormed );    
     float calculateChi2Loss( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y,
 			     const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha,
+			     const std::vector< std::vector<int> >& clustergroup_vv,			     
 			     const float lambda_beta_L1, const float lambda_betagroup_L2,
 			     const float lambda_alpha_L2, Result_t* result=nullptr );
     void printFlashBundlesEigen( const Eigen::MatrixXf& X, const Eigen::VectorXf& Y, const Eigen::VectorXf& beta, const Eigen::VectorXf& alpha );

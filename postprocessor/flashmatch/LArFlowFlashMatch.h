@@ -68,7 +68,7 @@ namespace larflow {
   protected:
 
     // define enum to track rejection reason
-    typedef enum { kUncut=0, kWrongTime, kFirstShapeCut, kFirstPERatio, kEnterLength, kFirstFit, kFinalFit } CutReason_t;
+    typedef enum { kUncut=0, kWrongTime, kFirstShapeCut, kFirstPERatio, kEnterLength, kUniqueMatch, kFirstFit, kFinalFit } CutReason_t;
     
     // vectors for storing the events data flashes and reconstructed qclusters
     std::vector<FlashData_t>       _flashdata_v;
@@ -188,9 +188,13 @@ namespace larflow {
     void reduceMatchesWithShapeAnalysis( const std::vector<FlashData_t>& flashdata_v,
 					 const std::vector<QCluster_t>&  qcluster_v );
 
-    // Entering Extension reductino
+    // Entering Extension reduction
     // ----------------------------
     void reduceUsingEnteringLength();
+
+    // Reduce if exclusive flash-cluster match
+    // ----------------------------------------
+    void reduceRemoveUniqueMatches();
     
 
     // lasso fitter

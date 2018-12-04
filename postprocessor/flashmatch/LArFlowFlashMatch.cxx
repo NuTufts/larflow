@@ -185,6 +185,10 @@ namespace larflow {
     reduceUsingEnteringLength();
     std::cout << "[LArFlowFlashMatch::match][DEBUG] reduce matches using entering length" << std::endl;
     printCompatSummary();
+
+    // reduce matches by removing unique flash-cluster matches (no need to fit them)
+    reduceRemoveUniqueMatches();
+    printCompatSummary();
     
     std::cout << "[LArFlowFlashMatch::match][DEBUG] PREFIT COMPATIBILITY" << std::endl;
     printCompatInfo( _flashdata_v, _qcluster_v );
@@ -242,6 +246,7 @@ namespace larflow {
     _fitter.addLearningScheduleConfig( epoch3 );    
 
     LassoFlashMatch::LassoConfig_t lasso_cfg;
+    lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
     _fitter.fitLASSO( lasso_cfg );
 
     // set compat from fit
@@ -716,6 +721,22 @@ namespace larflow {
     
   }
 
+  void LArFlowFlashMatch::reduceRemoveUniqueMatches() {
+
+    // std::
+    // std::vector< std::vector<int> > flash_clusteridx;
+    // std::vector< std::vector<int> > clust_flashidx;
+    
+    // for ( int imatch=0; imatch<_fitter._nmatches; imatch++ ) {
+    //   int iflash = _matchidx2pair[imatch].flashidx;
+    //   int iclust = _matchidx2pair[imatch].clusteridx;
+
+    //   CutVars_t& cutvars = getCutVars( iflash, iclust );
+    // }
+
+    
+  }
+  
   void LArFlowFlashMatch::reduceUsingFitResults( const float score_threshold) {
     for ( int imatch=0; imatch<_fitter._nmatches; imatch++ ) {
       int iflash = _matchidx2pair[imatch].flashidx;
