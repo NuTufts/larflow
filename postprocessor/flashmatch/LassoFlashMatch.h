@@ -289,10 +289,10 @@ namespace larflow {
 	beta(nullptr)
       {};
       ~SubSystem_t() {
-	delete X;
-	delete Y;
-	delete alpha;
-	delete beta;
+	if ( X ) delete X;
+	if ( Y ) delete Y;
+	if ( alpha ) delete alpha;
+	if ( beta ) delete beta;
       };
       
     };

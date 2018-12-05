@@ -117,10 +117,15 @@ namespace larflow {
 				 const std::vector<larcv::Image2D>& img_v,
 				 const bool ignorelast ) {
 
+    if ( clusters.size()==0 ) {
+      std::cout << "[LArFlowFlashMatch::match] Nothing to do. No clusters!" << std::endl;
+      return;
+    }
+    
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
     // we ignore last cluster because sometimes we put store unclustered hits in that entry
-    if ( ignorelast ) {
+    if ( ignorelast && clusters.size()>0 ) {
       _qcluster_v.resize( clusters.size()-1 );
     }
     else {
@@ -247,6 +252,8 @@ namespace larflow {
 
     LassoFlashMatch::LassoConfig_t lasso_cfg;
     lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
+    //lasso_cfg.minimizer = LassoFlashMatch::kCoordDesc;
+    lasso_cfg.match_l1 = 20;
     _fitter.fitLASSO( lasso_cfg );
 
     // set compat from fit
@@ -263,7 +270,7 @@ namespace larflow {
       dumpQCompositeImages( "postfit" );
 
     std::cout << "[ENTER] to continue" << std::endl;
-    std::cin.get();
+    //std::cin.get();
     
     return;
   }
