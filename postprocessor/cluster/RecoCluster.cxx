@@ -115,7 +115,7 @@ namespace larflow {
     Cluster_t noclusterhits;
     
     if(algo=="spectral"){
-      larflow::CilantroSpectral sc( hit_v, CilantroSpectral::kMaxDist, 40, 5, 10.0, -1.0 );
+      larflow::CilantroSpectral sc( hit_v, CilantroSpectral::kMaxDist, _spectral_param.NC, _spectral_param.MaxNN, _spectral_param.MaxDist, _spectral_param.Sigma );
       //larflow::CilantroSpectral sc( hit_v,40,5 );
       std::vector<std::vector<long unsigned int> > cpi;
       std::vector<long unsigned int> idx_mat;
@@ -139,7 +139,7 @@ namespace larflow {
 	for (int i=0; i<3; i++) ptlist[ihit][i] = hit[i];
       }
       larflow::DBSCAN db;
-      std::vector< std::vector<int> > dbscan_clusters = db.makeCluster( 5, 10, 0, ptlist );
+      std::vector< std::vector<int> > dbscan_clusters = db.makeCluster( _dbscan_param.maxdist, _dbscan_param.minhits, _dbscan_param.maxkdneighbors, ptlist );
       for(int i=0; i<dbscan_clusters.size()-1; i++){ //last one is unclustered hits
 	// create new cluster
 	Cluster_t info;
