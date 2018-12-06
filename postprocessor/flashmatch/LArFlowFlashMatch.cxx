@@ -254,7 +254,8 @@ namespace larflow {
     lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
     //lasso_cfg.minimizer = LassoFlashMatch::kCoordDesc;
     lasso_cfg.match_l1 = 20;
-    _fitter.fitLASSO( lasso_cfg );
+    LassoFlashMatch::Result_t fitresult = _fitter.fitLASSO( lasso_cfg );
+    saveFitterData( fitresult );
 
     // set compat from fit
     reduceUsingFitResults( 0.05 );
@@ -263,8 +264,11 @@ namespace larflow {
     _fitter.printState(false);      
     _fitter.printClusterGroups();
     _fitter.printFlashBundles( false );
-    //_fitter.printBterms();
-    //_fitter.printFmatch();
+
+    // build larflowclusters
+    
+
+    saveAnaMatchData( &fitresult );
 
     if ( _fDumpPostfit )
       dumpQCompositeImages( "postfit" );
@@ -1975,8 +1979,12 @@ namespace larflow {
     _subrun = subrun;
     _event = event;
   }
+
+  void LArFlowFlashMatch::saveFitterData( const LassoFlashMatch::Result_t& fitdata ) {
+    
+  }
   
-  void LArFlowFlashMatch::saveAnaMatchData() {
+  void LArFlowFlashMatch::saveAnaMatchData( ) {
 
     for (int iflash=0; iflash<_flashdata_v.size(); iflash++) {
       

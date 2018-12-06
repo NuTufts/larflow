@@ -1388,7 +1388,7 @@ namespace larflow {
       int igroup = _flashidx2group_m[flashidx];
       _bpmt_vv[igroup].resize( _npmts, 0 );
       for ( size_t ich=0; ich<_npmts; ich++ )
-	_bpmt_vv[igroup][ich] = alpha( igroup*_npmts + ich );
+	_bpmt_vv[igroup][ich] = 1.0+alpha( igroup*_npmts + ich );
     }
     
     return fitresult;

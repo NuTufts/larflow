@@ -56,9 +56,8 @@ namespace larflow {
 
     void loadMCTrackInfo(  const std::vector<larlite::mctrack>&  mctrack_v, const std::vector<larlite::mcshower>& mcshower_v, bool do_truth_matching=true );
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
-
-    void saveAnaMatchData(); // call per event
     void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" ); // call at begining
+    void saveAnaMatchData(); // called per event    
     void writeAnaFile(); // call at end
 
 
@@ -138,8 +137,11 @@ namespace larflow {
       // entering length
       float enterlen;
 
-      // first fit
+      // single LASSO fit
       float fit1fmatch;
+
+      // subsample LASSO fit
+      float subsamplefit_fracabove;
 
       // truth
       float truthfmatch;
@@ -245,7 +247,8 @@ namespace larflow {
     void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
     void clearMCTruthInfo();
-    void setFitParsWithTruthMatch();    
+    void setFitParsWithTruthMatch();
+    void saveFitterData( const LassoFlashMatch::Result_t& fitdata );
 
     // ChStatus Info
     // ----------------------------------------------
