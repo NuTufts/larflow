@@ -60,6 +60,7 @@ namespace larflow {
     typedef enum { kCoordDesc=0, kGradDesc, kCoordDescSubsample } Minimizer_t;    
 
     struct Result_t {
+      int   nmatches;
       float totloss;           // last total loss
       float ls_loss;           // loss from Least Squares
       float beta_l1loss;       // loss from l1 beta constraint
@@ -71,10 +72,12 @@ namespace larflow {
       float dloss;             // change in loss in last step
       int   numiters;          // number of iterations taken (complete par set update)
       bool  converged;         // fit converged
+      std::vector< float > beta;                        // [single+subsample coord desc-only] final values for match parameters
       std::vector< std::array<int,100> > subsamplebeta; // [subsample coord desc-only] distribution of beta values in 100-bin histogram
       std::vector< float > subsamplebeta_mean;          // [subsample coord desc-only] mean of beta distribution
       Result_t() 
-      : totloss(0),
+      : nmatches(0),
+	totloss(0),
 	ls_loss(0),
 	beta_l1loss(0),
 	betagroup_l2loss(0),
@@ -265,7 +268,7 @@ namespace larflow {
     int internalClusterIndexFromUser( int clustidx )     { return _clusteridx2group_m[clustidx]; };
     //int userClusterIndexFromInternal( int iclust )     { not implemented? };
     int internalClusterIndexFromMatchIndex( int imatch ) { return _match2clustgroup_v[imatch]; };
-    int userClusterIndexFromMatchIndex( int imatch )     { return _match2clustidx_v[imatch]; };
+    int userClusterIndexFromMatchIndex( int imatch )     { return _match2clusteridx_v[imatch]; };
 
     std::vector< int >& matchIndicesFromInternalClusterIndex( int iclust ) { return _clustergroup_vv[iclust]; };
     std::vector< int >& matchIndicesFromUserClusterIndex( int clustidx )   { return _clustergroup_vv[ internalClusterIndexFromUser(clustidx) ]; };

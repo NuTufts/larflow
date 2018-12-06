@@ -117,6 +117,10 @@ namespace larflow {
 	peratio_noext(-1),
 	enterlen(-1),
 	fit1fmatch(-1),
+	subsamplefit_fracabove1(0),
+	subsamplefit_fracabove2(0),
+	subsamplefit_mean(0),	
+	nsubsample_converged(0),
 	truthfmatch(-1)
       {};
       CutReason_t cutfailed;
@@ -141,10 +145,14 @@ namespace larflow {
       float fit1fmatch;
 
       // subsample LASSO fit
-      float subsamplefit_fracabove;
+      float subsamplefit_fracabove1;
+      float subsamplefit_fracabove2;
+      float subsamplefit_mean;
+      int nsubsample_converged;
 
       // truth
       float truthfmatch;
+
     };
 
     // flash-cluster compatability matrix
@@ -289,7 +297,11 @@ namespace larflow {
     float _peratio_wext;
     float _peratio_noext;    
     float _enterlen;
-    float _fmatch;
+    float _fmatch_singlefit;
+    float _fmatch_multifit_fracabove1;
+    float _fmatch_multifit_fracabove2;
+    float _fmatch_multifit_nsamples;
+    float _fmatch_multifit_mean;
     float _fmatch_truth;
     
     bool  _save_ana_tree;

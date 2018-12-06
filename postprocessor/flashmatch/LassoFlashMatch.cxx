@@ -282,6 +282,7 @@ namespace larflow {
     Result_t out;
 
     std::vector<int> fmask_v;
+    out.nmatches          = _fmatch_v.size();    
     out.totloss           = getTotalScore( fmask_v, true,  isweighted );
     out.ls_loss           = getTotalScore( fmask_v, false, isweighted );
     out.betagroup_l2loss  = calcClusterConstraint( fmask_v );
@@ -941,6 +942,7 @@ namespace larflow {
   void LassoFlashMatch::printState( bool printfmatch ) {
     
     Result_t out = eval(true);
+    out.nmatches = _nmatches;
     float fmag = 0.;
     for (int imatch=0; imatch<_nmatches; imatch++)
       fmag += _fmatch_v[imatch];
@@ -1347,6 +1349,8 @@ namespace larflow {
     int numsubsamples = 100;
 
     Result_t fitresult;
+    fitresult.nmatches = beta.rows();
+    
     bool debug = false;
 
     switch( config.minimizer ) {
@@ -1378,9 +1382,12 @@ namespace larflow {
     }
 
     // store beta terms
+    fitresult.beta.resize( nmatches() );    
     for ( size_t m=0; m<nmatches(); m++ ) {
       _fmatch_v[m] = beta(m);
+      fitresult.beta[m] = beta(m);
     }
+
 
     // store alpha terms
     _bpmt_vv.resize( _flashindices.size() );

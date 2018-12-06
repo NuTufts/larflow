@@ -268,7 +268,7 @@ namespace larflow {
     // build larflowclusters
     
 
-    saveAnaMatchData( &fitresult );
+    saveAnaMatchData();
 
     if ( _fDumpPostfit )
       dumpQCompositeImages( "postfit" );
@@ -1927,8 +1927,13 @@ namespace larflow {
     _anatree->Branch("peratio_wext",     &_peratio_wext,      "peratio_wext/F");
     _anatree->Branch("peratio_noext",    &_peratio_noext,     "peratio_noext/F");
     _anatree->Branch("enterlen",         &_enterlen,          "enterlen/F");
-    _anatree->Branch("fmatch",           &_fmatch,            "fmatch/F");
-    _anatree->Branch("fmatch_truth",     &_fmatch_truth,      "fmatch_truth/F");
+    _anatree->Branch("fmatch",           &_fmatch_singlefit,  "fmatch1/F");
+    _anatree->Branch("fmatch1_truth",    &_fmatch_truth,      "fmatch1_truth/F");
+    _anatree->Branch("fmatchm_frac1",    &_fmatch_multifit_fracabove1, "fmatchm_frac1/F");
+    _anatree->Branch("fmatchm_frac2",    &_fmatch_multifit_fracabove2, "fmatchm_frac2/F");
+    _anatree->Branch("fmatchm_mean",     &_fmatch_multifit_mean,       "fmatchm_mean/F");            
+    _anatree->Branch("fmatchm_nsamples", &_fmatch_multifit_nsamples,   "fmatchm_nsamples/I");
+
 
     _flashtree = new TTree("anaflashtree", "Variables for each flash");
     _flashtree->Branch("run",    &_run,    "run/I");
@@ -1943,7 +1948,7 @@ namespace larflow {
     _flashtree->Branch("flash_bestclustidx",&_flash_bestclustidx,"flash_bestclustidx/I");
     _flashtree->Branch("flash_bestfmatch",  &_flash_bestfmatch,  "flash_bestfmatch/F");
     _flashtree->Branch("flash_truthfmatch", &_flash_truthfmatch, "flash_truthfmatch/F");
-    _flashtree->Branch("flash_tick",        &_flash_tick,        "flash_tick/F");    
+    _flashtree->Branch("flash_tick",        &_flash_tick,        "flash_tick/F");
 
     
     _save_ana_tree   = true;
@@ -1970,7 +1975,11 @@ namespace larflow {
     _peratio_wext = 0;
     _peratio_noext = 0;
     _enterlen = -1;
-    _fmatch = 0;
+    _fmatch_singlefit = 0;
+    _fmatch_multifit_fracabove1 = 0;
+    _fmatch_multifit_fracabove2 = 0;
+    _fmatch_multifit_nsamples = 0;
+    _fmatch_multifit_mean = 0;    
     _fmatch_truth=0;
   }
 
@@ -1981,7 +1990,49 @@ namespace larflow {
   }
 
   void LArFlowFlashMatch::saveFitterData( const LassoFlashMatch::Result_t& fitdata ) {
-    
+
+    for ( size_t imatch=0; imatch<fitdata.nmatches; imatch++ ) {
+
+      int flashidx   = _fitter.userFlashIndexFromMatchIndex( imatch );
+      int clusteridx = _fitter.userClusterIndexFromMatchIndex( imatch );
+
+      if ( getCompat( flashidx, clusteridx )!=kUncut )
+	continue;
+      
+      const FlashData_t& flashdata        = _flashdata_v[flashidx];
+      const QClusterComposite& qcomposite = _qcomposite_v[clusteridx];
+      
+      //float xoffset = (flashdata.tpc_tick-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+      CutVars_t& cutvar = getCutVars( flashidx, clusteridx );
+
+      // store simple fit score
+      cutvar.fit1fmatch = fitdata.beta[imatch];
+
+      // store fraction of subsamples above 0.05 and 0.1 thresholds
+      int nsamples_tot = 0.;
+      int nsamples_abovethresh1 = 0;
+      int nsamples_abovethresh2 = 0;
+      for ( int i=0; i<100; i++ ) {
+	nsamples_tot += fitdata.subsamplebeta[imatch][i];
+	if ( i>5 ) {
+	  nsamples_abovethresh1 += fitdata.subsamplebeta[imatch][i];
+	}
+	if ( i>10 ) {
+	  nsamples_abovethresh2 += fitdata.subsamplebeta[imatch][i];	  
+	}
+      }
+      if ( nsamples_tot>0 ) {
+	cutvar.subsamplefit_fracabove1 = float(nsamples_abovethresh1)/float(nsamples_tot);
+	cutvar.subsamplefit_fracabove2 = float(nsamples_abovethresh2)/float(nsamples_tot);
+      }
+      else {
+	cutvar.subsamplefit_fracabove1 = 0.;
+	cutvar.subsamplefit_fracabove2 = 0.;
+      }
+      cutvar.nsubsample_converged = nsamples_tot;
+      cutvar.subsamplefit_mean = fitdata.subsamplebeta_mean[imatch];
+      
+    }//end of match loop
   }
   
   void LArFlowFlashMatch::saveAnaMatchData( ) {
@@ -2026,26 +2077,28 @@ namespace larflow {
 	_peratio_best  = (fabs(_peratio_wext)<fabs(_peratio_noext)) ? _peratio_wext : _peratio_noext;
 
 	_enterlen      = cutvars.enterlen;
-	_fmatch        = cutvars.fit1fmatch;
+
+	// fit results
+	_fmatch_singlefit           = cutvars.fit1fmatch;
+	_fmatch_multifit_fracabove1 = cutvars.subsamplefit_fracabove1;
+	_fmatch_multifit_fracabove2 = cutvars.subsamplefit_fracabove2;
+	_fmatch_multifit_mean       = cutvars.subsamplefit_mean;
+	_fmatch_multifit_nsamples   = cutvars.nsubsample_converged;
 
 	if ( _truthmatched==1 )
-	  _flash_truthfmatch = _fmatch;
+	  _flash_truthfmatch = _fmatch_singlefit;
 
-	if ( _fmatch>=0 && _flash_bestfmatch<_fmatch ) {
-	  _flash_bestfmatch = _fmatch;
+	if ( _fmatch_singlefit>=0 && _flash_bestfmatch<_fmatch_singlefit ) {
+	  _flash_bestfmatch = _fmatch_singlefit;
 	  _flash_bestclustidx = iclust;
 	}
-
+	
 	// find actual truthmatch (to compare)
 	_fmatch_truth = -1.0;
 	if ( flash.truthmatched_clusteridx>=0 ) {
-	  MatchPair_t pair;
-	  pair.flashidx   = iflash;
-	  pair.clusteridx = flash.truthmatched_clusteridx;
-	  auto it_pair = _pair2matchidx.find(pair);
-	  if ( it_pair!=_pair2matchidx.end() ) {
-	    _fmatch_truth = _fitter._fmatch_v.at(it_pair->second);
-	  }
+	  int flashidx   = iflash;
+	  int clusteridx = flash.truthmatched_clusteridx;
+	  _fmatch_truth = getCutVars( flashidx, clusteridx ).fit1fmatch;
 	}
 	
 	_anatree->Fill();

@@ -17,7 +17,26 @@
 
 #include "LArFlowFlashMatch.h"
 
-
+// ==================================
+// FLASHMATCH DEV
+// ==================================
+// Take in larflow3dhit clusters
+// output
+// --------
+//  -- larlite::larflowclusters with flash match information
+//     1) primary solution for each cluster
+//     2) scores for other solutions
+//     3) flashpe hypo+data for primary solution
+//     4) tick of flash
+//     5) (real) time of event relative to trigger (usec)
+//     6) index of cluster mask object (see next)
+//     7) larflow3dhits
+//  -- cluster masks
+//     1) pixels associated with each larflowcluster
+//     2) bounding box
+//     3) class index
+//  -- image2d tagged image
+//     1) 
 
 int main( int nargs, char** argv ) {
 
@@ -78,7 +97,6 @@ int main( int nargs, char** argv ) {
   
     larlite::event_larflowcluster* ev_cluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "flowtruthclusters" );
 
-
     larlite::event_opflash* ev_opflash_beam   = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashBeam" );
     larlite::event_opflash* ev_opflash_cosmic = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashCosmic" );
 
@@ -108,8 +126,18 @@ int main( int nargs, char** argv ) {
     algo.dumpPostfitImages(false);
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
     std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
-    
+
+
+    // save some output
+    // ----------------
+    // ana variables for analysis and setting parameters
     algo.saveAnaMatchData();
+
+    // mask imnon-in-time flashmatched clusters to mask ADC image
+
+    // get flash-matched clusters with correct x-position
+
+    // 
     
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
     //outlarlite.next_event(); // saves and clears
