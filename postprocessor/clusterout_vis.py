@@ -9,6 +9,7 @@ import argparse
 
 argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL cosmic tagging")
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
+argparser.add_argument("-t", "--treename", required=True,  type=str, help="tree (or producer name) to get larflowclusters from")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
 argparser.add_argument("-p", "--pca",      action='store_true',      help="plot pca")
 argparser.add_argument("-m", "--mode",     default="",     type=str, help="plotting mode")
@@ -56,7 +57,7 @@ modes = ["core","core-only","spheres"]
 
 # get larflow clusters
 io.go_to(args.entry)
-ev_larflow = io.get_data(larlite.data.kLArFlowCluster, "flowtruthclusters" )
+ev_larflow = io.get_data(larlite.data.kLArFlowCluster, args.treename )
 nclusters = ev_larflow.size()
 print "Number of larflow clusters: ",nclusters
 
