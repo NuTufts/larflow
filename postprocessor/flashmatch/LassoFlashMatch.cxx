@@ -37,12 +37,17 @@ namespace larflow {
     _nmatches = 0;
 
     // book-keeping vars
+    _matchinfo_v.clear();
+
     _clusterindices.clear();
     _clustergroup_vv.clear();
     _clusteridx2group_m.clear();
     _match2clusteridx_v.clear();
-    _match2clustgroup_v.clear();    
-    _match_hypo_vv.clear();
+    _match2clustgroup_v.clear();
+    _clusteridx2match_m.clear();
+    _clustergroup2idx_m.clear();
+    _match_hypo_vv.clear();    
+
     
     _flashindices.clear();
     _flashdata_vv.clear();
@@ -52,6 +57,9 @@ namespace larflow {
     _match2flashgroup_v.clear();    
     _flashgroup_vv.clear();
     _flashidx2group_m.clear();
+    _flashidx2match_m.clear();
+    _flashalwaysfit_v.clear();
+    
     _fmatch_v.clear();
     _flastgrad_v.clear();
     _bpmt_vv.clear();
@@ -92,10 +100,12 @@ namespace larflow {
     _match2clusteridx_v.push_back( iclustidx );
     _match2clustgroup_v.push_back( _clusteridx2group_m[iclustidx] );    
     _clustergroup_vv[ _clusteridx2group_m[iclustidx] ].push_back( imatchidx );
-		      
+    _clustergroup2idx_m[ _clusteridx2group_m[iclustidx] ] = iclustidx;
+    _clusteridx2match_m[ imatchidx ] = iclustidx;		      
     _match2flashidx_v.push_back( iflashidx );
     _match2flashgroup_v.push_back( _flashidx2group_m[iflashidx] );
     _flashgroup_vv[ _flashidx2group_m[iflashidx] ].push_back( imatchidx );
+    _flashidx2match_m[ iflashidx ] = imatchidx;
     
     // set flash data
     if ( _flashidx2data_m.find( iflashidx ) == _flashidx2data_m.end() )  {
@@ -984,13 +994,16 @@ namespace larflow {
     Grad_t grad = evalGrad(true);
     for ( auto& clusteridx : _clusterindices ) {
       int igroup = _clusteridx2group_m[clusteridx];
-      std::cout << " clustergroup[ clusteridx=" << clusteridx << ", groupid=" << igroup << "] ";
+      std::cout << " group[ user clusteridx=" << clusteridx << ", interal groupid=" << igroup << "] ";
       std::vector<int>& group = _clustergroup_vv[igroup];
       for ( auto& idx : group ) {
 	if ( printgrads ) 
 	  std::cout << " " << idx << "(" << _fmatch_v[idx] << "|dLtot/dx=" << grad.totgrad[idx] << "|dLscore/dx=" << grad.score[idx] << ")";
-	else
-	  std::cout << " " << idx << "(" << _fmatch_v[idx] << ")";
+	else {
+	  std::cout << " midx[" << idx << "]"
+		    << "/fidx[" << userFlashIndexFromMatchIndex( idx ) << "]"
+		    << "(" << _fmatch_v[idx] << ")";
+	}
       }
       std::cout << std::endl;
     }
@@ -1343,9 +1356,6 @@ namespace larflow {
 
     float eps = 1.0e-4;
     float learningrate = 1.0e-3;
-    float greediness   = 0.5; // how much between the old and new solution do we move?
-    int   maxiters = 10000;
-    float lambda_alpha_L2 = 1.0e-2; // cost balanced to cost of turning
     int numsubsamples = 100;
 
     Result_t fitresult;
@@ -1982,8 +1992,11 @@ namespace larflow {
 	  if ( xbin>=0 && xbin<100 ) {
 	    result.subsamplebeta[ifullm][xbin]++;
 	  }
-	  result.subsamplebeta_mean[ifullm] += (*subsys.beta)(isubm);
-	  subsamplebeta_nfills[ifullm] += 1;
+	  if ( (*subsys.beta)(isubm)>0.1 ) {
+	    // want mean of 'on' parameters
+	    result.subsamplebeta_mean[ifullm] += (*subsys.beta)(isubm);
+	    subsamplebeta_nfills[ifullm] += 1;
+	  }
 	}
       }
 

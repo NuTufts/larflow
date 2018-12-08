@@ -17,6 +17,8 @@
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
+#include "larcv/core/DataFormat/ClusterMask.h"
+#include "larcv/core/DataFormat/EventClusterMask.h"
 
 // larflowflashmatch
 #include "FlashMatchTypes.h"
@@ -70,6 +72,7 @@ namespace larflow {
     typedef enum { kUncut=0, kWrongTime, kFirstShapeCut, kFirstPERatio, kEnterLength, kUniqueMatch, kFirstFit, kFinalFit } CutReason_t;
     
     // vectors for storing the events data flashes and reconstructed qclusters
+    const std::vector<larlite::larflowcluster>* _input_lfcluster_v;
     std::vector<FlashData_t>       _flashdata_v;
     std::vector<QCluster_t>        _qcluster_v;
     std::vector<QClusterComposite> _qcomposite_v;
@@ -171,7 +174,6 @@ namespace larflow {
     CutVars_t& getCutVars( int iflash, int iqcluster ) { return _compat_cutvars.at( _nqclusters*iflash + iqcluster ); };
     void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
     void printCompatSummary();
-    void clearMatchVariables();
 
     
     // Timing Based Match rejection
@@ -309,6 +311,18 @@ namespace larflow {
     void setupAnaTree();
     void clearAnaVariables();
 
+
+    // The End Game: build final clusters
+    // -----------------------------------
+  public:
+    std::vector<larlite::larflowcluster>            _intime_lfcluster_v;
+    std::vector< std::vector<larcv::ClusterMask> >  _intime_clustermask_v;
+    std::vector<larlite::larflowcluster>            _final_lfcluster_v;
+    std::vector< std::vector<larcv::ClusterMask> >  _final_clustermask_v;
+  protected:
+    void buildFinalClusters( LassoFlashMatch::Result_t& fitresult, const std::vector<larcv::Image2D>& img_v );
+    void clearFinalClusters();
+    
   };
     
     

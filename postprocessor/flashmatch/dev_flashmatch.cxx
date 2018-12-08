@@ -46,6 +46,7 @@ int main( int nargs, char** argv ) {
   std::string input_mcinfo  = argv[4];
 
   std::string output_flashmatch = argv[5];
+  std::string output_larcvfile  = argv[6];
   
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
@@ -62,6 +63,10 @@ int main( int nargs, char** argv ) {
   larlite::storage_manager outlarlite( larlite::storage_manager::kWRITE );
   outlarlite.set_out_filename( output_flashmatch );
   outlarlite.open();
+
+  larcv::IOManager outlarcv( larcv::IOManager::kWRITE );
+  outlarcv.set_out_file( output_larcvfile );
+  outlarcv.initialize();
   
   int nentries       = io.get_entries();
   int nentries_larcv = iolarcv.get_n_entries();
@@ -127,9 +132,26 @@ int main( int nargs, char** argv ) {
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
     std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
 
+    // save output products:
+    //  larflowclusters and clustermasks
+    // ------------------------------------------
+    larlite::event_larflowcluster* match_lfcluster  = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "allflashmatched" );
+    larlite::event_larflowcluster* intime_lfcluster = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "intimeflashmatched" );
 
-    // save some output
-    // ----------------
+    for ( auto& lfcluster : algo._final_lfcluster_v )
+      match_lfcluster->emplace_back( std::move(lfcluster) );
+    for ( auto& lfcluster : algo._intime_lfcluster_v )
+      intime_lfcluster->emplace_back( std::move(lfcluster) );
+
+    larcv::EventClusterMask* match_clustermask  = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "allflashmatched" );
+    larcv::EventClusterMask* intime_clustermask = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "intimeflashmatched" );
+    for ( auto& mask_v : algo._final_clustermask_v )
+      match_clustermask->emplace( std::move( mask_v ) );
+    for ( auto& mask_v : algo._intime_clustermask_v )
+      intime_clustermask->emplace( std::move(mask_v) );
+    
+    // save some output for analysis, cut tuning
+    // ------------------------------------------
     // ana variables for analysis and setting parameters
     algo.saveAnaMatchData();
 
@@ -140,7 +162,10 @@ int main( int nargs, char** argv ) {
     // 
     
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
-    //outlarlite.next_event(); // saves and clears
+    outlarcv.set_id( io.run_id(), io.subrun_id(), io.event_id() );
+
+    outlarlite.next_event(); // saves and clears
+    outlarcv.save_entry();
 
     algo.clearEvent();    
     nprocessed++;

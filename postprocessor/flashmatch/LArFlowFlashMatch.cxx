@@ -22,6 +22,9 @@
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "LArUtil/TimeService.h"
 
+// larcv
+#include "larcv/core/DataFormat/ClusterMask.h"
+
 // larflow postprocessor
 #include "cluster/CoreFilter.h"
 #include "cluster/CilantroPCA.h"
@@ -35,6 +38,7 @@ namespace larflow {
     : _clusters_defined(false),
       _flashes_defined(false),
       m_compatibility(nullptr),
+      _input_lfcluster_v(nullptr),
       _nflashes(0),
       _nqclusters(0),
       _nelements(0),
@@ -106,7 +110,9 @@ namespace larflow {
     resetCompatibilityMatrix();
     clearMCTruthInfo();
     clearClusterData();
-    clearFlashData();    
+    clearFlashData();
+    clearFitter();
+    clearAnaVariables();
     _evstatus = nullptr;
     _has_chstatus = false;
   }
@@ -121,6 +127,9 @@ namespace larflow {
       std::cout << "[LArFlowFlashMatch::match] Nothing to do. No clusters!" << std::endl;
       return;
     }
+
+    // save the input cluster pointer
+    _input_lfcluster_v = &clusters;
     
     // first is to build the charge points for each cluster
     _qcluster_v.clear();
@@ -253,7 +262,9 @@ namespace larflow {
     LassoFlashMatch::LassoConfig_t lasso_cfg;
     lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
     //lasso_cfg.minimizer = LassoFlashMatch::kCoordDesc;
-    lasso_cfg.match_l1 = 20;
+    lasso_cfg.match_l1        = 10.0;
+    lasso_cfg.clustergroup_l2 = 1.0;    
+    lasso_cfg.adjustpe_l2     = 1.0e-1;
     LassoFlashMatch::Result_t fitresult = _fitter.fitLASSO( lasso_cfg );
     saveFitterData( fitresult );
 
@@ -266,7 +277,7 @@ namespace larflow {
     _fitter.printFlashBundles( false );
 
     // build larflowclusters
-    
+    buildFinalClusters( fitresult, img_v );
 
     saveAnaMatchData();
 
@@ -2008,26 +2019,31 @@ namespace larflow {
       // store simple fit score
       cutvar.fit1fmatch = fitdata.beta[imatch];
 
-      // store fraction of subsamples above 0.05 and 0.1 thresholds
+      // store value of x with CDF>0.9 CDF>0.95
+      // get the total
       int nsamples_tot = 0.;
-      int nsamples_abovethresh1 = 0;
-      int nsamples_abovethresh2 = 0;
       for ( int i=0; i<100; i++ ) {
 	nsamples_tot += fitdata.subsamplebeta[imatch][i];
-	if ( i>5 ) {
-	  nsamples_abovethresh1 += fitdata.subsamplebeta[imatch][i];
-	}
-	if ( i>10 ) {
-	  nsamples_abovethresh2 += fitdata.subsamplebeta[imatch][i];	  
-	}
       }
+
       if ( nsamples_tot>0 ) {
-	cutvar.subsamplefit_fracabove1 = float(nsamples_abovethresh1)/float(nsamples_tot);
-	cutvar.subsamplefit_fracabove2 = float(nsamples_abovethresh2)/float(nsamples_tot);
+      
+	float cdf90 = 0; // > 0.90
+	float cdf95 = 0; // > 0.95
+	float cdf   = 0;
+	for ( int i=0; i<100; i++ ) {
+	  cdf += fitdata.subsamplebeta[imatch][i];
+	  if ( cdf90==0 && (cdf/float(nsamples_tot))>0.90 ) cdf90 = i*0.01;
+	  if ( cdf95==0 && (cdf/float(nsamples_tot))>0.95 ) cdf95 = i*0.01;
+	  if ( cdf95>0 && cdf90>0 )
+	    break;
+	}
+	cutvar.subsamplefit_fracabove1 = cdf90;
+	cutvar.subsamplefit_fracabove2 = cdf95;
       }
       else {
-	cutvar.subsamplefit_fracabove1 = 0.;
-	cutvar.subsamplefit_fracabove2 = 0.;
+	cutvar.subsamplefit_fracabove1 = 1.;
+	cutvar.subsamplefit_fracabove2 = 1.;
       }
       cutvar.nsubsample_converged = nsamples_tot;
       cutvar.subsamplefit_mean = fitdata.subsamplebeta_mean[imatch];
@@ -2118,5 +2134,319 @@ namespace larflow {
     }
   }
 
+  void LArFlowFlashMatch::clearFinalClusters() {
+    _final_lfcluster_v.clear();
+    _final_clustermask_v.clear();
+    _intime_lfcluster_v.clear();
+    _intime_clustermask_v.clear();
+  }
 
+  void LArFlowFlashMatch::buildFinalClusters( LassoFlashMatch::Result_t& fitresult,
+					      const std::vector<larcv::Image2D>& img_v ) {
+
+    std::cout << "[LArFlowFlashMatch::buildFinalClusters] start." << std::endl;
+    
+    // we take the solutions stored in the fitter+cutvars
+    // we assign a single flash to each cluster, using the best fit
+    // we then combine clusters matched into the same flash
+    //
+    // we treat the intime-flashmatched clusters different, but not merging them
+    // and accepting all that pass some threshold
+
+    clearFinalClusters();
+    const larutil::LArProperties* larp = larutil::LArProperties::GetME();
+    const float  usec_per_tick = 0.5; // usec per tick
+    const float  tpc_trigger_tick = 3200;
+    const float  driftv = larp->DriftVelocity();
+    
+    std::vector<int> flashidx_matched_to_cluster( _fitter.numClusterGroups() );
+    for ( int icluster=0; icluster<_fitter.numClusterGroups(); icluster++ ) {
+      const std::vector<int>& fitmatchindices = _fitter.matchIndicesFromInternalClusterIndex( icluster );
+      int bestmatchidx = -1;
+      int bestflashidx = -1;      
+      float maxmatchscore = 0;
+      
+      int thresholdlevel = 0;
+      // 0 = use subsamplefit_fracabove2 (>0.1 score)
+      // 1 = use subsamplefit_fracabove2 (>0.05 score)
+      // 2 = anything above zero
+
+      while ( bestmatchidx<0 && thresholdlevel<3 ) {
+
+	for ( size_t m : fitmatchindices ) {
+	  
+	  int flashidx   = _fitter.userFlashIndexFromMatchIndex( m );
+	  int clusteridx = _fitter.userClusterIndexFromMatchIndex( m );
+	  
+	  // retrieve fraction
+	  CutVars_t& cutvar = getCutVars( flashidx, clusteridx );
+	  
+	  // we ignore clusters with poor matching, judged by low ensemble scores
+	  float var = 0;
+	  switch ( thresholdlevel ) {
+	  case 0:
+	    var = cutvar.subsamplefit_fracabove2; // fmatch where cdf>0.9
+	    break;
+	  case 1:
+	    var = cutvar.subsamplefit_fracabove1;
+	    break;
+	  case 2:
+	    var = cutvar.fit1fmatch;
+	    break;
+	  }
+	  
+	  if ( var > 0.1 ) {
+	    if ( var>maxmatchscore ) {
+	      bestmatchidx  = m;
+	      maxmatchscore = var;
+	      bestflashidx  = flashidx;
+	    }
+	  }
+	}//end of match loop
+	thresholdlevel++;
+      }//end of while loop
+      
+      flashidx_matched_to_cluster[icluster] = bestflashidx;
+      
+    }//end of cluster group list
+
+    // find the clusters
+    std::vector< std::vector<int> > group_indices;
+    std::vector< std::vector<int> > group_matchindex;
+    std::vector< int > group_flashidx;
+    std::map< int, int > matchedflash_index; // flash index to group entry in above vector
+    for ( int icluster=0; icluster<_fitter.numClusterGroups(); icluster++ ) {
+      int flashidx = flashidx_matched_to_cluster[icluster];
+      if ( flashidx<0 ) {
+	// no match, we simply pass the cluster through
+	std::vector<int> group( 1, _fitter.userClusterIndexFromInternal(icluster) );
+	group_indices.push_back( std::move(group) );
+	group_flashidx.push_back( -1 );
+	continue;
+      }
+      
+      // if passes, we had a flash match, we check to see if
+      // a group for that is already defined. else we create a new one
+      auto it_group = matchedflash_index.find( flashidx );
+      
+      if ( it_group==matchedflash_index.end() ) {
+	// not found, create a new group entry
+	std::vector<int> group( 1, _fitter.userClusterIndexFromInternal(icluster) );
+	group_indices.push_back( std::move(group) );
+	group_flashidx.push_back( flashidx );	
+	matchedflash_index[flashidx] = group_indices.size()-1;
+      }
+      else {
+	// found, so append to group
+	std::vector<int>& group = group_indices[ it_group->second ];
+	group.push_back( _fitter.userClusterIndexFromInternal(icluster) );
+      }
+      
+    }//end of cluster groups fit
+    
+    // merge clusters matched to same flash
+    // to-do
+    
+    // make the output clusters
+    // fill: _final_lfcluster_v, _final_clustermask_v
+    for ( size_t igroup=0; igroup<group_indices.size(); igroup++ ) {
+      int flashidx = group_flashidx[igroup];
+      std::vector<int>& group_clusteridx = group_indices[igroup];
+      std::cout << "[LArFlowFlashMatch::buildFinalClusters] final cluster group " << igroup
+		<< " cluster indices[";
+      for ( auto& cidx : group_clusteridx )
+	std::cout << " " << cidx;
+      std::cout << " ]";
+      std::cout << " flashidx=" << flashidx << std::endl;
+	
+
+      // make the larflow cluster (almost there!)
+      larlite::larflowcluster lfcluster;
+      lfcluster._flash_hypo_v.resize( 32, 0.0 );
+      lfcluster._flash_data_v.resize( 32, 0.0 );
+      
+      // make a simple copy
+      float fitscore = 0.;
+      for ( auto const& clustidx : group_clusteridx ) {
+	const larlite::larflowcluster& input = _input_lfcluster_v->at(clustidx);
+	fitscore += fitresult.beta[ _fitter.matchIndexFromUserClusterIndex( clustidx ) ];
+
+	// copy the hits
+	for ( auto const& hit : input ) {
+	  lfcluster.push_back( hit );
+	}
+	
+	auto const& hypo_v = _fitter.flashHypoFromMatchIndex( _fitter.matchIndexFromUserClusterIndex( clustidx ) );
+	for ( size_t ipmt=0; ipmt<hypo_v.size(); ipmt++ )
+	  lfcluster._flash_hypo_v[ipmt] += hypo_v[ipmt];
+      }
+      
+      // now we fill the extras
+      if ( flashidx>=0 ) {
+	const FlashData_t& dataflash = _flashdata_v[flashidx];
+	lfcluster.isflashmatched = 1;
+	lfcluster.flash_tick    = dataflash.tpc_tick;
+	lfcluster.flash_time_us = (dataflash.tpc_tick-2400)*usec_per_tick;
+	lfcluster.flashmatch_score = fitscore;
+	lfcluster.matchedflash_producer = ( dataflash.isbeam ) ? "simpleFlashBeam" : "simpleFlashCosmic"; // totes bad
+	lfcluster.matchedflash_idx = flashidx;
+	for ( size_t ipmt=0; ipmt<dataflash.size(); ipmt ++ )
+	  lfcluster._flash_data_v[ipmt] = dataflash[ipmt];
+
+	// because we flash-matched, change their x-position
+	float offset_cm = (lfcluster.flash_tick-3200)*usec_per_tick*driftv;
+	for ( auto& hit : lfcluster ) {
+	  hit[0] += offset_cm;
+	}
+	
+      }
+      // for comparison, we add info on the truth-match cluster if it exists
+      for ( auto const& dataflash : _flashdata_v ) {
+	if ( dataflash.truthmatched_clusteridx<0 ) continue;
+	bool truthmatches = false;
+	for ( auto const& clustidx : group_clusteridx )
+	  if ( dataflash.truthmatched_clusteridx==clustidx )
+	    truthmatches = true;
+
+	if (truthmatches) {
+	  lfcluster.has_truthmatch = 1;
+	  lfcluster.is_neutrino = ( dataflash.isneutrino ) ? 1 : 0;
+	  lfcluster.truthmatched_mctrackid = dataflash.mctrackid;
+	  lfcluster.truthmatched_flashtick = dataflash.tpc_tick;
+	}
+      }//end of dataflash loop to look for truth match
+      
+      _final_lfcluster_v.emplace_back( std::move(lfcluster) );
+    }//end of loop over (combined) cluster groups
+    
+
+    // make the intime cluster
+    // a little different, and simpler. If flashes score well enough to fit in-time, keep it
+    for ( int flashidx=0; flashidx<(int)_flashdata_v.size(); flashidx++ ) {
+      auto const& dataflash = _flashdata_v[flashidx];
+      if ( !dataflash.intime ) continue;
+
+      std::cout << "[LArFlowFlashMatch::buildFinalClusters] intime flash at flashidx=" << flashidx << std::endl;
+      
+      // collect matches
+      const std::vector<int>& match_indices =  _fitter.matchIndicesFromUserFlashIndex( flashidx );
+      for ( auto const& imatch : match_indices ) {
+	int clustidx = _fitter.userClusterIndexFromMatchIndex( imatch );
+	CutVars_t& cutvar = getCutVars( flashidx, clustidx );
+	std::cout << "[LArFlowFlashMatch::buildFinalClusters] intime flash-cluster (" << flashidx << "," << clustidx << ") "
+		  << " match candidate. "
+		  << " cutflash=" << cutvar.cutfailed
+		  << " fit1fmatch=" << cutvar.fit1fmatch
+		  << " fracabove1=" << cutvar.subsamplefit_fracabove1
+		  << std::endl;
+										     
+	if ( cutvar.fit1fmatch>0.15 ) {
+	  
+	  larlite::larflowcluster lfcluster;
+	  for ( auto const& hit : _input_lfcluster_v->at( clustidx ) ) {
+	    lfcluster.push_back( hit );
+	  }
+	  
+	  lfcluster.isflashmatched = 1;
+	  lfcluster.flash_tick    = dataflash.tpc_tick;
+	  lfcluster.flash_time_us = (dataflash.tpc_tick-2400)*usec_per_tick;
+	  lfcluster.flashmatch_score = fitresult.beta[ _fitter.matchIndexFromUserClusterIndex( clustidx ) ];
+	  lfcluster.matchedflash_producer = ( dataflash.isbeam ) ? "simpleFlashBeam" : "simpleFlashCosmic"; // totes bad
+	  lfcluster.matchedflash_idx = flashidx;
+	  lfcluster._flash_data_v.resize( dataflash.size(), 0.0 );	  
+	  for ( size_t ipmt=0; ipmt<dataflash.size(); ipmt++ )
+	    lfcluster._flash_data_v[ipmt] = dataflash[ipmt];
+	  
+	  
+	  auto const& hypo_v = _fitter.flashHypoFromMatchIndex( _fitter.matchIndexFromUserClusterIndex( clustidx ) );
+	  lfcluster._flash_hypo_v.resize( hypo_v.size(), 0 );
+	  for ( size_t ipmt=0; ipmt<hypo_v.size(); ipmt++ )
+	    lfcluster._flash_hypo_v[ipmt] += hypo_v[ipmt];
+	  
+	  // for comparison, we add info on the truth-match cluster if it exists
+	  for ( auto const& dataflash : _flashdata_v ) {
+	    if ( dataflash.truthmatched_clusteridx==clustidx ) { 
+	      lfcluster.has_truthmatch = 1;
+	      lfcluster.is_neutrino = ( dataflash.isneutrino ) ? 1 : 0;
+	      lfcluster.truthmatched_mctrackid = dataflash.mctrackid;
+	      lfcluster.truthmatched_flashtick = dataflash.tpc_tick;
+	    }
+	  }//end of dataflash loop to look for truth match
+	  
+	  _intime_lfcluster_v.emplace_back( std::move(lfcluster) );
+	}// if subsample fit > 0.05
+      }//match loop
+    }// loop over flashes (only running on in-time flashes)
+    
+    
+    // last -- make corresponding cluster mask objects!
+    std::vector< larlite::larflowcluster>* pfinalclusters[2]         = { &_final_lfcluster_v,   &_intime_lfcluster_v };
+    std::vector< std::vector<larcv::ClusterMask> >* pfinalmasks[2] = { &_final_clustermask_v, &_intime_clustermask_v };
+    for ( size_t i=0; i<2; i++ ) {
+      for ( auto const& lfcluster : *pfinalclusters[i] ) {
+	std::vector<larcv::Point2D> ptU_v;
+	std::vector<larcv::Point2D> ptY_v;	
+	std::vector<larcv::Point2D> ptV_v;    
+	ptU_v.reserve( lfcluster.size() );
+	ptV_v.reserve( lfcluster.size() );
+	ptY_v.reserve( lfcluster.size() );
+	
+	float bb_wiremin[3] = {5000,5000,5000};
+	float bb_wiremax[3] = {0,0,0};
+	float bb_tickmin[3] = {10000,10000,10000};
+	float bb_tickmax[3] = {0,0,0};
+	
+	for ( auto const& hit : lfcluster ) {
+	  
+	  if ( hit.srcwire>=0 ) {
+	    larcv::Point2D ptY( hit.srcwire, img_v[2].meta().row(hit.tick) );
+	    ptY_v.emplace_back( std::move(ptY) );
+	    bb_tickmin[2] = ( bb_tickmin[2]>hit.tick ) ? hit.tick : bb_tickmin[2];
+	    bb_tickmax[2] = ( bb_tickmax[2]<hit.tick ) ? hit.tick : bb_tickmax[2];	
+	    bb_wiremin[2] = ( bb_wiremin[2]>hit.srcwire ) ? hit.srcwire : bb_wiremin[2];
+	    bb_wiremax[2] = ( bb_wiremax[2]<hit.srcwire ) ? hit.srcwire : bb_wiremax[2];	
+	  }
+	  
+	  if ( hit.targetwire.size()==2 ) {
+	    if ( hit.targetwire[0]>=0 ) {
+	      larcv::Point2D ptU( hit.targetwire[0], img_v[0].meta().row(hit.tick) );
+	      ptU_v.emplace_back( std::move(ptU) );
+	      bb_tickmin[0] = ( bb_tickmin[0]>hit.tick ) ? hit.tick : bb_tickmin[0];
+	      bb_tickmax[0] = ( bb_tickmax[0]<hit.tick ) ? hit.tick : bb_tickmax[0];	
+	      bb_wiremin[0] = ( bb_wiremin[0]>hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremin[0];
+	      bb_wiremax[0] = ( bb_wiremax[0]<hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremax[0];		  
+	    }
+	    if ( hit.targetwire[1]>=0 ) {
+	      larcv::Point2D ptV( hit.targetwire[1], img_v[1].meta().row(hit.tick) );
+	      ptV_v.emplace_back( std::move(ptV) );
+	      bb_tickmin[1] = ( bb_tickmin[1]>hit.tick ) ? hit.tick : bb_tickmin[1];
+	      bb_tickmax[1] = ( bb_tickmax[1]<hit.tick ) ? hit.tick : bb_tickmax[1];	
+	      bb_wiremin[1] = ( bb_wiremin[1]>hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremin[1];
+	      bb_wiremax[1] = ( bb_wiremax[1]<hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremax[1];		  	  
+	    }
+	  }
+	}
+	
+	std::vector< larcv::ClusterMask > planemasks_v;
+	std::vector<larcv::Point2D>* pPts_v[3] = { &ptU_v, &ptV_v, &ptY_v };
+	for ( size_t p=0; p<3; p++ ) {
+	  //larcv::ImageMeta meta( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p],
+	  //abs( (bb_tickmax[p]-bb_tickmin[p])/6.0 ), abs( bb_wiremax[p]-bb_wiremin[p] ),
+	  //(larcv::ProjectionID_t)p );
+	  larcv::BBox2D  bbox( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p], (larcv::ProjectionID_t)p );
+	  larcv::ClusterMask mask( bbox, img_v[p].meta(), *pPts_v[p], 0 );
+	  pfinalmasks[i]->emplace_back( std::move(planemasks_v) );
+	}
+      }//end of loop over final/intime cluster container
+      
+    }// end of cluster loop
+
+    std::cout << "[LArFlowFlashMatch::buildFinalClusters] "
+	      << "Built " << _final_lfcluster_v.size() << " flash-matched clusters "
+	      << "from original " << _input_lfcluster_v->size() << " larflow clusters" << std::endl;
+    std::cout << "[LArFlowFlashMatch::buildFinalClusters] "    
+	      << "Built " << _intime_lfcluster_v.size() << " intime clusters" << std::endl;
+    
+  }//end of buildFlash
+  
 }
