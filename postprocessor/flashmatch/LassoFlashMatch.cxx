@@ -781,7 +781,7 @@ namespace larflow {
 	pgradb->resize( flashdata.size(), 0.0 );
 	pb_v = &_bpmt_vv.at( iflashdata );
 	for ( size_t ich=0; ich<flashdata.size(); ich++ ) {
-	  databmod[ich] *= (1-(*pb_v)[ich]);
+	  databmod[ich] *= (1+(*pb_v)[ich]);
 	  if ( databmod[ich]<0 ) databmod[ich] = 0.;
 	}
       }
@@ -835,59 +835,6 @@ namespace larflow {
     
     return grad;
   }
-
-  // std::vector<float> LassoFlashMatch::gradLeastSquares( const std::vector<int>& fmask ) {
-  //   // gradient of L(f_{k}) = || y_{ij} - f_{k} x_{kj} ||^2 w.r.t f_{k}
-  //   // is 2 L(f_{k}) ( - sum{j} x_{kj} )
-
-  //   std::vector< float > gradf( nmatches(), 0 );
-    
-  //   // do this by flashbundle
-  //   for ( auto const& iflashidx : _flashindices ) {
-  //     // loop over 'u'
-      
-  //     std::vector<int>& flashgroup  = _flashgroup_vv[ _flashidx2group_m[iflashidx] ]; // 'F(m)'
-  //     int iflashdata = _flashidx2data_m[iflashidx]; // y_{u}
-
-  //     // need the overall prediction for each
-  //     // loop over clusters (which provide hypo) that pertain to this flash
-  //     // this is x_j = sum{k in F(k)} f_k x_{kj}
-  //     std::vector<float> hypotot(_npmts,0);
-  //     for (auto& imatchidx : flashgroup ) {
-  // 	if ( fmask[imatchidx]==0 ) continue;
-  // 	for (int ich=0; ich<_npmts; ich++) {
-  // 	  hypotot[ich] += _match_hypo_vv[imatchidx][ich]*_fmatch_v[imatchidx];
-  // 	  if ( hypotot[ich]<1.0e-3 ) hypotot[ich] = 1.0e-3;
-  // 	}
-  //     }
-      
-  //     // get data (y_{ij})
-  //     const std::vector<float>& flashdata = _flashdata_vv[ iflashdata ];
-  //     std::vector<float> databmod( flashdata );
-      
-  //     // calc residual (y_j - x_j)
-  //     std::vector<float> res(_npmtss,0);
-  //     float totres = 0.;
-  //     for (size_t j=0; _npmts; j++) {
-  // 	res[j] = flashdata[j] - hypotot[j];
-  // 	totres += res[j];
-  //     }
-
-  //     // gradient
-  //     for (auto& imatchidx : flashgroup ) {
-  // 	// index is 'm' but direct map to 'k' (the cluster)
-  // 	if ( fmask[imatchidx]==0 ) continue;
-	
-  // 	float tothypo = 0.;
-  // 	for ( size_t j=0; j<_npmts; j++ )
-  // 	  tothypo += _match_hypo_vv[imatchidx][ich]*_fmatch_v[imatchidx];
-  // 	gradf[ imatchidx ] +=  -2.0*totres*tothypo;
-  //     }
-      
-  //   }//end of loop over flashes
-
-  //   return gradf;
-  // }
   
   // ==================================================================================
   // Update rule for gradient descent fit
@@ -1051,7 +998,7 @@ namespace larflow {
 	hypo_pe += hypo_ch_pe;
 	data_pe += flashdata[ich];
 	if ( _use_b_terms ) {
-	  float data_chpe_bmod = flashdata[ich]*(1-_bpmt_vv.at( iflashdata )[ich]);
+	  float data_chpe_bmod = flashdata[ich]*(1+_bpmt_vv.at( iflashdata )[ich]);
 	  if ( data_chpe_bmod<1.0e-3 ) data_chpe_bmod = 0.;
 	  data_pe_bmod += data_chpe_bmod;
 	  bmod += _bpmt_vv[iflashdata][ich]*_bpmt_vv[iflashdata][ich];
@@ -1186,115 +1133,16 @@ namespace larflow {
   }
 
   // ======================================================================
-  // LARS OPTIMIZATION
-  // -------------------
-  /*
-  LassoFlashMatch::Result_t LassoFlashMatch::fitLARS( float learning_rate ) {
-    // least angle regression method
-
-    // set fmatch to zero
-    for (size_t m=0; m<_fmatch_v.size(); m++) _fmatch_v[m] = 0;
-
-    // start with all elements masked
-    std::vector<int> fmask( nmatches(), 0 ); // indexed in 'm'
-    std::vector<int> allon( nmatches(), 1 ); // keep around allon for convenience
-
-    // all pull terms are zero
-    
-    // because of the natural group-structure around the flashes, we apply LARS flash-wise
-    // 
-    // for each step, we want to find the x_{k} (summed over j) most correlated to y_{i}
-    // dL_i/dx_k = 2 L( f_{k} )( - sum{j}[ x_{kj} ] )
-    // dL_i/dx_k = 2 L( f )( - f_{k} )  :  hmm, this is always zero!
-    // it's the largest
-    // We use the x_{k} with the largest dL/df_k
-
-    // first setup, find largest correlate, and turn it on
-    std::vector<float> gradLS = gradLeastSquares( allon );
-    size_t imatch_strongest = 0;
-    float largestgrad = 0;
-    for (size_t m=0; m<gradLS.size(); m++) {
-      if ( fabs(gradLS[m])>largestgrad ) {
-	largestgrad = fabs(gradLS[m]);
-	imatch_strongest = m;
-      }
-    }
-    fmask[imatch_strongest] = 1;
-    
-    int num_on = 1;
-    int nsteps = 0;
-
-    while (num_on<nmatches()) {
-
-      std::vector<float> gradLS = gradLeastSquares( allon );
-
-      int numon_pre = num_on;
-
-      // take step in direction for active components only
-      for ( size_t m=0; m<nmatches(); m++ ) {
-	if ( fmask[m]==1 )
-	  _fmatch_v[m] = _fmatch_v[m] - learning_rate*gradLS[m];
-      }
-      
-      // calculate the grad norm for active components
-      float gradnorm = 0.;
-      for ( size_t m=0; m<nmatches(); m++ ) {
-	if ( fmask[m]==1 )
-	  gradnorm += gradLS[m]*gradLS[m];
-      }
-      gradnorm = sqrt(gradnorm);
-
-      // check if another component has as much gradient as joint gradnorm
-      int next_strongest = -1;
-      float largestgrad = 0;
-      for (size_t m=0; m<gradLS.size(); m++) {
-	float gradm = fabs(gradLS[m]);
-	if ( fmask[m]!=1 && gradm>gradnorm && gradm>largestgrad ) {
-	  largestgrad = gradm;
-	  next_strongest = (int)m;
-	}
-      }
-
-      // turn off zero'd components
-      for ( size_t m=0; m<nmatches(); m++ ) {
-	if ( _fmatch_v[m]<=0 ) {
-	  _fmatch_v[m] = 0;
-	  fmask[m] = 0;
-	}
-      }
-
-      // have a step with as strong a residual
-      if ( next_strongest>=0 )
-	fmask[next_strongest] = 1;
-      
-      num_on = 0;
-      for ( auto const& mask : fmask ) num_on += mask;
-
-      std::cout << "[step " << nsteps << "]" << std::endl;
-      std::cout << "  num on (pre-updated): " << numon_pre << std::endl;
-      std::cout << "  gradnorm: " << gradnorm << std::endl;
-      std::cout << "  activated channel: " << next_strongest << " grad=" <<  largestgrad << " (-1 means none)" << std::endl;
-      
-      nsteps++;
-    }
-  }
-
-  // LassoFlashMatch::Result_t LassoFlashMatch::fitLARS( float learning_rate ) {
-  //   // We take each cluster separately
-  //   // Each cluster is a source of partial hypotheses for several flashes
-  //   // 
-  // }
-  */  
 
   LassoFlashMatch::Result_t LassoFlashMatch::fitLASSO( const int maxiters,
 						       const float match_l1, const float clustergroup_l2,
 						       const float peadjust_l2, const float greediness ) {
     LassoConfig_t config;
-    config.maxiterations = maxiters;
-    config.match_l1 = match_l1;
+    config.maxiterations   = maxiters;
+    config.match_l1        = match_l1;
     config.clustergroup_l2 = clustergroup_l2;
-    config.adjustpe_l2 = peadjust_l2;
-    config.greediness = greediness;
+    config.adjustpe_l2     = peadjust_l2;
+    config.greediness      = greediness;
 
     return fitLASSO( config );
     
@@ -1342,17 +1190,9 @@ namespace larflow {
       }
     }//end of match loop
     
-    // // Need X normalized along hypothesis dimensions
-    // Eigen::MatrixXf Xnorm( npmts*nflashes, nmatches() );
-    // for ( size_t m=0; m<nmatches(); m++ ) {
-    //   float mnorm = X.col(m).norm();
-    //   if ( mnorm>1.0e-6 )
-    // 	Xnorm.col(m) = X.col(m).normalized();
-    // }
 
     for ( size_t m=0; m<nmatches(); m++ )
       beta(m) = _fmatch_v[m];
-    
 
     float eps = 1.0e-4;
     float learningrate = 1.0e-3;
@@ -1405,7 +1245,7 @@ namespace larflow {
       int igroup = _flashidx2group_m[flashidx];
       _bpmt_vv[igroup].resize( _npmts, 0 );
       for ( size_t ich=0; ich<_npmts; ich++ )
-	_bpmt_vv[igroup][ich] = 1.0+alpha( igroup*_npmts + ich );
+	_bpmt_vv[igroup][ich] = alpha( igroup*_npmts + ich );
     }
     
     return fitresult;
@@ -1578,8 +1418,8 @@ namespace larflow {
 
       if ( std::isnan(dbetanorm ) ) {
 	std::cout << "[LassoFlashMatch::solveCoordinateDescent] next_beta now nan. stopping" << std::endl;
-	std::cout << "beta: " << beta << std::endl;
-	std::cout << "next_beta: " << next_beta << std::endl;
+	//std::cout << "beta: " << beta << std::endl;
+	//std::cout << "next_beta: " << next_beta << std::endl;
 	break;
       }
 
@@ -1606,8 +1446,6 @@ namespace larflow {
       // ----------------------
       float totnorm = sqrt( dalphanorm*dalphanorm + dbetanorm*dbetanorm );
 	
-      // if ( totnorm<convergence_threshold )
-      // 	converged = true;
       if ( fabs(dloss)<convergence_threshold )
 	result.converged = true;
 
