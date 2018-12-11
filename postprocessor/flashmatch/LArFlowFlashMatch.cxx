@@ -314,7 +314,7 @@ namespace larflow {
 	qclusters.resize( lfclusters.size() );
     }
 
-    // build the qclusters -- associating 3D position and grabbing charge pixel value from 2D image
+    // build the qclusters -- ass<ociating 3D position and grabbing charge pixel value from 2D image
     const larcv::ImageMeta& src_meta = img_v[src_plane].meta();
 
     int nclusters = lfclusters.size();
@@ -322,6 +322,10 @@ namespace larflow {
     for ( size_t icluster=0; icluster<nclusters; icluster++ ) {
 
       const larlite::larflowcluster& lfcluster = lfclusters[icluster];
+
+      std::cout << "[LArFlowFlashMatch::buildInitialQClusters] import larflowcluster[" << icluster <<  "] "
+		<< " numhits=" << lfcluster.size()
+		<< std::endl;
       
       QCluster_t& qcluster = qclusters[icluster];
       qcluster.idx = icluster;
@@ -344,6 +348,9 @@ namespace larflow {
 	}
 	qhit.tick = lfcluster[ihit].tick;
 	qhit.type = kNonCore; // default
+
+	// debug
+	//std::cout << "qhit: (" << qhit.tick << "," << qhit.xyz[0] << "," << qhit.xyz[1] << "," << qhit.xyz[2] << ")" << std::endl;
 	
 	// clean up the hits
 	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
@@ -392,7 +399,7 @@ namespace larflow {
 
       // assign mctrackid based on majority
       int maxcounts = 0;
-      int maxid = 0;
+      int maxid = -1;
       for (auto& it : mctrackid_counts ) {
 	if ( maxcounts < it.second ) {
 	  maxcounts = it.second;
@@ -400,7 +407,10 @@ namespace larflow {
 	}
       }
       qcluster.mctrackid = maxid;
-      std::cout << "qcluster[" << icluster <<  "] mctrackid=" << maxid << std::endl;
+      std::cout << "[LArFlowFlashMatch::buildInitialQClusters] qcluster[" << icluster <<  "] "
+		<< " mctrackid=" << maxid << " (n pts with ID=" << maxcounts << ") "
+		<< " numhits=" << qcluster.size()
+		<< std::endl;
       // Define the QClusterCore -- this tries to identify, using DBSCAN, a core cluster
       // Removes small, floating clusters (that come from truth clustering, probably less so for reco-clustering)
       // Also defines the central PCA, and orders the core hits as a function of projection

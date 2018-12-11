@@ -47,6 +47,7 @@ int main( int nargs, char** argv ) {
 
   std::string output_flashmatch = argv[5];
   std::string output_larcvfile  = argv[6];
+  std::string output_anafile    = argv[7];
   
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
@@ -91,7 +92,7 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
-  algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
+  algo.saveAnaVariables( output_anafile );
 
   int istart = 0;
   int nprocessed = 0;
