@@ -48,6 +48,7 @@ int main( int nargs, char** argv ) {
   std::string output_flashmatch = argv[5];
   std::string output_larcvfile  = argv[6];
   std::string output_anafile    = argv[7];
+<<<<<<< HEAD
 
   std::cout << "=======================================================================================" << std::endl;
   std::cout << " dev_flashmatch" << std::endl;
@@ -62,6 +63,8 @@ int main( int nargs, char** argv ) {
   std::cout << " output ana-file (ntuples for tuning/performance analysis): " << output_anafile << std::endl;
   std::cout << "=======================================================================================" << std::endl;
     
+=======
+>>>>>>> 6799b3d44144ab9d11920519e17f83ad469144f2
   
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
@@ -106,7 +109,11 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
+<<<<<<< HEAD
   algo.saveAnaVariables( output_anafile  );
+=======
+  algo.saveAnaVariables( output_anafile );
+>>>>>>> 6799b3d44144ab9d11920519e17f83ad469144f2
 
   int istart = 11;
   int nprocessed = 0;
@@ -169,17 +176,7 @@ int main( int nargs, char** argv ) {
       match_clustermask->emplace( std::move( mask_v ) );
     for ( auto& mask_v : algo._intime_clustermask_v )
       intime_clustermask->emplace( std::move(mask_v) );
-    
-    // save some output for analysis, cut tuning
-    // ------------------------------------------
-    // ana variables for analysis and setting parameters
-
-    // mask imnon-in-time flashmatched clusters to mask ADC image
-
-    // get flash-matched clusters with correct x-position
-
-    // 
-    
+        
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
     outlarcv.set_id( io.run_id(), io.subrun_id(), io.event_id() );
 

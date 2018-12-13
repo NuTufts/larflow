@@ -314,7 +314,7 @@ namespace larflow {
 	qclusters.resize( lfclusters.size() );
     }
 
-    // build the qclusters -- associating 3D position and grabbing charge pixel value from 2D image
+    // build the qclusters -- ass<ociating 3D position and grabbing charge pixel value from 2D image
     const larcv::ImageMeta& src_meta = img_v[src_plane].meta();
 
     int nclusters = lfclusters.size();
@@ -322,6 +322,10 @@ namespace larflow {
     for ( size_t icluster=0; icluster<nclusters; icluster++ ) {
 
       const larlite::larflowcluster& lfcluster = lfclusters[icluster];
+
+      std::cout << "[LArFlowFlashMatch::buildInitialQClusters] import larflowcluster[" << icluster <<  "] "
+		<< " numhits=" << lfcluster.size()
+		<< std::endl;
       
       QCluster_t& qcluster = qclusters[icluster];
       qcluster.idx = icluster;
@@ -344,6 +348,9 @@ namespace larflow {
 	}
 	qhit.tick = lfcluster[ihit].tick;
 	qhit.type = kNonCore; // default
+
+	// debug
+	//std::cout << "qhit: (" << qhit.tick << "," << qhit.xyz[0] << "," << qhit.xyz[1] << "," << qhit.xyz[2] << ")" << std::endl;
 	
 	// clean up the hits
 	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
@@ -392,7 +399,7 @@ namespace larflow {
 
       // assign mctrackid based on majority
       int maxcounts = 0;
-      int maxid = 0;
+      int maxid = -1;
       for (auto& it : mctrackid_counts ) {
 	if ( maxcounts < it.second ) {
 	  maxcounts = it.second;
@@ -400,7 +407,10 @@ namespace larflow {
 	}
       }
       qcluster.mctrackid = maxid;
-      std::cout << "qcluster[" << icluster <<  "] mctrackid=" << maxid << std::endl;
+      std::cout << "[LArFlowFlashMatch::buildInitialQClusters] qcluster[" << icluster <<  "] "
+		<< " mctrackid=" << maxid << " (n pts with ID=" << maxcounts << ") "
+		<< " numhits=" << qcluster.size()
+		<< std::endl;
       // Define the QClusterCore -- this tries to identify, using DBSCAN, a core cluster
       // Removes small, floating clusters (that come from truth clustering, probably less so for reco-clustering)
       // Also defines the central PCA, and orders the core hits as a function of projection
@@ -2435,32 +2445,29 @@ namespace larflow {
 
 	for ( auto const& hit : lfcluster ) {
 
-	  if ( hit.srcwire>=0 ) {
+	  if ( hit.srcwire>=0 && hit.targetwire.size()==2 ) {
 	    larcv::Point2D ptY( hit.srcwire, img_v[2].meta().row(hit.tick) );
 	    ptY_v.emplace_back( std::move(ptY) );
 	    bb_tickmin[2] = ( bb_tickmin[2]>hit.tick ) ? hit.tick : bb_tickmin[2];
 	    bb_tickmax[2] = ( bb_tickmax[2]<hit.tick ) ? hit.tick : bb_tickmax[2];	
 	    bb_wiremin[2] = ( bb_wiremin[2]>hit.srcwire ) ? hit.srcwire : bb_wiremin[2];
 	    bb_wiremax[2] = ( bb_wiremax[2]<hit.srcwire ) ? hit.srcwire : bb_wiremax[2];	
-	  }
-	  
-	  if ( hit.targetwire.size()==2 ) {
-	    if ( hit.targetwire[0]>=0 ) {
-	      larcv::Point2D ptU( hit.targetwire[0], img_v[0].meta().row(hit.tick) );
-	      ptU_v.emplace_back( std::move(ptU) );
-	      bb_tickmin[0] = ( bb_tickmin[0]>hit.tick ) ? hit.tick : bb_tickmin[0];
-	      bb_tickmax[0] = ( bb_tickmax[0]<hit.tick ) ? hit.tick : bb_tickmax[0];	
-	      bb_wiremin[0] = ( bb_wiremin[0]>hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremin[0];
-	      bb_wiremax[0] = ( bb_wiremax[0]<hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremax[0];		  
-	    }
-	    if ( hit.targetwire[1]>=0 ) {
-	      larcv::Point2D ptV( hit.targetwire[1], img_v[1].meta().row(hit.tick) );
-	      ptV_v.emplace_back( std::move(ptV) );
-	      bb_tickmin[1] = ( bb_tickmin[1]>hit.tick ) ? hit.tick : bb_tickmin[1];
-	      bb_tickmax[1] = ( bb_tickmax[1]<hit.tick ) ? hit.tick : bb_tickmax[1];	
-	      bb_wiremin[1] = ( bb_wiremin[1]>hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremin[1];
-	      bb_wiremax[1] = ( bb_wiremax[1]<hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremax[1];		  	  
-	    }
+
+	    larcv::Point2D ptU( hit.targetwire[0], img_v[0].meta().row(hit.tick) );
+	    ptU_v.emplace_back( std::move(ptU) );
+	    bb_tickmin[0] = ( bb_tickmin[0]>hit.tick ) ? hit.tick : bb_tickmin[0];
+	    bb_tickmax[0] = ( bb_tickmax[0]<hit.tick ) ? hit.tick : bb_tickmax[0];	
+	    bb_wiremin[0] = ( bb_wiremin[0]>hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremin[0];
+	    bb_wiremax[0] = ( bb_wiremax[0]<hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremax[0];		  
+
+
+	    larcv::Point2D ptV( hit.targetwire[1], img_v[1].meta().row(hit.tick) );
+	    ptV_v.emplace_back( std::move(ptV) );
+	    bb_tickmin[1] = ( bb_tickmin[1]>hit.tick ) ? hit.tick : bb_tickmin[1];
+	    bb_tickmax[1] = ( bb_tickmax[1]<hit.tick ) ? hit.tick : bb_tickmax[1];	
+	    bb_wiremin[1] = ( bb_wiremin[1]>hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremin[1];
+	    bb_wiremax[1] = ( bb_wiremax[1]<hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremax[1];		  	  
+	    
 	  }
 	}
 
@@ -2477,8 +2484,9 @@ namespace larflow {
 	  //(larcv::ProjectionID_t)p );
 	  larcv::BBox2D  bbox( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p], (larcv::ProjectionID_t)p );
 	  larcv::ClusterMask mask( bbox, img_v[p].meta(), *pPts_v[p], 0 );
-	  pfinalmasks[i]->emplace_back( std::move(planemasks_v) );
+	  planemasks_v.emplace_back( std::move(mask) );
 	}
+	pfinalmasks[i]->emplace_back( std::move(planemasks_v) );
       }//end of loop over final/intime cluster container
       
     }// end of cluster loop

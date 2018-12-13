@@ -51,7 +51,7 @@ namespace larflow {
       cilantro::NeighborSet<float> nn;
       tree.radiusSearch( pt, maxdist, nn);
 
-      // is it dense enough?
+      // is it densely connected enough?
       if ( nn.size()<minhits ) {
 	// label point as noise (-2)
 	clusterlabel_v[ipt] = kNoise;
@@ -60,6 +60,7 @@ namespace larflow {
 
       // dense enough, get a new cluster label and define new cluster
       int clustlabel = dbscan_clust_v.size();
+      clusterlabel_v[ipt] = clustlabel; // assign the new id to itself
       Cluster_t cluster;
       cluster.clear();
       cluster.reserve(100);
@@ -77,10 +78,10 @@ namespace larflow {
       // traverse queue
       int iqueue = 0;      
       while ( iqueue<queue_v.size() ) {
-	int index = queue_v[iqueue];      
+	int index = queue_v.at(iqueue);
 	iqueue++;
 
-	int pastlabel = clusterlabel_v[index];
+	int pastlabel = clusterlabel_v.at(index);
 	//std::cout << "pt[" << ipt << "] label=" << pastlabel << " queuesize=" << queue_v.size() << " queuepos=" << ipos << std::endl;      
 	//std::cout << "[larflow::DBSCAN::makeClusters][DEBUG] ipt=" << " nneighbors=" << nn.size() << " pastlabel=" << pastlabel << std::endl;
 
@@ -90,9 +91,9 @@ namespace larflow {
 	  cluster.push_back(index);
 	}
 	else if (pastlabel>=0 ) {
-	  // already labeled
+	  // already labeled, do nothing
 	}
-	else {
+	else if ( pastlabel==kUnlabeled ) {
 	  // unlabeled (-1)
 	  
 	  // assign label
@@ -112,7 +113,12 @@ namespace larflow {
 	    }
 	  }
 	}
+	else {
+	  throw std::runtime_error( "[DBSCAN::makecluster] weird/bad label" );
+	}
       }//while queue is not finished
+
+      // queue is now empty
 
       // store cluster
       dbscan_clust_v.emplace_back( std::move(cluster) );
@@ -142,6 +148,20 @@ namespace larflow {
 	    throw std::runtime_error("[larflow::DBSCAN::makeCluster][ERROR] missing index");
 	}
       }
+    }
+
+    int ntotpts = 0;
+    for ( auto& dbscanclust : dbscan_clust_v ) 
+      ntotpts += dbscanclust.size();
+
+    if ( ntotpts!=npoints ) {
+      std::stringstream ss;
+      ss << "[larflow::DBSCAN::makeCluster][ERROR] number of (good) points provided does not equal the number clustered!"
+	 << " input=" << clust.size()
+	 << " ngood=" << npoints
+	 << " labeled=" << ntotpts
+	 << std::endl;
+      throw std::runtime_error(ss.str());
     }
     
     return dbscan_clust_v;

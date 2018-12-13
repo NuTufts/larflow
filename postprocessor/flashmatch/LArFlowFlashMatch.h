@@ -281,6 +281,7 @@ namespace larflow {
     int   _flash_isvisible;
     int   _flash_crosstpc;
     int   _flash_mcid;
+    int   _flash_truthqidx;
     float _flash_bestfmatch;
     float _flash_truthfmatch;
     int   _flash_bestclustidx;
