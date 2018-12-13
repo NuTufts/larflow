@@ -29,9 +29,6 @@
 class TRandom3;
 class TFile;
 class TTree;
-namespace larutil {
-  class SpaceChargeMicroBooNE;
-}
 
 namespace larflow {
 
@@ -250,7 +247,6 @@ namespace larflow {
     std::vector<int> _cluster2trueflash;
     std::vector< std::vector<const larlite::mctrack*> >  _flash_matched_mctracks_v;
     std::vector< std::vector<const larlite::mcshower*> > _flash_matched_mcshowers_v;
-    larutil::SpaceChargeMicroBooNE* _psce;
     bool _kDoTruthMatching;
     bool _kFlashMatchedDone;
     void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v

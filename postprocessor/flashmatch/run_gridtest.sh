@@ -6,14 +6,17 @@
 #mcinfofile=mcinfo-Run000001-SubRun002000.root
 
 folder=../../testdata/griddebug/
-clusterfile=truthcluster_larlite.root
-superafile=supera_convertout.root
-larlitefile=opreco-Run000001-SubRun006922.root
-mcinfofile=reco2d-Run000001-SubRun006922.root
+clusterfile=truthcluster-larlite-Run000001-SubRun006914.root
+superafile=supera-larcv2-Run000001-SubRun006914.root
+larlitefile=opreco-Run000001-SubRun006914.root
+mcinfofile=reco2d-Run000001-SubRun006914.root
 
+lcvout=gridtest_larcv.root
+llout=gridtest_larlite.root
+ana=gridtest_ana.root
 
-gdb --args ./dev_flashmatch ${folder}/${clusterfile} ${folder}/${larlitefile} ${folder}/${superafile} ${folder}/${mcinfofile} gridtestout_larlite.root gridtestout_larcv.root
+gdb --args ./dev_flashmatch ${folder}/${clusterfile} ${folder}/${larlitefile} ${folder}/${superafile} ${folder}/${mcinfofile} ${llout} ${lcvout} ${ana}
 
-#valgrind  ./dev_flashmatch ${folder}/${clusterfile} ${folder}/${larlitefile} ${folder}/${superafile} ${folder}/${mcinfofile} gridtestout_larlite.root >& out.valgrind.txt
+#valgrind --num-callers=30 --suppressions=$ROOTSYS/etc/valgrind-root.supp ./dev_flashmatch ${folder}/${clusterfile} ${folder}/${larlitefile} ${folder}/${superafile} ${folder}/${mcinfofile} ${llout} ${lcvout} ${ana} >& debug_valgrind.out
 
 

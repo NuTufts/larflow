@@ -48,7 +48,6 @@ int main( int nargs, char** argv ) {
   std::string output_flashmatch = argv[5];
   std::string output_larcvfile  = argv[6];
   std::string output_anafile    = argv[7];
-<<<<<<< HEAD
 
   std::cout << "=======================================================================================" << std::endl;
   std::cout << " dev_flashmatch" << std::endl;
@@ -63,9 +62,6 @@ int main( int nargs, char** argv ) {
   std::cout << " output ana-file (ntuples for tuning/performance analysis): " << output_anafile << std::endl;
   std::cout << "=======================================================================================" << std::endl;
     
-=======
->>>>>>> 6799b3d44144ab9d11920519e17f83ad469144f2
-  
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
   io.add_in_filename( input_cluster );
@@ -109,13 +105,9 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
-<<<<<<< HEAD
   algo.saveAnaVariables( output_anafile  );
-=======
-  algo.saveAnaVariables( output_anafile );
->>>>>>> 6799b3d44144ab9d11920519e17f83ad469144f2
 
-  int istart = 11;
+  int istart = 0;
   int nprocessed = 0;
   for (int ientry=istart; ientry<nentries; ientry++) {
 
@@ -125,7 +117,9 @@ int main( int nargs, char** argv ) {
     
     io.go_to( ientry );
     iolarcv.read_entry(ientry);
-  
+
+    // get input
+    // ---------
     larlite::event_larflowcluster* ev_cluster = (larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster, "flowtruthclusters" );
 
     larlite::event_opflash* ev_opflash_beam   = (larlite::event_opflash*)io.get_data( larlite::data::kOpFlash, "simpleFlashBeam" );
@@ -149,6 +143,15 @@ int main( int nargs, char** argv ) {
     std::cout << "  number of mctracks: "  << ev_mctrack->size()  << std::endl;
     std::cout << "  number of mcshowers: " << ev_mcshower->size() << std::endl;    
 
+    // get output containers
+    // ----------------------
+    larlite::event_larflowcluster* match_lfcluster  = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "allflashmatched" );
+    larlite::event_larflowcluster* intime_lfcluster = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "intimeflashmatched" );
+
+    larcv::EventClusterMask* match_clustermask  = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "allflashmatched" );
+    larcv::EventClusterMask* intime_clustermask = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "intimeflashmatched" );
+
+    
     // prep algo
     algo.loadChStatus( ev_status );    
     algo.loadMCTrackInfo( *ev_mctrack, *ev_mcshower, true );
@@ -162,16 +165,12 @@ int main( int nargs, char** argv ) {
     // save output products:
     //  larflowclusters and clustermasks
     // ------------------------------------------
-    larlite::event_larflowcluster* match_lfcluster  = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "allflashmatched" );
-    larlite::event_larflowcluster* intime_lfcluster = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "intimeflashmatched" );
 
     for ( auto& lfcluster : algo._final_lfcluster_v )
       match_lfcluster->emplace_back( std::move(lfcluster) );
     for ( auto& lfcluster : algo._intime_lfcluster_v )
       intime_lfcluster->emplace_back( std::move(lfcluster) );
 
-    larcv::EventClusterMask* match_clustermask  = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "allflashmatched" );
-    larcv::EventClusterMask* intime_clustermask = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "intimeflashmatched" );
     for ( auto& mask_v : algo._final_clustermask_v )
       match_clustermask->emplace( std::move( mask_v ) );
     for ( auto& mask_v : algo._intime_clustermask_v )

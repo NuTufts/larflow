@@ -19,7 +19,6 @@
 // larlite
 #include "LArUtil/Geometry.h"
 #include "LArUtil/LArProperties.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "LArUtil/TimeService.h"
 
 // larcv
@@ -52,7 +51,6 @@ namespace larflow {
       _rand(nullptr),
       _parsdefined(false),
       _mctrack_v(nullptr),
-      _psce(nullptr),
       _kDoTruthMatching(false),
       _kFlashMatchedDone(false),
       _fitter(32),
@@ -1372,9 +1370,9 @@ namespace larflow {
   void LArFlowFlashMatch::doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ) {
 
     //space charge and time service; ideally initialized in algo constructor
-    if ( _psce==nullptr ){
-      _psce = new ::larutil::SpaceChargeMicroBooNE;
-    }
+    // if ( _psce==nullptr ){
+    //   _psce = new ::larutil::SpaceChargeMicroBooNE;
+    // }
     // note on TimeService: if not initialized from root file via GetME(true)
     // needs trig_offset hack in tufts_larflow branch head
     const ::larutil::TimeService* tsv = ::larutil::TimeService::GetME(false);
@@ -1792,8 +1790,9 @@ namespace larflow {
     _cluster2trueflash.clear();
     _flash_matched_mctracks_v.clear();
     _flash_matched_mcshowers_v.clear();
-    delete _psce;
-    _psce = nullptr;
+    // if ( _psce )
+    //   delete _psce;
+    // _psce = nullptr;
     _kDoTruthMatching  = false;
     _kFlashMatchedDone = false;
   }
