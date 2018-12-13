@@ -47,6 +47,21 @@ int main( int nargs, char** argv ) {
 
   std::string output_flashmatch = argv[5];
   std::string output_larcvfile  = argv[6];
+  std::string output_anafile    = argv[7];
+
+  std::cout << "=======================================================================================" << std::endl;
+  std::cout << " dev_flashmatch" << std::endl;
+  std::cout << " --------------" << std::endl;
+  std::cout << " input cluster file: " << input_cluster << std::endl;
+  std::cout << " input opreco larlite file: " << input_larlite << std::endl;
+  std::cout << " input supera larcv2 file: " << input_larcv << std::endl;
+  std::cout << " input mcinfo larlite file: " << input_mcinfo << std::endl;
+  std::cout << " " << std::endl;
+  std::cout << " output flashmatch-larlite file (larflow clusters): " << output_flashmatch << std::endl;
+  std::cout << " output flashmatch-larcv file (cluster masks): " << output_larcvfile << std::endl;
+  std::cout << " output ana-file (ntuples for tuning/performance analysis): " << output_anafile << std::endl;
+  std::cout << "=======================================================================================" << std::endl;
+    
   
   // input
   larlite::storage_manager io( larlite::storage_manager::kREAD );
@@ -91,11 +106,15 @@ int main( int nargs, char** argv ) {
 
   // algo
   larflow::LArFlowFlashMatch algo;
-  algo.saveAnaVariables( "out_larflow_flashmatch_ana.root" );
+  algo.saveAnaVariables( output_anafile  );
 
-  int istart = 0;
+  int istart = 11;
   int nprocessed = 0;
   for (int ientry=istart; ientry<nentries; ientry++) {
+
+    std::cout << "//////////////////////////////////////" << std::endl;
+    std::cout << "[ ENTRY " << ientry << "]" << std::endl;
+    std::cout << "//////////////////////////////////////" << std::endl;
     
     io.go_to( ientry );
     iolarcv.read_entry(ientry);
@@ -108,19 +127,20 @@ int main( int nargs, char** argv ) {
     larcv::EventImage2D*  ev_larcv  = (larcv::EventImage2D*) iolarcv.get_data( "image2d",  "wire" );
     larcv::EventChStatus* ev_status = (larcv::EventChStatus*)iolarcv.get_data( "chstatus", "wire" );
 
-    std::cout << "number of clusters: " << ev_cluster->size() << std::endl;
-    std::cout << "number of beam flashes: " << ev_opflash_beam->size() << std::endl;
-    std::cout << "number of cosmic flashes: " << ev_opflash_cosmic->size() << std::endl;
-    std::cout << "number of images: " << ev_larcv->as_vector().size() << std::endl;
+    std::cout << "number of charge clusters: " << ev_cluster->size() << std::endl;
+    std::cout << "number of beam flashes:    " << ev_opflash_beam->size() << std::endl;
+    std::cout << "number of cosmic flashes:  " << ev_opflash_cosmic->size() << std::endl;
+    std::cout << "number of adc images:      " << ev_larcv->as_vector().size() << std::endl;
     
-    std::cout << "[cosmic hits] ======================" << std::endl;
+    std::cout << "== [cosmic op flashes] ======================" << std::endl;
     for ( int icosmic = 0; icosmic < (int)ev_opflash_cosmic->size(); icosmic++ )
       std::cout << " cosmic[" << icosmic << "] " << ev_opflash_cosmic->at(icosmic).TotalPE() << " nopdets=" << ev_opflash_cosmic->at(icosmic).nOpDets() << std::endl;
     
     larlite::event_mctrack*  ev_mctrack  = (larlite::event_mctrack*) io.get_data( larlite::data::kMCTrack,  "mcreco" );
-    larlite::event_mcshower* ev_mcshower = (larlite::event_mcshower*)io.get_data( larlite::data::kMCShower, "mcreco" );    
-    std::cout << "number of mctracks: "  << ev_mctrack->size()  << std::endl;
-    std::cout << "number of mcshowers: " << ev_mcshower->size() << std::endl;    
+    larlite::event_mcshower* ev_mcshower = (larlite::event_mcshower*)io.get_data( larlite::data::kMCShower, "mcreco" );
+    std::cout << "== [MC Truth] ======================" << std::endl;
+    std::cout << "  number of mctracks: "  << ev_mctrack->size()  << std::endl;
+    std::cout << "  number of mcshowers: " << ev_mcshower->size() << std::endl;    
 
     // prep algo
     algo.loadChStatus( ev_status );    
@@ -130,7 +150,7 @@ int main( int nargs, char** argv ) {
     algo.dumpPrefitImages(false);
     algo.dumpPostfitImages(false);
     algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
-    std::cout << "[dev_flashmatch][INFO] result run" << std::endl;
+    std::cout << "== [dev_flashmatch][INFO] result run ==========" << std::endl;
 
     // save output products:
     //  larflowclusters and clustermasks
@@ -165,18 +185,21 @@ int main( int nargs, char** argv ) {
 
     outlarlite.next_event(); // saves and clears
     outlarcv.save_entry();
+    std::cout << "== [dev_flashmatch][INFO] results stored ==========" << std::endl;
+    
+    algo.clearEvent();
 
-    algo.clearEvent();    
+    std::cout << "== [dev_flashmatch][INFO] algo cleared ==========" << std::endl;    
     nprocessed++;
     
     //if ( nprocessed>=1 )
     //break;
   }
 
-  std::cout << "[dev_flashmatch] write ana file" << std::endl;
+  std::cout << "== [dev_flashmatch] write ana file ===============" << std::endl;
   algo.writeAnaFile();
 
-  std::cout << "[dev_flashmatch] close files and clean up" << std::endl;  
+  std::cout << "== [dev_flashmatch] close files and clean up =========" << std::endl;  
   outlarlite.close();
   io.close();
   iolarcv.finalize();
