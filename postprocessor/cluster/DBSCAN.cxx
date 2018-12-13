@@ -29,12 +29,11 @@ namespace larflow {
     int npoints = _points.size();
     
     cilantro::KDTree3f tree(_points);    
-    
-    int iidx = -1;
-    std::vector<int> clusterlabel_v(npoints,-1); // -2=noise, -1=unvisited
-    std::vector<Cluster_t> dbscan_clust_v;
 
-    enum { kNoise=-2, kUnlabeled=-1 };
+    enum { kNoise=-2, kUnlabeled=-1 };    
+    int iidx = -1;
+    std::vector<int> clusterlabel_v(npoints,kUnlabeled); // -2=noise, -1=unvisited
+    std::vector<Cluster_t> dbscan_clust_v;
     
     // visit every point at least once
     for ( int ipt=0; ipt<npoints; ipt++ ) {

@@ -21,8 +21,12 @@ namespace larflow {
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, cluster );
     std::cout << "number of hits out of dbscan: " << _clusters_v.size() << std::endl;
     
-
-    //std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
+    std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
+    int totcheck = 0;
+    for ( auto& c : _clusters_v ) {
+      totcheck += c.size();
+    }
+    std::cout << "[CoreFilter::CoreFilter][DEBUG] total hits " << totcheck << " in DBSCAN clusters" << std::endl;    
   }
   
   CoreFilter::CoreFilter( const larlite::larflowcluster& cluster , const int min_neighbors, const float maxdist  )
@@ -46,7 +50,13 @@ namespace larflow {
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, fcluster );
-    std::cout << "number of hits out of dbscan: " << _clusters_v.size() << std::endl;    
+    std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
+    int totcheck = 0;
+    for ( auto& c : _clusters_v ) {
+      totcheck += c.size();
+    }
+    std::cout << "[CoreFilter::CoreFilter][DEBUG] total hits " << totcheck << " in DBSCAN clusters" << std::endl;
+    
   }
   
   CoreFilter::~CoreFilter() {
