@@ -1980,6 +1980,7 @@ namespace larflow {
     _flashtree->Branch("flash_isvisible",   &_flash_isvisible,   "flash_isvisible/I");
     _flashtree->Branch("flash_crosstpc",    &_flash_crosstpc,    "flash_crosstpc/I");    
     _flashtree->Branch("flash_mcid",        &_flash_mcid,        "flash_mcid/I");
+    _flashtree->Branch("flash_truthqidx",   &_flash_truthqidx,   "flash_truthqidx/I");
     _flashtree->Branch("flash_bestclustidx",&_flash_bestclustidx,"flash_bestclustidx/I");
     _flashtree->Branch("flash_bestfmatch",  &_flash_bestfmatch,  "flash_bestfmatch/F");
     _flashtree->Branch("flash_truthfmatch", &_flash_truthfmatch, "flash_truthfmatch/F");
