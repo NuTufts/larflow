@@ -153,7 +153,6 @@ int main( int nargs, char** argv ) {
     // save some output for analysis, cut tuning
     // ------------------------------------------
     // ana variables for analysis and setting parameters
-    algo.saveAnaMatchData();
 
     // mask imnon-in-time flashmatched clusters to mask ADC image
 

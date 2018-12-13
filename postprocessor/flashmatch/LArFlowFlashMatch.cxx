@@ -260,8 +260,8 @@ namespace larflow {
     _fitter.addLearningScheduleConfig( epoch3 );    
 
     LassoFlashMatch::LassoConfig_t lasso_cfg;
-    lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
-    //lasso_cfg.minimizer = LassoFlashMatch::kCoordDesc;
+    //lasso_cfg.minimizer = LassoFlashMatch::kCoordDescSubsample;
+    lasso_cfg.minimizer = LassoFlashMatch::kCoordDesc;
     lasso_cfg.match_l1        = 10.0;
     lasso_cfg.clustergroup_l2 = 1.0;    
     lasso_cfg.adjustpe_l2     = 1.0e-2;
@@ -2079,6 +2079,7 @@ namespace larflow {
       _flash_crosstpc   = flash.tpc_visible;
       _flash_mcid       = flash.mctrackid;
       _flash_tick       = flash.tpc_tick;
+      _flash_truthqidx  = flash.truthmatched_clusteridx;
 
       _flash_bestclustidx = -1;
       _flash_bestfmatch = -1;      
