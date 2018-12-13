@@ -155,7 +155,7 @@ class ConvTransposeLayer(nn.Module):
     def __init__(self,deconv_inplanes,deconv_outplanes,res_outplanes):
         super(ConvTransposeLayer,self).__init__()
         self.deconv = nn.ConvTranspose2d( deconv_inplanes, deconv_outplanes, kernel_size=4, stride=2, padding=1, bias=False )
-        self.res    = DoubleResNet(res_outplanes+deconv_outplanes,res_outplanes,stride=1)
+        self.res    = DoubleResNet(BasicBlock,res_outplanes+deconv_outplanes,res_outplanes,stride=1)
     def forward(self,x,skip_x):
         out = self.deconv(x,output_size=skip_x.size())
         # concat skip connections

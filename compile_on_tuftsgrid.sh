@@ -2,8 +2,6 @@
 
 # workdir
 workdir=$1
-#workdir=/cluster/kappa/wongjiradlab/twongj01/larflow/
-
 cd $workdir
 
 # get right branch
@@ -14,18 +12,18 @@ git submodule init
 git submodule update
 
 # build Pangoline first, before ROOT
-cd Pangolin/
-mkdir -p build
-cd build
-cmake ../
-make
+#cd Pangolin/
+#mkdir -p build
+#cd build
+#cmake ../
+#make
 
 # build spectra
-cd $workdir/cilantro
-mkdir -p build
-cd build
-cmake ../
-make
+#cd $workdir/cilantro
+#mkdir -p build
+#cd build
+#cmake ../
+#make
 
 cd $workdir
 
@@ -47,7 +45,10 @@ make clean
 make
 
 cd flashmatch
+make clean
 make
 
 # return home
 cd $workdir
+
+echo "FIN"
