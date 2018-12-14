@@ -335,6 +335,10 @@ namespace larflow {
 
       // store mctrackids
       std::map<int,int> mctrackid_counts;
+      // store failures
+      int n_nan = 0;
+      int n_outtpc = 0;
+      int n_outsidetickrange = 0;
 
       std::vector< std::vector<float> > clusterpts;
       clusterpts.reserve( lfcluster.size() );
@@ -351,18 +355,32 @@ namespace larflow {
 	//std::cout << "qhit: (" << qhit.tick << "," << qhit.xyz[0] << "," << qhit.xyz[1] << "," << qhit.xyz[2] << ")" << std::endl;
 	
 	// clean up the hits
-	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() )
+	if ( qhit.tick<src_meta.min_y() || qhit.tick>src_meta.max_y() ) {
+	  n_outsidetickrange++;
 	  continue;
+	}
 
 	bool isok = true;
 	for (int i=0; i<3; i++) {
-	  if ( std::isnan(qhit.xyz[i]) )
+	  if ( std::isnan(qhit.xyz[i]) ) {
 	    isok = false;
+	    n_nan++;
+	  }
 	}
-	if ( qhit.xyz[1]<-118.0 || qhit.xyz[1]>118 ) isok = false;
-	if ( qhit.xyz[2]<0 || qhit.xyz[2]>1050 ) isok = false;
+	if ( qhit.xyz[1]<-118.0 || qhit.xyz[1]>118 ) {
+	  isok = false;
+	  n_outtpc++;
+	  std::cout << "outtpc qhit: (" << qhit.tick << "," << qhit.xyz[0] << "," << qhit.xyz[1] << "," << qhit.xyz[2] << ")" << std::endl;
+	}
+	else if ( qhit.xyz[2]<0 || qhit.xyz[2]>1050 ) {
+	  isok = false;
+	  n_outtpc++;
+	  std::cout << "outtpc qhit: (" << qhit.tick << "," << qhit.xyz[0] << "," << qhit.xyz[1] << "," << qhit.xyz[2] << ")" << std::endl;
+	}
+
 	if ( std::isnan(qhit.tick) || qhit.tick<0 )
 	  isok = false;
+	  
 	if (!isok )
 	  continue;
 
@@ -377,24 +395,24 @@ namespace larflow {
 	  if ( qhit.xyz[i] < qcluster.min_tyz[i] )
 	    qcluster.min_tyz[i] = qhit.xyz[i];
 	}
-
+	
 	int row = img_v[src_plane].meta().row( lfcluster[ihit].tick );
 	int col = img_v[src_plane].meta().col( lfcluster[ihit].srcwire );
 	qhit.pixeladc    = img_v[src_plane].pixel( row, col ); // hmm (non?)
 	qhit.fromplaneid = src_plane;
 	//std::cout << "debug: (r,c)=(" << row << "," << col << ") pixeladc=" << qhit.pixeladc << " fromplane=" << qhit.fromplaneid << std::endl;
-
+	
 	// mc track id
 	auto it=mctrackid_counts.find( lfcluster[ihit].trackid );
 	if ( it==mctrackid_counts.end() ) {
 	  mctrackid_counts[ lfcluster[ihit].trackid ] = 0;
 	}
 	mctrackid_counts[ lfcluster[ihit].trackid ] += 1;
-
+	
 	clusterpts.push_back( qhit.xyz );
 	qcluster.emplace_back( std::move(qhit) );
       }//end of hit loop
-
+	
       // assign mctrackid based on majority
       int maxcounts = 0;
       int maxid = -1;
@@ -408,6 +426,10 @@ namespace larflow {
       std::cout << "[LArFlowFlashMatch::buildInitialQClusters] qcluster[" << icluster <<  "] "
 		<< " mctrackid=" << maxid << " (n pts with ID=" << maxcounts << ") "
 		<< " numhits=" << qcluster.size()
+		<< std::endl;
+      std::cout << "  nan: " << n_nan
+		<< "  outtpc: " << n_outtpc 
+		<< "  outtick: " << n_outsidetickrange
 		<< std::endl;
       // Define the QClusterCore -- this tries to identify, using DBSCAN, a core cluster
       // Removes small, floating clusters (that come from truth clustering, probably less so for reco-clustering)

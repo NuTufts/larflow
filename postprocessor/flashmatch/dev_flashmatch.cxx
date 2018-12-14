@@ -151,6 +151,29 @@ int main( int nargs, char** argv ) {
     larcv::EventClusterMask* match_clustermask  = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "allflashmatched" );
     larcv::EventClusterMask* intime_clustermask = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "intimeflashmatched" );
 
+    // clean up clusters
+    // -----------------
+    int nclusters = ev_cluster->size();
+    larlite::event_larflowcluster filtered_cluster_v;
+    const larcv::ImageMeta& meta = ev_larcv->as_vector().at(2).meta();
+    for ( auto& cluster : *ev_cluster ) {
+      int ngood = 0;
+      for ( auto const& hit : cluster ) {
+	bool isok = true;
+	for (int i=0; i<3; i++) {
+	  if ( std::isnan(hit[i]) ) isok = false;
+	}
+	if ( hit[1]<-118.0 || hit[1]>118 )  isok = false;
+	else if ( hit[2]<0 || hit[2]>1050 ) isok = false;
+
+	if ( !meta.contains(hit.tick,hit.srcwire) ) isok = false;
+	
+	if (isok) ngood++;
+      }//end of cluster loop
+      if (ngood>5)
+	filtered_cluster_v.emplace_back( std::move(cluster) );
+    }
+    std::cout << "== [dev_flashmatch][INFO] filtered clusters " << filtered_cluster_v.size() << " out of " << nclusters << " ======" << std::endl;
     
     // prep algo
     algo.loadChStatus( ev_status );    
@@ -159,7 +182,7 @@ int main( int nargs, char** argv ) {
 
     algo.dumpPrefitImages(false);
     algo.dumpPostfitImages(false);
-    algo.match( *ev_opflash_beam, *ev_opflash_cosmic, *ev_cluster, ev_larcv->as_vector() );
+    algo.match( *ev_opflash_beam, *ev_opflash_cosmic, filtered_cluster_v, ev_larcv->as_vector() );
     std::cout << "== [dev_flashmatch][INFO] result run ==========" << std::endl;
 
     // save output products:
