@@ -6,10 +6,10 @@
 #mcinfofile=mcinfo-Run000001-SubRun002000.root
 
 folder=../../testdata/griddebug/
-clusterfile=truthcluster-larlite-Run000001-SubRun006914.root
-superafile=supera-larcv2-Run000001-SubRun006914.root
-larlitefile=opreco-Run000001-SubRun006914.root
-mcinfofile=reco2d-Run000001-SubRun006914.root
+clusterfile=truthcluster-larlite-Run000001-SubRun006867.root
+superafile=supera-larcv2-Run000001-SubRun006867.root
+larlitefile=opreco-Run000001-SubRun006867.root
+mcinfofile=reco2d-Run000001-SubRun006867.root
 
 lcvout=gridtest_larcv.root
 llout=gridtest_larlite.root
