@@ -6,7 +6,7 @@ R__ADD_INCLUDE_PATH($LARLITE_COREDIR)
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 
-void draw_geometry(std::string inputfile, int event)
+void draw_geometry(std::string inputfile, std::string tree,int event, bool userootfile)
 {
   
   TEveManager::Create();
@@ -14,9 +14,12 @@ void draw_geometry(std::string inputfile, int event)
    TRandom r(0);
 
    TFile::SetCacheFileDir(".");
-   //gGeoManager = gEve->GetGeometry("uboone_simplifiedCryo.root");
-   gGeoManager = gEve->GetGeometry("simplified_uboone.gdml");
-
+   if(userootfile){
+     gGeoManager = gEve->GetGeometry("uboone_simplifiedCryo.root");
+   }
+   else{
+     gGeoManager = gEve->GetGeometry("simplified_uboone.gdml");
+   }
    gGeoManager->DefaultColors();
    gGeoManager->GetVolume("volSteelVessel")->InvisibleAll();
    gGeoManager->GetVolume("volTPCActive")->SetTransparency(50);
@@ -33,7 +36,7 @@ void draw_geometry(std::string inputfile, int event)
    io.add_in_filename( inputfile );
    io.open();   
    io.go_to( event );
-   larlite::event_larflow3dhit& ev_hits = *((larlite::event_larflow3dhit*)io.get_data( larlite::data::kLArFlow3DHit, "flowhits" ));
+   larlite::event_larflow3dhit& ev_hits = *((larlite::event_larflow3dhit*)io.get_data( larlite::data::kLArFlow3DHit, tree ));
    
    Int_t npoints = ev_hits.size();
    TEveElement* parent= 0;

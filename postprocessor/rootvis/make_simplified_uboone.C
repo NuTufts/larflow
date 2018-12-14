@@ -1,8 +1,8 @@
 
-void make_simplified_uboone() {
+void make_simplified_uboone(bool use_gdml=false) {
   gSystem->Load("libGeom");
-  gSystem->Load("libGdml");
-
+  if(use_gdml) gSystem->Load("libGdml");
+  
   new TGeoManager("cryo", "cryostat");
 
   //TGeoElementTable *table = gGeoManager->GetElementTable();
@@ -231,7 +231,6 @@ void make_simplified_uboone() {
 
   TGeoCompositeShape *CryostatUnion1 = new TGeoCompositeShape("CryostatUnion1","CryostatTube + (CryostatEnd:posEndCap1)");
   TGeoCompositeShape *Cryostat       = new TGeoCompositeShape("Cryostat","(CryostatUnion1) + (CryostatEnd:rotEndCap2)");
-  TGeoCompositeShape *CryoShift      = new TGeoCompositeShape("CryoShift","(Cryostat:posCenter)");
   TGeoCompositeShape *SteelVesselUnion1 = new TGeoCompositeShape("SteelVesselUnion1","SteelTube + (EndCap:posEndCap1)");
   TGeoCompositeShape *SteelVessel       = new TGeoCompositeShape("SteelVessel","(SteelVesselUnion1) + (EndCap:rotEndCap2)");
   
@@ -301,8 +300,7 @@ void make_simplified_uboone() {
 
   /*** Define volumes ***/
   // cryostat is top volume
-  //TGeoVolume *top = new TGeoVolume("volCryostat", Cryostat, mLAr );
-  TGeoVolume *top = new TGeoVolume("volCryostat", CryoShift, mLAr ); 
+  TGeoVolume *top = new TGeoVolume("volCryostat", Cryostat, mLAr );
   gGeoManager->SetTopVolume( top );
   TGeoVolume *volSteelVessel = new TGeoVolume("volSteelVessel",SteelVessel,mST);
   TGeoVolume *volTPC = new TGeoVolume("volTPC",b5,mLAr );
@@ -388,11 +386,11 @@ void make_simplified_uboone() {
   gGeoManager->SetTopVisible();
   top->Draw("ogle");
 
-  TFile *tf = new TFile("testtest.root", "RECREATE"); 
+  TFile *tf = new TFile("uboone_simplifiedCryo.root", "RECREATE"); 
   gGeoManager->Write();
   tf->Close();
 
-  //gGeoManager->Export("simplified_uboone.gdml");
+  if(use_gdml) gGeoManager->Export("simplified_uboone.gdml");
 }
        /*     
         <volumeref ref="volaTopCross"/>
