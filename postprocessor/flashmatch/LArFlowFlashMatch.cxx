@@ -111,6 +111,7 @@ namespace larflow {
     clearFlashData();
     clearFitter();
     clearAnaVariables();
+    clearFinalClusters();    
     _evstatus = nullptr;
     _has_chstatus = false;
   }

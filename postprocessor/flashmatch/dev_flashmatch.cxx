@@ -158,7 +158,7 @@ int main( int nargs, char** argv ) {
 
       char branchname2[100];
       sprintf( branchname2, "intimeflashmatchedp%d", (int)p );
-      match_clustermask[p] = (larlite::event_pixelmask*) outlarlite.get_data( larlite::data::kPixelMask, branchname2 );
+      intime_clustermask[p] = (larlite::event_pixelmask*) outlarlite.get_data( larlite::data::kPixelMask, branchname2 );
     }
 
     // clean up clusters
