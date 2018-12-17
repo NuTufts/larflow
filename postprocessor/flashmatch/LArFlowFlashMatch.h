@@ -13,6 +13,7 @@
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
 #include "DataFormat/pcaxis.h"
+#include "DataFormat/pixelmask.h"
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
@@ -313,9 +314,11 @@ namespace larflow {
     // -----------------------------------
   public:
     std::vector<larlite::larflowcluster>            _intime_lfcluster_v;
-    std::vector< std::vector<larcv::ClusterMask> >  _intime_clustermask_v;
+    //std::vector< std::vector<larcv::ClusterMask> >  _intime_clustermask_v;
+    std::vector< std::vector<larlite::pixelmask> >  _intime_clustermask_v;
     std::vector<larlite::larflowcluster>            _final_lfcluster_v;
-    std::vector< std::vector<larcv::ClusterMask> >  _final_clustermask_v;
+    //std::vector< std::vector<larcv::ClusterMask> >  _final_clustermask_v;
+    std::vector< std::vector<larlite::pixelmask> >  _final_clustermask_v;
   protected:
     void buildFinalClusters( LassoFlashMatch::Result_t& fitresult, const std::vector<larcv::Image2D>& img_v );
     void clearFinalClusters();

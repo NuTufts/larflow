@@ -2446,7 +2446,7 @@ namespace larflow {
     
     // last -- make corresponding cluster mask objects!
     std::vector< larlite::larflowcluster>* pfinalclusters[2]         = { &_final_lfcluster_v,   &_intime_lfcluster_v };
-    std::vector< std::vector<larcv::ClusterMask> >* pfinalmasks[2] = { &_final_clustermask_v, &_intime_clustermask_v };
+    std::vector< std::vector<larlite::pixelmask> >* pfinalmasks[2] = { &_final_clustermask_v, &_intime_clustermask_v };
     for ( size_t i=0; i<2; i++ ) {
       for ( auto const& lfcluster : *pfinalclusters[i] ) {
 
@@ -2455,59 +2455,69 @@ namespace larflow {
 	  continue;
 	}
 	
-	std::vector<larcv::Point2D> ptU_v;
-	std::vector<larcv::Point2D> ptY_v;	
-	std::vector<larcv::Point2D> ptV_v;    
+	std::vector< std::vector<float> > ptU_v;
+	std::vector< std::vector<float> > ptY_v;	
+	std::vector< std::vector<float> > ptV_v;    
 	ptU_v.reserve( lfcluster.size() );
 	ptV_v.reserve( lfcluster.size() );
 	ptY_v.reserve( lfcluster.size() );
 	
-	float bb_wiremin[3] = {5000,5000,5000};
-	float bb_wiremax[3] = {0,0,0};
-	float bb_tickmin[3] = {10000,10000,10000};
-	float bb_tickmax[3] = {0,0,0};
+	// float bb_wiremin[3] = {5000,5000,5000};
+	// float bb_wiremax[3] = {0,0,0};
+	// float bb_tickmin[3] = {10000,10000,10000};
+	// float bb_tickmax[3] = {0,0,0};
 
 	for ( auto const& hit : lfcluster ) {
 
 	  if ( hit.srcwire>=0 && hit.targetwire.size()==2 ) {
-	    larcv::Point2D ptY( hit.srcwire, img_v[2].meta().row(hit.tick) );
-	    ptY_v.emplace_back( std::move(ptY) );
-	    bb_tickmin[2] = ( bb_tickmin[2]>hit.tick ) ? hit.tick : bb_tickmin[2];
-	    bb_tickmax[2] = ( bb_tickmax[2]<hit.tick ) ? hit.tick : bb_tickmax[2];	
-	    bb_wiremin[2] = ( bb_wiremin[2]>hit.srcwire ) ? hit.srcwire : bb_wiremin[2];
-	    bb_wiremax[2] = ( bb_wiremax[2]<hit.srcwire ) ? hit.srcwire : bb_wiremax[2];	
+	    //larcv::Point2D ptY( hit.srcwire, img_v[2].meta().row(hit.tick) );
+	    //ptY_v.emplace_back( std::move(ptY) );
+	    // bb_tickmin[2] = ( bb_tickmin[2]>hit.tick ) ? hit.tick : bb_tickmin[2];
+	    // bb_tickmax[2] = ( bb_tickmax[2]<hit.tick ) ? hit.tick : bb_tickmax[2];	
+	    // bb_wiremin[2] = ( bb_wiremin[2]>hit.srcwire ) ? hit.srcwire : bb_wiremin[2];
+	    // bb_wiremax[2] = ( bb_wiremax[2]<hit.srcwire ) ? hit.srcwire : bb_wiremax[2];
+	    std::vector<float> ptY = { (float)hit.srcwire, (float)hit.tick };
+	    ptY_v.push_back( ptY );
 
-	    larcv::Point2D ptU( hit.targetwire[0], img_v[0].meta().row(hit.tick) );
-	    ptU_v.emplace_back( std::move(ptU) );
-	    bb_tickmin[0] = ( bb_tickmin[0]>hit.tick ) ? hit.tick : bb_tickmin[0];
-	    bb_tickmax[0] = ( bb_tickmax[0]<hit.tick ) ? hit.tick : bb_tickmax[0];	
-	    bb_wiremin[0] = ( bb_wiremin[0]>hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremin[0];
-	    bb_wiremax[0] = ( bb_wiremax[0]<hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremax[0];		  
+	    // larcv::Point2D ptU( hit.targetwire[0], img_v[0].meta().row(hit.tick) );
+	    // ptU_v.emplace_back( std::move(ptU) );
+	    // bb_tickmin[0] = ( bb_tickmin[0]>hit.tick ) ? hit.tick : bb_tickmin[0];
+	    // bb_tickmax[0] = ( bb_tickmax[0]<hit.tick ) ? hit.tick : bb_tickmax[0];	
+	    // bb_wiremin[0] = ( bb_wiremin[0]>hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremin[0];
+	    // bb_wiremax[0] = ( bb_wiremax[0]<hit.targetwire[0] ) ? hit.targetwire[0] : bb_wiremax[0];
+	    std::vector<float> ptU = { (float)hit.targetwire[0], (float)hit.tick };
+	    ptU_v.push_back( ptU );
 
 
-	    larcv::Point2D ptV( hit.targetwire[1], img_v[1].meta().row(hit.tick) );
-	    ptV_v.emplace_back( std::move(ptV) );
-	    bb_tickmin[1] = ( bb_tickmin[1]>hit.tick ) ? hit.tick : bb_tickmin[1];
-	    bb_tickmax[1] = ( bb_tickmax[1]<hit.tick ) ? hit.tick : bb_tickmax[1];	
-	    bb_wiremin[1] = ( bb_wiremin[1]>hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremin[1];
-	    bb_wiremax[1] = ( bb_wiremax[1]<hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremax[1];		  	  
+	    // larcv::Point2D ptV( hit.targetwire[1], img_v[1].meta().row(hit.tick) );
+	    // ptV_v.emplace_back( std::move(ptV) );
+	    // bb_tickmin[1] = ( bb_tickmin[1]>hit.tick ) ? hit.tick : bb_tickmin[1];
+	    // bb_tickmax[1] = ( bb_tickmax[1]<hit.tick ) ? hit.tick : bb_tickmax[1];	
+	    // bb_wiremin[1] = ( bb_wiremin[1]>hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremin[1];
+	    // bb_wiremax[1] = ( bb_wiremax[1]<hit.targetwire[1] ) ? hit.targetwire[1] : bb_wiremax[1];		  	  
+	    std::vector<float> ptV = { (float)hit.targetwire[1], (float)hit.tick };
+	    ptV_v.push_back( ptV );
 	    
 	  }
 	}
 
-	for ( size_t p=0; p<3; p++ ) {
-	  std::cout << "[LArFlowFlashMatch::buildFinalClusters] bbox plane " << p << " "
-		    << "(" << bb_wiremin[p] << "," << bb_tickmin[p] << "," << bb_wiremax[p] << "," << bb_tickmax[p] << ")" << std::endl;
-	}
+	// for ( size_t p=0; p<3; p++ ) {
+	//   std::cout << "[LArFlowFlashMatch::buildFinalClusters] bbox plane " << p << " "
+	// 	    << "(" << bb_wiremin[p] << "," << bb_tickmin[p] << "," << bb_wiremax[p] << "," << bb_tickmax[p] << ")" << std::endl;
+	// }
 	
-	std::vector< larcv::ClusterMask > planemasks_v;
-	std::vector<larcv::Point2D>* pPts_v[3] = { &ptU_v, &ptV_v, &ptY_v };
+	std::vector< larlite::pixelmask > planemasks_v;
+	std::vector< std::vector<float> >* pPts_v[3] = { &ptU_v, &ptV_v, &ptY_v };
 	for ( size_t p=0; p<3; p++ ) {
 	  //larcv::ImageMeta meta( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p],
 	  //abs( (bb_tickmax[p]-bb_tickmin[p])/6.0 ), abs( bb_wiremax[p]-bb_wiremin[p] ),
 	  //(larcv::ProjectionID_t)p );
-	  larcv::BBox2D  bbox( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p], (larcv::ProjectionID_t)p );
-	  larcv::ClusterMask mask( bbox, img_v[p].meta(), *pPts_v[p], 0 );
+	  //larcv::BBox2D  bbox( bb_wiremin[p], bb_tickmin[p], bb_wiremax[p], bb_tickmax[p], (larcv::ProjectionID_t)p );
+	  //larcv::ClusterMask mask( bbox, img_v[p].meta(), *pPts_v[p], 0 );
+	  larlite::pixelmask mask( 0, *pPts_v[p],
+				   img_v[p].meta().min_x(), img_v[p].meta().min_y(), img_v[p].meta().max_x(), img_v[p].meta().max_y(),
+				   img_v[p].meta().cols(), img_v[p].meta().rows() );
+	  
 	  planemasks_v.emplace_back( std::move(mask) );
 	}
 	pfinalmasks[i]->emplace_back( std::move(planemasks_v) );

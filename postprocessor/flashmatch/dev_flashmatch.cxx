@@ -8,6 +8,7 @@
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
+#include "DataFormat/pixelmask.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -148,8 +149,17 @@ int main( int nargs, char** argv ) {
     larlite::event_larflowcluster* match_lfcluster  = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "allflashmatched" );
     larlite::event_larflowcluster* intime_lfcluster = (larlite::event_larflowcluster*) outlarlite.get_data( larlite::data::kLArFlowCluster, "intimeflashmatched" );
 
-    larcv::EventClusterMask* match_clustermask  = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "allflashmatched" );
-    larcv::EventClusterMask* intime_clustermask = (larcv::EventClusterMask*) outlarcv.get_data( "clustermask", "intimeflashmatched" );
+    larlite::event_pixelmask* match_clustermask[3]  = { nullptr, nullptr, nullptr };
+    larlite::event_pixelmask* intime_clustermask[3] = { nullptr, nullptr, nullptr };
+    for ( size_t p=0; p<3; p++ ) {
+      char branchname1[100];
+      sprintf( branchname1, "allflashmatchedp%d", (int)p );
+      match_clustermask[p] = (larlite::event_pixelmask*) outlarlite.get_data( larlite::data::kPixelMask, branchname1 );
+
+      char branchname2[100];
+      sprintf( branchname2, "intimeflashmatchedp%d", (int)p );
+      match_clustermask[p] = (larlite::event_pixelmask*) outlarlite.get_data( larlite::data::kPixelMask, branchname2 );
+    }
 
     // clean up clusters
     // -----------------
@@ -189,16 +199,22 @@ int main( int nargs, char** argv ) {
     //  larflowclusters and clustermasks
     // ------------------------------------------
 
-    for ( auto& lfcluster : algo._final_lfcluster_v )
+    for ( auto& lfcluster : algo._final_lfcluster_v ) {
       match_lfcluster->emplace_back( std::move(lfcluster) );
-    for ( auto& lfcluster : algo._intime_lfcluster_v )
+    }
+    for ( auto& lfcluster : algo._intime_lfcluster_v ) {
       intime_lfcluster->emplace_back( std::move(lfcluster) );
-
-    for ( auto& mask_v : algo._final_clustermask_v )
-      match_clustermask->emplace( std::move( mask_v ) );
-    for ( auto& mask_v : algo._intime_clustermask_v )
-      intime_clustermask->emplace( std::move(mask_v) );
-        
+    }
+    
+    for ( auto& mask_v : algo._final_clustermask_v ) {
+      for ( size_t p=0; p<mask_v.size(); p++ )
+	match_clustermask[p]->emplace_back( std::move( mask_v[p]) );
+    }
+    for ( auto& mask_v : algo._intime_clustermask_v ) {
+      for ( size_t p=0; p<mask_v.size(); p++ )
+	intime_clustermask[p]->emplace_back( std::move(mask_v[p]) );
+    }
+    
     outlarlite.set_id( io.run_id(), io.subrun_id(), io.event_id() );
     outlarcv.set_id( io.run_id(), io.subrun_id(), io.event_id() );
 
