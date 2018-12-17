@@ -1,0 +1,561 @@
+<?xml version="1.0"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <position name="volSteelVessel_0involCryostatpos" x="0" y="0" z="0" unit="cm"/>
+    <position name="volCathodePlate_1involTPCpos" x="127.45" y="0" z="0" unit="cm"/>
+    <position name="volTPCActive_2involTPCpos" x="-1.55" y="0" z="0" unit="cm"/>
+    <position name="volTPC_1involCryostatpos" x="0" y="0.96999999999999997" z="0" unit="cm"/>
+    <position name="volFrame_38involCryostatpos" x="-136" y="0" z="0" unit="cm"/>
+    <position name="volOpDetSensitive_1involPMTpos" x="0" y="0" z="13.869999999999999" unit="cm"/>
+    <position name="vol_PMT_AcrylicPlate_2involPMTpos" x="0" y="0" z="13.67" unit="cm"/>
+    <position name="vol_PMT_Stalk_3involPMTpos" x="0" y="0" z="-6.3499999999999996" unit="cm"/>
+    <position name="vol_PMT_SteelBase_4involPMTpos" x="0" y="0" z="-12.065" unit="cm"/>
+    <position name="vol_PMT_Lens_5involPMTpos" x="0" y="0" z="3.8100000000000001" unit="cm"/>
+    <position name="vol_PMT_Underside_6involPMTpos" x="0" y="0" z="3.8100000000000001" unit="cm"/>
+    <position name="volPMT_2involCryostatpos" x="-155.5865" y="55.249000000000002" z="-430.79349999999999" unit="cm"/>
+    <rotation name="volPMT_2involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_3involCryostatpos" x="-155.44149999999999" y="55.249000000000002" z="-390.14550000000003" unit="cm"/>
+    <rotation name="volPMT_3involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_4involCryostatpos" x="-155.4795" y="27.431000000000001" z="-467.39850000000001" unit="cm"/>
+    <rotation name="volPMT_4involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_5involCryostatpos" x="-155.48650000000001" y="-0.30299999999999999" z="-344.75650000000002" unit="cm"/>
+    <rotation name="volPMT_5involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_6involCryostatpos" x="-155.19749999999999" y="-28.576000000000001" z="-468.02550000000002" unit="cm"/>
+    <rotation name="volPMT_6involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_7involCryostatpos" x="-155.2825" y="-56.615000000000002" z="-430.63049999999998" unit="cm"/>
+    <rotation name="volPMT_7involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_8involCryostatpos" x="-155.32339999999999" y="-56.203000000000003" z="-390.32049999999998" unit="cm"/>
+    <rotation name="volPMT_8involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_9involCryostatpos" x="-155.46250000000001" y="54.646000000000001" z="-230.52350000000001" unit="cm"/>
+    <rotation name="volPMT_9involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_10involCryostatpos" x="-155.23150000000001" y="54.692999999999998" z="-190.28749999999999" unit="cm"/>
+    <rotation name="volPMT_10involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_11involCryostatpos" x="-155.19550000000001" y="-0.82899999999999996" z="-276.4855" unit="cm"/>
+    <rotation name="volPMT_11involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_12involCryostatpos" x="-155.13050000000001" y="-0.70599999999999996" z="-144.66149999999999" unit="cm"/>
+    <rotation name="volPMT_12involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_13involCryostatpos" x="-155.05250000000001" y="-56.261000000000003" z="-230.8605" unit="cm"/>
+    <rotation name="volPMT_13involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_14involCryostatpos" x="-154.6935" y="-57.021999999999998" z="-190.15950000000001" unit="cm"/>
+    <rotation name="volPMT_14involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_15involCryostatpos" x="-155.02850000000001" y="55.771000000000001" z="-18.366499999999998" unit="cm"/>
+    <rotation name="volPMT_15involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_16involCryostatpos" x="-154.91849999999999" y="55.822000000000003" z="22.429500000000001" unit="cm"/>
+    <rotation name="volPMT_16involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_17involCryostatpos" x="-154.6635" y="-0.875" z="-65.404499999999999" unit="cm"/>
+    <rotation name="volPMT_17involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_18involCryostatpos" x="-154.69649999999999" y="-0.54900000000000004" z="66.784499999999994" unit="cm"/>
+    <rotation name="volPMT_18involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_19involCryostatpos" x="-154.6395" y="-56.323" z="-18.279499999999999" unit="cm"/>
+    <rotation name="volPMT_19involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_20involCryostatpos" x="-154.66550000000001" y="-56.204999999999998" z="22.116499999999998" unit="cm"/>
+    <rotation name="volPMT_20involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_21involCryostatpos" x="-154.70650000000001" y="55.799999999999997" z="192.5735" unit="cm"/>
+    <rotation name="volPMT_21involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_22involCryostatpos" x="-154.5855" y="55.625" z="233.3835" unit="cm"/>
+    <rotation name="volPMT_22involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_23involCryostatpos" x="-154.6695" y="-0.050999999999999997" z="145.70349999999999" unit="cm"/>
+    <rotation name="volPMT_23involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_24involCryostatpos" x="-154.34950000000001" y="-0.502" z="277.70850000000002" unit="cm"/>
+    <rotation name="volPMT_24involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_25involCryostatpos" x="-154.6575" y="-56.408000000000001" z="192.77449999999999" unit="cm"/>
+    <rotation name="volPMT_25involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_26involCryostatpos" x="-154.64949999999999" y="-56.283999999999999" z="233.40549999999999" unit="cm"/>
+    <rotation name="volPMT_26involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_27involCryostatpos" x="-153.87950000000001" y="55.822000000000003" z="392.56549999999999" unit="cm"/>
+    <rotation name="volPMT_27involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_28involCryostatpos" x="-153.6865" y="55.313000000000002" z="433.36149999999998" unit="cm"/>
+    <rotation name="volPMT_28involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_29involCryostatpos" x="-153.46250000000001" y="27.606999999999999" z="471.2115" unit="cm"/>
+    <rotation name="volPMT_29involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_30involCryostatpos" x="-154.22149999999999" y="-0.72199999999999998" z="347.0985" unit="cm"/>
+    <rotation name="volPMT_30involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_31involCryostatpos" x="-153.49950000000001" y="-28.625" z="471.85550000000001" unit="cm"/>
+    <rotation name="volPMT_31involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_32involCryostatpos" x="-154.1035" y="-56.308999999999997" z="393.43950000000001" unit="cm"/>
+    <rotation name="volPMT_32involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPMT_33involCryostatpos" x="-153.82050000000001" y="-56.514000000000003" z="433.36450000000002" unit="cm"/>
+    <rotation name="volPMT_33involCryostatrot" x="-90" y="-90" z="0" unit="deg"/>
+    <position name="volPaddle_PMT_34involCryostatpos" x="-161.34100000000001" y="-2.8010000000000002" z="-252.2715" unit="cm"/>
+    <position name="volPaddle_PMT_35involCryostatpos" x="-160.858" y="-2.5939999999999999" z="-40.9315" unit="cm"/>
+    <position name="volPaddle_PMT_36involCryostatpos" x="-160.88200000000001" y="-2.7000000000000002" z="43.900500000000001" unit="cm"/>
+    <position name="volPaddle_PMT_37involCryostatpos" x="-160.654" y="-2.355" z="255.14250000000001" unit="cm"/>
+  </define>
+  <materials>
+    <material name="Vacuum" Z="1">
+      <D unit="g/cm3" value="1e-25"/>
+      <atom unit="g/mole" value="1.0079"/>
+    </material>
+    <element name="ALUMINIUM_elm" formula="AL" Z="13">
+      <atom unit="g/mole" value="26.981538"/>
+    </element>
+    <material name="ALUMINIUM_Al">
+      <D unit="g/cm3" value="2.6989999999999998"/>
+      <fraction n="1" ref="ALUMINIUM_elm"/>
+    </material>
+    <element name="SILICON_elm" formula="SI" Z="14">
+      <atom unit="g/mole" value="28.0855"/>
+    </element>
+    <material name="SILICON_Si">
+      <D unit="g/cm3" value="2.3300000000000001"/>
+      <fraction n="1" ref="SILICON_elm"/>
+    </material>
+    <element name="OXYGEN_elm" formula="O" Z="8">
+      <atom unit="g/mole" value="15.9994"/>
+    </element>
+    <material name="SiO2">
+      <D unit="g/cm3" value="2.2000000000000002"/>
+      <fraction n="0.53256505727767944" ref="OXYGEN_elm"/>
+      <fraction n="0.46743491291999817" ref="SILICON_elm"/>
+    </material>
+    <element name="CALCIUM_elm" formula="CA" Z="20">
+      <atom unit="g/mole" value="40.078000000000003"/>
+    </element>
+    <element name="IRON_elm" formula="FE" Z="26">
+      <atom unit="g/mole" value="55.844999999999999"/>
+    </element>
+    <element name="MAGNESIUM_elm" formula="MG" Z="12">
+      <atom unit="g/mole" value="24.305"/>
+    </element>
+    <element name="SODIUM_elm" formula="NA" Z="11">
+      <atom unit="g/mole" value="22.98977"/>
+    </element>
+    <element name="TITANIUM_elm" formula="TI" Z="22">
+      <atom unit="g/mole" value="47.866999999999997"/>
+    </element>
+    <material name="fibrous_glass">
+      <D unit="g/cm3" value="2.7435100000000001"/>
+      <fraction n="0.061999998986721039" ref="ALUMINIUM_elm"/>
+      <fraction n="0.15999999642372131" ref="CALCIUM_elm"/>
+      <fraction n="0.0010000000474974513" ref="IRON_elm"/>
+      <fraction n="0.020999999716877937" ref="MAGNESIUM_elm"/>
+      <fraction n="0.460999995470047" ref="OXYGEN_elm"/>
+      <fraction n="0.2800000011920929" ref="SILICON_elm"/>
+      <fraction n="0.0070000002160668373" ref="SODIUM_elm"/>
+      <fraction n="0.0080000003799796104" ref="TITANIUM_elm"/>
+    </material>
+    <element name="CARBON_elm" formula="C" Z="6">
+      <atom unit="g/mole" value="12.0107"/>
+    </element>
+    <element name="CHROMIUM_elm" formula="CR" Z="24">
+      <atom unit="g/mole" value="51.996099999999998"/>
+    </element>
+    <element name="NICKEL_elm" formula="NI" Z="28">
+      <atom unit="g/mole" value="58.693399999999997"/>
+    </element>
+    <material name="STEEL_STAINLESS_Fe7Cr2Ni">
+      <D unit="g/cm3" value="7.9299999999999997"/>
+      <fraction n="0.0010000000474974513" ref="CARBON_elm"/>
+      <fraction n="0.17900000512599945" ref="CHROMIUM_elm"/>
+      <fraction n="0.73000001907348633" ref="IRON_elm"/>
+      <fraction n="0.090000003576278687" ref="NICKEL_elm"/>
+    </material>
+    <element name="ARGON_elm" formula="AR" Z="18">
+      <atom unit="g/mole" value="39.948"/>
+    </element>
+    <material name="LAr">
+      <D unit="g/cm3" value="1.3999999999999999"/>
+      <fraction n="1" ref="ARGON_elm"/>
+    </material>
+    <element name="NITROGEN_elm" formula="N" Z="7">
+      <atom unit="g/mole" value="14.006740000000001"/>
+    </element>
+    <material name="Air">
+      <D unit="g/cm3" value="0.0012049999999999999"/>
+      <fraction n="0.008999999612569809" ref="ARGON_elm"/>
+      <fraction n="0.78100001811981201" ref="NITROGEN_elm"/>
+      <fraction n="0.20900000631809235" ref="OXYGEN_elm"/>
+    </material>
+    <element name="HYDROGEN_elm" formula="H" Z="1">
+      <atom unit="g/mole" value="1.0079400000000001"/>
+    </element>
+    <material name="Water">
+      <D unit="g/cm3" value="1"/>
+      <fraction n="0.1120000034570694" ref="HYDROGEN_elm"/>
+      <fraction n="0.8880000114440918" ref="OXYGEN_elm"/>
+    </material>
+    <material name="Titanium">
+      <D unit="g/cm3" value="4.5060000000000002"/>
+      <fraction n="1" ref="TITANIUM_elm"/>
+    </material>
+    <material name="TPB">
+      <D unit="g/cm3" value="1.3999999999999999"/>
+      <fraction n="1" ref="ARGON_elm"/>
+    </material>
+    <material name="Glass">
+      <D unit="g/cm3" value="2.7435100000000001"/>
+      <fraction n="0.061999998986721039" ref="ALUMINIUM_elm"/>
+      <fraction n="0.15999999642372131" ref="CALCIUM_elm"/>
+      <fraction n="0.0010000000474974513" ref="IRON_elm"/>
+      <fraction n="0.020999999716877937" ref="MAGNESIUM_elm"/>
+      <fraction n="0.460999995470047" ref="OXYGEN_elm"/>
+      <fraction n="0.2800000011920929" ref="SILICON_elm"/>
+      <fraction n="0.0070000002160668373" ref="SODIUM_elm"/>
+      <fraction n="0.0080000003799796104" ref="TITANIUM_elm"/>
+    </material>
+    <material name="Acrylic">
+      <D unit="g/cm3" value="1.1899999999999999"/>
+      <fraction n="0.60000002384185791" ref="CARBON_elm"/>
+      <fraction n="0.80000001192092896" ref="HYDROGEN_elm"/>
+      <fraction n="0.31999999284744263" ref="OXYGEN_elm"/>
+    </material>
+    <material name="Polystyrene">
+      <D unit="g/cm3" value="1.0600000000000001"/>
+      <fraction n="0.92299997806549072" ref="CARBON_elm"/>
+      <fraction n="0.076999999582767487" ref="HYDROGEN_elm"/>
+    </material>
+    <material name="G10">
+      <D unit="g/cm3" value="1.7"/>
+      <fraction n="0.29899999499320984" ref="CARBON_elm"/>
+      <fraction n="0.02500000037252903" ref="HYDROGEN_elm"/>
+      <fraction n="0.39500001072883606" ref="OXYGEN_elm"/>
+      <fraction n="0.28099998831748962" ref="SILICON_elm"/>
+    </material>
+  </materials>
+  <solids>
+    <tube name="CryostatTube" rmin="0" rmax="191.61000000000001" z="1086.49" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <sphere name="CryostatEnd" rmin="0" rmax="305.25069000000002" startphi="0" deltaphi="360" starttheta="0" deltatheta="38.880000000000003" aunit="deg" lunit="cm"/>
+    <union name="CryostatUnion1">
+      <first ref="CryostatTube"/>
+      <second ref="CryostatEnd"/>
+      <position name="CryostatUnion1CryostatEndpos" x="0" y="0" z="305.62430000000001" unit="cm"/>
+    </union>
+    <union name="Cryostat">
+      <first ref="CryostatUnion1"/>
+      <second ref="CryostatEnd"/>
+      <position name="CryostatCryostatEndpos" x="0" y="0" z="-305.62430000000001" unit="cm"/>
+      <rotation name="CryostatCryostatEndrot" x="180" y="-0" z="0" unit="deg"/>
+    </union>
+    <tube name="SteelTube" rmin="190.5" rmax="191.60990000000001" z="1086.49" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <sphere name="EndCap" rmin="304.14069999999998" rmax="305.25069999999999" startphi="0" deltaphi="360" starttheta="0" deltatheta="38.880000000000003" aunit="deg" lunit="cm"/>
+    <union name="SteelVesselUnion1">
+      <first ref="SteelTube"/>
+      <second ref="EndCap"/>
+      <position name="SteelVesselUnion1EndCappos" x="0" y="0" z="305.62430000000001" unit="cm"/>
+    </union>
+    <union name="SteelVessel">
+      <first ref="SteelVesselUnion1"/>
+      <second ref="EndCap"/>
+      <position name="SteelVesselEndCappos" x="0" y="0" z="-305.62430000000001" unit="cm"/>
+      <rotation name="SteelVesselEndCaprot" x="180" y="-0" z="0" unit="deg"/>
+    </union>
+    <box name="TPC" x="260" y="256" z="1045" lunit="cm"/>
+    <box name="CathodePlate" x="0.10000000000000001" y="240" z="1042" lunit="cm"/>
+    <box name="TPCActive" x="256.35000000000002" y="233" z="1036.8" lunit="cm"/>
+    <box name="FrameA" x="11" y="254" z="1040" lunit="cm"/>
+    <box name="FrameB" x="11.1" y="218.44" z="1003.52" lunit="cm"/>
+    <subtraction name="Frame0">
+      <first ref="FrameA"/>
+      <second ref="FrameB"/>
+    </subtraction>
+    <box name="VertBar" x="6.3499999999999996" y="218.44" z="6.3499999999999996" lunit="cm"/>
+    <union name="Frame1">
+      <first ref="Frame0"/>
+      <second ref="VertBar"/>
+      <position name="Frame1VertBarpos" x="-5.5" y="0" z="-301.05000000000001" unit="cm"/>
+    </union>
+    <union name="Frame2">
+      <first ref="Frame1"/>
+      <second ref="VertBar"/>
+      <position name="Frame2VertBarpos" x="-5.5" y="0" z="-100.34999999999999" unit="cm"/>
+    </union>
+    <union name="Frame3">
+      <first ref="Frame2"/>
+      <second ref="VertBar"/>
+      <position name="Frame3VertBarpos" x="-5.5" y="0" z="100.34999999999999" unit="cm"/>
+    </union>
+    <union name="Frame4">
+      <first ref="Frame3"/>
+      <second ref="VertBar"/>
+      <position name="Frame4VertBarpos" x="-5.5" y="0" z="301.05000000000001" unit="cm"/>
+    </union>
+    <tube name="PMTVolume" rmin="0" rmax="15.494" z="28.199000000000002" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <tube name="PMT_AcrylicPlate" rmin="0" rmax="15.24" z="0.20000000000000001" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <tube name="PMT_Stalk" rmin="0" rmax="3.1749999999999998" z="7.6200000000000001" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <tube name="PMT_SteelBase" rmin="0" rmax="15.24" z="3.8100000000000001" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <tube name="PMT_Lens" rmin="0" rmax="10.16" z="6.3499999999999996" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <tube name="PMT_Underside" rmin="0" rmax="10.16" z="6.3499999999999996" startphi="0" deltaphi="360" aunit="deg" lunit="cm"/>
+    <box name="Paddle_PMT" x="0.3175" y="50.799999999999997" z="18.626667000000001" lunit="cm"/>
+  </solids>
+  <structure>
+    <volume name="volSteelVessel">
+      <materialref ref="STEEL_STAINLESS_Fe7Cr2Ni"/>
+      <solidref ref="SteelVessel"/>
+    </volume>
+    <volume name="volCathodePlate">
+      <materialref ref="STEEL_STAINLESS_Fe7Cr2Ni"/>
+      <solidref ref="CathodePlate"/>
+    </volume>
+    <volume name="volTPCActive">
+      <materialref ref="LAr"/>
+      <solidref ref="TPCActive"/>
+    </volume>
+    <volume name="volTPC">
+      <materialref ref="LAr"/>
+      <solidref ref="TPC"/>
+      <physvol name="volCathodePlate_1" copynumber="1">
+        <volumeref ref="volCathodePlate"/>
+        <positionref ref="volCathodePlate_1involTPCpos"/>
+      </physvol>
+      <physvol name="volTPCActive_2" copynumber="2">
+        <volumeref ref="volTPCActive"/>
+        <positionref ref="volTPCActive_2involTPCpos"/>
+      </physvol>
+    </volume>
+    <volume name="volFrame">
+      <materialref ref="STEEL_STAINLESS_Fe7Cr2Ni"/>
+      <solidref ref="Frame4"/>
+    </volume>
+    <volume name="volOpDetSensitive">
+      <materialref ref="LAr"/>
+      <solidref ref="PMT_AcrylicPlate"/>
+    </volume>
+    <volume name="vol_PMT_AcrylicPlate">
+      <materialref ref="LAr"/>
+      <solidref ref="PMT_AcrylicPlate"/>
+    </volume>
+    <volume name="vol_PMT_Stalk">
+      <materialref ref="Glass"/>
+      <solidref ref="PMT_Stalk"/>
+    </volume>
+    <volume name="vol_PMT_SteelBase">
+      <materialref ref="STEEL_STAINLESS_Fe7Cr2Ni"/>
+      <solidref ref="PMT_SteelBase"/>
+    </volume>
+    <volume name="vol_PMT_Lens">
+      <materialref ref="LAr"/>
+      <solidref ref="PMT_Lens"/>
+    </volume>
+    <volume name="vol_PMT_Underside">
+      <materialref ref="Glass"/>
+      <solidref ref="PMT_Underside"/>
+    </volume>
+    <volume name="volPMT">
+      <materialref ref="LAr"/>
+      <solidref ref="PMTVolume"/>
+      <physvol name="volOpDetSensitive_1" copynumber="1">
+        <volumeref ref="volOpDetSensitive"/>
+        <positionref ref="volOpDetSensitive_1involPMTpos"/>
+      </physvol>
+      <physvol name="vol_PMT_AcrylicPlate_2" copynumber="2">
+        <volumeref ref="vol_PMT_AcrylicPlate"/>
+        <positionref ref="vol_PMT_AcrylicPlate_2involPMTpos"/>
+      </physvol>
+      <physvol name="vol_PMT_Stalk_3" copynumber="3">
+        <volumeref ref="vol_PMT_Stalk"/>
+        <positionref ref="vol_PMT_Stalk_3involPMTpos"/>
+      </physvol>
+      <physvol name="vol_PMT_SteelBase_4" copynumber="4">
+        <volumeref ref="vol_PMT_SteelBase"/>
+        <positionref ref="vol_PMT_SteelBase_4involPMTpos"/>
+      </physvol>
+      <physvol name="vol_PMT_Lens_5" copynumber="5">
+        <volumeref ref="vol_PMT_Lens"/>
+        <positionref ref="vol_PMT_Lens_5involPMTpos"/>
+      </physvol>
+      <physvol name="vol_PMT_Underside_6" copynumber="6">
+        <volumeref ref="vol_PMT_Underside"/>
+        <positionref ref="vol_PMT_Underside_6involPMTpos"/>
+      </physvol>
+    </volume>
+    <volume name="volPaddle_PMT">
+      <materialref ref="Acrylic"/>
+      <solidref ref="Paddle_PMT"/>
+    </volume>
+    <volume name="volCryostat">
+      <materialref ref="LAr"/>
+      <solidref ref="Cryostat"/>
+      <physvol name="volSteelVessel_0" copynumber="0">
+        <volumeref ref="volSteelVessel"/>
+        <positionref ref="volSteelVessel_0involCryostatpos"/>
+      </physvol>
+      <physvol name="volTPC_1" copynumber="1">
+        <volumeref ref="volTPC"/>
+        <positionref ref="volTPC_1involCryostatpos"/>
+      </physvol>
+      <physvol name="volFrame_38" copynumber="38">
+        <volumeref ref="volFrame"/>
+        <positionref ref="volFrame_38involCryostatpos"/>
+      </physvol>
+      <physvol name="volPMT_2" copynumber="2">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_2involCryostatpos"/>
+        <rotationref ref="volPMT_2involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_3" copynumber="3">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_3involCryostatpos"/>
+        <rotationref ref="volPMT_3involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_4" copynumber="4">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_4involCryostatpos"/>
+        <rotationref ref="volPMT_4involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_5" copynumber="5">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_5involCryostatpos"/>
+        <rotationref ref="volPMT_5involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_6" copynumber="6">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_6involCryostatpos"/>
+        <rotationref ref="volPMT_6involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_7" copynumber="7">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_7involCryostatpos"/>
+        <rotationref ref="volPMT_7involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_8" copynumber="8">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_8involCryostatpos"/>
+        <rotationref ref="volPMT_8involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_9" copynumber="9">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_9involCryostatpos"/>
+        <rotationref ref="volPMT_9involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_10" copynumber="10">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_10involCryostatpos"/>
+        <rotationref ref="volPMT_10involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_11" copynumber="11">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_11involCryostatpos"/>
+        <rotationref ref="volPMT_11involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_12" copynumber="12">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_12involCryostatpos"/>
+        <rotationref ref="volPMT_12involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_13" copynumber="13">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_13involCryostatpos"/>
+        <rotationref ref="volPMT_13involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_14" copynumber="14">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_14involCryostatpos"/>
+        <rotationref ref="volPMT_14involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_15" copynumber="15">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_15involCryostatpos"/>
+        <rotationref ref="volPMT_15involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_16" copynumber="16">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_16involCryostatpos"/>
+        <rotationref ref="volPMT_16involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_17" copynumber="17">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_17involCryostatpos"/>
+        <rotationref ref="volPMT_17involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_18" copynumber="18">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_18involCryostatpos"/>
+        <rotationref ref="volPMT_18involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_19" copynumber="19">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_19involCryostatpos"/>
+        <rotationref ref="volPMT_19involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_20" copynumber="20">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_20involCryostatpos"/>
+        <rotationref ref="volPMT_20involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_21" copynumber="21">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_21involCryostatpos"/>
+        <rotationref ref="volPMT_21involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_22" copynumber="22">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_22involCryostatpos"/>
+        <rotationref ref="volPMT_22involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_23" copynumber="23">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_23involCryostatpos"/>
+        <rotationref ref="volPMT_23involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_24" copynumber="24">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_24involCryostatpos"/>
+        <rotationref ref="volPMT_24involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_25" copynumber="25">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_25involCryostatpos"/>
+        <rotationref ref="volPMT_25involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_26" copynumber="26">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_26involCryostatpos"/>
+        <rotationref ref="volPMT_26involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_27" copynumber="27">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_27involCryostatpos"/>
+        <rotationref ref="volPMT_27involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_28" copynumber="28">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_28involCryostatpos"/>
+        <rotationref ref="volPMT_28involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_29" copynumber="29">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_29involCryostatpos"/>
+        <rotationref ref="volPMT_29involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_30" copynumber="30">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_30involCryostatpos"/>
+        <rotationref ref="volPMT_30involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_31" copynumber="31">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_31involCryostatpos"/>
+        <rotationref ref="volPMT_31involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_32" copynumber="32">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_32involCryostatpos"/>
+        <rotationref ref="volPMT_32involCryostatrot"/>
+      </physvol>
+      <physvol name="volPMT_33" copynumber="33">
+        <volumeref ref="volPMT"/>
+        <positionref ref="volPMT_33involCryostatpos"/>
+        <rotationref ref="volPMT_33involCryostatrot"/>
+      </physvol>
+      <physvol name="volPaddle_PMT_34" copynumber="34">
+        <volumeref ref="volPaddle_PMT"/>
+        <positionref ref="volPaddle_PMT_34involCryostatpos"/>
+      </physvol>
+      <physvol name="volPaddle_PMT_35" copynumber="35">
+        <volumeref ref="volPaddle_PMT"/>
+        <positionref ref="volPaddle_PMT_35involCryostatpos"/>
+      </physvol>
+      <physvol name="volPaddle_PMT_36" copynumber="36">
+        <volumeref ref="volPaddle_PMT"/>
+        <positionref ref="volPaddle_PMT_36involCryostatpos"/>
+      </physvol>
+      <physvol name="volPaddle_PMT_37" copynumber="37">
+        <volumeref ref="volPaddle_PMT"/>
+        <positionref ref="volPaddle_PMT_37involCryostatpos"/>
+      </physvol>
+    </volume>
+  </structure>
+  <setup name="default" version="1.0">
+    <world ref="volCryostat"/>
+  </setup>
+</gdml>
