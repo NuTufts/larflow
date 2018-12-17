@@ -710,7 +710,9 @@ namespace larflow {
 	    cutvar.enterlen += qpt.pixeladc;
 	}
 	
-	if ( cutvar.enterlen>_fMaxEnterExt ) {
+	// apply the cut -- but only for non in-time beam
+	// and avoid screwing up neutrino cluster selection
+	if ( !flash.intime && cutvar.enterlen>_fMaxEnterExt ) {
 	  cutvar.cutfailed = kEnterLength;
 	  setCompat(iflash,iq,kEnterLength);
 	}
