@@ -11,7 +11,10 @@
 // larcv2
 #include "larcv/core/DataFormat/ImageMeta.h"
 #include "larcv/app/UBWireTool/UBWireTool.h"
+#include "larcv/core/ROOTUtil/ROOTUtils.h"
 
+#include "TStyle.h"
+#include "TCanvas.h"
 #include "TH2D.h"
 
 namespace larflow {
@@ -108,7 +111,7 @@ namespace larflow {
     }
     
     if(runY2U){
-      std::cout << "Run Y2U Match" << std::endl;
+      //std::cout << "Run Y2U Match" << std::endl;
       _match( FlowContourMatch::kY2U,
 	     contour_data,
 	     src_adc,
@@ -120,7 +123,7 @@ namespace larflow {
       m_plhit2flowdata.ranY2U = true;
     }
     if(runY2V){
-      std::cout << "Run Y2V Match" << std::endl;
+      //std::cout << "Run Y2V Match" << std::endl;
       _match( FlowContourMatch::kY2V,
 	      contour_data,
 	      src_adc,
@@ -649,19 +652,77 @@ namespace larflow {
       throw std::runtime_error("[FlowContourMatch::mctrack_match_w_ancestor_img] No hit information filled yet");
     }
 
+    int nlabeled[2] = {0,0};
     for ( int iflow=0; iflow<2; iflow++) {
       if ( !pflowdata[iflow] ) continue;
       std::vector<HitFlowData_t>& flowdata = *(pflowdata[iflow]);
+
+      // ------------------------------------------------
+      // debug
+      // char hname[100];
+      // sprintf( hname, "ancestorlabel_flow%d", iflow );
+      // TH2D hancestor = larcv::as_th2d( adcimg_v[2], hname );
+      // hancestor.Reset();
+      // for ( size_t r=0; r<ancestor_v[2].meta().rows(); r++ ) {
+      // 	for ( size_t c=0; c<ancestor_v[2].meta().cols(); c++ ) {
+      // 	  if ( ancestor_v[2].pixel(r,c)>=0 )
+      // 	    hancestor.SetBinContent( c+1, r+1, 5 );
+      // 	}
+      // }
+      // ------------------------------------------------      
+
+      int maxcol = ancestor_v[2].meta().cols();
+      int maxrow = ancestor_v[2].meta().rows();
       
       for ( auto& hit : flowdata ) {
 	if ( hit.srcwire<0 || hit.pixtick<0 ) continue;
 	int col = ancestor_v[2].meta().col( hit.srcwire );
 	int row = ancestor_v[2].meta().row( hit.pixtick );
-	int mcid = ancestor_v[2].pixel( row, col );
-	float adc = adcimg_v[2].pixel( row, col );
-	hit.trackid = mcid;
+
+	// look in a neighborhood
+	float maxadc = -1;
+	int mcid_at_max = -1;
+	for ( int dc=-3; dc<=3; dc++ ) {
+	  int c=col+dc;
+	  if ( c<0 || c>=maxcol ) continue;
+	  for ( int dr=-10; dr<=10; dr++ ) {
+	    int r=row+dr;
+	    if ( r<0 || r>=maxrow ) continue;
+	    float adc = adcimg_v[2].pixel(r,c);
+	    int mcid  = ancestor_v[2].pixel(r,c);
+	    if ( adc>maxadc && mcid>=0 ) {
+	      maxadc = adc;
+	      mcid_at_max = mcid;
+	    }
+	  }
+	}
+	
+	hit.trackid = mcid_at_max;
+	if ( mcid_at_max>=0 ) {
+	  //hancestor.SetBinContent( col+1, row+1, 10 );
+	  nlabeled[iflow]++;
+	}
+	else {
+	  //hancestor.SetBinContent( col+1, row+1, -5 );	  
+	}
       }
+      std::cout << "[FlowContourMatch::label_mcid_w_ancestor_img] "
+		<< "Flow path " << iflow << " labeled hits=" << nlabeled[iflow]
+		<< " of " << flowdata.size() << " all hits"
+		<< std::endl;
+
+      // ---------------------------------
+      // debug
+      // gStyle->SetOptStat(0);
+      // TCanvas c("c","c",800,600);
+      // hancestor.Draw("colz");
+      // std::string canvname = std::string(hname)+".png";
+      // c.SaveAs( canvname.c_str() );
+      // std::cout << "[FlowContourMatch::label_mcid_w_ancestor_img] [DEBUG] save " << hname << std::endl;      
+      // ---------------------------------      
+
     }
+    
   }
   
   // =====================================================================
@@ -1959,23 +2020,23 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
 	
 	int row = img_v[2].meta().row( hit.tick );
 	int col = img_v[2].meta().col( hit.srcwire );
-	std::cout << "hit: src(" << row << "," << col << ")";
+	//std::cout << "hit: src(" << row << "," << col << ")";
 	
 	if ( hit.flowdir==larlite::larflow3dhit::kY2U )  {
 	  srcimg.set_pixel( row, col, hit.targetwire[0]-hit.srcwire );
 	  if ( img_v[0].meta().min_x()<=hit.targetwire[kY2U] && img_v[0].meta().max_x()>hit.targetwire[kY2U] ) {
 	    y2uimg.set_pixel( row, img_v[0].meta().col(hit.targetwire[0]), img_v[2].pixel(row,col) );
-	    std::cout << " target(" << row << "," << img_v[0].meta().col(hit.targetwire[0]) << ")";
+	    //std::cout << " target(" << row << "," << img_v[0].meta().col(hit.targetwire[0]) << ")";
 	  }	  
 	}
 	else {
 	  srcimg.set_pixel( row, col, hit.targetwire[1]-hit.srcwire );
 	  if ( img_v[1].meta().min_x()<=hit.targetwire[kY2V] && img_v[1].meta().max_x()>hit.targetwire[kY2V] ) {
 	    y2vimg.set_pixel( row, img_v[1].meta().col(hit.targetwire[kY2V]), img_v[2].pixel(row,col) );
-	    std::cout << " target(" << row << "," << img_v[1].meta().col(hit.targetwire[1]) << ")";
+	    //std::cout << " target(" << row << "," << img_v[1].meta().col(hit.targetwire[1]) << ")";
 	  }	  
 	}
-	std::cout << std::endl;
+	//std::cout << std::endl;
 	
       }// if inside image
     }// hit loop

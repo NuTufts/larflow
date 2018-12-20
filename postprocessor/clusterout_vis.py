@@ -9,9 +9,11 @@ import argparse
 
 argparser = argparse.ArgumentParser(description="pyqtgraph visualization for DL cosmic tagging")
 argparser.add_argument("-i", "--input",    required=True,  type=str, help="location of input larlite file with larflow3dhit tree")
+argparser.add_argument("-t", "--treename", required=True,  type=str, help="tree (or producer name) to get larflowclusters from")
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
 argparser.add_argument("-p", "--pca",      action='store_true',      help="plot pca")
 argparser.add_argument("-m", "--mode",     default="",     type=str, help="plotting mode")
+argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="location of input larlite file with mctrack and mcshower objects")
 argparser.add_argument("-s", "--step",     action='store_true',      help="step through individual clusters")
 args = argparser.parse_args(sys.argv[1:])
 
@@ -56,20 +58,64 @@ modes = ["core","core-only","spheres"]
 
 # get larflow clusters
 io.go_to(args.entry)
-ev_larflow = io.get_data(larlite.data.kLArFlowCluster, "flowtruthclusters" )
+ev_larflow = io.get_data(larlite.data.kLArFlowCluster, args.treename )
 nclusters = ev_larflow.size()
 print "Number of larflow clusters: ",nclusters
 
 ev_pca = None
 if args.pca:
-    ev_pca = io.get_data(larlite.data.kPCAxis, "flowtruthclusters")
+    ev_pca = io.get_data(larlite.data.kPCAxis, args.treename)
 
-#if colorscheme=="colorbyrecovstruth":
-#    # we also need to count points with truth
-#    for ihit in xrange(nhits):
-#        hit = ev_larflow.at(ihit)
-#        if hit.truthflag>0:
-#            ntruth += 1
+## ================================================================================
+## truth plotting
+cm_per_tick = larutil.LArProperties.GetME().DriftVelocity()*(larutil.DetectorProperties.GetME().SamplingRate()*1.0e-3)
+print "driftv: ",larutil.LArProperties.GetME().DriftVelocity()
+print "sampling rate:",larutil.DetectorProperties.GetME().SamplingRate()
+print "cm_per_tick=",cm_per_tick
+
+def extract_trackpts( mctrack, sce ):
+    # convert mctrack points to image pixels
+    steps_np  = np.zeros( (mctrack.size(),3) )
+    colors_np = np.zeros( (mctrack.size(),4) )
+    colors_np[:,3] = 1
+    for istep in xrange(mctrack.size()):
+        step = mctrack.at(istep)
+        t = step.T()
+        
+        tick = larutil.TimeService.GetME().TPCG4Time2Tick(t) + step.X()/(cm_per_tick)
+        #print "t=",t," -> tick(t)=",larutil.TimeService.GetME().TPCG4Time2Tick(t),"  tick(t)+pos/cmpertick=",tick
+        #x = (tick + larutil.TimeService.GetME().TriggerOffsetTPC()/(larutil.DetectorProperties.GetME().SamplingRate()*1.0e-3))*cm_per_tick
+        #x = tick
+        x  = (tick - 3200)*cm_per_tick
+        
+        steps_np[istep,:] = (x,step.Y(),step.Z()-500)
+        if tick<2400-2400 or tick>8448-2400:
+            colors_np[istep,2] = 1
+        else:
+            colors_np[istep,0] = 1
+    if mctrack.Origin()==2:
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=colors_np,width=1.0) # cosmic
+    else:
+        mcplot = gl.GLLinePlotItem(pos=steps_np,color=(1,0,1,1),width=1.0) # neutrino
+    #sys.exit(-1)
+    return mcplot
+
+mcplots = []
+if args.mctruth is not None:
+    sce = larutil.SpaceChargeMicroBooNE()
+    iomc = larlite.storage_manager( larlite.storage_manager.kREAD )
+    iomc.add_in_filename( args.mctruth )
+    iomc.open()
+    iomc.go_to( args.entry )
+    evmctrack = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
+    nmctracks = evmctrack.size()
+    for itrk in xrange(nmctracks):
+        mctrack = evmctrack.at(itrk)
+        mcplot = extract_trackpts( mctrack, sce )
+        #w.addVisItem( "mctrackidx%d"%(itrk), mcplot )
+        mcplots.append( mcplot )
+    iomc.close()
+## ================================================================================
 
 
 ## Example 3:
@@ -121,6 +167,7 @@ for icluster in xrange(nclusters):
     # we get positions, and also set color depending on type
     # note ntruth=0 unless colorscheme is recovstruth
     nhits = cluster.size()
+    print "[cluster %d] number of hits %d"%(icluster,nhits)
 
     if args.mode == "sphere":
         for ihit in xrange(nhits):
@@ -254,6 +301,8 @@ if args.step:
 w.clearVisItems()    
 for n,hitplot in enumerate(clusterplotitems):
     w.addVisItem( "cluster%d"%(n), hitplot )
+for itrk,mcplot in enumerate(mcplots):
+    w.addVisItem( "mctrackidx%d"%(itrk), mcplot )    
 w.plotData()
 
 

@@ -5,7 +5,6 @@
 #include "DataFormat/larflowcluster.h"
 
 #include "RecoCluster.h"
-#include "CilantroSpectral.h"
 #include <cilantro/timer.hpp>
 
 #include "TTree.h"
@@ -36,9 +35,9 @@ int main( int nargs, char** argv ) {
   tree->Branch("truthflag",&truthflag,"truthflag/I");
   tree->Branch("truth_idx",&truth_idx,"truth_idx/I");
   tree->Branch("x",x,"x[3]/F");
-  //larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
-  //io_out.set_out_filename( "output_dev_truthcluster.root" );
-  //io_out.open();
+  larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
+  io_out.set_out_filename( "output_dev_truthcluster.root" );
+  io_out.open();
 
   // RecoCluster
   larflow::RecoCluster clusteralgo;
@@ -50,11 +49,27 @@ int main( int nargs, char** argv ) {
     io.go_to( ientry );
   
     larlite::event_larflow3dhit& ev_hits = *((larlite::event_larflow3dhit*)io.get_data( larlite::data::kLArFlow3DHit, "flowhits" ));
-    larlite::event_larflowcluster& ev_clusters = *((larlite::event_larflowcluster*)io.get_data( larlite::data::kLArFlowCluster,"dbscan"));
+    larlite::event_larflowcluster& ev_clusters = *((larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"dbscan"));
+    larlite::event_pcaxis& ev_pcaout = *((larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"dbscan"));
     std::cout << "number of hits: " << ev_hits.size() << std::endl;
-    std::cout << "number of dbscan clusters: " << ev_clusters.size() << std::endl;
-    
-    for (int i=0; i<ev_clusters.size(); i++){
+
+    std::vector<larlite::larflow3dhit> fhits;
+    fhits.reserve(ev_hits.size());
+    clusteralgo.filter_hits(ev_hits,fhits,3.,1.);
+    std::cout << "number of filtered hits: " << fhits.size() << std::endl;
+    //
+    clusteralgo.set_dbscan_param(5.,5.,0);
+    std::vector< std::vector<larlite::larflow3dhit> > clusters = clusteralgo.clusterHits( fhits, "DBSCAN", false );    
+    std::vector<int> test(1,0);
+    clusteralgo.filterLineClusters(clusters, test);
+
+    std::cout << "number of dbscan clusters: " << clusters.size() << std::endl;
+    for (int i=0; i<clusters.size(); i++){
+      larlite::larflowcluster lf;
+      for(auto& hit : clusters.at(i)){
+	lf.push_back(hit);
+      }
+      ev_clusters.emplace_back(std::move(lf));
       //std::cout << "hits in clust "<< ev_clusters.at(i).size() << std::endl;
     }
     /*
@@ -71,27 +86,9 @@ int main( int nargs, char** argv ) {
       idx++;
     }
     */
-    std::vector<larlite::larflow3dhit> fhits;
-    fhits.reserve(ev_hits.size());
-    clusteralgo.filter_hits(ev_hits,fhits);
-    std::cout << "number of filtered hits: " << fhits.size() << std::endl;
-    //
-    cilantro::Timer timer;
-    timer.start();
-    larflow::CilantroSpectral sc( fhits,40,10 );
-    timer.stop();
-    std::cout << "Clustering time: " << timer.getElapsedTime() << "ms" << std::endl;
-    //
-    std::vector<std::vector<long unsigned int> > cpi;
-    std::vector<long unsigned int> idx_mat;
-    sc.get_cluster_indeces(cpi,idx_mat);
-    std::cout << cpi.size() <<" "<<idx_mat.size() << std::endl;
-   
-    //    for(int i=0; i<cpi.size(); i++){
-    //  std::cout <<"cluster size:  "<< cl <<" "<< cpi[i].size() << std::endl;
-    //}
-    //io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
-    //io_out.next_event();
+
+    io_out.set_id( io.run_id(), io.subrun_id(), io.event_id() );
+    io_out.next_event();
     break;
   }
 
@@ -99,7 +96,7 @@ int main( int nargs, char** argv ) {
   //fout->cd();
   //tree->Write();
   //fout->Close();
-  //io_out.close();
+  io_out.close();
   io.close();
   return 0;
   

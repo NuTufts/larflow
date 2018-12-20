@@ -13,10 +13,13 @@
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
 #include "DataFormat/pcaxis.h"
+#include "DataFormat/pixelmask.h"
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
+#include "larcv/core/DataFormat/ClusterMask.h"
+#include "larcv/core/DataFormat/EventClusterMask.h"
 
 // larflowflashmatch
 #include "FlashMatchTypes.h"
@@ -27,9 +30,6 @@
 class TRandom3;
 class TFile;
 class TTree;
-namespace larutil {
-  class SpaceChargeMicroBooNE;
-}
 
 namespace larflow {
 
@@ -56,9 +56,8 @@ namespace larflow {
 
     void loadMCTrackInfo(  const std::vector<larlite::mctrack>&  mctrack_v, const std::vector<larlite::mcshower>& mcshower_v, bool do_truth_matching=true );
     void loadChStatus( const larcv::EventChStatus* evstatus ) { _has_chstatus=true; _evstatus = evstatus; };
-
-    void saveAnaMatchData(); // call per event
     void saveAnaVariables( std::string anafilename="out_larflow_flashmatch_ana.root" ); // call at begining
+    void saveAnaMatchData(); // called per event    
     void writeAnaFile(); // call at end
 
 
@@ -71,6 +70,7 @@ namespace larflow {
     typedef enum { kUncut=0, kWrongTime, kFirstShapeCut, kFirstPERatio, kEnterLength, kUniqueMatch, kFirstFit, kFinalFit } CutReason_t;
     
     // vectors for storing the events data flashes and reconstructed qclusters
+    const std::vector<larlite::larflowcluster>* _input_lfcluster_v;
     std::vector<FlashData_t>       _flashdata_v;
     std::vector<QCluster_t>        _qcluster_v;
     std::vector<QClusterComposite> _qcomposite_v;
@@ -118,6 +118,10 @@ namespace larflow {
 	peratio_noext(-1),
 	enterlen(-1),
 	fit1fmatch(-1),
+	subsamplefit_fracabove1(0),
+	subsamplefit_fracabove2(0),
+	subsamplefit_mean(0),	
+	nsubsample_converged(0),
 	truthfmatch(-1)
       {};
       CutReason_t cutfailed;
@@ -138,11 +142,18 @@ namespace larflow {
       // entering length
       float enterlen;
 
-      // first fit
+      // single LASSO fit
       float fit1fmatch;
+
+      // subsample LASSO fit
+      float subsamplefit_fracabove1;
+      float subsamplefit_fracabove2;
+      float subsamplefit_mean;
+      int nsubsample_converged;
 
       // truth
       float truthfmatch;
+
     };
 
     // flash-cluster compatability matrix
@@ -161,7 +172,6 @@ namespace larflow {
     CutVars_t& getCutVars( int iflash, int iqcluster ) { return _compat_cutvars.at( _nqclusters*iflash + iqcluster ); };
     void printCompatInfo( const std::vector<FlashData_t>& flashdata_v, const std::vector<QCluster_t>& qcluster_v );
     void printCompatSummary();
-    void clearMatchVariables();
 
     
     // Timing Based Match rejection
@@ -238,14 +248,14 @@ namespace larflow {
     std::vector<int> _cluster2trueflash;
     std::vector< std::vector<const larlite::mctrack*> >  _flash_matched_mctracks_v;
     std::vector< std::vector<const larlite::mcshower*> > _flash_matched_mcshowers_v;
-    larutil::SpaceChargeMicroBooNE* _psce;
     bool _kDoTruthMatching;
     bool _kFlashMatchedDone;
     void doFlash2MCTrackMatching( std::vector<FlashData_t>& flashdata_v ); // matches _mctrack_v
     void doTruthCluster2FlashTruthMatching( std::vector<FlashData_t>& flashdata_v, std::vector<QCluster_t>& qcluster_v );
     void buildClusterExtensionsWithMCTrack( bool appendtoclusters, std::vector<QCluster_t>& qcluster_v );
     void clearMCTruthInfo();
-    void setFitParsWithTruthMatch();    
+    void setFitParsWithTruthMatch();
+    void saveFitterData( const LassoFlashMatch::Result_t& fitdata );
 
     // ChStatus Info
     // ----------------------------------------------
@@ -268,6 +278,7 @@ namespace larflow {
     int   _flash_isvisible;
     int   _flash_crosstpc;
     int   _flash_mcid;
+    int   _flash_truthqidx;
     float _flash_bestfmatch;
     float _flash_truthfmatch;
     int   _flash_bestclustidx;
@@ -286,7 +297,11 @@ namespace larflow {
     float _peratio_wext;
     float _peratio_noext;    
     float _enterlen;
-    float _fmatch;
+    float _fmatch_singlefit;
+    float _fmatch_multifit_fracabove1;
+    float _fmatch_multifit_fracabove2;
+    float _fmatch_multifit_nsamples;
+    float _fmatch_multifit_mean;
     float _fmatch_truth;
     
     bool  _save_ana_tree;
@@ -294,6 +309,20 @@ namespace larflow {
     void setupAnaTree();
     void clearAnaVariables();
 
+
+    // The End Game: build final clusters
+    // -----------------------------------
+  public:
+    std::vector<larlite::larflowcluster>            _intime_lfcluster_v;
+    //std::vector< std::vector<larcv::ClusterMask> >  _intime_clustermask_v;
+    std::vector< std::vector<larlite::pixelmask> >  _intime_clustermask_v;
+    std::vector<larlite::larflowcluster>            _final_lfcluster_v;
+    //std::vector< std::vector<larcv::ClusterMask> >  _final_clustermask_v;
+    std::vector< std::vector<larlite::pixelmask> >  _final_clustermask_v;
+  protected:
+    void buildFinalClusters( LassoFlashMatch::Result_t& fitresult, const std::vector<larcv::Image2D>& img_v );
+    void clearFinalClusters();
+    
   };
     
     

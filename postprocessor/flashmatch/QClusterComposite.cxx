@@ -317,14 +317,16 @@ namespace larflow {
       
       std::vector<float> dpe_v(32,0);
       float dpe_tot = 0.;
-      for (size_t ich=0; ich<32; ich++) {
-	float q  = qhit.pixeladc;
-	float pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
-	pre_enter_outside[ich] += pe;
-	pre_enter_outside.tot += pe;
-	pre_enter_outside.tot_outtpc += pe;
-	dpe_v[ich] = pe;
-	dpe_tot += pe;
+      if ( vis==NULL || vis->size()==0 ) {
+	for (size_t ich=0; ich<32; ich++) {
+	  float q  = qhit.pixeladc;
+	  float pe = q*outoftpc_len2adc*(*vis)[geo->OpDetFromOpChannel(ich)];
+	  pre_enter_outside[ich] += pe;
+	  pre_enter_outside.tot += pe;
+	  pre_enter_outside.tot_outtpc += pe;
+	  dpe_v[ich] = pe;
+	  dpe_tot += pe;
+	}
       }
       
       if ( !extend_using_maxpe ) {

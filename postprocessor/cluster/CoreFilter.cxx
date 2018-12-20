@@ -15,11 +15,10 @@ namespace larflow {
     // core is the largest cluster
     // provide pca of this core cluster
     //
+
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, cluster );
-
-    //std::cout << "[CoreFilter::CoreFilter][DEBUG] dbscan made " << _clusters_v.size() << " clusters" << std::endl;
   }
   
   CoreFilter::CoreFilter( const larlite::larflowcluster& cluster , const int min_neighbors, const float maxdist  )
@@ -42,6 +41,10 @@ namespace larflow {
     larflow::DBSCAN algo;
     _clusters_v.clear();
     _clusters_v = algo.makeCluster( _maxdist, _min_neighbors, 100, fcluster );
+    int totcheck = 0;
+    for ( auto& c : _clusters_v ) {
+      totcheck += c.size();
+    }
     
   }
   

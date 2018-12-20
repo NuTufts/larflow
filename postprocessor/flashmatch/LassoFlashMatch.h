@@ -60,6 +60,7 @@ namespace larflow {
     typedef enum { kCoordDesc=0, kGradDesc, kCoordDescSubsample } Minimizer_t;    
 
     struct Result_t {
+      int   nmatches;
       float totloss;           // last total loss
       float ls_loss;           // loss from Least Squares
       float beta_l1loss;       // loss from l1 beta constraint
@@ -71,10 +72,12 @@ namespace larflow {
       float dloss;             // change in loss in last step
       int   numiters;          // number of iterations taken (complete par set update)
       bool  converged;         // fit converged
+      std::vector< float > beta;                        // [single+subsample coord desc-only] final values for match parameters
       std::vector< std::array<int,100> > subsamplebeta; // [subsample coord desc-only] distribution of beta values in 100-bin histogram
       std::vector< float > subsamplebeta_mean;          // [subsample coord desc-only] mean of beta distribution
       Result_t() 
-      : totloss(0),
+      : nmatches(0),
+	totloss(0),
 	ls_loss(0),
 	beta_l1loss(0),
 	betagroup_l2loss(0),
@@ -188,18 +191,18 @@ namespace larflow {
     float _l2weight;
     float _bweight;
     TRandom3* _rand;
-    
+
+    // =====================================================================================================    
     // book-keeping indices
     // ---------------------
-    // i: flash index
-    // k: cluster index
+    // i: flash index (internal to class, "iflash")
+    // k: cluster index (internal to class, "iclust")
     // G(k): a cluster group for {k} which refers to same physical charge cluster (but matched to different flash 'i'), index with 'g'.
     // j: pmt index
-    // u: physical flash index (user defined)
-    // v: physical cluster index (user defined)
+    // u: physical flash index (user defined, "flashidx")
+    // v: physical cluster index (user defined,"clustidx")
     // m: match index for candidate pair of (u,v) or equivalently (i,k)
     // F(i): flash group for {i} that points to same 'u' (but matched to different cluster 'v'), index with 'l'
-    
 
     struct Match_t {
       
@@ -225,14 +228,17 @@ namespace larflow {
 	
     };
 
-    // eventually replace all this map BS with the above
+    // eventually replace all this map BS with the above (?)
+    // this book-keeping stuff is HEINOUS
     int _nmatches;
     std::vector< Match_t >            _matchinfo_v;
     std::set< int >                   _clusterindices;      // cluster indices given by user (v)
     std::vector< std::vector<int> >   _clustergroup_vv;     // each inner vector holds match indices (m) that apply to same cluster indices (v), i.e. a list of G(k)
     std::map<int,int>                 _clusteridx2group_m;  // map from clusteridx to clustergroup_vv index (user index 'v' to internal G(k) index 'g')
     std::vector< int >                _match2clusteridx_v;  // map from matchidx to index of clusteridx_vv  (m -> v)
-    std::vector< int >                _match2clustgroup_v;  // map from matchidx to clustergroup_vv index (m to internal G(k) index 'g')        
+    std::vector< int >                _match2clustgroup_v;  // map from matchidx to clustergroup_vv index (m to internal G(k) index 'g')
+    std::map<int,int>                 _clusteridx2match_m;  // map from clustergroup index (internal) to match index (internal)
+    std::map<int,int>                 _clustergroup2idx_m;  // map from clusrergroup index (internal) to user index (provided)
     std::vector< std::vector<float> > _match_hypo_vv;       // for given match index, the cluster flash hypothesis: x_{kj} terms
     
     std::set< int >                   _flashindices;        // flashdata indices given by user (u)
@@ -243,6 +249,7 @@ namespace larflow {
     std::vector<int>                  _match2flashgroup_v;  // map from matchidx to flashgroup index (m to internal F(m) index 'l')
     std::vector< std::vector<int> >   _flashgroup_vv;       // each inner vector holds match indices that apply to same flash: F(m) index 'l'
     std::map<int,int>                 _flashidx2group_m;    // map from flashidx to group index ( u -> 'l' )
+    std::map<int,int>                 _flashidx2match_m;    // map from flashidx to flashdata_vv index ( u -> i )    
     std::vector<bool>                 _flashalwaysfit_v;    // flag to always fit this flash, even when using subsampling coord desc or stochastic grad desc
     
     std::vector<float>                _fmatch_v;            // f_{m} terms (which can be mapped to f_{k} throw above)
@@ -254,6 +261,31 @@ namespace larflow {
 
     std::map<int,int> _truthpair_flash2cluster_idx;
     std::map<int,int> _truthpair_cluster2flash_idx;
+
+    // index retrieval/translation
+    int internalFlashIndexFromUser(  int flashidx )    { return _flashidx2data_m[flashidx]; };
+    int userFlashIndxFromInternal( int iflash )        { return _flashdata2idx_m[iflash]; };
+    int internalFlashIndexFromMatchIndex( int imatch ) { return _match2flashgroup_v[imatch]; };
+    int userFlashIndexFromMatchIndex( int imatch )     { return _match2flashidx_v[imatch]; };
+
+    int internalClusterIndexFromUser( int clustidx )     { return _clusteridx2group_m[clustidx]; };
+    int userClusterIndexFromInternal( int icluster )     { return _clustergroup2idx_m[icluster]; };
+    int internalClusterIndexFromMatchIndex( int imatch ) { return _match2clustgroup_v[imatch]; };
+    int userClusterIndexFromMatchIndex( int imatch )     { return _match2clusteridx_v[imatch]; };
+
+    int matchIndexFromUserClusterIndex( int clustidx ) { return _clusteridx2match_m[clustidx]; };
+    int matchIndexFromUserFlashIndex( int flashidx )   { return _flashidx2match_m[flashidx]; };
+    std::vector< int >& matchIndicesFromInternalClusterIndex( int iclust ) { return _clustergroup_vv[iclust]; };
+    std::vector< int >& matchIndicesFromUserClusterIndex( int clustidx )   { return _clustergroup_vv[ internalClusterIndexFromUser(clustidx) ]; };
+    std::vector< int >& matchIndicesFromInternalFlashIndex( int iflash )   { return _flashgroup_vv[ iflash ]; };
+    std::vector< int >& matchIndicesFromUserFlashIndex( int flashidx )     { return _flashgroup_vv[ internalFlashIndexFromUser( flashidx ) ]; };
+
+    std::vector<float>& flashHypoFromMatchIndex( int imatch ) { return _match_hypo_vv[ imatch ]; };
+    std::vector<float>& flashDataFromMatchIndex( int imatch ) { return _flashdata_vv[ internalFlashIndexFromMatchIndex(imatch) ]; };
+
+    int numClusterGroups() { return _clustergroup_vv.size(); };
+    // =====================================================================================================
+    
 
     // Defines a model subsystem to solve
     struct SubSystem_t {
@@ -289,10 +321,10 @@ namespace larflow {
 	beta(nullptr)
       {};
       ~SubSystem_t() {
-	delete X;
-	delete Y;
-	delete alpha;
-	delete beta;
+	if ( X ) delete X;
+	if ( Y ) delete Y;
+	if ( alpha ) delete alpha;
+	if ( beta ) delete beta;
       };
       
     };

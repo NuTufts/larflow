@@ -80,7 +80,7 @@ class UResNet(nn.Module):
 
     def _make_encoding_layer(self, inplanes, planes, stride=2):
 
-        return DoubleResNet(inplanes,planes,stride=stride)
+        return DoubleResNet(BasicBlock,inplanes,planes,stride=stride)
 
     def _make_decoding_layer(self, inplanes, deconvplanes, resnetplanes ):
         return ConvTransposeLayer( inplanes, deconvplanes, resnetplanes )
