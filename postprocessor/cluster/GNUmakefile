@@ -45,22 +45,19 @@ all: $(LIB) $(BINS)
 ../lib/libLArFlowCluster3D.so: $(OBJS)
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 %.o: %.cxx %.h
+	@echo "<< compiling source "$<" >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-dev_truthcluster: $(LIB) dev_truthcluster.cxx
+%: $(LIB) %.cxx
+	@echo "<< compiling+linking binary "$@" >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
-ana_truthcluster: $(LIB) ana_truthcluster.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
-
-reco_cluster: $(LIB) reco_cluster.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
-
-dev_dbscan: $(LIB) dev_dbscan.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
+# dev_truthcluster: $(LIB) dev_truthcluster.cxx
+# 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
 convert2ply: convert2ply.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(INCLUDES_PANGOLIN) $(LDFLAGS) $(LDFLAGS_PANGOLIN) -o $@ $@.cxx $(LIBS)
 
 clean:
-	rm $(LIB) *.o
+	@echo "<< cleaning >>"
+	@rm $(LIB) *.o $(BINS)
