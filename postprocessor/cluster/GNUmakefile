@@ -35,6 +35,7 @@ LIB = ../lib/libLArFlowCluster3D.so
 
 # SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
 BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx ana_truthcluster.cxx convert2ply.cxx
+BINSRCS += dev_fillcluster.cxx
 
 BINS = $(basename $(BINSRCS))
 SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
