@@ -10,6 +10,7 @@ INCLUDES += `geo2d-config --includes`
 INCLUDES += `laropencv-config --includes`
 INCLUDES += `larcv-config --includes`
 INCLUDES += `larlitecv-config --includes`
+INCLUDES += -I$(LARFLOW_BASEDIR)/postprocessor
 INCLUDES += -I$(CILANTRO_INC_DIR)
 INCLUDES += -I$(EIGEN_INC_DIR)
 
@@ -23,12 +24,17 @@ LIBS     += `laropencv-config --libs`
 LIBS     += `larcv-config --libs`
 LIBS     += `larlitecv-config --libs`
 LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
+LIBS     += -L$(LARFLOW_POST_LIBDIR) -lContourTools
+
+# FOR PROGRAMS THAT USE PANGOLIN
+INCLUDES_PANGOLIN = -I$(LARFLOW_BASEDIR)/Pangolin/include -I$(LARFLOW_BASEDIR)/Pangolin/build/src/include
+LDFLAGS_PANGOLIN  = -L$(LARFLOW_BASEDIR)/Pangolin/build/src -lpangolin
 
 # SPECIFY LIB
 LIB = ../lib/libLArFlowCluster3D.so
 
 # SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
-BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx ana_truthcluster.cxx
+BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx ana_truthcluster.cxx convert2ply.cxx
 
 BINS = $(basename $(BINSRCS))
 SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
@@ -42,16 +48,19 @@ all: $(LIB) $(BINS)
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 dev_truthcluster: $(LIB) dev_truthcluster.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
 ana_truthcluster: $(LIB) ana_truthcluster.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
 
 reco_cluster: $(LIB) reco_cluster.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
 
 dev_dbscan: $(LIB) dev_dbscan.cxx
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIBS) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS) 
+
+convert2ply: convert2ply.cxx
+	$(CXX) $(CFLAGS) $(INCLUDES) $(INCLUDES_PANGOLIN) $(LDFLAGS) $(LDFLAGS_PANGOLIN) -o $@ $@.cxx $(LIBS)
 
 clean:
 	rm $(LIB) *.o
