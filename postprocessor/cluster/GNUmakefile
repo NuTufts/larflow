@@ -34,11 +34,20 @@ LDFLAGS_PANGOLIN  = -L$(LARFLOW_BASEDIR)/Pangolin/build/src -lpangolin
 LIB = ../lib/libLArFlowCluster3D.so
 
 # SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
-BINSRCS = dev_truthcluster.cxx reco_cluster.cxx dev_dbscan.cxx ana_truthcluster.cxx convert2ply.cxx
+BINSRCS =
+BINSRCS += dev_truthcluster.cxx
+BINSRCS += reco_cluster.cxx
+BINSRCS += dev_dbscan.cxx
+BINSRCS += ana_truthcluster.cxx
+BINSRCS += convert2ply.cxx
 BINSRCS += dev_fillcluster.cxx
 
-BINS = $(basename $(BINSRCS))
-SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
+# SPECIFY BINS TO BUILD
+#BINS = $(basename $(BINSRCS)) # for all
+BINS = dev_fillcluster
+
+#SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
+SRCS = $(filter-out $(BINSRCS), $(wildcard *.cxx))
 OBJS = $(SRCS:.cxx=.o)
 
 all: $(LIB) $(BINS)

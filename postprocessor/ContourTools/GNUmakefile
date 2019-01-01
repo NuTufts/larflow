@@ -1,9 +1,9 @@
 CXX      =  g++
 
 CFLAGS   =   -g -fPIC
-CFLAGS   += `root-config --cflags` -DUSE_OPENCV=1
+CFLAGS   +=  -DUSE_OPENCV=1
 
-INCLUDES =  `root-config --incdir`
+INCLUDES = `root-config --cflags`
 INCLUDES += -I$(OPENCV_INCDIR)
 INCLUDES += `larlite-config --includes`
 INCLUDES += -I$(LARLITE_USERDEVDIR)
@@ -24,12 +24,19 @@ LIBS     += `larlitecv-config --libs`
 
 LIB = ../lib/libContourTools.so
 
+SRCS=$(wildcard *.cxx)
+OBJS = $(SRCS:.cxx=.o)
 
 all: $(LIB)
 
-../lib/libContourTools.so: ContourShapeMeta.o ContourCluster.o
+$(LIB): $(OBJS)
+	@echo "<< linking library "$@" >>"
 	$(CXX) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
+
 %.o: %.cxx %.h
 	@echo "<< compiling $< >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+clean:
+	@echo "<< cleaning>>"
+	rm -f $(OBJS) $(LIB)
