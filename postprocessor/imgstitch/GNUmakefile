@@ -11,6 +11,7 @@ LDFLAGS  =  `root-config --ldflags` -lstdc++
 LIBS     =  `root-config --libs`
 LIBS     += `larlite-config --libs`
 LIBS     += `basictool-config --libs`
+LIBS     += `larcv-config --libs`
 
 # SPECIFY LIB
 LIB = ../lib/libLArFlowImageStitchers.so
@@ -38,7 +39,7 @@ $(LIB): $(OBJS)
 
 %: $(LIB) %.cxx
 	@echo "<< compiling+linking binary "$@" >>"
-	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
+	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIB) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
 clean:
 	@echo "<< cleaning >>"

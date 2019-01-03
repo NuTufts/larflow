@@ -28,10 +28,9 @@ namespace dlcosmictag {
 
     int addSubImage( const larcv::Image2D& subimg, int plane, float threshold=0 ) override; // child class defines stitching action
 
-  protected:
+    void clear() override;
 
-    int ValuesPerPixel() const override { return 3; }; // (track, shower, endpt) scores
-    std::vector<float> getPixelValue( const larcv::Image2D& img, const int row, const int col ) const override;
+  protected:
 
     ScoreChoiceMethod_t m_scoremethod;
 

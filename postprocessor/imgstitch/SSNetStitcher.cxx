@@ -77,7 +77,10 @@ namespace dlcosmictag {
     }//end of subimg rows
   }//end of addSubImage
 
-  
+  void SSNetStitcher::clear() {
+    ImageStitcherBase::clear();
+    m_metric_image_v.clear();
+  }
 
   
   
