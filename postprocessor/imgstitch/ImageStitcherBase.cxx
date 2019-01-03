@@ -33,6 +33,11 @@ namespace dlcosmictag {
       img.paint(0.0);
       m_stitched_v.emplace_back( std::move(img) );
     }
+    
+    std::cout << "[" << __FILE__ << "::" << __FUNCTION__ << "] "
+              << " len(m_wholview_meta_v)=" << m_wholeview_meta_v.size()
+              << " len(m_stitched_v)=" << m_stitched_v.size()
+              << std::endl;
   }
 
   /**

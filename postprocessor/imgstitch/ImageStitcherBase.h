@@ -42,7 +42,7 @@ namespace dlcosmictag {
     virtual ~ImageStitcherBase() {};
 
     // define the output stitched image meta
-    void setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v );
+    virtual void setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v );
 
     // add subimage to be incorporated into the final stitched image
     virtual int addSubImage( const larcv::Image2D& subimg, int plane, float threshold=0 ) = 0; // child class defines stitching action

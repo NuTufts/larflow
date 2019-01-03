@@ -82,15 +82,15 @@ int main( int args, char** argv ) {
   std::string input_wholeview_larcv2   = argv[2];  
   std::string output_stitched_larlite  = argv[3];
 
-  larcv::IOManager input_larcv2 = larcv::IOManager( larcv::IOManager::kREAD );
+  larcv::IOManager input_larcv2( larcv::IOManager::kREAD );
   input_larcv2.add_in_file( input_dlcosmictag_larcv2 );
   input_larcv2.initialize();
 
-  larcv::IOManager input_wholeview = larcv::IOManager( larcv::IOManager::kREAD );
+  larcv::IOManager input_wholeview( larcv::IOManager::kREAD );
   input_wholeview.add_in_file( input_wholeview_larcv2 );
   input_wholeview.initialize();
   
-  larlite::storage_manager out_larlite = larlite::storage_manager( larlite::storage_manager::kWRITE );
+  larlite::storage_manager out_larlite( larlite::storage_manager::kWRITE );
   out_larlite.set_out_filename( output_stitched_larlite );
   out_larlite.open();
 
@@ -154,6 +154,12 @@ int main( int args, char** argv ) {
         stitch_shower->clear();
         stitch_track->clear();
         stitch_endpt->clear();
+        stitch_infill->clear();
+
+        stitch_shower->setWholeViewMeta( ev_wholeview->as_vector() );
+        stitch_track->setWholeViewMeta( ev_wholeview->as_vector() );
+        stitch_endpt->setWholeViewMeta( ev_wholeview->as_vector() );
+        stitch_infill->setWholeViewMeta( ev_wholeview->as_vector() );        
       }
 
       current_runid    = runid;

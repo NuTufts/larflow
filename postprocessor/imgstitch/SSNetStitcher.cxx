@@ -9,21 +9,26 @@ namespace dlcosmictag {
 
     // set the meta
     setWholeViewMeta( outimgtemplate_v );
+    
+  }
+
+  void SSNetStitcher::setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v ) {
+    ImageStitcherBase::setWholeViewMeta( wholeviewimg_v );
 
     // define metric image
     m_metric_image_v.clear();
-    m_metric_image_v.reserve( outimgtemplate_v.size() );
+    m_metric_image_v.reserve( wholeviewimg_v.size() );
     for ( auto const& meta : WholeViewMeta() ) {
       larcv::Image2D metric(meta);
       metric.paint(-1);
       m_metric_image_v.emplace_back( std::move(metric) );
     }
-    
   }
+  
   
   int SSNetStitcher::addSubImage( const larcv::Image2D& subimg, int plane, float threshold ) {
 
-    auto const& subimg_meta = subimg.meta();
+    auto const& subimg_meta   = subimg.meta();
     auto const& stitched_meta = WholeViewMeta().at(plane);
     
     auto& stitched = Stitched_mutable().at(plane);

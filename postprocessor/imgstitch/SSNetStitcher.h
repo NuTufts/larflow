@@ -30,6 +30,8 @@ namespace dlcosmictag {
 
     void clear() override;
 
+    void setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v ) override;
+
   protected:
 
     ScoreChoiceMethod_t m_scoremethod;
