@@ -34,7 +34,6 @@ namespace dlcosmictag {
     auto& stitched = Stitched_mutable().at(plane);
     auto& metric   = m_metric_image_v.at(plane);
 
-
     float center_row = subimg_meta.rows()/2;
     float center_col = subimg_meta.cols()/2;
 

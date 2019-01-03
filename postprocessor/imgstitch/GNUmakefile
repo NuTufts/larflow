@@ -1,6 +1,7 @@
 CXX      =  g++
 
-CFLAGS   =   -g -fPIC
+#CFLAGS   =   -g -fPIC
+CFLAGS   = -O3 -fPIC
 CFLAGS   += `root-config --cflags` -DUSE_OPENCV=1
 
 INCLUDES = `larlite-config --includes`

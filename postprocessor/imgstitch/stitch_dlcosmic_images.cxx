@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <ctime>
 
 // larcv2
 #include "larcv/core/DataFormat/IOManager.h"
@@ -103,6 +104,10 @@ int main( int args, char** argv ) {
   int first_entry = 0;
   int num_entries_completed = 0;
 
+  float elapsed_subimg = 0.;
+  float elapsed_saveoutput = 0.;
+  clock_t startTimeEntry;
+
   // stitcher algos
   dlcosmictag::SSNetStitcher* stitch_shower = nullptr;
   dlcosmictag::SSNetStitcher* stitch_track  = nullptr;
@@ -147,9 +152,11 @@ int main( int args, char** argv ) {
       }
       else {
 
+        clock_t startTime_saveoutput = clock();          
         save_output( out_larlite,
                      stitch_shower, stitch_track, stitch_endpt, stitch_infill,
                      runid, subrunid, eventid );
+        elapsed_saveoutput += float( clock() - startTime_saveoutput ) / (float)CLOCKS_PER_SEC;
         
         stitch_shower->clear();
         stitch_track->clear();
@@ -159,21 +166,37 @@ int main( int args, char** argv ) {
         stitch_shower->setWholeViewMeta( ev_wholeview->as_vector() );
         stitch_track->setWholeViewMeta( ev_wholeview->as_vector() );
         stitch_endpt->setWholeViewMeta( ev_wholeview->as_vector() );
-        stitch_infill->setWholeViewMeta( ev_wholeview->as_vector() );        
+        stitch_infill->setWholeViewMeta( ev_wholeview->as_vector() );
+
+        num_entries_completed++;
+        
+        std::cout << "entry stitch completed. " << std::endl;
+        std::cout << "  total entry time=" << float( clock()-startTimeEntry )/(float)CLOCKS_PER_SEC << std::endl;
+        std::cout << "  ave stitch per image=" << elapsed_subimg/float(num_entries_completed*4)
+                  << "  secs (there are 4 for total of " << elapsed_subimg/float(num_entries_completed) << ")"
+                  << std::endl;
+        std::cout << "  save output=" << elapsed_saveoutput/float(num_entries_completed) << " secs" << std::endl;      
+        
       }
 
       current_runid    = runid;
       current_subrunid = subrunid;
       current_eventid  = eventid;
+
+      startTimeEntry = clock();
+      
     }
 
     // stitch in subimages
+    clock_t startTime = clock();
     for ( size_t p=0; p<3; p++ ) {
       stitch_shower->addSubImage( ev_showerimg->at(p), (int)p, 0.0 );
       stitch_track->addSubImage(  ev_trackimg->at(p),  (int)p, 0.0 );
       stitch_endpt->addSubImage(  ev_endptimg->at(p),  (int)p, 0.0 );
       stitch_infill->addSubImage( ev_infillimg->at(p), (int)p, 0.0 );
     }
+    float dt_subimg = double( clock() - startTime ) / (double)CLOCKS_PER_SEC;
+    elapsed_subimg += dt_subimg;
     
   }//end of entry loop
 
