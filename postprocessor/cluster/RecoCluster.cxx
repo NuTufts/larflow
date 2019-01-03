@@ -270,15 +270,46 @@ namespace larflow {
   }
   
   void RecoCluster::filterLineClusters(std::vector<std::vector<larlite::larflow3dhit> > flowclusters,
+				       std::vector<larlite::pcaxis> pcainfos,
 				       std::vector<int> isline){
 
-    double eigenval[3] = {0.,0.,0.};
+    //-----------------------//
+    // this returns both a vector of pcainfo for all clusters,
+    // and a vector of ints indicating whether the cluster
+    // passes the "line cluster" condition or not
+    //-----------------------//
+    
+    pcainfos.clear();
+    isline.assign(flowclusters.size(),-1);
+    int ct=-1;
     for(auto &flowcluster : flowclusters){
+      ct ++;
       larflow::CilantroPCA pca( flowcluster );
       larlite::pcaxis pcainfo = pca.getpcaxis();
-      //do stuff here; for now just print pca eigenvalues
-      for(int i=0; i<3; i++) eigenval[i] = pcainfo.getEigenValues()[i];
-      std::cout << eigenval[0] <<" "<< eigenval[1] <<" "<< eigenval[2] << std::endl;
+      pcainfos.push_back( pcainfo );
+
+      const double* eigval = pcainfo.getEigenValues();
+      const double*  meanpos = pcainfo.getAvePosition();
+      larlite::pcaxis::EigenVectors eigvec = pcainfo.getEigenVectors();
+      double eiglen = sqrt(eigval[0]);
+      //start,  end of primary axis
+      float x1=meanpos[0]-eigvec[0][0]*2*eiglen;
+      float x2=meanpos[0]+eigvec[0][0]*2*eiglen;
+      float y1=meanpos[1]-eigvec[1][0]*2*eiglen;
+      float y2=meanpos[1]+eigvec[1][0]*2*eiglen;
+      float z1=meanpos[2]-eigvec[2][0]*2*eiglen;
+      float z2=meanpos[2]+eigvec[2][0]*2*eiglen;
+
+      // we assume max actual width of a track to be 5 pix. If the primary axis length is > 3x width we say it is a line cluster
+      // Note: these parameters are preliminary and need to be tuned
+      float track_width_pix = 5.;
+      float pix_width_mm = 3.; //get this from somewhere? 
+      float line_thresh = 3;
+
+      float axis_mag = sqrt(pow(x2-x1,2) + pow(y2-y1,2) + pow(z2-z1,2));
+      if(axis_mag >= pix_width_mm*track_width_pix*line_thresh ) isline[ct] = 1;
+
+      //std::cout << eigval[0] <<" "<< eigval[1] <<" "<< eigval[2] << std::endl;
     }
   }
 

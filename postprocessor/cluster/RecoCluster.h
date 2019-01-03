@@ -20,7 +20,7 @@ namespace larflow {
     virtual ~RecoCluster() {};
 
     void filter_hits(const std::vector<larlite::larflow3dhit>& hits, std::vector<larlite::larflow3dhit>& fhits, int min_nn, float nn_dist, float fraction_kept=1.0);
-    void filterLineClusters(std::vector< std::vector<larlite::larflow3dhit> > flowclusters, std::vector<int> isline);
+    void filterLineClusters(std::vector< std::vector<larlite::larflow3dhit> > flowclusters, std::vector<larlite::pcaxis> pcainfos, std::vector<int> isline);
     std::vector< std::vector<larlite::larflow3dhit> > clusterHits( const std::vector<larlite::larflow3dhit>& hits, std::string algo, bool return_unassigned=true );
     void set_dbscan_param(float maxdist, float minhits, int maxkdn){_dbscan_param.maxdist=maxdist; _dbscan_param.minhits=minhits; _dbscan_param.maxkdneighbors=maxkdn;};
     void set_spectral_param(int NC, int MaxNN, float MaxDist, float Sigma){

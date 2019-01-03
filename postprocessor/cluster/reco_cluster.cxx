@@ -60,8 +60,9 @@ int main( int nargs, char** argv ) {
     //
     clusteralgo.set_dbscan_param(5.,5.,0);
     std::vector< std::vector<larlite::larflow3dhit> > clusters = clusteralgo.clusterHits( fhits, "DBSCAN", false );    
-    std::vector<int> test(1,0);
-    clusteralgo.filterLineClusters(clusters, test);
+    std::vector<int> isline;
+    std::vector<larlite::pcaxis> pcainfos;
+    clusteralgo.filterLineClusters(clusters, pcainfos, isline);
 
     std::cout << "number of dbscan clusters: " << clusters.size() << std::endl;
     for (int i=0; i<clusters.size(); i++){
@@ -70,6 +71,7 @@ int main( int nargs, char** argv ) {
 	lf.push_back(hit);
       }
       ev_clusters.emplace_back(std::move(lf));
+      ev_pcaout.emplace_back(std::move(pcainfos.at(i)));
       //std::cout << "hits in clust "<< ev_clusters.at(i).size() << std::endl;
     }
     /*
