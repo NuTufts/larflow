@@ -14,7 +14,13 @@
  * 2) provide subimages using addSubImage, which the user must define for each type of image
  * 3) output can be larcv image or larlite pixelmask object
  *
- *
+ * User MUST define:
+ *   addSubImage. The idea is to be given a subimage and fill the appropriate plane image in m_stitched_v.
+ *   user can retrieve the stitched images using Stitched_mutable().
+ * User has the option of defining:
+ *   1) ValuesPerPixel(): returns the number of values to store per pixel (default is 1)
+ *   2) getPixelValue(): returns pixel value for given image and (row,col) position. 
+ *                       Default is the pixel value from the input image.
  */
 
 #include <vector>
@@ -39,14 +45,11 @@ namespace dlcosmictag {
     void setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v );
 
     // add subimage to be incorporated into the final stitched image
-    virtual int addSubImage( const larcv::Image2D& subimg, int plane ) = 0; // child class defines stitching action
+    virtual int addSubImage( const larcv::Image2D& subimg, int plane, float threshold=0 ) = 0; // child class defines stitching action
 
     // retrieve the current wholeview meta (const)
     const std::vector< larcv::ImageMeta >& WholeViewMeta() const { return m_wholeview_meta_v; };
-    
-    // retrieve the current wholeview meta (mutable)
-    std::vector< larcv::ImageMeta >& WholeViewMeta_mutable() { return m_wholeview_meta_v; };
-    
+        
     // retrieve the current state of the stitched image (const)
     const std::vector< larcv::Image2D >& Stitched() const { return m_stitched_v; };
 
@@ -67,7 +70,14 @@ namespace dlcosmictag {
     // output stitched image
     std::vector< larcv::Image2D > m_stitched_v;
 
-
+    // these functions are used to fill the pixel mask object. User can override this behavior
+    // to have the pixelmask store more than just the pixel value in the m_stitched_v images
+    virtual int ValuesPerPixel() const { return 1; }; // defaults, but user can override
+    virtual std::vector<float> getPixelValue( const larcv::Image2D& img, const int row, const int col ) const {
+      std::vector<float> pixdata(1,img.pixel(row,col));
+      return pixdata;
+    };
+    
   };
 
 

@@ -47,6 +47,8 @@ namespace dlcosmictag {
    */
   std::vector<larlite::pixelmask> ImageStitcherBase::as_pixel_mask( float threshold, int label ) const {
 
+          
+    const int values_per_pixel = 2 + ValuesPerPixel(); // (r,c) + values
     std::vector<larlite::pixelmask> mask_v;
 
     for ( auto const& img : m_stitched_v ) {
@@ -60,15 +62,22 @@ namespace dlcosmictag {
         for ( size_t c=0; c<meta.cols(); c++ ) {
           if ( img.pixel(r,c)<threshold ) continue;
 
-          std::vector<float> pixeldata = { (float)meta.pos_x(c), (float)meta.pos_y(r), (float)img.pixel(r,c) };
+          std::vector<float> pixeldata( values_per_pixel, 0 );
+          pixeldata[0] = (float)meta.pos_x(c);
+          pixeldata[1] = (float)meta.pos_y(r);
+          size_t idx=0;
+          for ( auto const& val : getPixelValue( img, r, c ) ) {
+            pixeldata[2+idx] = val;
+            idx++;
+          }
           pixeldata_v.push_back( pixeldata );
         } // end of col loop
       }//end of row loop
-
+      
       larlite::pixelmask mask( 0, pixeldata_v,
                                meta.min_x(), meta.min_y(), meta.max_x(), meta.max_y(),
-                               meta.cols(), meta.rows(), 3 );
-
+                               meta.cols(), meta.rows(), values_per_pixel );
+      
       mask_v.emplace_back( std::move(mask) );
     }//end of loop over each plane image
 
