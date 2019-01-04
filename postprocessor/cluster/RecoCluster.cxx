@@ -321,7 +321,7 @@ namespace larflow {
 	
       // we look for clusters with primary axis > 1./0.5 secondary axis
       float line_thresh = 1./0.5;
-      if( eigval[1]/eigval[1] >= line_thresh) isline[ct] = 1;
+      if( eigval[0]/eigval[1] >= line_thresh) isline[ct] = 1;
 
       //std::cout << eigval[0] <<" "<< eigval[1] <<" "<< eigval[2] << std::endl;
     }
