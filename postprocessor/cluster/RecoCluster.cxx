@@ -4,6 +4,11 @@
 
 #include "TRandom3.h"
 
+#include "TVector3.h"
+
+#include "LArUtil/Geometry.h"
+#include "LArUtil/GeometryHelper.h"
+
 namespace larflow {
 
   void RecoCluster::filter_hits(const std::vector<larlite::larflow3dhit>& hits,
@@ -271,8 +276,12 @@ namespace larflow {
   
   void RecoCluster::filterLineClusters(std::vector<std::vector<larlite::larflow3dhit> > flowclusters,
 				       std::vector<larlite::pcaxis> pcainfos,
+				       std::vector<std::vector<std::pair<float,larlite::larflow3dhit> > > PCAdist_sorted_flowhits,
 				       std::vector<int> isline){
 
+    // get larlite::GeometryHelper
+    auto geo = larutil::GeometryHelper::GetME();
+    
     //-----------------------//
     // this returns both a vector of pcainfo for all clusters,
     // and a vector of ints indicating whether the cluster
@@ -280,6 +289,7 @@ namespace larflow {
     //-----------------------//
     
     pcainfos.clear();
+    PCAdist_sorted_flowhits.clear();
     isline.assign(flowclusters.size(),-1);
     int ct=-1;
     for(auto &flowcluster : flowclusters){
@@ -291,26 +301,78 @@ namespace larflow {
       const double* eigval = pcainfo.getEigenValues();
       const double*  meanpos = pcainfo.getAvePosition();
       larlite::pcaxis::EigenVectors eigvec = pcainfo.getEigenVectors();
-      double eiglen = sqrt(eigval[0]);
-      //start,  end of primary axis
-      float x1=meanpos[0]-eigvec[0][0]*2*eiglen;
-      float x2=meanpos[0]+eigvec[0][0]*2*eiglen;
-      float y1=meanpos[1]-eigvec[1][0]*2*eiglen;
-      float y2=meanpos[1]+eigvec[1][0]*2*eiglen;
-      float z1=meanpos[2]-eigvec[2][0]*2*eiglen;
-      float z2=meanpos[2]+eigvec[2][0]*2*eiglen;
 
-      // we assume max actual width of a track to be 5 pix. If the primary axis length is > 3x width we say it is a line cluster
-      // Note: these parameters are preliminary and need to be tuned
-      float track_width_pix = 5.;
-      float pix_width_mm = 3.; //get this from somewhere? 
-      float line_thresh = 3;
+      // meanpos is origin and eigenvec[x,y,z][] is direction
+      TVector3 origin(meanpos[0],meanpos[1],meanpos[2]);
+      TVector3 direction(eigvec[0][0],eigvec[1][0],eigvec[2][0]);
 
-      float axis_mag = sqrt(pow(x2-x1,2) + pow(y2-y1,2) + pow(z2-z1,2));
-      if(axis_mag >= pix_width_mm*track_width_pix*line_thresh ) isline[ct] = 1;
+      //this holds original hit and dist to meanpos along pca axis line
+      std::vector<std::pair<float,larlite::larflow3dhit> > pair;
+
+      for(int h=0; h<flowcluster.size(); h++){
+	TVector3 point(flowcluster.at(h)[0],flowcluster.at(h)[1],flowcluster.at(h)[2]);
+	float pcadist = geo->DistanceAlongLine3D(origin, direction,point);
+	pair.push_back(make_pair(pcadist,flowcluster.at(h)));
+      }
+      //sort by pcadist
+      sort(pair.begin(),pair.end());
+      //fill sorted larflow cluster
+      PCAdist_sorted_flowhits.push_back(pair);
+	
+      // we look for clusters with primary axis > 1./0.5 secondary axis
+      float line_thresh = 1./0.5;
+      if( eigval[1]/eigval[1] >= line_thresh) isline[ct] = 1;
 
       //std::cout << eigval[0] <<" "<< eigval[1] <<" "<< eigval[2] << std::endl;
     }
   }
 
+  void RecoCluster::checkPCAalignment(std::vector<std::vector<std::pair<float,larlite::larflow3dhit> > > sorted_flowclusters,
+				      std::vector<larlite::pcaxis> pcainfos,
+				      std::vector<int> isline){
+    
+    //-----------------------------------------------//
+    // check if PCA axes of line clusters are aligned
+    // first we check 3d dist b/n the two extreme hits of each cluster
+    // to each PCA axis parametrized line
+    // if similar, then parallel
+    //----------------------------------------------//
+
+    // get larlite::GeometryHelper
+    auto geo = larutil::GeometryHelper::GetME();
+
+    std::vector<std::vector<int> > parallel_idx(sorted_flowclusters.size(),std::vector<int>(0));
+    for(int i=0; i<sorted_flowclusters.size(); i++){
+      // skip if not line cluster
+      if(isline[i] !=1) continue;
+    
+      TVector3 end1(sorted_flowclusters.at(i).front().second.at(0),
+		    sorted_flowclusters.at(i).front().second.at(1),
+		    sorted_flowclusters.at(i).front().second.at(2));
+      TVector3 end2(sorted_flowclusters.at(i).back().second.at(0),
+		    sorted_flowclusters.at(i).back().second.at(1),
+		    sorted_flowclusters.at(i).back().second.at(2));
+      
+
+      //now we loop over all other cluster's pca axes
+      for(int j=0; j<pcainfos.size(); j++){
+	if(j==i) continue; //vectors in same cluster order
+	const double*  meanpos = pcainfos.at(j).getAvePosition();
+	larlite::pcaxis::EigenVectors eigvec = pcainfos.at(j).getEigenVectors();
+	
+	// meanpos is origin and eigenvec[x,y,z][] is direction
+	TVector3 origin(meanpos[0],meanpos[1],meanpos[2]);
+	TVector3 direction(eigvec[0][0],eigvec[1][0],eigvec[2][0]);
+	float approach1 = geo->DistanceToLine3D(origin, direction, end1);
+	float approach2 = geo->DistanceToLine3D(origin, direction, end2);
+
+	//are we parallel within parallel_thresh?
+	float parallel_thresh = 50.0; //in mm (i hope...)
+	if(std::abs(approach1 - approach2) <= parallel_thresh)
+	  parallel_idx[i].push_back(j);
+      }
+      
+    }
+    
+  }
 }

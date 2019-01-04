@@ -62,7 +62,8 @@ int main( int nargs, char** argv ) {
     std::vector< std::vector<larlite::larflow3dhit> > clusters = clusteralgo.clusterHits( fhits, "DBSCAN", false );    
     std::vector<int> isline;
     std::vector<larlite::pcaxis> pcainfos;
-    clusteralgo.filterLineClusters(clusters, pcainfos, isline);
+    std::vector<std::vector<std::pair<float, larlite::larflow3dhit> > > sorted_flowhits;
+    clusteralgo.filterLineClusters(clusters, pcainfos, sorted_flowhits, isline);
 
     std::cout << "number of dbscan clusters: " << clusters.size() << std::endl;
     for (int i=0; i<clusters.size(); i++){
