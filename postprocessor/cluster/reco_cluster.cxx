@@ -58,22 +58,29 @@ int main( int nargs, char** argv ) {
     clusteralgo.filter_hits(ev_hits,fhits,3.,1.);
     std::cout << "number of filtered hits: " << fhits.size() << std::endl;
     //
-    clusteralgo.set_dbscan_param(5.,5.,0);
+    clusteralgo.set_dbscan_param(10.,5.,0);
     std::vector< std::vector<larlite::larflow3dhit> > clusters = clusteralgo.clusterHits( fhits, "DBSCAN", false );    
     std::vector<int> isline;
     std::vector<larlite::pcaxis> pcainfos;
     std::vector<std::vector<std::pair<float, larlite::larflow3dhit> > > sorted_flowhits;
     clusteralgo.filterLineClusters(clusters, pcainfos, sorted_flowhits, isline);
+    std::vector<std::vector<int> > parallel_idx(clusters.size(),std::vector<int>(0));
+    std::vector<std::vector<int> > stitch_idx(clusters.size(),std::vector<int>(0));
+    clusteralgo.selectClustToConnect(sorted_flowhits, pcainfos, isline, parallel_idx, stitch_idx);
+    std::vector<std::vector<larlite::larflow3dhit> > newclusters;
+    clusteralgo.ConnectClusters(clusters, stitch_idx, newclusters);
 
     std::cout << "number of dbscan clusters: " << clusters.size() << std::endl;
-    for (int i=0; i<clusters.size(); i++){
+    std::cout << "number of stitched clusters: " << newclusters.size() << std::endl;
+    for (int i=0; i<newclusters.size(); i++){
       larlite::larflowcluster lf;
-      for(auto& hit : clusters.at(i)){
+      for(auto& hit : newclusters.at(i)){
 	lf.push_back(hit);
       }
       ev_clusters.emplace_back(std::move(lf));
       ev_pcaout.emplace_back(std::move(pcainfos.at(i)));
       //std::cout << "hits in clust "<< ev_clusters.at(i).size() << std::endl;
+     
     }
     /*
     idx=0;
