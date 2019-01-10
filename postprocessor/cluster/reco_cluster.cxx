@@ -36,7 +36,7 @@ int main( int nargs, char** argv ) {
   tree->Branch("truth_idx",&truth_idx,"truth_idx/I");
   tree->Branch("x",x,"x[3]/F");
   larlite::storage_manager io_out( larlite::storage_manager::kWRITE );
-  io_out.set_out_filename( "output_dev_truthcluster.root" );
+  io_out.set_out_filename( "output_dev_recocluster.root" );
   io_out.open();
 
   // RecoCluster
@@ -50,6 +50,7 @@ int main( int nargs, char** argv ) {
   
     larlite::event_larflow3dhit& ev_hits = *((larlite::event_larflow3dhit*)io.get_data( larlite::data::kLArFlow3DHit, "flowhits" ));
     larlite::event_larflowcluster& ev_clusters = *((larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"dbscan"));
+    larlite::event_larflowcluster& ev_clusters2 = *((larlite::event_larflowcluster*)io_out.get_data( larlite::data::kLArFlowCluster,"dbscanStitch"));
     larlite::event_pcaxis& ev_pcaout = *((larlite::event_pcaxis*)io_out.get_data( larlite::data::kPCAxis,"dbscan"));
     std::cout << "number of hits: " << ev_hits.size() << std::endl;
 
@@ -72,16 +73,25 @@ int main( int nargs, char** argv ) {
 
     std::cout << "number of dbscan clusters: " << clusters.size() << std::endl;
     std::cout << "number of stitched clusters: " << newclusters.size() << std::endl;
+    for (int i=0; i<clusters.size(); i++){
+      larlite::larflowcluster lf;
+      for(auto& hit : clusters.at(i)){
+	lf.push_back(hit);
+      }
+      ev_clusters.emplace_back(std::move(lf));
+      ev_pcaout.emplace_back(std::move(pcainfos.at(i)));
+      std::cout << "hits in clust "<< ev_clusters.at(i).size() << std::endl; 
+    }
     for (int i=0; i<newclusters.size(); i++){
       larlite::larflowcluster lf;
       for(auto& hit : newclusters.at(i)){
 	lf.push_back(hit);
       }
-      ev_clusters.emplace_back(std::move(lf));
-      ev_pcaout.emplace_back(std::move(pcainfos.at(i)));
-      //std::cout << "hits in clust "<< ev_clusters.at(i).size() << std::endl;
+      ev_clusters2.emplace_back(std::move(lf));
+      std::cout << "hits in stitched clust "<< ev_clusters2.at(i).size() << std::endl;
      
     }
+
     /*
     idx=0;
     for ( auto& cluster : ev_clusters ) {

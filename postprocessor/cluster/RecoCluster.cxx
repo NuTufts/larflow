@@ -410,36 +410,74 @@ namespace larflow {
     // combine hits of clusters
     // satisfying the stitch condition
     //---------------------------------//
-    
+
     newclusters.clear();
     newclusters.reserve(flowclusters.size());
-    // we need to keep a list of already stored clusters
-    std::vector<int> used(stitch_idx.size(),-1.);
-    for(int i=0; i<stitch_idx.size(); i++){
-      if(used[i]<0){
-	newclusters.emplace_back(flowclusters.at(i));
-	used[i] = 1.;
-	
-	if(stitch_idx.at(i).size()>0){
-	  //std::cout <<"debug " <<std::endl;
-	  for(int j=0; j<stitch_idx.at(i).size(); j++){
-	    if(used[stitch_idx.at(i).at(j)]>=0) continue; //already filled as (part of) a cluster
-	    newclusters.at(i).insert(newclusters.at(i).end(),flowclusters.at(stitch_idx.at(i).at(j)).begin(), flowclusters.at(stitch_idx.at(i).at(j)).end() );
-	    used[stitch_idx.at(i).at(j)]=1.;
-	    if(stitch_idx[stitch_idx.at(i).at(j)].size()>0){
-	      for(int k=0; k<stitch_idx[stitch_idx.at(i).at(j)].size(); k++){
-		if(used[stitch_idx[stitch_idx.at(i).at(j)][k]]>=0) continue; //already filled as (part of) a cluster
-		newclusters.at(i).insert(newclusters.at(i).end(),flowclusters.at(stitch_idx[stitch_idx.at(i).at(j)][k]).begin(),
-					 flowclusters.at(stitch_idx[stitch_idx.at(i).at(j)][k]).end() );
-		used[stitch_idx[stitch_idx.at(i).at(j)][k]]=1.;
-		
-	      }
-	    }
+
+    std::vector<std::set<int> > C;    
+    std::set<int> filled;
+
+    //loop over all cluster indeces
+    for(int i=0; i<flowclusters.size(); i++){
+      if(filled.find(i) != filled.end()) continue;
+      auto const& neighbors = stitch_idx.at(i);
+      std::vector<int> indices = neighbors; //copy
+      indices.push_back(i); // self+neighbors
+
+      bool used = false;
+      std::set<int>* current_set = nullptr;      
+      for (auto& idx : indices) {
+	for(auto &Cs : C){
+	  if(Cs.find(idx) != Cs.end()){
+	    used = true;
+	    current_set = &Cs;
+	    break;
 	  }
 	}
+	if ( used )
+	  break;
+      }
+
+      if(!used){
+	C.resize( C.size()+1 ); // appends new set
+	current_set = &C.back();
+      }
+
+      //for ( auto& idx : indices ) {
+      //   (*current_set).insert(idx);
+      //}
+      
+      //create the queue
+      std::vector<int> queue = indices;
+      while(queue.size()>0){
+	int q=queue.back();
+	if(filled.find(q) != filled.end()){
+	  queue.pop_back();
+	  continue;
+	}
+
+	std::vector<int> next = stitch_idx.at(q);
+	next.push_back(q);
+	filled.insert(q);
+	queue.pop_back();
+	for ( auto& idx : next ) {
+	  (*current_set).insert(idx);
+	  if(!(filled.find(idx)!= filled.end() ) ) queue.push_back(idx);
+	}
+
+      }
+        
+    }
+    //now we fill in the clusters
+    newclusters.resize(C.size());
+    for(unsigned int c=0; c<C.size(); c++){
+      std::set<int>::iterator it;
+      for(auto& cc : C[c]){
+	newclusters[c].insert( newclusters[c].end(), flowclusters.at(cc).begin(), flowclusters.at(cc).end() );
       }
     }
     
+
   }
   
 
