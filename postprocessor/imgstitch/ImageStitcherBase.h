@@ -49,6 +49,9 @@ namespace dlcosmictag {
 
     // retrieve the current wholeview meta (const)
     const std::vector< larcv::ImageMeta >& WholeViewMeta() const { return m_wholeview_meta_v; };
+
+    // retrieve current whole view ADC image (const)
+    const larcv::Image2D& WholeViewADC( const int plane ) { return *m_wholeview_adc_v.at(plane); };
         
     // retrieve the current state of the stitched image (const)
     const std::vector< larcv::Image2D >& Stitched() const { return m_stitched_v; };
@@ -66,6 +69,7 @@ namespace dlcosmictag {
 
     // definition of the wholeview meta
     std::vector< larcv::ImageMeta > m_wholeview_meta_v;
+    std::vector< const larcv::Image2D* > m_wholeview_adc_v;
 
     // output stitched image
     std::vector< larcv::Image2D > m_stitched_v;

@@ -23,9 +23,11 @@ namespace dlcosmictag {
    */
   void ImageStitcherBase::setWholeViewMeta( const std::vector< larcv::Image2D >& wholeviewimg_v ) {
     m_wholeview_meta_v.clear();
+    m_wholeview_adc_v.clear();
 
     for ( auto const& img : wholeviewimg_v ) {
       m_wholeview_meta_v.push_back( img.meta() );
+      m_wholeview_adc_v.push_back( &img );
     }
 
     for ( auto const& meta : m_wholeview_meta_v ) {

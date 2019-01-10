@@ -119,6 +119,8 @@ int main( int args, char** argv ) {
   
   for ( int ientry=0; ientry<nentries; ientry++ ) {
 
+    clock_t startSubImageEntry = clock();
+    
     input_larcv2.read_entry( ientry );
 
     // get data
@@ -155,7 +157,7 @@ int main( int args, char** argv ) {
         clock_t startTime_saveoutput = clock();          
         save_output( out_larlite,
                      stitch_shower, stitch_track, stitch_endpt, stitch_infill,
-                     runid, subrunid, eventid );
+                     current_runid, current_subrunid, current_eventid );
         elapsed_saveoutput += float( clock() - startTime_saveoutput ) / (float)CLOCKS_PER_SEC;
         
         stitch_shower->clear();
@@ -197,6 +199,9 @@ int main( int args, char** argv ) {
     }
     float dt_subimg = double( clock() - startTime ) / (double)CLOCKS_PER_SEC;
     elapsed_subimg += dt_subimg;
+
+    clock_t endSubImageEntry = clock();
+    std::cout << "subimage entry: " << float( endSubImageEntry-startSubImageEntry ) / (float)CLOCKS_PER_SEC << std::endl;
     
   }//end of entry loop
 

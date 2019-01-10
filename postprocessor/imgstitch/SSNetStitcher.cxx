@@ -1,4 +1,5 @@
 #include "SSNetStitcher.h"
+#include <ctime>
 
 namespace dlcosmictag {
 
@@ -37,6 +38,8 @@ namespace dlcosmictag {
     float center_row = subimg_meta.rows()/2;
     float center_col = subimg_meta.cols()/2;
 
+    clock_t start = clock();
+    
     for ( size_t r=0; r<subimg_meta.rows(); r++ ) {
 
       float subimg_y = subimg_meta.pos_y(r);
@@ -52,33 +55,42 @@ namespace dlcosmictag {
           continue;
         
         float subimg_pixval = subimg.pixel(r,c);
+        // if ( subimg_pixval!=0 )
+        //   std::cout << "[SSNetStitcher::addSubImage][DEBUG] subimg pixel (" << subimg_x << "," << subimg_y << ") value=" << subimg_pixval << std::endl;
+        
         if ( subimg_pixval<threshold ) continue;
-
+        
         int stitched_col = stitched_meta.col( subimg_x );
+
+        float stitched_val = WholeViewADC(plane).pixel( stitched_row, stitched_col );
+        if ( stitched_val < 5.0 )
+          continue;
+        
         float metric_val = metric.pixel( stitched_row, stitched_col );
 
-        if ( metric_val>-1.0 ) {
-          // we must have had a value here. decide to keep old score or new score.
-          if ( m_scoremethod==kCENTER ) {
-            // replace value if location is closer to subimg center
-            float dist =
-              ((float)r-center_row)*((float)r-center_row) + ((float)c-center_col)*((float)c-center_col);
+        if ( m_scoremethod==kCENTER ) {
+          // replace value if location is closer to subimg center
+          float dist =
+            ((float)r-center_row)*((float)r-center_row) + ((float)c-center_col)*((float)c-center_col);
             
-            if ( dist<metric_val ) {
-              stitched.set_pixel( stitched_row, stitched_col, subimg_pixval );
-              metric.set_pixel( stitched_row, stitched_col, dist );
-            }
+          if ( metric_val<=-1.0 || dist<metric_val ) {
+            stitched.set_pixel( stitched_row, stitched_col, subimg_pixval );
+            metric.set_pixel( stitched_row, stitched_col, dist );
           }
-          else if ( m_scoremethod==kCONFIDENCE ) {
-            // replace value if it's higher than the previous one
-            if ( subimg_pixval > metric_val ) {
-              stitched.set_pixel( stitched_row, stitched_col, subimg_pixval );
-              metric.set_pixel( stitched_row, stitched_col, subimg_pixval );
-            }
+        }
+        else if ( m_scoremethod==kCONFIDENCE ) {
+          // replace value if it's higher than the previous one
+          if ( metric_val<=-1.0 || subimg_pixval > metric_val ) {
+            stitched.set_pixel( stitched_row, stitched_col, subimg_pixval );
+            metric.set_pixel( stitched_row, stitched_col, subimg_pixval );
           }
-        }//end of metric value indicates previous value was set in this pixel
+        }
       }//end of subimg cols
     }//end of subimg rows
+
+    clock_t end = clock();
+    //std::cout << "[SSNetStitcher::addSubImage] processing time " << float(end-start)/(float)CLOCKS_PER_SEC << std::endl;
+    
   }//end of addSubImage
 
   void SSNetStitcher::clear() {
