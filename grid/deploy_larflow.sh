@@ -46,16 +46,18 @@ rm $outfile_y2v
 
 # postprocessor
 outputpost=`printf /tmp/output_larflowhits_jobid%02d.root ${jobid}`
+outputlarcv=`printf /tmp/output_larflowlarcv_jobid%02d.root ${jobid}`
 
-#cd ${repodir}/postprocessor
+cd ${repodir}/postprocessor
 workdir=`printf /tmp/larflow_workdir_jobid%03d ${jobid}`
 mkdir -p $workdir
 cd $workdir
 
-echo "run: ./dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${jobid}"
-dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${jobid} || exit
+echo "run: ./dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${outputlarcv} ${jobid}"
+dev ${outfile_hadd} ${supera} ${reco2d} ${opreco} ${mcinfo} ${outputpost} ${outputlarcv} ${jobid} || exit
 
 mv ${outputpost} ${outputdir}/ || exit
+mv ${outputlarcv} ${outputdir}/ || exit
 
 echo "CLEANUP"
 cd /tmp

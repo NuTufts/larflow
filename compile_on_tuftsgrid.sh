@@ -5,11 +5,11 @@ workdir=$1
 cd $workdir
 
 # get right branch
-git checkout cilantro_test
+#git checkout cilantro_test
 
 # setup submodules
-git submodule init
-git submodule update
+#git submodule init
+#git submodule update
 
 # build Pangoline first, before ROOT
 #cd Pangolin/
@@ -34,18 +34,8 @@ source configure.sh
 #source clean.sh
 source build.sh
 
-# build photolib tools
-cd larlite/UserDev/SelectionTool/OpT0Finder/
-make
-
 # post-processor
-cd $workdir
-cd postprocessor
-make clean
-make
-
-cd flashmatch
-make clean
+cd $workdir/postprocessor
 make
 
 # return home
