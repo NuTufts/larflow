@@ -17,7 +17,7 @@ LDLIBS   += `larlitecv-config --libs`
 LIBS = ContourTools FlowContourMatching LArFlowCluster3D
 LDLIBS += -Llib $(addprefix -l,$(LIBS))
 
-SUBDIRS = ContourTools FlowContourMatching cluster flashmatch
+SUBDIRS = ContourTools FlowContourMatching cluster flashmatch imgstitch
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 EXEC += test_mc

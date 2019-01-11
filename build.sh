@@ -1,5 +1,7 @@
 #!/bin/bash
 
+workdir=$PWD
+
 cd larlite
 make
 cd UserDev/BasicTool
@@ -20,20 +22,28 @@ make
 cd ../larlitecv
 make
 
-cd ..
+cd $workdir
 
 # cilantro/pangolin
-mkdir Pangolin/build
-cd Pangolin/build
-cmake ..
-cmake --build .
+#mkdir Pangolin/build
+#cd Pangolin/build
+#cmake ..
+#cmake --build .
 
-cd ../..
-mkdir cilantro/build
-cd cilantro/build
-cmake ..
-cmake --build .
+#cd ../..
+#mkdir cilantro/build
+#cd cilantro/build
+#cmake ..
+#cmake --build .
 
 # return home
-cd ../..
+#cd ../..
+
+cd $workdir/postprocessor
+make clean
+make
+
+cd $workdir
+
+
 
