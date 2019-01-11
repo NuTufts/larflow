@@ -35,4 +35,5 @@ obj:
 	@for i in $(SUBDIRS); do ( echo "" && echo "Compiling $$i..." && cd $$i && $(MAKE) ) || exit $$?; done
 
 clean:
-	rm lib/*.so dev
+	@for i in $(SUBDIRS); do ( echo "" && echo "cleaning $$i..." && cd $$i && $(MAKE) clean ) || exit $$?; done
+	@rm -f lib/*.so dev

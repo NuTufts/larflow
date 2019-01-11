@@ -69,5 +69,5 @@ convert2ply: convert2ply.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(INCLUDES_PANGOLIN) $(LDFLAGS) $(LDFLAGS_PANGOLIN) -o $@ $@.cxx $(LIBS)
 
 clean:
-	@echo "<< cleaning >>"
-	@rm $(LIB) *.o $(BINS)
+	@echo "<< cleaning cluster module >>"
+	@rm -f $(LIB) *.o $(BINS)

@@ -43,5 +43,5 @@ $(LIB): $(OBJS)
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx $(LIB) -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
 clean:
-	@echo "<< cleaning >>"
-	@rm $(LIB) *.o $(BINS)
+	@echo "<< cleaning imgstitch >>"
+	@rm -f $(LIB) *.o $(BINS)

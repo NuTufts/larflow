@@ -34,3 +34,6 @@ all: $(LIB)
 	@echo "<< compiling $< >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+clean:
+	@echo "<< cleaning FlowContourMatching >>"
+	@rm -f $(LIB)
