@@ -2,25 +2,30 @@
 
 workdir=$PWD
 
+# BUILD LARLITE
+cd $workdir
 cd larlite
 make
 cd UserDev/BasicTool
 make
 cd ../SelectionTool/OpT0Finder
 make
-cd ../../..
+
 
 cd ../Geo2D
+make clean
 make
 
 cd ../LArOpenCV
+make clean
 make -j4
 
 cd ../larcv
-make
+make clean
+make -j4
 
 cd ../larlitecv
-make
+make -j4
 
 cd $workdir
 
@@ -36,11 +41,7 @@ cd $workdir
 #cmake ..
 #cmake --build .
 
-# return home
-#cd ../..
-
 cd $workdir/postprocessor
-make clean
 make
 
 cd $workdir
