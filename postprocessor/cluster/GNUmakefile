@@ -44,7 +44,7 @@ BINSRCS += dev_fillcluster.cxx
 
 # SPECIFY BINS TO BUILD
 #BINS = $(basename $(BINSRCS)) # for all
-BINS = dev_fillcluster
+BINS = dev_fillcluster dev_truthcluster
 
 #SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
 SRCS = $(filter-out $(BINSRCS), $(wildcard *.cxx))

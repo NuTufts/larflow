@@ -12,34 +12,17 @@ cd ../SelectionTool/OpT0Finder
 make
 
 
-cd ../Geo2D
-make clean
+cd $workdir/Geo2D
 make
 
-cd ../LArOpenCV
-make clean
+cd $workdir/LArOpenCV
 make -j4
 
-cd ../larcv
-make clean
+cd $workdir/larcv
 make -j4
 
-cd ../larlitecv
+cd $workdir/larlitecv
 make -j4
-
-cd $workdir
-
-# cilantro/pangolin
-#mkdir Pangolin/build
-#cd Pangolin/build
-#cmake ..
-#cmake --build .
-
-#cd ../..
-#mkdir cilantro/build
-#cd cilantro/build
-#cmake ..
-#cmake --build .
 
 cd $workdir/postprocessor
 make
