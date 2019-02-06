@@ -29,11 +29,17 @@ namespace larflow {
 			      std::vector<larlite::pcaxis>& pcainfos,
 			      std::vector<int>& isline,
 			      std::vector<std::vector<int> >& parallel_idx,
-			      std::vector<std::vector<int> >& stitch_idx);
+			      std::vector<std::vector<int> >& stitch_idx,
+			      const double parallel_thresh,
+			      const double enddist_thresh);
     void ConnectClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
 			 std::vector<std::vector<int> >& stich_idx,
 			 std::vector<std::vector<larlite::larflow3dhit> >& newclusters);
 
+    void EvaluateClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
+			  std::vector<int>& purity,
+			  std::vector<float>& efficiency);
+    
     void set_dbscan_param(float maxdist, float minhits, int maxkdn){_dbscan_param.maxdist=maxdist; _dbscan_param.minhits=minhits; _dbscan_param.maxkdneighbors=maxkdn;};
     void set_spectral_param(int NC, int MaxNN, float MaxDist, float Sigma){
       _spectral_param.NC=NC;

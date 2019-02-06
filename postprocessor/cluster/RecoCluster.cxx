@@ -331,7 +331,9 @@ namespace larflow {
 					 std::vector<larlite::pcaxis>& pcainfos,
 					 std::vector<int>& isline,
 					 std::vector<std::vector<int> >& parallel_idx,
-					 std::vector<std::vector<int> >& stitch_idx){
+					 std::vector<std::vector<int> >& stitch_idx,
+					 const double parallel_thresh,
+					 const double enddist_thresh){
     
     //-----------------------------------------------------------//
     // 1.Check if angle b/n PCA axes is smaller than threshold
@@ -342,8 +344,8 @@ namespace larflow {
     // get larlite::GeometryHelper
     auto geo = larutil::GeometryHelper::GetME();
 
-    const double parallel_thresh = 0.05; //5% of 1rad
-    const double enddist_thresh = 50.; //mm
+    //const double parallel_thresh = 0.05; //5% of 1rad
+    //const double enddist_thresh = 10.; //cm
 
     for(int i=0; i<sorted_flowclusters.size(); i++){
       // skip if not line cluster
@@ -471,7 +473,6 @@ namespace larflow {
     //now we fill in the clusters
     newclusters.resize(C.size());
     for(unsigned int c=0; c<C.size(); c++){
-      std::set<int>::iterator it;
       for(auto& cc : C[c]){
 	newclusters[c].insert( newclusters[c].end(), flowclusters.at(cc).begin(), flowclusters.at(cc).end() );
       }
@@ -480,9 +481,73 @@ namespace larflow {
 
   }
   
+  void RecoCluster::EvaluateClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
+				     std::vector<int>& purity,
+				     std::vector<float>& efficiency){
 
+    //--------------------------------------------------------------------//
+    // estimate cluster purity (# of truth track IDs > 10% of cluster hits)
+    // estimate cluster efficiency (% of leading track ID contained)
+    //-------------------------------------------------------------------//
+    purity.clear();
+    efficiency.clear();
+    purity.resize(flowclusters.size(),0);
+    efficiency.resize(flowclusters.size(),0);
+    
+    std::vector<std::set<int> > trackIDs; //placeholder for unique track IDs in each cluster
+    trackIDs.resize(flowclusters.size());
+    std::set<int> allTrackIDs; //all unique track IDs in all clusters
+    std::vector<std::pair<int,float> > topID;   
+    topID.resize(flowclusters.size());
+    
+    //loop over clusters
+    for(unsigned int i=0; i<flowclusters.size(); i++){ 
+      //loop over cluster hits 
+      for(auto& hit : flowclusters.at(i)){
+	if(hit.trackid != -1){
+	  trackIDs.at(i).insert(hit.trackid); //fill unique true track IDs
+	  allTrackIDs.insert(hit.trackid);
+	}
+      }
 
+      int numtrk=0; //number of tracks > 10% of hit clusters
+      float maxfrac=0; //max num of hits for a single true track
+      int maxID=0; //trackID of track with max fraction in this cluster
+      
+      for(auto& cc : trackIDs.at(i)){
+	int count = 0;
+	for(auto& hit : flowclusters.at(i)){
+	  if(hit.trackid== cc) count++;
+	}
+	if(float(count/flowclusters.at(i).size())>=0.1) numtrk++;
+	if(float(count/flowclusters.at(i).size()) > maxfrac){
+	  maxfrac = float(count);
+	  maxID = cc;
+	}
+      }
+      purity.at(i) = numtrk;
+      topID.at(i) = std::make_pair(maxID,maxfrac);
+    }
+    
+    //now calculate how many hits per truth track
+    for(auto& id : allTrackIDs){
+      int  numhits=0;
+      for(int i=0; i<flowclusters.size(); i++){
+	if(trackIDs.at(i).find(id) != trackIDs.at(i).end()){
+	  for(auto& hit : flowclusters.at(i)){
+	    if(hit.trackid==id) numhits++;
+	  }
+	}
+      }
+      //now we have the total number of hits for this track
+      //we look if it is maxID for any cluster and calculate efficiency
+      for(int i=0; i<flowclusters.size(); i++){
+	if(topID.at(i).first==id) efficiency.at(i) = topID.at(i).second/numhits;
+      }
+    }
+  }
 
 
   //eof
 }
+  
