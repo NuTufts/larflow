@@ -94,7 +94,7 @@ def load_larflow_larcvdata( name, inputfile, batchsize, nworkers,
                          io_tickbackward=tickbackward,readonly_products=readonly_products)
     return feeder
 
-class SparseImagePyTorchDataset(torchdata.Dataset):
+class SparseLArFlowPyTorchDataset(torchdata.Dataset):
     idCounter = 0
     def __init__(self,inputfile,batchsize,tickbackward=False,nworkers=4):
         super(SparseImagePyTorchDataset,self).__init__()
@@ -112,14 +112,14 @@ class SparseImagePyTorchDataset(torchdata.Dataset):
         self.nentries = tchain.GetEntries()
         del tchain
         
-        self.feedername = "SparseImagePyTorchDataset_%d"%(SparseImagePyTorchDataset.idCounter)
+        self.feedername = "SparseLArFlowImagePyTorchDataset_%d"%(SparseImagePyTorchDataset.idCounter)
         self.batchsize = batchsize
         self.nworkers  = nworkers
         self.feeder = LArCVServer(self.batchsize,self.feedername,
-                                  load_sparse_ssnetdata,self.inputfiles,self.nworkers,
+                                  load_sparse_larflowdata,self.inputfiles,self.nworkers,
                                   server_verbosity=0,worker_verbosity=0,
                                   io_tickbackward=tickbackward)
-        SparseImagePyTorchDataset.idCounter += 1
+        SparseLArFlowPyTorchDataset.idCounter += 1
 
     def __len__(self):
         #print "return length of sample:",self.nentries
@@ -149,7 +149,6 @@ if __name__ == "__main__":
     nentries = 10
 
     TEST_VANILLA = True
-    TEST_PYTORCH_DATALOADER = False
 
     if TEST_VANILLA:
         feeder = load_larflow_larcvdata( "larflowsparsetest", inputfile, batchsize, nworkers,
@@ -169,26 +168,5 @@ if __name__ == "__main__":
         tend = time.time()-tstart
         print "elapsed time, ",tend,"secs ",tend/float(nentries)," sec/batch"
         del feeder
-
-
-    if TEST_PYTORCH_DATALOADER:
-        print "TEST PYTORCH DATALOADER SERVER"
-        print "DOES NOT WORK"
-        params = {"batch_size":4,
-                  "shuffle":True,
-                  "pin_memory":True,
-                  "num_workers":4}
-        dataset = SparseImagePyTorchDataset(inputfile,tickbackward=True)
-        pyloader = torchdata.DataLoader(dataset,**params)
-
-        ientry = 0
-        for batch in pyloader:
-            print "entry[",n,"]: ",type(batch)
-            ientry += 1
-            if ientry>50:
-                break
-        tend = time.time()-tstart
-        print "elapsed time, ",tend,"secs ",tend/float(nentries)," sec/batch"
-        del pyloader
 
 
