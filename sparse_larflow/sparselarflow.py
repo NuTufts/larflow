@@ -373,8 +373,8 @@ if __name__ == "__main__":
     #nrows = 512
     #ncols = 832
     sparsity = 0.01
-    device = torch.device("cpu")
-    #device = torch.device("cuda")
+    #device = torch.device("cpu")
+    device = torch.device("cuda")
     ntrials = 10
     batchsize = 1
     
