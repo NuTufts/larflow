@@ -29,7 +29,13 @@ class SparseEncoder(nn.Module):
                 ninchs = self.chs_per_layer[ilayer-1]
             else:
                 ninchs = self.inputchs
-            layer = self.make_encoder_layer(ninchs,noutputchs,nreps)
+
+
+            if ilayer+1<len(self.chs_per_layer):
+                layer = self.make_encoder_layer(ninchs,noutputchs,nreps)
+            else:
+                #layer = self.make_encoder_layer(ninchs,noutputchs,nreps, downsample=None)
+                layer = self.make_encoder_layer(ninchs,noutputchs,nreps)
             self._layers.append(layer)
             setattr(self,"%s_enclayer%d"%(name,ilayer),layer)
 
@@ -64,30 +70,153 @@ class SparseEncoder(nn.Module):
         """
         encode_blocks = scn.Sequential()
         for iblock in xrange(nreps):
-            self.block(encode_blocks,ninputchs,ninputchs)
+            if downsample is not None:
+                self.block(encode_blocks,ninputchs,ninputchs)
+            else:
+                if iblock==0:
+                    self.block(encode_blocks,ninputchs,noutputchs)
+                else:
+                    self.block(encode_blocks,noutputchs,noutputchs)
 
         m = scn.Sequential()
         m.add(encode_blocks)
-        m.add(scn.BatchNormLeakyReLU(ninputchs,leakiness=leakiness))
-        m.add(scn.Convolution(self.dimension, ninputchs, noutputchs,
-                              downsample[0], downsample[1], False))
+        if downsample is not None:
+            m.add(scn.BatchNormLeakyReLU(ninputchs,leakiness=leakiness))
+            m.add(scn.Convolution(self.dimension, ninputchs, noutputchs,
+                                  downsample[0], downsample[1], False))
+
         return m
 
     def forward(self,x):
-        self.layerout = []
+        layerout = []
         for ilayer,layer in enumerate(self._layers):
             if ilayer==0:
                 inputx = x
             else:
-                inputx = self.layerout[-1]
+                inputx = layerout[-1]
             out = layer(inputx)
-            print "%s_enclayerout[%d]: "%(self._name,ilayer),inputx.features.shape,inputx.spatial_size,"-->",out.features.shape,out.spatial_size
-            self.layerout.append( out )
-        return self.layerout
+            print "[%s] Encode Layer[%d]: "%(self._name,ilayer),inputx.features.shape,inputx.spatial_size,"-->",out.features.shape,out.spatial_size
+            layerout.append( out )
+        return layerout
+
+class SparseDecoder(nn.Module):
+    def __init__( self, name, nreps, inputchs_per_layer, outputchs_per_layer ):
+        nn.Module.__init__(self)
+        self.inputchs_per_layer  = inputchs_per_layer
+        self.outputchs_per_layer = outputchs_per_layer
+        self.residual_blocks = True
+        self.dimension = 2
+        self._deconv_layers = []
+        self._res_layers = []
+        self._joiner = []
+        self._name = name
+        print self.inputchs_per_layer
+        print self.outputchs_per_layer
+        for ilayer,(ninputchs,noutputchs) in enumerate(zip(self.inputchs_per_layer,self.outputchs_per_layer)):
+            if ilayer+1<len(outputchs_per_layer):
+                islast = False
+            else:
+                islast = True
+            deconv,res,joiner = self.make_decoder_layer(ilayer,ninputchs,noutputchs,nreps,islast=islast)
+            self._deconv_layers.append(deconv)
+            self._res_layers.append(res)
+            self._joiner.append(joiner)
+
+    def block(self, m, a, b, leakiness=0.01):
+        """
+        append to the sequence:
+        produce output of [identity,3x3+3x3] then add together
+
+        inputs
+        ------
+        m: scn.Sequential module (modified)
+        a: number of input channels
+        b: number of output channels
+        """        
+        if self.residual_blocks: #ResNet style blocks
+            m.add(scn.ConcatTable()
+                  .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
+                  .add(scn.Sequential()
+                    .add(scn.BatchNormLeakyReLU(a,leakiness=leakiness))
+                    .add(scn.SubmanifoldConvolution(self.dimension, a, b, 3, False))
+                    .add(scn.BatchNormLeakyReLU(b,leakiness=leakiness))
+                    .add(scn.SubmanifoldConvolution(self.dimension, b, b, 3, False)))
+             ).add(scn.AddTable())
+
+    def make_decoder_layer(self,ilayer,ninputchs,noutputchs,nreps,
+                           leakiness=0.01,downsample=[2, 2],islast=False):
+        """
+        defines two layers: 
+          1) the deconv layer pre-concat 
+          2) residual blocks post-concat
         
+        inputs
+        ------
+        ninputchs: number of features going into layer
+        noutputchs: number of features output by layer
+        """
+
+        # resnet block
+        decode_blocks = scn.Sequential()
+        for iblock in xrange(nreps):
+            if iblock==0:
+                self.block(decode_blocks,ninputchs,2*noutputchs)
+            else:
+                self.block(decode_blocks,2*noutputchs,2*noutputchs)
+        setattr(self,"decodeblocks%d"%(ilayer),decode_blocks)
+
+        # deconv
+        m = scn.Sequential()
+        m.add(scn.BatchNormLeakyReLU(2*noutputchs,leakiness=leakiness))
+        m.add(scn.Deconvolution(self.dimension, 2*noutputchs, noutputchs,
+                                downsample[0], downsample[1], False))
+        setattr(self,"deconv%d"%(ilayer),m)
+        print "DecoderLayer[",ilayer,"] inputchs[",ninputchs," -> resout[",2*noutputchs,"] -> deconv output[",noutputchs,"]"
+
+
+        if not islast:
+            # joiner for skip connections        
+            joiner = scn.JoinTable()
+            setattr(self,"skipjoin%d"%(ilayer),joiner)
+        else:
+            joiner = None
+        return m,decode_blocks,joiner
+
+    def forward(self,encoder_layers):
+        layerout = None
+        for ilayer,(deconvl,resl,joiner) in enumerate(zip(self._deconv_layers,self._res_layers,self._joiner)):
+            if ilayer==0:
+                # first layer, input tensor comes from last encoder layer
+                inputx = encoder_layers[-(1+ilayer)]
+            else:
+                # otherwise, get the last tensor that was created
+                inputx = layerout
+            #print "decoder-input[",ilayer,"] input=",inputx.features.shape,inputx.spatial_size
+
+            # res conv
+            out = resl(inputx)
+            #print "decode-res[",ilayer,"]: outdecode=",out.features.shape,out.spatial_size
+
+            # upsample
+            out = deconvl(out)
+            #print "decode-deconv[",ilayer,"]: outdecode=",out.features.shape,out.spatial_size
+
+            # concat if not last layer, for last layer, joiner will be None
+            if joiner is not None:
+                # get next encoder layer
+                catlayer  = encoder_layers[-(2+ilayer)]
+                #print "decode-concat[",ilayer,"]: appending=",catlayer.features.shape,catlayer.spatial_size
+
+                # concat
+                out   = joiner( (out,catlayer) )
+            
+            print "[%s] Decode Layer[%d]: "%(self._name,ilayer),inputx.features.shape,inputx.spatial_size,"-->",out.features.shape,out.spatial_size            
+            layerout = out
+        return layerout
+    
 
 class SparseLArFlow(nn.Module):
-    def __init__(self, inputshape, reps, nfeatures, nplanes):
+    def __init__(self, inputshape, reps, nin_features, nout_features, nplanes):
         nn.Module.__init__(self)
 
         # set parameters
@@ -103,10 +232,12 @@ class SparseLArFlow(nn.Module):
         self.mode = 0
 
         # nfeatures
-        self.nfeatures = nfeatures
+        self.nfeatures = nin_features
+        self.nout_features = nout_features
 
         # plane structure
         self.nPlanes = [ self.nfeatures*2**(n+1) for n in xrange(nplanes) ]
+        print self.nPlanes
 
         # repetitions (per plane)
         self.reps = reps
@@ -140,6 +271,55 @@ class SparseLArFlow(nn.Module):
             self.join_enclayers.append(scn.JoinTable())
             setattr(self,"join_enclayers%d"%(ilayer),self.join_enclayers[ilayer])
 
+        # calculate decoder planes
+        self.decode_layers_inchs  = []
+        self.decode_layers_outchs = []
+        for ilayer,enc_outchs in enumerate(reversed(self.nPlanes)):
+            self.decode_layers_inchs.append( 4*enc_outchs if ilayer>0 else 3*enc_outchs )
+            self.decode_layers_outchs.append( self.nPlanes[-(1+ilayer)]/2 )
+        print "decode in chs: ",self.decode_layers_inchs
+        print "decode out chs: ",self.decode_layers_outchs
+
+        # decoders
+        self.flow1_decoder = SparseDecoder( "flow1", self.reps, self.decode_layers_inchs, self.decode_layers_outchs )
+
+        # last deconv concat
+        self.flow1_concat = scn.JoinTable()
+        
+        # final feature set convolution
+        flow1_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
+        self.flow1_resblock = scn.Sequential()
+        for iblock in xrange(self.reps):
+            if iblock==0:
+                self.block(self.flow1_resblock,flow1_resblock_inchs,self.nout_features)
+            else:
+                self.block(self.flow1_resblock,self.nout_features,self.nout_features)
+
+        # regression layer
+        self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+
+
+
+    def block(self, m, a, b, leakiness=0.01):
+        """
+        append to the sequence:
+        produce output of [identity,3x3+3x3] then add together
+
+        inputs
+        ------
+        m: scn.Sequential module (modified)
+        a: number of input channels
+        b: number of output channels
+        """        
+        if self.residual_blocks: #ResNet style blocks
+            m.add(scn.ConcatTable()
+                  .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
+                  .add(scn.Sequential()
+                    .add(scn.BatchNormLeakyReLU(a,leakiness=leakiness))
+                    .add(scn.SubmanifoldConvolution(self.dimensions, a, b, 3, False))
+                    .add(scn.BatchNormLeakyReLU(b,leakiness=leakiness))
+                    .add(scn.SubmanifoldConvolution(self.dimensions, b, b, 3, False)))
+             ).add(scn.AddTable())        
         
     def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize ):
         srcx = ( coord_t, src_feat_t,  batchsize )
@@ -159,33 +339,72 @@ class SparseLArFlow(nn.Module):
         tar2 = self.tar1_stem(tar2)
         tar2out_v = self.target2_encoder(tar2)
 
-        self.joinout = []
-        for src,tar1,tar2,joiner in zip(srcout_v,tar1out_v,tar2out_v,self.join_enclayers):
-            self.joinout.append( joiner( (src,tar1,tar2) ) )
+        # concat features from all three planes
+        joinout = []
+        for _src,_tar1,_tar2,_joiner in zip(srcout_v,tar1out_v,tar2out_v,self.join_enclayers):
+            joinout.append( _joiner( (_src,_tar1,_tar2) ) )
+
+        # use 3-plane features to make flow features
+        flow1 = self.flow1_decoder( joinout )
         
-        return self.joinout
+        # concat stem out with decoder out
+        #print "flow1: ",flow1.features.shape,flow1.spatial_size
+        #print "srcx: ",srcx.features.shape,srcx.spatial_size
+        #print "tar1: ",tar1.features.shape,tar1.spatial_size
+        #print "tar2: ",tar2.features.shape,tar2.spatial_size         
+        flow1 = self.flow1_concat( (flow1,srcx,tar1,tar2) )
+
+        # last feature conv layer
+        flow1 = self.flow1_resblock( flow1 )
+
+        # finally, 1x1 conv layer from features to flow value
+        flow1 = self.flow1_out( flow1 )
+        del joinout
+        del srcout_v
+        del tar1out_v
+        del tar2out_v
+        
+        return flow1
 
 if __name__ == "__main__":
 
-    model = SparseLArFlow( (256,256), 2, 16, 5 )
-    print model
-
-    # random 100 points from a hypothetical 256x256
-    xcoords = np.zeros( (100,2), dtype=np.int )
-    xcoords[:,0] = np.random.randint( 0, 256, 100 )
-    xcoords[:,1] = np.random.randint( 0, 256, 100 )
-    srcx = np.random.random( (100,1) ).astype(np.float32)
-    tar1 = np.random.random( (100,1) ).astype(np.float32)
-    tar2 = np.random.random( (100,1) ).astype(np.float32)    
-
-    coord_t = torch.from_numpy(xcoords)
-    src_feats_t  = torch.from_numpy(srcx)
-    tar1_feats_t = torch.from_numpy(tar1)
-    tar2_feats_t = torch.from_numpy(tar2)
+    nrows = 1024
+    ncols = 3456
+    #nrows = 512
+    #ncols = 832
+    sparsity = 0.01
+    device = torch.device("cpu")
+    #device = torch.device("cuda")
+    ntrials = 10
     batchsize = 1
     
-    print "coord-shape: ",coord_t.shape
-    print "src feats-shape: ",src_feats_t.shape    
-    out_v = model( coord_t, src_feats_t, tar1_feats_t, tar2_feats_t, batchsize )
-    for i,out in enumerate(out_v):
-        print "layerout[%d]: "%(i),"out=[",out.features.shape,out.spatial_size,"]"
+    model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4 ).to(device)
+    model.eval()
+    #print model
+
+    npts = int(nrows*ncols*sparsity)
+    print "for (%d,%d) and average sparsity of %.3f, expected npts=%d"%(nrows,ncols,sparsity,npts)
+
+    # random points from a hypothetical (nrows x ncols) image
+    dtforward = 0
+    for itrial in xrange(ntrials):
+        xcoords = np.zeros( (npts,2), dtype=np.int )
+        xcoords[:,0] = np.random.randint( 0, nrows, npts )
+        xcoords[:,1] = np.random.randint( 0, ncols, npts )
+        srcx = np.random.random( (npts,1) ).astype(np.float32)
+        tar1 = np.random.random( (npts,1) ).astype(np.float32)
+        tar2 = np.random.random( (npts,1) ).astype(np.float32)    
+        
+        coord_t = torch.from_numpy(xcoords).to(device)
+        src_feats_t  = torch.from_numpy(srcx).to(device)
+        tar1_feats_t = torch.from_numpy(tar1).to(device)
+        tar2_feats_t = torch.from_numpy(tar2).to(device)
+
+        tforward = time.time()
+        print "coord-shape: ",coord_t.shape
+        print "src feats-shape: ",src_feats_t.shape    
+        out = model( coord_t, src_feats_t, tar1_feats_t, tar2_feats_t, batchsize )
+        dtforward += time.time()-tforward
+        print "modelout: [",out.features.shape,out.spatial_size,"]"
+        
+    print "ave. forward time over %d trials: "%(ntrials),dtforward/ntrials," secs"
