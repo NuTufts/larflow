@@ -281,22 +281,35 @@ class SparseLArFlow(nn.Module):
         print "decode out chs: ",self.decode_layers_outchs
 
         # decoders
-        self.flow1_decoder = SparseDecoder( "flow1", self.reps, self.decode_layers_inchs, self.decode_layers_outchs )
+        self.flow1_decoder = SparseDecoder( "flow1", self.reps,
+                                            self.decode_layers_inchs,
+                                            self.decode_layers_outchs )
+        self.flow2_decoder = SparseDecoder( "flow2", self.reps,
+                                            self.decode_layers_inchs,
+                                            self.decode_layers_outchs )
 
         # last deconv concat
         self.flow1_concat = scn.JoinTable()
+        self.flow2_concat = scn.JoinTable()        
         
         # final feature set convolution
-        flow1_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
+        flow_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
         self.flow1_resblock = scn.Sequential()
         for iblock in xrange(self.reps):
             if iblock==0:
-                self.block(self.flow1_resblock,flow1_resblock_inchs,self.nout_features)
+                self.block(self.flow1_resblock,flow_resblock_inchs,self.nout_features)
             else:
                 self.block(self.flow1_resblock,self.nout_features,self.nout_features)
+        self.flow2_resblock = scn.Sequential()
+        for iblock in xrange(self.reps):
+            if iblock==0:
+                self.block(self.flow2_resblock,flow_resblock_inchs,self.nout_features)
+            else:
+                self.block(self.flow2_resblock,self.nout_features,self.nout_features)
 
         # regression layer
         self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+        self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
 
 
 
@@ -344,14 +357,12 @@ class SparseLArFlow(nn.Module):
         for _src,_tar1,_tar2,_joiner in zip(srcout_v,tar1out_v,tar2out_v,self.join_enclayers):
             joinout.append( _joiner( (_src,_tar1,_tar2) ) )
 
+        # Flow 1: src->tar1
+        # ------------------
         # use 3-plane features to make flow features
         flow1 = self.flow1_decoder( joinout )
         
         # concat stem out with decoder out
-        #print "flow1: ",flow1.features.shape,flow1.spatial_size
-        #print "srcx: ",srcx.features.shape,srcx.spatial_size
-        #print "tar1: ",tar1.features.shape,tar1.spatial_size
-        #print "tar2: ",tar2.features.shape,tar2.spatial_size         
         flow1 = self.flow1_concat( (flow1,srcx,tar1,tar2) )
 
         # last feature conv layer
@@ -359,19 +370,29 @@ class SparseLArFlow(nn.Module):
 
         # finally, 1x1 conv layer from features to flow value
         flow1 = self.flow1_out( flow1 )
-        del joinout
-        del srcout_v
-        del tar1out_v
-        del tar2out_v
+
+        # Flow 2: src->tar1
+        # ------------------
+        # use 3-plane features to make flow features
+        flow2 = self.flow2_decoder( joinout )
         
-        return flow1
+        # concat stem out with decoder out
+        flow2 = self.flow2_concat( (flow2,srcx,tar1,tar2) )
+
+        # last feature conv layer
+        flow2 = self.flow2_resblock( flow2 )
+
+        # finally, 1x1 conv layer from features to flow value
+        flow2 = self.flow2_out( flow2 )
+        
+        return flow1,flow2
 
 if __name__ == "__main__":
 
     nrows = 1024
     ncols = 3456
-    #nrows = 512
-    #ncols = 832
+    nrows = 512
+    ncols = 832
     sparsity = 0.01
     #device = torch.device("cpu")
     device = torch.device("cuda")
@@ -403,8 +424,8 @@ if __name__ == "__main__":
         tforward = time.time()
         print "coord-shape: ",coord_t.shape
         print "src feats-shape: ",src_feats_t.shape    
-        out = model( coord_t, src_feats_t, tar1_feats_t, tar2_feats_t, batchsize )
+        out1,out2 = model( coord_t, src_feats_t, tar1_feats_t, tar2_feats_t, batchsize )
         dtforward += time.time()-tforward
-        print "modelout: [",out.features.shape,out.spatial_size,"]"
+        print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
         
     print "ave. forward time over %d trials: "%(ntrials),dtforward/ntrials," secs"
