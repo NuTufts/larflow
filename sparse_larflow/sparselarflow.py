@@ -51,7 +51,6 @@ def create_resnet_layer(nreps, ninputchs, noutputchs,
     return m
     
     
-
 class SparseEncoder(nn.Module):
     def __init__( self, name, nreps, ninputchs, chs_per_layer):
         nn.Module.__init__(self)
@@ -152,48 +151,42 @@ class SparseEncoder(nn.Module):
         return layerout
 
 class SparseDecoder(nn.Module):
+    """
+    SparseDecoder class features layers containing:
+    1) sequence of residual convolution modules
+    2) upsampling using convtranspose
+    3) skip connection from concating tensors
+    """
     def __init__( self, name, nreps, inputchs_per_layer, outputchs_per_layer ):
         nn.Module.__init__(self)
+        """
+        inputs
+        ------
+        name [str] 
+        nreps [int]
+        inputchs_per_layer  [list of ints]
+        outputchs_per_layer [list of ints]
+        """
         self.inputchs_per_layer  = inputchs_per_layer
         self.outputchs_per_layer = outputchs_per_layer
         self.residual_blocks = True
         self.dimension = 2
         self._deconv_layers = []
-        self._res_layers = []
         self._joiner = []
         self._name = name
-        print self.inputchs_per_layer
-        print self.outputchs_per_layer
-        for ilayer,(ninputchs,noutputchs) in enumerate(zip(self.inputchs_per_layer,self.outputchs_per_layer)):
+        self._verbose = False
+
+        layer_chs = zip(self.inputchs_per_layer,self.outputchs_per_layer)
+        for ilayer,(ninputchs,noutputchs) in enumerate(layer_chs):
             if ilayer+1<len(outputchs_per_layer):
                 islast = False
             else:
                 islast = True
-            deconv,res,joiner = self.make_decoder_layer(ilayer,ninputchs,noutputchs,nreps,islast=islast)
+            deconv,joiner = self.make_decoder_layer(ilayer,ninputchs,
+                                                    noutputchs,nreps,
+                                                    islast=islast)
             self._deconv_layers.append(deconv)
-            self._res_layers.append(res)
             self._joiner.append(joiner)
-
-    def block(self, m, a, b, leakiness=0.01):
-        """
-        append to the sequence:
-        produce output of [identity,3x3+3x3] then add together
-
-        inputs
-        ------
-        m: scn.Sequential module (modified)
-        a: number of input channels
-        b: number of output channels
-        """        
-        if self.residual_blocks: #ResNet style blocks
-            m.add(scn.ConcatTable()
-                  .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
-                  .add(scn.Sequential()
-                    .add(scn.BatchNormLeakyReLU(a,leakiness=leakiness))
-                    .add(scn.SubmanifoldConvolution(self.dimension, a, b, 3, False))
-                    .add(scn.BatchNormLeakyReLU(b,leakiness=leakiness))
-                    .add(scn.SubmanifoldConvolution(self.dimension, b, b, 3, False)))
-             ).add(scn.AddTable())
 
     def make_decoder_layer(self,ilayer,ninputchs,noutputchs,nreps,
                            leakiness=0.01,downsample=[2, 2],islast=False):
@@ -209,21 +202,17 @@ class SparseDecoder(nn.Module):
         """
 
         # resnet block
-        decode_blocks = scn.Sequential()
-        for iblock in xrange(nreps):
-            if iblock==0:
-                self.block(decode_blocks,ninputchs,2*noutputchs)
-            else:
-                self.block(decode_blocks,2*noutputchs,2*noutputchs)
-        setattr(self,"decodeblocks%d"%(ilayer),decode_blocks)
+        decode_blocks = create_resnet_layer(nreps,ninputchs,2*noutputchs,
+                                            downsample=downsample)
 
         # deconv
-        m = scn.Sequential()
-        m.add(scn.BatchNormLeakyReLU(2*noutputchs,leakiness=leakiness))
-        m.add(scn.Deconvolution(self.dimension, 2*noutputchs, noutputchs,
-                                downsample[0], downsample[1], False))
-        setattr(self,"deconv%d"%(ilayer),m)
-        print "DecoderLayer[",ilayer,"] inputchs[",ninputchs," -> resout[",2*noutputchs,"] -> deconv output[",noutputchs,"]"
+        decode_blocks.add(scn.BatchNormLeakyReLU(2*noutputchs,leakiness=leakiness))
+        decode_blocks.add(scn.Deconvolution(self.dimension, 2*noutputchs, noutputchs,
+                                            downsample[0], downsample[1], False))
+        setattr(self,"deconv%d"%(ilayer),decode_blocks)
+        if self._verbose:
+            print "DecoderLayer[",ilayer,"] inputchs[",ninputchs,
+            print " -> resout[",2*noutputchs,"] -> deconv output[",noutputchs,"]"
 
 
         if not islast:
@@ -232,11 +221,18 @@ class SparseDecoder(nn.Module):
             setattr(self,"skipjoin%d"%(ilayer),joiner)
         else:
             joiner = None
-        return m,decode_blocks,joiner
+        return decode_blocks,joiner
 
     def forward(self,encoder_layers):
+        """
+        inputs
+        ------
+
+        outputs
+        -------
+        """
         layerout = None
-        for ilayer,(deconvl,resl,joiner) in enumerate(zip(self._deconv_layers,self._res_layers,self._joiner)):
+        for ilayer,(deconvl,joiner) in enumerate(zip(self._deconv_layers,self._joiner)):
             if ilayer==0:
                 # first layer, input tensor comes from last encoder layer
                 inputx = encoder_layers[-(1+ilayer)]
@@ -245,24 +241,24 @@ class SparseDecoder(nn.Module):
                 inputx = layerout
             #print "decoder-input[",ilayer,"] input=",inputx.features.shape,inputx.spatial_size
 
-            # res conv
-            out = resl(inputx)
-            #print "decode-res[",ilayer,"]: outdecode=",out.features.shape,out.spatial_size
-
-            # upsample
-            out = deconvl(out)
+            # residual + upsample
+            out = deconvl(inputx)
             #print "decode-deconv[",ilayer,"]: outdecode=",out.features.shape,out.spatial_size
 
             # concat if not last layer, for last layer, joiner will be None
             if joiner is not None:
                 # get next encoder layer
                 catlayer  = encoder_layers[-(2+ilayer)]
-                #print "decode-concat[",ilayer,"]: appending=",catlayer.features.shape,catlayer.spatial_size
+                #print "decode-concat[",ilayer,"]: appending=",
+                #print catlayer.features.shape,catlayer.spatial_size
 
                 # concat
                 out   = joiner( (out,catlayer) )
-            
-            print "[%s] Decode Layer[%d]: "%(self._name,ilayer),inputx.features.shape,inputx.spatial_size,"-->",out.features.shape,out.spatial_size            
+
+            if self._verbose:
+                print "[%s] Decode Layer[%d]: "%(self._name,ilayer),
+                print inputx.features.shape,inputx.spatial_size,
+                print "-->",out.features.shape,out.spatial_size
             layerout = out
         return layerout
     
