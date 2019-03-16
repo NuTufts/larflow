@@ -11,13 +11,20 @@ import numpy as np
 
 def residual_block(m, a, b, leakiness=0.01, dimensions=2):
     """
-    append to a sequence of layers:
+    append to a sequence module:
     produce output of [identity,3x3+3x3] then add together
+
     inputs
     ------
-    m: scn.Sequential module (modified)
-    a: number of input channels
-    b: number of output channels
+    m [scn.Sequential module] network to add layers to
+    a [int]: number of input channels
+    b [int]: number of output channels
+    leakiness [float]: leakiness of ReLU activations
+    dimensions [int]: dimensions of input sparse tensor
+
+    modifies
+    --------
+    m: adds layers
     """        
     m.add(scn.ConcatTable()
           .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
@@ -38,6 +45,10 @@ def create_resnet_layer(nreps, ninputchs, noutputchs,
     nreps [int] number of times to repeat residula block
     ninputchs [int] input features to layer
     noutputchs [int] output features from layer
+
+    outputs
+    -------
+    [scn.Sequential] module with residual blocks
     """
     m = scn.Sequential()
     for iblock in xrange(nreps):
@@ -52,14 +63,16 @@ def create_resnet_layer(nreps, ninputchs, noutputchs,
     
     
 class SparseEncoder(nn.Module):
+    """
+    The encoder involves a series of layers which
+    1) first apply a series of residual convolution blocks (using 3x3 kernels)
+    2) then apply a strided convolution to downsample the image
+       right now, a standard stride of 2 is used
+    """
+
     def __init__( self, name, nreps, ninputchs, chs_per_layer):
         nn.Module.__init__(self)
         """
-        The encoder involves a series of layers which
-        1) first apply a series of residual convolution blocks (using 3x3 kernels)
-        2) then apply a strided convolution to downsample the image
-           right now, a standard stride of 2 is used
-        
         inputs
         ------
         name [str] to name the encoder
@@ -264,9 +277,20 @@ class SparseDecoder(nn.Module):
     
 
 class SparseLArFlow(nn.Module):
+    """
+    Sparse Submanifold implementation of LArFlow
+    """
     def __init__(self, inputshape, reps, nin_features, nout_features, nplanes):
         nn.Module.__init__(self)
-
+        """
+        inputs
+        ------
+        inputshape [list of int]: dimensions of the matrix or image
+        reps [int]: number of residual modules per layer (for both encoder and decoder)
+        nin_features [int]: number of features in the first convolutional layer
+        nout_features [int]: number of features that feed into the regression layer
+        nplanes [int]: the depth of the U-Net
+        """
         # set parameters
         self.dimensions = 2 # not playing with 3D for now
 
@@ -274,7 +298,8 @@ class SparseLArFlow(nn.Module):
         # size of each spatial dimesion
         self.inputshape = inputshape
         if len(self.inputshape)!=self.dimensions:
-            raise ValueError("expected inputshape to contain size of 2 dimensions only. given %d values"%(len(self.inputshape)))
+            raise ValueError("expected inputshape to contain size of 2 dimensions only."
+                             +"given %d values"%(len(self.inputshape)))
         
         # mode variable: how to deal with repeated data
         self.mode = 0
@@ -342,47 +367,33 @@ class SparseLArFlow(nn.Module):
         
         # final feature set convolution
         flow_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
-        self.flow1_resblock = scn.Sequential()
-        for iblock in xrange(self.reps):
-            if iblock==0:
-                self.block(self.flow1_resblock,flow_resblock_inchs,self.nout_features)
-            else:
-                self.block(self.flow1_resblock,self.nout_features,self.nout_features)
-        self.flow2_resblock = scn.Sequential()
-        for iblock in xrange(self.reps):
-            if iblock==0:
-                self.block(self.flow2_resblock,flow_resblock_inchs,self.nout_features)
-            else:
-                self.block(self.flow2_resblock,self.nout_features,self.nout_features)
+        self.flow1_resblock = create_resnet_layer(self.reps,
+                                                  flow_resblock_inchs,self.nout_features)
+        self.flow2_resblock = create_resnet_layer(self.reps,
+                                                  flow_resblock_inchs,self.nout_features)
 
         # regression layer
         self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
         self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
 
-
-
-    def block(self, m, a, b, leakiness=0.01):
-        """
-        append to the sequence:
-        produce output of [identity,3x3+3x3] then add together
-
-        inputs
-        ------
-        m: scn.Sequential module (modified)
-        a: number of input channels
-        b: number of output channels
-        """        
-        if self.residual_blocks: #ResNet style blocks
-            m.add(scn.ConcatTable()
-                  .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
-                  .add(scn.Sequential()
-                    .add(scn.BatchNormLeakyReLU(a,leakiness=leakiness))
-                    .add(scn.SubmanifoldConvolution(self.dimensions, a, b, 3, False))
-                    .add(scn.BatchNormLeakyReLU(b,leakiness=leakiness))
-                    .add(scn.SubmanifoldConvolution(self.dimensions, b, b, 3, False)))
-             ).add(scn.AddTable())        
         
     def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize ):
+        """
+        run the network
+        
+        inputs
+        ------
+        coord_t [ (N,D) Torch Tensor ]: list of (row,col) pixel coordinates for N points
+        src_feat_t [ (N,) torch tensor ]: list of pixel values for the source image
+        tar1_frat_t [ (N,) torch tensor ]: list of pixel values for target 1 image
+        tar2_frat_t [ (N,) torch tensor ]: list of pixel values for target 2 image
+        batchsize [int]: batch size
+
+        outputs
+        -------
+        [ (N,) torch tensor ] flow values to target 1
+        [ (N,) torch tensor ] flow values to target 2
+        """
         srcx = ( coord_t, src_feat_t,  batchsize )
         tar1 = ( coord_t, tar1_feat_t, batchsize )
         tar2 = ( coord_t, tar2_feat_t, batchsize )
