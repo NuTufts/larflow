@@ -25,7 +25,7 @@ def residual_block(m, a, b, leakiness=0.01, dimensions=2):
     modifies
     --------
     m: adds layers
-    """        
+    """
     m.add(scn.ConcatTable()
           .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
           .add(scn.Sequential()
@@ -60,8 +60,8 @@ def create_resnet_layer(nreps, ninputchs, noutputchs,
             # other repitions we do not change number of features
             residual_block(m,noutputchs,noutputchs)
     return m
-    
-    
+
+
 class SparseEncoder(nn.Module):
     """
     The encoder involves a series of layers which
@@ -78,7 +78,7 @@ class SparseEncoder(nn.Module):
         name [str] to name the encoder
         nreps [int] number of times residual block is repeated per layer
         ninputchs [int] input channels to entire encoder module
-        chs_per_layer [list of int] output channels for each layer 
+        chs_per_layer [list of int] output channels for each layer
         """
         # store variables and configuration
         self.chs_per_layer = chs_per_layer
@@ -103,7 +103,7 @@ class SparseEncoder(nn.Module):
             layer = self.make_encoder_layer(ninchs,noutputchs,nreps)
             # store it
             self._layers.append(layer)
-            # create an attribute for the module so pytorch 
+            # create an attribute for the module so pytorch
             # can know the components in this module
             setattr(self,"%s_enclayer%d"%(name,ilayer),layer)
 
@@ -145,7 +145,7 @@ class SparseEncoder(nn.Module):
 
         outputs
         -------
-        list of scn.SparseManifoldTensor: one tensor for each 
+        list of scn.SparseManifoldTensor: one tensor for each
            encoding layer. all returned for use in skip connections
            in the SparseDecoding modules
         """
@@ -175,7 +175,7 @@ class SparseDecoder(nn.Module):
         """
         inputs
         ------
-        name [str] 
+        name [str]
         nreps [int]
         inputchs_per_layer  [list of ints]
         outputchs_per_layer [list of ints]
@@ -204,10 +204,10 @@ class SparseDecoder(nn.Module):
     def make_decoder_layer(self,ilayer,ninputchs,noutputchs,nreps,
                            leakiness=0.01,downsample=[2, 2],islast=False):
         """
-        defines two layers: 
-          1) the deconv layer pre-concat 
+        defines two layers:
+          1) the deconv layer pre-concat
           2) residual blocks post-concat
-        
+
         inputs
         ------
         ninputchs: number of features going into layer
@@ -229,7 +229,7 @@ class SparseDecoder(nn.Module):
 
 
         if not islast:
-            # joiner for skip connections        
+            # joiner for skip connections
             joiner = scn.JoinTable()
             setattr(self,"skipjoin%d"%(ilayer),joiner)
         else:
@@ -274,7 +274,7 @@ class SparseDecoder(nn.Module):
                 print "-->",out.features.shape,out.spatial_size
             layerout = out
         return layerout
-    
+
 
 class SparseLArFlow(nn.Module):
     """
@@ -300,7 +300,7 @@ class SparseLArFlow(nn.Module):
         if len(self.inputshape)!=self.dimensions:
             raise ValueError("expected inputshape to contain size of 2 dimensions only."
                              +"given %d values"%(len(self.inputshape)))
-        
+
         # mode variable: how to deal with repeated data
         self.mode = 0
 
@@ -314,30 +314,30 @@ class SparseLArFlow(nn.Module):
 
         # repetitions (per plane)
         self.reps = reps
-        
+
         # residual blocks
         self.residual_blocks = True
 
         # need encoder for both source and target
         # then cat tensor
         # and produce one decoder for flow, another decoder for visibility
-        
+
         # model:
         # input
         self.src_inputlayer  = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
         self.tar1_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
-        self.tar2_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)        
-        
+        self.tar2_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
+
         # stem
         self.src_stem  = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
         self.tar1_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
-        self.tar2_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False) 
+        self.tar2_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
 
         # encoders
         self.source_encoder  = SparseEncoder( "src",  self.reps, self.nfeatures, self.nPlanes )
         self.target1_encoder = SparseEncoder( "tar1", self.reps, self.nfeatures, self.nPlanes )
         self.target2_encoder = SparseEncoder( "tar2", self.reps, self.nfeatures, self.nPlanes )
-        
+
         # concat
         self.join_enclayers = []
         for ilayer in xrange(len(self.nPlanes)):
@@ -363,8 +363,8 @@ class SparseLArFlow(nn.Module):
 
         # last deconv concat
         self.flow1_concat = scn.JoinTable()
-        self.flow2_concat = scn.JoinTable()        
-        
+        self.flow2_concat = scn.JoinTable()
+
         # final feature set convolution
         flow_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
         self.flow1_resblock = create_resnet_layer(self.reps,
@@ -376,17 +376,17 @@ class SparseLArFlow(nn.Module):
         self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
         self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
 
-        
-    def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize ):
+
+    def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize):
         """
         run the network
-        
+
         inputs
         ------
-        coord_t [ (N,D) Torch Tensor ]: list of (row,col) pixel coordinates for N points
-        src_feat_t [ (N,) torch tensor ]: list of pixel values for the source image
-        tar1_frat_t [ (N,) torch tensor ]: list of pixel values for target 1 image
-        tar2_frat_t [ (N,) torch tensor ]: list of pixel values for target 2 image
+        coord_flow1_t [ (N,3) Torch Tensor ]: list of (row,col,batchid) N pix coordinates
+        src_feat_t  [ (N,) torch tensor ]: list of pixel values for source image
+        tar1_feat_t [ (N,) torch tensor ]: list of pixel values for target 1 image
+        tar2_feat_t [ (N,) torch tensor ]: list of pixel values for target 2 image
         batchsize [int]: batch size
 
         outputs
@@ -402,7 +402,7 @@ class SparseLArFlow(nn.Module):
         srcx = self.src_inputlayer(srcx)
         srcx = self.src_stem(srcx)
         srcout_v = self.source_encoder(srcx)
-        
+
         tar1 = self.tar1_inputlayer(tar1)
         tar1 = self.tar1_stem(tar1)
         tar1out_v = self.target1_encoder(tar1)
@@ -420,7 +420,7 @@ class SparseLArFlow(nn.Module):
         # ------------------
         # use 3-plane features to make flow features
         flow1 = self.flow1_decoder( joinout )
-        
+
         # concat stem out with decoder out
         flow1 = self.flow1_concat( (flow1,srcx,tar1,tar2) )
 
@@ -434,7 +434,7 @@ class SparseLArFlow(nn.Module):
         # ------------------
         # use 3-plane features to make flow features
         flow2 = self.flow2_decoder( joinout )
-        
+
         # concat stem out with decoder out
         flow2 = self.flow2_concat( (flow2,srcx,tar1,tar2) )
 
@@ -443,24 +443,25 @@ class SparseLArFlow(nn.Module):
 
         # finally, 1x1 conv layer from features to flow value
         flow2 = self.flow2_out( flow2 )
-        
+
         return flow1,flow2
 
 if __name__ == "__main__":
     """
-    here we test/debug the network using a random matrix mimicing our sparse lartpc images
+    here we test/debug the network and losses here
+    we can use a random matrix mimicing our sparse lartpc images
+      or actual images from the loader.
     """
-    
-    #nrows     = 1024
-    #ncols     = 3456
-    nrows    = 1024
-    ncols    = 832
+
+    nrows     = 1024
+    ncols     = 3456
     sparsity  = 0.01
-    device = torch.device("cpu")
-    #device    = torch.device("cuda")
-    ntrials   = 1
+    #device    = torch.device("cpu")
+    device    = torch.device("cuda")
+    ntrials   = 3
     batchsize = 1
-    
+    use_random_data = False
+
     model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4 ).to(device)
     model.eval()
     #print model
@@ -468,26 +469,89 @@ if __name__ == "__main__":
     npts = int(nrows*ncols*sparsity)
     print "for (%d,%d) and average sparsity of %.3f, expected npts=%d"%(nrows,ncols,sparsity,npts)
 
+    if not use_random_data:
+        from larcv import larcv
+        from sparselarflowdata import load_larflow_larcvdata
+        inputfile    = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
+        nworkers     = 1
+        tickbackward = True
+        ro_products  = ( ("wiremc",larcv.kProductImage2D),
+                         ("larflow",larcv.kProductImage2D) )
+        dataloader   = load_larflow_larcvdata( "larflowsparsetest", inputfile,
+                                                batchsize, nworkers,
+                                                tickbackward=tickbackward,
+                                                readonly_products=ro_products )
+
     # random points from a hypothetical (nrows x ncols) image
     dtforward = 0
+    dtdata = 0
     for itrial in xrange(ntrials):
-        xcoords = np.zeros( (npts,2), dtype=np.int )
-        xcoords[:,0] = np.random.randint( 0, nrows, npts )
-        xcoords[:,1] = np.random.randint( 0, ncols, npts )
-        srcx = np.random.random( (npts,1) ).astype(np.float32)
-        tar1 = np.random.random( (npts,1) ).astype(np.float32)
-        tar2 = np.random.random( (npts,1) ).astype(np.float32)    
-        
-        coord_t = torch.from_numpy(xcoords).to(device)
-        src_feats_t  = torch.from_numpy(srcx).to(device)
-        tar1_feats_t = torch.from_numpy(tar1).to(device)
-        tar2_feats_t = torch.from_numpy(tar2).to(device)
+
+        # random data
+        tdata = time.time()
+        if use_random_data:
+            xcoords = np.zeros( (npts,2), dtype=np.int )
+            xcoords[:,0] = np.random.randint( 0, nrows, npts )
+            xcoords[:,1] = np.random.randint( 0, ncols, npts )
+            srcx = np.random.random( (npts,1) ).astype(np.float32)
+            tar1 = np.random.random( (npts,1) ).astype(np.float32)
+            tar2 = np.random.random( (npts,1) ).astype(np.float32)
+
+            coord_t   = torch.from_numpy(xcoords).to(device)
+            srcpix_t  = torch.from_numpy(srcx).to(device)
+            tar1_feats_t = torch.from_numpy(tar1).to(device)
+            tar2_feats_t = torch.from_numpy(tar2).to(device)
+        else:
+            batch = dataloader.get_batch_dict()
+            ncoords  = 0
+            batchlen = []
+            for ib,srcpix in enumerate(batch["pixyflow"]):
+                batchlen.append( srcpix.shape[0] )
+                ncoords += batchlen[-1]
+            print "ncoords: %d"%(ncoords)
+
+            # make tensor for coords
+            coord_t = torch.zeros( (ncoords,3), dtype=torch.int ).to(device)
+
+            # tensor for src pixel adcs
+            srcpix_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+            # tensor for target pixel adcs
+            tarpix_flow1_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+            tarpix_flow2_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+            # tensor for true flow
+            truth_flow1_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+            truth_flow2_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+
+            flowdata = zip(batch["pixyflow"],
+                            batch["yflow1"],
+                            batch["yflow2"])
+
+            nfilled = 0
+            for ib,(srcpix,trueflow1,trueflow2) in enumerate(flowdata):
+                start = nfilled
+                end   = nfilled+batchlen[ib]
+                coord_t[start:end,0:2] \
+                    = torch.from_numpy( srcpix[:,0:2].astype(np.int) )
+                coord_t[start:end,2] = ib
+                srcpix_t[start:end,0]       = torch.from_numpy(srcpix[:,2])
+                tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[:,3])
+                tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[:,4])
+                truth_flow1_t[start:end,0]  = torch.from_numpy(trueflow1)
+                truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2)
+                nfilled += batchlen[ib]
+
+
+
+        dtdata += time.time()-tdata
 
         tforward = time.time()
-        print "coord-shape: ",coord_t.shape
-        print "src feats-shape: ",src_feats_t.shape    
-        out1,out2 = model( coord_t, src_feats_t, tar1_feats_t, tar2_feats_t, batchsize )
+        print "coord-shape: flow1=",coord_t.shape
+        print "src feats-shape: ",srcpix_t.shape
+        print "truth flow1: ",truth_flow1_t.shape
+        out1,out2 = model( coord_t, srcpix_t, tarpix_flow1_t, tarpix_flow2_t,
+                            batchsize )
         dtforward += time.time()-tforward
-        print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
-        
-    print "ave. forward time over %d trials: "%(ntrials),dtforward/ntrials," secs"
+        #print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
+
+    print "ave. data time o/ %d trials: %d secs"%(ntrials,dtdata/ntrials)
+    print "ave. forward time o/ %d trials: %d secs"%(ntrials,dtforward/ntrials)
