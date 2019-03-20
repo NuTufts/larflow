@@ -461,6 +461,7 @@ if __name__ == "__main__":
     ntrials   = 3
     batchsize = 1
     use_random_data = False
+    test_loss = True
 
     model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4 ).to(device)
     model.eval()
@@ -481,6 +482,14 @@ if __name__ == "__main__":
                                                 batchsize, nworkers,
                                                 tickbackward=tickbackward,
                                                 readonly_products=ro_products )
+        truth1_input = scn.InputLayer(2,(1008,3456),mode=0)
+        truth2_input = scn.InputLayer(2,(1008,3456),mode=0)
+
+    if test_loss:
+        from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
+        consistency_loss = SparseLArFlow3DConsistencyLoss(1008, 3456,
+                                                          larcv_version=1,
+                                                          calc_consistency=False)
 
     # random points from a hypothetical (nrows x ncols) image
     dtforward = 0
@@ -509,6 +518,8 @@ if __name__ == "__main__":
             tarpix_flow2_t = datadict["tar2"]
             truth_flow1_t  = datadict["flow1"]
             truth_flow2_t  = datadict["flow2"]
+            #sptruth_flow1_t = truth1_input((coord_t,truth_flow1_t,batchsize))
+            #sptruth_flow2_t = truth2_input((coord_t,truth_flow1_t,batchsize))
 
 
         dtdata += time.time()-tdata
@@ -518,9 +529,17 @@ if __name__ == "__main__":
         print "src feats-shape: ",srcpix_t.shape
         if truth_flow1_t is not None:
             print "truth flow1: ",truth_flow1_t.shape
-        out1,out2 = model( coord_t, srcpix_t, tarpix_flow1_t, tarpix_flow2_t,
+        predict1_t,predict2_t = model( coord_t, srcpix_t,
+                            tarpix_flow1_t, tarpix_flow2_t,
                             batchsize )
         dtforward += time.time()-tforward
+
+        if test_loss:
+            tloss = time.time()
+            loss = consistency_loss(coord_t, predict1_t, predict2_t,
+                                    truth_flow1_t, truth_flow2_t)
+            print "loss: ",loss.detach().cpu().item()
+
         #print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
 
     print "ave. data time o/ %d trials: %d secs"%(ntrials,dtdata/ntrials)
