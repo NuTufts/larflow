@@ -69,7 +69,7 @@ def sparsify(inputfile, outputfile,
                     io.event_id().event() )
         out.save_entry()
         print "Filled Event %d"%(ientry)
-        break
+        #break
 
     out.finalize()
     io.finalize()
