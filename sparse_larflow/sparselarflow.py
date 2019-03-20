@@ -499,47 +499,16 @@ if __name__ == "__main__":
 
             coord_t   = torch.from_numpy(xcoords).to(device)
             srcpix_t  = torch.from_numpy(srcx).to(device)
-            tar1_feats_t = torch.from_numpy(tar1).to(device)
-            tar2_feats_t = torch.from_numpy(tar2).to(device)
+            tarpix_flow1_t = torch.from_numpy(tar1).to(device)
+            tarpix_flow2_t = torch.from_numpy(tar2).to(device)
         else:
-            batch = dataloader.get_batch_dict()
-            ncoords  = 0
-            batchlen = []
-            for ib,srcpix in enumerate(batch["pixyflow"]):
-                batchlen.append( srcpix.shape[0] )
-                ncoords += batchlen[-1]
-            print "ncoords: %d"%(ncoords)
-
-            # make tensor for coords
-            coord_t = torch.zeros( (ncoords,3), dtype=torch.int ).to(device)
-
-            # tensor for src pixel adcs
-            srcpix_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
-            # tensor for target pixel adcs
-            tarpix_flow1_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
-            tarpix_flow2_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
-            # tensor for true flow
-            truth_flow1_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
-            truth_flow2_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
-
-            flowdata = zip(batch["pixyflow"],
-                            batch["yflow1"],
-                            batch["yflow2"])
-
-            nfilled = 0
-            for ib,(srcpix,trueflow1,trueflow2) in enumerate(flowdata):
-                start = nfilled
-                end   = nfilled+batchlen[ib]
-                coord_t[start:end,0:2] \
-                    = torch.from_numpy( srcpix[:,0:2].astype(np.int) )
-                coord_t[start:end,2] = ib
-                srcpix_t[start:end,0]       = torch.from_numpy(srcpix[:,2])
-                tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[:,3])
-                tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[:,4])
-                truth_flow1_t[start:end,0]  = torch.from_numpy(trueflow1)
-                truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2)
-                nfilled += batchlen[ib]
-
+            datadict = dataloader.get_tensor_batch(device)
+            coord_t = datadict["coord"]
+            srcpix_t = datadict["src"]
+            tarpix_flow1_t = datadict["tar1"]
+            tarpix_flow2_t = datadict["tar2"]
+            truth_flow1_t  = datadict["flow1"]
+            truth_flow2_t  = datadict["flow2"]
 
 
         dtdata += time.time()-tdata
@@ -547,7 +516,8 @@ if __name__ == "__main__":
         tforward = time.time()
         print "coord-shape: flow1=",coord_t.shape
         print "src feats-shape: ",srcpix_t.shape
-        print "truth flow1: ",truth_flow1_t.shape
+        if truth_flow1_t is not None:
+            print "truth flow1: ",truth_flow1_t.shape
         out1,out2 = model( coord_t, srcpix_t, tarpix_flow1_t, tarpix_flow2_t,
                             batchsize )
         dtforward += time.time()-tforward
