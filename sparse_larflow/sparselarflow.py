@@ -458,7 +458,7 @@ if __name__ == "__main__":
     sparsity  = 0.01
     #device    = torch.device("cpu")
     device    = torch.device("cuda")
-    ntrials   = 3
+    ntrials   = 10
     batchsize = 1
     use_random_data = False
     test_loss = True
@@ -473,11 +473,13 @@ if __name__ == "__main__":
     if not use_random_data:
         from larcv import larcv
         from sparselarflowdata import load_larflow_larcvdata
-        inputfile    = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
-        nworkers     = 1
+        #inputfile    = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
+        inputfile = "out_sparsified.root"
+        nworkers     = 3
         tickbackward = True
-        ro_products  = ( ("wiremc",larcv.kProductImage2D),
-                         ("larflow",larcv.kProductImage2D) )
+        #ro_products  = ( ("wiremc",larcv.kProductImage2D),
+        #                 ("larflow",larcv.kProductImage2D) )
+        ro_products = None
         dataloader   = load_larflow_larcvdata( "larflowsparsetest", inputfile,
                                                 batchsize, nworkers,
                                                 tickbackward=tickbackward,
@@ -542,5 +544,5 @@ if __name__ == "__main__":
 
         #print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
 
-    print "ave. data time o/ %d trials: %d secs"%(ntrials,dtdata/ntrials)
-    print "ave. forward time o/ %d trials: %d secs"%(ntrials,dtforward/ntrials)
+    print "ave. data time o/ %d trials: %.2f secs"%(ntrials,dtdata/ntrials)
+    print "ave. forward time o/ %d trials: %.2f secs"%(ntrials,dtforward/ntrials)
