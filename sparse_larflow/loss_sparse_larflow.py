@@ -57,6 +57,9 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             self.goodrange_t = None
         self._return_pos_images = return_pos_images
         self._reduce = reduce
+
+        #self.truth1_input = scn.InputLayer(2,(nrows,ncols),mode=0)
+        #self.truth2_input = scn.InputLayer(2,(nrows,ncols),mode=0) 
         self.outlayer1 = scn.OutputLayer(2)
         self.outlayer2 = scn.OutputLayer(2)
 
@@ -84,12 +87,12 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
 
         mask1 = torch.ones( flow1_truth.shape, dtype=torch.float ).to(flow1_truth.device)
         mask2 = torch.ones( flow2_truth.shape, dtype=torch.float ).to(flow1_truth.device)
-        print "mask1: ",mask1.shape,"raw sum=",mask1.detach().sum()
-        print "mask2: ",mask2.shape,"raw sum=",mask2.detach().sum()
+        #print "mask1: ",mask1.shape,"raw sum=",mask1.detach().sum()
+        #print "mask2: ",mask2.shape,"raw sum=",mask2.detach().sum()
         mask1[ torch.ne(flow1_truth,0) ] = 0
         mask2[ torch.ne(flow2_truth,0) ] = 0
-        print "mask1: ",mask1.shape,"select sum=",mask1.detach().sum()
-        print "mask2: ",mask2.shape,"select sum=",mask2.detach().sum()
+        #print "mask1: ",mask1.shape,"select sum=",mask1.detach().sum()
+        #print "mask2: ",mask2.shape,"select sum=",mask2.detach().sum()
 
         #print posyz_target1_t.size()," vs. mask=",mask.size()
         if self.calc_consistency:
@@ -99,13 +102,10 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         # flow prediction loss
         flow1err = (flow1_truth-flowout1)*mask1
         flow2err = (flow2_truth-flowout2)*mask2
-        print type(flow1err)
-        print type(flow2err)
         if mask1.sum()>0:
             flow1err = flow1err*flow1err/mask1.sum()
         if mask2.sum()>0:
             flow2err = flow2err*flow2err/mask2.sum()
-
 
         #print "posyz 1: ",np.argwhere( np.isnan( posyz_target1_t.detach().cpu().numpy() ) )
         #print "posyz 2: ",np.argwhere( np.isnan( posyz_target2_t.detach().cpu().numpy() ) )

@@ -484,12 +484,10 @@ if __name__ == "__main__":
                                                 batchsize, nworkers,
                                                 tickbackward=tickbackward,
                                                 readonly_products=ro_products )
-        truth1_input = scn.InputLayer(2,(1008,3456),mode=0)
-        truth2_input = scn.InputLayer(2,(1008,3456),mode=0)
 
     if test_loss:
         from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
-        consistency_loss = SparseLArFlow3DConsistencyLoss(1008, 3456,
+        consistency_loss = SparseLArFlow3DConsistencyLoss(1024, 3456,
                                                           larcv_version=1,
                                                           calc_consistency=False)
 

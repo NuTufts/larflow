@@ -85,11 +85,11 @@ def load_sparse_larflowdata(io,remove_bg_labels=True):
         dtflow += time.time()-tflowstart
 
     tottime = time.time()-tottime
-    print "io time: ",dtio
-    print "tot array manip time: ",tottime
-    print "  time for each flow: ",dtflow/len(flows)
-    print "    convert larcv2numpy per flow: ",dtconvert/len(flows)
-    print "    modify numpy arrays: ",(dtnpmanip)/len(flows)
+    #print "io time: ",dtio
+    #print "tot array manip time: ",tottime
+    #print "  time for each flow: ",dtflow/len(flows)
+    #print "    convert larcv2numpy per flow: ",dtconvert/len(flows)
+    #print "    modify numpy arrays: ",(dtnpmanip)/len(flows)
 
 
     return data
@@ -119,9 +119,7 @@ def load_sparse_larflowdata_sparseimg(io,remove_bg_labels=True):
     dtio += time.time()-tio
 
     sparsedata = ev_sparse.at(0)
-    print sparsedata
-    sparse_np  = larcv.as_ndarray( sparsedata, larcv.msg.kDEBUG )
-    print "sparse_np: ",sparse_np.shape
+    sparse_np  = larcv.as_ndarray( sparsedata, larcv.msg.kNORMAL )
 
     nfeatures = sparsedata.nfeatures()
     meta  = sparsedata.meta_v().front()
@@ -163,11 +161,11 @@ def load_sparse_larflowdata_sparseimg(io,remove_bg_labels=True):
         dtflow += time.time()-tflowstart
 
     tottime = time.time()-tottime
-    print "io time: ",dtio
-    print "tot array manip time: ",tottime
-    print "  time for each flow: ",dtflow/len(flows)
-    print "    convert larcv2numpy per flow: ",dtconvert/len(flows)
-    print "    modify numpy arrays: ",(dtnpmanip)/len(flows)
+    #print "io time: ",dtio
+    #print "tot array manip time: ",tottime
+    #print "  time for each flow: ",dtflow/len(flows)
+    #print "    convert larcv2numpy per flow: ",dtconvert/len(flows)
+    #print "    modify numpy arrays: ",(dtnpmanip)/len(flows)
 
 
     return data
@@ -214,7 +212,7 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
                                   #load_sparse_larflowdata,
                                   load_sparse_larflowdata_sparseimg,
                                   self.inputfiles,self.nworkers,
-                                  server_verbosity=0,worker_verbosity=2,
+                                  server_verbosity=-1,worker_verbosity=-1,
                                   io_tickbackward=tickbackward,
                                   readonly_products=readonly_products)
         SparseLArFlowPyTorchDataset.idCounter += 1
