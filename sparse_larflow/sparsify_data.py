@@ -79,5 +79,10 @@ if __name__ == "__main__":
     run a test example.
     """
 
-    sparsify( "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
-              "out_sparsified.root" )
+    larcv_mctruth     = sys.argv[1]
+    output_sparsified = sys.argv[2]
+    
+    #sparsify( "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
+    #          "out_sparsified.root" )
+
+    sparsify( larcv_mctruth, output_sparsified )
