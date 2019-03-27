@@ -62,6 +62,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         #self.truth2_input = scn.InputLayer(2,(nrows,ncols),mode=0) 
         self.outlayer1 = scn.OutputLayer(2)
         self.outlayer2 = scn.OutputLayer(2)
+        self.l1loss = nn.SmoothL1Loss(reduction='none')
 
 
     def forward(self,coord, flow1_predict,flow2_predict,flow1_truth,flow2_truth,
@@ -72,7 +73,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         -----
         coord_t       [SparseConvTensor (N,3)]: list of (row,col,batch)
         flow1_predict [SparseConvTensor (N,1)]: predicted flow for Y2U.
-        flow2_predict [SparseConvTensor (N,1)]: predicted flow for Y2V. 
+        flow2_predict [SparseConvTensor (N,1)]: predicted flow for Y2V. If None, only one-flow calculated
         flow1_truth   [tensor (N,1)]: predicted flow for Y2U.
         flow2_truth   [tensor (N,1)]: predicted flow for Y2V. Coordinates is where we is.
         """
@@ -83,16 +84,21 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
                             source_originx, targetu_originx, targetv_originx )
 
         flowout1 = self.outlayer1(flow1_predict)
-        flowout2 = self.outlayer2(flow2_predict)
-
         mask1 = torch.ones( flow1_truth.shape, dtype=torch.float ).to(flow1_truth.device)
-        mask2 = torch.ones( flow2_truth.shape, dtype=torch.float ).to(flow1_truth.device)
-        #print "mask1: ",mask1.shape,"raw sum=",mask1.detach().sum()
-        #print "mask2: ",mask2.shape,"raw sum=",mask2.detach().sum()
-        mask1[ torch.ne(flow1_truth,0) ] = 0
-        mask2[ torch.ne(flow2_truth,0) ] = 0
-        #print "mask1: ",mask1.shape,"select sum=",mask1.detach().sum()
-        #print "mask2: ",mask2.shape,"select sum=",mask2.detach().sum()
+        #print "mask1 counts: ",mask1.shape,"raw sum=",mask1.detach().sum()        
+        mask1[ torch.eq(flow1_truth,0) ] = 0
+        #print "mask1 counts: ",mask1.shape,"select sum=",mask1.detach().sum()
+        
+        if flow2_predict is not None:
+            flowout2 = self.outlayer2(flow2_predict)
+            mask2 = torch.ones( flow2_truth.shape, dtype=torch.float ).to(flow1_truth.device)
+            #print "mask2 counts: ",mask2.shape,"raw sum=",mask2.detach().sum()            
+            mask2[ torch.eq(flow2_truth,0) ] = 0            
+            #print "mask2 counts: ",mask2.shape,"select sum=",mask2.detach().sum()            
+
+
+        #print "flow1_truth: ",flow1_truth[0:20,0]
+        #print "mask1_truth: ",mask1[0:20,0]
 
         #print posyz_target1_t.size()," vs. mask=",mask.size()
         if self.calc_consistency:
@@ -100,12 +106,13 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             posyz_target2_t *= mask
 
         # flow prediction loss
-        flow1err = (flow1_truth-flowout1)*mask1
-        flow2err = (flow2_truth-flowout2)*mask2
-        if mask1.sum()>0:
-            flow1err = flow1err*flow1err/mask1.sum()
-        if mask2.sum()>0:
-            flow2err = flow2err*flow2err/mask2.sum()
+        
+        #flow1err = (flow1_truth-flowout1)*mask1
+        #flow2err = (flow2_truth-flowout2)*mask2
+        flow1err = self.l1loss(flow1_truth,flowout1)*mask1
+
+        if flow2_predict is not None:
+            flow2err = self.l1loss(flow2_truth,flowout2)*mask2
 
         #print "posyz 1: ",np.argwhere( np.isnan( posyz_target1_t.detach().cpu().numpy() ) )
         #print "posyz 2: ",np.argwhere( np.isnan( posyz_target2_t.detach().cpu().numpy() ) )
@@ -117,22 +124,17 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         #print "diffyz: ",np.argwhere( np.isnan( diff_yz.detach().cpu().numpy() ) )
         #print "mask.sum: ",np.argwhere( np.isnan( mask.sum().detach().cpu().numpy() ) )
         if self._reduce:
-            l2flow = flow1err.sum() + flow2err.sum()
+            if flow2_predict is not None:
+                # add two flow errors together, weighting by mask sum
+                l2flow = (mask1.sum()*flow1err.sum() + mask2.sum()*flow2err.sum())/(mask1.sum()+mask2.sum())
+            else:
+                l2flow = flow1err.sum()/mask1.sum()
         else:
-            l2flow = flow1err+flow2err
-        #    loss = l2.sum()
-        #    # loss is the mean loss per non-masked pixel
-        #    if mask.sum()>0:
-        #        loss = l2.sum()/mask.sum() # divide by number of non-masked pixels
-        #else:
-        #    loss = l2
-
-        #if not self._return_pos_images:
-        #    # default
-        #    return loss
-        #else:
-        #    # for debug typically
-        #    return loss,posyz_target1_t,posyz_target2_t
+            if flow2_predict is not None:
+                l2flow = flow1err+flow2err
+            else:
+                l2flow = flow1err
+            
         return l2flow
 
 

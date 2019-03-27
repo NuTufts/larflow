@@ -109,9 +109,9 @@ def main():
                                                calc_consistency=False)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-2
     momentum = 0.9
-    weight_decay = 1.0e-4
+    weight_decay = 1.0e-3
 
     # training length
     batchsize_train = BATCHSIZE_TRAIN
@@ -123,11 +123,11 @@ def main():
     iter_per_valid = 10
 
 
-    nbatches_per_itertrain = 20
+    nbatches_per_itertrain = 5
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 40
+    nbatches_per_itervalid = 5
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -163,8 +163,8 @@ def main():
 
     print "pause to give time to feeders"
 
-    #NENTRIES = len(iotrain)
-    NENTRIES = 100000
+    NENTRIES = len(iotrain)
+    #NENTRIES = 100000
     print "Number of entries in training set: ",NENTRIES
 
     if NENTRIES>0:
@@ -574,8 +574,8 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
     # don't count pixels where:
     #  1) flow is missing i.e. equals zero
-    #  2) source pixle is below threshold
-    mask[ torch.ne(flow_truth,0) ] = 0.0
+    #  2) source pixel is below threshold
+    mask[ torch.eq(flow_truth,0) ] = 0.0
     mask[ torch.gt(srcpix,10.0)  ] = 0.0
     nvis = mask.sum()
     
@@ -620,7 +620,7 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
     print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
                                                                            loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
     print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,acc_meters["flow1<10pix"].avg*100,acc_meters["flow1<20pix"].avg*100,acc_meters["flow1<50pix"].avg*100)
-    print "  Flow2 accuracy: @5[%.1f] @10[%.1f] @20[%.1f] @50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
+    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
         
     print "------------------------------------------------------------------------"    
 
