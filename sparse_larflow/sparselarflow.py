@@ -280,7 +280,10 @@ class SparseLArFlow(nn.Module):
     """
     Sparse Submanifold implementation of LArFlow
     """
-    def __init__(self, inputshape, reps, nin_features, nout_features, nplanes):
+    avail_flows = ['y2u','y2v']
+    
+    def __init__(self, inputshape, reps, nin_features, nout_features, nplanes,
+                 flowdirs=['y2u','y2v'], share_encoder_weights=False):
         nn.Module.__init__(self)
         """
         inputs
@@ -290,6 +293,10 @@ class SparseLArFlow(nn.Module):
         nin_features [int]: number of features in the first convolutional layer
         nout_features [int]: number of features that feed into the regression layer
         nplanes [int]: the depth of the U-Net
+        flowdirs [list of str]: which flow directions to implement, if two (y2u+y2v)
+                       then we must process all three planes and produce two flow predictions. 
+                       if one, then only two planes are processed by encoder, and one flow predicted.
+        share_encoder_weights [bool]: if True, share the weights for the encoder
         """
         # set parameters
         self.dimensions = 2 # not playing with 3D for now
@@ -322,23 +329,40 @@ class SparseLArFlow(nn.Module):
         # then cat tensor
         # and produce one decoder for flow, another decoder for visibility
 
+        # set which flows to run
+        for flowdir in flowdirs:
+            if flowdir not in SparseLArFlow.avail_flows:
+                raise ValueError("flowdir={} not available. Allowed flows: {}".format(flowdir,SparseLArFlow.avail_flows))
+        self.flowdirs = flowdirs
+        self.nflows   = len(self.flowdirs)
+
+        # do we share weights
+        self._share_encoder_weights = share_encoder_weights
+
         # model:
         # input
         self.src_inputlayer  = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
         self.tar1_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
-        self.tar2_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
+        if self.nflows==2:
+            self.tar2_inputlayer = scn.InputLayer(self.dimensions, self.inputshape, mode=self.mode)
 
         # stem
         self.src_stem  = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
-        self.tar1_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
-        self.tar2_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
+        if not self._share_encoder_weights:
+            # if not sharing weights, producer separate stems
+            self.tar1_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
+            if self.nflows==2:
+                self.tar2_stem = scn.SubmanifoldConvolution(self.dimensions, 1, self.nfeatures, 3, False)
 
         # encoders
         self.source_encoder  = SparseEncoder( "src",  self.reps, self.nfeatures, self.nPlanes )
-        self.target1_encoder = SparseEncoder( "tar1", self.reps, self.nfeatures, self.nPlanes )
-        self.target2_encoder = SparseEncoder( "tar2", self.reps, self.nfeatures, self.nPlanes )
+        if not self._share_encoder_weights:
+            # if not sharing weights, add additional encoders
+            self.target1_encoder = SparseEncoder( "tar1", self.reps, self.nfeatures, self.nPlanes )
+            if self.nflows==2:
+                self.target2_encoder = SparseEncoder( "tar2", self.reps, self.nfeatures, self.nPlanes )
 
-        # concat
+        # concat        
         self.join_enclayers = []
         for ilayer in xrange(len(self.nPlanes)):
             self.join_enclayers.append(scn.JoinTable())
@@ -348,33 +372,37 @@ class SparseLArFlow(nn.Module):
         self.decode_layers_inchs  = []
         self.decode_layers_outchs = []
         for ilayer,enc_outchs in enumerate(reversed(self.nPlanes)):
-            self.decode_layers_inchs.append( 4*enc_outchs if ilayer>0 else 3*enc_outchs )
+            self.decode_layers_inchs.append( (self.nflows+2)*enc_outchs if ilayer>0 else (self.nflows+1)*enc_outchs )
             self.decode_layers_outchs.append( self.nPlanes[-(1+ilayer)]/2 )
-        print "decode in chs: ",self.decode_layers_inchs
-        print "decode out chs: ",self.decode_layers_outchs
+        #print "decode in chs: ",self.decode_layers_inchs
+        #print "decode out chs: ",self.decode_layers_outchs
 
         # decoders
         self.flow1_decoder = SparseDecoder( "flow1", self.reps,
                                             self.decode_layers_inchs,
                                             self.decode_layers_outchs )
-        self.flow2_decoder = SparseDecoder( "flow2", self.reps,
-                                            self.decode_layers_inchs,
-                                            self.decode_layers_outchs )
+        if self.nflows==2:
+            self.flow2_decoder = SparseDecoder( "flow2", self.reps,
+                                                self.decode_layers_inchs,
+                                                self.decode_layers_outchs )
 
         # last deconv concat
         self.flow1_concat = scn.JoinTable()
-        self.flow2_concat = scn.JoinTable()
+        if self.nflows==2:
+            self.flow2_concat = scn.JoinTable()
 
         # final feature set convolution
-        flow_resblock_inchs = 3*self.nfeatures + self.decode_layers_outchs[-1]
+        flow_resblock_inchs = (self.nflows+1)*self.nfeatures + self.decode_layers_outchs[-1]
         self.flow1_resblock = create_resnet_layer(self.reps,
                                                   flow_resblock_inchs,self.nout_features)
-        self.flow2_resblock = create_resnet_layer(self.reps,
-                                                  flow_resblock_inchs,self.nout_features)
+        if self.nflows==2:
+            self.flow2_resblock = create_resnet_layer(self.reps,
+                                                      flow_resblock_inchs,self.nout_features)
 
         # regression layer
         self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
-        self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+        if self.nflows==2:
+            self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
 
 
     def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize):
@@ -386,7 +414,7 @@ class SparseLArFlow(nn.Module):
         coord_flow1_t [ (N,3) Torch Tensor ]: list of (row,col,batchid) N pix coordinates
         src_feat_t  [ (N,) torch tensor ]: list of pixel values for source image
         tar1_feat_t [ (N,) torch tensor ]: list of pixel values for target 1 image
-        tar2_feat_t [ (N,) torch tensor ]: list of pixel values for target 2 image
+        tar2_feat_t [ (N,) torch tensor ]: list of pixel values for target 2 image. provide NULL if nflows==1
         batchsize [int]: batch size
 
         outputs
@@ -396,25 +424,49 @@ class SparseLArFlow(nn.Module):
         """
         srcx = ( coord_t, src_feat_t,  batchsize )
         tar1 = ( coord_t, tar1_feat_t, batchsize )
-        tar2 = ( coord_t, tar2_feat_t, batchsize )
+        if self.nflows==2:
+            tar2 = ( coord_t, tar2_feat_t, batchsize )
 
-        # source encoder
+        # source input, stem, encoder
         srcx = self.src_inputlayer(srcx)
         srcx = self.src_stem(srcx)
         srcout_v = self.source_encoder(srcx)
 
+        # target input
         tar1 = self.tar1_inputlayer(tar1)
-        tar1 = self.tar1_stem(tar1)
-        tar1out_v = self.target1_encoder(tar1)
-
-        tar2 = self.tar1_inputlayer(tar2)
-        tar2 = self.tar1_stem(tar2)
-        tar2out_v = self.target2_encoder(tar2)
+        if self.nflows==2:
+            tar2 = self.tar2_inputlayer(tar2)
+            
+        if not self._share_encoder_weights:
+            # separate encoders
+            tar1 = self.tar1_stem(tar1)
+            tar1out_v = self.target1_encoder(tar1)
+            
+            if self.nflows==2:
+                tar2 = self.tar2_stem(tar2)
+                tar2out_v = self.target2_encoder(tar2)
+        else:
+            # shared weights for encoder
+            tar1 = self.src_stem(tar1)
+            tar1out_v = self.source_encoder(tar1)
+            
+            if self.nflows==2:
+                tar2 = self.src_stem(tar2)
+                tar2out_v = self.source_encoder(tar2)
+            
 
         # concat features from all three planes
         joinout = []
-        for _src,_tar1,_tar2,_joiner in zip(srcout_v,tar1out_v,tar2out_v,self.join_enclayers):
-            joinout.append( _joiner( (_src,_tar1,_tar2) ) )
+        if self.nflows==1:
+            # merge 2 encoder outputs
+            for _src,_tar1,_joiner in zip(srcout_v,tar1out_v,self.join_enclayers):
+                joinout.append( _joiner( (_src,_tar1) ) )
+        elif self.nflows==2:
+            # merge 3 encoder outputs
+            for _src,_tar1,_tar2,_joiner in zip(srcout_v,tar1out_v,tar2out_v,self.join_enclayers):
+                joinout.append( _joiner( (_src,_tar1,_tar2) ) )
+        else:
+            raise ValueError("number of flows={} not supported".format(self.nflows))
 
         # Flow 1: src->tar1
         # ------------------
@@ -422,7 +474,10 @@ class SparseLArFlow(nn.Module):
         flow1 = self.flow1_decoder( joinout )
 
         # concat stem out with decoder out
-        flow1 = self.flow1_concat( (flow1,srcx,tar1,tar2) )
+        if self.nflows==1:
+            flow1 = self.flow1_concat( (flow1,srcx,tar1) )
+        elif self.nflows==2:
+            flow1 = self.flow1_concat( (flow1,srcx,tar1,tar2) )
 
         # last feature conv layer
         flow1 = self.flow1_resblock( flow1 )
@@ -432,17 +487,20 @@ class SparseLArFlow(nn.Module):
 
         # Flow 2: src->tar1
         # ------------------
-        # use 3-plane features to make flow features
-        flow2 = self.flow2_decoder( joinout )
-
-        # concat stem out with decoder out
-        flow2 = self.flow2_concat( (flow2,srcx,tar1,tar2) )
-
-        # last feature conv layer
-        flow2 = self.flow2_resblock( flow2 )
-
-        # finally, 1x1 conv layer from features to flow value
-        flow2 = self.flow2_out( flow2 )
+        if self.nflows==2:
+            # use 3-plane features to make flow features
+            flow2 = self.flow2_decoder( joinout )
+            
+            # concat stem out with decoder out
+            flow2 = self.flow2_concat( (flow2,srcx,tar1,tar2) )
+            
+            # last feature conv layer
+            flow2 = self.flow2_resblock( flow2 )
+            
+            # finally, 1x1 conv layer from features to flow value
+            flow2 = self.flow2_out( flow2 )
+        else:
+            flow2 = None
 
         return flow1,flow2
 
@@ -458,12 +516,32 @@ if __name__ == "__main__":
     sparsity  = 0.01
     #device    = torch.device("cpu")
     device    = torch.device("cuda")
-    ntrials   = 10
+    ntrials   = 1
     batchsize = 1
     use_random_data = False
     test_loss = True
+    ENABLE_PROFILER=True
+    PROF_USE_CUDA=True
 
-    model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4 ).to(device)
+    # two-flow input
+    #flowdirs = ['y2u','y2v'] # two flows
+    #inputfile    = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"    
+    #inputfile = "out_sparsified.root"
+    #producer_name = "larflow"
+
+    # one-flow input: Y2U
+    flowdirs = ['y2u']
+    inputfile = "out_sparsified_y2u.root"
+    producer_name = "larflow_y2u"
+
+    # one-flow input: Y2V
+    #flowdirs = ['y2v']
+    #inputfile = "out_sparsified_y2v.root"
+    #producer_name = "larflow_y2v"    
+    
+    
+
+    model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4, flowdirs=flowdirs ).to(device)
     model.eval()
     #print model
 
@@ -473,17 +551,17 @@ if __name__ == "__main__":
     if not use_random_data:
         from larcv import larcv
         from sparselarflowdata import load_larflow_larcvdata
-        #inputfile    = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
-        inputfile = "out_sparsified.root"
         nworkers     = 3
         tickbackward = True
         #ro_products  = ( ("wiremc",larcv.kProductImage2D),
         #                 ("larflow",larcv.kProductImage2D) )
         ro_products = None
         dataloader   = load_larflow_larcvdata( "larflowsparsetest", inputfile,
-                                                batchsize, nworkers,
-                                                tickbackward=tickbackward,
-                                                readonly_products=ro_products )
+                                               batchsize, nworkers,
+                                               nflows=len(flowdirs),
+                                               producer_name=producer_name,
+                                               tickbackward=tickbackward,
+                                               readonly_products=ro_products )
 
     if test_loss:
         from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
@@ -499,6 +577,7 @@ if __name__ == "__main__":
         # random data
         tdata = time.time()
         if use_random_data:
+            # Create random data
             xcoords = np.zeros( (npts,2), dtype=np.int )
             xcoords[:,0] = np.random.randint( 0, nrows, npts )
             xcoords[:,1] = np.random.randint( 0, ncols, npts )
@@ -511,27 +590,41 @@ if __name__ == "__main__":
             tarpix_flow1_t = torch.from_numpy(tar1).to(device)
             tarpix_flow2_t = torch.from_numpy(tar2).to(device)
         else:
+            # Get data from file
             datadict = dataloader.get_tensor_batch(device)
             coord_t = datadict["coord"]
             srcpix_t = datadict["src"]
             tarpix_flow1_t = datadict["tar1"]
-            tarpix_flow2_t = datadict["tar2"]
             truth_flow1_t  = datadict["flow1"]
-            truth_flow2_t  = datadict["flow2"]
-            #sptruth_flow1_t = truth1_input((coord_t,truth_flow1_t,batchsize))
-            #sptruth_flow2_t = truth2_input((coord_t,truth_flow1_t,batchsize))
-
+            if len(flowdirs)==2:
+                tarpix_flow2_t = datadict["tar2"]            
+                truth_flow2_t  = datadict["flow2"]
+            else:
+                tarpix_flow2_t = None
+                truth_flow2_t  = None
 
         dtdata += time.time()-tdata
 
         tforward = time.time()
         print "coord-shape: flow1=",coord_t.shape
         print "src feats-shape: ",srcpix_t.shape
+        print "tarpix_flow1 feats-shape: ",tarpix_flow1_t.shape
+        if tarpix_flow2_t is not None:
+            print "tarpix_flow2 feats-shape: ",tarpix_flow2_t.shape
         if truth_flow1_t is not None:
             print "truth flow1: ",truth_flow1_t.shape
-        predict1_t,predict2_t = model( coord_t, srcpix_t,
-                            tarpix_flow1_t, tarpix_flow2_t,
-                            batchsize )
+        if truth_flow2_t is not None:
+            print "truth flow2: ",truth_flow2_t.shape
+        with torch.autograd.profiler.profile(enabled=ENABLE_PROFILER,use_cuda=PROF_USE_CUDA) as prof:
+            # workup
+            predict1_t,predict2_t = model( coord_t, srcpix_t,
+                                           tarpix_flow1_t, tarpix_flow2_t,
+                                           batchsize )
+            #with torch.autograd.profiler.emit_nvtx():
+            #    predict1_t,predict2_t = model( coord_t, srcpix_t,
+            #                                   tarpix_flow1_t, tarpix_flow2_t,
+            #                                   batchsize )
+                
         dtforward += time.time()-tforward
 
         if test_loss:
@@ -544,3 +637,6 @@ if __name__ == "__main__":
 
     print "ave. data time o/ %d trials: %.2f secs"%(ntrials,dtdata/ntrials)
     print "ave. forward time o/ %d trials: %.2f secs"%(ntrials,dtforward/ntrials)
+    if ENABLE_PROFILER:
+        profout = open('profileout_cuda.txt','w')
+        print>>profout,prof
