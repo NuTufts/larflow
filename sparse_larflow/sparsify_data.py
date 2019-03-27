@@ -6,7 +6,11 @@ from ROOT import std
 
 
 def sparsify(inputfile, outputfile,
-             adc_producer="wiremc", flow_producer="larflow"):
+             adc_producer="wiremc", flow_producer="larflow",
+             flowdirs=['y2u','y2v']):
+
+    nflows = len(flowdirs)
+    
     io = larcv.IOManager(larcv.IOManager.kREAD,"",larcv.IOManager.kTickBackward)
     io.add_in_file(inputfile)
     io.specify_data_read(larcv.kProductImage2D,adc_producer)
@@ -27,29 +31,60 @@ def sparsify(inputfile, outputfile,
         adc_v  = ev_adc.Image2DArray()
         flow_v = ev_flow.Image2DArray()
 
-        # for larflow, we pack 5 images together
-        # 1) src image
-        # 2) target 1 image
-        # 3) target 2 image
-        # 4) src->target1 flow
-        # 5) src->target2 flow
-        threshold_v = std.vector("float")(5,5.0)
-        cuton_pixel_v = std.vector("int")(5,0)
+        # for larflow, we pack up to 5 images together, depending on flows
+        # if flowdirs=['y2u','y2v']:
+        #   1) src image
+        #   2) target 1 image
+        #   3) target 2 image
+        #   4) src->target1 flow
+        #   5) src->target2 flow
+        # if flowdirs=['y2u']:
+        #   1) src image
+        #   2) target 1 image
+        #   3) src->target1 flow
+        # if flowdirs=['y2v']:
+        #   1) src image
+        #   2) target 2 image
+        #   3) src->target2 flow
+        
+
+        if nflows==2:
+            nimgs = 5
+        else:
+            nimgs = 3
+        
+        threshold_v = std.vector("float")(nimgs,5.0)
+        cuton_pixel_v = std.vector("int")(nimgs,0)        
         cuton_pixel_v[0] = 1
         cuton_pixel_v[1] = 1
-        cuton_pixel_v[2] = 1
+        if nflows==2:
+            cuton_pixel_v[2] = 1
+            
         flowset_v = std.vector("larcv::Image2D")()
         for (srcidx,tar1idx,tar2idx,flow1idx,flow2idx) in flowdef_list:
-            flowset_v.push_back( adc_v.at(srcidx) )
-            flowset_v.push_back( adc_v.at(tar1idx) )
-            flowset_v.push_back( adc_v.at(tar2idx) )
-            flowset_v.push_back( flow_v.at(flow1idx) )
-            flowset_v.push_back( flow_v.at(flow2idx) )
+            if nflows==2:
+                flowset_v.push_back( adc_v.at(srcidx) )
+                flowset_v.push_back( adc_v.at(tar1idx) )
+                flowset_v.push_back( adc_v.at(tar2idx) )
+                flowset_v.push_back( flow_v.at(flow1idx) )
+                flowset_v.push_back( flow_v.at(flow2idx) )
+            elif nflows==1 and flowdirs[0]=='y2u':
+                flowset_v.push_back( adc_v.at(srcidx) )
+                flowset_v.push_back( adc_v.at(tar1idx) )
+                flowset_v.push_back( flow_v.at(flow1idx) )
+            elif nflows==1 and flowdirs[0]=='y2v':
+                flowset_v.push_back( adc_v.at(srcidx) )
+                flowset_v.push_back( adc_v.at(tar1idx) )
+                flowset_v.push_back( flow_v.at(flow1idx) )
+                
 
-        adc_sparse_tensor = larcv.SparseImage(flowset_v,threshold_v)
+        adc_sparse_tensor = larcv.SparseImage(flowset_v,threshold_v,cuton_pixel_v)
         print "number of sparse floats: ",adc_sparse_tensor.pixellist().size()
 
-        ev_sparse  = out.get_data(larcv.kProductSparseImage,"larflow")
+        producername = "larflow"
+        if nflows==1:
+            producername += "_"+flowdirs[0]
+        ev_sparse  = out.get_data(larcv.kProductSparseImage,producername)
 
         sparse_nd = larcv.as_ndarray(adc_sparse_tensor,larcv.msg.kDEBUG)
 
@@ -85,4 +120,11 @@ if __name__ == "__main__":
     #sparsify( "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
     #          "out_sparsified.root" )
 
-    sparsify( larcv_mctruth, output_sparsified )
+    sparsify( larcv_mctruth, output_sparsified, flowdirs=['y2u','y2v'] )
+
+    #output_sparsified_y2u = output_sparsified.replace(".root","_y2u.root")
+    #sparsify( larcv_mctruth, output_sparsified_y2u, flowdirs=['y2u'] )
+
+    #output_sparsified_y2v = output_sparsified.replace(".root","_y2v.root")
+    #sparsify( larcv_mctruth, output_sparsified_y2v, flowdirs=['y2v'] )
+    
