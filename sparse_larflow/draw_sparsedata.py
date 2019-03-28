@@ -5,12 +5,12 @@ from larcv import larcv
 rt.gStyle.SetOptStat(0)
 
 io = larcv.IOManager(larcv.IOManager.kREAD)
-io.add_in_file("out_sparsified.root")
+io.add_in_file(sys.argv[1])
 io.initialize()
 
 for ientry in xrange(io.get_n_entries()):
     io.read_entry(ientry)
-    ev_sparse = io.get_data(larcv.kProductSparseImage,"larflow")
+    ev_sparse = io.get_data(larcv.kProductSparseImage,sys.argv[2])
     sparseimg = ev_sparse.at(0)
 
     nfeatures = sparseimg.nfeatures()
