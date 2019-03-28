@@ -43,13 +43,13 @@ GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
-INPUTFILE_TRAIN="data/larflow_sparsify_train.root"
-INPUTFILE_VALID="data/larflow_sparsify_valid.root"
+INPUTFILE_TRAIN="data/larflow_sparsify_y2u_train.root"
+INPUTFILE_VALID="data/larflow_sparsify_y2u_valid.root"
 TICKBACKWARD=False
 start_iter  = 0
 IMAGE_WIDTH=3456
 IMAGE_HEIGHT=1024
-BATCHSIZE_TRAIN=1
+BATCHSIZE_TRAIN=4
 BATCHSIZE_VALID=1
 NWORKERS_TRAIN=4
 NWORKERS_VALID=2
@@ -81,7 +81,17 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the GPU
-    model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), 2, 16, 16, 4 ).to(DEVICE)
+    imgdims = 2
+    ninput_features  = 16
+    noutput_features = 16
+    nplanes = 5
+    nfeatures_per_layer = [16,16,32,32,64]
+    flowdirs = ['y2u']
+    
+    model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
+                           ninput_features, noutput_features,
+                           nplanes, features_per_layer=nfeatures_per_layer,
+                           flowdirs=flowdirs).to(DEVICE)
     
     # Resume training option
     if RESUME_FROM_CHECKPOINT:
@@ -109,9 +119,9 @@ def main():
                                                calc_consistency=False)
 
     # training parameters
-    lr = 1.0e-2
+    lr = 1.0e-3
     momentum = 0.9
-    weight_decay = 1.0e-3
+    weight_decay = 1.0e-4
 
     # training length
     batchsize_train = BATCHSIZE_TRAIN
@@ -154,10 +164,12 @@ def main():
     # LOAD THE DATASET    
     iotrain = load_larflow_larcvdata( "train", INPUTFILE_TRAIN,
                                       BATCHSIZE_TRAIN, NWORKERS_TRAIN,
+                                      nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
     iovalid = load_larflow_larcvdata( "valid", INPUTFILE_VALID,
                                       BATCHSIZE_VALID, NWORKERS_VALID,
+                                      nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
 
@@ -370,12 +382,15 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
                          predict1_t.features.detach(),
                          truth_flow1_t.detach(),
                          1,acc_meters,True)
-        nvis2 = accuracy(srcpix_t.detach(),
-                         predict2_t.features.detach(),
-                         truth_flow2_t.detach(),
-                         2,acc_meters,True)
+        if predict2_t is not None:
+            nvis2 = accuracy(srcpix_t.detach(),
+                             predict2_t.features.detach(),
+                             truth_flow2_t.detach(),
+                             2,acc_meters,True)
+        else:
+            nvis2 = 0
 
-        if nvis1==0 or nvis2==0:
+        if nvis1==0 or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update time meter
@@ -478,11 +493,14 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                          predict1_t.features.detach(),
                          truth_flow1_t.detach(),
                          1,acc_meters,True)
-        nvis2 = accuracy(srcpix_t.detach(),
-                         predict2_t.features.detach(),
-                         truth_flow2_t.detach(),
-                         2,acc_meters,True)
-        if nvis1==0 or nvis2==0:
+        if predict2_t is not None:
+            nvis2 = accuracy(srcpix_t.detach(),
+                             predict2_t.features.detach(),
+                             truth_flow2_t.detach(),
+                             2,acc_meters,True)
+        else:
+            nvis2 = 0
+        if nvis1==0 or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update loss meters
