@@ -236,6 +236,9 @@ class SparseDecoder(nn.Module):
             joiner = None
         return decode_blocks,joiner
 
+    def set_verbose(self,verbose=True):
+        self._verbose=verbose
+
     def forward(self,encoder_layers):
         """
         inputs
@@ -283,7 +286,10 @@ class SparseLArFlow(nn.Module):
     avail_flows = ['y2u','y2v']
     
     def __init__(self, inputshape, reps, nin_features, nout_features, nplanes,
-                 flowdirs=['y2u','y2v'], share_encoder_weights=False):
+                 flowdirs=['y2u','y2v'],
+                 features_per_layer=None,
+                 show_sizes=False,
+                 share_encoder_weights=False):
         nn.Module.__init__(self)
         """
         inputs
@@ -297,6 +303,9 @@ class SparseLArFlow(nn.Module):
                        then we must process all three planes and produce two flow predictions. 
                        if one, then only two planes are processed by encoder, and one flow predicted.
         share_encoder_weights [bool]: if True, share the weights for the encoder
+        features_per_layer [list of int]: if provided, defines the feature size of each layer depth. 
+                       if None, calculated automatically.
+        show_sizes [bool]: if True, print sizes while running forward
         """
         # set parameters
         self.dimensions = 2 # not playing with 3D for now
@@ -311,13 +320,25 @@ class SparseLArFlow(nn.Module):
         # mode variable: how to deal with repeated data
         self.mode = 0
 
+        # for debug, show sizes of layers/planes
+        self._show_sizes = show_sizes
+
         # nfeatures
         self.nfeatures = nin_features
         self.nout_features = nout_features
 
         # plane structure
-        self.nPlanes = [ self.nfeatures*2**(n+1) for n in xrange(nplanes) ]
-        print self.nPlanes
+        if features_per_layer is None:
+            self.nPlanes = [ self.nfeatures*2**(n+1) for n in xrange(nplanes) ]
+        else:
+            if ( type(features_per_layer) is list
+                 and len(features_per_layer)==nplanes
+                 and type(features_per_layer[0]) is int):
+                self.nPlanes = features_per_layer
+            else:
+                raise ValueError("features_per_layer should be a list of int with number of elements equalling 'nplanes' argument")
+        if self._show_sizes:
+            print "Features per plane/layer: ",self.nPlanes
 
         # repetitions (per plane)
         self.reps = reps
@@ -361,6 +382,8 @@ class SparseLArFlow(nn.Module):
             self.target1_encoder = SparseEncoder( "tar1", self.reps, self.nfeatures, self.nPlanes )
             if self.nflows==2:
                 self.target2_encoder = SparseEncoder( "tar2", self.reps, self.nfeatures, self.nPlanes )
+        if self._show_sizes:
+            self.source_encoder.set_verbose(True)
 
         # concat        
         self.join_enclayers = []
@@ -372,10 +395,14 @@ class SparseLArFlow(nn.Module):
         self.decode_layers_inchs  = []
         self.decode_layers_outchs = []
         for ilayer,enc_outchs in enumerate(reversed(self.nPlanes)):
-            self.decode_layers_inchs.append( (self.nflows+2)*enc_outchs if ilayer>0 else (self.nflows+1)*enc_outchs )
-            self.decode_layers_outchs.append( self.nPlanes[-(1+ilayer)]/2 )
-        #print "decode in chs: ",self.decode_layers_inchs
-        #print "decode out chs: ",self.decode_layers_outchs
+            # for input, we expect features from encoder + output features
+            enc_nfeatures = (self.nflows+1)*enc_outchs
+            dec_nfeatures = 0 if ilayer==0 else self.decode_layers_outchs[-1]
+            self.decode_layers_inchs.append( enc_nfeatures+dec_nfeatures )
+            self.decode_layers_outchs.append( enc_nfeatures  )
+        if self._show_sizes:
+            print "decoder layers input  chs: ",self.decode_layers_inchs
+            print "decoder layers output chs: ",self.decode_layers_outchs
 
         # decoders
         self.flow1_decoder = SparseDecoder( "flow1", self.reps,
@@ -385,6 +412,8 @@ class SparseLArFlow(nn.Module):
             self.flow2_decoder = SparseDecoder( "flow2", self.reps,
                                                 self.decode_layers_inchs,
                                                 self.decode_layers_outchs )
+        if self._show_sizes:
+            self.flow1_decoder.set_verbose(True)
 
         # last deconv concat
         self.flow1_concat = scn.JoinTable()
@@ -429,8 +458,17 @@ class SparseLArFlow(nn.Module):
 
         # source input, stem, encoder
         srcx = self.src_inputlayer(srcx)
+        if self._show_sizes:
+            print "input[src]: ",srcx.features.shape
+        
         srcx = self.src_stem(srcx)
+        if self._show_sizes:
+            print "stem[src]: ",srcx.features.shape
+        
         srcout_v = self.source_encoder(srcx)
+        if self._show_sizes:
+            for ienc,srcplane in enumerate(srcout_v):
+                print "[",ienc,"] ",srcplane.features.shape
 
         # target input
         tar1 = self.tar1_inputlayer(tar1)
@@ -519,7 +557,8 @@ if __name__ == "__main__":
     ntrials   = 1
     batchsize = 1
     use_random_data = False
-    test_loss = True
+    test_loss = False
+    run_w_grad = False
     ENABLE_PROFILER=True
     PROF_USE_CUDA=True
 
@@ -538,10 +577,16 @@ if __name__ == "__main__":
     #flowdirs = ['y2v']
     #inputfile = "out_sparsified_y2v.root"
     #producer_name = "larflow_y2v"    
-    
-    
 
-    model = SparseLArFlow( (nrows,ncols), 2, 16, 16, 4, flowdirs=flowdirs ).to(device)
+    ninput_features  = 16
+    noutput_features = 16
+    nplanes = 5
+    nfeatures_per_layer = [16,16,32,32,64]
+
+    model = SparseLArFlow( (nrows,ncols), 2, ninput_features, noutput_features,
+                           nplanes, features_per_layer=nfeatures_per_layer,
+                           show_sizes=True,
+                           flowdirs=flowdirs ).to(device)
     model.eval()
     #print model
 
@@ -617,9 +662,10 @@ if __name__ == "__main__":
             print "truth flow2: ",truth_flow2_t.shape
         with torch.autograd.profiler.profile(enabled=ENABLE_PROFILER,use_cuda=PROF_USE_CUDA) as prof:
             # workup
-            predict1_t,predict2_t = model( coord_t, srcpix_t,
-                                           tarpix_flow1_t, tarpix_flow2_t,
-                                           batchsize )
+            with torch.set_grad_enabled(run_w_grad):
+                predict1_t,predict2_t = model.forward( coord_t, srcpix_t,
+                                                       tarpix_flow1_t, tarpix_flow2_t,
+                                                       batchsize )
             #with torch.autograd.profiler.emit_nvtx():
             #    predict1_t,predict2_t = model( coord_t, srcpix_t,
             #                                   tarpix_flow1_t, tarpix_flow2_t,

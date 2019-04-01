@@ -9,7 +9,7 @@
 	url = https://github.com/NuTufts/larlite
 [submodule "larcvdataset"]
 	path = larcvdataset
-	url = https://github.com/deeplearnphysics/larcvdataset
+	url = https://github.com/larbys/larcvdataset
 [submodule "larlitecv"]
 	path = larlitecv
 	url = https://github.com/larbys/larlitecv
