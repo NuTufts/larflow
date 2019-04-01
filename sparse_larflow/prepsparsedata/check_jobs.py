@@ -3,7 +3,12 @@ import ROOT as rt
 #from larcv import larcv
 
 def checkfile( filepath ):
-    t = rt.TChain("sparseimg_larflow_tree")
+    # dualflow
+    #t = rt.TChain("sparseimg_larflow_tree")
+
+    # single-flow: Y2U
+    t = rt.TChain("sparseimg_larflow_y2u_tree")
+
     t.Add(filepath)
     nentries = t.GetEntries()
     if nentries<20:
@@ -32,7 +37,8 @@ if __name__ == "__main__":
     for ijob,larcvname in enumerate(inputlist):
         larcvname = larcvname.strip()
         workdir=outdir+"/sparsifyjobid%04d"%(ijob)
-        sparseout = os.path.basename( larcvname ).replace("larcvtruth","sparselarflowy2u")
+        #sparseout = os.path.basename( larcvname ).replace("larcvtruth","sparselarflowy2u") # dual flow
+        sparseout = os.path.basename( larcvname ).replace("larcvtruth","sparselarflowy2u").replace(".root","_y2u.root") # single flow
         sparsepath = workdir + "/" + sparseout
         
         if not os.path.exists(sparsepath):

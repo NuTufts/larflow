@@ -6,7 +6,7 @@
 #SBATCH --output=larflow_sparsify.log
 #SBATCH --mem-per-cpu=2000
 #SBATCH --time=1:00:00
-#SBATCH --array=0-44
+#SBATCH --array=0-244
 
 container=/cluster/tufts/wongjiradlab/larbys/larbys-containers/ubdl_singularity_031219.img
 
