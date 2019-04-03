@@ -110,9 +110,9 @@ def default_processor_config(input_adc_producer,input_chstatus_producer):
         RequireMinGoodPixels: true # not working
         LimitOverlap: true
         MaxOverlapFraction: 0.25
-        CheckFlow: false # not working
+        CheckFlow: true
         MakeCheckImage: false # not working
-        SaveTrainingOutput: true
+        SaveTrainingOutput: false
         OutputFilename: "croppedout.root"
       }
     }    
@@ -150,105 +150,24 @@ def sparsify_crops(inputfile, outputfile,
         print("=======================")
         print("process entry[%d]"%(ientry))
         print("=======================")
-        
+
+        # processor crops larflow
         processor.process_entry(ientry, False, False) # we set autosave to off. else it will clear the data products.
-        #processor.process_entry(ientry)
         io = processor.io_mutable()
-        
-
-        #ev_adc  = io.get_data(larcv.kProductImage2D,"wiremc")
-        #ev_flow = io.get_data(larcv.kProductImage2D,"larflow")
-        #adc_v  = ev_adc.Image2DArray()
-        #flow_v = ev_flow.Image2DArray()
-
-
+    
         ev_crops = io.get_data(larcv.kProductImage2D,"detsplit")
         ev_rois  = io.get_data(larcv.kProductROI,"detsplit")
-        # random splits
-        #crops_v = std.vector("larcv::Image2D")()
-        #rois_v  = std.vector("larcv::ROI")()
-        #split_algo.process(adc_v, crops_v, rois_v)
+
         print("number of random cropped images: %d"%(ev_crops.Image2DArray().size()))
         print("number of random cropped ROIs:   %d"%(ev_rois).ROIArray().size())
 
+        ev_outadc = io.get_data(larcv.kProductImage2D,"croppedadc")
         ev_outflo = io.get_data(larcv.kProductImage2D,"croppedflow")
+        print("number of cropped adc images:  %d"%(ev_outadc.Image2DArray().size()))        
         print("number of cropped flow images: %d"%(ev_outflo.Image2DArray().size()))
+
+        # now take images, sparsify and save to disk
         
-        # processok = split_algo.process( adc_v, crops_v, rois_v )
-
-        # # for larflow, we pack up to 5 images together, depending on flows
-        # # if flowdirs=['y2u','y2v']:
-        # #   1) src image
-        # #   2) target 1 image
-        # #   3) target 2 image
-        # #   4) src->target1 flow
-        # #   5) src->target2 flow
-        # # if flowdirs=['y2u']:
-        # #   1) src image
-        # #   2) target 1 image
-        # #   3) src->target1 flow
-        # # if flowdirs=['y2v']:
-        # #   1) src image
-        # #   2) target 2 image
-        # #   3) src->target2 flow
-        
-
-        # if nflows==2:
-        #     nimgs = 5
-        # else:
-        #     nimgs = 3
-            
-        # threshold_v = std.vector("float")(nimgs,5.0)
-        # cuton_pixel_v = std.vector("int")(nimgs,0)        
-        # cuton_pixel_v[0] = 1
-        # cuton_pixel_v[1] = 1
-        # if nflows==2:
-        #     cuton_pixel_v[2] = 1
-            
-        # flowset_v = std.vector("larcv::Image2D")()
-        # for (srcidx,tar1idx,tar2idx,flow1idx,flow2idx) in flowdef_list:
-        #     if nflows==2:
-        #         flowset_v.push_back( adc_v.at(srcidx) )
-        #         flowset_v.push_back( adc_v.at(tar1idx) )
-        #         flowset_v.push_back( adc_v.at(tar2idx) )
-        #         flowset_v.push_back( flow_v.at(flow1idx) )
-        #         flowset_v.push_back( flow_v.at(flow2idx) )
-        #     elif nflows==1 and flowdirs[0]=='y2u':
-        #         flowset_v.push_back( adc_v.at(srcidx) )
-        #         flowset_v.push_back( adc_v.at(tar1idx) )
-        #         flowset_v.push_back( flow_v.at(flow1idx) )
-        #     elif nflows==1 and flowdirs[0]=='y2v':
-        #         flowset_v.push_back( adc_v.at(srcidx) )
-        #         flowset_v.push_back( adc_v.at(tar2idx) )
-        #         flowset_v.push_back( flow_v.at(flow2idx) )
-                
-
-        # adc_sparse_tensor = larcv.SparseImage(flowset_v,threshold_v,cuton_pixel_v)
-        # print "number of sparse floats: ",adc_sparse_tensor.pixellist().size()
-
-        # producername = "larflow"
-        # if nflows==1:
-        #     producername += "_"+flowdirs[0]
-        #     ev_sparse  = out.get_data(larcv.kProductSparseImage,producername)
-
-        # sparse_nd = larcv.as_ndarray(adc_sparse_tensor,larcv.msg.kDEBUG)
-
-
-        # ncols = adc_v.front().meta().cols()
-        # nrows = adc_v.front().meta().rows()
-        # maxpixels = ncols*nrows
-        # occupancy_frac = float(sparse_nd.shape[0])/maxpixels
-
-        # print "SparseImage shape: ",sparse_nd.shape," occupancy=",occupancy_frac
-
-
-        # ev_sparse.Append( adc_sparse_tensor )
-
-        # out.set_id( io.event_id().run(),
-        #             io.event_id().subrun(),
-        #             io.event_id().event() )
-        # out.save_entry()
-        # print "Filled Event %d"%(ientry)
         break
 
     out.finalize()
