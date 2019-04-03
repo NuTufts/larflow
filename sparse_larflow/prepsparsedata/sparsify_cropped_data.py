@@ -5,51 +5,6 @@ from larcv import larcv
 from ublarcvapp import ublarcvapp
 from ROOT import std
 
-def gen_default_split_cfg(wire_producer):
-    split_cfg="""Verbosity: 0
-    InputProducer: "%s"
-    OutputBBox2DProducer: "detsplit"
-    CropInModule: true
-    OutputCroppedProducer: "detsplit"
-    BBoxPixelHeight: 512
-    BBoxPixelWidth: 832
-    CoveredZWidth: 310
-    FillCroppedYImageCompletely: true
-    DebugImage: false
-    MaxImages: 3
-    RandomizeCrops: true
-    MaxRandomAttempts: 50
-    MinFracPixelsInCrop: 0.0001
-    """%(wire_producer)
-    return split_cfg
-
-def gen_default_larflowcrop_cfg():
-    lfcrop_cfg="""Verbosity:0
-    InputBBoxProducer: \"detsplit\"
-    InputCroppedADCProducer: \"detsplit\"
-    InputADCProducer: \"wire\"
-    InputVisiProducer: \"pixvisi\"
-    InputFlowProducer: \"pixflow\"
-    OutputCroppedADCProducer:  \"adc\"
-    OutputCroppedVisiProducer: \"visi\"
-    OutputCroppedFlowProducer: \"flow\"
-    OutputCroppedMetaProducer: \"flowmeta\"
-    OutputFilename: \"baka_lf.root\"
-    SaveOutput: false
-    CheckFlow:  true
-    MakeCheckImage: true
-    DoMaxPool: false
-    RowDownsampleFactor: 2
-    ColDownsampleFactor: 2
-    MaxImages: -1
-    LimitOverlap: false
-    RequireMinGoodPixels: false
-    MaxOverlapFraction: 0.2
-    IsMC: true
-    UseVectorizedCode: true
-    """
-    return lfcrop_cfg
-
 def default_processor_config(input_adc_producer,input_chstatus_producer):
     processor_cfg="""ProcessDriver: {
     Verbosity: 0
@@ -140,10 +95,19 @@ def sparsify_crops(inputfile, outputfile,
     processor.initialize()
 
     nentries = processor.io().get_n_entries()
+    #nentries = 3
     
     out = larcv.IOManager(larcv.IOManager.kWRITE,"")
     out.set_out_file(outputfile)
     out.initialize()
+
+    # when we make the sparse image, we want to produce a number for each pixel
+    # where there is charge in the source and target image
+    cuton_y2u = std.vector("int")(3,1)
+    cuton_y2v = std.vector("int")(3,1)
+
+    thresholds = std.vector("float")(3,10.0)
+    thresholds[2] = -3999.0
 
     for ientry in xrange(nentries):
 
@@ -167,8 +131,43 @@ def sparsify_crops(inputfile, outputfile,
         print("number of cropped flow images: %d"%(ev_outflo.Image2DArray().size()))
 
         # now take images, sparsify and save to disk
-        
-        break
+        nimgsets = ev_outadc.Image2DArray().size()/3
+
+        # check if number of larflow images makes sense
+        if nimgsets!=ev_outflo.Image2DArray().size()/2:
+            raise ValueError("number of larflow crops and adc images does not make sense")
+
+        # else make sparse image objects, y2u and y2v
+        for iimg in xrange(nimgsets):
+            print("Image Crop Set[%d]"%(iimg))
+            # make vector of images to sparsify together
+            y2u_v = std.vector("larcv::Image2D")()
+            y2u_v.push_back( ev_outadc.at(iimg*3+2) )
+            y2u_v.push_back( ev_outadc.at(iimg*3+0) )
+            y2u_v.push_back( ev_outflo.at(iimg*2+0) )
+
+            y2v_v = std.vector("larcv::Image2D")()
+            y2v_v.push_back( ev_outadc.at(iimg*3+2) )
+            y2v_v.push_back( ev_outadc.at(iimg*3+1) )
+            y2v_v.push_back( ev_outflo.at(iimg*2+1) )
+
+            sparsey2u = larcv.SparseImage( y2u_v, thresholds, cuton_y2u )
+            sparsey2v = larcv.SparseImage( y2v_v, thresholds, cuton_y2v )
+            npts_y2u = sparsey2u.pixellist().size()/5
+            npts_y2v = sparsey2v.pixellist().size()/5
+            
+            
+            print("Sparse Y2U number of points: %d frac=%.2f"%( npts_y2u, float(npts_y2u)/(512.0*832.0)))
+            print("Sparse Y2V number of points: %d frac=%.2f"%( npts_y2v, float(npts_y2v)/(512.0*832.0)))
+
+            evout_sparsey2u = out.get_data(larcv.kProductSparseImage, "sparsecropy2u")
+            evout_sparsey2v = out.get_data(larcv.kProductSparseImage, "sparsecropy2v")
+            evout_sparsey2u.Append( sparsey2u )
+            evout_sparsey2v.Append( sparsey2v )
+            
+            out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event()*100 + iimg )
+            out.save_entry()
+        io.clear_entry()
 
     out.finalize()
     processor.finalize()
@@ -178,17 +177,11 @@ if __name__ == "__main__":
     run a test example.
     """
 
-    #larcv_mctruth     = sys.argv[1]
-    #output_sparsified = sys.argv[2]
-    
-    sparsify_crops( "../../../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
-                    "out_crop_sparsified.root" )
+    larcv_mctruth     = sys.argv[1]
+    output_sparsified = sys.argv[2]
+    sparsify_crops( larcv_mctruth, output_sparsified )
 
-    #sparsify( larcv_mctruth, output_sparsified, flowdirs=['y2u','y2v'] )
-
-    #output_sparsified_y2u = output_sparsified.replace(".root","_y2u.root")
-    #sparsify( larcv_mctruth, output_sparsified_y2u, flowdirs=['y2u'] )
-
-    #output_sparsified_y2v = output_sparsified.replace(".root","_y2v.root")
-    #sparsify( larcv_mctruth, output_sparsified_y2v, flowdirs=['y2v'] )
+    # for testing
+    #sparsify_crops( "../../../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
+    #                "out_crop_sparsified.root" )
     
