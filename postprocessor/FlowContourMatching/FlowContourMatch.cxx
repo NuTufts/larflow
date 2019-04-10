@@ -150,7 +150,9 @@ namespace larflow {
 
   void FlowContourMatch::integrateSSNetEndpointOutput( const std::vector<larcv::Image2D>& track_scoreimgs,
 						       const std::vector<larcv::Image2D>& shower_scoreimgs,
-						       const std::vector<larcv::Image2D>& endpt_scoreimgs ) {
+						       const std::vector<larcv::Image2D>& endpt_scoreimgs )
+  {
+
     // store ssnet+endpoint information into hit2flow data
     // inputs
     // ------

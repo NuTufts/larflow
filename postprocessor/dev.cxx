@@ -54,6 +54,7 @@ struct InputArgs_t {
       has_infill(false),
       has_ssnet(false),
       has_larcvtruth(false),
+      ssnet_cropped(false),
       use_ancestor_img(false),
       makehits_useunmatched(false),
       makehits_require_3dconsistency(false),
@@ -102,6 +103,7 @@ struct InputArgs_t {
   bool has_larcvtruth;
   bool has_infill;
   bool has_ssnet;
+  bool ssnet_cropped;
   bool use_ancestor_img;
   bool makehits_useunmatched;
   bool makehits_require_3dconsistency;
@@ -129,6 +131,7 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
   commands.push_back( Arg_t("-adc","individual (cropped) adc file [required if combined not provided]") );
   commands.push_back( Arg_t("-in", "individual (cropped) infill file") );
   commands.push_back( Arg_t("-ss", "individual (cropped) ssnet file") );
+  commands.push_back( Arg_t("-wss","wholeview ssnet file") );  
   commands.push_back( Arg_t("-su", "event supera larcv file [required]") );
   commands.push_back( Arg_t("-oll","output larflow larlite file [required]") );
   commands.push_back( Arg_t("-olc","output larflow larcv file [required]") );  
@@ -192,6 +195,12 @@ InputArgs_t parseArgs( int nargs, char** argv ) {
 	else if ( command.flag=="-ss" ) {
 	  argconfig.input_ssnet = argv[iarg+1];
 	  argconfig.has_ssnet = argv[iarg+1];
+          argconfig.ssnet_cropped = true;
+	}
+	else if ( command.flag=="-wss" ) {
+	  argconfig.input_ssnet = argv[iarg+1];
+	  argconfig.has_ssnet = argv[iarg+1];
+          argconfig.ssnet_cropped = false;          
 	}
 	else if ( command.flag=="-oll" ) {
 	  argconfig.output_larlite = argv[iarg+1];
@@ -512,7 +521,7 @@ int main( int nargs, char** argv ) {
     dataco.add_in_file( inputargs.input_larflow_y2u );
     dataco.add_in_file( inputargs.input_larflow_y2v );
 
-    if ( inputargs.has_ssnet )
+    if ( inputargs.has_ssnet && inputargs.ssnet_cropped )
       dataco.add_in_file( inputargs.input_ssnet );
     if ( inputargs.has_infill )
       dataco.add_in_file( inputargs.input_infill );
@@ -543,6 +552,8 @@ int main( int nargs, char** argv ) {
   dataco_wholelarcv.add_in_file( inputargs.input_supera );
   if ( inputargs.has_larcvtruth )
     dataco_wholelarcv.add_in_file( inputargs.input_larcvtruth );
+  if ( inputargs.has_ssnet && !inputargs.ssnet_cropped )
+    dataco_wholelarcv.add_in_file( inputargs.input_ssnet );
   dataco_wholelarcv.initialize();
   int iwholelarcv_index = 0;
   
@@ -582,7 +593,7 @@ int main( int nargs, char** argv ) {
   int current_subrunid = -1;
   int current_eventid  = -1;
   int current_ientrystart = -1;
-  int nevents = 1;
+  int nevents = nentries;
   int eventstart = 0;
   int eventend = eventstart+nevents;
 
@@ -762,11 +773,54 @@ int main( int nargs, char** argv ) {
     larcv::EventImage2D* ev_showerimg = nullptr;
     larcv::EventImage2D* ev_endptimg  = nullptr;
     if ( inputargs.has_ssnet ) {
-      ev_trackimg  = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_track");
-      ev_showerimg = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_shower");
-      ev_endptimg  = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_endpt");
-      if ( !ev_trackimg->valid() || !ev_showerimg->valid() || !ev_endptimg->valid() )
-        inputargs.has_ssnet = false;
+      if ( inputargs.ssnet_cropped ) {
+        std::cout << "Loading Cropped SSNet" << std::endl;
+        ev_trackimg  = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_track");
+        ev_showerimg = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_shower");
+        ev_endptimg  = (larcv::EventImage2D*)  dataco.get_data(larcv::kProductImage2D, "ssnetCropped_endpt");        
+        if ( !ev_trackimg->valid() || !ev_showerimg->valid() || !ev_endptimg->valid() )
+          inputargs.has_ssnet = false;
+      }
+      else {
+        std::cout << "Loading whole-view SSNet" << std::endl;
+        // whole-view ssnet images are saved per plane with track/shower image per event container
+        // we switch this to track/shower containers with planes in them
+        larcv::EventImage2D* ev_uburn_plane[3] = { nullptr, nullptr, nullptr };
+        std::vector<larcv::Image2D> ss_track_v;
+        std::vector<larcv::Image2D> ss_shower_v;
+        std::vector<larcv::Image2D> ss_endpt_v;        
+
+        for ( size_t p=0; p<3; p++ ) {
+          char sstreename[30];
+          sprintf(sstreename,"uburn_plane%d",(int)p);
+          ev_uburn_plane[p] = (larcv::EventImage2D*)dataco_wholelarcv.get_data(larcv::kProductImage2D,sstreename);
+          std::vector<larcv::Image2D> ssnet_v;
+          ev_uburn_plane[p]->Move( ssnet_v );
+
+          larcv::Image2D blankendpt( ssnet_v[0].meta() );
+          blankendpt.paint(0.0);
+          
+          ss_track_v.emplace_back( std::move(ssnet_v[1]) );
+          ss_shower_v.emplace_back( std::move(ssnet_v[0]) );
+          ss_endpt_v.emplace_back( std::move(blankendpt) );
+        }
+
+        // warning: very hackish
+        // we use plane0 eventimage2d as track
+        // we use plane1 eventimage2d as shower
+        ev_uburn_plane[0]->Emplace( std::move(ss_track_v) );
+        ev_uburn_plane[1]->Emplace( std::move(ss_shower_v) );
+        ev_uburn_plane[2]->Emplace( std::move(ss_endpt_v) );        
+        ev_trackimg  = ev_uburn_plane[0];
+        ev_showerimg = ev_uburn_plane[1];
+        ev_endptimg  = ev_uburn_plane[2];
+      }
+
+      std::cout << "Number of ssnet track  images: " << ev_trackimg->as_vector().size() << std::endl;
+      std::cout << "Number of ssnet shower images: " << ev_showerimg->as_vector().size() << std::endl;
+      if ( ev_endptimg ) {
+        std::cout << "Number of ssnet endpt images: " << ev_endptimg->as_vector().size() << std::endl;
+      }
     }
     
     //infill prediction (unmasked)
@@ -1106,9 +1160,11 @@ int main( int nargs, char** argv ) {
     event_changeout( dataco_output, io_larcvout, dataco_wholelarcv, dataco_hits, matching_algo,
                      current_runid, current_subrunid, current_eventid, inputargs );
     
-    std::cout << "[ENTER] for next entry." << std::endl;
-    std::cin.get();
-    break;
+    if ( inputargs.kINSPECT ) {
+      std::cout << "[ENTER] for next entry." << std::endl;
+      //break;
+      std::cin.get();
+    }
     
   }//end of entry loop
   
