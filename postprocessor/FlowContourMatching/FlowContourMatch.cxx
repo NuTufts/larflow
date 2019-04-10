@@ -8,11 +8,11 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/DetectorProperties.h"
 
-// larcv2
+// larcv
 #include "larcv/core/DataFormat/ImageMeta.h"
-#include "larcv/app/UBWireTool/UBWireTool.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 
+// ROOT
 #include "TStyle.h"
 #include "TCanvas.h"
 #include "TH2D.h"
@@ -247,7 +247,7 @@ namespace larflow {
     //-------
     // masked & thresholded infill activation
     //
-    const larcv::ChStatus& status = ev_chstatus.status(infill.meta().id());
+    const larcv::ChStatus& status = ev_chstatus.Status(infill.meta().plane());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<infill.meta().cols(); col++){
       if ( (col+(int)infill.meta().min_x())>=(int)st_v.size() ) continue; // bounds check
@@ -277,7 +277,7 @@ namespace larflow {
 
     // int maxcol = img_fill_v.meta().cols();
     // int maxcol_plane = maxcol;
-    // if ( img_fill_v.meta().id()<2 ) {
+    // if ( img_fill_v.meta().plane()<2 ) {
     //   maxcol_plane = img_fill_v.meta().col(2399)+1; // maxwire
     // }
     // else {
@@ -285,7 +285,7 @@ namespace larflow {
     // }
     // maxcol = ( maxcol>maxcol_plane) ? maxcol_plane : maxcol;
     
-    const larcv::ChStatus& status = ev_chstatus.status(masked_infill.meta().id());
+    const larcv::ChStatus& status = ev_chstatus.Status(masked_infill.meta().plane());
     const std::vector<short> st_v = status.as_vector();
     for(int col=0; col<masked_infill.meta().cols(); col++){
       if ( (col+(int)masked_infill.meta().min_x())>=(int)st_v.size() ) continue; // bounds check
@@ -529,7 +529,6 @@ namespace larflow {
     std::vector<std::vector<int>> imgpath;
     imgpath.reserve(tyz.size());
     for (auto const& pos : tyz ) {
-      //std::vector<int> crossing_imgcoords = larcv::UBWireTool::getProjectedImagePixel( pos, adc.meta(), 3 );
       std::vector<int> crossing_imgcoords = getProjectedPixel( pos, adc.meta(), 3 );
       imgpath.push_back( crossing_imgcoords );
     }
@@ -928,7 +927,7 @@ namespace larflow {
 
     int maxcol = src_adc.meta().cols();
     int maxcol_plane = maxcol;
-    if ( src_adc.meta().id()<2 ) {
+    if ( src_adc.meta().plane()<2 ) {
       maxcol_plane = src_adc.meta().col(2399)+1; // maxwire
     }
     else {
@@ -963,7 +962,7 @@ namespace larflow {
 	h.set_goodness( 1.0 );
 	h.set_ndf( 1 );
 
-	larlite::geo::WireID wireid( 0, 0, src_adc.meta().id(), wire );
+	larlite::geo::WireID wireid( 0, 0, src_adc.meta().plane(), wire );
 	int ch = larutil::Geometry::GetME()->PlaneWireToChannel( wireid.Plane, wireid.Wire );
 	h.set_channel( ch );
 	h.set_view( (larlite::geo::View_t)wireid.Plane );
@@ -1003,8 +1002,8 @@ namespace larflow {
     // m_flowdata: map between src-target contour pair to FlowMatchData_t which contains score
     
 
-    int src_planeid = src_adc.meta().id();
-    int tar_planeid = tar_adc.meta().id();
+    int src_planeid = src_adc.meta().plane();
+    int tar_planeid = tar_adc.meta().plane();
     float threshold = 10;
     
     const larcv::ImageMeta& srcmeta = src_adc.meta();
@@ -1342,14 +1341,14 @@ float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
       // time limits
       int hit_tstart = 2400+(int)ahit.StartTick();
       int hit_tend   = 2400+(int)ahit.EndTick();
-      if ( hit_tend < m_srcimg_meta->min_y() || hit_tstart > m_srcimg_meta->max_y() ) {
+      if ( hit_tend < m_srcimg_meta->min_y() || hit_tstart >= m_srcimg_meta->max_y() ) {
 	// if not within the tick bounds, skip
 	not_in_bounds++;
 	continue;
       }
       if ( hit_tend >= m_srcimg_meta->max_y() )
-	hit_tend = m_srcimg_meta->max_y()-1;
-      if ( hit_tstart <= m_srcimg_meta->min_y() )
+	hit_tend = m_srcimg_meta->pos_y( m_srcimg_meta->rows()-1 );
+      if ( hit_tstart < m_srcimg_meta->min_y() )
 	hit_tstart = m_srcimg_meta->min_y();
       
       // wire bounds

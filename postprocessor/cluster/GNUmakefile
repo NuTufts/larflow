@@ -9,7 +9,6 @@ INCLUDES += -I$(LARLITE_USERDEVDIR)
 INCLUDES += `geo2d-config --includes`
 INCLUDES += `laropencv-config --includes`
 INCLUDES += `larcv-config --includes`
-INCLUDES += `larlitecv-config --includes`
 INCLUDES += -I$(LARFLOW_BASEDIR)/postprocessor
 INCLUDES += -I$(CILANTRO_INC_DIR)
 INCLUDES += -I$(EIGEN_INC_DIR)
@@ -22,7 +21,6 @@ LIBS     += `basictool-config --libs`
 LIBS     += `geo2d-config --libs`
 LIBS     += `laropencv-config --libs`
 LIBS     += `larcv-config --libs`
-LIBS     += `larlitecv-config --libs`
 LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
 LIBS     += -L$(LARFLOW_POST_LIBDIR) -lContourTools
 
