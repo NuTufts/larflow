@@ -341,7 +341,8 @@ int main( int nargs, char** argv ) {
   int current_subrunid = -1;
   int current_eventid  = -1;
   int current_ientrystart = -1;
-  int nevents = nentries;
+  //int nevents = nentries;
+  int nevents = 1;
   int eventstart = 0;
   int eventend = eventstart+nevents;
 
