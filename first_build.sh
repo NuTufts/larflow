@@ -24,26 +24,7 @@ source /usr/local/root/release/bin/thisroot.sh
 cd $workdir
 source configure.sh
 
-# BUILD LARLITE
-cd $workdir/larlite
-make
-cd UserDev/BasicTool
-make
-cd ../SelectionTool/OpT0Finder
-make
-
-cd $workdir/Geo2D
-make -j4
-
-cd $workdir/LArOpenCV
-make -j4
-
-cd $workdir/larcv
-make -j4
-
-cd $workdir/larlitecv
-make -j4
-
+# BUILD POST PROCESSOR
 cd $workdir/postprocessor
 make
 
