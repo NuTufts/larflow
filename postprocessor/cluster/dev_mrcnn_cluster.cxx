@@ -80,7 +80,7 @@ int main(int nargs, char** argv ) {
                                                                                img_v );
     
     // output containers
-    auto evout_clusters = (larlite::event_larflowcluster*)outlarlite.get_data( larlite::data::kLArFlowCluster, "rawmcrcnn" );
+    auto evout_clusters = (larlite::event_larflowcluster*)outlarlite.get_data( larlite::data::kLArFlowCluster, "rawmrcnn" );
     // larlite::event_pixelmask* evout_origmask_v[3];
     // larlite::event_pixelmask* evout_filledmask_v[3];
     // for ( size_t p=0; p<3; p++ ) {

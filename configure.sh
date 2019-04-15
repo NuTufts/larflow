@@ -14,8 +14,11 @@ export USE_OPENCV=1
 #git submodule update
 
 # setup post-processor
+export LARFLOW_POST_DIR=${LARFLOW_BASEDIR}/postprocessor
 export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 [[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_POST_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_POST_LIBDIR}:${LD_LIBRARY_PATH}"
+[[ ":$PATH:" != *":${LARFLOW_POST_DIR}:"* ]] && PATH="${LARFLOW_POST_DIR}:${PATH}"
+[[ ":$PATH:" != *":${LARFLOW_POST_DIR}/cluster:"* ]] && PATH="${LARFLOW_POST_DIR}/cluster:${PATH}"
 
 
 # add model folder to python path
