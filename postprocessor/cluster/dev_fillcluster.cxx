@@ -51,7 +51,7 @@ int main(int nargs, char** argv ) {
     iolarcv.read_entry( ientry );
 
     // adc images
-    larcv::EventImage2D* evimg = (larcv::EventImage2D*)iolarcv.get_data( "image2d", "wire" );
+    larcv::EventImage2D* evimg = (larcv::EventImage2D*)iolarcv.get_data( larcv::kProductImage2D, "wire" );
     const std::vector< larcv::Image2D >& img_v = evimg->as_vector();
 
     // clusters

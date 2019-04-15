@@ -15,14 +15,15 @@ INCLUDES += -I$(EIGEN_INC_DIR)
 
 LDFLAGS  =  `root-config --ldflags` -lstdc++
 LIBS     =  `root-config --libs`
+LIBS     += -L$(LARFLOW_POST_LIBDIR) -lContourTools
 LIBS     += -L$(OPENCV_LIBDIR) -lopencv_core
 LIBS     += `larlite-config --libs`
 LIBS     += `basictool-config --libs`
 LIBS     += `geo2d-config --libs`
 LIBS     += `laropencv-config --libs`
-LIBS     += `larcv-config --libs`
+LIBS     += `larcv-config --libs` -L$(LARCV_LIBDIR) -lLArCVCoreCVUtil
 LIBS     += -L$(CILANTRO_LIB_DIR) -lcilantro
-LIBS     += -L$(LARFLOW_POST_LIBDIR) -lContourTools
+
 
 # FOR PROGRAMS THAT USE PANGOLIN
 INCLUDES_PANGOLIN = -I$(LARFLOW_BASEDIR)/Pangolin/include -I$(LARFLOW_BASEDIR)/Pangolin/build/src/include
@@ -39,10 +40,11 @@ BINSRCS += dev_dbscan.cxx
 BINSRCS += ana_truthcluster.cxx
 BINSRCS += convert2ply.cxx
 BINSRCS += dev_fillcluster.cxx
+BINSRCS += dev_mrcnn_cluster.cxx
 
 # SPECIFY BINS TO BUILD
 #BINS = $(basename $(BINSRCS)) # for all
-BINS = dev_fillcluster dev_truthcluster
+BINS = dev_fillcluster dev_truthcluster dev_mrcnn_cluster
 
 #SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
 SRCS = $(filter-out $(BINSRCS), $(wildcard *.cxx))
