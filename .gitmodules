@@ -1,24 +1,6 @@
-[submodule "larcv"]
-	path = larcv
-	url = https://github.com/NuTufts/larcv2
-[submodule "larcv1"]
-	path = larcv1
-	url = https://github.com/larbys/larcv
-[submodule "larlite"]
-	path = larlite
-	url = https://github.com/NuTufts/larlite
 [submodule "larcvdataset"]
 	path = larcvdataset
 	url = https://github.com/larbys/larcvdataset
-[submodule "larlitecv"]
-	path = larlitecv
-	url = https://github.com/larbys/larlitecv
-[submodule "Geo2D"]
-	path = Geo2D
-	url = https://github.com/LArbys/Geo2D
-[submodule "LArOpenCV"]
-	path = LArOpenCV
-	url = https://github.com/NevisUB/LArOpenCV
 [submodule "cilantro"]
 	path = cilantro
 	url = https://github.com/NuTufts/cilantro.git
