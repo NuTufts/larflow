@@ -139,8 +139,8 @@ void draw_geometry(std::string inputfile, std::string tree,int event, bool usero
 	 ps[k]->SetPointId(new TNamed(Form("Point %d", i), ""));
        }
        
-       ps[k]->SetMarkerColor(TMath::Nint(r.Uniform(2, nclust)));
-       //ps[k]->SetMarkerColor(nclust+1);
+       //ps[k]->SetMarkerColor(TMath::Nint(r.Uniform(2, nclust)));
+       ps[k]->SetMarkerColor(k+1);
        ps[k]->SetMarkerSize(0.3);
        ps[k]->SetMarkerStyle(20);
        
