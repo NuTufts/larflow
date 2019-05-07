@@ -35,6 +35,6 @@ for ientry in xrange(io.get_n_entries()):
         c[ifeat].Draw()
         h[ifeat].Draw("COLZ")
         c[ifeat].Update()
-        #c[ifeat].SaveAs("test_sparseimg_img%d.pdf"%(ifeat))
+        #c[ifeat].SaveAs("dumpedimages/test_sparseimg_img%d.pdf"%(ifeat))
     print "[ENTER] for next entry"
     raw_input()
