@@ -43,16 +43,16 @@ GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
-INPUTFILE_TRAIN="data/larflow_sparsify_y2u_train.root"
-INPUTFILE_VALID="data/larflow_sparsify_y2u_valid.root"
+INPUTFILE_TRAIN="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
+INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
 TICKBACKWARD=False
 start_iter  = 0
-IMAGE_WIDTH=3456
-IMAGE_HEIGHT=1024
-BATCHSIZE_TRAIN=4
+IMAGE_WIDTH=832
+IMAGE_HEIGHT=512
+BATCHSIZE_TRAIN=1
 BATCHSIZE_VALID=1
-NWORKERS_TRAIN=4
-NWORKERS_VALID=2
+NWORKERS_TRAIN=1
+NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
@@ -104,8 +104,6 @@ def main():
 
     if not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
         model = nn.DataParallel( model, device_ids=DEVICE_IDS ).to(device=DEVICE) # distribute across device_ids
-    else:
-        model = model.to(device=DEVICE)
 
     # uncomment to dump model
     if False:
@@ -116,7 +114,7 @@ def main():
     maxdist   = 200.0
     criterion = SparseLArFlow3DConsistencyLoss(IMAGE_HEIGHT, IMAGE_WIDTH,
                                                larcv_version=1,
-                                               calc_consistency=False)
+                                               calc_consistency=False).to(device=DEVICE)
 
     # training parameters
     lr = 1.0e-3
@@ -164,11 +162,13 @@ def main():
     # LOAD THE DATASET    
     iotrain = load_larflow_larcvdata( "train", INPUTFILE_TRAIN,
                                       BATCHSIZE_TRAIN, NWORKERS_TRAIN,
+                                      producer_name="sparsecropdual",
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
     iovalid = load_larflow_larcvdata( "valid", INPUTFILE_VALID,
                                       BATCHSIZE_VALID, NWORKERS_VALID,
+                                      producer_name="sparsecropdual",                                      
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
@@ -328,17 +328,17 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-
-        datadict = train_loader.get_tensor_batch(device)
-        coord_t  = datadict["coord"]
-        srcpix_t = datadict["src"]
-        tarpix_flow1_t = datadict["tar1"]
-        tarpix_flow2_t = datadict["tar2"]
-        truth_flow1_t  = datadict["flow1"]
-        truth_flow2_t  = datadict["flow2"]
-        
         time_meters["data"].update(time.time()-end)
-
+            
+        flowdict = train_loader.get_tensor_batch(device)        
+        # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
+        coord_t  = flowdict["coord"]
+        srcpix_t = flowdict["src"]
+        tarpix_flow1_t = flowdict["tar1"]
+        tarpix_flow2_t = flowdict["tar2"]
+        truth_flow1_t  = flowdict["flow1"]
+        truth_flow2_t  = flowdict["flow1"]        
+        
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
