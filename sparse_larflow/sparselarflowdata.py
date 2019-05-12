@@ -202,6 +202,7 @@ if __name__== "__main__":
 
         print "TEST LARFLOW LARCVDATASET SERVER"
         for n in xrange(nentries):
+            print "=============================================="
             batch = feeder.get_tensor_batch(torch.device("cpu"))
             print "ENTRY[",n,"] from ",batch.keys()
             for name,arr in batch.items():

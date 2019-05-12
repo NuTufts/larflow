@@ -109,10 +109,10 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         
         #flow1err = (flow1_truth-flowout1)*mask1
         #flow2err = (flow2_truth-flowout2)*mask2
-        flow1err = self.l1loss(flow1_truth,flowout1)*mask1
+        flow1err = 0.1*self.l1loss(10*flow1_truth,10*flowout1)*mask1
 
         if flow2_predict is not None:
-            flow2err = self.l1loss(flow2_truth,flowout2)*mask2
+            flow2err = 0.1*self.l1loss(10*flow2_truth,10*flowout2)*mask2
 
         #print "posyz 1: ",np.argwhere( np.isnan( posyz_target1_t.detach().cpu().numpy() ) )
         #print "posyz 2: ",np.argwhere( np.isnan( posyz_target2_t.detach().cpu().numpy() ) )

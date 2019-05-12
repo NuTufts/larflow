@@ -117,7 +117,7 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-2
     momentum = 0.9
     weight_decay = 1.0e-4
 
