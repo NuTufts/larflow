@@ -191,9 +191,11 @@ if __name__== "__main__":
     "testing"
     #inputfile = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
     #inputfile = "out_sparsified.root"
-    inputfile = "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
+    inputfiles = ["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p1.root",
+                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p2.root",
+                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p3.root"]
     batchsize = 10
-    nworkers  = 1
+    nworkers  = 3
     tickbackward = True
     readonly_products=None
     nentries = 1
@@ -201,7 +203,7 @@ if __name__== "__main__":
     TEST_VANILLA = True
 
     if TEST_VANILLA:
-        feeder = load_larflow_larcvdata( "larflowsparsetest", inputfile, batchsize, nworkers,
+        feeder = load_larflow_larcvdata( "larflowsparsetest", inputfiles, batchsize, nworkers,
                                          tickbackward=tickbackward,
                                          readonly_products=readonly_products,
                                          producer_name="sparsecropdual" )
