@@ -62,8 +62,11 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         readonly_products = None
         params = {"producer":producer_name}
                   
-        
-        self.feeder = LArCVServer(self.batchsize,self.feedername,
+        # note, with way LArCVServer workers, must always use batch size of 1
+        #   because larcvserver expects entries in each batch to be same size,
+        #   but in sparse representations this is not true
+        # we must put batches together ourselves for sparseconv operations
+        self.feeder = LArCVServer(1,self.feedername,
                                   load_cropped_sparse_dualflow,
                                   self.inputfiles,self.nworkers,
                                   server_verbosity=-1,worker_verbosity=-1,
@@ -100,31 +103,33 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         flowdatay2v [dict of torch tensors]
         """
 
-        # get batch using data loading functions above
-        batch = self.feeder.get_batch_dict()
+        # we will fill this dict to return with batch
+        datalen   = [] # store length of each sparse data instance
+        ncoords   = 0  # total number of points over all batches
+        flow='dual'    # flow type, turn into option later if needed        
 
-        flowdata = {}
+        # first collect data
+        data_v = []
+        for ibatch in xrange(self.batchsize):
+            batch = None
+            ntries = 0
+            while batch is None and ntries<10:
+                batch = self.feeder.get_batch_dict()
+                ntries += 1
+            if batch is not None:
+                data_v.append( batch )
 
-        flow='dual'        
 
-        ncoords  = 0
-        batchlen = []
+        # now calc total points in each sparse image instance
+        for data in data_v:
+            datalen.append( data["pixadc"].shape[2] )
+            ncoords += datalen[-1]
+        #print "NCOORDS: ",ncoords
 
-        # get reference tensor
-        ref = batch["pixadc"]
-        
-        for ib,srcpix in enumerate(ref):
-            #print "batch[{}] srcpix={}".format(ib,srcpix.shape)
-            batchlen.append( srcpix.shape[1] )
-            ncoords += batchlen[-1]
-
-                
-        if batch["flowy2u"][0] is not None:
+        if len(data_v)>0 and data_v[0]["flowy2u"][0] is not None:
             has_truth = True
         else:
             has_truth = False
-
-        #print "get_tensor_batch: ncoords={} batchlen={}".format( ncoords, batchlen )
 
         # make tensor for coords (row,col,batch)
         coord_t = torch.zeros( (ncoords,3), dtype=torch.int ).to(device)
@@ -149,30 +154,32 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
             truth_flow1_t = None
             truth_flow2_t = None                
 
-        if flow=='dual':
-            data = zip(batch["pixadc"],batch["flowy2u"],batch["flowy2v"])
-        else:
-            raise ValueError("Separate flows not ready yet")
-
-        nfilled = 0
-        for ib,(srcpix,trueflow1,trueflow2) in enumerate(data):
+        # fill tensors above
+        nfilled = 0            
+        for ib,batch in enumerate(data_v):
+            srcpix    = batch["pixadc"]
+            trueflow1 = batch["flowy2u"]
+            trueflow2 = batch["flowy2v"]
+            #print type(srcpix),
+            #print srcpix.shape," ",srcpix[0,0,:,0:2].shape
+            
             start = nfilled
-            end   = nfilled+batchlen[ib]
+            end   = nfilled+datalen[ib]
             coord_t[start:end,0:2] \
-                = torch.from_numpy( srcpix[ib,:,0:2].astype(np.int) )
-            coord_t[start:end,2] = ib
-            srcpix_t[start:end,0]       = torch.from_numpy(srcpix[ib,:,2])
-            tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[ib,:,3])
-            tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[ib,:,4])            
+                = torch.from_numpy( srcpix[0,0,:,0:2].astype(np.int) )
+            coord_t[start:end,2]        = ib
+            srcpix_t[start:end,0]       = torch.from_numpy(srcpix[0,0,:,2])
+            tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[0,0,:,3])
+            tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[0,0,:,4])
 
             if has_truth:
-                truth_flow1_t[start:end,0]  = torch.from_numpy(trueflow1[ib,:,0])
+                truth_flow1_t[start:end,0]      = torch.from_numpy(trueflow1[0,0,:,0])
                 if truth_flow2_t is not None:
-                    truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2[ib,:,0])
+                    truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2[0,0,:,0])
                 
-            nfilled += batchlen[ib]
+            nfilled += datalen[ib]
 
-        flowdata = {"coord":coord_t,"src":srcpix_t,
+        flowdata = {"coord":coord_t,      "src":srcpix_t,
                     "tar1":tarpix_flow1_t,"tar2":tarpix_flow2_t,
                     "flow1":truth_flow1_t,"flow2":truth_flow2_t}
         
@@ -185,11 +192,11 @@ if __name__== "__main__":
     #inputfile = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
     #inputfile = "out_sparsified.root"
     inputfile = "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
-    batchsize = 1
-    nworkers  = 2
+    batchsize = 10
+    nworkers  = 1
     tickbackward = True
     readonly_products=None
-    nentries = 10
+    nentries = 1
 
     TEST_VANILLA = True
 

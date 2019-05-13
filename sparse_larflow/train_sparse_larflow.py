@@ -117,7 +117,7 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-2
+    lr = 1.0e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -226,7 +226,7 @@ def main():
                 break
 
             # evaluate on validation set
-            if ii%iter_per_valid==0:
+            if ii%iter_per_valid==0 and ii>0:
                 try:
                     totloss, flow1acc5, flow2acc5 = validate(iovalid, DEVICE, BATCHSIZE_VALID,
                                                              model, criterion,
@@ -337,7 +337,7 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         tarpix_flow1_t = flowdict["tar1"]
         tarpix_flow2_t = flowdict["tar2"]
         truth_flow1_t  = flowdict["flow1"]
-        truth_flow2_t  = flowdict["flow1"]        
+        truth_flow2_t  = flowdict["flow2"]
         
         # compute output
         if RUNPROFILER:
@@ -348,8 +348,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
                                        tarpix_flow1_t, tarpix_flow2_t,
                                        batchsize )
                 
-        totloss = criterion(coord_t, predict1_t, predict2_t,
-                            truth_flow1_t, truth_flow2_t)
+        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                truth_flow1_t, truth_flow2_t)
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -371,8 +371,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        #loss_meters["flow1"].update( f1.item() )
-        #loss_meters["flow2"].update( f2.item() )        
+        loss_meters["flow1"].update( flow1loss.item() )
+        if flow2loss is not None:
+            loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
         #loss_meters["visi2"].update( v2.item() )
         #loss_meters["consist3d"].update( closs.item() )
@@ -467,7 +468,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         batchstart = time.time()
         
         tdata_start = time.time()
-
+        
         datadict = val_loader.get_tensor_batch(device)
         coord_t  = datadict["coord"]
         srcpix_t = datadict["src"]
@@ -483,8 +484,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         predict1_t,predict2_t = model( coord_t, srcpix_t,
                                        tarpix_flow1_t, tarpix_flow2_t,
                                        batchsize )        
-        totloss = criterion(coord_t, predict1_t, predict2_t,
-                            truth_flow1_t, truth_flow2_t)
+        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                truth_flow1_t, truth_flow2_t)
         
         time_meters["forward"].update(time.time()-tforward)
 
@@ -505,8 +506,9 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        #loss_meters["flow1"].update( f1.item() )
-        #loss_meters["flow2"].update( f2.item() )        
+        loss_meters["flow1"].update( flow1loss.item() )
+        if flow2loss is not None:
+            loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
         #loss_meters["visi2"].update( v2.item() )
         #loss_meters["consist3d"].update( closs.item() )
@@ -593,8 +595,8 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     # don't count pixels where:
     #  1) flow is missing i.e. equals zero
     #  2) source pixel is below threshold
-    mask[ torch.eq(flow_truth,0) ] = 0.0
-    mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
+    #mask[ torch.gt(srcpix,10.0)  ] = 0.0
     nvis = mask.sum()
     
     for level in accvals:

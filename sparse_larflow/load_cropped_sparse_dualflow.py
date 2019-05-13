@@ -38,7 +38,8 @@ def load_cropped_sparse_dualflow(io,rm_bg_labels=True,
 
     """
     
-    data = {}
+    data    = {}
+    verbose = False
 
     # profiling variables
     tottime   = time.time()
@@ -70,28 +71,36 @@ def load_cropped_sparse_dualflow(io,rm_bg_labels=True,
     tnpmanip  = time.time()
     data["pixadc"] = sparse_np[:,0:5] # (row,col,src,tar,tar1)
 
+    checkpix     = True
     ngoodpix_y2u = 0
     nbadpix_y2u  = 0
     ngoodpix_y2v = 0
-    nbadpix_y2v  = 0    
+    nbadpix_y2v  = 0
+    
     if has_truth:
         data["flowy2u"] = sparse_np[:,5].astype(np.float32).reshape( (sparse_np.shape[0],1) )
         data["flowy2v"] = sparse_np[:,6].astype(np.float32).reshape( (sparse_np.shape[0],1) )
 
-        nbadpix_y2u  = ( data["flowy2u"]<=-4000 ).sum()
-        ngoodpix_y2u = ( data["flowy2u"]>-4000 ).sum()
-        
-        ngoodpix_y2v = ( data["flowy2v"]>-4000 ).sum()
-        nbadpix_y2v  = ( data["flowy2v"]<=-4000 ).sum()        
-    print "  ngoodpix_y2u=",ngoodpix_y2u," nbadpix_y2u=",nbadpix_y2u," tot=",ngoodpix_y2u+nbadpix_y2u," npts=",sparse_np.shape[0]
-    print "  ngoodpix_y2v=",ngoodpix_y2v," nbadpix_y2v=",nbadpix_y2v," tot=",ngoodpix_y2v+nbadpix_y2v," npts=",sparse_np.shape[0]
+        if checkpix:
+            nbadpix_y2u  = ( data["flowy2u"]<=-4000 ).sum()
+            ngoodpix_y2u = ( data["flowy2u"]>-4000 ).sum()
+            ngoodpix_y2v = ( data["flowy2v"]>-4000 ).sum()
+            nbadpix_y2v  = ( data["flowy2v"]<=-4000 ).sum()
+    if checkpix and verbose:
+        print "  ngoodpix_y2u=",ngoodpix_y2u," nbadpix_y2u=",nbadpix_y2u," tot=",ngoodpix_y2u+nbadpix_y2u," npts=",sparse_np.shape[0]
+        print "  ngoodpix_y2v=",ngoodpix_y2v," nbadpix_y2v=",nbadpix_y2v," tot=",ngoodpix_y2v+nbadpix_y2v," npts=",sparse_np.shape[0]
+    if checkpix:
+        if ngoodpix_y2u==0 or ngoodpix_y2v==0:
+            return None
+    
     dtnpmanip += time.time()-tnpmanip
     tottime = time.time()-tottime
-    #print "io time: ",dtio
-    #print "tot array manip time: ",tottime
-    #print "  time for each flow: ",dtflow/len(flows)
-    #print "    convert larcv2numpy per flow: ",dtconvert/len(flows)
-    #print "    modify numpy arrays: ",(dtnpmanip)/len(flows)
+
+    if verbose:
+        print "[load cropped sparse dual flow]"
+        print "  nfeatures=",nfeatures," npts=",sparse_np.shape[0]
+        print "  io time: %.3f secs"%(dtio)
+        print "  tot time: %.3f secs"%(tottime)
 
 
     return data
