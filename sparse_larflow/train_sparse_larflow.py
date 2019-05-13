@@ -40,18 +40,19 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
+#CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
+CHECKPOINT_FILE="savedruns/checkpoint.10000th.tar"
 INPUTFILE_TRAIN="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
 INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train.root"
 TICKBACKWARD=False
-start_iter  = 0
+start_iter  = 10001
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=1
+BATCHSIZE_TRAIN=10
 BATCHSIZE_VALID=1
-NWORKERS_TRAIN=1
+NWORKERS_TRAIN=2
 NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
@@ -126,7 +127,7 @@ def main():
     batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 10000
+    num_iters   = 20000
     iter_per_epoch = None # determined later
     iter_per_valid = 10
 
