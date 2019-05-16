@@ -42,17 +42,19 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-#CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
-CHECKPOINT_FILE="savedruns/checkpoint.1700th.tar"
-INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p1.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p2.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p3.root"]
-INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid.root"
+#CHECKPOINT_FILE="savedruns/checkpoint.1700th.tar"
+CHECKPOINT_FILE="saved_run2/checkpoint.10000th.tar"
+#CHECKPOINT_FILE="saved_run3/checkpoint.20000th.tar"
+INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v2.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v2.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v2.root"]
+INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v2.root"
 TICKBACKWARD=False
-start_iter  = 1701
+start_iter  = 10001
+num_iters   = 30000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=10
+BATCHSIZE_TRAIN=20
 BATCHSIZE_VALID=10
 NWORKERS_TRAIN=3
 NWORKERS_VALID=1
@@ -77,6 +79,7 @@ def main():
 
     global best_prec1
     global writer
+    global num_iters
 
     if GPUMODE:
         DEVICE = torch.device("cuda:%d"%(DEVICE_IDS[0]))
@@ -129,7 +132,6 @@ def main():
     batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 10000
     iter_per_epoch = None # determined later
     iter_per_valid = 10
 
