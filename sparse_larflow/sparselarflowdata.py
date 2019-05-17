@@ -122,7 +122,7 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
 
         # now calc total points in each sparse image instance
         for data in data_v:
-            datalen.append( data["pixadc"].shape[2] )
+            datalen.append( data["pixadc"][0].shape[0] )
             ncoords += datalen[-1]
         #print "NCOORDS: ",ncoords
 
@@ -157,25 +157,27 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         # fill tensors above
         nfilled = 0            
         for ib,batch in enumerate(data_v):
-            srcpix    = batch["pixadc"]
-            trueflow1 = batch["flowy2u"]
-            trueflow2 = batch["flowy2v"]
+            srcpix    = batch["pixadc"][0]
+            trueflow1 = batch["flowy2u"][0]
+            trueflow2 = batch["flowy2v"][0]
             #print type(srcpix),
-            #print srcpix.shape," ",srcpix[0,0,:,0:2].shape
+            #print srcpix.shape," "
+            #print trueflow1.shape," "
+            #print trueflow2.shape," "            
             
             start = nfilled
             end   = nfilled+datalen[ib]
             coord_t[start:end,0:2] \
-                = torch.from_numpy( srcpix[0,0,:,0:2].astype(np.int) )
+                = torch.from_numpy( srcpix[:,0:2].astype(np.int) )
             coord_t[start:end,2]        = ib
-            srcpix_t[start:end,0]       = torch.from_numpy(srcpix[0,0,:,2])
-            tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[0,0,:,3])
-            tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[0,0,:,4])
+            srcpix_t[start:end,0]       = torch.from_numpy(srcpix[:,2])
+            tarpix_flow1_t[start:end,0] = torch.from_numpy(srcpix[:,3])
+            tarpix_flow2_t[start:end,0] = torch.from_numpy(srcpix[:,4])
 
             if has_truth:
-                truth_flow1_t[start:end,0]      = torch.from_numpy(trueflow1[0,0,:,0])
+                truth_flow1_t[start:end,0]      = torch.from_numpy(trueflow1[:,0])
                 if truth_flow2_t is not None:
-                    truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2[0,0,:,0])
+                    truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2[:,0])
                 
             nfilled += datalen[ib]
 
@@ -191,14 +193,14 @@ if __name__== "__main__":
     "testing"
     #inputfile = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
     #inputfile = "out_sparsified.root"
-    inputfiles = ["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p1.root",
-                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p2.root",
-                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train_p3.root"]
+    inputfiles = ["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v3.root",
+                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v3.root",
+                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v3.root"]
     batchsize = 10
     nworkers  = 3
     tickbackward = True
     readonly_products=None
-    nentries = 1
+    nentries = 10
 
     TEST_VANILLA = True
 
