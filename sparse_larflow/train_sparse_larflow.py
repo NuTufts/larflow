@@ -44,14 +44,15 @@ RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
 #CHECKPOINT_FILE="savedruns/checkpoint.1700th.tar"
 #CHECKPOINT_FILE="saved_run2/checkpoint.10000th.tar"
-CHECKPOINT_FILE="saved_run3/checkpoint.17000th.tar"
-INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v3.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v3.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v3.root"]
-INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v3.root"
+#CHECKPOINT_FILE="saved_run3/checkpoint.17000th.tar"
+CHECKPOINT_FILE="saved_run4/checkpoint.23000th.tar"
+INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v4.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v4.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v4.root"]
+INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v4.root"
 TICKBACKWARD=False
-start_iter  = 17001
-num_iters   = 30000
+start_iter  = 23001
+num_iters   = 35000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
 BATCHSIZE_TRAIN=20
