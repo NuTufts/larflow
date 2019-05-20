@@ -4,6 +4,11 @@
 
 #include "TRandom3.h"
 
+#include "TVector3.h"
+
+#include "LArUtil/Geometry.h"
+#include "LArUtil/GeometryHelper.h"
+
 namespace larflow {
 
   void RecoCluster::filter_hits(const std::vector<larlite::larflow3dhit>& hits,
@@ -269,10 +274,14 @@ namespace larflow {
     return unassigned;
   }
   
-  void RecoCluster::filterLineClusters(std::vector<std::vector<larlite::larflow3dhit> > flowclusters,
-				       std::vector<larlite::pcaxis> pcainfos,
-				       std::vector<int> isline){
+  void RecoCluster::filterLineClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
+				       std::vector<larlite::pcaxis>& pcainfos,
+				       std::vector<std::vector<std::pair<float,larlite::larflow3dhit> > >& PCAdist_sorted_flowhits,
+				       std::vector<int>& isline){
 
+    // get larlite::GeometryHelper
+    auto geo = larutil::GeometryHelper::GetME();
+    
     //-----------------------//
     // this returns both a vector of pcainfo for all clusters,
     // and a vector of ints indicating whether the cluster
@@ -280,6 +289,7 @@ namespace larflow {
     //-----------------------//
     
     pcainfos.clear();
+    PCAdist_sorted_flowhits.clear();
     isline.assign(flowclusters.size(),-1);
     int ct=-1;
     for(auto &flowcluster : flowclusters){
@@ -287,30 +297,257 @@ namespace larflow {
       larflow::CilantroPCA pca( flowcluster );
       larlite::pcaxis pcainfo = pca.getpcaxis();
       pcainfos.push_back( pcainfo );
-
+      
       const double* eigval = pcainfo.getEigenValues();
       const double*  meanpos = pcainfo.getAvePosition();
       larlite::pcaxis::EigenVectors eigvec = pcainfo.getEigenVectors();
-      double eiglen = sqrt(eigval[0]);
-      //start,  end of primary axis
-      float x1=meanpos[0]-eigvec[0][0]*2*eiglen;
-      float x2=meanpos[0]+eigvec[0][0]*2*eiglen;
-      float y1=meanpos[1]-eigvec[1][0]*2*eiglen;
-      float y2=meanpos[1]+eigvec[1][0]*2*eiglen;
-      float z1=meanpos[2]-eigvec[2][0]*2*eiglen;
-      float z2=meanpos[2]+eigvec[2][0]*2*eiglen;
 
-      // we assume max actual width of a track to be 5 pix. If the primary axis length is > 3x width we say it is a line cluster
-      // Note: these parameters are preliminary and need to be tuned
-      float track_width_pix = 5.;
-      float pix_width_mm = 3.; //get this from somewhere? 
-      float line_thresh = 3;
+      // meanpos is origin and eigenvec[x,y,z][] is direction
+      TVector3 origin(meanpos[0],meanpos[1],meanpos[2]);
+      TVector3 direction(eigvec[0][0],eigvec[1][0],eigvec[2][0]);
 
-      float axis_mag = sqrt(pow(x2-x1,2) + pow(y2-y1,2) + pow(z2-z1,2));
-      if(axis_mag >= pix_width_mm*track_width_pix*line_thresh ) isline[ct] = 1;
+      //this holds original hit and dist to meanpos along pca axis line
+      std::vector<std::pair<float,larlite::larflow3dhit> > pair;
+
+      for(int h=0; h<flowcluster.size(); h++){
+	TVector3 point(flowcluster.at(h)[0],flowcluster.at(h)[1],flowcluster.at(h)[2]);
+	float pcadist = geo->DistanceAlongLine3D(origin, direction,point);
+	pair.push_back(make_pair(pcadist,flowcluster.at(h)));
+      }
+      //sort by pcadist
+      sort(pair.begin(),pair.end());
+      //fill sorted larflow cluster
+      PCAdist_sorted_flowhits.push_back(pair);
+	
+      // we look for clusters with primary axis > 1./0.5 secondary axis
+      float line_thresh = 1./0.5;
+      if( eigval[0]/eigval[1] >= line_thresh) isline[ct] = 1;
 
       //std::cout << eigval[0] <<" "<< eigval[1] <<" "<< eigval[2] << std::endl;
     }
   }
 
+  void RecoCluster::selectClustToConnect(std::vector<std::vector<std::pair<float,larlite::larflow3dhit> > >& sorted_flowclusters,
+					 std::vector<larlite::pcaxis>& pcainfos,
+					 std::vector<int>& isline,
+					 std::vector<std::vector<int> >& parallel_idx,
+					 std::vector<std::vector<int> >& stitch_idx,
+					 const double parallel_thresh,
+					 const double enddist_thresh){
+    
+    //-----------------------------------------------------------//
+    // 1.Check if angle b/n PCA axes is smaller than threshold
+    // 2.If (anti)parallel, check min dist b/n cluster endpoints
+    // 3.If dist smaller than threshold, stich candidate
+    //-----------------------------------------------------------//
+
+    // get larlite::GeometryHelper
+    auto geo = larutil::GeometryHelper::GetME();
+
+    //const double parallel_thresh = 0.05; //5% of 1rad
+    //const double enddist_thresh = 10.; //cm
+
+    for(int i=0; i<sorted_flowclusters.size(); i++){
+      // skip if not line cluster
+      if(isline[i] !=1) continue;
+    
+      TVector3 myend1(sorted_flowclusters.at(i).front().second.at(0),
+		      sorted_flowclusters.at(i).front().second.at(1),
+		      sorted_flowclusters.at(i).front().second.at(2));
+      TVector3 myend2(sorted_flowclusters.at(i).back().second.at(0),
+		      sorted_flowclusters.at(i).back().second.at(1),
+		      sorted_flowclusters.at(i).back().second.at(2));
+      
+      //direction of this cluster's main pca aixs
+      larlite::pcaxis::EigenVectors myeigvec = pcainfos.at(i).getEigenVectors();
+      TVector3 mydir(myeigvec[0][0],myeigvec[1][0],myeigvec[2][0]);
+      
+      //now we loop over all other cluster's pca axes
+      for(int j=0; j<pcainfos.size(); j++){
+	if(j==i) continue;
+	//const double*  meanpos = pcainfos.at(j).getAvePosition();
+	larlite::pcaxis::EigenVectors eigvec = pcainfos.at(j).getEigenVectors();
+	
+	// meanpos is origin and eigenvec[x,y,z][0] is direction
+	//TVector3 origin(meanpos[0],meanpos[1],meanpos[2]);
+	TVector3 dir(eigvec[0][0],eigvec[1][0],eigvec[2][0]);
+	
+	//float approach1 = geo->DistanceToLine3D(origin, dir, myend1);
+	//float approach2 = geo->DistanceToLine3D(origin, dir, myend2);
+
+	//are we (anti)parallel within threshold?
+	if( mydir.Angle(dir)/TMath::Pi() <= parallel_thresh || mydir.Angle(dir)/TMath::Pi() >= (1.0-parallel_thresh)){
+	  parallel_idx[i].push_back(j);
+
+	  //calculate distance between the 4 cluster endpoints
+	  TVector3 end1(sorted_flowclusters.at(j).front().second.at(0),
+			sorted_flowclusters.at(j).front().second.at(1),
+			sorted_flowclusters.at(j).front().second.at(2));
+	  TVector3 end2(sorted_flowclusters.at(j).back().second.at(0),
+			sorted_flowclusters.at(j).back().second.at(1),
+			sorted_flowclusters.at(j).back().second.at(2));
+
+	  double dist[4] = {0.,0.,0.,0.};
+	  dist[0] = (myend1 - end1).Mag();
+	  dist[1] = (myend1 - end2).Mag();
+	  dist[2] = (myend2 - end1).Mag();
+	  dist[3] = (myend2 - end2).Mag();
+	  double min = 1.e3;
+	  for(int k=0; k<4; k++){
+	    if(dist[k]<min) min=dist[k];
+	  }
+	  if(min<= enddist_thresh) stitch_idx[i].push_back(j);
+	}
+      }
+      
+    }
+    
+  }
+
+  void RecoCluster::ConnectClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
+				    std::vector<std::vector<int> >& stitch_idx,
+				    std::vector<std::vector<larlite::larflow3dhit> >& newclusters){
+
+    //---------------------------------//
+    // combine hits of clusters
+    // satisfying the stitch condition
+    //---------------------------------//
+
+    newclusters.clear();
+    newclusters.reserve(flowclusters.size());
+
+    std::vector<std::set<int> > C;    
+    std::set<int> filled;
+
+    //loop over all cluster indeces
+    for(int i=0; i<flowclusters.size(); i++){
+      if(filled.find(i) != filled.end()) continue;
+      auto const& neighbors = stitch_idx.at(i);
+      std::vector<int> indices = neighbors; //copy
+      indices.push_back(i); // self+neighbors
+
+      bool used = false;
+      std::set<int>* current_set = nullptr;      
+      for (auto& idx : indices) {
+	for(auto &Cs : C){
+	  if(Cs.find(idx) != Cs.end()){
+	    used = true;
+	    current_set = &Cs;
+	    break;
+	  }
+	}
+	if ( used )
+	  break;
+      }
+
+      if(!used){
+	C.resize( C.size()+1 ); // appends new set
+	current_set = &C.back();
+      }
+
+      //for ( auto& idx : indices ) {
+      //   (*current_set).insert(idx);
+      //}
+      
+      //create the queue
+      std::vector<int> queue = indices;
+      while(queue.size()>0){
+	int q=queue.back();
+	if(filled.find(q) != filled.end()){
+	  queue.pop_back();
+	  continue;
+	}
+
+	std::vector<int> next = stitch_idx.at(q);
+	next.push_back(q);
+	filled.insert(q);
+	queue.pop_back();
+	for ( auto& idx : next ) {
+	  (*current_set).insert(idx);
+	  if(!(filled.find(idx)!= filled.end() ) ) queue.push_back(idx);
+	}
+
+      }
+        
+    }
+    //now we fill in the clusters
+    newclusters.resize(C.size());
+    for(unsigned int c=0; c<C.size(); c++){
+      for(auto& cc : C[c]){
+	newclusters[c].insert( newclusters[c].end(), flowclusters.at(cc).begin(), flowclusters.at(cc).end() );
+      }
+    }
+    
+
+  }
+  
+  void RecoCluster::EvaluateClusters(std::vector<std::vector<larlite::larflow3dhit> >& flowclusters,
+				     std::vector<int>& purity,
+				     std::vector<float>& efficiency){
+
+    //--------------------------------------------------------------------//
+    // estimate cluster purity (# of truth track IDs > 10% of cluster hits)
+    // estimate cluster efficiency (% of leading track ID contained)
+    //-------------------------------------------------------------------//
+    purity.clear();
+    efficiency.clear();
+    purity.resize(flowclusters.size(),0);
+    efficiency.resize(flowclusters.size(),0);
+    
+    std::vector<std::set<int> > trackIDs; //placeholder for unique track IDs in each cluster
+    trackIDs.resize(flowclusters.size());
+    std::set<int> allTrackIDs; //all unique track IDs in all clusters
+    std::vector<std::pair<int,float> > topID;   
+    topID.resize(flowclusters.size());
+    
+    //loop over clusters
+    for(unsigned int i=0; i<flowclusters.size(); i++){ 
+      //loop over cluster hits 
+      for(auto& hit : flowclusters.at(i)){
+	if(hit.trackid != -1){
+	  trackIDs.at(i).insert(hit.trackid); //fill unique true track IDs
+	  allTrackIDs.insert(hit.trackid);
+	}
+      }
+
+      int numtrk=0; //number of tracks > 10% of hit clusters
+      float maxfrac=0; //max num of hits for a single true track
+      int maxID=0; //trackID of track with max fraction in this cluster
+      
+      for(auto& cc : trackIDs.at(i)){
+	int count = 0;
+	for(auto& hit : flowclusters.at(i)){
+	  if(hit.trackid== cc) count++;
+	}
+	if(float(count/flowclusters.at(i).size())>=0.1) numtrk++;
+	if(float(count/flowclusters.at(i).size()) > maxfrac){
+	  maxfrac = float(count);
+	  maxID = cc;
+	}
+      }
+      purity.at(i) = numtrk;
+      topID.at(i) = std::make_pair(maxID,maxfrac);
+    }
+    
+    //now calculate how many hits per truth track
+    for(auto& id : allTrackIDs){
+      int  numhits=0;
+      for(int i=0; i<flowclusters.size(); i++){
+	if(trackIDs.at(i).find(id) != trackIDs.at(i).end()){
+	  for(auto& hit : flowclusters.at(i)){
+	    if(hit.trackid==id) numhits++;
+	  }
+	}
+      }
+      //now we have the total number of hits for this track
+      //we look if it is maxID for any cluster and calculate efficiency
+      for(int i=0; i<flowclusters.size(); i++){
+	if(topID.at(i).first==id) efficiency.at(i) = topID.at(i).second/numhits;
+      }
+    }
+  }
+
+
+  //eof
 }
+  
