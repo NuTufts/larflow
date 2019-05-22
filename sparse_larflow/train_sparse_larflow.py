@@ -42,17 +42,21 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-#CHECKPOINT_FILE="savedruns/checkpoint.1700th.tar"
-#CHECKPOINT_FILE="saved_run2/checkpoint.10000th.tar"
-#CHECKPOINT_FILE="saved_run3/checkpoint.17000th.tar"
-CHECKPOINT_FILE="saved_run4/checkpoint.23000th.tar"
-INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v4.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v4.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v4.root"]
-INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v4.root"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.1700th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.10000th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.17000th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.24500th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.25500th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.31600th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.35000th.tar"
+CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.36100th.tar"
+INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v5.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v5.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v5.root"]
+INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v5.root"
 TICKBACKWARD=False
-start_iter  = 23001
-num_iters   = 35000
+start_iter  = 36001
+num_iters   = 45000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
 BATCHSIZE_TRAIN=20
@@ -124,7 +128,7 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
