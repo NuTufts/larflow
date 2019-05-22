@@ -83,12 +83,20 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             IntersectUB.apply( flow1_predict, flow2_predict,
                             source_originx, targetu_originx, targetv_originx )
 
-        flowout1 = self.outlayer1(flow1_predict)
-        mask1 = torch.ones( flow1_truth.shape, dtype=torch.float ).to(flow1_truth.device)
-        #print "mask1 counts: ",mask1.shape,"raw sum=",mask1.detach().sum()        
-        mask1[ torch.eq(flow1_truth,-4000.0) ] = 0
-        #print "mask1 counts: ",mask1.shape,"select sum=",mask1.detach().sum()
-        n1 = mask1.sum()
+        if flow2_predict is not None:
+            flowout1 = self.outlayer1(flow1_predict)
+            mask1 = torch.ones( flow1_truth.shape, dtype=torch.float ).to(flow1_truth.device)
+            #print "mask1 counts: ",mask1.shape,"raw sum=",mask1.detach().sum()        
+            mask1[ torch.eq(flow1_truth,-4000.0) ] = 0
+            #print "mask1 counts: ",mask1.shape,"select sum=",mask1.detach().sum()
+            n1 = mask1.sum()
+
+            flow1err = 0.1*self.l1loss(10.0*flow1_truth,10.0*flowout1)*mask1
+            flow1loss = flow1err.sum()
+            if n1>0:
+                flow1loss = flow1loss/n1
+        else:
+            flow1loss = None
         
         if flow2_predict is not None:
             flowout2 = self.outlayer2(flow2_predict)
@@ -98,6 +106,12 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             #print "mask2 counts: ",mask2.shape,"select sum=",mask2.detach().sum()
             n2 = mask2.sum()
 
+            flow2err = 0.1*self.l1loss(10.0*flow2_truth,10.0*flowout2)*mask2
+            flow2loss = flow2err.sum()
+            if n2>0:
+                flow2loss = flow2loss/n2
+        else:
+            flow2loss = None
 
         #print "flow1_truth: ",flow1_truth[0:20,0]
         #print "mask1_truth: ",mask1[0:20,0]
@@ -107,29 +121,6 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             posyz_target1_t *= mask1
             posyz_target2_t *= mask2
 
-        # flow prediction loss
-        
-        #flow1err = (flow1_truth-flowout1)*mask1
-        #flow2err = (flow2_truth-flowout2)*mask2
-        #flow1err = self.l1loss(flow1_truth,flowout1)*mask1
-        flow1err = 0.1*self.l1loss(10.0*flow1_truth,10.0*flowout1)*mask1
-        #flow1err[ flow1err!=flow1err ] = 0.0
-        #torch.clamp( flow1err, 0, 1000 )
-        flow1loss = flow1err.sum()
-        if n1>0:
-            flow1loss = flow1loss/n1
-        
-        if flow2_predict is not None:
-            flow2err = self.l1loss(flow2_truth,flowout2)*mask2
-            flow2err = 0.1*self.l1loss(10.0*flow2_truth,10.0*flowout2)*mask2
-            #flow2err[ flow2err!=flow2err ] = 0.0
-            #torch.clamp( flow2err, 0, 1000  )
-
-            flow2loss = flow2err.sum()
-            if n2>0:
-                flow2loss = flow2loss/n2
-        else:
-            flow2loss = None
             
         #print "posyz 1: ",np.argwhere( np.isnan( posyz_target1_t.detach().cpu().numpy() ) )
         #print "posyz 2: ",np.argwhere( np.isnan( posyz_target2_t.detach().cpu().numpy() ) )
@@ -141,24 +132,28 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         #print "diffyz: ",np.argwhere( np.isnan( diff_yz.detach().cpu().numpy() ) )
         #print "mask.sum: ",np.argwhere( np.isnan( mask.sum().detach().cpu().numpy() ) )
         if self._reduce:
-            if flow2_predict is not None:
+            if flow2_predict is not None and flow1_predict is not None:
                 # add two flow errors together, weighting by mask sum
                 l2flow = 0.5*(flow1loss + flow2loss)
-            else:
+            elif flow1_predict is not None:
                 l2flow = flow1loss
+            elif flow2_predict is not None:
+                l2flow = flow2loss
         else:
-            if flow2_predict is not None:
+            if flow1_predict is not None and flow2_predict is not None:
                 l2flow = 0.5*(flow1err+flow2err)
-            else:
+            elif flow1_predict is not None:
                 l2flow = flow1err
-
-        if flow1loss!=flow1loss:
+            elif flow2_predict is not None:
+                l2flow = flow2err
+                
+        if flow1loss is not None and flow1loss!=flow1loss:
             print "NAN HAPPENED"
             print "flow1: ",(flowout1!=flowout1).sum()
             print "truth1: ",(flow1_truth!=flow1_truth).sum()
             print "flowerr1: ",(flow1err!=flow1err).sum()
             print "mask1: ",mask1.sum()
-        if flow2loss!=flow2loss:
+        if flow2loss is not None and flow2loss!=flow2loss:
             print "NAN HAPPENED"
             print "flow2: ",(flowout2!=flowout2).sum()
             print "truth2: ",(flow2_truth!=flow2_truth).sum()
