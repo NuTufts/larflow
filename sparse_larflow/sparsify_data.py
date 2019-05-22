@@ -74,8 +74,8 @@ def sparsify(inputfile, outputfile,
                 flowset_v.push_back( flow_v.at(flow1idx) )
             elif nflows==1 and flowdirs[0]=='y2v':
                 flowset_v.push_back( adc_v.at(srcidx) )
-                flowset_v.push_back( adc_v.at(tar1idx) )
-                flowset_v.push_back( flow_v.at(flow1idx) )
+                flowset_v.push_back( adc_v.at(tar2idx) )
+                flowset_v.push_back( flow_v.at(flow2idx) )
                 
 
         adc_sparse_tensor = larcv.SparseImage(flowset_v,threshold_v,cuton_pixel_v)
@@ -120,10 +120,10 @@ if __name__ == "__main__":
     #sparsify( "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root",
     #          "out_sparsified.root" )
 
-    sparsify( larcv_mctruth, output_sparsified, flowdirs=['y2u','y2v'] )
+    #sparsify( larcv_mctruth, output_sparsified, flowdirs=['y2u','y2v'] )
 
-    #output_sparsified_y2u = output_sparsified.replace(".root","_y2u.root")
-    #sparsify( larcv_mctruth, output_sparsified_y2u, flowdirs=['y2u'] )
+    output_sparsified_y2u = output_sparsified.replace(".root","_y2u.root")
+    sparsify( larcv_mctruth, output_sparsified_y2u, flowdirs=['y2u'] )
 
     #output_sparsified_y2v = output_sparsified.replace(".root","_y2v.root")
     #sparsify( larcv_mctruth, output_sparsified_y2v, flowdirs=['y2v'] )
