@@ -83,7 +83,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             IntersectUB.apply( flow1_predict, flow2_predict,
                             source_originx, targetu_originx, targetv_originx )
 
-        if flow2_predict is not None:
+        if flow1_predict is not None:
             flowout1 = self.outlayer1(flow1_predict)
             mask1 = torch.ones( flow1_truth.shape, dtype=torch.float ).to(flow1_truth.device)
             #print "mask1 counts: ",mask1.shape,"raw sum=",mask1.detach().sum()        

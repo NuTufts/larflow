@@ -44,25 +44,26 @@ RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE=None
 
-TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
-INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v3.root",
-                 "larflow_sparsify_cropped_train2_v3.root",
-                 "larflow_sparsify_cropped_train3_v3.root"]
-INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v3.root"]
+#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
+TRAIN_DATA_FOLDER="/tmp/"
+INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
+                 "larflow_sparsify_cropped_train2_v5.root",
+                 "larflow_sparsify_cropped_train3_v5.root"]
+INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
 start_iter  = 0
 num_iters   = 10000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=20
-BATCHSIZE_VALID=10
+BATCHSIZE_TRAIN=16
+BATCHSIZE_VALID=5
 NWORKERS_TRAIN=1
 NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
 USE_VISI=False
-DEVICE_IDS=[5]
+DEVICE_IDS=[0]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
@@ -98,7 +99,7 @@ def main():
                            ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
                            home_gpu=None,
-                           flowdirs=flowdirs,show_sizes=True).to(DEVICE)
+                           flowdirs=flowdirs,show_sizes=False).to(DEVICE)
     if False:
         # DUMP MODEL
         print model
@@ -147,7 +148,7 @@ def main():
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 5
+    nbatches_per_itervalid = 10
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -342,7 +343,6 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-        time_meters["data"].update(time.time()-end)
             
         flowdict = train_loader.get_tensor_batch(device)        
         # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
@@ -352,6 +352,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         tarpix_flow2_t = flowdict["tar2"]
         truth_flow1_t  = flowdict["flow1"]
         truth_flow2_t  = flowdict["flow2"]
+
+        time_meters["data"].update(time.time()-end)
         
         # compute output
         if RUNPROFILER:

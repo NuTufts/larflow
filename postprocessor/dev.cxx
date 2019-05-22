@@ -544,17 +544,29 @@ int main( int nargs, char** argv ) {
           char sstreename[30];
           sprintf(sstreename,"uburn_plane%d",(int)p);
           ev_uburn_plane[p] = (larcv::EventImage2D*)dataco_wholelarcv.get_data(larcv::kProductImage2D,sstreename);
+
           std::vector<larcv::Image2D> ssnet_v;
           ev_uburn_plane[p]->Move( ssnet_v );
 
-          larcv::Image2D blankendpt( ssnet_v[0].meta() );
-          blankendpt.paint(0.0);
+	  if ( ssnet_v.size()==2 ) {
+	    larcv::Image2D blankendpt( ssnet_v[0].meta() );
+	    blankendpt.paint(0.0);
           
-          ss_track_v.emplace_back( std::move(ssnet_v[1]) );
-          ss_shower_v.emplace_back( std::move(ssnet_v[0]) );
-          ss_endpt_v.emplace_back( std::move(blankendpt) );
+	    ss_track_v.emplace_back( std::move(ssnet_v[1]) );
+	    ss_shower_v.emplace_back( std::move(ssnet_v[0]) );
+	    ss_endpt_v.emplace_back( std::move(blankendpt) );
+	  }
+	  else {
+	    // if no flash was formed, then no SSNet run on this event
+	    // we pass blank information
+	    larcv::Image2D blank( ev_wholeimg->as_vector().at(p) );
+	    blank.paint(0.0);
+	    ss_track_v.push_back( blank );
+	    ss_shower_v.push_back( blank );
+	    ss_endpt_v.emplace_back( std::move(blank) );
+	  }
         }
-
+	
         // warning: very hackish
         // we use plane0 eventimage2d as track
         // we use plane1 eventimage2d as shower

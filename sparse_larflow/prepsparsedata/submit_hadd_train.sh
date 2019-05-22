@@ -6,7 +6,7 @@
 #SBATCH --time=8:00:00
 #SBATCH --mem-per-cpu=4000
 
-CONTAINER=/cluster/tufts/wongjiradlab/larbys/larbys-containers/ubdl_singularity_031219.img
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/larbys-containers/singularity_ubdl_051919.img
 WORKDIR=/cluster/kappa/90-days-archive/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata
 OUTROOT=${WORKDIR}/larflow_sparsify_train.root
 

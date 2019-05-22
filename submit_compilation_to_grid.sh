@@ -8,9 +8,9 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --partition batch
 
-LARFLOW_REPO_DIR=/cluster/tufts/wongjiradlab/twongj01/dev/larflow/
-LARFLOW_REPO_DIR_INCONTAINER=/cluster/kappa/wongjiradlab/twongj01/dev/larflow/
-CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/singularity-larflow/singularity-larflow-v2.img
+UBDL_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl/
+LARFLOW_REPO_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/larbys-containers/singularity_ubdl_041519.img
 
 module load singularity
 
@@ -18,7 +18,9 @@ module load singularity
 #singularity exec --nv ${CONTAINER} bash -c "cd ${LARFLOW_REPO_DIR_INCONTAINER} && source /usr/local/root/release/bin/thisroot.sh && source configure.sh && source clean.sh"
 
 # compile
-srun singularity exec --nv ${CONTAINER} bash -c "cd ${LARFLOW_REPO_DIR_INCONTAINER} && source compile_on_tuftsgrid.sh ${LARFLOW_REPO_DIR_INCONTAINER}"
+#srun singularity exec --nv ${CONTAINER} bash -c "cd ${LARFLOW_REPO_DIR_INCONTAINER} && source compile_on_tuftsgrid.sh ${LARFLOW_REPO_DIR_INCONTAINER}"
+CMD_SETENV="cd ${UBDL_DIR} && source setenv.sh && source configure.sh"
+srun singularity exec ${CONTAINER} bash -c "$CMD_SETENV && cd ${LARFLOW_REPO_DIR} && source compile_on_tuftsgrid.sh ${LARFLOW_REPO_DIR}"
 
 # first build
 #srun singularity exec --nv ${CONTAINER} bash -c "cd ${LARFLOW_REPO_DIR_INCONTAINER} && source first_build.sh"

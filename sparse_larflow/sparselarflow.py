@@ -526,8 +526,14 @@ class SparseLArFlow(nn.Module):
         # target input
         if run_y2u:
             tar1 = self.tar1_inputlayer(tar1)
+            if self._show_sizes:
+                print "input[tar1]: ",tar1.features.shape
+
         if run_y2v:
             tar2 = self.tar2_inputlayer(tar2)
+            if self._show_sizes:
+                print "input[tar2]: ",tar2.features.shape
+            
             
         if not self._share_encoder_weights:
             # separate encoders
