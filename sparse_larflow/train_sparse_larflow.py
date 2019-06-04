@@ -42,22 +42,23 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE=None
+CHECKPOINT_FILE="checkpoint.10000th.tar"
 
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
-TRAIN_DATA_FOLDER="/tmp/"
+#TRAIN_DATA_FOLDER="/tmp/"
+TRAIN_DATA_FOLDER="/home/taritree/data/sparselarflow/"
 INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
                  "larflow_sparsify_cropped_train2_v5.root",
                  "larflow_sparsify_cropped_train3_v5.root"]
 INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
 start_iter  = 0
-num_iters   = 10000
+num_iters   = 30000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=16
-BATCHSIZE_VALID=5
-NWORKERS_TRAIN=1
+BATCHSIZE_TRAIN=32
+BATCHSIZE_VALID=10
+NWORKERS_TRAIN=6
 NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
@@ -93,7 +94,7 @@ def main():
     noutput_features = 16
     nplanes = 5
     nfeatures_per_layer = [16,16,32,32,64]
-    flowdirs = ['y2v']
+    flowdirs = ['y2u','y2v']
     
     model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
                            ninput_features, noutput_features,
@@ -511,7 +512,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and update meters
-        if predict2_t is not None:
+        if predict1_t is not None:
             nvis1 = accuracy(srcpix_t.detach(),
                              predict1_t.features.detach(),
                              truth_flow1_t.detach(),
@@ -526,6 +527,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                              2,acc_meters,True)
         else:
             nvis2 = 0
+            
         if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
             nnone += 1
 
@@ -666,7 +668,7 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
     print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
                                                                            loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
     print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,acc_meters["flow1<10pix"].avg*100,acc_meters["flow1<20pix"].avg*100,acc_meters["flow1<50pix"].avg*100)
-    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
+    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<10pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
         
     print "------------------------------------------------------------------------"    
 
