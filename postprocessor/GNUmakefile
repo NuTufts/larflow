@@ -20,7 +20,7 @@ LDLIBS   += -L${UBLARCVAPP_LIBDIR} -lLArCVApp_UBImageMod
 
 
 #SUBDIRS = ContourTools FlowContourMatching cluster flashmatch imgstitch
-SUBDIRS = ContourTools FlowContourMatching
+SUBDIRS = ContourTools FlowContourMatching cluster
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
 #EXEC += dump2json

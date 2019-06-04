@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export LARFLOW_BASEDIR=$PWD
+export LARFLOW_BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
 export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils

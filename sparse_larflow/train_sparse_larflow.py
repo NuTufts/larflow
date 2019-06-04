@@ -40,28 +40,25 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.1700th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.10000th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.17000th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.24500th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.25500th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.31600th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.35000th.tar"
-CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.36100th.tar"
-INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v5.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v5.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v5.root"]
-INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v5.root"
+CHECKPOINT_FILE=None
+
+#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
+TRAIN_DATA_FOLDER="/tmp/"
+INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
+                 "larflow_sparsify_cropped_train2_v5.root",
+                 "larflow_sparsify_cropped_train3_v5.root"]
+INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
-start_iter  = 36001
-num_iters   = 45000
+start_iter  = 0
+num_iters   = 10000
+
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=20
-BATCHSIZE_VALID=10
-NWORKERS_TRAIN=3
+BATCHSIZE_TRAIN=16
+BATCHSIZE_VALID=5
+NWORKERS_TRAIN=1
 NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
@@ -73,7 +70,7 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=100
+ITER_PER_CHECKPOINT=10
 # ===================================================
 
 # global variables
@@ -97,12 +94,17 @@ def main():
     noutput_features = 16
     nplanes = 5
     nfeatures_per_layer = [16,16,32,32,64]
-    flowdirs = ['y2u']
+    flowdirs = ['y2v']
     
     model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
                            ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
-                           flowdirs=flowdirs).to(DEVICE)
+                           home_gpu=None,
+                           flowdirs=flowdirs,show_sizes=False).to(DEVICE)
+    if False:
+        # DUMP MODEL
+        print model
+        sys.exit(-1)
     
     # Resume training option
     if RESUME_FROM_CHECKPOINT:
@@ -113,12 +115,14 @@ def main():
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
         model.load_state_dict(checkpoint["state_dict"])
 
-    if not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
-        model = nn.DataParallel( model, device_ids=DEVICE_IDS ).to(device=DEVICE) # distribute across device_ids
+    if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
+        model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
 
     # uncomment to dump model
     if False:
         print "Loaded model: ",model
+        #print model.module.source_encoder.variable
+        print model.module.parameters
         return
 
     # define loss function (criterion) and optimizer
@@ -145,7 +149,7 @@ def main():
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 5
+    nbatches_per_itervalid = 10
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -169,14 +173,16 @@ def main():
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = True
 
-    # LOAD THE DATASET    
-    iotrain = load_larflow_larcvdata( "train", INPUTFILE_TRAIN,
+    # LOAD THE DATASET
+    traindata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_TRAIN ]
+    validdata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_VALID ]    
+    iotrain = load_larflow_larcvdata( "train", traindata,
                                       BATCHSIZE_TRAIN, NWORKERS_TRAIN,
                                       producer_name="sparsecropdual",
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
-    iovalid = load_larflow_larcvdata( "valid", INPUTFILE_VALID,
+    iovalid = load_larflow_larcvdata( "valid", validdata,
                                       BATCHSIZE_VALID, NWORKERS_VALID,
                                       producer_name="sparsecropdual",                                      
                                       nflows=len(flowdirs),
@@ -338,7 +344,6 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-        time_meters["data"].update(time.time()-end)
             
         flowdict = train_loader.get_tensor_batch(device)        
         # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
@@ -348,6 +353,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         tarpix_flow2_t = flowdict["tar2"]
         truth_flow1_t  = flowdict["flow1"]
         truth_flow2_t  = flowdict["flow2"]
+
+        time_meters["data"].update(time.time()-end)
         
         # compute output
         if RUNPROFILER:
@@ -381,7 +388,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        loss_meters["flow1"].update( flow1loss.item() )
+        if flow1loss is not None:
+            loss_meters["flow1"].update( flow1loss.item() )
         if flow2loss is not None:
             loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
@@ -389,10 +397,14 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         #loss_meters["consist3d"].update( closs.item() )
         
         # measure accuracy and update meters
-        nvis1 = accuracy(srcpix_t.detach(),
-                         predict1_t.features.detach(),
-                         truth_flow1_t.detach(),
-                         1,acc_meters,True)
+        if predict1_t is not None:
+            nvis1 = accuracy(srcpix_t.detach(),
+                             predict1_t.features.detach(),
+                             truth_flow1_t.detach(),
+                             1,acc_meters,True)
+        else:
+            nvis1 = 0
+            
         if predict2_t is not None:
             nvis2 = accuracy(srcpix_t.detach(),
                              predict2_t.features.detach(),
@@ -401,7 +413,7 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         else:
             nvis2 = 0
 
-        if nvis1==0 or (predict2_t is not None and nvis2==0):
+        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update time meter
@@ -500,10 +512,14 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and update meters
-        nvis1 = accuracy(srcpix_t.detach(),
-                         predict1_t.features.detach(),
-                         truth_flow1_t.detach(),
-                         1,acc_meters,True)
+        if predict2_t is not None:
+            nvis1 = accuracy(srcpix_t.detach(),
+                             predict1_t.features.detach(),
+                             truth_flow1_t.detach(),
+                             1,acc_meters,True)
+        else:
+            nvis1 = 0
+            
         if predict2_t is not None:
             nvis2 = accuracy(srcpix_t.detach(),
                              predict2_t.features.detach(),
@@ -511,12 +527,13 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                              2,acc_meters,True)
         else:
             nvis2 = 0
-        if nvis1==0 or (predict2_t is not None and nvis2==0):
+        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        loss_meters["flow1"].update( flow1loss.item() )
+        if flow1loss is not None:
+            loss_meters["flow1"].update( flow1loss.item() )
         if flow2loss is not None:
             loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )

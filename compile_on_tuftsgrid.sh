@@ -32,10 +32,11 @@ source /usr/local/root/release/bin/thisroot.sh
 
 source configure.sh
 #source clean.sh
-source build.sh
+#source build.sh
 
 # post-processor
 cd $workdir/postprocessor
+#make clean
 make
 
 # return home

@@ -1,4 +1,4 @@
 #!/bin/bash
 
 module load singularity
-singularity shell /cluster/tufts/wongjiradlab/larbys/images/singularity-larflow/singularity-larflow-v2.img
+singularity shell --nv /cluster/tufts/wongjiradlab/larbys/larbys-containers/singularity_ubdl_051919.img
