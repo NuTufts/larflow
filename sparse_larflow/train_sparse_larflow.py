@@ -40,19 +40,29 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="/media/hdd1/rshara01/test/training/checkpoint.10000th.tar"
-INPUTFILE_TRAIN="data/larflow_sparsify_y2u_train.root"
-INPUTFILE_VALID="data/larflow_sparsify_y2u_valid.root"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.1700th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.10000th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.17000th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.24500th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.25500th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.31600th.tar"
+#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.35000th.tar"
+CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.36100th.tar"
+INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v5.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v5.root",
+                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v5.root"]
+INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v5.root"
 TICKBACKWARD=False
-start_iter  = 0
-IMAGE_WIDTH=3456
-IMAGE_HEIGHT=1024
-BATCHSIZE_TRAIN=4
-BATCHSIZE_VALID=1
-NWORKERS_TRAIN=4
-NWORKERS_VALID=2
+start_iter  = 36001
+num_iters   = 45000
+IMAGE_WIDTH=832
+IMAGE_HEIGHT=512
+BATCHSIZE_TRAIN=20
+BATCHSIZE_VALID=10
+NWORKERS_TRAIN=3
+NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
@@ -74,6 +84,7 @@ def main():
 
     global best_prec1
     global writer
+    global num_iters
 
     if GPUMODE:
         DEVICE = torch.device("cuda:%d"%(DEVICE_IDS[0]))
@@ -104,8 +115,6 @@ def main():
 
     if not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
         model = nn.DataParallel( model, device_ids=DEVICE_IDS ).to(device=DEVICE) # distribute across device_ids
-    else:
-        model = model.to(device=DEVICE)
 
     # uncomment to dump model
     if False:
@@ -116,10 +125,10 @@ def main():
     maxdist   = 200.0
     criterion = SparseLArFlow3DConsistencyLoss(IMAGE_HEIGHT, IMAGE_WIDTH,
                                                larcv_version=1,
-                                               calc_consistency=False)
+                                               calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -128,7 +137,6 @@ def main():
     batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
     start_epoch = 0
     epochs      = 10
-    num_iters   = 10000
     iter_per_epoch = None # determined later
     iter_per_valid = 10
 
@@ -164,11 +172,13 @@ def main():
     # LOAD THE DATASET    
     iotrain = load_larflow_larcvdata( "train", INPUTFILE_TRAIN,
                                       BATCHSIZE_TRAIN, NWORKERS_TRAIN,
+                                      producer_name="sparsecropdual",
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
     iovalid = load_larflow_larcvdata( "valid", INPUTFILE_VALID,
                                       BATCHSIZE_VALID, NWORKERS_VALID,
+                                      producer_name="sparsecropdual",                                      
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
@@ -226,7 +236,7 @@ def main():
                 break
 
             # evaluate on validation set
-            if ii%iter_per_valid==0:
+            if ii%iter_per_valid==0 and ii>0:
                 try:
                     totloss, flow1acc5, flow2acc5 = validate(iovalid, DEVICE, BATCHSIZE_VALID,
                                                              model, criterion,
@@ -328,17 +338,17 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-
-        datadict = train_loader.get_tensor_batch(device)
-        coord_t  = datadict["coord"]
-        srcpix_t = datadict["src"]
-        tarpix_flow1_t = datadict["tar1"]
-        tarpix_flow2_t = datadict["tar2"]
-        truth_flow1_t  = datadict["flow1"]
-        truth_flow2_t  = datadict["flow2"]
-        
         time_meters["data"].update(time.time()-end)
-
+            
+        flowdict = train_loader.get_tensor_batch(device)        
+        # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
+        coord_t  = flowdict["coord"]
+        srcpix_t = flowdict["src"]
+        tarpix_flow1_t = flowdict["tar1"]
+        tarpix_flow2_t = flowdict["tar2"]
+        truth_flow1_t  = flowdict["flow1"]
+        truth_flow2_t  = flowdict["flow2"]
+        
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -348,8 +358,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
                                        tarpix_flow1_t, tarpix_flow2_t,
                                        batchsize )
                 
-        totloss = criterion(coord_t, predict1_t, predict2_t,
-                            truth_flow1_t, truth_flow2_t)
+        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                truth_flow1_t, truth_flow2_t)
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -371,8 +381,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        #loss_meters["flow1"].update( f1.item() )
-        #loss_meters["flow2"].update( f2.item() )        
+        loss_meters["flow1"].update( flow1loss.item() )
+        if flow2loss is not None:
+            loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
         #loss_meters["visi2"].update( v2.item() )
         #loss_meters["consist3d"].update( closs.item() )
@@ -467,7 +478,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         batchstart = time.time()
         
         tdata_start = time.time()
-
+        
         datadict = val_loader.get_tensor_batch(device)
         coord_t  = datadict["coord"]
         srcpix_t = datadict["src"]
@@ -483,8 +494,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         predict1_t,predict2_t = model( coord_t, srcpix_t,
                                        tarpix_flow1_t, tarpix_flow2_t,
                                        batchsize )        
-        totloss = criterion(coord_t, predict1_t, predict2_t,
-                            truth_flow1_t, truth_flow2_t)
+        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                truth_flow1_t, truth_flow2_t)
         
         time_meters["forward"].update(time.time()-tforward)
 
@@ -505,8 +516,9 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        #loss_meters["flow1"].update( f1.item() )
-        #loss_meters["flow2"].update( f2.item() )        
+        loss_meters["flow1"].update( flow1loss.item() )
+        if flow2loss is not None:
+            loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
         #loss_meters["visi2"].update( v2.item() )
         #loss_meters["consist3d"].update( closs.item() )
@@ -593,8 +605,8 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     # don't count pixels where:
     #  1) flow is missing i.e. equals zero
     #  2) source pixel is below threshold
-    mask[ torch.eq(flow_truth,0) ] = 0.0
-    mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
+    #mask[ torch.gt(srcpix,10.0)  ] = 0.0
     nvis = mask.sum()
     
     for level in accvals:
