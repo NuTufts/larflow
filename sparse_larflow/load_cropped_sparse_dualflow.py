@@ -2,6 +2,7 @@ import os,sys,time
 import ROOT as rt
 import numpy as np
 from larcv import larcv
+from ROOT import std
 
 """
 Load dual flow sparse data
@@ -106,3 +107,28 @@ def load_cropped_sparse_dualflow(io,rm_bg_labels=True,
     return data
 
 
+def load_croppedset_sparse_dualflow_nomc(io,
+                                         producer="croppedadc",
+                                         threshold=10.0):
+    
+    # get crop set
+    ev_crops = io.get_data( larcv.kProductImage2D, producer )
+    crop_v = ev_crops.Image2DArray()
+    ncrops = crop_v.size()
+    nsets  = ncrops/3
+
+    print "Number of sets=",nsets," ncrops=",ncrops
+
+    thresh_v = std.vector('float')(3,threshold)
+    cuton_v  = std.vector('int')(3,1)
+
+    # we are making a batch. collect the sparse arrays
+    data = {"pixadc":[]}
+    for iset in xrange(nsets):
+        # get instance, convert to numpy array, nfeatures per flow
+        sparsedata = larcv.SparseImage( crop_v, iset*3, iset*3+2, thresh_v, cuton_v )
+        sparse_np  = larcv.as_ndarray( sparsedata, larcv.msg.kNORMAL )
+        data["pixadc"].append(sparse_np)
+        #print "nfeatures: ",nfeatures
+    return data
+    

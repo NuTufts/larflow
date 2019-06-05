@@ -146,7 +146,7 @@ def main():
     iter_per_valid = 10
 
 
-    nbatches_per_itertrain = 5
+    nbatches_per_itertrain = 50
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     

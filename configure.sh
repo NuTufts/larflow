@@ -36,3 +36,7 @@ export CILANTRO_LIB_DIR=${LARFLOW_BASEDIR}/cilantro/build
 # SETUP EIGEN
 export EIGEN_INC_DIR=/usr/include/eigen3
 export EIGEN_LIB_DIR=
+
+cd larcvdataset
+source setenv.sh
+cd ../
