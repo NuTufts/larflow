@@ -1,172 +1,128 @@
 #ifndef __FLOWCONTOURMATCH__
 #define __FLOWCONTOURMATCH__
 
-
-
-#include <vector>
-#include <map>
-#include <set>
-#include <array>
-#include <algorithm>
+/* #include <vector> */
+/* #include <map> */
+/* #include <set> */
+/* #include <array> */
+/* #include <algorithm> */
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
-#include "TH2D.h"
+/* #include "TH2D.h" */
 
-// larlite
-#include "DataFormat/hit.h"
-#include "DataFormat/chstatus.h"
-#include "DataFormat/mctrack.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
-#include "LArUtil/TimeService.h"
+/* // larlite */
+/* #include "DataFormat/hit.h" */
+/* #include "DataFormat/chstatus.h" */
+/* #include "DataFormat/mctrack.h" */
+/* #include "LArUtil/SpaceChargeMicroBooNE.h" */
+/* #include "LArUtil/TimeService.h" */
 
 // larcv
 #include "larcv/core/DataFormat/Image2D.h"
-#include "larcv/core/DataFormat/EventChStatus.h"
-
-// ublarcvapp
-#include "ublarcvapp/ContourTools/ContourShapeMeta.h"
-#include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
+#include "larcv/core/DataFormat/SparseImage.h"
+/* #include "larcv/core/DataFormat/EventChStatus.h" */
 
 // larlite data product
 #include "DataFormat/larflow3dhit.h"
 
 namespace larflow {
 
+
+  std::vector<larlite::larflow3dhit> makeFlowPixels( std::vector<larcv::Image2D>& adc_crop_v,
+                                                     std::vector<larcv::SparseImage>& flowy2u,
+                                                     std::vector<larcv::SparseImage>& flowy2v,
+                                                     const float threshold );
   
-  /**
-   * this class represents the connection between
-   * contours on the different planes
-   *
-   */
-  class FlowMatchData_t {
-  public:
-
+  /* typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; //< indicates flow pattern */
+  /* typedef std::pair<int,int> SrcTarPair_t;        // pair of source and target contour indices */
     
-    FlowMatchData_t( int srcid=-1, int tarid=-1 );
-    
-    virtual ~FlowMatchData_t() { matchingflow_v.clear(); }
-
-    FlowMatchData_t( const FlowMatchData_t& s );          // copy constructor
-    
-    int src_ctr_id; // source contour id
-    int tar_ctr_id; // target contour id
-    float score;    // score for this connection
-
-    bool operator < ( const FlowMatchData_t& rhs ) const {
-      if ( this->score < rhs.score ) return true;
-      return false;
-    };
-
-    // flow data that contributed to the match
-    // i.e. the pixel or hit data within the contour
-    struct FlowPixel_t {
-      int src_wire;
-      int tar_wire;
-      int tick;
-      int row;
-      float pred_miss;
-    };
-    std::vector< FlowPixel_t > matchingflow_v;
-    
-  };
+  /* struct HitFlowData_t { */
+  /*   // information about a hit's match from source to target plane */
+  /*   // filled in _make3Dhits function */
+  /* HitFlowData_t() */
+  /* : hitidx(-1), */
+  /*     maxamp(-1.0), */
+  /*     srcwire(-1), */
+  /*     targetwire(-1), */
+  /*     pixtick(-1), */
+  /*     matchquality(-1), */
+  /*     dist2center(-1), */
+  /*     src_ctr_idx(-1), */
+  /*     tar_ctr_idx(-1), */
+  /*     endpt_score(-1), */
+  /*     track_score(-1), */
+  /*     shower_score(-1), */
+  /*     renormed_track_score(-1), */
+  /*     renormed_shower_score(-1), */
+  /*     trackid(-1), */
+  /*     truthflag(0), */
+  /*     dWall(0) */
+  /*   { */
+  /*     X_truth.resize(3,-1); */
+  /*   }; */
+  /*   int hitidx;       // index of hit in event_hit vector */
+  /*   float maxamp;     // maximum amplitude */
+  /*   int srcwire;      // source image pixel: column */
+  /*   int targetwire;   // target image pixel: column */
+  /*   int pixtick;      // image pixel: row */
+  /*   int matchquality; // match quality (1,2,3) */
+  /*   int dist2center;  // distance of source pixel to center of y */
+  /*   int dist2charge;  // distance in columns from target pixel to matched charge pixel */
+  /*   int src_ctr_idx;  // this becomes outdated once image changes up */
+  /*   int tar_ctr_idx;  // this becomes outdated once image changes up */
+  /*   float endpt_score; */
+  /*   float track_score; */
+  /*   float shower_score; */
+  /*   float renormed_track_score; */
+  /*   float renormed_shower_score; */
+  /*   bool src_infill; // source infill */
+  /*   bool tar_infill; // target infill */
+  /*   std::vector<float> X; // 3D coordinates from larlite::geo */
+  /*   std::vector<float> X_truth; // from mctrack projection */
+  /*   int trackid; // from mctrack projection */
+  /*   int truthflag; */
+  /*   float dWall; //min dist to detector boundary */
+  /* }; */
   
-  class FlowContourMatch {
-  public:
-
-    // internal data structures and types
-    // ----------------------------------
-    typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; // indicates flow pattern
-    static const int kSourcePlane[2];// = { 2, 2 };
-    static const int kTargetPlane[2];// = { 0, 1 };
-
-    typedef std::pair<int,int> SrcTarPair_t;        // pair of source and target contour indices
-    
-    struct HitFlowData_t {
-      // information about a hit's match from source to target plane
-      // filled in _make3Dhits function
-      HitFlowData_t() : hitidx(-1),
-	maxamp(-1.0),
-	srcwire(-1),
-	targetwire(-1),
-	pixtick(-1),
-	matchquality(-1),
-	dist2center(-1),
-	src_ctr_idx(-1),
-	tar_ctr_idx(-1),
-	endpt_score(-1),
-	track_score(-1),
-	shower_score(-1),
-	renormed_track_score(-1),
-	renormed_shower_score(-1),
-	trackid(-1),
-	truthflag(0),
-	dWall(0)
-      {
-	X_truth.resize(3,-1);
-      };
-      int hitidx;       // index of hit in event_hit vector
-      float maxamp;     // maximum amplitude
-      int srcwire;      // source image pixel: column
-      int targetwire;   // target image pixel: column
-      int pixtick;      // image pixel: row
-      int matchquality; // match quality (1,2,3)
-      int dist2center;  // distance of source pixel to center of y
-      int dist2charge;  // distance in columns from target pixel to matched charge pixel
-      int src_ctr_idx;  // this becomes outdated once image changes up
-      int tar_ctr_idx;  // this becomes outdated once image changes up
-      float endpt_score;
-      float track_score;
-      float shower_score;
-      float renormed_track_score;
-      float renormed_shower_score;
-      bool src_infill; // source infill
-      bool tar_infill; // target infill
-      std::vector<float> X; // 3D coordinates from larlite::geo
-      std::vector<float> X_truth; // from mctrack projection
-      int trackid; // from mctrack projection
-      int truthflag;
-      float dWall; //min dist to detector boundary
-    };
-    struct ClosestContourPix_t {
-      // stores info about the contours nearby to the point where
-      // the flow prediction lands in the target plane.
-      // we use this info to sort
-      // and choose the contour to build a 3D hit with
-      int ctridx;
-      int dist;
-      int col;
-      float scorematch;
-      float adc;
-    };
-    struct PlaneHitFlowData_t {
-      std::vector<HitFlowData_t> Y2U; // hitflow vector Y2U
-      std::vector<HitFlowData_t> Y2V; // hitflow vector Y2V
-      std::vector<int> consistency3d; // 3D consistency estimator (1,2,3,no)
-      std::vector<float> dy; // sqrt(y1-y0)^2
-      std::vector<float> dz; // sqrt(z1-z0)^2            
-      bool ranY2U;
-      bool ranY2V;
-      void clear() {
-	Y2U.clear();
-	Y2V.clear();
-	consistency3d.clear();
-	dy.clear();
-	dz.clear();
-	ranY2U = false;
-	ranY2V = false;
-      };
-    };
-    
-    // ------------------------------------------------
+  /* struct ClosestContourPix_t { */
+  /*   // stores info about the contours nearby to the point where */
+  /*   // the flow prediction lands in the target plane. */
+  /*   // we use this info to sort */
+  /*   // and choose the contour to build a 3D hit with */
+  /*   int ctridx; */
+  /*   int dist; */
+  /*   int col; */
+  /*   float scorematch; */
+  /*   float adc; */
+  /* }; */
   
-    FlowContourMatch();
-    virtual ~FlowContourMatch();
-    void clear( bool clear2d=true, bool clear3d=true, int flowdir=-1 ); // clear2d and clear3d
-
-    // algorithm functions for User
-    // -----------------------------
+  /* struct PlaneHitFlowData_t { */
+  /*   std::vector<HitFlowData_t> Y2U; // hitflow vector Y2U */
+  /*   std::vector<HitFlowData_t> Y2V; // hitflow vector Y2V */
+  /*   std::vector<int> consistency3d; // 3D consistency estimator (1,2,3,no) */
+  /*   std::vector<float> dy; // sqrt(y1-y0)^2 */
+  /*   std::vector<float> dz; // sqrt(z1-z0)^2             */
+  /*   bool ranY2U; */
+  /*   bool ranY2V; */
+  /*   void clear() { */
+  /*     Y2U.clear(); */
+  /*     Y2V.clear(); */
+  /*     consistency3d.clear(); */
+  /*     dy.clear(); */
+  /*     dz.clear(); */
+  /*     ranY2U = false; */
+  /*     ranY2V = false; */
+  /*   }; */
+  /* }; */
+  
+  
+                                                       
+    
+  /*
+  // algorithm functions for User
+  // -----------------------------
 
     // use this to turn pixels into hits. can use output in next function.
     // (use at beginning of event)
@@ -359,7 +315,7 @@ namespace larflow {
     const ::larutil::TimeService* m_ptsv;
     ::larutil::SpaceChargeMicroBooNE* m_psce;
   };
-
+  */
 
 
 }
