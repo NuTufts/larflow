@@ -30,6 +30,7 @@ namespace larflow {
                         ContourFlowMatchDict_t& matchdict,
                         const float threshold,
                         const float max_dist_to_target_contour )
+  //const larcv::msg::level_t msg_level )
   {
                         
 
@@ -44,21 +45,25 @@ namespace larflow {
     const larcv::ImageMeta& tarmeta = tar_adc_crop.meta();
     
     // allocate arrays for image pixel to contour index lookup
-    int* src_img2ctrindex             = new int[srcmeta.cols()*srcmeta.rows()];
-    int* tar_img2ctrindex             = new int[tarmeta.cols()*tarmeta.rows()];
-    memset( src_img2ctrindex, 0, sizeof(int)*srcmeta.cols()*srcmeta.rows() );
-    memset( tar_img2ctrindex, 0, sizeof(int)*tarmeta.cols()*tarmeta.rows() );
-
+    if ( !matchdict.index_map_initialized ) {
+      matchdict.src_ctr_index_map.resize( src_adc_full.meta().rows()*src_adc_full.meta().cols(), -1 );
+      matchdict.tar_ctr_index_map.resize( tar_adc_full.meta().rows()*tar_adc_full.meta().cols(), -1 );
+      matchdict.index_map_initialized = true;
+    }
+    if ( !matchdict.src_ctr_pixel_v_initialized )
+      matchdict.src_ctr_pixel_v.resize( contour_data.m_plane_atomics_v.at(src_planeid).size() );
+      
     int nsrcpix_in_ctr = 0; // number of source image pixels inside a contour
     int ntarpix_in_ctr = 0; // number of target image pixels inside a contour
+    int nflow_into_ctr = 0; // number of pixels that flow into a contour. unlikely zero, so here for a check
     for ( int r=0; r<(int)srcmeta.rows(); r++) {
       
       // for each row, we find the available contours on the images.
       // saves us search each time
 
-      std::set< int >  tar_ctr_ids;     // index of target contours in this row
-      std::vector<int> src_cols_in_ctr; // columns on the source image that have ctrs
-      std::map<int,int> src_cols2ctrid; // map from src col to src ctr
+      std::set< int >  tar_ctr_ids;     // (crop) index of target contours in this row
+      std::vector<int> src_cols_in_ctr; // columns on the source (crop) image that have ctrs
+      std::map<int,int> src_cols2ctrid; // map from (crop) src col to src ctr
       src_cols_in_ctr.reserve(20);
 
       // std::cout << "------------------------------------------" << std::endl;
@@ -86,10 +91,12 @@ namespace larflow {
 	  double result =  cv::pointPolygonTest( ctr, pt, false );
 	  if ( result>=0 ) {
 	    src_cols_in_ctr.push_back( c );
-	    src_cols2ctrid[c] = ictr;	    
+	    src_cols2ctrid[c] = ictr;
 	    //std::cout << " " << ictr;
             // store in lookup map for crop
-	    src_img2ctrindex[ r*srcmeta.cols() + c ] = ictr;
+            int pixindex = full_row*srcfullmeta.cols() + full_col;
+            matchdict.src_ctr_pixel_v.at( ictr ).push_back( pixindex );
+	    matchdict.src_ctr_index_map[ pixindex ] = ictr;
             nsrcpix_in_ctr++;;
 	    break;
 	  }
@@ -119,7 +126,8 @@ namespace larflow {
 	  double result =  cv::pointPolygonTest( ctr, pt, false );
 	  if ( result>=0 ) {
 	    tar_ctr_ids.insert( ictr );
-	    tar_img2ctrindex[ r*tarmeta.cols() + c ] = ictr;
+            matchdict.tar_ctr_index_map[ full_row*tarfullmeta.cols() + full_col ] = ictr;
+	    //tar_img2ctrindex[ r*tarmeta.cols() + c ] = ictr;
             ntarpix_in_ctr++;
 	    break;
 	  }
@@ -163,6 +171,7 @@ namespace larflow {
             // inside, no need to search further
             closest_contour_idx = ctrid;
             closest_dist        = 0.;
+            nflow_into_ctr++;
             break;
           }
           else if ( dist>-1*max_dist_to_target_contour ) {
@@ -225,20 +234,21 @@ namespace larflow {
         flowpix.row      = tar_row_full;
         flowpix.tick     = tarmeta.pos_y( tar_row_full );
         flowpix.pred_miss = std::fabs(closest_dist);
+        flowpix.dist2cropcenter = std::fabs(source_col - (float)srcmeta.cols()/2);
         it_indexmap->second.matchingflow_v.push_back( flowpix );
-        // std::cout << "creating a src-tar datapoint: "
-        //           << "[src=" << src_full_wire << " -> "
-        //           << "tar(orig)=" << tar_full_wire << " tar(shift)=" << in_contour_wire << "] "
-        //           << "dist2ctr=" << closest_dist
-        //           << std::endl;
+        // log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+        //   << "creating a src-tar datapoint: "
+        //   << "[src=" << src_full_wire << " -> "
+        //   << "tar(orig)=" << tar_full_wire << " tar(shift)=" << in_contour_wire << "] "
+        //   << "dist2ctr=" << closest_dist << "(orig) " << 
+        //   << std::endl;
         
       }//end of loop over source cols
     }//end of loop over rows
-
-
-    delete [] src_img2ctrindex;
-    delete [] tar_img2ctrindex;
-    
+    log.send( larcv::msg::kINFO,__FUNCTION__,__LINE__ )
+      << "Number of pixels inside crop that flowed into a contour: "
+      << nflow_into_ctr
+      << std::endl;
   }
 
 }

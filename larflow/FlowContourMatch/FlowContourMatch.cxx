@@ -12,6 +12,7 @@
 
 #include "makehitsfrompixels.h"
 #include "makecontourflowmatches.h"
+#include "makesimpleflowhits.h"
 #include "ContourFlowMatch.h"
 
 
@@ -112,14 +113,9 @@ namespace larflow {
       }//end of flow data loop
     }//end of flow direction loop
     
-
-    // for each source contour, score matching target contours
-    // choose between conflicting target contours using ???
-
-    // for all source pixels, make 3D points
-    //   decide which flow to use to make point
-    
-    std::vector<larlite::larflow3dhit> flowhits_v;
+    // make this from this compiled information
+    std::vector<larlite::larflow3dhit> flowhits_v
+      = makeSimpleFlowHits( adc_v, contours, matchdict_v );
 
     log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__) << "Made " << flowhits_v.size() << " flowhits" << std::endl;
     return flowhits_v;

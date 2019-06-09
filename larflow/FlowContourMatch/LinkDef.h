@@ -15,6 +15,7 @@
 #pragma link C++ class std::map<SrcTarPair_t,ContourFlowMatch_t>+;
 
 #pragma link C++ function larflow::makeHitsFromPixels+;
+#pragma link C++ function larflow::makeSimpleFlowHits+;
 
 #pragma link C++ function larflow::makeFlowHitsFromSparseCrops+;
 
