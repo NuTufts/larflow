@@ -1,6 +1,9 @@
 #ifndef __CONTOUR_FLOW_MATCH_t_H__
 #define __CONTOUR_FLOW_MATCH_t_H__
 
+#include <map>
+#include <vector>
+
 namespace larflow {
 
   /**
@@ -32,8 +35,9 @@ namespace larflow {
     // flow data that contributed to the match
     // i.e. the pixel or hit data within the contour
     struct FlowPixel_t {
-      int src_wire;
+      int src_wire; 
       int tar_wire;
+      int tar_orig;
       int tick;
       int row;
       float pred_miss;

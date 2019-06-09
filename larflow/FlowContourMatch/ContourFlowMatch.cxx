@@ -1,5 +1,7 @@
 #include "ContourFlowMatch.h"
 
+#include <vector>
+
 namespace larflow {
 
   /**

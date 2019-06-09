@@ -10,7 +10,7 @@ namespace larflow {
   /**
    * create hits from pixels in the image.
    */
-  larlite::event_hit makeHitsFromPixels( const larcv::Image2D& src_adc, const float threshold );
+  larlite::event_hit makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, const float threshold );
   
 }
 

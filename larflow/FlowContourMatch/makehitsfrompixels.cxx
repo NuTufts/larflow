@@ -1,5 +1,7 @@
 #include "makehitsfrompixels.h"
 
+#include "LArUtil/Geometry.h"
+
 namespace larflow {
   
   /**
@@ -10,7 +12,7 @@ namespace larflow {
    *
    * @return vector of larlite::hit objects representing pixels
    */
-  void FlowContourMatch::makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, const float threshold ) {
+  larlite::event_hit makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, const float threshold ) {
 
     /// instead of hits, which can be too sparsely defined,
     /// we can try to match pixels (or maybe eventually groups of pixels).
@@ -68,7 +70,7 @@ namespace larflow {
 	ihit++;
       }
     }
-    
+    return evhit_v;
   }
   
   

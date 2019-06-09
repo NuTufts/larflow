@@ -30,10 +30,9 @@
 namespace larflow {
 
 
-  std::vector<larlite::larflow3dhit> makeFlowPixels( std::vector<larcv::Image2D>& adc_crop_v,
-                                                     std::vector<larcv::SparseImage>& flowy2u,
-                                                     std::vector<larcv::SparseImage>& flowy2v,
-                                                     const float threshold );
+  std::vector<larlite::larflow3dhit> makeFlowHitsFromSparseCrops( const std::vector<larcv::Image2D>& adc_crop_v,
+                                                                  const std::vector<larcv::SparseImage>& flowdata,
+                                                                  const float threshold, const std::string cropcfg );
   
   /* typedef enum { kY2U=0, kY2V, kNumFlowDirs } FlowDirection_t; //< indicates flow pattern */
   /* typedef std::pair<int,int> SrcTarPair_t;        // pair of source and target contour indices */
