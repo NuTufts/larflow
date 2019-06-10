@@ -20,7 +20,7 @@ namespace larflow {
     
     ContourFlowMatch_t( int srcid=-1, int tarid=-1 );
     
-    virtual ~ContourFlowMatch_t() { matchingflow_v.clear(); }
+    virtual ~ContourFlowMatch_t() { matchingflow_map.clear(); }
 
     ContourFlowMatch_t( const ContourFlowMatch_t& s );          // copy constructor
     
@@ -44,8 +44,25 @@ namespace larflow {
       int row;  //< row in full image
       float pred_miss; //< distance to nearest contour
       float dist2cropcenter; //< for source pixels with many predicts from overlapping crop, we trust those closest to center.
+      FlowPixel_t()
+      : src_wire(-1),
+        tar_wire(-1),
+        tar_orig(-1),
+        tick(-1),
+        row(-1),
+        pred_miss(0.0),
+        dist2cropcenter(0.0)
+      {};
     };
-    std::vector< FlowPixel_t > matchingflow_v;
+    std::map<int, std::vector<FlowPixel_t> >  matchingflow_map;
+    std::vector<FlowPixel_t>& getFlowPixelList( int src_index ) {
+      auto it = matchingflow_map.find( src_index );
+      if ( it==matchingflow_map.end() ) {
+        matchingflow_map.insert( std::pair<int,std::vector<FlowPixel_t> >( src_index, std::vector<FlowPixel_t>() ) );
+        it = matchingflow_map.find( src_index );
+      }
+      return it->second;
+    };
     
   };
 

@@ -27,7 +27,7 @@ namespace larflow {
       tar_ctr_id(x.tar_ctr_id),
       score(x.score)
   {
-    matchingflow_v = x.matchingflow_v;
+    matchingflow_map = x.matchingflow_map;
   }
   
 

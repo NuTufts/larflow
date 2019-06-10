@@ -235,7 +235,9 @@ namespace larflow {
         flowpix.tick     = tarmeta.pos_y( tar_row_full );
         flowpix.pred_miss = std::fabs(closest_dist);
         flowpix.dist2cropcenter = std::fabs(source_col - (float)srcmeta.cols()/2);
-        it_indexmap->second.matchingflow_v.push_back( flowpix );
+        int srcindex = (int)flowpix.row * srcfullmeta.cols() + (int)flowpix.src_wire;
+        std::vector<ContourFlowMatch_t::FlowPixel_t>& flowpix_v = it_indexmap->second.getFlowPixelList( srcindex );
+        flowpix_v.emplace_back( std::move(flowpix) );
         // log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
         //   << "creating a src-tar datapoint: "
         //   << "[src=" << src_full_wire << " -> "
