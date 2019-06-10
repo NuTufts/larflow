@@ -8,6 +8,7 @@
 
 // larlite
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/storage_manager.h"
 
 // larflow
 #include "larflow/FlowContourMatch/FlowContourMatch.h"
@@ -23,6 +24,10 @@ int main( int nargs, char** argv ) {
   larcv::IOManager io(larcv::IOManager::kREAD,"SparseInput");
   io.add_in_file( "test_sparseout_stitched.root" );
   io.initialize();
+
+  larlite::storage_manager out_larlite(larlite::storage_manager::kWRITE );
+  out_larlite.set_out_filename( "output_sparse_larflowhits.root" );
+  out_larlite.open();
 
   int nentries = io.get_n_entries();
 
@@ -49,8 +54,22 @@ int main( int nargs, char** argv ) {
     std::vector<larlite::larflow3dhit> flowhit = larflow::makeFlowHitsFromSparseCrops( adc_v,
                                                                                        dualflow_v,
                                                                                        10.0, cropcfg );
-    
+
+    larlite::event_larflow3dhit* ev_hitout
+      = (larlite::event_larflow3dhit*)out_larlite.get_data(larlite::data::kLArFlow3DHit,"flowhits");
+    int idx = 0;
+    for ( auto& hit : flowhit ) {
+      hit.idxhit = idx;
+      ev_hitout->emplace_back( std::move(hit) );
+      idx++;
+    }
+
+    out_larlite.set_id( ev_wire->run(), ev_wire->subrun(), ev_wire->event() );
+    out_larlite.next_event(true);
+    break;
   }
-  
+
+  out_larlite.close();
+    
   return 0;
 }
