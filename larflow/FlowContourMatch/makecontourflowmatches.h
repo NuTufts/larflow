@@ -16,7 +16,8 @@ namespace larflow {
                         const larcv::Image2D& tar_adc_crop,
                         ContourFlowMatchDict_t& matchdict,
                         const float threshold,
-                        const float max_dist_to_target_contour=30.0 );
+                        const float max_dist_to_target_contour=30.0,
+                        bool visualize=false );
   
 }
 

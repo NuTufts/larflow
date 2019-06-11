@@ -22,7 +22,7 @@ ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${HEADERS} LINKDEF LinkDef.h)
 add_library( ${LIBNAME} SHARED ${SOURCES} G__${LIBNAME}.cxx)
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 target_include_directories(${LIBNAME} PUBLIC ${LARCV_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} )
-target_link_libraries(${LIBNAME} LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor ${OpenCV_LIBS} LArCVApp_UBImageMod LArCVApp_ContourTools )
+target_link_libraries(${LIBNAME} LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor ${OpenCV_LIBS} LArCVApp_UBImageMod LArCVApp_ContourTools ${ROOT_LIBRARIES} )
 
 # install libraries and headers
 install(TARGETS ${LIBNAME}
