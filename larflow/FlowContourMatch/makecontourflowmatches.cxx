@@ -198,17 +198,17 @@ namespace larflow {
       }
 
       // now loop over source columns in contours and make matches to target contours
-      for ( auto const& source_col : src_cols_in_ctr ) {
+      for ( auto const& source_crop_col : src_cols_in_ctr ) {
 
-	float flow     = flow_img_crop.pixel(r,source_col);
-	int target_col = source_col+flow;
-        std::cout << " source col flow (" << r << "," << source_col << ") flow=" << flow << " targetcol=" << target_col << std::endl;
-        if ( target_col>= tarmeta.cols() )
+	float flow     = flow_img_crop.pixel(r,source_crop_col);
+	int target_crop_col = source_crop_col+flow;
+        std::cout << " source-crop-col flow (" << r << "," << source_crop_col << ") flow=" << flow << " target-crop-col=" << target_crop_col << std::endl;
+        if ( target_crop_col>= tarmeta.cols() )
           continue; // flow out of bounds
-        if ( target_col<0 )
+        if ( target_crop_col<0 )
           continue; // flow out of bounds
         float tar_row_full = tarfullmeta.row( tarmeta.pos_y(r) );
-        float tar_col_full = tarfullmeta.col( tarmeta.pos_x(target_col) );
+        float tar_col_full = tarfullmeta.col( tarmeta.pos_x(target_crop_col) );
         cv::Point tar_pt( tar_col_full, tar_row_full );
 
         if ( visualize ) {
@@ -217,7 +217,7 @@ namespace larflow {
         }
 	
 	// retrieve the contour we're in
-	int src_ctr_id = src_cols2ctrid[source_col];
+	int src_ctr_id = src_cols2ctrid[source_crop_col];
 	
 	// loop through the target contours, find the contour closest to the flowed-to target wire
         int closest_contour_idx = -1;
@@ -270,8 +270,8 @@ namespace larflow {
         
         
         // store the specific pixel flow information
-        float src_full_wire = srcmeta.pos_x(source_col);
-        float tar_full_wire = tarmeta.pos_x(target_col);
+        float src_full_wire = srcmeta.pos_x(source_crop_col);
+        float tar_full_wire = tarmeta.pos_x(target_crop_col);
         float in_contour_wire = tar_full_wire;
 
         if ( closest_dist<0 ) {
@@ -280,7 +280,7 @@ namespace larflow {
           float shifted_dist = -50;
           float shifted_pos  = 0;
           for (int ioffset=-1; ioffset<=1; ioffset+=2) {
-            float tar_col_full_shifted = tar_col_full + float(ioffset)*fabs(closest_dist);
+            float tar_col_full_shifted = tar_full_wire + float(ioffset)*fabs(closest_dist);
             float testdist = cv::pointPolygonTest( tar_ctr, cv::Point( tar_col_full_shifted, tar_row_full ), true );
             if ( testdist>shifted_dist ) {
               shifted_dist = testdist;
@@ -299,7 +299,7 @@ namespace larflow {
         flowpix.row      = tar_row_full;
         flowpix.tick     = tarfullmeta.pos_y( tar_row_full );
         flowpix.pred_miss = std::fabs(closest_dist);
-        flowpix.dist2cropcenter = std::fabs(source_col - (float)srcmeta.cols()/2);
+        flowpix.dist2cropcenter = std::fabs(source_crop_col - (float)srcmeta.cols()/2);
         int srcindex = (int)flowpix.row * srcfullmeta.cols() + (int)flowpix.src_wire;
         std::vector<ContourFlowMatch_t::FlowPixel_t>& flowpix_v = it_indexmap->second.getFlowPixelList( srcindex );
         flowpix_v.emplace_back( std::move(flowpix) );

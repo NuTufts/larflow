@@ -12,6 +12,7 @@ argparser.add_argument("-mc","--mctruth",  default=None,   type=str, help="locat
 argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry number")
 argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,hasmctrackid,dwall,recovstruth]")
 argparser.add_argument("-l", "--light",    action='store_true',      help="use light background")
+argparser.add_argument("-p", "--producer", default='flowhits', type=str, help="producer name for hits")
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -65,7 +66,7 @@ if colorscheme not in schemes:
 
 # get larflow hits
 io.go_to(args.entry)
-ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, "flowhits" )
+ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, args.producer )
 nhits = ev_larflow.size()
 ntruth = 0
 print "Number of larflow hits: ",nhits
@@ -197,6 +198,7 @@ print "sampling rate:",larutil.DetectorProperties.GetME().SamplingRate()
 print "cm_per_tick=",cm_per_tick
 
 def extract_trackpts( mctrack, sce ):
+    print "MCTrack: len=",mctrack.size()
     # convert mctrack points to image pixels
     steps_np  = np.zeros( (mctrack.size(),3) )
     colors_np = np.zeros( (mctrack.size(),4) )
@@ -224,6 +226,7 @@ def extract_trackpts( mctrack, sce ):
     return mcplot
 
 if args.mctruth is not None:
+    print "PLOT MC POINTS"
     sce = larutil.SpaceChargeMicroBooNE()
     iomc = larlite.storage_manager( larlite.storage_manager.kREAD )
     iomc.add_in_filename( args.mctruth )
