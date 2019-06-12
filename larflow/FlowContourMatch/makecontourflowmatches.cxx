@@ -13,17 +13,20 @@ namespace larflow {
    * extract flow for pixels in the cropped image.
    *
    * we compile the relationships between pixels and the different contour-clusters
-   * the goal is to start to see what contours on source and target imager are paired together
-   * through flow predictions
+   * the goal is to start to see what contours on source and target image
+   *  are paired together through flow predictions.
    *
    * @param[in] contour_data contour list for the wholeview image
-   * @param[in] flow_img flow data for a cropped images
    * @param[in] src_adc_full  adc values for the whole source image
    * @param[in] tar_adc_full  adc values for the whole target image
+   * @param[in] flow_img_crop flow data for a cropped images
    * @param[in] src_adc_crop  adc values for the cropped source image
    * @param[in] tar_adc_crop  adc values for the cropped target image
-   * @param[in] threshold adc threshold
    * @param[inout] matchdict container storing src-to-target contour pair information
+   * @param[in] threshold adc threshold
+   * @param[in] max_dist_to_target_contour flow points larger than this distance are ignored
+   * @param[in] verbosity Choose output level: [kNORMAL (default)=2, kINFO=1, kDEBUG=0]
+   * @param[in] visualize if true, dump out images showing flow
    *
    */
   void createMatchData( const ublarcvapp::ContourClusterAlgo& contour_data,

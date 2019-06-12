@@ -17,7 +17,7 @@ namespace larflow {
    * @param[in] adc_full_v Image2D with ADC values over a full image (not expecting crops)
    * @param[in] contours   ContourClusterAlgo which holds the contours found in each plane
    * @param[in] matchdict  ContorFlowMatchDict_t for each flow direction
-   *
+   * @return a vector of larflow3d hits made
    */
   std::vector<larlite::larflow3dhit> makeSimpleFlowHits( const std::vector<larcv::Image2D>& adc_full_v,
                                                          const ublarcvapp::ContourClusterAlgo& contours,
