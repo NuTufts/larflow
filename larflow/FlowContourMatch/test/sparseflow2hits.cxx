@@ -5,6 +5,7 @@
 #include "TApplication.h"
 
 // larcv
+#include "larcv/core/Base/larcv_logger.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventSparseImage.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
@@ -24,6 +25,8 @@ int main( int nargs, char** argv ) {
 
   TApplication app("app",&nargs,argv);
 
+  larcv::logger log("sparseflow2hits");
+
   std::string cropcfg = "ubcrop.cfg";
   
   larcv::IOManager io_fullview(larcv::IOManager::kREAD,"FullView",larcv::IOManager::kTickBackward);
@@ -40,10 +43,11 @@ int main( int nargs, char** argv ) {
 
   int nentries = io_sparse.get_n_entries();
 
-  std::cout << "Number of entries: " << nentries << std::endl;
+  log.send(larcv::msg::kINFO) << "Number of entries: " << nentries << std::endl;
   nentries = 1;
 
   for ( size_t i=0; i<nentries; i++ ) {
+    
     io_sparse.read_entry(i);
     io_fullview.read_entry(i);    
 
@@ -67,14 +71,19 @@ int main( int nargs, char** argv ) {
     auto const& dualflow_v = ev_crop_dualflow->SparseImageArray();
 
     
-    std::cout << "ENTRY[" << i << "] num dualflow crops: " << dualflow_v.size() << std::endl;
-    
+    log.send(larcv::msg::kINFO) << "ENTRY[" << i << "] num dualflow crops: " << dualflow_v.size() << std::endl;
+
+
+    log.send(larcv::msg::kINFO) << "Make Reco Flow Hits" << std::endl;
+      
     // RECO FLOW HITS
     std::vector<larlite::larflow3dhit> flowhit
       = larflow::makeFlowHitsFromSparseCrops( adc_v,
                                               dualflow_v,
                                               10.0,
                                               cropcfg );
+
+    log.send(larcv::msg::kINFO) << "Make True Flow Hits" << std::endl;    
 
     // TRUTH FLOW HITS
     std::vector<larlite::larflow3dhit> trueflow
@@ -85,6 +94,8 @@ int main( int nargs, char** argv ) {
                                                  "ubcroptrueflow.cfg" );
 
     // OUTPUT
+    log.send(larcv::msg::kINFO) << "Save the output." << std::endl;
+    
     larlite::event_larflow3dhit* ev_hitout
       = (larlite::event_larflow3dhit*)out_larlite.get_data(larlite::data::kLArFlow3DHit,"flowhits");
 

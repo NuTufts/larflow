@@ -35,19 +35,20 @@ namespace larflow {
                         ContourFlowMatchDict_t& matchdict,
                         const float threshold,
                         const float max_dist_to_target_contour,
+                        const larcv::msg::Level_t verbosity,
                         const bool visualize )
-  //const larcv::msg::level_t msg_level )
   {
                         
-
     larcv::logger log("createMatchData");
+    log.set(verbosity);
     
     int src_planeid = src_adc_crop.meta().plane();
     int tar_planeid = tar_adc_crop.meta().plane();
-    log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-      << " source plane=" << src_planeid << " "
-      << " target plane=" << tar_planeid
-      << std::endl;
+    if ( log.debug() )
+      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+        << " source plane=" << src_planeid << " "
+        << " target plane=" << tar_planeid
+        << std::endl;
 
     const larcv::ImageMeta& srcfullmeta = src_adc_full.meta();
     const larcv::ImageMeta& tarfullmeta = tar_adc_full.meta();    
@@ -131,13 +132,13 @@ namespace larflow {
 
           }
 	}//end of contour loop
-        if ( !found_contour ) {
-          std::cout << "did not find source contour for point (col,row)=(" << pt.x << "," << pt.y << ")! "
-                    << " closest dist=" << closestdist << std::endl;
+        if ( !found_contour && log.debug() ) {
+          log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__ ) << "did not find source contour for point (col,row)=(" << pt.x << "," << pt.y << ")! "
+                                                               << " closest dist=" << closestdist << std::endl;
         }
       }//end of cropped column loop
       //std::cout << std::endl;
-
+      
       // Find Contours on the target image in this row
       //std::cout << "target: ";      
       for ( int c=0; c<(int)tarmeta.cols(); c++) {
@@ -173,28 +174,31 @@ namespace larflow {
 	    break;
 	  }
 	}//end of target contour loop
-        if ( !found_contour ) {
-          std::cout << "did not find target contour for point (col,row)=(" << pt.x << "," << pt.y << ")! "
-                    << " localpix=(" << c << "," << r << ") "
-                    << " closest dist=" << closest_dist << std::endl;
+        if ( !found_contour && log.debug() ) {
+          log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__ )
+            << "did not find target contour for point (col,row)=(" << pt.x << "," << pt.y << ")! "
+            << " localpix=(" << c << "," << r << ") "
+            << " closest dist=" << closest_dist << std::endl;
         }
       }//end of target col loop
       //std::cout << std::endl;
       
       // Nothing in this row, move on to the next row
       if ( src_cols_in_ctr.size()==0 || tar_ctr_ids.size()==0 ) {
-	log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__)
-          << "nothing to match. "
-          << " srcwires=" << src_cols_in_ctr.size()
-          << " tarwires=" << tar_ctr_ids.size()
-          << std::endl;
-	continue;
+        if ( log.debug() )
+          log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+            << "nothing to match. "
+            << " srcwires=" << src_cols_in_ctr.size()
+            << " tarwires=" << tar_ctr_ids.size()
+            << std::endl;
+        continue;
       }
       else if ( src_cols_in_ctr.size()>0 && tar_ctr_ids.size()>0 ) {
-	log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-          << " srcwires=" << src_cols_in_ctr.size()
-          << " tarwires=" << tar_ctr_ids.size()
-          << std::endl;        
+        if ( log.debug() )
+          log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+            << " srcwires=" << src_cols_in_ctr.size()
+            << " tarwires=" << tar_ctr_ids.size()
+            << std::endl;        
       }
 
       // now loop over source columns in contours and make matches to target contours
@@ -202,7 +206,7 @@ namespace larflow {
 
 	float flow     = flow_img_crop.pixel(r,source_crop_col);
 	int target_crop_col = source_crop_col+flow;
-        std::cout << " source-crop-col flow (" << r << "," << source_crop_col << ") flow=" << flow << " target-crop-col=" << target_crop_col << std::endl;
+        //std::cout << " source-crop-col flow (" << r << "," << source_crop_col << ") flow=" << flow << " target-crop-col=" << target_crop_col << std::endl;
         if ( target_crop_col>= tarmeta.cols() )
           continue; // flow out of bounds
         if ( target_crop_col<0 )
@@ -246,7 +250,7 @@ namespace larflow {
         }//end of contour loop
 
         // if no contour found, move on
-        std::cout << "source -> tar contour index=" << closest_contour_idx << ". closest dist=" << closest_dist << std::endl;        
+        //std::cout << "source -> tar contour index=" << closest_contour_idx << ". closest dist=" << closest_dist << std::endl;        
         if ( closest_contour_idx<0 ) {
           continue;
         }
@@ -305,19 +309,21 @@ namespace larflow {
         flowpix_v.emplace_back( std::move(flowpix) );
 
         // debug
-        log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-          << "creating a src-tar datapoint: "
-          << "[src=" << src_full_wire << " -> "
-          << "tar(orig)=" << tar_full_wire << " tar(shift)=" << in_contour_wire << "] "
-          << "dist2ctr=" << closest_dist << "(orig) "
-          << std::endl;
+        if ( log.debug() )
+          log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+            << "creating a src-tar datapoint: "
+            << "[src=" << src_full_wire << " -> "
+            << "tar(orig)=" << tar_full_wire << " tar(shift)=" << in_contour_wire << "] "
+            << "dist2ctr=" << closest_dist << "(orig) "
+            << std::endl;
         
       }//end of loop over source cols
     }//end of loop over rows
-    log.send( larcv::msg::kINFO,__FUNCTION__,__LINE__ )
-      << "Number of pixels inside crop that flowed into a contour: "
-      << nflow_into_ctr
-      << std::endl;
+    if ( log.info() )
+      log.send( larcv::msg::kINFO,__FUNCTION__,__LINE__ )
+        << "Number of pixels inside crop that flowed into a contour: "
+        << nflow_into_ctr
+        << std::endl;
 
     if ( visualize ) {
       // we plot all three planes.
@@ -388,7 +394,7 @@ namespace larflow {
       sprintf( cname, "flowcheck_%d_%d.png",(int)src_adc_crop.meta().min_x(),(int)src_adc_crop.meta().min_y() );
       c.SaveAs(cname);
 
-      std::cout << "[enter] to continue." << std::endl;
+      //std::cout << "[enter] to continue." << std::endl;
       //std::cin.get();
     }
 

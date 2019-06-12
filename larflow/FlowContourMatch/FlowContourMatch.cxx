@@ -29,6 +29,7 @@ namespace larflow {
    * @param[in] flowy2v vector of SparseImage crops containing Y->V flow predictions
    * @param[in] threshold ignore information where pixel value is below threshold
    * @param[in] cropcfg path to config file for UBSplitDetector. default can be found in repo as 'ubcrop.cfg'.
+   * @param[in] verbosity Control amount of output: [0] DEBUG [1] INFO [2] NORMAL [3] QUIET. Default [2].
    * @param[in] visualize If true, we display the flow and save an png.  Advisable to only one run event in this mode.
    *
    * return vector of larflow3dhit
@@ -37,19 +38,21 @@ namespace larflow {
                                                                   const std::vector<larcv::SparseImage>& flowdata,
                                                                   const float threshold,
                                                                   const std::string cropcfg,
+                                                                  const larcv::msg::Level_t verbosity,
                                                                   const bool visualize ) 
   {
 
-    larcv::logger log("larflow::makeFlowPixels");
+    larcv::logger log("larflow::makeFlowHitsFromSparseCrops");
+    log.set(verbosity);
 
     //std::cout << "make pixels from images" << std::endl;
-    log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "make pixels from images" << std::endl;
+    if ( log.debug() ) log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "make pixels from images" << std::endl;
 
     /// step: make hits from pixels in image, for each plane
     std::vector<larlite::event_hit> hit_vv;
     for ( auto const& adc : adc_v ) {
       auto hit_v = makeHitsFromWholeImagePixels( adc, threshold );
-      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+      if ( log.debug() ) log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
         << "made " << hit_v.size() << " pixel hits in plane[" << adc.meta().plane() << "]" << std::endl;
       hit_vv.emplace_back( std::move(hit_v) );
     }
@@ -58,10 +61,12 @@ namespace larflow {
     ublarcvapp::ContourClusterAlgo contours;
     contours.analyzeImages( adc_v );
 
-    log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "ContourClusterAlgo results:" << std::endl;
-    for ( size_t p=0; p<3; p++ ) {
-      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "  atomic clusters in plane[" << p << "]: "
-                                                         << contours.m_plane_atomicmeta_v[p].size() << std::endl;
+    if ( log.debug() ) {
+      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "ContourClusterAlgo results:" << std::endl;
+      for ( size_t p=0; p<3; p++ ) {
+        log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "  atomic clusters in plane[" << p << "]: "
+                                                           << contours.m_plane_atomicmeta_v[p].size() << std::endl;
+      }
     }
 
     // step: crop image
@@ -94,10 +99,12 @@ namespace larflow {
           const larcv::Image2D& crop_y = cropped_v.at( 3*icropset+2 );
           // do the meta's match
           if ( crop_y.meta()==sparseimg.meta_v().front() ) {
-            log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-              << "Meta matched between cropped_adc[" << icropset << "] "
-              << "and sparse flowimage[" << iflowdata << "] "
-              << std::endl;
+            if ( log.debug() ) {
+              log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+                << "Meta matched between cropped_adc[" << icropset << "] "
+                << "and sparse flowimage[" << iflowdata << "] "
+                << std::endl;
+            }
             cropped_index = (int)icropset;
             break;
           }
@@ -119,7 +126,7 @@ namespace larflow {
                           sparseimg.as_Image2D().at(iflowdir),
                           src_adc_crop, tar_adc_crop,
                           matchdict_v.at(iflowdir),
-                          threshold, 30.0, visualize );
+                          threshold, 30.0, verbosity, visualize );
         
       }//end of flow data loop
     }//end of flow direction loop
@@ -128,7 +135,9 @@ namespace larflow {
     std::vector<larlite::larflow3dhit> flowhits_v
       = makeSimpleFlowHits( adc_v, contours, matchdict_v );
 
-    log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__) << "Made " << flowhits_v.size() << " flowhits" << std::endl;
+    if ( log.info() )
+      log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__) << "Made " << flowhits_v.size() << " flowhits" << std::endl;
+    
     return flowhits_v;
   }
   
@@ -152,31 +161,37 @@ namespace larflow {
                                                                      const std::vector<larcv::Image2D>& larflow_v,
                                                                      const float threshold,
                                                                      const std::string cropcfg,
+                                                                     const larcv::msg::Level_t verbosity,
                                                                      const bool visualize ) 
   {
     
     larcv::logger log("larflow::makeTrueFlowHitsFromWholeImage");
+    log.set(verbosity);
     
     //std::cout << "make pixels from images" << std::endl;
-    log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "make true flow pixels from whole images" << std::endl;
+    if ( log.debug() ) log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "make true flow pixels from whole images" << std::endl;
     
     /// step: make hits from pixels in image, for each plane
     std::vector<larlite::event_hit> hit_vv;
     for ( auto const& adc : adc_v ) {
       auto hit_v = makeHitsFromWholeImagePixels( adc, threshold );
-      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-        << "made " << hit_v.size() << " pixel hits in plane[" << adc.meta().plane() << "]" << std::endl;
+      if ( log.debug() ) {
+        log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+          << "made " << hit_v.size() << " pixel hits in plane[" << adc.meta().plane() << "]" << std::endl;
+      }
       hit_vv.emplace_back( std::move(hit_v) );
     }
     
     /// step: make contours on whole view images.
     ublarcvapp::ContourClusterAlgo contours;
     contours.analyzeImages( adc_v );
-    
-    log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "ContourClusterAlgo results:" << std::endl;
-    for ( size_t p=0; p<3; p++ ) {
-      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "  atomic clusters in plane[" << p << "]: "
+
+    if ( log.debug() ) {
+      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "ContourClusterAlgo results:" << std::endl;
+      for ( size_t p=0; p<3; p++ ) {
+        log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__) << "  atomic clusters in plane[" << p << "]: "
                                                          << contours.m_plane_atomicmeta_v[p].size() << std::endl;
+      }
     }
     
     // step: splitter and cropper
@@ -207,8 +222,10 @@ namespace larflow {
     }
     
     // check crop alignment
-    log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-      << " ncropped=" << cropped_v.size() << " nflow=" << cropped_flow_v.size() << std::endl;    
+    if ( log.debug() )
+      log.send( larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+        << " ncropped=" << cropped_v.size() << " nflow=" << cropped_flow_v.size() << std::endl;
+    
     if ( cropped_flow_v.size()/2!=cropped_v.size()/3 ) {
       log.send( larcv::msg::kCRITICAL,__FUNCTION__,__LINE__ )
         << "number of flow and ADC crops are inconsistent" << std::endl;
@@ -237,10 +254,12 @@ namespace larflow {
           const larcv::Image2D& crop_y = cropped_v.at( 3*icropset+2 );
           // do the meta's match
           if ( crop_y.meta()==truthflow.meta() ) {
-            log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-              << "Meta matched between cropped_adc[" << icropset << "] "
-              << "and sparse flowimage[" << iflowdata << "] "
-              << std::endl;
+            if ( log.debug() ) {
+              log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+                << "Meta matched between cropped_adc[" << icropset << "] "
+                << "and sparse flowimage[" << iflowdata << "] "
+                << std::endl;
+            }
             cropped_index = (int)icropset;
             break;
           }
@@ -262,7 +281,7 @@ namespace larflow {
                           truthflow,
                           src_adc_crop, tar_adc_crop,
                           matchdict_v.at(iflowdir),
-                          threshold, 30.0, visualize );
+                          threshold, 30.0, verbosity, visualize );
                           
         
       }//end of flow data loop
@@ -272,7 +291,7 @@ namespace larflow {
     std::vector<larlite::larflow3dhit> flowhits_v
       = makeSimpleFlowHits( adc_v, contours, matchdict_v );
 
-    log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__) << "Made " << flowhits_v.size() << " flowhits" << std::endl;
+    if ( log.info() ) log.send(larcv::msg::kINFO,__FUNCTION__,__LINE__) << "Made " << flowhits_v.size() << " flowhits" << std::endl;
     return flowhits_v;
   }
   
