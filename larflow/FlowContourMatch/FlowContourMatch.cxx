@@ -297,5 +297,5 @@ namespace larflow {
     return flowhits_v;
   }
   
-
+  // same as above, but with EventChStatus pointer, better for python?
 }
