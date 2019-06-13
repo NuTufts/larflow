@@ -81,7 +81,8 @@ int main( int nargs, char** argv ) {
       = larflow::makeFlowHitsFromSparseCrops( adc_v,
                                               dualflow_v,
                                               10.0,
-                                              cropcfg );
+                                              cropcfg, larcv::msg::kNORMAL,
+                                              true );
 
     log.send(larcv::msg::kINFO) << "Make True Flow Hits" << std::endl;    
 

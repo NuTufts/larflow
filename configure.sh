@@ -30,6 +30,9 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 # add utils folder to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_UTILSDIR}:"* ]] && PYTHONPATH="${LARFLOW_UTILSDIR}:${PYTHONPATH}"
 
+# add loader for c++ library to python path
+[[ ":$PYTHONPATH:" != *":${LARFLOW_BASEDIR}/python:"* ]] && PYTHONPATH="${LARFLOW_BASEDIR}/python:${PYTHONPATH}"
+
 
 # SETUP CILANTRO
 export CILANTRO_INC_DIR=${LARFLOW_BASEDIR}/cilantro/include
@@ -40,6 +43,7 @@ export CILANTRO_LIB_DIR=${LARFLOW_BASEDIR}/cilantro/build
 export EIGEN_INC_DIR=/usr/include/eigen3
 export EIGEN_LIB_DIR=
 
+# SETUP LARCVDATASET
 cd larcvdataset
 source setenv.sh
 cd ../

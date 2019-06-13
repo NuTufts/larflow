@@ -69,7 +69,7 @@ namespace larflow {
 
     // if we visualize, we fill points here
     std::vector<float> vis_row[2];
-    std::vector<float> vis_col[2];
+    std::vector<float> vis_col[3];
       
     int nsrcpix_in_ctr = 0; // number of source image pixels inside a contour
     int ntarpix_in_ctr = 0; // number of target image pixels inside a contour
@@ -217,11 +217,6 @@ namespace larflow {
         float tar_row_full = tarfullmeta.row( tarmeta.pos_y(r) );
         float tar_col_full = tarfullmeta.col( tarmeta.pos_x(target_crop_col) );
         cv::Point tar_pt( tar_col_full, tar_row_full );
-
-        if ( visualize ) {
-          vis_row[1].push_back( tarmeta.pos_y(r) );
-          vis_col[1].push_back( tar_col_full );
-        }
 	
 	// retrieve the contour we're in
 	int src_ctr_id = src_cols2ctrid[source_crop_col];
@@ -258,6 +253,12 @@ namespace larflow {
           continue;
         }
 
+
+        if ( visualize ) {
+          vis_row[1].push_back( tarmeta.pos_y(r) );
+          vis_col[1].push_back( tar_col_full );
+        }
+        
         // else we store/append a src-tar contour match for this source pixel
         
         // store the match data
@@ -280,24 +281,29 @@ namespace larflow {
         float src_full_wire = srcmeta.pos_x(source_crop_col);
         float tar_full_wire = tarmeta.pos_x(target_crop_col);
         float in_contour_wire = tar_full_wire;
-
+        
         if ( closest_dist<0 ) {
           // if we missed a contour, we find the offset that moves us into it
           const ublarcvapp::Contour_t& tar_ctr = contour_data.m_plane_atomics_v[tar_planeid][closest_contour_idx];
-          float shifted_dist = -50;
+          bool shift_pos = false;
           float shifted_pos  = 0;
           for (int ioffset=-1; ioffset<=1; ioffset+=2) {
             float tar_col_full_shifted = tar_full_wire + float(ioffset)*fabs(closest_dist);
             float testdist = cv::pointPolygonTest( tar_ctr, cv::Point( tar_col_full_shifted, tar_row_full ), true );
-            if ( testdist>shifted_dist ) {
-              shifted_dist = testdist;
+            if ( testdist>=0 || (testdist>-max_dist_to_target_contour && fabs(testdist)<fabs(closest_dist)) ) {
               shifted_pos = tar_col_full_shifted;
+              //std::cout << "shifted position better: dist=" << closest_dist << " to " << testdist << std::endl;
+              closest_dist = testdist;
+              shift_pos = true;
             }
           }
-          if ( shifted_dist>-50 )
+          // replace, as we did better
+          if ( shift_pos )
             in_contour_wire = shifted_pos;
         }
 
+        if ( visualize )
+          vis_col[2].push_back( in_contour_wire );
           
         ContourFlowMatch_t::FlowPixel_t flowpix;
         flowpix.src_wire = src_full_wire;
@@ -347,6 +353,7 @@ namespace larflow {
       TH2D hadc_target = larcv::as_th2d( tar_adc_full, "hadc_target" );
       TGraph gsrcpts( vis_row[0].size(), vis_col[0].data(), vis_row[0].data() );
       TGraph gtarpts( vis_row[1].size(), vis_col[1].data(), vis_row[1].data() );
+      TGraph gtarcontourpts( vis_col[2].size(), vis_col[2].data(), vis_row[1].data() );
 
       TBox src_box( src_adc_crop.meta().min_x(), src_adc_crop.meta().min_y(),
                     src_adc_crop.meta().max_x(), src_adc_crop.meta().max_y() );
@@ -361,10 +368,13 @@ namespace larflow {
 
       c.Draw();      
 
-      gsrcpts.SetLineColor(kRed);
       gsrcpts.SetMarkerStyle(24);
-      gtarpts.SetLineColor(kRed);
+
       gtarpts.SetMarkerStyle(24);
+
+      gtarcontourpts.SetLineColor(kRed);      
+      gtarcontourpts.SetMarkerColor(kRed);
+      gtarcontourpts.SetMarkerStyle(24);
 
       c.cd(1);
       hadc_source.Draw("colz");
@@ -373,7 +383,8 @@ namespace larflow {
       
       c.cd(2);
       hadc_target.Draw("colz");
-      gtarpts.Draw("p");
+      gtarpts.Draw("psame");
+      gtarcontourpts.Draw("psame");
       tar_box.Draw("same");
 
       c.Update();
@@ -393,8 +404,10 @@ namespace larflow {
       hflow_crop.Draw("colz");
       ccheck.Update();
 
-      char cname[50];
-      sprintf( cname, "flowcheck_%d_%d.png",(int)src_adc_crop.meta().min_x(),(int)src_adc_crop.meta().min_y() );
+      char cname[100];
+      sprintf( cname, "flowcheck_src%d_to_tar%d_%d_%d.png",
+               (int)src_adc_crop.meta().plane(),(int)tar_adc_crop.meta().plane(),
+               (int)src_adc_crop.meta().min_x(),(int)src_adc_crop.meta().min_y() );
       c.SaveAs(cname);
 
       //std::cout << "[enter] to continue." << std::endl;

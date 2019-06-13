@@ -84,12 +84,11 @@ configure_package_config_file("cmake/Config.cmake.in"
 write_basic_package_version_file("${CMAKE_BINARY_DIR}/cmake/larflowConfigVersion.cmake"
   COMPATIBILITY SameMajorVersion)
 
-## Export Targets
 
 #---Create info to include larflow in other cmake files
-install(EXPORT larflow
-        FILE larflowTargets.cmake 
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/larflow")
+#install(EXPORT larflow
+#        FILE larflowTargets.cmake 
+#        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/larflow")
 
 #---Create info to include larflow in other cmake files
 install(FILES "${CMAKE_BINARY_DIR}/cmake/larflowConfig.cmake"

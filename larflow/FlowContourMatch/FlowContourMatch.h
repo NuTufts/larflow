@@ -25,7 +25,7 @@ namespace larflow {
                                                                   const std::string cropcfg,
                                                                   const larcv::msg::Level_t verbosity=larcv::msg::kNORMAL,
                                                                   const bool visualize=false );
-  
+    
   std::vector<larlite::larflow3dhit> makeTrueFlowHitsFromWholeImage( const std::vector<larcv::Image2D>& adc_v,
                                                                      const larcv::EventChStatus& chstatus,
                                                                      const std::vector<larcv::Image2D>& larflow_v,
@@ -34,6 +34,12 @@ namespace larflow {
                                                                      const larcv::msg::Level_t verbosity=larcv::msg::kNORMAL,
                                                                      const bool visualize=false );
 
+  // hack to get functions to load
+  class load_flow_contour_match {
+  public:
+    load_flow_contour_match() {};
+    ~load_flow_contour_match() {};
+  };
 }
 
 #endif

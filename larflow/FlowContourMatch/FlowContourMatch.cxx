@@ -149,9 +149,11 @@ namespace larflow {
    * create 3D spacepoints using true flow information
    *
    * @param[in] adc_v vector of Image2D containing ADC values. Whole view.
+   * @param[in] chstatus EventChStatus object containing good/bad channel list
    * @param[in] larflow_v vector of Image2D containing true flow invalues. Whole view.
    * @param[in] threshold ignore information where pixel value is below threshold
    * @param[in] cropcfg path to config file for UBSplitDetector. default can be found in repo as 'ubcroptrueflow.cfg'.
+   * @param[in] verbosity verbosity Control amount of output: [0] kDEBUG [1] kINFO [2] kNORMAL. Default [2].
    * @param[in] visualize If true, we display the flow and save an png.  Advisable to only one run event in this mode.
    *
    * return vector of larflow3dhit
