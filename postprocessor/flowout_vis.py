@@ -13,6 +13,8 @@ argparser.add_argument("-e", "--entry",    required=True,  type=int, help="entry
 argparser.add_argument("-c", "--color",    default="default", type=str, help="colorscheme. options: [ssnet,quality,flowdir,infill,3ddist,hastruth,hasmctrackid,dwall,recovstruth]")
 argparser.add_argument("-l", "--light",    action='store_true',      help="use light background")
 argparser.add_argument("-p", "--producer", default='flowhits', type=str, help="producer name for hits")
+argparser.add_argument("-t", "--trueflow", default=None, type=str, help="producer name for true flow hits (typically 'trueflowhits')")
+
 args = argparser.parse_args(sys.argv[1:])
 
 # Setup pyqtgraph/nump
@@ -66,130 +68,142 @@ if colorscheme not in schemes:
 
 # get larflow hits
 io.go_to(args.entry)
-ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, args.producer )
-nhits = ev_larflow.size()
-ntruth = 0
-print "Number of larflow hits: ",nhits
 
-if colorscheme=="colorbyrecovstruth":
-    # we also need to count points with truth
+def get_hits(colorscheme, producer):
+    ev_larflow = io.get_data(larlite.data.kLArFlow3DHit, producer )
+    nhits = ev_larflow.size()
+    ntruth = 0
+    print "Number of larflow hits in ",producer,": ",nhits
+
+    if colorscheme=="colorbyrecovstruth":
+        # we also need to count points with truth
+        for ihit in xrange(nhits):
+            hit = ev_larflow.at(ihit)
+            if hit.truthflag>0:
+                ntruth += 1
+
+    # we get positions, and also set color depending on type
+    # note ntruth=0 unless colorscheme is recovstruth
+    pos_np = np.zeros( (nhits+ntruth,3) )
+    colors = np.zeros( (nhits+ntruth,4) )
+    #hitplot = gl.GLScatterPlotItem(pos=pos3, color=(1,1,1,.3), size=0.1, pxMode=False)
+
+    itruthhit = 0
     for ihit in xrange(nhits):
-        hit = ev_larflow.at(ihit)
-        if hit.truthflag>0:
-            ntruth += 1
-
-# we get positions, and also set color depending on type
-# note ntruth=0 unless colorscheme is recovstruth
-pos_np = np.zeros( (nhits+ntruth,3) )
-colors = np.zeros( (nhits+ntruth,4) )
-#hitplot = gl.GLScatterPlotItem(pos=pos3, color=(1,1,1,.3), size=0.1, pxMode=False)
-
-itruthhit = 0
-for ihit in xrange(nhits):
     
-    hit = ev_larflow.at(ihit)
-    pos_np[ihit,0] = hit.at(0)-130.0
-    pos_np[ihit,1] = hit.at(1)
-    pos_np[ihit,2] = hit.at(2)-500.0
+        hit = ev_larflow.at(ihit)
+        pos_np[ihit,0] = hit.at(0)-130.0
+        pos_np[ihit,1] = hit.at(1)
+        pos_np[ihit,2] = hit.at(2)-500.0
 
-    if colorscheme=="colorbyquality":
-        if hit.matchquality==0:
-            # on charge in cluster
-            colors[ihit,:] = (1.0,1.0,1.0,1.0)
-        elif hit.matchquality==1:
-            # in cluster, moved to nearest charge
-            colors[ihit,:] = (1.0,0.0,0.0,1.0)
-        elif hit.matchquality==2:
+        if colorscheme=="colorbyquality":
+            if hit.matchquality==0:
+                # on charge in cluster
+                colors[ihit,:] = (1.0,1.0,1.0,1.0)
+            elif hit.matchquality==1:
+                # in cluster, moved to nearest charge
+                colors[ihit,:] = (1.0,0.0,0.0,1.0)
+            elif hit.matchquality==2:
             # outside cluster, moved to nearest cluster
-            colors[ihit,:] = (0.0,1.0,0.0,1.0)
-        else:
-            # no match
-            colors[ihit,:] = (0.0,0.0,0.0,1.0)
-    elif colorscheme=="colorbyssnet":
-        if hit.endpt_score>0.8:
-            colors[ihit,:] = (1.0,0.0,0.0,1.0)
-        elif hit.renormed_track_score>0.5:
-            colors[ihit,:] = (1.0,1.0,1.0,1.0)
-        elif hit.renormed_shower_score>0.5:
-            colors[ihit,:] = (0.0,1.0,0.0,1.0)
-        else:
-            colors[ihit,:] = (0.0,0.0,1.0,1.0)
-
-    elif colorscheme=="colorbyflowdir":
-        if hit.flowdir==larlite.larflow3dhit.kY2U:
-            colors[ihit,:] = (1.,1.,1.,1.)
-        else:
-            colors[ihit,:] = (1.,0.,0.,1.)
-        
-    elif colorscheme=="colorbyinfill":
-        if hit.src_infill!=0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
-            # src on infill blue
-            colors[ihit,:] = (0.0,0.0,1.0,1.0)
-        elif (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0) and hit.src_infill==0:
-            # target on infill red
-            colors[ihit,:] = (1.0,0.0,0.0,1.0)
-        elif (hit.src_infill!=0 and (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0)):
-            # both src and tar on infill green
-            colors[ihit,:] = (0.0,1.0,0.0,1.0)
-        elif hit.src_infill==0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
-            # neither src nor tar on infill white
-            colors[ihit,:] = (1.0,1.0,1.0,1.0)
-
-    elif colorscheme=="colorby3ddist":
-        if hit.consistency3d==0:
-            colors[ihit,:] = (1.,1.,1.,1.)
-        elif hit.consistency3d==1:
-            colors[ihit,:] = (1.,0.,0.,1.)
-        elif hit.consistency3d==2:
-            colors[ihit,:] = (0.,1.,0.,1.)
-        elif hit.consistency3d==3:
-            colors[ihit,:] = (0.,0.,1.,1.)
-        else:
-            colors[ihit,:] = (1.,0.,1.,1.)
-
-    elif colorscheme=="colorbyhastruth":
-        if hit.truthflag==1:
-            colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
-        elif hit.truthflag==2:
-            colors[ihit,:] = (1.,0.,0.,1.) # mctrack tails matched
-        elif hit.truthflag==0:
-            colors[ihit,:] = (0.,1.,0.,1.) # mctrack not matched
-        else:
-            colors[ihit,:] = (1.,1.,1.,1.) # kUnknown
-
-    elif colorscheme=="colorbyhasmctrackid":
-        if hit.trackid>=0:
-            colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
-        else:
-            colors[ihit,:] = (1.,0.,0.,1.) # kUnknown
-
-    elif colorscheme=="colorbydwall":
-        if hit.dWall>15.:
-            colors[ihit,:] = (1.,1.,1.,1.)
-        elif hit.dWall==-1:
-            colors[ihit,:] = (0.,1.,0.,1.)
-        else:
-            colors[ihit,:] = (1.,0.,0.,1.)
-        if hit.endpt_score>0.8:
-            colors[ihit,:] = (0.,0.,1.,1.)
-
-    elif colorscheme=="colorbyrecovstruth":
-        colors[ihit,:] = (1.,1.,1.,0.5) # color for reco points is white        
-        if hit.truthflag>0:
-            # create a truth hit that is red
-            pos_np[nhits+itruthhit,0] = hit.X_truth[0]-130
-            pos_np[nhits+itruthhit,1] = hit.X_truth[1]
-            pos_np[nhits+itruthhit,2] = hit.X_truth[2]-500.0
-            if hit.truthflag==1:
-                colors[nhits+itruthhit,:] = (1.,0.,0.,1.0) # core truth hit is red
+                colors[ihit,:] = (0.0,1.0,0.0,1.0)
             else:
-                colors[nhits+itruthhit,:] = (0.,0.,1.,1.0) # edge truth hit is bleed                
-            itruthhit+=1
-    elif colorscheme=="colorbydefault":
-        colors[ihit,:] = (1.,1.,1.,1.)
-            
+                # no match
+                colors[ihit,:] = (0.0,0.0,0.0,1.0)
+        elif colorscheme=="colorbyssnet":
+            if hit.endpt_score>0.8:
+                colors[ihit,:] = (1.0,0.0,0.0,1.0)
+            elif hit.renormed_track_score>0.5:
+                colors[ihit,:] = (1.0,1.0,1.0,1.0)
+            elif hit.renormed_shower_score>0.5:
+                colors[ihit,:] = (0.0,1.0,0.0,1.0)
+            else:
+                colors[ihit,:] = (0.0,0.0,1.0,1.0)
 
+        elif colorscheme=="colorbyflowdir":
+            if hit.flowdir==larlite.larflow3dhit.kY2U:
+                colors[ihit,:] = (1.,1.,1.,1.)
+            else:
+                colors[ihit,:] = (1.,0.,0.,1.)
+                
+        elif colorscheme=="colorbyinfill":
+            if hit.src_infill!=0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
+                # src on infill blue
+                colors[ihit,:] = (0.0,0.0,1.0,1.0)
+            elif (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0) and hit.src_infill==0:
+                # target on infill red
+                colors[ihit,:] = (1.0,0.0,0.0,1.0)
+            elif (hit.src_infill!=0 and (hit.tar_infill[0]!=0 or hit.tar_infill[1]!=0)):
+                # both src and tar on infill green
+                colors[ihit,:] = (0.0,1.0,0.0,1.0)
+            elif hit.src_infill==0 and hit.tar_infill[0]==0 and hit.tar_infill[1]==0:
+                # neither src nor tar on infill white
+                colors[ihit,:] = (1.0,1.0,1.0,1.0)
+
+        elif colorscheme=="colorby3ddist":
+            if hit.consistency3d==0:
+                colors[ihit,:] = (1.,1.,1.,1.)
+            elif hit.consistency3d==1:
+                colors[ihit,:] = (1.,0.,0.,1.)
+            elif hit.consistency3d==2:
+                colors[ihit,:] = (0.,1.,0.,1.)
+            elif hit.consistency3d==3:
+                colors[ihit,:] = (0.,0.,1.,1.)
+            else:
+                colors[ihit,:] = (1.,0.,1.,1.)
+
+        elif colorscheme=="colorbyhastruth":
+            if hit.truthflag==1:
+                colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
+            elif hit.truthflag==2:
+                colors[ihit,:] = (1.,0.,0.,1.) # mctrack tails matched
+            elif hit.truthflag==0:
+                colors[ihit,:] = (0.,1.,0.,1.) # mctrack not matched
+            else:
+                colors[ihit,:] = (1.,1.,1.,1.) # kUnknown
+
+        elif colorscheme=="colorbyhasmctrackid":
+            if hit.trackid>=0:
+                colors[ihit,:] = (1.,1.,1.,1.) # mctrack matched
+            else:
+                colors[ihit,:] = (1.,0.,0.,1.) # kUnknown
+
+        elif colorscheme=="colorbydwall":
+            if hit.dWall>15.:
+                colors[ihit,:] = (1.,1.,1.,1.)
+            elif hit.dWall==-1:
+                colors[ihit,:] = (0.,1.,0.,1.)
+            else:
+                colors[ihit,:] = (1.,0.,0.,1.)
+                if hit.endpt_score>0.8:
+                    colors[ihit,:] = (0.,0.,1.,1.)
+
+        elif colorscheme=="colorbyrecovstruth":
+            colors[ihit,:] = (1.,1.,1.,0.5) # color for reco points is white        
+            if hit.truthflag>0:
+                # create a truth hit that is red
+                pos_np[nhits+itruthhit,0] = hit.X_truth[0]-130
+                pos_np[nhits+itruthhit,1] = hit.X_truth[1]
+                pos_np[nhits+itruthhit,2] = hit.X_truth[2]-500.0
+                if hit.truthflag==1:
+                    colors[nhits+itruthhit,:] = (1.,0.,0.,1.0) # core truth hit is red
+                else:
+                    colors[nhits+itruthhit,:] = (0.,0.,1.,1.0) # edge truth hit is bleed                
+                    itruthhit+=1
+        elif colorscheme=="colorbydefault":
+            colors[ihit,:] = (1.,1.,1.,1.)
+
+    return pos_np,colors
+
+pos_np,colors=get_hits(colorscheme,args.producer)
 hitplot = gl.GLScatterPlotItem(pos=pos_np, color=colors, size=2.0, pxMode=False)
+
+if args.trueflow is not None:
+    truepos_np,truecolors=get_hits(colorscheme,args.trueflow)
+    truecolors[:,0] = 1.0
+    truecolors[:,1] = 0.0
+    truecolors[:,2] = 0.0
+    truecolors[:,3] = 0.3    
+    trueplot = gl.GLScatterPlotItem(pos=truepos_np,color=truecolors, size=2.0, pxMode=False)
 
 # truth plot
 cm_per_tick = larutil.LArProperties.GetME().DriftVelocity()*(larutil.DetectorProperties.GetME().SamplingRate()*1.0e-3)
@@ -245,6 +259,8 @@ if args.mctruth is not None:
         
 # make the plot
 w.addVisItem( "flowhits", hitplot )
+if args.trueflow is not None:
+    w.addVisItem( "trueflowhits", trueplot )
 w.plotData()
 
 # start the app. close windows to end program
