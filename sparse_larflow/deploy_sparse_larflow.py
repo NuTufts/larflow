@@ -18,7 +18,7 @@ parser.add_argument("-n", "--num",default=-1,type=int,help="Number of entries to
 def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, weightfile,
                                    adc_producer="wire",
                                    chstatus_producer='wire',
-                                   cropper_cfg="cropflow_processor.cfg",
+                                   cropper_cfg="ubcrop.cfg",
                                    flow="dual", devicename="cpu",
                                    run_reco_flowhits=True,
                                    run_truth_flowhits=True,                                   
@@ -42,7 +42,7 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
     from load_cropped_sparse_dualflow import load_croppedset_sparse_dualflow_nomc
     
     device = torch.device(devicename)
-    model  = load_models("dualflow_v1",weight_file=weightfile )
+    model  = load_models("dualflow_v1",weight_file=weightfile, device=devicename )
     model.eval()
     
     out = larcv.IOManager(larcv.IOManager.kWRITE, "stitched")
@@ -61,8 +61,14 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
     dt_result = 0.0   # preparing output images
 
     ttot = time.time()
-
-    # first create cfg file
+    
+    # first create cfg file if does not exist
+    if not os.path.exists( cropper_cfg ):
+        from crop_processor_cfg import fullsplit_processor_config
+        f = open(cropper_cfg,'w')
+        f.write( fullsplit_processor_config(adc_producer,chstatus_producer) )
+        f.close()
+        
     splitter = larcv.ProcessDriver( "ProcessDriver" )
     splitter.configure( cropper_cfg )
 
@@ -74,7 +80,7 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
         
     for inputfile in filelist:
         io.add_in_file(inputfile)
-
+        
     # initialize splitter
     splitter.initialize()
     nentries = io.get_n_entries()
@@ -154,8 +160,8 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
 
             result_np = np.zeros( (ncoords,4), dtype=np.float32 )
             result_np[:,0:2] = sparse_np[:,0:2]
-            result_np[:,2]   = predict1_t.features.numpy()[:,0]
-            result_np[:,3]   = predict2_t.features.numpy()[:,0]
+            result_np[:,2]   = predict1_t.features.detach().cpu().numpy()[:,0]
+            result_np[:,3]   = predict2_t.features.detach().cpu().numpy()[:,0]
 
             # store raw result
             sparse_raw = larcv.sparseimg_from_ndarray( result_np, meta_v, larcv.msg.kDEBUG )
@@ -252,80 +258,6 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
     splitter.finalize()
 
     return None
-
-def run_sparse2larflowhits( input_supera, input_sparsefile, output_hitfile,
-                            has_mc=False, crop_cfg="ubcrop.cfg",
-                            adc_producer="wire",
-                            truth_crop_cfg="ubcroptrueflow.cfg",
-                            tick_backward=True ):
-
-    from larflow import larflow
-    
-    print ("===============================")
-    print ("sparseflow2hits")
-    print ("-------------------------------")
-
-    tick_dir = larcv.IOManager.kTickBackward
-    if not tick_backward:
-        tick_dir = larcv.IOManager.kTickForward
-    
-    io_fullview = larcv.IOManager( larcv.IOManager.kREAD,"FullView", tick_dir )
-    if type(input_supera_files) is str:
-        input_supera_files = [ input_supera_files ]
-        
-    for infile in input_supera_files:
-        io_fullview.add_in_file( infile )
-    io_fullview.initialize()
-
-    io_sparse = larcv.IOManager( larcv.IOManager.kREAD,"SparseInput" )
-    io_sparse.add_in_file( input_sparseout )
-    io_sparse.initialize()
-
-    nentries = io_sparse.get_n_nentries()
-    if maxentries>0 and maxentries<nentries:
-        nentries = maxentries
-
-    for i in xrange(nentries):
-        io_sparse.read_entry(i)
-        io_fullview.read_entry(i)
-        
-        ev_wire = io_fullview.get_data(larcv.kProductImage2D,adc_producer)
-        adc_v = ev_wire.Image2DArray()
-        
-        if has_mc:
-            ev_trueflow = io_fullview.get_data(larcv.kProductImage2D,"larflow")
-            trueflow_v  = ev_trueflow.Image2DArray()
-            
-            ev_chstatus = io_fullview.get_data(larcv.kProductImage2D,"wire")
-        ev_crop_dualflow = io_sparse.get_data(larcv.kProductSparseImage,"cropdualflow")
-
-        recohits = larflow.makeFlowHitsFromSparseCrops( adc_v, dualflow_v, 10.0, crop_cfg )
-
-        if has_mc:
-            truehits = larflow.makeTrueFlowHitsFromWholeImage( adc_v, ev_chstatus, trueflow_v, 10.0, truth_crop_cfg )
-
-        ev_reco_out = out_larlite.get_data( larlite.data.kLArFlow3DHit, "flowhits" )
-        for idx in xrange(recohits.size()):
-            hit = recohits.at(idx)
-            hit.idx = idx
-            ev_reco_out.Append( hit )
-
-        if has_mc:
-            ev_truth_out = out_larlite.get_data( larlite.data.kLArFlow3DHit, "trueflowhits" )
-            for idx in xrange(truehits.size()):
-                hit = truehits.at(idx)
-                hit.idx = idx
-                ev_truth_out.Append( hit )
-        out_larlite.set_id( ev_wire.run(), ev_wire.subrun(), ev_wire.event() )
-        out_larlite.next_event(True)
-
-    print ("End of file")
-    out_larlite.close()
-
-    return None
-            
-            
-
         
 
 if __name__ == "__main__":
@@ -347,22 +279,13 @@ if __name__ == "__main__":
         raise ValueError("LArCV output already exists: {}".format(args.outfile_larcv))
     if not args.overwrite and os.path.exists(args.outfile_larlite):
         raise ValueError("Larlite output already exists: {}".format(args.outfile_larlite))
-    
-    #processor_cfg = fullsplit_processor_config("wiremc","wiremc")
-    
-    #print(processor_cfg,file=open("cropflow_processor.cfg",'w'))
-    #print(larflow.makeFlowHitsFromSparseCrops)
-
-    
+        
     deploy_sparselarflow_on_files( output_larcv_sparsecrops, output_larlite_larflowhits,
                                    inputfiles, weightfile,
+                                   devicename="cpu",
                                    adc_producer=args.adc_producer,
                                    chstatus_producer=args.chstatus_producer,
                                    maxentries=args.num, has_mc=args.has_mc )
-
-    #run_sparse2larflowhits( inputfiles, output_larcv_sparsecrops, output_larlite_larflowhits,
-    #                        has_mc=args.has_mc, crop_cfg=args.config, truth_crop_cfg=args.config,
-    #                        tick_backward=True )
 
 
                                  
