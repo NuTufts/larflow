@@ -7,6 +7,7 @@ import sparseconvnet as scn
 import time
 import math
 import numpy as np
+from utils_sparselarflow import create_resnet_layer
 from sparseencoder import SparseEncoder
 from sparsedecoder import SparseDecoder
 
@@ -44,6 +45,7 @@ class SparseLArFlow(nn.Module):
         # set parameters
         self.dimensions = 2 # not playing with 3D for now
         self.home_gpu = home_gpu
+        self.predict_classvec = predict_classvec
 
         # input shape: LongTensor, tuple, or list. Handled by InputLayer
         # size of each spatial dimesion
@@ -208,12 +210,12 @@ class SparseLArFlow(nn.Module):
         # OUTPUT LAYER
         if self.predict_classvec:
             if 'y2u' in self.flowdirs:
-                self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.dimensions[0],1,True)
+                self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.inputshape[1],1,True)
             else:
                 self.flow1_out = None
 
             if 'y2v' in self.flowdirs:
-                self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.dimensions[0],1,True)
+                self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.inputshape[1],1,True)
             else:
                 self.flow2_out = None
         else:
@@ -384,9 +386,9 @@ if __name__ == "__main__":
     ntrials   = 1
     batchsize = 1
     use_random_data = False
-    test_loss = False
+    test_loss  = True
     run_w_grad = False
-    ENABLE_PROFILER=True
+    ENABLE_PROFILER=False
     PROF_USE_CUDA=True
 
     # two-flow input
@@ -413,11 +415,12 @@ if __name__ == "__main__":
     noutput_features = 16
     nplanes = 6
     predict_classvec = True
-    nfeatures_per_layer = [16,16,16,16,32,64]
+    producer_name = "sparsecropdual"
+    nfeatures_per_layer = [16,16,16,16,16,16]
 
     model = SparseLArFlow( (nrows,ncols), 2, ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
-                           predict_classvec=True,
+                           predict_classvec=predict_classvec,
                            show_sizes=True,
                            flowdirs=flowdirs ).to(device)
     model.eval()
@@ -441,9 +444,10 @@ if __name__ == "__main__":
 
     if test_loss:
         from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
-        consistency_loss = SparseLArFlow3DConsistencyLoss(1024, 3456,
+        consistency_loss = SparseLArFlow3DConsistencyLoss(nrows, ncols,
                                                           larcv_version=1,
-                                                          calc_consistency=False)
+                                                          calc_consistency=False,
+                                                          predict_classvec=predict_classvec)
 
     # random points from a hypothetical (nrows x ncols) image
     dtforward = 0
@@ -497,22 +501,23 @@ if __name__ == "__main__":
                 predict1_t,predict2_t = model.forward( coord_t, srcpix_t,
                                                        tarpix_flow1_t, tarpix_flow2_t,
                                                        batchsize )
-            #with torch.autograd.profiler.emit_nvtx():
-            #    predict1_t,predict2_t = model( coord_t, srcpix_t,
-            #                                   tarpix_flow1_t, tarpix_flow2_t,
-            #                                   batchsize )
                 
         dtforward += time.time()-tforward
+        print "output: flow1=",predict1_t.features.shape," predict2_t=",predict2_t.features.shape
 
         if test_loss:
             tloss = time.time()
-            loss = consistency_loss(coord_t, predict1_t, predict2_t,
-                                    truth_flow1_t, truth_flow2_t)
-            print "loss: ",loss.detach().cpu().item()
+            loss,flow1loss,flow2loss = consistency_loss(coord_t, predict1_t, predict2_t,
+                                                        truth_flow1_t, truth_flow2_t)
+            print "loss: tot=",loss.detach().cpu().item()
+            if flow1loss is not None:
+                print "      flow1=",flow1loss.detach().cpu().item()
+            if flow2loss is not None:
+                print "      flow2=",flow2loss.detach().cpu().item()                
 
         #print "modelout: flow1=[",out1.features.shape,out1.spatial_size,"]"
 
-    print "ave. data time o/ %d trials: %.2f secs"%(ntrials,dtdata/ntrials)
+    print "ave. data time o/ %d trials:    %.2f secs"%(ntrials,dtdata/ntrials)
     print "ave. forward time o/ %d trials: %.2f secs"%(ntrials,dtforward/ntrials)
     if ENABLE_PROFILER:
         profout = open('profileout_cuda.txt','w')

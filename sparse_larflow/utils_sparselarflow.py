@@ -1,4 +1,7 @@
 import os,sys
+import torch
+import torch.nn
+import sparseconvnet as scn
 
 def residual_block(m, a, b, leakiness=0.01, dimensions=2):
     """
