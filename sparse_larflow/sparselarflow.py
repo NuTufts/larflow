@@ -1,5 +1,4 @@
 import os,sys
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,276 +7,8 @@ import sparseconvnet as scn
 import time
 import math
 import numpy as np
-
-def residual_block(m, a, b, leakiness=0.01, dimensions=2):
-    """
-    append to a sequence module:
-    produce output of [identity,3x3+3x3] then add together
-
-    inputs
-    ------
-    m [scn.Sequential module] network to add layers to
-    a [int]: number of input channels
-    b [int]: number of output channels
-    leakiness [float]: leakiness of ReLU activations
-    dimensions [int]: dimensions of input sparse tensor
-
-    modifies
-    --------
-    m: adds layers
-    """
-    m.add(scn.ConcatTable()
-          .add(scn.Identity() if a == b else scn.NetworkInNetwork(a, b, False))
-          .add(scn.Sequential()
-               .add(scn.BatchNormLeakyReLU(a,leakiness=leakiness))
-               .add(scn.SubmanifoldConvolution(dimensions, a, b, 3, False))
-               .add(scn.BatchNormLeakyReLU(b,leakiness=leakiness))
-               .add(scn.SubmanifoldConvolution(dimensions, b, b, 3, False)))
-    ).add(scn.AddTable())
-
-def create_resnet_layer(nreps, ninputchs, noutputchs,
-                        downsample=[2,2]):
-    """
-    creates a layer formed by a repetition of residual blocks
-
-    inputs
-    ------
-    nreps [int] number of times to repeat residula block
-    ninputchs [int] input features to layer
-    noutputchs [int] output features from layer
-
-    outputs
-    -------
-    [scn.Sequential] module with residual blocks
-    """
-    m = scn.Sequential()
-    for iblock in xrange(nreps):
-        if iblock==0:
-            # in first repitition we change
-            # number of features from input to output
-            residual_block(m,ninputchs,noutputchs)
-        else:
-            # other repitions we do not change number of features
-            residual_block(m,noutputchs,noutputchs)
-    return m
-
-
-class SparseEncoder(nn.Module):
-    """
-    The encoder involves a series of layers which
-    1) first apply a series of residual convolution blocks (using 3x3 kernels)
-    2) then apply a strided convolution to downsample the image
-       right now, a standard stride of 2 is used
-    """
-
-    def __init__( self, name, nreps, ninputchs, chs_per_layer):
-        nn.Module.__init__(self)
-        """
-        inputs
-        ------
-        name [str] to name the encoder
-        nreps [int] number of times residual block is repeated per layer
-        ninputchs [int] input channels to entire encoder module
-        chs_per_layer [list of int] output channels for each layer
-        """
-        # store variables and configuration
-        self.chs_per_layer = chs_per_layer
-        self.inputchs = ninputchs
-        self.residual_blocks = True # always uses residual blocks
-        self.dimension = 2 # always for 2D images
-        self._layers = []  # stores layers inside this module
-        self._name = name  # name of this instance
-        self._verbose = False
-
-        # create the individual layers
-        for ilayer,noutputchs in enumerate(self.chs_per_layer):
-            if ilayer>0:
-                # use last num output channels
-                # in previous layer for num input ch
-                ninchs = self.chs_per_layer[ilayer-1]
-            else:
-                # for first layer, use the provided number of chanels
-                ninchs = self.inputchs
-
-            # create the encoder layer
-            layer = self.make_encoder_layer(ninchs,noutputchs,nreps)
-            # store it
-            self._layers.append(layer)
-            # create an attribute for the module so pytorch
-            # can know the components in this module
-            setattr(self,"%s_enclayer%d"%(name,ilayer),layer)
-
-    def set_verbose(self,verbose=True):
-        self._verbose = verbose
-
-    def make_encoder_layer(self,ninputchs,noutputchs,nreps,
-                           leakiness=0.01,downsample=[2, 2]):
-        """
-        inputs
-        ------
-        ninputchs [int]: number of features going into layer
-        noutputchs [int]: number of features output by layer
-        nreps [int]: number of times residual modules repeated
-        leakiness [int]: leakiness of LeakyReLU layers
-        downsample [length 2 list of int]: stride in [height,width] dims
-
-        outputs
-        -------
-        scn.Sequential module with resnet and downsamping layers
-        """
-        encode_blocks = create_resnet_layer(nreps,ninputchs,noutputchs,
-                                            downsample=downsample)
-        if downsample is not None:
-            # if we specify downsize factor for each dimension, we apply
-            # it to the output of the residual layers
-            encode_blocks.add(scn.BatchNormLeakyReLU(noutputchs,leakiness=leakiness))
-            encode_blocks.add(scn.Convolution(self.dimension, noutputchs, noutputchs,
-                                              downsample[0], downsample[1], False))
-        return encode_blocks
-
-    def forward(self,x):
-        """
-        run the layers on the input
-
-        inputs
-        ------
-        x [scn.SparseManifoldTensor]: input tensor
-
-        outputs
-        -------
-        list of scn.SparseManifoldTensor: one tensor for each
-           encoding layer. all returned for use in skip connections
-           in the SparseDecoding modules
-        """
-        layerout = []
-        for ilayer,layer in enumerate(self._layers):
-            if ilayer==0:
-                inputx = x
-            else:
-                inputx = layerout[-1]
-            out = layer(inputx)
-            if self._verbose:
-                print "[%s] Encode Layer[%d]: "%(self._name,ilayer),
-                print inputx.features.shape,inputx.spatial_size,
-                print "-->",out.features.shape,out.spatial_size
-            layerout.append( out )
-        return layerout
-
-class SparseDecoder(nn.Module):
-    """
-    SparseDecoder class features layers containing:
-    1) sequence of residual convolution modules
-    2) upsampling using convtranspose
-    3) skip connection from concating tensors
-    """
-    def __init__( self, name, nreps, inputchs_per_layer, outputchs_per_layer ):
-        nn.Module.__init__(self)
-        """
-        inputs
-        ------
-        name [str]
-        nreps [int]
-        inputchs_per_layer  [list of ints]
-        outputchs_per_layer [list of ints]
-        """
-        self.inputchs_per_layer  = inputchs_per_layer
-        self.outputchs_per_layer = outputchs_per_layer
-        self.residual_blocks = True
-        self.dimension = 2
-        self._deconv_layers = []
-        self._joiner = []
-        self._name = name
-        self._verbose = False
-
-        layer_chs = zip(self.inputchs_per_layer,self.outputchs_per_layer)
-        for ilayer,(ninputchs,noutputchs) in enumerate(layer_chs):
-            if ilayer+1<len(outputchs_per_layer):
-                islast = False
-            else:
-                islast = True
-            deconv,joiner = self.make_decoder_layer(ilayer,ninputchs,
-                                                    noutputchs,nreps,
-                                                    islast=islast)
-            self._deconv_layers.append(deconv)
-            self._joiner.append(joiner)
-
-    def make_decoder_layer(self,ilayer,ninputchs,noutputchs,nreps,
-                           leakiness=0.01,downsample=[2, 2],islast=False):
-        """
-        defines two layers:
-          1) the deconv layer pre-concat
-          2) residual blocks post-concat
-
-        inputs
-        ------
-        ninputchs: number of features going into layer
-        noutputchs: number of features output by layer
-        """
-
-        # resnet block
-        decode_blocks = create_resnet_layer(nreps,ninputchs,2*noutputchs,
-                                            downsample=downsample)
-
-        # deconv
-        decode_blocks.add(scn.BatchNormLeakyReLU(2*noutputchs,leakiness=leakiness))
-        decode_blocks.add(scn.Deconvolution(self.dimension, 2*noutputchs, noutputchs,
-                                            downsample[0], downsample[1], False))
-        setattr(self,"deconv%d"%(ilayer),decode_blocks)
-        if self._verbose:
-            print "DecoderLayer[",ilayer,"] inputchs[",ninputchs,
-            print " -> resout[",2*noutputchs,"] -> deconv output[",noutputchs,"]"
-
-
-        if not islast:
-            # joiner for skip connections
-            joiner = scn.JoinTable()
-            setattr(self,"skipjoin%d"%(ilayer),joiner)
-        else:
-            joiner = None
-        return decode_blocks,joiner
-
-    def set_verbose(self,verbose=True):
-        self._verbose=verbose
-
-    def forward(self,encoder_layers):
-        """
-        inputs
-        ------
-
-        outputs
-        -------
-        """
-        layerout = None
-        for ilayer,(deconvl,joiner) in enumerate(zip(self._deconv_layers,self._joiner)):
-            if ilayer==0:
-                # first layer, input tensor comes from last encoder layer
-                inputx = encoder_layers[-(1+ilayer)]
-            else:
-                # otherwise, get the last tensor that was created
-                inputx = layerout
-            #print "decoder-input[",ilayer,"] input=",inputx.features.shape,inputx.spatial_size
-
-            # residual + upsample
-            out = deconvl(inputx)
-            #print "decode-deconv[",ilayer,"]: outdecode=",out.features.shape,out.spatial_size
-
-            # concat if not last layer, for last layer, joiner will be None
-            if joiner is not None:
-                # get next encoder layer
-                catlayer  = encoder_layers[-(2+ilayer)]
-                #print "decode-concat[",ilayer,"]: appending=",
-                #print catlayer.features.shape,catlayer.spatial_size
-
-                # concat
-                out   = joiner( (out,catlayer) )
-
-            if self._verbose:
-                print "[%s] Decode Layer[%d]: "%(self._name,ilayer),
-                print inputx.features.shape,inputx.spatial_size,
-                print "-->",out.features.shape,out.spatial_size
-            layerout = out
-        return layerout
-
+from sparseencoder import SparseEncoder
+from sparsedecoder import SparseDecoder
 
 class SparseLArFlow(nn.Module):
     """
@@ -287,6 +18,7 @@ class SparseLArFlow(nn.Module):
     
     def __init__(self, inputshape, reps, nin_features, nout_features, nplanes,
                  flowdirs=['y2u','y2v'],
+                 predict_classvec=False,
                  home_gpu=None,
                  features_per_layer=None,
                  show_sizes=False,
@@ -298,7 +30,7 @@ class SparseLArFlow(nn.Module):
         inputshape [list of int]: dimensions of the matrix or image
         reps [int]: number of residual modules per layer (for both encoder and decoder)
         nin_features [int]: number of features in the first convolutional layer
-        nout_features [int]: number of features that feed into the regression layer
+        nout_features [int]: number of features that feed into the classification/regression layer
         nplanes [int]: the depth of the U-Net
         flowdirs [list of str]: which flow directions to implement, if two (y2u+y2v)
                        then we must process all three planes and produce two flow predictions. 
@@ -307,6 +39,7 @@ class SparseLArFlow(nn.Module):
         features_per_layer [list of int]: if provided, defines the feature size of each layer depth. 
                        if None, calculated automatically.
         show_sizes [bool]: if True, print sizes while running forward
+        predict_pixenum [bool]: if True, we predict a class vector representing what target column matches
         """
         # set parameters
         self.dimensions = 2 # not playing with 3D for now
@@ -471,16 +204,29 @@ class SparseLArFlow(nn.Module):
         else:
             self.flow2_resblock = None
 
-        # regression layer
-        if 'y2u' in self.flowdirs:
-            self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
-        else:
-            self.flow1_out = None
 
-        if 'y2v' in self.flowdirs:
-            self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+        # OUTPUT LAYER
+        if self.predict_classvec:
+            if 'y2u' in self.flowdirs:
+                self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.dimensions[0],1,True)
+            else:
+                self.flow1_out = None
+
+            if 'y2v' in self.flowdirs:
+                self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,self.dimensions[0],1,True)
+            else:
+                self.flow2_out = None
         else:
-            self.flow2_out = None
+            # regression layer
+            if 'y2u' in self.flowdirs:
+                self.flow1_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+            else:
+                self.flow1_out = None
+
+            if 'y2v' in self.flowdirs:
+                self.flow2_out = scn.SubmanifoldConvolution(self.dimensions,self.nout_features,1,1,True)
+            else:
+                self.flow2_out = None
 
 
     def forward(self, coord_t, src_feat_t, tar1_feat_t, tar2_feat_t, batchsize):
@@ -621,17 +367,20 @@ class SparseLArFlow(nn.Module):
         return flow1,flow2
 
 if __name__ == "__main__":
+
+    from sparselarflowdata import load_larflow_larcvdata
+    
     """
     here we test/debug the network and losses here
     we can use a random matrix mimicing our sparse lartpc images
       or actual images from the loader.
     """
 
-    nrows     = 1024
-    ncols     = 3456
+    nrows     = 512
+    ncols     = 832
     sparsity  = 0.01
-    #device    = torch.device("cpu")
-    device    = torch.device("cuda")
+    device    = torch.device("cpu")
+    #device    = torch.device("cuda")
     ntrials   = 1
     batchsize = 1
     use_random_data = False
@@ -647,22 +396,28 @@ if __name__ == "__main__":
     #producer_name = "larflow"
 
     # one-flow input: Y2U
-    flowdirs = ['y2u']
-    inputfile = "out_sparsified_y2u.root"
-    producer_name = "larflow_y2u"
+    #flowdirs = ['y2u']
+    #inputfile = "out_sparsified_y2u.root"
+    #producer_name = "larflow_y2u"
 
     # one-flow input: Y2V
     #flowdirs = ['y2v']
     #inputfile = "out_sparsified_y2v.root"
-    #producer_name = "larflow_y2v"    
+    #producer_name = "larflow_y2v"
+
+    # dual-flow input:
+    flowdirs = ['y2u','y2v']
+    inputfile = "/home/taritree/data/sparselarflow/larflow_sparsify_cropped_valid_v5.root"
 
     ninput_features  = 16
     noutput_features = 16
-    nplanes = 5
-    nfeatures_per_layer = [16,16,32,32,64]
+    nplanes = 6
+    predict_classvec = True
+    nfeatures_per_layer = [16,16,16,16,32,64]
 
     model = SparseLArFlow( (nrows,ncols), 2, ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
+                           predict_classvec=True,
                            show_sizes=True,
                            flowdirs=flowdirs ).to(device)
     model.eval()
@@ -676,9 +431,7 @@ if __name__ == "__main__":
         from sparselarflowdata import load_larflow_larcvdata
         nworkers     = 3
         tickbackward = True
-        #ro_products  = ( ("wiremc",larcv.kProductImage2D),
-        #                 ("larflow",larcv.kProductImage2D) )
-        ro_products = None
+        ro_products  = None
         dataloader   = load_larflow_larcvdata( "larflowsparsetest", inputfile,
                                                batchsize, nworkers,
                                                nflows=len(flowdirs),
