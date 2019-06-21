@@ -54,6 +54,7 @@ INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
 start_iter  = 0
 num_iters   = 30000
+
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
 BATCHSIZE_TRAIN=32
@@ -132,7 +133,7 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -145,7 +146,7 @@ def main():
     iter_per_valid = 10
 
 
-    nbatches_per_itertrain = 5
+    nbatches_per_itertrain = 50
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
