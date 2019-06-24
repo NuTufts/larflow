@@ -19,13 +19,8 @@ find_package( larcv REQUIRED )
 set( ublarcvapp_DIR "$ENV{UBLARCVAPP_LIBDIR}/cmake/ublarcvapp")
 find_package( ublarcvapp REQUIRED )
 
-#---OPENCV (optional)
-if (USE_OPENCV)
-  find_package(OpenCV REQUIRED)
-  if (NOT OpenCV_FOUND)
-    set(USE_OPENCV 0)
-  endif()
-endif()
+#---OPENCV (required)  
+find_package(OpenCV REQUIRED)
 
 #---larbys GEO2D
 # use it if env variables defined
@@ -86,9 +81,9 @@ write_basic_package_version_file("${CMAKE_BINARY_DIR}/cmake/larflowConfigVersion
 
 
 #---Create info to include larflow in other cmake files
-#install(EXPORT larflow
-#        FILE larflowTargets.cmake 
-#        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/larflow")
+install(EXPORT larflow
+        FILE larflowTargets.cmake 
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/larflow")
 
 #---Create info to include larflow in other cmake files
 install(FILES "${CMAKE_BINARY_DIR}/cmake/larflowConfig.cmake"

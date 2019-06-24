@@ -26,7 +26,7 @@ target_link_libraries(${LIBNAME} LArCVCoreBase LArCVCoreDataFormat LArCVCoreProc
 
 # install libraries and headers
 install(TARGETS ${LIBNAME}
-  EXPORT larcv
+  EXPORT larflow
   LIBRARY DESTINATION lib
   PUBLIC_HEADER DESTINATION include/larflow/${MODULE_NAME})
 
