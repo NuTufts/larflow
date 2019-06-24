@@ -381,13 +381,13 @@ if __name__ == "__main__":
     nrows     = 512
     ncols     = 832
     sparsity  = 0.01
-    device    = torch.device("cpu")
-    #device    = torch.device("cuda")
+    #device    = torch.device("cpu")
+    device    = torch.device("cuda")
     ntrials   = 1
-    batchsize = 1
+    batchsize = 10
     use_random_data = False
     test_loss  = True
-    run_w_grad = False
+    run_w_grad = True
     ENABLE_PROFILER=False
     PROF_USE_CUDA=True
 

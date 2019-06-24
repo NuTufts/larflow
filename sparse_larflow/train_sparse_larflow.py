@@ -53,13 +53,13 @@ INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
 INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
 start_iter  = 0
-num_iters   = 30000
+num_iters   = 60000
 
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=32
-BATCHSIZE_VALID=10
-NWORKERS_TRAIN=6
+BATCHSIZE_TRAIN=16
+BATCHSIZE_VALID=8
+NWORKERS_TRAIN=3
 NWORKERS_VALID=1
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
@@ -71,7 +71,8 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=10
+ITER_PER_CHECKPOINT=1000
+PREDICT_CLASSVEC=True
 # ===================================================
 
 # global variables
@@ -93,14 +94,14 @@ def main():
     imgdims = 2
     ninput_features  = 16
     noutput_features = 16
-    nplanes = 5
-    nfeatures_per_layer = [16,16,32,32,64]
+    nplanes = 6
+    nfeatures_per_layer = [16,16,16,16,16,16]
     flowdirs = ['y2u','y2v']
     
     model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
                            ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
-                           home_gpu=None,
+                           home_gpu=None, predict_classvec=PREDICT_CLASSVEC,
                            flowdirs=flowdirs,show_sizes=False).to(DEVICE)
     if False:
         # DUMP MODEL
@@ -129,11 +130,11 @@ def main():
     # define loss function (criterion) and optimizer
     maxdist   = 200.0
     criterion = SparseLArFlow3DConsistencyLoss(IMAGE_HEIGHT, IMAGE_WIDTH,
-                                               larcv_version=1,
+                                               larcv_version=1, predict_classvec=PREDICT_CLASSVEC,
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-4
+    lr = 1.0e-2
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -146,11 +147,11 @@ def main():
     iter_per_valid = 10
 
 
-    nbatches_per_itertrain = 50
+    nbatches_per_itertrain = 1
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 10
+    nbatches_per_itervalid = 1
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -315,7 +316,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
     acc_time = AverageMeter()
 
     # accruacy and loss meters
-    lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    #lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    lossnames    = ("total","flow1","flow2")
     flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
     consistnames = ("dist2d")
 
@@ -398,18 +400,21 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         #loss_meters["consist3d"].update( closs.item() )
         
         # measure accuracy and update meters
+        cpu = torch.device("cuda:1")
         if predict1_t is not None:
-            nvis1 = accuracy(srcpix_t.detach(),
-                             predict1_t.features.detach(),
-                             truth_flow1_t.detach(),
+            nvis1 = accuracy(coord_t.detach().to(cpu),
+                             srcpix_t.detach().to(cpu),
+                             predict1_t.features.detach().to(cpu),
+                             truth_flow1_t.detach().to(cpu),
                              1,acc_meters,True)
         else:
             nvis1 = 0
             
         if predict2_t is not None:
-            nvis2 = accuracy(srcpix_t.detach(),
-                             predict2_t.features.detach(),
-                             truth_flow2_t.detach(),
+            nvis2 = accuracy(coord_t.detach().to(cpu),
+                             srcpix_t.detach().to(cpu),
+                             predict2_t.features.detach().to(cpu),
+                             truth_flow2_t.detach().to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
@@ -460,7 +465,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
 
     # accruacy and loss meters
-    lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    lossnames    = ("total","flow1","flow2")
     flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
     consistnames = ("dist2d")
 
@@ -513,18 +518,21 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and update meters
+        cpu = torch.device("cuda:1")
         if predict1_t is not None:
-            nvis1 = accuracy(srcpix_t.detach(),
-                             predict1_t.features.detach(),
-                             truth_flow1_t.detach(),
+            nvis1 = accuracy(coord_t.detach().to(cpu),
+                             srcpix_t.detach().to(cpu),
+                             predict1_t.features.detach().to(cpu),
+                             truth_flow1_t.detach().to(cpu),
                              1,acc_meters,True)
         else:
             nvis1 = 0
             
         if predict2_t is not None:
-            nvis2 = accuracy(srcpix_t.detach(),
-                             predict2_t.features.detach(),
-                             truth_flow2_t.detach(),
+            nvis2 = accuracy(coord_t.detach().to(cpu),
+                             srcpix_t.detach().to(cpu),
+                             predict2_t.features.detach().to(cpu),
+                             truth_flow2_t.detach().to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
@@ -596,7 +604,7 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
+def accuracy(coord,srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     """Computes the accuracy metrics."""
     # inputs:
     #  assuming all pytorch tensors
@@ -615,7 +623,6 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     if profile:
         start = time.time()
 
-    flow_err =(flow_pred-flow_truth).abs()
     #nvis     = visi_truth.sum()
     #if nvis<=0:
     #    return None
@@ -627,10 +634,22 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
     #mask[ torch.gt(srcpix,10.0)  ] = 0.0
     nvis = mask.sum()
-    
+
+    if not PREDICT_CLASSVEC:
+        # regression output
+        flow_err =(flow_pred-flow_truth).abs()        
+    else:
+        # convert class vector prediction to wire number
+        col_predicted = torch.argmax( flow_pred, 1 ).type(torch.float)
+        #flow_err = ( col_predicted - (coord[:,1].type(torch.float) + flow_truth[:,0]) )*mask        
+        col_predicted -= coord[:,1].type(torch.float)
+        col_predicted -= flow_truth[:,0]
+        col_predicted *= mask[:,0]
+        flow_err = col_predicted.abs()
+        
     for level in accvals:
         name = "flow%d<%dpix"%(flowdir,level)
-        acc_meters[name].update( ((( flow_err<float(level)  ).float()*mask).sum() / nvis ).item() )
+        acc_meters[name].update( ((( flow_err<float(level)  ).float()*mask[:,0]).sum() / nvis ).item() )
 
     #if visi_pred is not None:
     #    _, visi_max = visi_pred.max( 1, keepdim=False)
@@ -666,8 +685,11 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
                                                                                                                              timers["backward"].avg,
                                                                                                                              timers["accuracy"].avg,
                                                                                                                              timers["data"].avg)    
-    print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
-                                                                           loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
+    #print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
+    #                                                                       loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
+    print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f]"%(loss_meters["total"].avg,
+                                                         loss_meters["flow1"].avg,
+                                                         loss_meters["flow2"].avg)
     print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,acc_meters["flow1<10pix"].avg*100,acc_meters["flow1<20pix"].avg*100,acc_meters["flow1<50pix"].avg*100)
     print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<10pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
         
