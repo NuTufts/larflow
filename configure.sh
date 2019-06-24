@@ -5,6 +5,7 @@ export LARFLOW_BUILDDIR=${LARFLOW_BASEDIR}/build/
 export LARFLOW_LIBDIR=${LARFLOW_BASEDIR}/build/lib
 export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
+export LARFLOW_SPARSEDIR=${LARFLOW_BASEDIR}/sparse_larflow
 export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils
 
 # OPENCV
@@ -26,6 +27,9 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 
 # add model folder to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_MODELDIR}:"* ]] && PYTHONPATH="${LARFLOW_MODELDIR}:${PYTHONPATH}"
+
+# add sparse folder to python path
+[[ ":$PYTHONPATH:" != *":${LARFLOW_SPARSEDIR}:"* ]] && PYTHONPATH="${LARFLOW_SPARSEDIR}:${PYTHONPATH}"
 
 # add utils folder to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_UTILSDIR}:"* ]] && PYTHONPATH="${LARFLOW_UTILSDIR}:${PYTHONPATH}"
