@@ -58,9 +58,9 @@ num_iters   = 60000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
 BATCHSIZE_TRAIN=16
-BATCHSIZE_VALID=8
-NWORKERS_TRAIN=3
-NWORKERS_VALID=1
+BATCHSIZE_VALID=4
+NWORKERS_TRAIN=6
+NWORKERS_VALID=2
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
@@ -95,7 +95,7 @@ def main():
     ninput_features  = 16
     noutput_features = 16
     nplanes = 6
-    nfeatures_per_layer = [16,16,16,16,16,16]
+    nfeatures_per_layer = [8,8,8,8,8,8]
     flowdirs = ['y2u','y2v']
     
     model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
@@ -134,7 +134,7 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-2
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -151,7 +151,7 @@ def main():
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 1
+    nbatches_per_itervalid = 16
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -356,6 +356,16 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         tarpix_flow2_t = flowdict["tar2"]
         truth_flow1_t  = flowdict["flow1"]
         truth_flow2_t  = flowdict["flow2"]
+        # masks
+        if "mask1" in flowdict:
+            mask1_t = flowdict["mask1"]
+        else:
+            mask1_t = None
+            
+        if "mask2" in flowdict:
+            mask2_t = flowdict["mask2"]
+        else:
+            mask2_t = None
 
         time_meters["data"].update(time.time()-end)
         
@@ -369,7 +379,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
                                        batchsize )
                 
         totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                truth_flow1_t, truth_flow2_t)
+                                                truth_flow1_t, truth_flow2_t,
+                                                mask1_truth=mask1_t,
+                                                mask2_truth=mask2_t)
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -402,19 +414,21 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         # measure accuracy and update meters
         cpu = torch.device("cuda:1")
         if predict1_t is not None:
-            nvis1 = accuracy(coord_t.detach().to(cpu),
-                             srcpix_t.detach().to(cpu),
-                             predict1_t.features.detach().to(cpu),
-                             truth_flow1_t.detach().to(cpu),
+            nvis1 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict1_t.features.to(cpu),
+                             truth_flow1_t.to(cpu),
+                             mask1_t.to(cpu),
                              1,acc_meters,True)
         else:
             nvis1 = 0
             
         if predict2_t is not None:
-            nvis2 = accuracy(coord_t.detach().to(cpu),
-                             srcpix_t.detach().to(cpu),
-                             predict2_t.features.detach().to(cpu),
-                             truth_flow2_t.detach().to(cpu),
+            nvis2 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict2_t.features.to(cpu),
+                             truth_flow2_t.to(cpu),
+                             mask2_t.to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
@@ -504,35 +518,51 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         tarpix_flow2_t = datadict["tar2"]
         truth_flow1_t  = datadict["flow1"]
         truth_flow2_t  = datadict["flow2"]
+
+        # masks
+        if "mask1" in datadict:
+            mask1_t = datadict["mask1"]
+        else:
+            mask1_t = None
+            
+        if "mask2" in datadict:
+            mask2_t = datadict["mask2"]
+        else:
+            mask2_t = None
         
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute output
         tforward = time.time()
-        predict1_t,predict2_t = model( coord_t, srcpix_t,
-                                       tarpix_flow1_t, tarpix_flow2_t,
-                                       batchsize )        
-        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                truth_flow1_t, truth_flow2_t)
+        with torch.set_grad_enabled(False):
+            predict1_t,predict2_t = model( coord_t, srcpix_t,
+                                           tarpix_flow1_t, tarpix_flow2_t,
+                                           batchsize )        
+            totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                    truth_flow1_t, truth_flow2_t,
+                                                    mask1_truth=mask1_t,
+                                                    mask2_truth=mask2_t)
         
         time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and update meters
         cpu = torch.device("cuda:1")
         if predict1_t is not None:
-            nvis1 = accuracy(coord_t.detach().to(cpu),
-                             srcpix_t.detach().to(cpu),
-                             predict1_t.features.detach().to(cpu),
-                             truth_flow1_t.detach().to(cpu),
+            nvis1 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict1_t.features.to(cpu),
+                             truth_flow1_t.to(cpu),
+                             mask1_t.to(cpu),
                              1,acc_meters,True)
         else:
             nvis1 = 0
             
         if predict2_t is not None:
-            nvis2 = accuracy(coord_t.detach().to(cpu),
-                             srcpix_t.detach().to(cpu),
-                             predict2_t.features.detach().to(cpu),
-                             truth_flow2_t.detach().to(cpu),
+            nvis2 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict2_t.features.to(cpu),
+                             truth_flow2_t.to(cpu),
+                             mask2_t.to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
@@ -604,7 +634,7 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(coord,srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
+def accuracy(coord,srcpix,flow_pred,flow_truth,mask_truth,flowdir,acc_meters,istrain):
     """Computes the accuracy metrics."""
     # inputs:
     #  assuming all pytorch tensors
@@ -627,12 +657,15 @@ def accuracy(coord,srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     #if nvis<=0:
     #    return None
 
-    mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
-    # don't count pixels where:
-    #  1) flow is missing i.e. equals zero
-    #  2) source pixel is below threshold
-    mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
-    #mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    if mask_truth is None:
+        mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
+        # don't count pixels where:
+        #  1) flow is missing i.e. equals zero
+        #  2) source pixel is below threshold
+        mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
+        #mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    else:
+        mask = mask_truth
     nvis = mask.sum()
 
     if not PREDICT_CLASSVEC:
@@ -641,8 +674,7 @@ def accuracy(coord,srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     else:
         # convert class vector prediction to wire number
         col_predicted = torch.argmax( flow_pred, 1 ).type(torch.float)
-        #flow_err = ( col_predicted - (coord[:,1].type(torch.float) + flow_truth[:,0]) )*mask        
-        col_predicted -= coord[:,1].type(torch.float)
+        #flow_err = ( col_predicted - flow_truth[:,0] )*mask        
         col_predicted -= flow_truth[:,0]
         col_predicted *= mask[:,0]
         flow_err = col_predicted.abs()
@@ -690,8 +722,14 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
     print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f]"%(loss_meters["total"].avg,
                                                          loss_meters["flow1"].avg,
                                                          loss_meters["flow2"].avg)
-    print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,acc_meters["flow1<10pix"].avg*100,acc_meters["flow1<20pix"].avg*100,acc_meters["flow1<50pix"].avg*100)
-    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<10pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
+    print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,
+                                                                      acc_meters["flow1<10pix"].avg*100,
+                                                                      acc_meters["flow1<20pix"].avg*100,
+                                                                      acc_meters["flow1<50pix"].avg*100)
+    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,
+                                                                      acc_meters["flow2<10pix"].avg*100,
+                                                                      acc_meters["flow2<20pix"].avg*100,
+                                                                      acc_meters["flow2<50pix"].avg*100)
         
     print "------------------------------------------------------------------------"    
 

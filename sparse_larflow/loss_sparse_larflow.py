@@ -79,7 +79,9 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             self.l1loss = nn.CrossEntropyLoss()
 
 
-    def forward(self,coord, flow1_predict,flow2_predict,flow1_truth,flow2_truth,
+    def forward(self,coord, flow1_predict,flow2_predict,
+                flow1_truth,flow2_truth,
+                mask1_truth=None,mask2_truth=None,
                 source_originx=0, targetu_originx=0, targetv_originx=0):
 
         """
@@ -104,10 +106,13 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         if flow1_predict is not None:
             # convert sparseconvtensor into torch.tensor in sparse representation
             flowout1 = self.outlayer1(flow1_predict)
-            # allocate mem for mask
-            mask1 = torch.ones( flow1_truth.shape, dtype=torch.float, requires_grad=False ).to(flow1_truth.device)
+            if mask1_truth is None:
+                print "allocate mem for mask1"                
+                mask1 = torch.ones( flow1_truth.shape, dtype=torch.float, requires_grad=False ).to(flow1_truth.device)
+                mask1[ torch.eq(flow1_truth,-4000.0) ] = 0                
+            else:
+                mask1 = mask1_truth
             #print "mask1 counts: ",mask1.shape,"raw sum=",mask1.detach().sum()        
-            mask1[ torch.eq(flow1_truth,-4000.0) ] = 0
             #print "mask1 counts: ",mask1.shape,"select sum=",mask1.detach().sum()
             n1 = mask1.sum()
 
@@ -121,7 +126,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
                 # classification loss
                 # first, we need to true flow prediction to source column number to get true target column
                 #print "coord=",coord[:,1].shape," flow1_truth",flow1_truth[:,0].shape," mask1=",mask1[:,0].shape
-                flow1target = (coord[:,1].type(torch.long) + flow1_truth[:,0].type(torch.long))*mask1[:,0].type(torch.long)
+                flow1target = flow1_truth[:,0].type(torch.long)*mask1[:,0].type(torch.long)
                 
                 # calculate cross entropy loss and weight by mask
                 #print " flowout1=",flowout1.shape," flowtarget=",flow1target.shape
@@ -140,11 +145,16 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         if flow2_predict is not None:
             # convert sparseconv tensor into torch.tensor in sparse representation
             flowout2 = self.outlayer2(flow2_predict)
-            # allocate mem for mask
-            mask2 = torch.ones( flow2_truth.shape, dtype=torch.float, requires_grad=False ).to(flow2_truth.device)
-            #print "mask2 counts: ",mask2.shape,"raw sum=",mask2.detach().sum()            
-            mask2[ torch.eq(flow2_truth,-4000.0) ] = 0            
-            #print "mask2 counts: ",mask2.shape,"select sum=",mask2.detach().sum()
+
+            if mask2_truth is None:
+                print "allocate mem for mask2"
+                mask2 = torch.ones( flow2_truth.shape, dtype=torch.float, requires_grad=False ).to(flow2_truth.device)
+                #print "mask2 counts: ",mask2.shape,"raw sum=",mask2.detach().sum()            
+                mask2[ torch.eq(flow2_truth,-4000.0) ] = 0            
+                #print "mask2 counts: ",mask2.shape,"select sum=",mask2.detach().sum()
+            else:
+                mask2 = mask2_truth
+                
             n2 = mask2.sum()
 
             if not self._predict_classvec:
@@ -156,7 +166,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             else:
                 # classification loss
                 # first, we need to true flow prediction to source column number to get true target column
-                flow2target = (coord[:,1].type(torch.long) + flow2_truth[:,0].type(torch.long))*mask2[:,0].type(torch.long)
+                flow2target = flow2_truth[:,0].type(torch.long)*mask2[:,0].type(torch.long)
                 # calculate cross entropy loss and weight by mask
                 flow2err  = F.cross_entropy( flowout2, flow2target, reduction='none' )*mask2[:,0]
                 # sum
