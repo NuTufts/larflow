@@ -8,9 +8,9 @@ export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
 export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils
 
 # OPENCV
-export OPENCV_LIBDIR=/usr/local/lib
-export OPENCV_INCDIR=/usr/local/include
-export USE_OPENCV=1
+#export OPENCV_LIBDIR=/usr/local/lib
+#export OPENCV_INCDIR=/usr/local/include
+#export USE_OPENCV=1
 
 
 #git submodule update
