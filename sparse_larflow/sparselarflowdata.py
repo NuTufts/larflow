@@ -12,11 +12,15 @@ from load_cropped_sparse_dualflow import load_cropped_sparse_dualflow
 def load_larflow_larcvdata( name, inputfile, batchsize, nworkers,
                             nflows=2,
                             tickbackward=False, readonly_products=None,
-                            producer_name="sparsecropdual"):
+                            producer_name="sparsecropdual",
+                            checkpix=True,
+                            predict_classvec=True):
     feeder = SparseLArFlowPyTorchDataset(inputfile, batchsize,
                                          tickbackward=tickbackward, nworkers=nworkers, nflows=nflows,
                                          producer_name=producer_name,
                                          readonly_products=readonly_products,
+                                         checkpix=checkpix,
+                                         predict_classvec=predict_classvec,
                                          feedername=name)
     return feeder
 
@@ -30,6 +34,8 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
                  producer_name="sparsecropdual",
                  nflows=2,
                  readonly_products=None,
+                 checkpix=True,
+                 predict_classvec=False,
                  feedername=None):
         super(SparseLArFlowPyTorchDataset,self).__init__()
 
@@ -59,7 +65,9 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         self.nworkers  = nworkers
         self.nflows    = nflows
         readonly_products = None
-        params = {"producer":producer_name}
+        params = {"producer":producer_name,
+                  "checkpix":checkpix,
+                  "predict_classvec":predict_classvec}
                   
         # note, with way LArCVServer workers, must always use batch size of 1
         #   because larcvserver expects entries in each batch to be same size,
@@ -123,7 +131,7 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         for data in data_v:
             datalen.append( data["pixadc"][0].shape[0] )
             ncoords += datalen[-1]
-        #print "NCOORDS: ",ncoords
+        #print "NCOORDS: ",ncoords," lens in batch=",datalen
 
         if len(data_v)>0 and data_v[0]["flowy2u"][0] is not None:
             has_truth = True
@@ -142,16 +150,23 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
         else:
             tarpix_flow2_t = None
             
-        # tensor for true flow
+        # tensors for true flow
         if has_truth:
             truth_flow1_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+            mask_flow1_t  = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
             if flow=='dual':
                 truth_flow2_t = torch.zeros( (ncoords,1), dtype=torch.float).to(device)
+                mask_flow2_t  = torch.zeros( (ncoords,1), dtype=torch.float).to(device)                
             else:
                 truth_flow2_t = None
+                mask_flow2_t  = None
         else:
             truth_flow1_t = None
-            truth_flow2_t = None                
+            truth_flow2_t = None
+            mask_flow1_t  = None
+            mask_flow2_t  = None
+
+
 
         # fill tensors above
         nfilled = 0            
@@ -175,14 +190,17 @@ class SparseLArFlowPyTorchDataset(torchdata.Dataset):
 
             if has_truth:
                 truth_flow1_t[start:end,0]      = torch.from_numpy(trueflow1[:,0])
+                mask_flow1_t[start:end,0]       = torch.from_numpy(batch["masky2u"][0][:,0])
                 if truth_flow2_t is not None:
                     truth_flow2_t[start:end,0]  = torch.from_numpy(trueflow2[:,0])
+                    mask_flow2_t[start:end,0]   = torch.from_numpy(batch["masky2v"][0][:,0])
                 
             nfilled += datalen[ib]
 
         flowdata = {"coord":coord_t,      "src":srcpix_t,
                     "tar1":tarpix_flow1_t,"tar2":tarpix_flow2_t,
-                    "flow1":truth_flow1_t,"flow2":truth_flow2_t}
+                    "flow1":truth_flow1_t,"flow2":truth_flow2_t,
+                    "mask1":mask_flow1_t, "mask2":mask_flow2_t}
         
         return flowdata
             
@@ -192,11 +210,12 @@ if __name__== "__main__":
     "testing"
     #inputfile = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
     #inputfile = "out_sparsified.root"
-    inputfiles = ["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v3.root",
-                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v3.root",
-                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v3.root"]
+    #inputfiles = ["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v3.root",
+    #              "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v3.root",
+    #              "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v3.root"]
+    inputfiles = ["/home/taritree/data/sparselarflow/larflow_sparsify_cropped_valid_v5.root"]
     batchsize = 10
-    nworkers  = 3
+    nworkers  = 1
     tickbackward = True
     readonly_products=None
     nentries = 10
@@ -207,6 +226,8 @@ if __name__== "__main__":
         feeder = load_larflow_larcvdata( "larflowsparsetest", inputfiles, batchsize, nworkers,
                                          tickbackward=tickbackward,
                                          readonly_products=readonly_products,
+                                         predict_classvec=True,
+                                         checkpix=True,
                                          producer_name="sparsecropdual" )
         tstart = time.time()
 
