@@ -47,11 +47,11 @@ namespace larflow {
     
     int src_planeid = src_adc_crop.meta().plane();
     int tar_planeid = tar_adc_crop.meta().plane();
-    if ( log.debug() )
-      log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-        << " source plane=" << src_planeid << " "
-        << " target plane=" << tar_planeid
-        << std::endl;
+    // if ( log.debug() )
+    //   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+    //     << " source plane=" << src_planeid << " "
+    //     << " target plane=" << tar_planeid
+    //     << std::endl;
 
     const larcv::ImageMeta& srcfullmeta = src_adc_full.meta();
     const larcv::ImageMeta& tarfullmeta = tar_adc_full.meta();    
@@ -188,20 +188,20 @@ namespace larflow {
       
       // Nothing in this row, move on to the next row
       if ( src_cols_in_ctr.size()==0 || tar_ctr_ids.size()==0 ) {
-        if ( log.debug() )
-          log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-            << "nothing to match. "
-            << " srcwires=" << src_cols_in_ctr.size()
-            << " tarwires=" << tar_ctr_ids.size()
-            << std::endl;
+        // if ( log.debug() )
+        //   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+        //     << "nothing to match. "
+        //     << " srcwires=" << src_cols_in_ctr.size()
+        //     << " tarwires=" << tar_ctr_ids.size()
+        //     << std::endl;
         continue;
       }
       else if ( src_cols_in_ctr.size()>0 && tar_ctr_ids.size()>0 ) {
-        if ( log.debug() )
-          log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
-            << " srcwires=" << src_cols_in_ctr.size()
-            << " tarwires=" << tar_ctr_ids.size()
-            << std::endl;        
+        // if ( log.debug() )
+        //   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)
+        //     << " srcwires=" << src_cols_in_ctr.size()
+        //     << " tarwires=" << tar_ctr_ids.size()
+        //     << std::endl;        
       }
 
       // now loop over source columns in contours and make matches to target contours

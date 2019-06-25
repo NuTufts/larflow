@@ -24,7 +24,7 @@ namespace larflow {
   /**
    * create 3D spacepoints using the LArFlow network outputs
    *
-   * @param[in] adc_crop_v vector of Image2D containing ADC values. Whole view.
+   * @param[in] adc_v vector of Image2D containing ADC values. Whole view.
    * @param[in] flowy2u vector of SparseImage crops containing Y->U flow predictions
    * @param[in] flowy2v vector of SparseImage crops containing Y->V flow predictions
    * @param[in] threshold ignore information where pixel value is below threshold
@@ -90,8 +90,9 @@ namespace larflow {
       const larcv::Image2D& tarimg = adc_v.at( tar_index[iflowdir] );
 
       // loop through flow data
-      for ( size_t iflowdata=0; iflowdata<flowdata.size()/2; iflowdata++ ) {
-        const larcv::SparseImage& sparseimg = flowdata.at( 2*iflowdata + iflowdir );
+      for ( size_t iflowdata=0; iflowdata<flowdata.size(); iflowdata++ ) {
+        //const larcv::SparseImage& sparseimg = flowdata.at( 2*iflowdata + iflowdir );
+	const larcv::SparseImage& sparseimg = flowdata.at( iflowdata );
 
         // find the proper cropped meta
         int cropped_index = -1;
@@ -122,16 +123,29 @@ namespace larflow {
         const larcv::Image2D& src_adc_crop = cropped_v.at( 3*cropped_index+2 );
         const larcv::Image2D& tar_adc_crop = cropped_v.at( 3*cropped_index+tar_index[iflowdir] );
 
-        createMatchData(  contours, srcimg, tarimg,
+	if ( log.debug() ) {
+	  log.send(larcv::msg::kDEBUG) << "create flowdir[" << iflowdir << "] match data for image set " 
+				       << cropped_index << " of " << cropped_v.size()/3 << std::endl;
+	}
+	createMatchData(  contours, srcimg, tarimg,
                           sparseimg.as_Image2D().at(iflowdir),
                           src_adc_crop, tar_adc_crop,
                           matchdict_v.at(iflowdir),
                           threshold, 30.0, verbosity, visualize );
+
+	if ( log.debug() ) {
+	  log.send(larcv::msg::kDEBUG) << "finished flowdir[" << iflowdir << "] "
+				       << "match data for image set " << cropped_index << std::endl;
+	}
+
         
       }//end of flow data loop
     }//end of flow direction loop
     
     // make this from this compiled information
+    if ( log.debug() )
+      log.send(larcv::msg::kDEBUG) << "call function to make simple hits " << std::endl;
+
     std::vector<larlite::larflow3dhit> flowhits_v
       = makeSimpleFlowHits( adc_v, contours, matchdict_v );
 

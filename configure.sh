@@ -3,6 +3,7 @@
 export LARFLOW_BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export LARFLOW_BUILDDIR=${LARFLOW_BASEDIR}/build/
 export LARFLOW_LIBDIR=${LARFLOW_BASEDIR}/build/lib
+export LARFLOW_INCDIR=${LARFLOW_BASEDIR}/build/include
 export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
 export LARFLOW_SPARSEDIR=${LARFLOW_BASEDIR}/sparse_larflow

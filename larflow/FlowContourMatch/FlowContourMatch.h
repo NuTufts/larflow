@@ -19,7 +19,7 @@
 namespace larflow {
 
   
-  std::vector<larlite::larflow3dhit> makeFlowHitsFromSparseCrops( const std::vector<larcv::Image2D>& adc_crop_v,
+  std::vector<larlite::larflow3dhit> makeFlowHitsFromSparseCrops( const std::vector<larcv::Image2D>& wholeview_v,
                                                                   const std::vector<larcv::SparseImage>& flowdata,
                                                                   const float threshold,
                                                                   const std::string cropcfg,
