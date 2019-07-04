@@ -8,6 +8,12 @@ def load_models(name, device="cpu", IMAGE_HEIGHT=512, IMAGE_WIDTH=832,
     """
     This function builds models with specified parameters.
     """
+
+    available_models = ['dualflow_v1',
+                        'dualflow_classvec_v2']
+    
+    if name not in available_models:
+        raise ValueError("Unrecognied model ({}). Avilable: {}".format(name,available_models))
     
     if name=="dualflow_v1":
         imgdims = 2
@@ -23,6 +29,18 @@ def load_models(name, device="cpu", IMAGE_HEIGHT=512, IMAGE_WIDTH=832,
                                home_gpu=None,
                                flowdirs=flowdirs,show_sizes=False).to(torch.device(device))
 
+    elif name=="dualflow_classvec_v2":
+        imgdims = 2
+        ninput_features  = 16
+        noutput_features = 16
+        nplanes = 6
+        nfeatures_per_layer = [8,8,8,8,8,8]
+        flowdirs = ['y2u','y2v']
+        model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
+                               ninput_features, noutput_features,
+                               nplanes, features_per_layer=nfeatures_per_layer,
+                               home_gpu=None, predict_classvec=True,
+                               flowdirs=flowdirs,show_sizes=False).to(torch.device(device))
     else:
         raise ValueError("Model name, {}, not recognized".format(name))
 

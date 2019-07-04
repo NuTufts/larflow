@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function
 import os,sys,time
 import argparse
@@ -11,14 +12,18 @@ parser.add_argument('-w','--weight-file',required=True,type=str,help='network ch
 parser.add_argument('-r','--overwrite',action="store_true",help='allow overwriting of output files')
 parser.add_argument('-c','--config',default='ubcroptrueflow.cfg',type=str,help='configuration file for splitter and cropper')
 parser.add_argument('-mc','--has-mc',action="store_true",default=False,help='file has truth information to process')
+parser.add_argument("-mo","--model",default="dualflow_classvec_v2",type=str,help='Model Name to load') 
 parser.add_argument('-adc','--adc-producer',default='wire',type=str,help='producer name for full ADC images')
 parser.add_argument('-ch','--chstatus-producer',default='wire',type=str,help='producer name for (larcv) ChStatus')
+parser.add_argument('--no-flowhits',action="store_true",default=False,help="Make flow hits")
+parser.add_argument('--save-trueflow-crops',action="store_true",default=False,help="Store True Flow Crops")
 parser.add_argument("-n", "--num",default=-1,type=int,help="Number of entries to run. <0 means run all")
 
 def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, weightfile,
+                                   model_name="dualflow_classvec_v2",
                                    adc_producer="wire",
                                    chstatus_producer='wire',
-                                   cropper_cfg="ubcrop.cfg",
+                                   cropper_cfg="cropflow_processor.cfg",
                                    flow="dual", devicename="cpu",
                                    run_reco_flowhits=True,
                                    run_truth_flowhits=True,                                   
@@ -42,7 +47,7 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
     from load_cropped_sparse_dualflow import load_croppedset_sparse_dualflow_nomc
     
     device = torch.device(devicename)
-    model  = load_models("dualflow_v1",weight_file=weightfile, device=devicename )
+    model  = load_models(model_name,weight_file=weightfile, device=devicename )
     model.eval()
     
     out = larcv.IOManager(larcv.IOManager.kWRITE, "stitched")
@@ -64,12 +69,14 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
     
     # first create cfg file if does not exist
     if not os.path.exists( cropper_cfg ):
+        print("Writing new copper config: ",cropper_cfg)
         from crop_processor_cfg import fullsplit_processor_config
         f = open(cropper_cfg,'w')
         f.write( fullsplit_processor_config(adc_producer,chstatus_producer) )
         f.close()
         
     splitter = larcv.ProcessDriver( "ProcessDriver" )
+    print("CONFIGURE SPLITTER: ",cropper_cfg)
     splitter.configure( cropper_cfg )
 
     # add files to iomanager
@@ -128,7 +135,7 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
             taten = time.time()
             
             ncoords = sparse_np.shape[0]
-            print("iset[{}] ncoords={}".format(iset,ncoords))
+            print("deploy net: iset[{}] ncoords={}".format(iset,ncoords))
         
             # make tensor for coords (row,col,batch)
             coord_t  = torch.from_numpy( sparse_np[:,0:2].astype( np.int32 ) ).to(device)
@@ -149,7 +156,22 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
             with torch.set_grad_enabled(False):
                 predict1_t, predict2_t = model( coord_t, srcpix_t, tarpix_flow1_t, tarpix_flow2_t, 1 )
             dt_net += time.time()-tnet
-        
+            #print("predict1_t shape",predict1_t.features.shape)
+            
+            # convert class vector output back to flow
+            # find max, then subtract off source pix
+            if model_name in ['dualflow_classvec_v2']:
+                # get arg max
+                maxcol1 = torch.argmax( predict1_t.features.detach(), 1 )
+                maxcol2 = torch.argmax( predict2_t.features.detach(), 1 )
+                # subtract source column
+                flowout1_t = (maxcol1.type(torch.FloatTensor) - coord_t[:,1].type(torch.FloatTensor)).reshape( (ncoords,1) )
+                flowout2_t = (maxcol2.type(torch.FloatTensor) - coord_t[:,1].type(torch.FloatTensor)).reshape( (ncoords,1) )
+            else:
+                flowout1_t = predict1_t.features
+                flowout2_t = predict2_t.features
+                
+            
             # back to numpy array
             tresult = time.time()
         
@@ -160,8 +182,8 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
 
             result_np = np.zeros( (ncoords,4), dtype=np.float32 )
             result_np[:,0:2] = sparse_np[:,0:2]
-            result_np[:,2]   = predict1_t.features.detach().cpu().numpy()[:,0]
-            result_np[:,3]   = predict2_t.features.detach().cpu().numpy()[:,0]
+            result_np[:,2]   = flowout1_t.detach().cpu().numpy()[:,0]
+            result_np[:,3]   = flowout2_t.detach().cpu().numpy()[:,0]
 
             # store raw result
             sparse_raw = larcv.sparseimg_from_ndarray( result_np, meta_v, larcv.msg.kDEBUG )
@@ -211,7 +233,14 @@ def deploy_sparselarflow_on_files( larcv_outfile, larlite_outfile, filelist, wei
             for iimg in xrange(crop_v.size()):
                 out_crop.Append( crop_v.at(iimg) )
             print("saved ",crop_v.size()," adc crops")
-        
+
+        if save_cropped_trueflow:
+            ev_trueflow_crops  = io.get_data(  larcv.kProductImage2D, "croppedflow" )
+            out_trueflow_crops = out.get_data( larcv.kProductImage2D, "croptrueflow" )
+            for iimg in xrange(ev_trueflow_crops.Image2DArray().size()):
+                out_trueflow_crops.Append( ev_trueflow_crops.Image2DArray().at(iimg) )
+            print("saved ",out_trueflow_crops.Image2DArray().size()," true flow crops")
+
         # save stitched output
         if run_stitcher:
             out_y2u = out.get_data( larcv.kProductImage2D, "larflowy2u" )
@@ -267,7 +296,7 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     
     inputfiles = ["testdata/larcvtruth-Run000002-SubRun002000.root"]
-    weightfile = "weights/dualflow/checkpoint.14700th.tar"
+    weightfile = "weights/dualflow/dualflow.classvec.checkpoint.242000th.tar"
 
     inputfiles = args.inputfiles
     weightfile = args.weight_dir+"/"+args.weight_file
@@ -279,11 +308,21 @@ if __name__ == "__main__":
         raise ValueError("LArCV output already exists: {}".format(args.outfile_larcv))
     if not args.overwrite and os.path.exists(args.outfile_larlite):
         raise ValueError("Larlite output already exists: {}".format(args.outfile_larlite))
-        
+
+    run_reco_flowhits = True
+    run_truth_flowhits = True
+    if args.no_flowhits:
+        run_reco_flowhits  = False
+        run_truth_flowhits = False
+    
     deploy_sparselarflow_on_files( output_larcv_sparsecrops, output_larlite_larflowhits,
                                    inputfiles, weightfile,
+                                   model_name="dualflow_classvec_v2",
                                    devicename="cpu",
                                    adc_producer=args.adc_producer,
+                                   run_reco_flowhits=run_reco_flowhits,
+                                   run_truth_flowhits=run_truth_flowhits,
+                                   save_cropped_trueflow=args.save_trueflow_crops,
                                    chstatus_producer=args.chstatus_producer,
                                    maxentries=args.num, has_mc=args.has_mc )
 
