@@ -1,6 +1,7 @@
 import os,sys
 import ROOT as rt
 from larcv import larcv
+larcv.load_rootutil()
 
 rt.gStyle.SetOptStat(0)
 
@@ -15,7 +16,7 @@ io.initialize()
 
 io.read_entry( entry )
 
-evimg2d = io.get_data( "image2d", tree )
+evimg2d = io.get_data( larcv.kProductImage2D, tree )
 
 img = evimg2d.as_vector().at(index)
 

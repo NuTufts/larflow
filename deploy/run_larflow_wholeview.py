@@ -46,6 +46,13 @@ import torch
 # also, implicitly loads dependencies, pytorch larflow model definition
 from larflow_funcs import load_model
 
+# cv2: opencv2 for dumping input numpy arrays
+try:
+    import cv2
+    _HAS_CV2_ = True
+except:
+    _HAS_CV2_ = False
+
 class WholeImageLoader:
     def __init__(self,larcv_input_file,
                  adc_producer="wire", chstatus_producer="wire",
@@ -187,25 +194,26 @@ if __name__=="__main__":
         #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
         #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
         batch_size = 4
-        gpuid = "cpu"
-        #gpuid = 0        
+        #gpuid = "cpu"
+        gpuid = 0        
         checkpoint_gpuid = 0
         verbose = True
         nprocess_events = 1
-        stitch = False
+        stitch   = False
         use_half = False
+        debug    = True
         workdir="./"
         threshold = 10.0
         adc_producer="wiremc"
         chstatus_producer="wiremc"
+        ismc = False # saves flow and visi images
         
-        FLOWDIR="Y2V"
+        FLOWDIR="Y2U"
 
         if FLOWDIR=="Y2U":
             checkpoint_data = "weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
             output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
-            ismc = True # saves flow and visi images
-            save_cropped_adc = False  # saves cropped adc
+            save_cropped_adc = True  # saves cropped adc
             output_larcv_filename = "output_wholeview_larflow_y2u_test.root"
         elif FLOWDIR=="Y2V":
             checkpoint_data = "weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
@@ -347,7 +355,7 @@ if __name__=="__main__":
         if verbose:
             print "time to allocate memory (and copy) for numpy arrays: ",talloc,"secs"
 
-        nsets = nimgs/3
+        nsets = nimgs
 
         # loop over images from cropper
         iset   = 0 # index of image in cropper
@@ -376,7 +384,7 @@ if __name__=="__main__":
                 if verbose:
                     print "iimg=",iimg," of nimgs=",nimgs," of nbboxes=",splitimg_bbox_v.ROIArray().size()
                 # get the bboxes, all three planes
-                bb_v  = [splitimg_bbox_v.ROIArray().at(iimg+x) for x in xrange(3)]
+                bb_v  = [splitimg_bbox_v.ROIArray().at(iset).BB(x) for x in xrange(3)]
 
                 if False:
                     # do crop oneself using numpy
@@ -410,6 +418,9 @@ if __name__=="__main__":
                 source_np[ib,0,:,:] = np.transpose( larcv.as_ndarray(src_img_lcv), (1,0) )
                 target_np[ib,0,:,:] = np.transpose( larcv.as_ndarray(tar_img_lcv), (1,0) )
                 #status_batch.append( chstatus_np[2,bounds[2][1]:bounds[2][3]] )
+
+                if debug:
+                    cv2.imwrite( "debug_src_img_set%d.png"%(iset), source_np[ib,0,:,:] )
                 
                 # store region of image                
                 image_meta.append(  src_img_lcv.meta() )
@@ -436,7 +447,7 @@ if __name__=="__main__":
             # -----------------------            
 
             if verbose:
-                print "batch using ",len(image_meta)," slots"
+                print "batch using ",len(image_meta)," of ",batch_size,"slots"
         
             # filled batch, make tensors
             # --------------------------
@@ -463,6 +474,8 @@ if __name__=="__main__":
             # turn pred_flow back into larcv
             tcopy = time.time()
             flow_np = pred_flow.detach().cpu().numpy().astype(np.float32)
+
+            
             outmeta = out_v[0].meta()
             for ib in xrange(min(batch_size,len(image_meta))):
                 if image_meta[ib] is None:
@@ -470,21 +483,17 @@ if __name__=="__main__":
                     continue
                 flow_slice = flow_np[ib,0,:,:]
                 #print "flow_slice non-zero (pre-mask): ",(flow_slice!=0).sum()
+                flow_slice[ source_np[ib,0,:,:]<threshold ] = 0.0
+                
+                if debug:
+                    cv2.imwrite( "debug_flowout_{}_set{}_batchidx{}.png".format( FLOWDIR, iset, ib ), flow_slice )
+                
 
                 # we want to suppress values where chstatus is good and adc value below threshold
                 # setting uninteresting pixels to zero is important for good file size
                 thresh_slice = (source_np[ib,0,:,:]<threshold)
                 #adcgoodch_slice = source_np[ib,0,:,status_batch[ib]==4].transpose((1,0))
                 
-
-                #print "flow_np: ",flow_np.shape
-                #print "flow_slice: ",flow_slice.shape
-                #print "source_np: ",source_np.shape
-                #print "status_batch[ib]: ",status_batch[ib].shape
-                #print "adc_goodch_slice: ",adcgoodch_slice.shape
-                #print "above thresh goodch slice: ",(adcgoodch_slice>=threshold).sum()
-                #print "below thresh goodch slice: ",(adcgoodch_slice<threshold).sum()
-
                 # SKIP CHSTATUS MASK FOR NOW
                 #nmasked = 0
                 #for n,goodch in enumerate( np.nditer( status_batch[ib] ) ):
@@ -496,7 +505,7 @@ if __name__=="__main__":
                 #print "nmasked estimate: ",nmasked
                 #print "flow_slice non-zero (post-mask): ",(flow_slice!=0).sum()
 
-                flow_lcv = larcv.as_image2d_meta( flow_slice, image_meta[ib] )
+                flow_lcv = larcv.as_image2d_meta( np.transpose( flow_slice, (1,0 ) ), image_meta[ib] )
                 if stitch:
                     # load cropped info into stitcher
                     # -------------------------------
@@ -521,17 +530,20 @@ if __name__=="__main__":
                             evoutvisi.Append( img )
                         for img in flowcrop_batch[ib]["flow"]:
                             evoutflow.Append( img )
-                    
-                    outputdata.set_id( runid, subrunid, eventid )
-                    outputdata.save_entry()
-                    
-                    
+
             tcopy = time.time()-tcopy
             timing["+++copy_to_output"] += tcopy
             if verbose:
                 print "time to copy results back into full image: ",tcopy," secs"
         # end of loop over cropped set
         # -------------------------------
+
+        if verbose:
+            print "Save Entry"
+            
+        outputdata.set_id( runid, subrunid, eventid )
+        outputdata.save_entry()
+        
 
         # end of while loop
         if verbose:
