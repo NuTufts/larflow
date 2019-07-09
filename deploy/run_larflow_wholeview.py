@@ -12,7 +12,7 @@ whole_view_parser.add_argument( "-i", "--input",        required=True, type=str,
 whole_view_parser.add_argument( "-o", "--output",       required=True, type=str, help="location of output larcv file" )
 whole_view_parser.add_argument( "-c", "--checkpoint",   required=True, type=str, help="location of model checkpoint file")
 whole_view_parser.add_argument( "-f", "--flowdir",      required=True, type=str, help="Flow direction. Choose from [Y2U,Y2V]")
-whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on")
+whole_view_parser.add_argument( "-g", "--gpuid",        default=0,     type=int, help="GPUID to run on. If ID<0 then use CPU.")
 whole_view_parser.add_argument( "-p", "--chkpt-gpuid",  default=0,     type=int, help="GPUID used in checkpoint")
 whole_view_parser.add_argument( "-b", "--batchsize",    default=1,     type=int, help="batch size" )
 whole_view_parser.add_argument( "-v", "--verbose",      action="store_true",     help="verbose output")
@@ -23,7 +23,9 @@ whole_view_parser.add_argument( "-mc","--ismc",         action="store_true", def
 whole_view_parser.add_argument( "-hp","--usehalf",      action="store_true", default=False, help="use half-precision values" )
 whole_view_parser.add_argument( "-d", "--debug",        action="store_true", default=False, help="run in debug mode. uses hardcoded parameters for dev" )
 whole_view_parser.add_argument( "-a", "--saveadc",      action="store_true", default=False, help="save cropped ADC as well" )
-whole_view_parser.add_argument( "-w", "--workdir",      default="", type=str, help="set working directory" )
+whole_view_parser.add_argument( "-w", "--workdir",      default="./", type=str, help="set working directory" )
+whole_view_parser.add_argument( "-adc", "--adc-producer",     default="wire", type=str, help="Wholeview ADC Image producer name" )
+whole_view_parser.add_argument( "-ch",  "--chstatus-producer",default="wire", type=str, help="Channel Status producer name" )                                
 
 args = whole_view_parser.parse_args(sys.argv[1:])
 
@@ -169,30 +171,35 @@ if __name__=="__main__":
 
     # ARGUMENTS DEFINTION/PARSER
     if not args.debug:
+        # required
         input_larcv_filename  = args.input
         output_larcv_filename = args.output
         checkpoint_data       = args.checkpoint
         FLOWDIR               = args.flowdir.upper()
+
+        # has defaults
+        batch_size            = args.batchsize        
         gpuid                 = args.gpuid
+        if gpuid<0:
+            gpuid = "cpu"
         checkpoint_gpuid      = args.chkpt_gpuid
-        batch_size            = args.batchsize
-        verbose               = args.verbose
+        verbose               = args.verbose        
         nprocess_events       = args.nevents
         stitch                = args.stitch
         use_half              = args.usehalf
+        if gpuid=="cpu":
+            use_half = False # no half-precision operations for CPU
         ismc                  = args.ismc
         save_cropped_adc      = args.saveadc
         workdir               = args.workdir
         threshold             = args.adc_threshold
+        adc_producer          = args.adc_producer
+        chstatus_producer     = args.chstatus_producer
+        
     else:
         print "OVER-RIDING ARGUMENTS: USING DEBUG SETTINGS (Hard-coded)"
         # for testing
-        # bnb+corsicka
         input_larcv_filename = "../../testdata/mcc9_v13_bnbnue_corsika/larcv_mctruth_000de2ae-28d2-46c3-9dc9-af1fee95eaa5.root"
-        # bnbmc+overlay
-        #input_larcv_filename = "../testdata/supera-Run006999-SubRun000013-overlay.root"
-        #output_larcv_filename = "larcv_larflow_overlay_6999_13.root"
-        #checkpoint_data = "../weights/dev/dev_larflow_y2u_832x512_32inplanes.tar"
         batch_size = 4
         #gpuid = "cpu"
         gpuid = 0        
@@ -201,7 +208,6 @@ if __name__=="__main__":
         nprocess_events = 1
         stitch   = False
         use_half = False
-        debug    = True
         workdir="./"
         threshold = 10.0
         adc_producer="wiremc"
@@ -212,12 +218,11 @@ if __name__=="__main__":
 
         if FLOWDIR=="Y2U":
             checkpoint_data = "weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar"
-            output_larcv_filename = "larcv_larflow_y2u_5482426_95_testsample082918.root"            
+            output_larcv_filename = "larcv_larflow_y2u_debug.root"            
             save_cropped_adc = True  # saves cropped adc
-            output_larcv_filename = "output_wholeview_larflow_y2u_test.root"
         elif FLOWDIR=="Y2V":
             checkpoint_data = "weights/dev_filtered/devfiltered_larflow_y2v_832x512_32inplanes.tar"
-            output_larcv_filename = "output_wholeview_larflow_y2v_test.root"
+            output_larcv_filename = "larcv_larflow_y2v_debug.root"
             # remove for y2v so we can hadd with y2u output                        
             ismc = False
             save_cropped_adc = False 
@@ -419,7 +424,7 @@ if __name__=="__main__":
                 target_np[ib,0,:,:] = np.transpose( larcv.as_ndarray(tar_img_lcv), (1,0) )
                 #status_batch.append( chstatus_np[2,bounds[2][1]:bounds[2][3]] )
 
-                if debug:
+                if args.debug:
                     cv2.imwrite( "debug_src_img_set%d.png"%(iset), source_np[ib,0,:,:] )
                 
                 # store region of image                
@@ -485,7 +490,7 @@ if __name__=="__main__":
                 #print "flow_slice non-zero (pre-mask): ",(flow_slice!=0).sum()
                 flow_slice[ source_np[ib,0,:,:]<threshold ] = 0.0
                 
-                if debug:
+                if args.debug:
                     cv2.imwrite( "debug_flowout_{}_set{}_batchidx{}.png".format( FLOWDIR, iset, ib ), flow_slice )
                 
 
