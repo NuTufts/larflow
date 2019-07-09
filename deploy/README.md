@@ -10,7 +10,7 @@ Process larcv files containing whole images. Uses larcv processes, UBSplitDetect
 Example call
 
 ```
-./run_larflow_wholeview.py -i [input] -o [output] -c weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar
+./run_larflow_wholeview.py -i [input] -o [output] -w -c weights/dev_filtered/devfiltered_larflow_y2u_832x512_32inplanes.tar
 ```
 
 

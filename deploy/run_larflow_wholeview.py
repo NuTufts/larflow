@@ -237,6 +237,7 @@ if __name__=="__main__":
         device=torch.device("cuda:%d"%(gpuid))
     elif gpuid=="cpu":
         device=torch.device("cpu")
+    print "DEVICE: ",device
     
     # load data
     inputdata = WholeImageLoader( input_larcv_filename, ismc=ismc, workdir=workdir,
@@ -470,7 +471,7 @@ if __name__=="__main__":
             trun = time.time()
             with torch.set_grad_enabled(False):
                 pred_flow, pred_visi = model.forward( source_t, target_t )
-            torch.cuda.synchronize() # to give accurate time use
+            #torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
             timing["+++run_model"] += trun
             if verbose:            
@@ -478,6 +479,8 @@ if __name__=="__main__":
 
             # turn pred_flow back into larcv
             tcopy = time.time()
+            if verbose:
+                print "prediction to cpu"
             flow_np = pred_flow.detach().cpu().numpy().astype(np.float32)
 
             
