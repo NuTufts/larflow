@@ -11,7 +11,7 @@ INCLUDES += -I${UBLARCVAPP_INCDIR}
 LDFLAGS  =  `root-config --ldflags` -lstdc++
 
 #LIBS = ContourTools FlowContourMatching LArFlowCluster3D
-LIBS = ContourTools FlowContourMatching
+LIBS = ContourTools FlowContourMatching LArFlowCluster3D
 LDLIBS = -Llib $(addprefix -l,$(LIBS))
 LDLIBS   +=  `root-config --libs`
 LDLIBS   += `larlite-config --libs`
@@ -23,7 +23,7 @@ LDLIBS   += -L${UBLARCVAPP_LIBDIR} -lLArCVApp_UBImageMod
 SUBDIRS = ContourTools FlowContourMatching cluster
 INCLUDES += $(addprefix -I, $(SUBDIRS))
 EXEC = dev
-#EXEC += dump2json
+EXEC += dump2json
 #EXEC += ana_flowhits
 
 all: obj $(EXEC) 

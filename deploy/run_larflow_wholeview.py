@@ -471,7 +471,8 @@ if __name__=="__main__":
             trun = time.time()
             with torch.set_grad_enabled(False):
                 pred_flow, pred_visi = model.forward( source_t, target_t )
-            #torch.cuda.synchronize() # to give accurate time use
+            if gpuid>=0:
+                torch.cuda.synchronize() # to give accurate time use
             trun = time.time()-trun
             timing["+++run_model"] += trun
             if verbose:            

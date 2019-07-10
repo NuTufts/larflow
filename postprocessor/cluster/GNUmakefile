@@ -35,6 +35,7 @@ LIB = ../lib/libLArFlowCluster3D.so
 # SPECIFY SOURCES FOR BINARIES SO THEY ARE OMITTED FROM LIB
 BINSRCS =
 BINSRCS += dev_truthcluster.cxx
+BINSRCS += dev_ancestorcluster.cxx
 BINSRCS += reco_cluster.cxx
 BINSRCS += dev_dbscan.cxx
 BINSRCS += ana_truthcluster.cxx
@@ -43,10 +44,8 @@ BINSRCS += dev_fillcluster.cxx
 BINSRCS += dev_mrcnn_cluster.cxx
 
 # SPECIFY BINS TO BUILD
-#BINS = $(basename $(BINSRCS)) # for all
-BINS = dev_fillcluster dev_truthcluster dev_mrcnn_cluster
+BINS = dev_fillcluster dev_truthcluster dev_ancestorcluster dev_mrcnn_cluster
 
-#SRCS = $(filter-out $(addsuffix .cxx,$(BINS)), $(wildcard *.cxx))
 SRCS = $(filter-out $(BINSRCS), $(wildcard *.cxx))
 OBJS = $(SRCS:.cxx=.o)
 
@@ -62,8 +61,6 @@ all: $(LIB) $(BINS)
 	@echo "<< compiling+linking binary "$@" >>"
 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
-# dev_truthcluster: $(LIB) dev_truthcluster.cxx
-# 	$(CXX) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -o $@ $@.cxx -L$(LARFLOW_POST_LIBDIR) -lLArFlowCluster3D $(LIBS)
 
 convert2ply: convert2ply.cxx
 	$(CXX) $(CFLAGS) $(INCLUDES) $(INCLUDES_PANGOLIN) $(LDFLAGS) $(LDFLAGS_PANGOLIN) -o $@ $@.cxx $(LIBS)
