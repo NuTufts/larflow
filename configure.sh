@@ -1,5 +1,7 @@
 #!/bin/bash
 
+__larflow_configure_startdir__=$PWD
+
 export LARFLOW_BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export LARFLOW_BUILDDIR=${LARFLOW_BASEDIR}/build/
 export LARFLOW_LIBDIR=${LARFLOW_BASEDIR}/build/lib
@@ -49,6 +51,6 @@ export EIGEN_INC_DIR=/usr/include/eigen3
 export EIGEN_LIB_DIR=
 
 # SETUP LARCVDATASET
-cd larcvdataset
+cd ${LARFLOW_BASEDIR}/larcvdataset
 source setenv.sh
-cd ../
+cd ${__larflow_configure_startdir__}
