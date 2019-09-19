@@ -39,7 +39,7 @@ from larflow_uresnet import LArFlowUResNet
 
 # load model with weights from checkpoints
 
-def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
+def load_model( checkpointfile, deviceid=0, checkpointgpu=0, use_half=False ):
 
     model = LArFlowUResNet(inplanes=32,input_channels=1,showsizes=False,use_visi=False)
     if use_half:
@@ -48,8 +48,10 @@ def load_model( checkpointfile, gpuid=0, checkpointgpu=0, use_half=False ):
     # stored parameters know what gpu ID they were on
     # if we change gpuids, we need to force the map here
     map_location=None
-    if gpuid!=checkpointgpu:
-        map_location={"cuda:%d"%(checkpointgpu):"cuda:%d"%(gpuid)}
+    if deviceid=="cpu":
+        map_location={"cuda:%d"%(checkpointgpu):"cpu"}
+    elif type(deviceid) is int and deviceid!=checkpointgpu:
+        map_location={"cuda:%d"%(checkpointgpu):"cuda:%d"%(deviceid)}
     
     checkpoint = torch.load( checkpointfile, map_location=map_location )
     # check for data_parallel checkpoint which has "module" prefix

@@ -8,3 +8,4 @@ last_filelist_larlite.txt
 *.pdf
 *.tar
 *.cfg
+build/*

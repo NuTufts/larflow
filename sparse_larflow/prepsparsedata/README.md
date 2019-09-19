@@ -18,3 +18,10 @@ Summary of workflow
       cat processedok.list | sort | head -n 1000 > trainlist.txt
 
 * then hadd using `submit_hadd_train.sh`
+
+
+## Scripts
+
+### sparsify_cropped_data.py
+
+This script splits or crops a full ADC image, then gets the larflow truth for those crops.

@@ -40,29 +40,28 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.1700th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.10000th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.17000th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.24500th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.25500th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.31600th.tar"
-#CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.35000th.tar"
-CHECKPOINT_FILE="train_y2u_checkpoints/checkpoint.36100th.tar"
-INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train1_v5.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train2_v5.root",
-                 "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v5.root"]
-INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v5.root"
+CHECKPOINT_FILE="checkpoint.10000th.tar"
+
+#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
+#TRAIN_DATA_FOLDER="/tmp/"
+TRAIN_DATA_FOLDER="/home/taritree/data/sparselarflow/"
+INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
+                 "larflow_sparsify_cropped_train2_v5.root",
+                 "larflow_sparsify_cropped_train3_v5.root"]
+INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
+
 start_iter  = 36101
 num_iters   = 45000
+
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=20
-BATCHSIZE_VALID=10
-NWORKERS_TRAIN=3
-NWORKERS_VALID=1
+BATCHSIZE_TRAIN=16
+BATCHSIZE_VALID=4
+NWORKERS_TRAIN=6
+NWORKERS_VALID=2
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
@@ -73,7 +72,8 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=100
+ITER_PER_CHECKPOINT=1000
+PREDICT_CLASSVEC=True
 # ===================================================
 
 # global variables
@@ -95,14 +95,19 @@ def main():
     imgdims = 2
     ninput_features  = 16
     noutput_features = 16
-    nplanes = 5
-    nfeatures_per_layer = [16,16,32,32,64]
-    flowdirs = ['y2u']
+    nplanes = 6
+    nfeatures_per_layer = [8,8,8,8,8,8]
+    flowdirs = ['y2u','y2v']
     
     model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
                            ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
-                           flowdirs=flowdirs).to(DEVICE)
+                           home_gpu=None, predict_classvec=PREDICT_CLASSVEC,
+                           flowdirs=flowdirs,show_sizes=False).to(DEVICE)
+    if False:
+        # DUMP MODEL
+        print model
+        sys.exit(-1)
     
     # Resume training option
     if RESUME_FROM_CHECKPOINT:
@@ -113,22 +118,24 @@ def main():
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
         model.load_state_dict(checkpoint["state_dict"])
 
-    if not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
-        model = nn.DataParallel( model, device_ids=DEVICE_IDS ).to(device=DEVICE) # distribute across device_ids
+    if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
+        model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
 
     # uncomment to dump model
     if False:
         print "Loaded model: ",model
+        #print model.module.source_encoder.variable
+        print model.module.parameters
         return
 
     # define loss function (criterion) and optimizer
     maxdist   = 200.0
     criterion = SparseLArFlow3DConsistencyLoss(IMAGE_HEIGHT, IMAGE_WIDTH,
-                                               larcv_version=1,
+                                               larcv_version=1, predict_classvec=PREDICT_CLASSVEC,
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-4
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -141,11 +148,11 @@ def main():
     iter_per_valid = 10
 
 
-    nbatches_per_itertrain = 5
+    nbatches_per_itertrain = 1
     itersize_train         = batchsize_train*nbatches_per_itertrain
     trainbatches_per_print = -1
     
-    nbatches_per_itervalid = 5
+    nbatches_per_itervalid = 16
     itersize_valid         = batchsize_valid*nbatches_per_itervalid
     validbatches_per_print = -1
 
@@ -169,14 +176,16 @@ def main():
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = True
 
-    # LOAD THE DATASET    
-    iotrain = load_larflow_larcvdata( "train", INPUTFILE_TRAIN,
+    # LOAD THE DATASET
+    traindata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_TRAIN ]
+    validdata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_VALID ]    
+    iotrain = load_larflow_larcvdata( "train", traindata,
                                       BATCHSIZE_TRAIN, NWORKERS_TRAIN,
                                       producer_name="sparsecropdual",
                                       nflows=len(flowdirs),
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
-    iovalid = load_larflow_larcvdata( "valid", INPUTFILE_VALID,
+    iovalid = load_larflow_larcvdata( "valid", validdata,
                                       BATCHSIZE_VALID, NWORKERS_VALID,
                                       producer_name="sparsecropdual",                                      
                                       nflows=len(flowdirs),
@@ -308,7 +317,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
     acc_time = AverageMeter()
 
     # accruacy and loss meters
-    lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    #lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    lossnames    = ("total","flow1","flow2")
     flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
     consistnames = ("dist2d")
 
@@ -338,7 +348,6 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # GET THE DATA
         end = time.time()
-        time_meters["data"].update(time.time()-end)
             
         flowdict = train_loader.get_tensor_batch(device)        
         # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
@@ -348,6 +357,18 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         tarpix_flow2_t = flowdict["tar2"]
         truth_flow1_t  = flowdict["flow1"]
         truth_flow2_t  = flowdict["flow2"]
+        # masks
+        if "mask1" in flowdict:
+            mask1_t = flowdict["mask1"]
+        else:
+            mask1_t = None
+            
+        if "mask2" in flowdict:
+            mask2_t = flowdict["mask2"]
+        else:
+            mask2_t = None
+
+        time_meters["data"].update(time.time()-end)
         
         # compute output
         if RUNPROFILER:
@@ -359,7 +380,9 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
                                        batchsize )
                 
         totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                truth_flow1_t, truth_flow2_t)
+                                                truth_flow1_t, truth_flow2_t,
+                                                mask1_truth=mask1_t,
+                                                mask2_truth=mask2_t)
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -381,7 +404,8 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        loss_meters["flow1"].update( flow1loss.item() )
+        if flow1loss is not None:
+            loss_meters["flow1"].update( flow1loss.item() )
         if flow2loss is not None:
             loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
@@ -389,19 +413,28 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         #loss_meters["consist3d"].update( closs.item() )
         
         # measure accuracy and update meters
-        nvis1 = accuracy(srcpix_t.detach(),
-                         predict1_t.features.detach(),
-                         truth_flow1_t.detach(),
-                         1,acc_meters,True)
+        cpu = torch.device("cuda:1")
+        if predict1_t is not None:
+            nvis1 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict1_t.features.to(cpu),
+                             truth_flow1_t.to(cpu),
+                             mask1_t.to(cpu),
+                             1,acc_meters,True)
+        else:
+            nvis1 = 0
+            
         if predict2_t is not None:
-            nvis2 = accuracy(srcpix_t.detach(),
-                             predict2_t.features.detach(),
-                             truth_flow2_t.detach(),
+            nvis2 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict2_t.features.to(cpu),
+                             truth_flow2_t.to(cpu),
+                             mask2_t.to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
 
-        if nvis1==0 or (predict2_t is not None and nvis2==0):
+        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update time meter
@@ -447,7 +480,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
 
     # accruacy and loss meters
-    lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
+    lossnames    = ("total","flow1","flow2")
     flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
     consistnames = ("dist2d")
 
@@ -486,37 +519,62 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         tarpix_flow2_t = datadict["tar2"]
         truth_flow1_t  = datadict["flow1"]
         truth_flow2_t  = datadict["flow2"]
+
+        # masks
+        if "mask1" in datadict:
+            mask1_t = datadict["mask1"]
+        else:
+            mask1_t = None
+            
+        if "mask2" in datadict:
+            mask2_t = datadict["mask2"]
+        else:
+            mask2_t = None
         
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute output
         tforward = time.time()
-        predict1_t,predict2_t = model( coord_t, srcpix_t,
-                                       tarpix_flow1_t, tarpix_flow2_t,
-                                       batchsize )        
-        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                truth_flow1_t, truth_flow2_t)
+        with torch.set_grad_enabled(False):
+            predict1_t,predict2_t = model( coord_t, srcpix_t,
+                                           tarpix_flow1_t, tarpix_flow2_t,
+                                           batchsize )        
+            totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
+                                                    truth_flow1_t, truth_flow2_t,
+                                                    mask1_truth=mask1_t,
+                                                    mask2_truth=mask2_t)
         
         time_meters["forward"].update(time.time()-tforward)
 
         # measure accuracy and update meters
-        nvis1 = accuracy(srcpix_t.detach(),
-                         predict1_t.features.detach(),
-                         truth_flow1_t.detach(),
-                         1,acc_meters,True)
+        cpu = torch.device("cuda:1")
+        if predict1_t is not None:
+            nvis1 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict1_t.features.to(cpu),
+                             truth_flow1_t.to(cpu),
+                             mask1_t.to(cpu),
+                             1,acc_meters,True)
+        else:
+            nvis1 = 0
+            
         if predict2_t is not None:
-            nvis2 = accuracy(srcpix_t.detach(),
-                             predict2_t.features.detach(),
-                             truth_flow2_t.detach(),
+            nvis2 = accuracy(coord_t.to(cpu),
+                             srcpix_t.to(cpu),
+                             predict2_t.features.to(cpu),
+                             truth_flow2_t.to(cpu),
+                             mask2_t.to(cpu),
                              2,acc_meters,True)
         else:
             nvis2 = 0
-        if nvis1==0 or (predict2_t is not None and nvis2==0):
+            
+        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
             nnone += 1
 
         # update loss meters
         loss_meters["total"].update( totloss.item() )
-        loss_meters["flow1"].update( flow1loss.item() )
+        if flow1loss is not None:
+            loss_meters["flow1"].update( flow1loss.item() )
         if flow2loss is not None:
             loss_meters["flow2"].update( flow2loss.item() )
         #loss_meters["visi1"].update( v1.item() )
@@ -577,7 +635,7 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
+def accuracy(coord,srcpix,flow_pred,flow_truth,mask_truth,flowdir,acc_meters,istrain):
     """Computes the accuracy metrics."""
     # inputs:
     #  assuming all pytorch tensors
@@ -596,22 +654,35 @@ def accuracy(srcpix,flow_pred,flow_truth,flowdir,acc_meters,istrain):
     if profile:
         start = time.time()
 
-    flow_err =(flow_pred-flow_truth).abs()
     #nvis     = visi_truth.sum()
     #if nvis<=0:
     #    return None
 
-    mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
-    # don't count pixels where:
-    #  1) flow is missing i.e. equals zero
-    #  2) source pixel is below threshold
-    mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
-    #mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    if mask_truth is None:
+        mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
+        # don't count pixels where:
+        #  1) flow is missing i.e. equals zero
+        #  2) source pixel is below threshold
+        mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
+        #mask[ torch.gt(srcpix,10.0)  ] = 0.0
+    else:
+        mask = mask_truth
     nvis = mask.sum()
-    
+
+    if not PREDICT_CLASSVEC:
+        # regression output
+        flow_err =(flow_pred-flow_truth).abs()        
+    else:
+        # convert class vector prediction to wire number
+        col_predicted = torch.argmax( flow_pred, 1 ).type(torch.float)
+        #flow_err = ( col_predicted - flow_truth[:,0] )*mask        
+        col_predicted -= flow_truth[:,0]
+        col_predicted *= mask[:,0]
+        flow_err = col_predicted.abs()
+        
     for level in accvals:
         name = "flow%d<%dpix"%(flowdir,level)
-        acc_meters[name].update( ((( flow_err<float(level)  ).float()*mask).sum() / nvis ).item() )
+        acc_meters[name].update( ((( flow_err<float(level)  ).float()*mask[:,0]).sum() / nvis ).item() )
 
     #if visi_pred is not None:
     #    _, visi_max = visi_pred.max( 1, keepdim=False)
@@ -647,10 +718,19 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
                                                                                                                              timers["backward"].avg,
                                                                                                                              timers["accuracy"].avg,
                                                                                                                              timers["data"].avg)    
-    print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
-                                                                           loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
-    print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,acc_meters["flow1<10pix"].avg*100,acc_meters["flow1<20pix"].avg*100,acc_meters["flow1<50pix"].avg*100)
-    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<20pix"].avg*100,acc_meters["flow2<50pix"].avg*100)
+    #print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
+    #                                                                       loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
+    print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f]"%(loss_meters["total"].avg,
+                                                         loss_meters["flow1"].avg,
+                                                         loss_meters["flow2"].avg)
+    print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,
+                                                                      acc_meters["flow1<10pix"].avg*100,
+                                                                      acc_meters["flow1<20pix"].avg*100,
+                                                                      acc_meters["flow1<50pix"].avg*100)
+    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,
+                                                                      acc_meters["flow2<10pix"].avg*100,
+                                                                      acc_meters["flow2<20pix"].avg*100,
+                                                                      acc_meters["flow2<50pix"].avg*100)
         
     print "------------------------------------------------------------------------"    
 

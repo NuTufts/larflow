@@ -15,3 +15,14 @@ Notes on scripts
 Notes on folders
 
 * `presparsedata`: scripts for applying `sparsify_data.py` onto a list of input files (on the Tufts cluster)
+
+
+## `deploy_sparse_larflow`
+
+Run (reco)
+
+    ./deploy_sparse_larflow.py -r -olcv test_larcv.root -oll test_larlite.root  -w weights/dualflow/dualflow.classvec.checkpoint.242000th.tar -adc wiremc -ch wiremc testdata/larcvtruth-Run000002-SubRun002000.ro
+
+Run without hits, save cropped output and save trueflow
+
+    ./deploy_sparse_larflow.py -r -olcv test_larcv.root -oll test_larlite.root  -w weights/dualflow/dualflow.classvec.checkpoint.242000th.tar -adc wiremc -ch wiremc --no-flowhits --save-trueflow-crops testdata/larcvtruth-Run000002-SubRun002000.root

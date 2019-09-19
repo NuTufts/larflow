@@ -31,7 +31,8 @@ int main(int nargs, char** argv ) {
   iolarlite.add_in_filename( input_larlite_larflowhits );
   iolarlite.open();
   
-  larcv::IOManager iolarcv_supera( larcv::IOManager::kREAD, "supera", larcv::IOManager::kTickBackward );
+  //larcv::IOManager iolarcv_supera( larcv::IOManager::kREAD, "supera", larcv::IOManager::kTickBackward );
+  larcv::IOManager iolarcv_supera( larcv::IOManager::kREAD, "supera" );  
   iolarcv_supera.add_in_file( input_larcv_supera );
   iolarcv_supera.initialize();
   
