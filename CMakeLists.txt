@@ -19,7 +19,8 @@ find_package( larcv REQUIRED )
 set( ublarcvapp_DIR "$ENV{UBLARCVAPP_LIBDIR}/cmake/ublarcvapp")
 find_package( ublarcvapp REQUIRED )
 
-#---OPENCV (required)  
+#---OPENCV (required)
+set(  OpenCV_DIR $ENV{OPENCV_LIBDIR}/../share/OpenCV )
 find_package(OpenCV REQUIRED)
 
 #---larbys GEO2D
