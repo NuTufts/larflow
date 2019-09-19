@@ -112,7 +112,7 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         #flow1err = (flow1_truth-flowout1)*mask1
         #flow2err = (flow2_truth-flowout2)*mask2
         #flow1err = self.l1loss(flow1_truth,flowout1)*mask1
-        flow1err = 0.1*self.l1loss(10.0*flow1_truth,10.0*flowout1)*mask1
+        flow1err = 10.0*self.l1loss(0.1*flow1_truth,0.1*flowout1)*mask1
         #flow1err[ flow1err!=flow1err ] = 0.0
         #torch.clamp( flow1err, 0, 1000 )
         flow1loss = flow1err.sum()

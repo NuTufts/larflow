@@ -10,13 +10,16 @@ def __start_larcv2_server__(ipaddress,verbose):
     server = Server(ipaddress,server_verbosity=verbose)
     server.start()
 
-def __start_workers_v2__(identity,inputfile,address,loadfunc,batchsize,worker_verbosity):
-    worker = LArCVServerWorker(identity,inputfile,address,loadfunc,batchsize=batchsize,verbosity=worker_verbosity)
+def __start_workers_v2__(identity,inputfile,address,loadfunc,func_params,batchsize,worker_verbosity):
+    worker = LArCVServerWorker(identity,inputfile,address,loadfunc,
+                               batchsize=batchsize,verbosity=worker_verbosity,
+                               func_params=func_params)
     worker.do_work()
     
 class LArCVServer:
 
-    def __init__(self,batchsize,identity,load_func,inputfile,nworkers,server_verbosity=0,worker_verbosity=0):
+    def __init__(self,batchsize,identity,load_func,inputfile,nworkers,
+                 server_verbosity=0,worker_verbosity=0,io_tickbackward=False,func_params={}):
 
         feeddir = "/tmp/feed{}".format(identity)
         address = "ipc://{}".format(feeddir) # client front end
@@ -29,7 +32,7 @@ class LArCVServer:
 
         # create the workers
         self.pworkers = [ Process(target=__start_workers_v2__,
-                                  args=("{}-{}".format(identity,n),inputfile,address,load_func,batchsize,worker_verbosity))
+                                  args=("{}-{}".format(identity,n),inputfile,address,load_func,func_params,batchsize,worker_verbosity))
                           for n in xrange(nworkers) ]
         for pworker in self.pworkers:
             pworker.daemon = True

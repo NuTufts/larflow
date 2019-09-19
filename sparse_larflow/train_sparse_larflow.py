@@ -55,7 +55,7 @@ INPUTFILE_TRAIN=["/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_croppe
                  "/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_train3_v5.root"]
 INPUTFILE_VALID="/mnt/hdd1/twongj01/sparse_larflow_data/larflow_sparsify_cropped_valid_v5.root"
 TICKBACKWARD=False
-start_iter  = 36001
+start_iter  = 36101
 num_iters   = 45000
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512

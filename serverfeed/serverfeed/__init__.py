@@ -1,1 +1,1 @@
-from larcv2socketfeed import LArCV2SocketFeeder
+from larcvserver import LArCVServer
