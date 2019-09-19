@@ -7,6 +7,8 @@
 #include "TH2D.h"
 #include "TBox.h"
 
+#include "opencv2/imgproc.hpp"
+
 namespace larflow {
 
   /**
