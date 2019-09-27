@@ -354,6 +354,8 @@ def train(train_loader, device, batchsize,
     # switch to train mode
     model.train()
 
+    # clear gradients
+    optimizer.zero_grad()
     nnone = 0
     for i in range(0,nbatches):
         #print "iiter ",iiter," batch ",i," of ",nbatches
@@ -407,14 +409,17 @@ def train(train_loader, device, batchsize,
         end = time.time()
 
         # allow for gradient accumulation
-        if i%nbatches_per_step==0:
-            # clear gradient accumulator
-            optimizer.zero_grad()
-        # of course, we calculate gradients each batch
+        if nbatches_per_step>1:
+            # if we apply gradient accumulation, we average over accumulation steps
+            totloss /= float(nbatches_per_step)
+        
+        # of course, we calculate gradients for this batch
         totloss.backward()
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
-        if i%nbatches_per_step==0  or i+1==nbatches:
+        if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
+            print "batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step)
             optimizer.step()
+            optimizer.zero_grad()
             
         if RUNPROFILER:        
             torch.cuda.synchronize()                
@@ -424,7 +429,7 @@ def train(train_loader, device, batchsize,
         end = time.time()
 
         # update loss meters
-        loss_meters["total"].update( totloss.item() )
+        loss_meters["total"].update( totloss.item()*float(nbatches_per_step) )
         if flow1loss is not None:
             loss_meters["flow1"].update( flow1loss.item() )
         if flow2loss is not None:
