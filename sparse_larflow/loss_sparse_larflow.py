@@ -131,13 +131,15 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
                 # calculate cross entropy loss and weight by mask
                 #print " flowout1=",flowout1.shape," flowtarget=",flow1target.shape
                 flow1err  = F.cross_entropy( flowout1, flow1target, reduction='none' )*mask1[:,0]
-                #print "flow1err: ",flow1err.shape
+                #print "classvec-flow1err: ",flow1err.shape
                 
                 # sum
                 flow1loss = flow1err.sum()
                 # take mean by dividing good flow points (if > 0 )
                 if n1>0:
                     flow1loss = flow1loss/n1
+
+                #print "classvec-flow1loss: ",flow1loss
                 
         else:
             flow1loss = None
@@ -169,11 +171,13 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
                 flow2target = flow2_truth[:,0].type(torch.long)*mask2[:,0].type(torch.long)
                 # calculate cross entropy loss and weight by mask
                 flow2err  = F.cross_entropy( flowout2, flow2target, reduction='none' )*mask2[:,0]
+                #print "classvec-flow2err: ",flow2err.shape                
                 # sum
                 flow2loss = flow2err.sum()
                 # take mean by dividing good flow points (if > 0 )
                 if n2>0:
                     flow2loss = flow2loss/n2
+                #print "classvec-flow2loss: ",flow2loss
         else:
             flow2loss = None
 
@@ -190,24 +194,24 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
         #flow1err = (flow1_truth-flowout1)*mask1
         #flow2err = (flow2_truth-flowout2)*mask2
         #flow1err = self.l1loss(flow1_truth,flowout1)*mask1
-        flow1err = 10.0*self.l1loss(0.1*flow1_truth,0.1*flowout1)*mask1
+        #flow1err = 10.0*self.l1loss(0.1*flow1_truth,0.1*flowout1)*mask1
         #flow1err[ flow1err!=flow1err ] = 0.0
         #torch.clamp( flow1err, 0, 1000 )
-        flow1loss = flow1err.sum()
-        if n1>0:
-            flow1loss = flow1loss/n1
+        #flow1loss = flow1err.sum()
+        #if n1>0:
+        #    flow1loss = flow1loss/n1
         
-        if flow2_predict is not None:
-            flow2err = self.l1loss(flow2_truth,flowout2)*mask2
-            flow2err = 0.1*self.l1loss(10.0*flow2_truth,10.0*flowout2)*mask2
-            #flow2err[ flow2err!=flow2err ] = 0.0
-            #torch.clamp( flow2err, 0, 1000  )
+        # if flow2_predict is not None:
+        #     flow2err = self.l1loss(flow2_truth,flowout2)*mask2
+        #     flow2err = 0.1*self.l1loss(10.0*flow2_truth,10.0*flowout2)*mask2
+        #     #flow2err[ flow2err!=flow2err ] = 0.0
+        #     #torch.clamp( flow2err, 0, 1000  )
 
-            flow2loss = flow2err.sum()
-            if n2>0:
-                flow2loss = flow2loss/n2
-        else:
-            flow2loss = None
+        #     flow2loss = flow2err.sum()
+        #     if n2>0:
+        #         flow2loss = flow2loss/n2
+        # else:
+        #     flow2loss = None
             
         #print "posyz 1: ",np.argwhere( np.isnan( posyz_target1_t.detach().cpu().numpy() ) )
         #print "posyz 2: ",np.argwhere( np.isnan( posyz_target2_t.detach().cpu().numpy() ) )
@@ -249,33 +253,102 @@ class SparseLArFlow3DConsistencyLoss(nn.Module):
             
         return l2flow,flow1loss,flow2loss
 
-
+    
 if __name__ == "__main__":
 
+    from sparselarflowdata import load_larflow_larcvdata
+    from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
+    
     nrows = 512
     ncols = 832
     loss_w_3dconsistency = SparseLArFlow3DConsistencyLoss( nrows, ncols,
-                                                           calc_consistency=True,
+                                                           calc_consistency=False,
                                                            larcv_version=1,
                                                            predict_classvec=True )
 
     # test data
-    inputfile = "../testdata/mcc9mar_bnbcorsika/larcv_mctruth_ee881c25-aeca-4c92-9622-4c21f492db41.root"
+    inputfile = "/home/twongj01/data/larflow_sparse_training_data/larflow_sparsify_cropped_valid_v5.root"
     batchsize = 1
     nworkers  = 1
-    tickbackward = True
-    readonly_products=( ("wiremc",larcv.kProductImage2D),
-                        ("larflow",larcv.kProductImage2D) )
+    flowdirs = ['y2u','y2v']
+    TICKBACKWARD=False
+    io = load_larflow_larcvdata( "test", [inputfile],
+                                 batchsize, nworkers,
+                                 producer_name="sparsecropdual",
+                                 nflows=len(flowdirs),
+                                 tickbackward=TICKBACKWARD,
+                                 readonly_products=None )
 
-    nentries = 1
-
-
-    feeder = load_larflow_larcvdata( "larflowsparsetest", inputfile, batchsize, nworkers,
-                                     tickbackward=tickbackward,readonly_products=readonly_products )
     tstart = time.time()
 
+    nentries = 1
+    
     for n in xrange(nentries):
-        batch = feeder.get_batch_dict()
-        print "ENTRY[",n,"] from ",batch["feeder"]
+        flowdict = io.get_tensor_batch(torch.device("cpu"))
 
-        coord_np = data["srcpix"]
+        coord_t  = flowdict["coord"]
+        srcpix_t = flowdict["src"]
+        tarpix_flow1_t = flowdict["tar1"]
+        tarpix_flow2_t = flowdict["tar2"]
+        truth_flow1_t  = flowdict["flow1"]
+        truth_flow2_t  = flowdict["flow2"]
+        # masks
+        if "mask1" in flowdict:
+            mask1_t = flowdict["mask1"]
+        else:
+            mask1_t = None
+            
+        if "mask2" in flowdict:
+            mask2_t = flowdict["mask2"]
+        else:
+            mask2_t = None
+
+        # class predicetion vec, need to fake output
+        print srcpix_t.shape[0]
+        out1_np = np.ones( (srcpix_t.shape[0],ncols), dtype=np.float32 )*-1.0e2
+        out2_np = np.ones( (srcpix_t.shape[0],ncols), dtype=np.float32 )*-1.0e2
+        oob1 = 0
+        oob2 = 0
+        for idx in range(srcpix_t.shape[0]):
+            
+            if truth_flow1_t[idx]>=0 and truth_flow1_t[idx]<ncols:
+                out1_np[idx, int(truth_flow1_t[idx]) ] = 1.0
+                
+            if truth_flow2_t[idx]>=0 and truth_flow2_t[idx]<ncols:
+                out2_np[idx, int(truth_flow2_t[idx]) ] = 1.0
+                    
+            if truth_flow1_t[idx]>=ncols:
+                oob1 += 1
+            if truth_flow2_t[idx]>=ncols:
+                oob2 += 1
+            if truth_flow1_t[idx]<0 and mask1_t[idx]>0:
+                oob1 += 1
+            if truth_flow2_t[idx]<0 and mask2_t[idx]>0:
+                oob2 += 1
+
+        print "out of bounds: flow1=",oob1," flow2=",oob2
+        for idx in range(srcpix_t.shape[0]):
+            if truth_flow1_t[idx]>=0:
+                print idx,": ",np.argmax( out1_np[idx,:] ), truth_flow1_t[idx]
+            
+        flow1 = scn.InputLayer( 2, (nrows,ncols), mode=0 )( (coord_t, torch.from_numpy(out1_np), 1 ) )
+        flow2 = scn.InputLayer( 2, (nrows,ncols), mode=0 )( (coord_t, torch.from_numpy(out2_np), 1 ) )
+        print mask1_t.sum(),mask2_t.sum()
+
+        totloss, flow1loss, flow2loss = loss_w_3dconsistency( coord_t,
+                                                              flow1, flow2,
+                                                              truth_flow1_t, truth_flow2_t,
+                                                              mask1_truth=mask1_t, mask2_truth=mask2_t  )
+
+        print totloss,flow1loss,flow2loss
+
+        # accuracy check
+        col_predicted = torch.argmax( torch.from_numpy(out1_np), 1 ).type(torch.float)
+        #flow_err = ( col_predicted - flow_truth[:,0] )*mask        
+        col_predicted -= truth_flow1_t[:,0]
+        col_predicted *= mask1_t[:,0]
+        flow_err = col_predicted.abs()
+        print flow_err.sum()
+        
+                              
+        

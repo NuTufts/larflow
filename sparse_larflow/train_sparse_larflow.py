@@ -46,22 +46,36 @@ CHECKPOINT_FILE="checkpoint.10000th.tar"
 
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
 #TRAIN_DATA_FOLDER="/tmp/"
-TRAIN_DATA_FOLDER="/home/taritree/data/sparselarflow/"
+TRAIN_DATA_FOLDER="/home/twongj01/data/larflow_sparse_training_data/"
 INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
                  "larflow_sparsify_cropped_train2_v5.root",
                  "larflow_sparsify_cropped_train3_v5.root"]
 INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
 TICKBACKWARD=False
 
-start_iter  = 36101
-num_iters   = 45000
+# TRAINING PARAMETERS
+# =======================
+START_ITER  = 0
+NUM_ITERS   = 50000
 
+BATCHSIZE_TRAIN=16 # batches per training iteration
+BATCHSIZE_VALID=4  # batches per validation iteration
+NWORKERS_TRAIN=6   # number of threads data loader will use for training set
+NWORKERS_VALID=2   # number of threads data loader will use for validation set
+
+NBATCHES_per_itertrain = 4
+NBATCHES_per_step      = 4 # if >1 we use gradient accumulation
+trainbatches_per_print = -1
+
+NBATCHES_per_itervalid = 16
+validbatches_per_print = -1
+
+ITER_PER_VALID = 10
+
+# IMAGE/LOSS PARAMETERS
+# =====================
 IMAGE_WIDTH=832
 IMAGE_HEIGHT=512
-BATCHSIZE_TRAIN=16
-BATCHSIZE_VALID=4
-NWORKERS_TRAIN=6
-NWORKERS_VALID=2
 ADC_THRESH=10.0
 VISI_WEIGHT=0.0
 CONSISTENCY_WEIGHT=0.1
@@ -135,27 +149,14 @@ def main():
                                                calc_consistency=False).to(device=DEVICE)
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-2
     momentum = 0.9
     weight_decay = 1.0e-4
 
-    # training length
-    batchsize_train = BATCHSIZE_TRAIN
-    batchsize_valid = BATCHSIZE_VALID#*len(DEVICE_IDS)
-    start_epoch = 0
-    epochs      = 10
-    iter_per_epoch = None # determined later
-    iter_per_valid = 10
-
-
-    nbatches_per_itertrain = 1
-    itersize_train         = batchsize_train*nbatches_per_itertrain
-    trainbatches_per_print = -1
+    # training variables
+    itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
+    itersize_valid         = BATCHSIZE_VALID*NBATCHES_per_itervalid # number of images per validation    
     
-    nbatches_per_itervalid = 16
-    itersize_valid         = batchsize_valid*nbatches_per_itervalid
-    validbatches_per_print = -1
-
     # SETUP OPTIMIZER
 
     # SGD w/ momentum
@@ -165,13 +166,13 @@ def main():
     
     # ADAM
     # betas default: (0.9, 0.999) for (grad, grad^2). smoothing coefficient for grad. magnitude calc.
-    #optimizer = torch.optim.Adam(model.parameters(), 
-    #                             lr=lr, 
-    #                             weight_decay=weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), 
+                                 lr=lr, 
+                                 weight_decay=weight_decay)
     # RMSPROP
-    optimizer = torch.optim.RMSprop(model.parameters(),
-                                    lr=lr,
-                                    weight_decay=weight_decay)
+    #optimizer = torch.optim.RMSprop(model.parameters(),
+    #                                lr=lr,
+    #                                weight_decay=weight_decay)
     
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = True
@@ -192,24 +193,21 @@ def main():
                                       tickbackward=TICKBACKWARD,
                                       readonly_products=None )
 
-    print "pause to give time to feeders"
 
     NENTRIES = len(iotrain)
-    #NENTRIES = 100000
-    print "Number of entries in training set: ",NENTRIES
+    iter_per_epoch = NENTRIES/(itersize_train)
+    epochs = float(NUM_ITERS)/float(NENTRIES)
 
-    if NENTRIES>0:
-        iter_per_epoch = NENTRIES/(itersize_train)
-        if num_iters is None:
-            # we set it by the number of request epochs
-            num_iters = (epochs-start_epoch)*NENTRIES
-        else:
-            epochs = num_iters/NENTRIES
-    else:
-        iter_per_epoch = 1
+    print "Number of iterations to run: ",NUM_ITERS
+    print "Entries in the training set: ",NENTRIES
+    print "Entries per iter (train): ",itersize_train
+    print "Entries per iter (valid): ",itersize_valid
+    print "Number of (training) Epochs to run: ",epochs    
+    print "Iterations per epoch: ",iter_per_epoch
 
-    print "Number of epochs: ",epochs
-    print "Iter per epoch: ",iter_per_epoch
+    if False:
+        print "passed setup successfully"
+        sys.exit(0)
 
     with torch.autograd.profiler.profile(enabled=RUNPROFILER) as prof:
 
@@ -223,7 +221,7 @@ def main():
         #if GPUMODE:
         #    optimizer.cuda(GPUID)
 
-        for ii in range(start_iter, num_iters):
+        for ii in range(START_ITER, NUM_ITERS):
 
             adjust_learning_rate(optimizer, ii, lr)
             print "MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),
@@ -233,9 +231,10 @@ def main():
 
             # train for one iteration
             try:
-                _ = train(iotrain, DEVICE, BATCHSIZE_TRAIN, model,
-                          criterion, optimizer,
-                          nbatches_per_itertrain, ii, trainbatches_per_print)
+                _ = train(iotrain, DEVICE, BATCHSIZE_TRAIN,
+                          model, criterion, optimizer,
+                          NBATCHES_per_itertrain, NBATCHES_per_step,
+                          ii, trainbatches_per_print)
                 
             except Exception,e:
                 print "Error in training routine!"            
@@ -245,11 +244,11 @@ def main():
                 break
 
             # evaluate on validation set
-            if ii%iter_per_valid==0 and ii>0:
+            if ii%ITER_PER_VALID==0 and ii>0:
                 try:
                     totloss, flow1acc5, flow2acc5 = validate(iovalid, DEVICE, BATCHSIZE_VALID,
                                                              model, criterion,
-                                                             nbatches_per_itervalid, ii,
+                                                             NBATCHES_per_itervalid, ii,
                                                              validbatches_per_print)
                 except Exception,e:
                     print "Error in validation routine!"            
@@ -290,12 +289,12 @@ def main():
         # end of profiler context
         print "saving last state"
         save_checkpoint({
-            'iter':num_iters,
-            'epoch': num_iters/iter_per_epoch,
+            'iter':NUM_ITERS,
+            'epoch': float(NUM_ITERS)/iter_per_epoch,
             'state_dict': model.state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
-        }, False, num_iters)
+        }, False, NUM_ITERS)
 
 
     print "FIN"
@@ -305,8 +304,22 @@ def main():
     writer.close()
 
 
-def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches, iiter, print_freq):
-
+def train(train_loader, device, batchsize,
+          model, criterion, optimizer,
+          nbatches, nbatches_per_step,
+          iiter, print_freq):
+    """
+    train_loader: data loader
+    device: device we are training on
+    batchsize: number of images per batch
+    model: network are training
+    criterion: the loss we are using
+    optimizer: optimizer
+    nbatches: number of batches to run in this iteraction
+    nbatches_per_step: allows for gradient accumulation if >1
+    iiter: current iteration
+    print_freq: number of batches we run before printing out some statistics
+    """
     global writer
 
     # timers for profiling
@@ -392,9 +405,17 @@ def train(train_loader, device, batchsize, model, criterion, optimizer, nbatches
         if RUNPROFILER:
             torch.cuda.synchronize()                
         end = time.time()
-        optimizer.zero_grad()
+
+        # allow for gradient accumulation
+        if i%nbatches_per_step==0:
+            # clear gradient accumulator
+            optimizer.zero_grad()
+        # of course, we calculate gradients each batch
         totloss.backward()
-        optimizer.step()
+        # only step, i.e. adjust weights every nbatches_per_step or if last batch
+        if i%nbatches_per_step==0  or i+1==nbatches:
+            optimizer.step()
+            
         if RUNPROFILER:        
             torch.cuda.synchronize()                
         time_meters["backward"].update(time.time()-end)
