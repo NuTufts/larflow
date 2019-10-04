@@ -201,6 +201,8 @@ namespace larflow {
 
       int npix_w_matches  = 0;
       int npix_wo_matches = 0;
+      _ntrue_pairs[i]  = 0;
+      _nfalse_pairs[i] = 0;
       
       // now we can make the src pixel to target pixel choices map
       for ( int ipt=0; ipt<sparsesrc.len(); ipt++ ) {
@@ -236,10 +238,12 @@ namespace larflow {
             within_bounds_target_v.push_back( target_index_v[idx] );
             if ( tarcol==target_col ) {
               truth_v.push_back(1);
+              _ntrue_pairs[i]++;
               nmatches++;
             }
             else {
               truth_v.push_back(0);
+              _nfalse_pairs[i]++;              
             }
           }
           if ( matchable==1 ) {
@@ -298,6 +302,8 @@ namespace larflow {
     _ana_tree = new TTree("flowmatchdata","Provides map from source to target pixels to match");
     _matchdata_v = new std::vector< FlowMatchMap >();
     _ana_tree->Branch( "matchmap", _matchdata_v );
+    _ana_tree->Branch( "nfalsepairs", _nfalse_pairs, "nfalsepairs[2]/I" );
+    _ana_tree->Branch( "ntruepairs",  _ntrue_pairs,  "ntruepairs[2]/I" );
   }
 
   void PrepFlowMatchData::_extract_wire_overlap_bounds() {

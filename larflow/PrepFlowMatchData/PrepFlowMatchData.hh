@@ -66,6 +66,8 @@ namespace larflow {
     
     TTree* _ana_tree;
     std::vector< FlowMatchMap >* _matchdata_v;
+    int _nfalse_pairs[2];
+    int _ntrue_pairs[2];
     void _setup_ana_tree();
 
     std::map< int, std::vector<int> > _wire_bounds[2];
