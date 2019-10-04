@@ -22,13 +22,14 @@ target_include_directories(${LIBNAME}
   PUBLIC
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
   ${LARCV_INCLUDE_DIR}
+  ${LARLITE_INC_DIRS}
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/mrcnnmatch
   ${PROJECT_SOURCE_DIR}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED})
+target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} )
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} )
+include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS})
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 
