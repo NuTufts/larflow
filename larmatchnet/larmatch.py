@@ -54,7 +54,7 @@ class LArMatch(nn.Module):
     def forward( self, coord_src_t, src_feat_t,
                  coord_tar1_t, tar1_feat_t,
                  coord_tar2_t, tar2_feat_t,
-                 match1_v, match2_v, batchsize,
+                 pair_flow1_v, pair_flow2_v, batchsize,
                  DEVICE, return_truth=False ):
         """
         run the network
@@ -113,13 +113,13 @@ class LArMatch(nn.Module):
             bend_tar2 = bstart_tar2 + nbatch_tar2
 
             pred1,t1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
-                                                  xsrc[bstart_src:bend_src,:],
-                                                  xtar1[bstart_tar1:bend_tar1,:],
-                                                  match1_v[b], DEVICE, return_truth)
+                                             xsrc[bstart_src:bend_src,:],
+                                             xtar1[bstart_tar1:bend_tar1,:],
+                                             pair_flow1_v[b], DEVICE, return_truth)
             pred2,t2 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
-                                                  xsrc[bstart_src:bend_src,:],
-                                                  xtar2[bstart_tar2:bend_tar2,:],
-                                                  match2_v[b], DEVICE, return_truth)
+                                             xsrc[bstart_src:bend_src,:],
+                                             xtar2[bstart_tar2:bend_tar2,:],
+                                             pair_flow2_v[b], DEVICE, return_truth)
             if return_truth:
                 truthvec1[0,0,b*self.neval:(b+1)*self.neval] = t1
                 truthvec2[0,0,b*self.neval:(b+1)*self.neval] = t2 
@@ -133,7 +133,7 @@ class LArMatch(nn.Module):
         else:
             return pred1,pred2,truthvec1,truthvec2
                         
-    def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchdata,DEVICE,return_truth):
+    def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchidx,DEVICE,return_truth):
 
         from larcv import larcv
         larcv.load_pyutil()
@@ -146,9 +146,7 @@ class LArMatch(nn.Module):
         nsamples = c_int()
         nsamples.value = self.neval
         nfilled = c_int()
-        matchidx = torch.from_numpy( larflow.sample_pair_array( self.neval, matchdata, nfilled, return_truth ) ).type(torch.long).to(DEVICE)
-        print "matchidx: ",matchidx.shape,matchidx.dtype
-            
+        print "matchidx: ",matchidx.shape,matchidx.dtype            
         print "make pairs of feature vectors to evaluate"
         
         # gather feature vector pairs
