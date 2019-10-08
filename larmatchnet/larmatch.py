@@ -39,15 +39,12 @@ class LArMatch(nn.Module):
 
         # CLASSIFER: MATCH/NO-MATCH
         classifier_layers = OrderedDict()
-        #classifier_layers["class1conv"] = torch.nn.Linear(features_per_layer, classifier_nfeatures[0])
-        classifier_layers["class1conv"] = torch.nn.Conv1d(self.nfeatures,classifier_nfeatures[0],1)
-        classifier_layers["class1relu"] = torch.nn.ReLU()
+        classifier_layers["class0conv"] = torch.nn.Conv1d(2*features_per_layer,classifier_nfeatures[0],1)
+        classifier_layers["class0relu"] = torch.nn.ReLU()
         for ilayer,nfeats in enumerate(classifier_nfeatures[1:]):
-            #classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Linear(nfeats,nfeats)
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             classifier_layers["class%drelu"%(ilayer+1)] = torch.nn.ReLU()
-        #classifier_layers["classout"] = torch.nn.Linear(nfeats,2,1)
-        classifier_layers["classout"] = torch.nn.Conv1d(nfeats,2,1)
+        classifier_layers["classout"] = torch.nn.Conv1d(nfeats,1,1)
         self.classifier = torch.nn.Sequential( classifier_layers )
 
 
@@ -57,7 +54,8 @@ class LArMatch(nn.Module):
     def forward( self, coord_src_t, src_feat_t,
                  coord_tar1_t, tar1_feat_t,
                  coord_tar2_t, tar2_feat_t,
-                 match1_v, match2_v, batchsize, DEVICE ):
+                 match1_v, match2_v, batchsize,
+                 DEVICE, return_truth=False ):
         """
         run the network
 
@@ -101,6 +99,10 @@ class LArMatch(nn.Module):
         bstart_src  = 0
         bstart_tar1 = 0
         bstart_tar2 = 0
+        if return_truth:
+            truthvec1 = torch.zeros( (1,1,batchsize*self.neval), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+            truthvec2 = torch.zeros( (1,1,batchsize*self.neval), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+        
         for b in range(batchsize):
             nbatch_src = coord_src_t[:,2].eq(b).sum()
             nbatch_tar1 = coord_tar1_t[:,2].eq(b).sum()
@@ -110,16 +112,28 @@ class LArMatch(nn.Module):
             bend_tar1 = bstart_tar1 + nbatch_tar1
             bend_tar2 = bstart_tar2 + nbatch_tar2
 
-            pred1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:], xsrc[bstart_src:bend_src,:], xtar1[bstart_tar1:bend_tar1,:], match1_v[b], DEVICE)
-            pred2 = self.classify_sample( coord_src_t[bstart_src:bend_src,:], xsrc[bstart_src:bend_src,:], xtar2[bstart_tar2:bend_tar2,:], match2_v[b], DEVICE)
+            pred1,t1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
+                                                  xsrc[bstart_src:bend_src,:],
+                                                  xtar1[bstart_tar1:bend_tar1,:],
+                                                  match1_v[b], DEVICE, return_truth)
+            pred2,t2 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
+                                                  xsrc[bstart_src:bend_src,:],
+                                                  xtar2[bstart_tar2:bend_tar2,:],
+                                                  match2_v[b], DEVICE, return_truth)
+            if return_truth:
+                truthvec1[0,0,b*self.neval:(b+1)*self.neval] = t1
+                truthvec2[0,0,b*self.neval:(b+1)*self.neval] = t2 
             bstart_src = bend_src
             bstart_tar1 = bend_tar1
             bstart_tar2 = bend_tar2
             
         print "return results"
-        return pred1,pred2
+        if not return_truth:
+            return pred1,pred2
+        else:
+            return pred1,pred2,truthvec1,truthvec2
                         
-    def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchdata,DEVICE):
+    def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchdata,DEVICE,return_truth):
 
         from larcv import larcv
         larcv.load_pyutil()
@@ -132,26 +146,27 @@ class LArMatch(nn.Module):
         nsamples = c_int()
         nsamples.value = self.neval
         nfilled = c_int()
-        matchidx = torch.from_numpy( larflow.sample_pair_array( self.neval, matchdata, nfilled ) ).type(torch.long).to(DEVICE)
+        matchidx = torch.from_numpy( larflow.sample_pair_array( self.neval, matchdata, nfilled, return_truth ) ).type(torch.long).to(DEVICE)
         print "matchidx: ",matchidx.shape,matchidx.dtype
 
-        # compile data
-        matchvec = torch.zeros( (1,2*self.nfeatures,self.neval) ).to( DEVICE )
-        print "fill matchvec"
-
+            
+        print "make pairs of feature vectors to evaluate"
         print torch.index_select( feat_src_t, 0, matchidx[:,0] ).shape
         
         # gather feature vector pairs
         matchidx = matchidx.to(DEVICE)
-        matchvec[0,0:self.nfeatures,:] = torch.transpose( torch.index_select( feat_src_t, 0, matchidx[:,0] ), 0, 1 )
-        matchvec[0,self.nfeatures:,:]  = torch.transpose( torch.index_select( feat_tar_t, 0, matchidx[:,1] ), 0, 1 )
+        srcfeats = torch.transpose( torch.index_select( feat_src_t, 0, matchidx[:,0] ), 0, 1 )
+        tarfeats = torch.transpose( torch.index_select( feat_tar_t, 0, matchidx[:,1] ), 0, 1 )
+        matchvec = torch.cat( (srcfeats,tarfeats), dim=0 ).reshape( (1,srcfeats.shape[0]+tarfeats.shape[0],srcfeats.shape[1]) )
+            
         print "nsrc indices used: ",nfilled,". run classifiers"
 
         pred = self.classifier(matchvec)
-        return pred
+        if not return_truth:
+            return pred,None
+        else:
+            return pred,matchidx[:,2]
 
-    def classify_wholeimage(self,coord_src_t,feat_src_t,feat_tar_t,matchdata):
-        pass
                     
         
         

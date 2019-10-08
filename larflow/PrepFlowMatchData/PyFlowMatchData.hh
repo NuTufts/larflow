@@ -10,7 +10,7 @@ typedef _object PyObject;
 
 namespace larflow {
 
-  PyObject* sample_pair_array( const int& nsamples, const FlowMatchMap& matchdata, int& nfilled );
+  PyObject* sample_pair_array( const int& nsamples, const FlowMatchMap& matchdata, int& nfilled, bool with_truth=false );
   
 }
 
