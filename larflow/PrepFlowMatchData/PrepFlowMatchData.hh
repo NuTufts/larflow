@@ -32,6 +32,7 @@ namespace larflow {
     
     const std::vector<int>& getTargetIndices( int src_index ) const;
     const std::vector<int>& getTruthVector( int src_index )   const;
+    int nsourceIndices() const { return _target_map.size(); };
 
   protected:
 

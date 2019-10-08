@@ -54,6 +54,10 @@ set( LAROPENCV_INC_DIR "$ENV{LAROPENCV_BASEDIR}" )
 set( LAROPENCV_LIB_DIR "$ENV{LARLITE_LIBDIR}" )
 file( GLOB LAROPENCV_LIBS "$ENV{LARLITE_LIBDIR}/libLArOpenCV_*.so" )
 
+#---Python
+find_package( PythonInterp 2.7 REQUIRED )
+find_package( PythonLibs 2.7 REQUIRED )
+execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
 
 ## Setup
 

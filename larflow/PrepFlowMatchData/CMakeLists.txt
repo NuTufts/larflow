@@ -3,15 +3,17 @@ set(MODULE_NAME PrepFlowMatchData )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS PrepFlowMatchData.hh )
+set( HEADERS PrepFlowMatchData.hh PyFlowMatchData.hh )
 
 add_library( ${LIBNAME} SHARED
-  PrepFlowMatchData.cxx )
+  PrepFlowMatchData.cxx
+  PyFlowMatchData.cxx)
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 
 # DEFINE SOME VARS THAT MIGHT BE USEFUL FOR SUBMODULES
+message("python include: ${PYTHON_INCLUDE_PATH}")
 
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
@@ -23,13 +25,15 @@ target_include_directories(${LIBNAME}
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
   ${LARCV_INCLUDE_DIR}
   ${LARLITE_INC_DIRS}
+  ${PYTHON_INCLUDE_PATH}
+  ${NUMPY_INCLUDES}
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/mrcnnmatch
   ${PROJECT_SOURCE_DIR}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} )
+target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS})
+include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 
