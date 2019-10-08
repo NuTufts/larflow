@@ -95,6 +95,9 @@ class LArMatchDataset:
                                   io_tickbackward=False,
                                   func_params=self.params)
 
+    def __len__(self):
+        return int(self.params["matchtree"].GetEntries())
+
     def gettensorbatch(self,batchsize,device):
 
         batches = []
