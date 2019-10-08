@@ -94,7 +94,7 @@ class LArMatch(nn.Module):
         xsrc  = self.source_outlayer(  xsrc )
         xtar1 = self.target1_outlayer( xtar1 )
         xtar2 = self.target2_outlayer( xtar2 )
-        print "source feature tensor: ",xsrc.shape
+        print "source feature tensor: ",xsrc.shape,xsrc.grad_fn
 
         bstart_src  = 0
         bstart_tar1 = 0
@@ -148,17 +148,17 @@ class LArMatch(nn.Module):
         nfilled = c_int()
         matchidx = torch.from_numpy( larflow.sample_pair_array( self.neval, matchdata, nfilled, return_truth ) ).type(torch.long).to(DEVICE)
         print "matchidx: ",matchidx.shape,matchidx.dtype
-
             
         print "make pairs of feature vectors to evaluate"
-        print torch.index_select( feat_src_t, 0, matchidx[:,0] ).shape
         
         # gather feature vector pairs
         matchidx = matchidx.to(DEVICE)
         srcfeats = torch.transpose( torch.index_select( feat_src_t, 0, matchidx[:,0] ), 0, 1 )
         tarfeats = torch.transpose( torch.index_select( feat_tar_t, 0, matchidx[:,1] ), 0, 1 )
+        print "feats: src=",srcfeats.grad_fn," tar=",tarfeats.grad_fn
         matchvec = torch.cat( (srcfeats,tarfeats), dim=0 ).reshape( (1,srcfeats.shape[0]+tarfeats.shape[0],srcfeats.shape[1]) )
-            
+        print "match pair tensor made: ",matchvec.shape,matchvec.requires_grad,matchvec.grad_fn
+        
         print "nsrc indices used: ",nfilled,". run classifiers"
 
         pred = self.classifier(matchvec)

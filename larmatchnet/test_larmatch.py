@@ -77,10 +77,18 @@ if __name__ == "__main__":
 
     start = time.time()
     loss = criterion( match1, match2, truth1, truth2 )
-    print "backward time: ",time.time()-start,": loss=",loss
+    print "loss calc time: ",time.time()-start," secs; loss=",loss
 
+    start = time.time()
     loss.backward()
-    
+    print "back-prop time: ",time.time()-start," secs"
+
+    # DUMP GRADIENTS TO CHECK
+    if False:
+        for name, param in model.named_parameters():
+            print name, "requires_grad=",param.requires_grad,type(param),param.shape
+            if param.requires_grad:
+                print "  grad: ",param.grad
     print "DONE"
     
     
