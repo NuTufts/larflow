@@ -170,21 +170,11 @@ def main():
     print "Number of (training) Epochs to run: ",epochs    
     print "Iterations per epoch: ",iter_per_epoch
 
-    if True:
+    if False:
         print "passed setup successfully"
         sys.exit(0)
 
     with torch.autograd.profiler.profile(enabled=RUNPROFILER) as prof:
-
-        # Resume training option
-        #if RESUME_FROM_CHECKPOINT:
-        #    print "RESUMING FROM CHECKPOINT FILE ",CHECKPOINT_FILE
-        #    checkpoint = torch.load( CHECKPOINT_FILE, map_location=CHECKPOINT_MAP_LOCATIONS )
-        #    best_prec1 = checkpoint["best_prec1"]
-        #    model.load_state_dict(checkpoint["state_dict"])
-        #optimizer.load_state_dict(checkpoint['optimizer'])
-        #if GPUMODE:
-        #    optimizer.cuda(GPUID)
 
         for ii in range(START_ITER, NUM_ITERS):
 
@@ -211,10 +201,10 @@ def main():
             # evaluate on validation set
             if ii%ITER_PER_VALID==0 and ii>0:
                 try:
-                    totloss, flow1acc5, flow2acc5 = validate(iovalid, DEVICE, BATCHSIZE_VALID,
-                                                             model, criterion,
-                                                             NBATCHES_per_itervalid, ii,
-                                                             validbatches_per_print)
+                    totloss, totacc = validate(iovalid, DEVICE, BATCHSIZE_VALID,
+                                               model, criterion,
+                                               NBATCHES_per_itervalid, ii,
+                                               validbatches_per_print)
                 except Exception,e:
                     print "Error in validation routine!"            
                     print e.message
@@ -223,7 +213,7 @@ def main():
                     break
 
                 # remember best prec@1 and save checkpoint
-                prec1   = 0.5*(flow1acc5+flow2acc5)
+                prec1   = totacc
                 is_best =  prec1 > best_prec1
                 best_prec1 = max(prec1, best_prec1)
 
@@ -295,22 +285,14 @@ def train(train_loader, device, batchsize,
     acc_time = AverageMeter()
 
     # accruacy and loss meters
-    #lossnames    = ("total","flow1","flow2","visi1","visi2","consist3d")
-    lossnames    = ("total","flow1","flow2")
-    flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
-    consistnames = ("dist2d")
+    lossnames    = ("total")
+    flowaccnames = ("pos_correct","neg_correct","pos_wrong","neg_wrong","tot_correct")
 
     acc_meters  = {}
-    for i in [1,2]:
-        for n in flowaccnames:
-            acc_meters[n%(i)] = AverageMeter()
-    acc_meters["dist2d"] = AverageMeter()
-    acc_meters["flow1@vis"] = AverageMeter()
-    acc_meters["flow2@vis"] = AverageMeter()
+    for n in flowaccnames:
+        acc_meters[n] = AverageMeter()
 
-    loss_meters = {}    
-    for l in lossnames:
-        loss_meters[l] = AverageMeter()
+    loss_meters = {"total":AverageMeter()}    
 
     time_meters = {}
     for l in ["batch","data","forward","backward","accuracy"]:
@@ -329,40 +311,21 @@ def train(train_loader, device, batchsize,
         # GET THE DATA
         end = time.time()
             
-        flowdict = train_loader.get_tensor_batch(device)        
-        # ['src', 'flow1', 'coord', 'flow2', 'tar2', 'tar1']
-        coord_t  = flowdict["coord"]
-        srcpix_t = flowdict["src"]
-        tarpix_flow1_t = flowdict["tar1"]
-        tarpix_flow2_t = flowdict["tar2"]
-        truth_flow1_t  = flowdict["flow1"]
-        truth_flow2_t  = flowdict["flow2"]
-        # masks
-        if "mask1" in flowdict:
-            mask1_t = flowdict["mask1"]
-        else:
-            mask1_t = None
-            
-        if "mask2" in flowdict:
-            mask2_t = flowdict["mask2"]
-        else:
-            mask2_t = None
-
-        time_meters["data"].update(time.time()-end)
+        flowdata = train_loader.gettensorbatch(batchsize,device)
+        print "entries: ",flowdata["entries"]
         
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
         end = time.time()
 
-        predict1_t,predict2_t = model( coord_t, srcpix_t,
-                                       tarpix_flow1_t, tarpix_flow2_t,
-                                       batchsize )
+        predict1_t,predict2_t,truth1_t,truth2_t = model( flowdata["coord_source"],  flowdata["feat_source"],
+                                                         flowdata["coord_target1"], flowdata["feat_target1"],
+                                                         flowdata["coord_target2"], flowdata["feat_target2"],
+                                                         flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
+                                                         1, device, return_truth=True )
                 
-        totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                truth_flow1_t, truth_flow2_t,
-                                                mask1_truth=mask1_t,
-                                                mask2_truth=mask2_t)
+        totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -376,6 +339,7 @@ def train(train_loader, device, batchsize,
         # allow for gradient accumulation
         if nbatches_per_step>1:
             # if we apply gradient accumulation, we average over accumulation steps
+            print "average over batches per step when gradient accumulating."
             totloss /= float(nbatches_per_step)
         
         # of course, we calculate gradients for this batch
@@ -394,40 +358,12 @@ def train(train_loader, device, batchsize,
         end = time.time()
 
         # update loss meters
+        print loss_meters.keys()
         loss_meters["total"].update( totloss.item()*float(nbatches_per_step) )
-        if flow1loss is not None:
-            loss_meters["flow1"].update( flow1loss.item() )
-        if flow2loss is not None:
-            loss_meters["flow2"].update( flow2loss.item() )
-        #loss_meters["visi1"].update( v1.item() )
-        #loss_meters["visi2"].update( v2.item() )
-        #loss_meters["consist3d"].update( closs.item() )
         
         # measure accuracy and update meters
-        cpu = torch.device("cuda:1")
-        if predict1_t is not None:
-            nvis1 = accuracy(coord_t.to(cpu),
-                             srcpix_t.to(cpu),
-                             predict1_t.features.to(cpu),
-                             truth_flow1_t.to(cpu),
-                             mask1_t.to(cpu),
-                             1,acc_meters,True)
-        else:
-            nvis1 = 0
+        acc = accuracy(predict1_t,predict2_t,truth1_t,truth2_t,acc_meters)
             
-        if predict2_t is not None:
-            nvis2 = accuracy(coord_t.to(cpu),
-                             srcpix_t.to(cpu),
-                             predict2_t.features.to(cpu),
-                             truth_flow2_t.to(cpu),
-                             mask2_t.to(cpu),
-                             2,acc_meters,True)
-        else:
-            nvis2 = 0
-
-        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
-            nnone += 1
-
         # update time meter
         time_meters["accuracy"].update(time.time()-end)            
 
@@ -447,7 +383,7 @@ def train(train_loader, device, batchsize,
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
     writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
     
-    return loss_meters['total'].avg,acc_meters['flow1<5pix'],acc_meters['flow2<5pix']
+    return loss_meters['total'].avg,acc_meters['tot_correct'].avg
 
 
 def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, print_freq):
@@ -468,27 +404,16 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     """
     global writer
 
-
-
     # accruacy and loss meters
-    lossnames    = ("total","flow1","flow2")
-    flowaccnames = ("flow%d<5pix","flow%d<10pix","flow%d<20pix","flow%d<50pix")
-    consistnames = ("dist2d")
+    lossnames    = ("total")
+    flowaccnames = ("pos_correct","neg_correct","pos_wrong","neg_wrong","tot_correct")
 
     acc_meters  = {}
-    for i in [1,2]:
-        for n in flowaccnames:
-            acc_meters[n%(i)] = AverageMeter()
-    print acc_meters.keys()
-    acc_meters["dist2d"] = AverageMeter()
-    acc_meters["flow1@vis"] = AverageMeter()
-    acc_meters["flow2@vis"] = AverageMeter()
+    for n in flowaccnames:
+        acc_meters[n] = AverageMeter()
 
-    loss_meters = {}    
-    for l in lossnames:
-        loss_meters[l] = AverageMeter()
+    loss_meters = {"total":AverageMeter()}    
 
-    # timers for profiling        
     time_meters = {}
     for l in ["batch","data","forward","backward","accuracy"]:
         time_meters[l] = AverageMeter()
@@ -502,75 +427,31 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         batchstart = time.time()
         
         tdata_start = time.time()
-        
-        datadict = val_loader.get_tensor_batch(device)
-        coord_t  = datadict["coord"]
-        srcpix_t = datadict["src"]
-        tarpix_flow1_t = datadict["tar1"]
-        tarpix_flow2_t = datadict["tar2"]
-        truth_flow1_t  = datadict["flow1"]
-        truth_flow2_t  = datadict["flow2"]
 
-        # masks
-        if "mask1" in datadict:
-            mask1_t = datadict["mask1"]
-        else:
-            mask1_t = None
-            
-        if "mask2" in datadict:
-            mask2_t = datadict["mask2"]
-        else:
-            mask2_t = None
-        
+        flowdata = val_loader.gettensorbatch(batchsize,device)
+        print "entries: ",flowdata["entries"]        
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute output
         tforward = time.time()
         with torch.set_grad_enabled(False):
-            predict1_t,predict2_t = model( coord_t, srcpix_t,
-                                           tarpix_flow1_t, tarpix_flow2_t,
-                                           batchsize )        
-            totloss,flow1loss,flow2loss = criterion(coord_t, predict1_t, predict2_t,
-                                                    truth_flow1_t, truth_flow2_t,
-                                                    mask1_truth=mask1_t,
-                                                    mask2_truth=mask2_t)
+            predict1_t,predict2_t,truth1_t,truth2_t = model( flowdata["coord_source"],  flowdata["feat_source"],
+                                                             flowdata["coord_target1"], flowdata["feat_target1"],
+                                                             flowdata["coord_target2"], flowdata["feat_target2"],
+                                                             flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
+                                                             1, device, return_truth=True )
+            totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
         
         time_meters["forward"].update(time.time()-tforward)
 
-        # measure accuracy and update meters
-        cpu = torch.device("cuda:1")
-        if predict1_t is not None:
-            nvis1 = accuracy(coord_t.to(cpu),
-                             srcpix_t.to(cpu),
-                             predict1_t.features.to(cpu),
-                             truth_flow1_t.to(cpu),
-                             mask1_t.to(cpu),
-                             1,acc_meters,True)
-        else:
-            nvis1 = 0
-            
-        if predict2_t is not None:
-            nvis2 = accuracy(coord_t.to(cpu),
-                             srcpix_t.to(cpu),
-                             predict2_t.features.to(cpu),
-                             truth_flow2_t.to(cpu),
-                             mask2_t.to(cpu),
-                             2,acc_meters,True)
-        else:
-            nvis2 = 0
-            
-        if (predict1_t is not None and nvis1==0) or (predict2_t is not None and nvis2==0):
-            nnone += 1
-
         # update loss meters
+        print loss_meters.keys()
         loss_meters["total"].update( totloss.item() )
-        if flow1loss is not None:
-            loss_meters["flow1"].update( flow1loss.item() )
-        if flow2loss is not None:
-            loss_meters["flow2"].update( flow2loss.item() )
-        #loss_meters["visi1"].update( v1.item() )
-        #loss_meters["visi2"].update( v2.item() )
-        #loss_meters["consist3d"].update( closs.item() )
+        
+        # measure accuracy and update meters
+        end = time.time()
+        acc = accuracy(predict1_t,predict2_t,truth1_t,truth2_t,acc_meters)
+        time_meters["accuracy"].update(time.time()-end)        
             
         # measure elapsed time for batch
         time_meters["batch"].update( time.time()-batchstart )
@@ -588,7 +469,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
     writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
     
-    return loss_meters['total'].avg,acc_meters['flow1<5pix'].avg,acc_meters['flow2<5pix'].avg
+    return loss_meters['total'].avg,acc_meters['tot_correct'].avg
 
 def save_checkpoint(state, is_best, p, filename='checkpoint.pth.tar'):
     if p>0:
@@ -626,71 +507,28 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(coord,srcpix,flow_pred,flow_truth,mask_truth,flowdir,acc_meters,istrain):
+def accuracy(predict1_t, predict2_t, truth1_t, truth2_t,acc_meters):
     """Computes the accuracy metrics."""
-    # inputs:
-    #  assuming all pytorch tensors
-    # metrics:
-    #  (10,5,2) pixel accuracy fraction. flow within X pixels of target. (truth vis.==1 + fraction good ) / (fraction true vis.==1)
-    #  visible accuracy: (true vis==1 && pred vis.>0.5) / ( true vis == 1)
+    pred1 = predict1_t.detach()
+    pred2 = predict2_t.detach()
+    print pred1.gt(0.5)
+    print truth1_t
     
-    if istrain:
-        accvals = (5,10,20,50)
-    else:
-        accvals = (5,10,20,50)
+    pos_correct = (pred1.gt(0.5).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
+    pos_wrong   = (pred1.lt(0.5).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
+    neg_correct = (pred1.lt(0.5)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
+    neg_wrong   = (pred1.gt(0.5)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
+
+    npos = float(truth1_t.sum().to(torch.device("cpu")).item())
+    nneg = float(truth1_t.eq(0).sum().to(torch.device("cpu")).item())
+
+    acc_meters["pos_correct"].update( float(pos_correct)/npos )
+    acc_meters["pos_wrong"].update(   float(pos_wrong)/npos )
+    acc_meters["neg_correct"].update( float(neg_correct)/nneg )
+    acc_meters["neg_wrong"].update(   float(neg_wrong)/nneg )
+    acc_meters["tot_correct"].update( float(pos_correct+neg_correct)/(npos+nneg) )
     
-    profile = False
-    
-    # needs to be as gpu as possible!
-    if profile:
-        start = time.time()
-
-    #nvis     = visi_truth.sum()
-    #if nvis<=0:
-    #    return None
-
-    if mask_truth is None:
-        mask = torch.ones( flow_truth.shape, dtype=torch.float ).to(flow_truth.device)
-        # don't count pixels where:
-        #  1) flow is missing i.e. equals zero
-        #  2) source pixel is below threshold
-        mask[ torch.eq(flow_truth,-4000.0) ] = 0.0
-        #mask[ torch.gt(srcpix,10.0)  ] = 0.0
-    else:
-        mask = mask_truth
-    nvis = mask.sum()
-
-    if not PREDICT_CLASSVEC:
-        # regression output
-        flow_err =(flow_pred-flow_truth).abs()        
-    else:
-        # convert class vector prediction to wire number
-        col_predicted = torch.argmax( flow_pred, 1 ).type(torch.float)
-        #flow_err = ( col_predicted - flow_truth[:,0] )*mask        
-        col_predicted -= flow_truth[:,0]
-        col_predicted *= mask[:,0]
-        flow_err = col_predicted.abs()
-        
-    for level in accvals:
-        name = "flow%d<%dpix"%(flowdir,level)
-        acc_meters[name].update( ((( flow_err<float(level)  ).float()*mask[:,0]).sum() / nvis ).item() )
-
-    #if visi_pred is not None:
-    #    _, visi_max = visi_pred.max( 1, keepdim=False)
-    #    mask_visi   = visi_max*visi_truth
-    #    visi_acc    = (mask_visi==1).sum() / nvis
-    #else:
-    #visi_acc = 0.0
-
-    #if visi_pred is not None:
-    #    name = "flow%d@vis"
-    #    acc_meters[name].update(visi_acc)
-        
-    if profile:
-        torch.cuda.synchronize()            
-        start = time.time()
-        
-    return acc_meters["flow%d<5pix"%(flowdir)]
+    return True
 
 def dump_lr_schedule( startlr, numepochs ):
     for epoch in range(0,numepochs):
@@ -709,20 +547,12 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, i
                                                                                                                              timers["backward"].avg,
                                                                                                                              timers["accuracy"].avg,
                                                                                                                              timers["data"].avg)    
-    #print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f] Consistency[%.2f]"%(loss_meters["total"].avg,loss_meters["flow1"].avg,
-    #                                                                       loss_meters["flow2"].avg,loss_meters["consist3d"].avg)
-    print "  Loss: Total[%.2f] Flow1[%.2f] Flow2[%.2f]"%(loss_meters["total"].avg,
-                                                         loss_meters["flow1"].avg,
-                                                         loss_meters["flow2"].avg)
-    print "  Flow1 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow1<5pix"].avg*100,
-                                                                      acc_meters["flow1<10pix"].avg*100,
-                                                                      acc_meters["flow1<20pix"].avg*100,
-                                                                      acc_meters["flow1<50pix"].avg*100)
-    print "  Flow2 accuracy: <5[%.1f] <10[%.1f] <20[%.1f] <50[%.1f]"%(acc_meters["flow2<5pix"].avg*100,
-                                                                      acc_meters["flow2<10pix"].avg*100,
-                                                                      acc_meters["flow2<20pix"].avg*100,
-                                                                      acc_meters["flow2<50pix"].avg*100)
-        
+    print "  Loss: Total[%.3e]"%(loss_meters["total"].avg)
+    print "  Acc: pos-correct[%.2f] neg-correct[%.2f] pos-wrong[%.2f] neg-wrong[%.2f] TOT[%.2f]"%(acc_meters["pos_correct"].avg,
+                                                                                                  acc_meters["neg_correct"].avg,
+                                                                                                  acc_meters["pos_wrong"].avg,
+                                                                                                  acc_meters["neg_wrong"].avg,
+                                                                                                  acc_meters["tot_correct"].avg)
     print "------------------------------------------------------------------------"    
 
 

@@ -54,6 +54,7 @@ def load_larmatch_data(io,has_truth=True,
     data["npairs_flow1"]     = nfilled1.value
     data["matchpairs_flow2"] = matchidx2
     data["npairs_flow2"]     = nfilled2.value
+    data["entry"]            = io.current_entry()
     if has_truth:
         data["labels_flow1"] = matchidx1[:,2]
         data["labels_flow2"] = matchidx2[:,2]
@@ -139,6 +140,7 @@ class LArMatchDataset:
                  "feat_target2": np.zeros( (target2_tot,1), dtype=np.float32 ),
                  "pairs_flow1":  [],  #np.zeros( (pair1_tot,2),  dtype=np.int32 ),
                  "pairs_flow2":  [],  #np.zeros( (pair2_tot,2),  dtype=np.int32 )}
+                 "entries":[],
                  }
 
         source_start  = 0
@@ -162,6 +164,7 @@ class LArMatchDataset:
 
             tdata["pairs_flow1"].append( torch.from_numpy(data["matchpairs_flow1"][0][0:pair1_npts[ibatch],:]).to(device) )
             tdata["pairs_flow2"].append( torch.from_numpy(data["matchpairs_flow2"][0][0:pair2_npts[ibatch],:]).to(device) )
+            tdata["entries"].append( data["entry"][0] )
             
         for name,arr_np in tdata.items():
             if type(arr_np) is np.ndarray:
