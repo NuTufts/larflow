@@ -79,8 +79,10 @@ class LArMatchDataset:
         self.match_v = std.vector("larflow::FlowMatchMap")()
         self.tchain = rt.TChain("flowmatchdata")
         for fin in input_ana_files:
+            print "adding ana file: ",fin
             self.tchain.Add( fin )
         self.tchain.SetBranchAddress( "matchmap", rt.AddressOf(self.match_v))
+        print "chain has ",self.tchain.GetEntries()," entries"
 
         self.params = {"has_truth":True,
                        "verbose":False,
@@ -175,8 +177,8 @@ class LArMatchDataset:
 if __name__ == "__main__":
 
 
-    input_larcv_files = ["test_larcv.root"]
-    input_ana_files   = ["ana_flowmatch_data.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
     device = torch.device("cpu")
 
     io = LArMatchDataset( input_larcv_files, input_ana_files )

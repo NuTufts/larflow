@@ -16,7 +16,8 @@ from loss_larmatch import SparseLArMatchLoss
 
 if __name__ == "__main__":
 
-    DEVICE = torch.device("cpu")
+    #DEVICE = torch.device("cpu")
+    DEVICE = torch.device("cuda")
     
     model = LArMatch(neval=50000).to(DEVICE)
     if False:
@@ -24,8 +25,8 @@ if __name__ == "__main__":
 
     criterion = SparseLArMatchLoss()
 
-    input_larcv_files = ["test_larcv.root"]
-    input_ana_files   = ["ana_flowmatch_data.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
     device = torch.device("cpu")
     io = LArMatchDataset( input_larcv_files, input_ana_files )
 
