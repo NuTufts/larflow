@@ -45,8 +45,9 @@ class LArMatch(nn.Module):
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             classifier_layers["class%drelu"%(ilayer+1)] = torch.nn.ReLU()
         classifier_layers["classout"] = torch.nn.Conv1d(nfeats,1,1)
+        #classifier_layers["sigmoid"]  = torch.nn.Sigmoid()
         self.classifier = torch.nn.Sequential( classifier_layers )
-
+        
 
         # POINTS TO EVAL PER IMAGE
         self.neval = neval
