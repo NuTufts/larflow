@@ -140,9 +140,11 @@ class LArMatchDataset:
                  "feat_source":  np.zeros( (source_tot,1),  dtype=np.float32 ),
                  "feat_target1": np.zeros( (target1_tot,1), dtype=np.float32 ),
                  "feat_target2": np.zeros( (target2_tot,1), dtype=np.float32 ),
-                 "pairs_flow1":  [],  #np.zeros( (pair1_tot,2),  dtype=np.int32 ),
-                 "pairs_flow2":  [],  #np.zeros( (pair2_tot,2),  dtype=np.int32 )}
+                 "pairs_flow1":  [],  
+                 "pairs_flow2":  [],  
                  "entries":[],
+                 "npairs1":[],
+                 "npairs2":[]
                  }
 
         source_start  = 0
@@ -167,6 +169,8 @@ class LArMatchDataset:
             tdata["pairs_flow1"].append( torch.from_numpy(data["matchpairs_flow1"][0][0:pair1_npts[ibatch],:]).to(device) )
             tdata["pairs_flow2"].append( torch.from_numpy(data["matchpairs_flow2"][0][0:pair2_npts[ibatch],:]).to(device) )
             tdata["entries"].append( data["entry"][0] )
+            tdata["npairs1"].append( data["npairs_flow1"][0] )
+            tdata["npairs2"].append( data["npairs_flow2"][0] )
             
         for name,arr_np in tdata.items():
             if type(arr_np) is np.ndarray:
@@ -177,17 +181,19 @@ class LArMatchDataset:
 if __name__ == "__main__":
 
 
-    #input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
-    #input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
-    input_larcv_files = ["test_larcv.root"]
-    input_ana_files   = ["ana_flowmatch_data.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
+    #input_larcv_files = ["test_larcv.root"]
+    #input_ana_files   = ["ana_flowmatch_data.root"]
     device = torch.device("cpu")
 
     io = LArMatchDataset( input_larcv_files, input_ana_files )
     
     data = io.gettensorbatch(1,device)
     for name,arr in data.items():
-        if type(arr) is np.ndarray:
+        if "pairs_flow" in name:
+            print "len(%s):"%(name),len(arr)
+        elif isinstance(arr,torch.Tensor):
             print name,arr.shape
         else:
-            print name,len(arr)
+            print name,arr

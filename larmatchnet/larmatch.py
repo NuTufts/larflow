@@ -107,8 +107,8 @@ class LArMatch(nn.Module):
         bstart_tar1 = 0
         bstart_tar2 = 0
         if return_truth:
-            truthvec1 = torch.zeros( (1,1,batchsize*self.neval), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
-            truthvec2 = torch.zeros( (1,1,batchsize*self.neval), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+            truthvec1 = torch.zeros( (1,1,npts1), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+            truthvec2 = torch.zeros( (1,1,npts2), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
         
         for b in range(batchsize):
             if batchsize>1:
@@ -135,8 +135,8 @@ class LArMatch(nn.Module):
                                              pair_flow2_v[b], DEVICE, return_truth,
                                              npts2 )
             if return_truth:
-                truthvec1[0,0,b*self.neval:b*self.neval+self.neval] = t1
-                truthvec2[0,0,b*self.neval:b*self.neval+self.neval] = t2 
+                truthvec1[0,0,b*self.neval:b*self.neval+npts1] = t1
+                truthvec2[0,0,b*self.neval:b*self.neval+npts2] = t2 
             bstart_src = bend_src
             bstart_tar1 = bend_tar1
             bstart_tar2 = bend_tar2

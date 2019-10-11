@@ -18,17 +18,19 @@ if __name__ == "__main__":
 
     #DEVICE = torch.device("cpu")
     DEVICE = torch.device("cuda")
+
+    MAX_PAIRS_TESTED=20000
     
-    model = LArMatch(neval=50000).to(DEVICE)
+    model = LArMatch(neval=MAX_PAIRS_TESTED).to(DEVICE)
     if False:
         print model
 
     criterion = SparseLArMatchLoss()
 
-    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
-    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
     device = torch.device("cpu")
-    io = LArMatchDataset( input_larcv_files, input_ana_files )
+    io = LArMatchDataset( input_larcv_files, input_ana_files, npairs=MAX_PAIRS_TESTED )
 
     data = io.gettensorbatch(1,DEVICE)
 
@@ -38,7 +40,9 @@ if __name__ == "__main__":
                                              data["coord_target1"], data["feat_target1"],
                                              data["coord_target2"], data["feat_target2"],                                             
                                              data["pairs_flow1"],   data["pairs_flow2"],
-                                             1, DEVICE, return_truth=True )
+                                             1, DEVICE, return_truth=True,
+                                             npts1=data["npairs1"][0],
+                                             npts2=data["npairs2"][0])
     
     print "output: ",match1.shape,match2.shape,truth1.shape,truth2.shape,truth1.sum(),truth2.sum()
     print "forward time: ",time.time()-start," secs"

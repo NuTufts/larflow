@@ -40,22 +40,23 @@ from loss_larmatch import SparseLArMatchLoss
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
-GPUMODE=False
-RESUME_FROM_CHECKPOINT=False
+GPUMODE=True
+RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.10000th.tar"
+CHECKPOINT_FILE="run1/checkpoint.30000th.tar"
 
-TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
-INPUTFILE_TRAIN=["test_larcv.root"]
-INPUTANA_TRAIN=["ana_flowmatch_data.root"]
-INPUTFILE_VALID=["test_larcv.root"]
-INPUTANA_VALID=["ana_flowmatch_data.root"]
+TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_training_data/"
+INPUTFILE_TRAIN=["larmatch_larcv_train_p0.root","larmatch_larcv_train_p1.root"]
+INPUTANA_TRAIN=["larmatch_larcv_train_p0.root","larmatch_larcv_train_p1.root"]
+INPUTFILE_VALID=["larmatch_larcv_valid.root"]
+INPUTANA_VALID=["larmatch_larcv_valid.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
-NUM_ITERS   = 2000
+START_ITER  = 30001
+NUM_ITERS   = 200000
+TEST_NUM_MATCH_PAIRS = 20000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
 BATCHSIZE_VALID=1  # batches per validation iteration
@@ -105,7 +106,7 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the GPU
-    model = LArMatch(neval=50000).to(DEVICE)
+    model = LArMatch(neval=TEST_NUM_MATCH_PAIRS).to(DEVICE)
 
     if False:
         # DUMP MODEL
@@ -135,7 +136,7 @@ def main():
     criterion = SparseLArMatchLoss()
 
     # training parameters
-    lr = 1.0e-2
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -156,8 +157,8 @@ def main():
     # LOAD THE DATASET
     traindata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_TRAIN ]
     validdata = [ TRAIN_DATA_FOLDER+"/"+x for x in INPUTFILE_VALID ]    
-    iotrain = LArMatchDataset( INPUTFILE_TRAIN, INPUTANA_TRAIN )
-    iovalid = LArMatchDataset( INPUTFILE_VALID, INPUTANA_VALID )
+    iotrain = LArMatchDataset( traindata, traindata, npairs=TEST_NUM_MATCH_PAIRS )
+    iovalid = LArMatchDataset( validdata, validdata, npairs=TEST_NUM_MATCH_PAIRS )
 
     NENTRIES = len(iotrain)
     iter_per_epoch = NENTRIES/(itersize_train)
@@ -323,7 +324,8 @@ def train(train_loader, device, batchsize,
                                                          flowdata["coord_target1"], flowdata["feat_target1"],
                                                          flowdata["coord_target2"], flowdata["feat_target2"],
                                                          flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
-                                                         1, device, return_truth=True )
+                                                         1, device, return_truth=True,
+                                                         npts1=flowdata["npairs1"][0], npts2=flowdata["npairs2"][0])
                 
         totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
             
@@ -439,7 +441,9 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                                                              flowdata["coord_target1"], flowdata["feat_target1"],
                                                              flowdata["coord_target2"], flowdata["feat_target2"],
                                                              flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
-                                                             1, device, return_truth=True )
+                                                             1, device, return_truth=True,
+                                                             npts1=flowdata["npairs1"][0],
+                                                             npts2=flowdata["npairs2"][0] )
             totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
         
         time_meters["forward"].update(time.time()-tforward)
@@ -511,13 +515,13 @@ def accuracy(predict1_t, predict2_t, truth1_t, truth2_t,acc_meters):
     """Computes the accuracy metrics."""
     pred1 = predict1_t.detach()
     pred2 = predict2_t.detach()
-    print pred1.gt(0.5)
-    print truth1_t
+    #print pred1.gt(0.5)
+    #print truth1_t
     
-    pos_correct = (pred1.gt(0.5).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
-    pos_wrong   = (pred1.lt(0.5).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
-    neg_correct = (pred1.lt(0.5)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
-    neg_wrong   = (pred1.gt(0.5)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
+    pos_correct = (pred1.gt(0.0).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
+    pos_wrong   = (pred1.lt(0.0).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
+    neg_correct = (pred1.lt(0.0)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
+    neg_wrong   = (pred1.gt(0.0)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
 
     npos = float(truth1_t.sum().to(torch.device("cpu")).item())
     nneg = float(truth1_t.eq(0).sum().to(torch.device("cpu")).item())
