@@ -14,6 +14,7 @@
 #pragma link C++ class larflow::FlowMatchMap+;
 #pragma link C++ class larflow::PrepFlowMatchData+;
 #pragma link C++ function larflow::sample_pair_array( const int&, const FlowMatchMap&, int&, bool )+;
+#pragma link C++ function larflow::get_chunk_pair_array( const int&, const int&, const FlowMatchMap&, int&, int&, bool )+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif
