@@ -70,7 +70,7 @@ def load_larmatch_data(io,has_truth=True,
 
 class LArMatchDataset:
 
-    def __init__( self, input_larcv_files, input_ana_files ):
+    def __init__( self, input_larcv_files, input_ana_files, npairs=20000 ):
 
         self.input_larcv_files = input_larcv_files
         self.input_ana_files   = input_ana_files
@@ -86,7 +86,7 @@ class LArMatchDataset:
 
         self.params = {"has_truth":True,
                        "verbose":False,
-                       "npairs":50000,
+                       "npairs":npairs,
                        "matchtree":self.tchain,
                        "match_v":self.match_v}
         
