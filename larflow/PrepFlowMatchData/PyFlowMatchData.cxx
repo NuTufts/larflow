@@ -63,7 +63,7 @@ namespace larflow {
     dims[1] = (withtruth) ? 3 : 2;
 
     // output array
-    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 2, dims, NPY_INT );
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 2, dims, NPY_LONG );
 
     // number of pairs we've stored
     num_pairs_filled = 0;
@@ -87,10 +87,10 @@ namespace larflow {
       //std::cout << "  srcidx=" << srcidx << ": number of target indices=" << target_v.size() << " nfilled=" << nfilled << std::endl;
       for ( size_t itar=0; itar<target_v.size(); itar++ ) {
         int taridx = target_v[itar];
-        *((int*)PyArray_GETPTR2( array, num_pairs_filled, 0)) = srcidx;
-        *((int*)PyArray_GETPTR2( array, num_pairs_filled, 1)) = taridx;
+        *((long*)PyArray_GETPTR2( array, num_pairs_filled, 0)) = (long)srcidx;
+        *((long*)PyArray_GETPTR2( array, num_pairs_filled, 1)) = (long)taridx;
         if ( withtruth ) {
-          *((int*)PyArray_GETPTR2( array, num_pairs_filled, 2)) = (*truth_v)[itar];
+          *((long*)PyArray_GETPTR2( array, num_pairs_filled, 2)) = (*truth_v)[itar];
         }
         num_pairs_filled++;
         if (num_pairs_filled==max_num_pairs)
@@ -107,7 +107,7 @@ namespace larflow {
     if ( num_pairs_filled<max_num_pairs ) {
       for ( size_t i=num_pairs_filled; i<max_num_pairs; i++ ) {
         for (int j=0; j<dims[1]; j++) {
-          *((int*)PyArray_GETPTR2( array, i, j)) = 0;
+          *((long*)PyArray_GETPTR2( array, i, j)) = 0;
         }
       }
     }

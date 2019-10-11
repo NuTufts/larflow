@@ -47,6 +47,8 @@ namespace larflow {
 
     PrepFlowMatchData( std::string instance_name )
       : larcv::ProcessBase(instance_name),
+      _has_mctruth(false),
+      _use_ana_tree(false),
       _ana_tree(nullptr),
       _matchdata_v(nullptr)
     {};
@@ -60,10 +62,18 @@ namespace larflow {
     bool process( larcv::IOManager& mgr );
     void finalize();
 
+    void setADCproducer( std::string name ) { _input_adc_producername=name; };
+    void hasMCtruth( bool hasmc )  { _has_mctruth=hasmc; };
+    void useAnaTree( bool useana ) { _use_ana_tree=useana; };
+
+    const std::vector<FlowMatchMap>& getMatchData() const;
+
   protected:
 
     std::string _input_adc_producername;
     std::string _input_trueflow_producername;
+    bool        _has_mctruth;
+    bool        _use_ana_tree;
     
     TTree* _ana_tree;
     std::vector< FlowMatchMap >* _matchdata_v;

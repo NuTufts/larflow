@@ -62,12 +62,21 @@ namespace larflow {
 
     _input_adc_producername      = pset.get<std::string>("InputADC",      "wire");
     _input_trueflow_producername = pset.get<std::string>("InputTrueFlow", "larflow" );
-    
+    _has_mctruth                 = pset.get<bool>("HasMCTruth",false);
+    useAnaTree(true);
   }
 
   void PrepFlowMatchData::initialize() {
     _setup_ana_tree();
     _extract_wire_overlap_bounds();
+  }
+
+  const std::vector<FlowMatchMap>& PrepFlowMatchData::getMatchData() const {
+    if ( _matchdata_v==nullptr ) {
+      LARCV_CRITICAL() << "Need to initialize class first." << std::endl;
+      throw std::runtime_error("Need to initialize first");
+    }
+    return *_matchdata_v;
   }
   
   bool PrepFlowMatchData::process( larcv::IOManager& mgr ) {
@@ -78,10 +87,14 @@ namespace larflow {
     //   we then provide a {0,1} label for each possbile flow, with 1 reserved for the correct match
     // we also need to provide a weight for each event for bad and good matches, to balance that choice.
 
-    auto ev_adc  = (larcv::EventImage2D*)mgr.get_data(larcv::kProductImage2D,_input_adc_producername);
-    auto ev_flow = (larcv::EventImage2D*)mgr.get_data(larcv::kProductImage2D,_input_trueflow_producername);
-    LARCV_DEBUG() << "get adc and flow images. len(adc)=" << ev_adc->Image2DArray().size()
-                  << " len(flow)=" << ev_flow->Image2DArray().size() << std::endl;
+    larcv::EventImage2D* ev_adc  = (larcv::EventImage2D*)mgr.get_data(larcv::kProductImage2D,_input_adc_producername);
+    LARCV_DEBUG() << "get adc and flow images. len(adc)=" << ev_adc->Image2DArray().size() << std::endl;
+    
+    larcv::EventImage2D* ev_flow = nullptr;
+    if ( _has_mctruth ) {
+      ev_flow = (larcv::EventImage2D*)mgr.get_data(larcv::kProductImage2D,_input_trueflow_producername);
+      LARCV_DEBUG() << " len(flow)=" << ev_flow->Image2DArray().size() << std::endl;
+    }
 
     // make sparse image for the source ADC + 2 x (true flow + matachabilitity)+weights+nchoice,
     //  + 2 x sparse target images
@@ -97,56 +110,69 @@ namespace larflow {
 
     // create matchability image
     std::vector<larcv::Image2D> matchability_v;
-    for ( size_t i=0; i<2; i++ ) {
+    if ( _has_mctruth )  {
+      for ( size_t i=0; i<2; i++ ) {
 
-      LARCV_DEBUG() << "make matchability image for flowdir=" << i << std::endl;
+        LARCV_DEBUG() << "make matchability image for flowdir=" << i << std::endl;
       
-      larcv::Image2D matchability( srcimg.meta() );
-      matchability.paint(0.0);
-
-      auto const& tar     = *tarimg[i];
-      auto const& flowimg = ev_flow->Image2DArray().at( flow_index[i] );
-      
-      // we check matchability of flow.  does flow go into a dead region?
-      for ( size_t c=0; c<srcimg.meta().cols(); c++ ) {
-        for ( size_t r=0; r<srcimg.meta().rows(); r++ ) {
-          float adc = srcimg.pixel(r,c);
-          if ( adc<10.0 ) continue;
-          float flow = flowimg.pixel(r,c);
-
-          if ( flow<=-4000) continue;
-          
-          int target_col = (int)c + (int)flow;
-          
-          int hastarget = 1;
-          if ( target_col<0 || target_col>=(int)tar.meta().cols() )
-            hastarget = 0;
-          else if ( tar.pixel( r, target_col )<10.0 )
-            hastarget = 0;
-          
-          if ( hastarget==1 )
-            matchability.set_pixel(r,c,1.0);
-          
-        }
-      }//end of col loop
-
-      matchability_v.emplace_back( std::move(matchability) );
-    }
+        larcv::Image2D matchability( srcimg.meta() );
+        matchability.paint(0.0);
+        
+        auto const& tar     = *tarimg[i];
+        auto const& flowimg = ev_flow->Image2DArray().at( flow_index[i] );
+        
+        // we check matchability of flow.  does flow go into a dead region?
+        for ( size_t c=0; c<srcimg.meta().cols(); c++ ) {
+          for ( size_t r=0; r<srcimg.meta().rows(); r++ ) {
+            float adc = srcimg.pixel(r,c);
+            if ( adc<10.0 ) continue;
+            float flow = flowimg.pixel(r,c);
+            
+            if ( flow<=-4000) continue;
+            
+            int target_col = (int)c + (int)flow;
+            
+            int hastarget = 1;
+            if ( target_col<0 || target_col>=(int)tar.meta().cols() )
+              hastarget = 0;
+            else if ( tar.pixel( r, target_col )<10.0 )
+              hastarget = 0;
+            
+            if ( hastarget==1 )
+              matchability.set_pixel(r,c,1.0);
+            
+          }
+        }//end of col loop
+        
+        matchability_v.emplace_back( std::move(matchability) );
+      }
+    }//end of has truth
 
     // Now make sparse images
 
     // Source Image: combined with features [adc,trueflow1,trueflow2,matchable1,matchable2]
     std::vector< const larcv::Image2D* > img_v;
-    std::vector< float > threshold_v = { 10.0, -3999.0, -3999.0, -1, -1 }; // threshold value to include pixel
-    std::vector< int >   cuton_v     = {    1,       0,       0,  0,  0 }; // feature to make cut on (COMBINED USING OR)
+    std::vector< float > threshold_v; 
+    std::vector< int >   cuton_v;     
+
+    if ( _has_mctruth ) {
+      threshold_v = { 10.0, -3999.0, -3999.0, -1, -1 }; // threshold value to include pixel
+      cuton_v     = {    1,       0,       0,  0,  0 }; // feature to make cut on (COMBINED USING OR)
+    }
+    else {
+      threshold_v = { 10.0 };
+      cuton_v     = { 1 };
+    }
 
     LARCV_DEBUG() << "make source sparse image" << std::endl;
 
     img_v.push_back( &srcimg );
-    img_v.push_back( &ev_flow->Image2DArray().at( flow_index[0] ) );
-    img_v.push_back( &ev_flow->Image2DArray().at( flow_index[1] ) );
-    img_v.push_back( &matchability_v[0] );
-    img_v.push_back( &matchability_v[1] );    
+    if ( _has_mctruth ) {
+      img_v.push_back( &ev_flow->Image2DArray().at( flow_index[0] ) );
+      img_v.push_back( &ev_flow->Image2DArray().at( flow_index[1] ) );
+      img_v.push_back( &matchability_v[0] );
+      img_v.push_back( &matchability_v[1] );
+    }
 
     larcv::SparseImage spsrc( img_v, threshold_v, cuton_v ); //make the sparse image
 
@@ -209,7 +235,10 @@ namespace larflow {
         
         int   col = (int)sparsesrc.getfeature(ipt,1);
         int   row = (int)sparsesrc.getfeature(ipt,0);
-        int   matchable = (int)sparsesrc.getfeature(ipt,5+i);
+        int   matchable = -1;
+
+        if ( _has_mctruth )
+          matchable = (int)sparsesrc.getfeature(ipt,5+i);
 
         float umin = _wire_bounds[i][col][0];
         float umax = _wire_bounds[i][col][1];
@@ -223,9 +252,14 @@ namespace larflow {
           std::vector< int > truth_v;
           std::vector< int > within_bounds_target_v;
 
-          // find the true one
-          float flow = sparsesrc.getfeature(ipt,3+i); // the true flow
-          int target_col = col + (int)flow;
+          // if MC, find the true column match
+          float flow = 0;
+          int target_col = 0;
+
+          if ( _has_mctruth ) {
+            flow = sparsesrc.getfeature(ipt,3+i); // the true flow
+            target_col = col + (int)flow;
+          }
 
           int nmatches = 0;
           std::vector<int> tar_col_v;
@@ -236,7 +270,8 @@ namespace larflow {
             
             tar_col_v.push_back( tarcol );
             within_bounds_target_v.push_back( target_index_v[idx] );
-            if ( tarcol==target_col ) {
+
+            if ( _has_mctruth && tarcol==target_col ) {
               truth_v.push_back(1);
               _ntrue_pairs[i]++;
               nmatches++;
@@ -246,8 +281,9 @@ namespace larflow {
               _nfalse_pairs[i]++;              
             }
           }
+          
           if ( matchable==1 ) {
-            if ( nmatches!=1 )
+            if ( _has_mctruth && nmatches!=1 )
               LARCV_CRITICAL() << "did not find matchable column" << std::endl;
 
             if ( nmatches==1 )
@@ -286,24 +322,36 @@ namespace larflow {
     larcv::EventSparseImage* ev_out = (larcv::EventSparseImage*)mgr.get_data(larcv::kProductSparseImage, "larflow" );
     ev_out->Emplace( std::move( spimg_v ) );
 
-    LARCV_DEBUG() << "save flow match maps to ana tree" << std::endl;    
-    _ana_tree->Fill();
+    if ( _use_ana_tree ) {
+      LARCV_DEBUG() << "save flow match maps to ana tree" << std::endl;    
+      _ana_tree->Fill();
+    }
 
     LARCV_DEBUG() << "done" << std::endl;    
     return true;
   }
 
   void PrepFlowMatchData::finalize() {
-    _ana_tree->Write();
+    if ( _use_ana_tree )
+      _ana_tree->Write();
   }
 
   void PrepFlowMatchData::_setup_ana_tree() {
-    LARCV_DEBUG() << "create tree, make container, set branch" << std::endl;
-    _ana_tree = new TTree("flowmatchdata","Provides map from source to target pixels to match");
+    if ( _use_ana_tree ) 
+      LARCV_DEBUG() << "create tree, make container, set branch" << std::endl;
+    else
+      LARCV_DEBUG() << "not storing data in ana tree" << std::endl;
+
     _matchdata_v = new std::vector< FlowMatchMap >();
-    _ana_tree->Branch( "matchmap", _matchdata_v );
+
+    if ( !_use_ana_tree )
+      return;
+    
+    _ana_tree = new TTree("flowmatchdata","Provides map from source to target pixels to match");
+    _ana_tree->Branch( "matchmap",    _matchdata_v );
     _ana_tree->Branch( "nfalsepairs", _nfalse_pairs, "nfalsepairs[2]/I" );
     _ana_tree->Branch( "ntruepairs",  _ntrue_pairs,  "ntruepairs[2]/I" );
+    
   }
 
   void PrepFlowMatchData::_extract_wire_overlap_bounds() {
