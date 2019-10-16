@@ -1,18 +1,23 @@
+from __future__ import print_function
 import os,sys,argparse
 
 parser = argparse.ArgumentParser(description='Run Prep LArFlow Match Data')
 parser.add_argument('-olcv','--out-larcv',required=True,type=str,help="Filename for LArCV output")
 parser.add_argument("-c","--config",required=True,type=str,help="Configuration file")
-parser.add_argument('input_larcv',type=str,nargs='+',help="Input larcv files")
+parser.add_argument('input_larcv',nargs='+',help="Input larcv files")
 
 args = parser.parse_args(sys.argv[1:])
+
+#print("inputfiles: ",args.input_larcv)
+#print("type(inpufiles)=",type(args.input_larcv))
 
 import ROOT as rt
 from ROOT import std
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-print larflow.PrepFlowMatchData
+
+print(larflow.PrepFlowMatchData)
 
 inputfiles = std.vector("std::string")()
 if type(args.input_larcv) is str:

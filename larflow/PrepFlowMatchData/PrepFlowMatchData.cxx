@@ -62,7 +62,9 @@ namespace larflow {
 
     _input_adc_producername      = pset.get<std::string>("InputADC",      "wire");
     _input_trueflow_producername = pset.get<std::string>("InputTrueFlow", "larflow" );
+    _use_soft_truth              = pset.get<bool>("UseSoftTruthVector",false);
     _has_mctruth                 = pset.get<bool>("HasMCTruth",false);
+    _positive_example_distance   = pset.get<int>("PositiveExampleDistance",5);
     useAnaTree(true);
   }
 
@@ -271,13 +273,22 @@ namespace larflow {
             tar_col_v.push_back( tarcol );
             within_bounds_target_v.push_back( target_index_v[idx] );
 
-            if ( _has_mctruth && tarcol==target_col ) {
-              truth_v.push_back(1);
+
+	    if ( _has_mctruth && abs(tarcol-target_col)<=_positive_example_distance ) {
+	      // within positive example distance
+	      if ( !_use_soft_truth || tarcol==target_col ) {
+		// if positive example, set to truth vector to 1
+		truth_v.push_back(1.0);
+	      }
+	      else {
+		// soft truth
+		truth_v.push_back( 2.0/float(tarcol-target_col) ); // arbitrary function
+	      }
               _ntrue_pairs[i]++;
-              nmatches++;
+              if ( tarcol==target_col) nmatches++;
             }
             else {
-              truth_v.push_back(0);
+              truth_v.push_back(0.0);
               _nfalse_pairs[i]++;              
             }
           }
@@ -315,6 +326,8 @@ namespace larflow {
 
       _matchdata_v->emplace_back( std::move(matchmap) );
       LARCV_INFO() << "matched map flowdir=" << i << ": matchable hasmatch=" << npix_w_matches << " hasnomatch=" << npix_wo_matches << std::endl;
+      LARCV_INFO() << "number of true matches:  flow[0]=" << _ntrue_pairs[0]  << "  flow[1]=" << _ntrue_pairs[1]  << std::endl;
+      LARCV_INFO() << "number of false matches: flow[0]=" << _nfalse_pairs[0] << "  flow[1]=" << _nfalse_pairs[1] << std::endl;
       
     }//end of loop over flow directions
 
