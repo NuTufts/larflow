@@ -63,6 +63,7 @@ namespace larflow {
     void finalize();
 
     void setADCproducer( std::string name ) { _input_adc_producername=name; };
+    void setLArFlowproducer( std::string name ) { _input_trueflow_producername=name; };
     void hasMCtruth( bool hasmc )  { _has_mctruth=hasmc; };
     void useAnaTree( bool useana ) { _use_ana_tree=useana; };
 

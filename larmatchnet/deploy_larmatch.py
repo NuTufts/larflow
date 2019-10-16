@@ -59,6 +59,7 @@ evout_lfhits_y2u = out.get_data(larlite.data.kLArFlow3DHit,"larmatchy2u")
 evout_lfhits_y2v = out.get_data(larlite.data.kLArFlow3DHit,"larmatchy2v")
 
 NENTRIES = io.get_n_entries()
+#NENTRIES = 1
 
 for ientry in range(NENTRIES):
 
@@ -141,10 +142,13 @@ for ientry in range(NENTRIES):
             #print( (src_col,tar_col),": prob=",p)
             larutil.Geometry.GetME().IntersectionPoint( int(src_col), int(tar_col), 2, 0, y, z )
             lfhit = larlite.larflow3dhit()
-            lfhit.resize(3,0)            
+            lfhit.resize(3,0)
+            lfhit.srcwire = int(src_col)
             lfhit.flowdir = larlite.larflow3dhit.kY2U
             lfhit.tick = int(src_tick)
-            lfhit.track_score = p            
+            lfhit.track_score = p
+            lfhit.targetwire.resize(2,0)
+            lfhit.targetwire[0] = tar_col
             lfhit[0] = x
             lfhit[1] = y.value
             lfhit[2] = z.value
@@ -167,9 +171,12 @@ for ientry in range(NENTRIES):
             larutil.Geometry.GetME().IntersectionPoint( int(src_col), int(tar_col), 2, 1, y, z )
             lfhit = larlite.larflow3dhit()
             lfhit.resize(3,0)
+            lfhit.srcwire = int(src_col)
             lfhit.flowdir = larlite.larflow3dhit.kY2V
             lfhit.tick = int(src_tick)
             lfhit.track_score = p
+            lfhit.targetwire.resize(2,0)
+            lfhit.targetwire[1] = tar_col
             lfhit[0] = x
             lfhit[1] = y.value
             lfhit[2] = z.value
