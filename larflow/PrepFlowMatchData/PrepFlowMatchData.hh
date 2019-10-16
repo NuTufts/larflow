@@ -64,6 +64,7 @@ namespace larflow {
 
     void setADCproducer( std::string name ) { _input_adc_producername=name; };
     void hasMCtruth( bool hasmc )  { _has_mctruth=hasmc; };
+    void useSoftTruthVector( bool usesoft ) { _use_soft_truth = usesoft; };
     void useAnaTree( bool useana ) { _use_ana_tree=useana; };
 
     const std::vector<FlowMatchMap>& getMatchData() const;
@@ -74,6 +75,8 @@ namespace larflow {
     std::string _input_trueflow_producername;
     bool        _has_mctruth;
     bool        _use_ana_tree;
+    bool        _use_soft_truth;
+    int         _positive_example_distance;
     
     TTree* _ana_tree;
     std::vector< FlowMatchMap >* _matchdata_v;
