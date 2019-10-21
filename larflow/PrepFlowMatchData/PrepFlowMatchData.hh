@@ -47,10 +47,14 @@ namespace larflow {
 
     PrepFlowMatchData( std::string instance_name )
       : larcv::ProcessBase(instance_name),
+      _input_adc_producername(""),
+      _input_trueflow_producername(""),
       _has_mctruth(false),
       _use_ana_tree(false),
-      _ana_tree(nullptr),
-      _matchdata_v(nullptr)
+      _use_soft_truth(false),
+      _positive_example_distance(0),
+      _matchdata_v(nullptr),
+      _ana_tree(nullptr)
     {};
     virtual ~PrepFlowMatchData() {
       // if ( _ana_tree ) delete _ana_tree;
