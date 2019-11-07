@@ -15,6 +15,8 @@
 #pragma link C++ class larflow::PrepFlowMatchData+;
 #pragma link C++ function larflow::sample_pair_array( const int&, const FlowMatchMap&, int&, bool )+;
 #pragma link C++ function larflow::get_chunk_pair_array( const int&, const int&, const FlowMatchMap&, int&, int&, bool )+;
+#pragma link C++ function larflow::make_larflow_hits( PyObject*, PyObject*, PyObject*, const larcv::ImageMeta&, larlite::event_larflow3dhit&, const larcv::EventChStatus* )+;
+#pragma link C++ function larflow::make_larflow_hits_with_deadchs( PyObject*, PyObject*, PyObject*, const larcv::ImageMeta&, const larcv::EventChStatus&, larlite::event_larflow3dhit& )+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif

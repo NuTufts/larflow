@@ -5,66 +5,60 @@
 #include "larcv/core/DataFormat/EventSparseImage.h"
 #include "larcv/core/DataFormat/SparseImage.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 
 #include <sstream>
 
 namespace larflow {
 
-  // ---------------------------------------------------------
-  // FLOW MATCH MAP CLASS
-  
-  void FlowMatchMap::add_matchdata( int src_index,
-                                    const std::vector<int>& target_indices,
-                                    const std::vector<int>& truth_v ) {
-
-    if ( truth_v.size()!=target_indices.size() ) {
-      throw std::runtime_error( "truth and target index vectors not the same size" );
-    }
-    
-    _target_map[src_index] = target_indices;
-    _truth_map[src_index]  = truth_v;
-    
-  }
-
-  const std::vector<int>& FlowMatchMap::getTargetIndices( int src_index ) const {
-
-    auto it = _target_map.find( src_index );
-    if ( it==_target_map.end() ) {
-      std::stringstream msg;
-      msg << "did not find source index=" << src_index << ".";
-      throw std::runtime_error( msg.str() );
-    }
-
-    return it->second;
-  }
-
-  const std::vector<int>& FlowMatchMap::getTruthVector( int src_index ) const {
-
-    auto it = _truth_map.find( src_index );
-    if ( it==_truth_map.end() ) {
-      std::stringstream msg;
-      msg << "did not find source index=" << src_index << ".";
-      throw std::runtime_error( msg.str() );
-    }
-    
-    return it->second;
-  }
   
   // ---------------------------------------------------------
-  // FLOW MATCH MAP CLASS FACTORY
+  // PREP FLOW MATCH MAP CLASS FACTORY
   
   static PrepFlowMatchDataFactory __global_PrepFlowMatchDataFactory__;
   
   // ---------------------------------------------------------
-  // FLOW MATCH MAP CLASS
+  // PREP FLOW MATCH MAP CLASS
+
+  PrepFlowMatchData::PrepFlowMatchData( std::string instance_name )
+    : larcv::ProcessBase(instance_name),
+    _input_adc_producername(""),
+    _input_trueflow_producername(""),
+    _has_mctruth(false),
+    _use_ana_tree(false),
+    _use_soft_truth(false),
+    _positive_example_distance(0),
+    _source_plane(-1),
+    _matchdata_v(nullptr),
+    _ana_tree(nullptr)
+  {}
 
   void PrepFlowMatchData::configure( const larcv::PSet& pset ) {
 
-    _input_adc_producername      = pset.get<std::string>("InputADC",      "wire");
+    // the source plane index
+    _source_plane                = pset.get<int>("SourcePlane");
+
+    // the tree holding the ADC images
+    _input_adc_producername      = pset.get<std::string>("InputADC", "wire");
+
+    // the tree holding larcv::ChStatus
+    _input_chstatus_producername = pset.get<std::string>("InputChStatus", "wire");
+    
+    // the tree holding the true flow images
     _input_trueflow_producername = pset.get<std::string>("InputTrueFlow", "larflow" );
+
+    // [not implemented]: truth score is vector with intermediate scores, not a one-hot vector
     _use_soft_truth              = pset.get<bool>("UseSoftTruthVector",false);
+
+    // has MC truth information
     _has_mctruth                 = pset.get<bool>("HasMCTruth",false);
+
+    // distance witin which labeled as truth
     _positive_example_distance   = pset.get<int>("PositiveExampleDistance",5);
+
+    // only keep two-plane candidate matches where corresponding pixel in other wire has charge or is in dead region
+    _use_3plane_constraint       = pset.get<bool>("Use3PlaneConstraint",true);
+
     useAnaTree(true);
   }
 
@@ -96,6 +90,11 @@ namespace larflow {
     if ( _has_mctruth ) {
       ev_flow = (larcv::EventImage2D*)mgr.get_data(larcv::kProductImage2D,_input_trueflow_producername);
       LARCV_DEBUG() << " len(flow)=" << ev_flow->Image2DArray().size() << std::endl;
+    }
+
+    larcv::EventChStatus* ev_chstatus = nullptr;
+    if ( _use_3plane_constraint ) {
+      ev_chstatus = (larcv::EventChStatus*)mgr.get_data(larcv::kProductChStatus, _input_chstatus_producername );
     }
 
     // make sparse image for the source ADC + 2 x (true flow + matachabilitity)+weights+nchoice,
@@ -208,6 +207,10 @@ namespace larflow {
       FlowMatchMap matchmap;
       auto& sparsesrc = spimg_v[0];
       auto& sptar     = spimg_v[1+i];
+
+      int source_plane = 2;
+      int target_plane = (i==0) ? 0 : 1; // flowdir=0, target is U plane; flowdir=1, target is V plane
+      int other_plane  = (i==0) ? 1 : 0; // flowdir=0, other plane is V;  flowdir=1, other plane is U
       
       // first, we scan the target sparse image, making a map of row to vector of column indices
       std::map< int, std::vector<int> > targetmap;
@@ -234,10 +237,11 @@ namespace larflow {
       
       // now we can make the src pixel to target pixel choices map
       for ( int ipt=0; ipt<sparsesrc.len(); ipt++ ) {
-        
+
+        // source coordinates
         int   col = (int)sparsesrc.getfeature(ipt,1);
         int   row = (int)sparsesrc.getfeature(ipt,0);
-        int   matchable = -1;
+        int   matchable = -1; 
 
         if ( _has_mctruth )
           matchable = (int)sparsesrc.getfeature(ipt,5+i);
@@ -269,10 +273,35 @@ namespace larflow {
             int tarcol = sptar.getfeature( target_index_v[idx], 1 );
 
             if ( tarcol<(int)umin || tarcol>(int)umax ) continue;
+
+            // if we enforce 3-plane consistency, we need to check for charge in the other plane
+            if ( _use_3plane_constraint ) {
+              double y, z;
+              larutil::Geometry::GetME()->IntersectionPoint( col, tarcol, (UChar_t)2, (UChar_t)target_plane, y, z );
+              Double_t pos[3] = { 0, y, z };
+              float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
+              float other_adc  = ev_adc->Image2DArray()[other_plane].pixel( row, (int)other_wire );
+
+              bool indead = false;
+              if ( other_adc<10.0 ) {
+
+                // not using dead channels, other plane is below threshold. skip this combination
+                if ( ev_chstatus==nullptr )
+                  continue;
+
+                // if event chstatus pointer is not null, we check the ch status
+                int chstatus = ev_chstatus->Status( other_plane ).Status( other_wire );
+                if ( chstatus==4 ) {
+                  // good channel, so we ignore this match
+                  continue;
+                }
+              }
+            }
+
+            // moving on, we store this combination
             
             tar_col_v.push_back( tarcol );
             within_bounds_target_v.push_back( target_index_v[idx] );
-
 
 	    if ( _has_mctruth && abs(tarcol-target_col)<=_positive_example_distance ) {
 	      // within positive example distance

@@ -6,7 +6,12 @@ typedef _object PyObject;
 
 #include <Python.h>
 #include "bytesobject.h"
+#include <vector>
 #include "PrepFlowMatchData.hh"
+#include "core/DataFormat/larflow3dhit.h"
+#include "larcv/core/DataFormat/ImageMeta.h"
+#include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 
 namespace larflow {
 
@@ -31,6 +36,26 @@ namespace larflow {
                               int& nsource_pixels_covered,
                               int& num_pairs_filled,
                               bool withtruth );
+
+  // convert to larflow3dhits
+  void make_larflow_hits( PyObject* pair_probs,
+                          PyObject* source_sparseimg, PyObject* target_sparseimg,
+                          PyObject* matchpairs, const int target_plane,
+                          const larcv::ImageMeta& source_meta,
+                          const std::vector<larcv::Image2D>& img_v,
+                          larlite::event_larflow3dhit& hit_v,
+                          const larcv::EventChStatus* ev_chstatus=0 );
+
+  // convert to larflow3dhits
+  void make_larflow_hits_with_deadchs( PyObject* pair_probs,
+                          PyObject* source_sparseimg, PyObject* target_sparseimg,
+                          PyObject* matchpairs, const int target_plane,
+                          const larcv::ImageMeta& source_meta,
+                          const std::vector<larcv::Image2D>& img_v,
+                          const larcv::EventChStatus& ev_status,                                       
+                          larlite::event_larflow3dhit& hit_v );
+
+
   
 }
 

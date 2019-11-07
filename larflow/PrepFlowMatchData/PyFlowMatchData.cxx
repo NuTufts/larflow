@@ -6,6 +6,9 @@
 #include <chrono>       // std::chrono::system_clock
 
 #include "larcv/core/PyUtil/PyUtils.h"
+#include "larcv/core/Base/larcv_logger.h"
+#include "core/LArUtil/LArProperties.h"
+#include "core/LArUtil/Geometry.h"
 
 namespace larflow {
 
@@ -116,4 +119,135 @@ namespace larflow {
     return (PyObject*)array;
     
   }
+
+
+  /**
+   *
+   */
+  void make_larflow_hits( PyObject* pair_probs,
+                          PyObject* source_sparseimg, PyObject* target_sparseimg,
+                          PyObject* matchpairs,
+                          const int target_plane,
+                          const larcv::ImageMeta& source_meta,
+                          const std::vector<larcv::Image2D>& img_v,
+                          larlite::event_larflow3dhit& hit_v,
+                          const larcv::EventChStatus* ev_chstatus ) {
+    larcv::SetPyUtil();
+    
+    const int dtype = NPY_FLOAT;
+    PyArray_Descr *descr = PyArray_DescrFromType(dtype);
+
+    npy_intp pair_dims[2];
+    float **probs_carray;    
+    if ( PyArray_AsCArray( &pair_probs, (void**)&probs_carray, pair_dims, 2, descr )<0 ) {
+      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for pair prob matrix");
+    }
+
+    npy_intp source_dims[2];
+    float **source_carray;    
+    if ( PyArray_AsCArray( &source_sparseimg, (void**)&source_carray, source_dims, 2, descr )<0 ) {
+      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for source sparse-image matrix");
+    }
+
+    npy_intp target_dims[2];
+    float **target_carray;    
+    if ( PyArray_AsCArray( &target_sparseimg, (void**)&target_carray, target_dims, 2, descr )<0 ) {
+      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for target sparse-image matrix");
+    }
+
+    npy_intp match_dims[2];
+    long **matchpairs_carray;
+    if ( PyArray_AsCArray( &matchpairs, (void**)&matchpairs_carray, match_dims, 2, PyArray_DescrFromType(NPY_LONG) )<0 ) {
+      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for match pair matrix");
+    }
+
+    // std::cout << "match matrix:  (" << match_dims[0]  << "," << match_dims[1]  << ")" << std::endl;    
+    // std::cout << "prob matrix:   (" << pair_dims[0]   << "," << pair_dims[1]   << ")" << std::endl;    
+    // std::cout << "source matrix: (" << source_dims[0] << "," << source_dims[1] << ")" << std::endl;
+    // std::cout << "target matrix: (" << target_dims[0] << "," << target_dims[1] << ")" << std::endl;
+
+    const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    int other_plane = ( target_plane==0 ) ? 1 : 0;
+
+    for (int ipair=0; ipair<(int)pair_dims[1]; ipair++) {
+
+      float prob = probs_carray[0][ipair];
+
+      if ( prob<0.5 ) continue;
+      
+      int srcidx = matchpairs_carray[ipair][0];
+      int taridx = matchpairs_carray[ipair][1];
+      int srccol = (int)source_carray[srcidx][1];
+      int srcrow = (int)source_carray[srcidx][0];      
+      int tarcol = (int)target_carray[taridx][1];
+      //int tarrow = (int)target_carray[taridx][0];      
+
+      float tick = source_meta.pos_y( srcrow );
+      float x = (tick-3200.0)*cm_per_tick;
+      double y, z;
+      larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)2, (UChar_t)target_plane, y, z );
+
+      Double_t pos[3] = { 0, y, z };
+      float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
+      float other_adc  = img_v[other_plane].pixel( srcrow, (int)other_wire );
+
+      bool indead = false;
+      if ( other_adc<10.0 ) {
+        if ( ev_chstatus==0 )
+          continue;
+
+        // if event chstatus pointer is not null, we check the ch status
+        int chstatus = ev_chstatus->Status( other_plane ).Status( other_wire );
+        if ( chstatus==4 ) {
+          // good, so we ignore this match
+          continue;
+        }
+        indead = true;
+      }
+      
+      larlite::larflow3dhit lfhit;
+      lfhit.resize(3,0);
+      lfhit.srcwire = int(srccol);
+      if ( target_plane==0 ) {
+        lfhit.flowdir = larlite::larflow3dhit::kY2U;
+        lfhit.targetwire[0] = tarcol;
+        lfhit.targetwire[1] = (int)other_wire;
+      }
+      else {
+        lfhit.flowdir = larlite::larflow3dhit::kY2V;
+        lfhit.targetwire[0] = (int)other_wire;
+        lfhit.targetwire[1] = tarcol;        
+      }
+      lfhit.tick = tick;
+      lfhit.targetwire.resize(2,0);
+      lfhit[0] = x;
+      lfhit[1] = y;
+      lfhit[2] = z;
+
+      // if we are in the dead region, we put the score between 0-0.5
+      lfhit.track_score = (!indead) ? prob : 0.5*prob;      
+
+      hit_v.emplace_back( std::move(lfhit) );
+    }
+
+  }
+
+  void make_larflow_hits_with_deadchs( PyObject* pair_probs,
+                                       PyObject* source_sparseimg, PyObject* target_sparseimg,
+                                       PyObject* matchpairs,
+                                       const int target_plane,
+                                       const larcv::ImageMeta& source_meta,
+                                       const std::vector<larcv::Image2D>& img_v,
+                                       const larcv::EventChStatus& ev_chstatus,
+                                       larlite::event_larflow3dhit& hit_v ) {
+    
+    make_larflow_hits( pair_probs,
+                       source_sparseimg, target_sparseimg,
+                       matchpairs,
+                       target_plane,
+                       source_meta,
+                       img_v, hit_v, &ev_chstatus );
+    
+  }
+  
 }
