@@ -28,6 +28,8 @@ namespace larflow {
     _use_ana_tree(false),
     _use_soft_truth(false),
     _positive_example_distance(0),
+    _use_3plane_constraint(true),
+    _debug_detailed_output(false),
     _source_plane(-1),
     _matchdata_v(nullptr),
     _ana_tree(nullptr)
@@ -58,6 +60,8 @@ namespace larflow {
 
     // only keep two-plane candidate matches where corresponding pixel in other wire has charge or is in dead region
     _use_3plane_constraint       = pset.get<bool>("Use3PlaneConstraint",true);
+
+    _debug_detailed_output       = pset.get<bool>("DetailedDebugOutput",false);
 
     useAnaTree(true);
   }
@@ -101,9 +105,10 @@ namespace larflow {
     //  + 2 x sparse target images
 
     // goes into function eventually
-    int srcindex        = 2;     // Y
-    int target_index[2] = {0,1}; // Y->U, Y->V
-    int flow_index[2]   = {4,5}; // Y->U, Y->V
+    int srcindex        = _source_plane;
+    int target_index[2] = { _target_planes[_flowdirs[0]],
+                            _target_planes[_flowdirs[1]] };
+    int flow_index[2]   = { (int)_flowdirs[0], (int)_flowdirs[1] }; // Y->U, Y->V
 
     auto const& srcimg = ev_adc->Image2DArray().at(srcindex);
     const larcv::Image2D* tarimg[2] = { &ev_adc->Image2DArray().at(target_index[0]),
@@ -125,9 +130,9 @@ namespace larflow {
         // we check matchability of flow.  does flow go into a dead region?
         for ( size_t c=0; c<srcimg.meta().cols(); c++ ) {
           for ( size_t r=0; r<srcimg.meta().rows(); r++ ) {
-            float adc = srcimg.pixel(r,c);
+            float adc = srcimg.pixel(r,c,__FILE__,__LINE__);
             if ( adc<10.0 ) continue;
-            float flow = flowimg.pixel(r,c);
+            float flow = flowimg.pixel(r,c,__FILE__,__LINE__);
             
             if ( flow<=-4000) continue;
             
@@ -136,7 +141,7 @@ namespace larflow {
             int hastarget = 1;
             if ( target_col<0 || target_col>=(int)tar.meta().cols() )
               hastarget = 0;
-            else if ( tar.pixel( r, target_col )<10.0 )
+            else if ( tar.pixel( r, target_col,__FILE__,__LINE__ )<10.0 )
               hastarget = 0;
             
             if ( hastarget==1 )
@@ -208,9 +213,13 @@ namespace larflow {
       auto& sparsesrc = spimg_v[0];
       auto& sptar     = spimg_v[1+i];
 
-      int source_plane = 2;
-      int target_plane = (i==0) ? 0 : 1; // flowdir=0, target is U plane; flowdir=1, target is V plane
-      int other_plane  = (i==0) ? 1 : 0; // flowdir=0, other plane is V;  flowdir=1, other plane is U
+      int source_plane = _source_plane;
+      int target_plane = target_index[i];
+      int other_plane  = _other_planes[ _flowdirs[i] ];
+      LARCV_DEBUG() << "source plane=" << source_plane
+                    << " target plane=" << target_plane
+                    << " other plane=" << other_plane
+                    << std::endl;
       
       // first, we scan the target sparse image, making a map of row to vector of column indices
       std::map< int, std::vector<int> > targetmap;
@@ -277,10 +286,12 @@ namespace larflow {
             // if we enforce 3-plane consistency, we need to check for charge in the other plane
             if ( _use_3plane_constraint ) {
               double y, z;
-              larutil::Geometry::GetME()->IntersectionPoint( col, tarcol, (UChar_t)2, (UChar_t)target_plane, y, z );
+              larutil::Geometry::GetME()->IntersectionPoint( col, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
               Double_t pos[3] = { 0, y, z };
               float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
-              float other_adc  = ev_adc->Image2DArray()[other_plane].pixel( row, (int)other_wire );
+              if ( other_wire<0 || (int)other_wire>=(int)larutil::Geometry::GetME()->Nwires(other_plane) )
+                continue;
+              float other_adc  = ev_adc->Image2DArray()[other_plane].pixel( row, (int)other_wire,__FILE__,__LINE__ );
 
               bool indead = false;
               if ( other_adc<10.0 ) {
@@ -338,21 +349,23 @@ namespace larflow {
             for ( auto const& tarcol : tar_col_v ) sstarcol << tarcol << " ";
             sstarcol << "}";
           }
-          
-          // LARCV_DEBUG() << "srcpixel[" << ipt << ", (" << row << "," << col << ")] "
-          //               << " flow (" << flow << ") to targetcol=" << target_col
-          //               << " matchable=" << matchable
-          //               << " bounds=[" << umin << "," << umax << "]"
-          //               << std::endl;
-          // LARCV_DEBUG() << "  has " << target_index_v.size() << " potential matches " << sstarcol.str()
-          //               << "  and " << nmatches << " correct match" << std::endl;
+
+          if ( _debug_detailed_output ) {
+            LARCV_DEBUG() << "srcpixel[" << ipt << ", (" << row << "," << col << ")] "
+                          << " flow (" << flow << ") to targetcol=" << target_col
+                          << " matchable=" << matchable
+                          << " bounds=[" << umin << "," << umax << "]"
+                          << std::endl;
+            LARCV_DEBUG() << "  has " << target_index_v.size() << " potential matches " << sstarcol.str()
+                          << "  and " << nmatches << " correct match" << std::endl;
+          }
           matchmap.add_matchdata( ipt, within_bounds_target_v, truth_v );
         }
         else {
           matchmap.add_matchdata( ipt, std::vector<int>(), std::vector<int>() );
         }
       }//loop over points
-
+      
       _matchdata_v->emplace_back( std::move(matchmap) );
       LARCV_INFO() << "matched map flowdir=" << i << ": matchable hasmatch=" << npix_w_matches << " hasnomatch=" << npix_wo_matches << std::endl;
       LARCV_INFO() << "number of true matches:  flow[0]=" << _ntrue_pairs[0]  << "  flow[1]=" << _ntrue_pairs[1]  << std::endl;
@@ -361,9 +374,11 @@ namespace larflow {
     }//end of loop over flow directions
 
     LARCV_DEBUG() << "pass sparse images to iomanager" << std::endl;
-    larcv::EventSparseImage* ev_out = (larcv::EventSparseImage*)mgr.get_data(larcv::kProductSparseImage, "larflow" );
+    std::stringstream sparseout_name;
+    sparseout_name << "larflow_plane" << _source_plane;
+    larcv::EventSparseImage* ev_out = (larcv::EventSparseImage*)mgr.get_data(larcv::kProductSparseImage, sparseout_name.str() );
     ev_out->Emplace( std::move( spimg_v ) );
-
+    
     if ( _use_ana_tree ) {
       LARCV_DEBUG() << "save flow match maps to ana tree" << std::endl;    
       _ana_tree->Fill();
@@ -388,29 +403,69 @@ namespace larflow {
 
     if ( !_use_ana_tree )
       return;
+
+
+    char treename[50];
+    sprintf(treename,"flowmatchdata_plane%d",_source_plane);
     
-    _ana_tree = new TTree("flowmatchdata","Provides map from source to target pixels to match");
+    _ana_tree = new TTree(treename,"Provides map from source to target pixels to match");
     _ana_tree->Branch( "matchmap",    _matchdata_v );
     _ana_tree->Branch( "nfalsepairs", _nfalse_pairs, "nfalsepairs[2]/I" );
     _ana_tree->Branch( "ntruepairs",  _ntrue_pairs,  "ntruepairs[2]/I" );
     
   }
 
+  /**
+   * internal: define ranges of wires on the target planes that overlap with the source plane.
+   *
+   * called by initialize. also setups key variables.
+   *
+   */
   void PrepFlowMatchData::_extract_wire_overlap_bounds() {
 
     const larutil::Geometry* geo = larutil::Geometry::GetME();
+
+    // set the flow directions we will evaluate
+
+    std::string src_plane_name;    
+    switch ( _source_plane ) {
+    case 2:
+      _flowdirs[0] = kY2U;
+      _flowdirs[1] = kY2V;
+      src_plane_name = "Y";
+      break;
+    case 0:
+      _flowdirs[0] = kU2V;
+      _flowdirs[1] = kU2Y;
+      src_plane_name = "U";      
+      break;
+    case 1:
+      _flowdirs[0] = kV2U;
+      _flowdirs[1] = kV2Y;
+      src_plane_name = "V";
+      break;
+    default:
+      throw std::runtime_error("PrepFlowMatchData::_extract_wire_overlap_bounds: bad source plane");
+      break;
+    }
     
     for (int i=0; i<2; i++ ) {
-      LARCV_DEBUG() << "defined overlapping wire bounds for Y->plane[" << i << "]" << std::endl;
+      
+      int target_plane = _target_planes[_flowdirs[i]];
+      
+      LARCV_DEBUG() << "defined overlapping wire bounds for " << src_plane_name << "[" << _source_plane << "]"
+                    << "->plane[" << target_plane << "]" << std::endl;
+      
       _wire_bounds[i].clear();
 
-      for (int isrc=0; isrc<(int)geo->Nwires(2); isrc++ ) {
+
+      for (int isrc=0; isrc<(int)geo->Nwires(_source_plane); isrc++ ) {
         Double_t xyzstart[3];
         Double_t xyzend[3];
-        geo->WireEndPoints( (UChar_t)2, (UInt_t)isrc, xyzstart, xyzend );
+        geo->WireEndPoints( (UChar_t)_source_plane, (UInt_t)isrc, xyzstart, xyzend );
 
-        float u1 = geo->WireCoordinate( xyzstart, (UInt_t)i );
-        float u2 = geo->WireCoordinate( xyzend,   (UInt_t)i );
+        float u1 = geo->WireCoordinate( xyzstart, (UInt_t)target_plane );
+        float u2 = geo->WireCoordinate( xyzend,   (UInt_t)target_plane );
 
         float umin = (u1<u2) ? u1 : u2;
         float umax = (u1>u2) ? u1 : u2;
@@ -431,5 +486,5 @@ namespace larflow {
     LARCV_DEBUG() << "defined overlapping wire bounds" << std::endl;
     //std::cin.get();
   }
-
+  
 }

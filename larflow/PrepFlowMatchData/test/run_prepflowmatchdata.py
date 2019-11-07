@@ -33,8 +33,8 @@ driver.override_output_file( args.out_larcv )
 
 # get processor, add larlite files
 processors = driver.process_map()
-it_process = processors.find("PrepFlowMatchData")
-prepmatchdata = driver.process_ptr(it_process.second)
+#it_process = processors.find("PrepFlowMatchData")
+#prepmatchdata = driver.process_ptr(it_process.second)
 
 driver.initialize()
 
@@ -42,7 +42,7 @@ nentries = driver.io().get_n_entries()
 
 for ientry in xrange(0,nentries):
     driver.process_entry(ientry)
-    #break
+    break
 
 driver.finalize()
 

@@ -6,8 +6,20 @@ namespace larflow {
 
   // ---------------------------------------------------------
   // FLOW MATCH MAP CLASS
+
+  FlowMatchMap::FlowMatchMap()
+    : _source_plane(-1),
+      _target_plane(-1)
+  {
+  }
   
-  void FlowMatchMap::add_matchdata( int src_index,
+  FlowMatchMap::FlowMatchMap( int source_plane_index, int target_plane_index )
+    : _source_plane(source_plane_index),
+      _target_plane(target_plane_index)
+  {
+  }
+  
+  void FlowMatchMap::add_matchdata( int src_pixel_index,
                                     const std::vector<int>& target_indices,
                                     const std::vector<int>& truth_v ) {
 
@@ -15,8 +27,8 @@ namespace larflow {
       throw std::runtime_error( "truth and target index vectors not the same size" );
     }
     
-    _target_map[src_index] = target_indices;
-    _truth_map[src_index]  = truth_v;
+    _target_map[src_pixel_index] = target_indices;
+    _truth_map[src_pixel_index]  = truth_v;
     
   }
 

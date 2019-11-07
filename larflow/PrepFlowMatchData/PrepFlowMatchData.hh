@@ -24,6 +24,8 @@ namespace larflow {
 
   public:
 
+    typedef enum { kU2V=0, kU2Y, kV2U, kV2Y, kY2U, kY2V } FlowDir_t;
+    
     PrepFlowMatchData( std::string instance_name );
     virtual ~PrepFlowMatchData() {
       // if ( _ana_tree ) delete _ana_tree;
@@ -55,6 +57,7 @@ namespace larflow {
     int         _positive_example_distance;
     int         _source_plane;
     bool        _use_3plane_constraint;
+    bool        _debug_detailed_output;
     
     TTree* _ana_tree;
     std::vector< FlowMatchMap >* _matchdata_v;
@@ -66,6 +69,12 @@ namespace larflow {
     void _extract_wire_overlap_bounds();
 
     int target_plane[2];
+    FlowDir_t _flowdirs[2];
+
+    // each entry corresponds to FlowDir_t index
+    const int _source_planes[6] = { 0, 0, 1, 1, 2, 2 };
+    const int _target_planes[6] = { 1, 2, 0, 2, 0, 1 };
+    const int _other_planes[6]  = { 2, 1, 2, 0, 1, 0 };
     
   };
 
