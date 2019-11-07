@@ -37,7 +37,8 @@ ADC_PRODUCER="wire"
 CHSTATUS_PRODUCER="wire"
 DEVICE=torch.device("cpu")
 
-preplarmatch = larflow.PrepFlowMatchData("deploy")
+preplarmatch = larflow.PrepFlowMatchData("deployY")
+preplarmatch.setSourcePlaneIndex(2)
 preplarmatch.setADCproducer(ADC_PRODUCER);
 preplarmatch.setChStatusProducer(CHSTATUS_PRODUCER);
 preplarmatch.initialize()
@@ -85,7 +86,7 @@ for ientry in range(NENTRIES):
 
     preplarmatch.process( io )
     flowdata_v  =  preplarmatch.getMatchData()
-    sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow")
+    sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow_plane2")
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
     srcmeta     = adc_v.at(2).meta()
     ev_badch    = io.get_data(larcv.kProductChStatus,"wire")
@@ -162,62 +163,6 @@ for ientry in range(NENTRIES):
                                                 evout_lfhits_y2v )
 
         print("  lfhits(y->u)=",evout_lfhits_y2u.size()," lfhits(y->v)=",evout_lfhits_y2v.size())
-
-        # make 3d points from flow [Y->U]
-        # for ipair in xrange(pred1_t.shape[2]):
-        #     p = prob1[0,0,ipair].item()
-        #     if p<0.5:
-        #         continue
-        
-        #     srcindex = matchpair1_t[ipair,0]
-        #     tarindex = matchpair1_t[ipair,1]
-        #     src_col = source_np[srcindex,1]
-        #     tar_col = target1_np[tarindex,1]
-        #     src_row = source_np[srcindex,0]
-        #     src_tick = srcmeta.pos_y( int(src_row) )
-        #     x = (src_tick-3200.0)*0.5*driftv
-        #     #print( (src_col,tar_col),": prob=",p)
-        #     larutil.Geometry.GetME().IntersectionPoint( int(src_col), int(tar_col), 2, 0, y, z )
-        #     lfhit = larlite.larflow3dhit()
-        #     lfhit.resize(3,0)
-        #     lfhit.srcwire = int(src_col)
-        #     lfhit.flowdir = larlite.larflow3dhit.kY2U
-        #     lfhit.tick = int(src_tick)
-        #     lfhit.track_score = p
-        #     lfhit.targetwire.resize(2,0)
-        #     lfhit.targetwire[0] = tar_col
-        #     lfhit[0] = x
-        #     lfhit[1] = y.value
-        #     lfhit[2] = z.value
-        #     evout_lfhits_y2u.push_back( lfhit )
-
-        # # make 3d points from flow [Y->V]
-        # for ipair in xrange(pred2_t.shape[2]):
-        #     p = prob2[0,0,ipair].item()
-        #     if p<0.5:
-        #         continue
-        
-        #     srcindex = matchpair2_t[ipair,0]
-        #     tarindex = matchpair2_t[ipair,1]
-        #     src_col = source_np[srcindex,1]
-        #     tar_col = target2_np[tarindex,1]
-        #     src_row = source_np[srcindex,0]
-        #     src_tick = srcmeta.pos_y( int(src_row) )            
-        #     x = (src_tick-3200.0)*0.5*driftv
-        #     #print( (src_col,tar_col),": prob=",p)
-        #     larutil.Geometry.GetME().IntersectionPoint( int(src_col), int(tar_col), 2, 1, y, z )
-        #     lfhit = larlite.larflow3dhit()
-        #     lfhit.resize(3,0)
-        #     lfhit.srcwire = int(src_col)
-        #     lfhit.flowdir = larlite.larflow3dhit.kY2V
-        #     lfhit.tick = int(src_tick)
-        #     lfhit.track_score = p
-        #     lfhit.targetwire.resize(2,0)
-        #     lfhit.targetwire[1] = tar_col
-        #     lfhit[0] = x
-        #     lfhit[1] = y.value
-        #     lfhit[2] = z.value
-        #     evout_lfhits_y2v.push_back( lfhit )
 
         dt_save += time.time()-tstart
             

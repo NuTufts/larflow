@@ -209,7 +209,7 @@ namespace larflow {
 
       LARCV_DEBUG() << "make match map: flowdir=" << i << std::endl;
       
-      FlowMatchMap matchmap;
+
       auto& sparsesrc = spimg_v[0];
       auto& sptar     = spimg_v[1+i];
 
@@ -220,6 +220,8 @@ namespace larflow {
                     << " target plane=" << target_plane
                     << " other plane=" << other_plane
                     << std::endl;
+
+      FlowMatchMap matchmap( source_plane, target_plane );      
       
       // first, we scan the target sparse image, making a map of row to vector of column indices
       std::map< int, std::vector<int> > targetmap;
