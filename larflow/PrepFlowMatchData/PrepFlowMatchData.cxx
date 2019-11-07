@@ -334,8 +334,9 @@ namespace larflow {
           }
           
           if ( matchable==1 ) {
-            if ( _has_mctruth && nmatches!=1 )
-              LARCV_CRITICAL() << "did not find matchable column" << std::endl;
+            if ( _has_mctruth && nmatches!=1 ) {
+              //LARCV_CRITICAL() << "did not find matchable column" << std::endl;
+            }
 
             if ( nmatches==1 )
               npix_w_matches++;
@@ -368,10 +369,12 @@ namespace larflow {
       
       _matchdata_v->emplace_back( std::move(matchmap) );
       LARCV_INFO() << "matched map flowdir=" << i << ": matchable hasmatch=" << npix_w_matches << " hasnomatch=" << npix_wo_matches << std::endl;
-      LARCV_INFO() << "number of true matches:  flow[0]=" << _ntrue_pairs[0]  << "  flow[1]=" << _ntrue_pairs[1]  << std::endl;
-      LARCV_INFO() << "number of false matches: flow[0]=" << _nfalse_pairs[0] << "  flow[1]=" << _nfalse_pairs[1] << std::endl;
       
     }//end of loop over flow directions
+    
+    LARCV_INFO() << "number of true matches:  flow[0]=" << _ntrue_pairs[0]  << "  flow[1]=" << _ntrue_pairs[1]  << std::endl;
+    LARCV_INFO() << "number of false matches: flow[0]=" << _nfalse_pairs[0] << "  flow[1]=" << _nfalse_pairs[1] << std::endl;
+
 
     LARCV_DEBUG() << "pass sparse images to iomanager" << std::endl;
     std::stringstream sparseout_name;
@@ -448,7 +451,8 @@ namespace larflow {
       throw std::runtime_error("PrepFlowMatchData::_extract_wire_overlap_bounds: bad source plane");
       break;
     }
-    
+
+    // loop over flow directions
     for (int i=0; i<2; i++ ) {
       
       int target_plane = _target_planes[_flowdirs[i]];
@@ -476,8 +480,8 @@ namespace larflow {
         if ( umin<0 ) umin = 0;
         if ( umax<0 ) umax = 0;
 
-        if ( (int)umin>=geo->Nwires(i) ) umin = (float)geo->Nwires(i)-1;
-        if ( (int)umax>=geo->Nwires(i) ) umax = (float)geo->Nwires(i)-1;
+        if ( (int)umin>=geo->Nwires(target_plane) ) umin = (float)geo->Nwires(target_plane)-1;
+        if ( (int)umax>=geo->Nwires(target_plane) ) umax = (float)geo->Nwires(target_plane)-1;
 
         _wire_bounds[i][isrc] = std::vector<int>{ (int)umin, (int)umax };
         //LARCV_DEBUG() << " src[" << isrc << "] -> plane[" << i << "]: (" << umin << "," << umax << ")" << std::endl;
