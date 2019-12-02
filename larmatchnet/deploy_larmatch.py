@@ -40,6 +40,7 @@ CHSTATUS_PRODUCER="wire"
 DEVICE=torch.device("cpu")
 RETURN_TRUTH=False
 BATCHSIZE = 1
+SOURCE_PLANE_LIST = ["Y"]
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
@@ -48,7 +49,7 @@ driver_pset = main_pset.get_pset("ProcessDriver")
 proclist_pset = driver_pset.get_pset("ProcessList")
 
 preplarmatch = {}
-for source_plane in ["Y","U","V"]:
+for source_plane in SOURCE_PLANE_LIST:
     prepcfg = proclist_pset.get_pset("PrepFlowMatch%s"%(source_plane))
     print(prepcfg.dump())
     preplarmatch[source_plane] = larflow.PrepFlowMatchData("deploy%s"%(source_plane))
@@ -114,7 +115,7 @@ for ientry in range(NENTRIES):
 
     # run the larflow match prep classes
     t_prep = time.time()
-    for source_plane in ["Y","U","V"]:
+    for source_plane in SOURCE_PLANE_LIST:
         # parse the image and produce candidate pixel matches
         print(" made match pairs for source plane=",source_plane)
         preplarmatch[source_plane].process( io )
@@ -146,6 +147,7 @@ for ientry in range(NENTRIES):
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate
     t_start = time.time()
+    print("computing features")
     outfeat_y, outfeat_u, outfeat_v = model.forward_features( coord_t["Y"], feat_t["Y"],
                                                               coord_t["U"], feat_t["U"],
                                                               coord_t["V"], feat_t["V"], 1 )
