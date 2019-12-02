@@ -50,6 +50,19 @@ namespace larflow {
     return _make_pair_array( matchdata, idx_v, 0, max_num_pairs, last_source_pixel_index, num_pairs_filled, with_truth );
   }
 
+  /**
+   * return (N,2 or 3) numpy array where each entry is pair of source and target indices of sparse-matrices
+   *
+   * This function is expected to be called by the above functions.
+   *
+   * matchdata[in]   Match data class made using larflow::PrepFlowMatchData.
+   * idx_v[in]       Index of pair to grab.
+   * start_idx[in]   Index of idx_v to start at.
+   * max_num_pairs[in] Maximum number of pairs to return.
+   * nsource_pixels_covered[out] the number of source pixels we've used in this array.
+   * num_pairs_filled[out]       the number of pairs we've returned
+   * withtruth[in]   if True, a third value is given for each pair, indiciating if pair is a true/good pair
+   **/
   PyObject* _make_pair_array( const FlowMatchMap& matchdata,
                               const std::vector<size_t>& idx_v,
                               const int start_idx,
