@@ -59,7 +59,7 @@ class LArMatch(nn.Module):
                  DEVICE, return_truth=False,
                  npts1=None, npts2=None ):
         """
-        run the network
+        run the network: used in training
 
         inputs
         ------
@@ -120,7 +120,7 @@ class LArMatch(nn.Module):
                 nbatch_tar1 = coord_tar1_t.shape[0]
                 nbatch_tar2 = coord_tar2_t.shape[0]
             
-            bend_src = bstart_src + nbatch_src
+            bend_src  = bstart_src  + nbatch_src
             bend_tar1 = bstart_tar1 + nbatch_tar1
             bend_tar2 = bstart_tar2 + nbatch_tar2
 
@@ -146,6 +146,104 @@ class LArMatch(nn.Module):
             return pred1,pred2
         else:
             return pred1,pred2,truthvec1,truthvec2
+
+    def forward_features( self, coord_src_t, src_feat_t,
+                          coord_tar1_t, tar1_feat_t,
+                          coord_tar2_t, tar2_feat_t,
+                          batchsize ):
+
+        """
+        run the feature generating portion of network only. get feature vector at each coordinate.
+        For deploy only. By saving feature layers, can reduce time run.
+        """
+        srcx = ( coord_src_t,  src_feat_t,  batchsize )
+        tar1 = ( coord_tar1_t, tar1_feat_t, batchsize )
+        tar2 = ( coord_tar2_t, tar2_feat_t, batchsize )
+
+        xsrc = self.source_inputlayer(srcx)
+        xsrc = self.stem( xsrc )
+        xsrc = self.resnet_layers( xsrc )
+        xsrc = self.feature_layer( xsrc )
+
+        xtar1 = self.target1_inputlayer(tar1)
+        xtar1 = self.stem( xtar1 )
+        xtar1 = self.resnet_layers( xtar1 )
+        xtar1 = self.feature_layer( xtar1 )
+
+        xtar2 = self.target1_inputlayer(tar2)
+        xtar2 = self.stem( xtar2 )
+        xtar2 = self.resnet_layers( xtar2 )
+        xtar2 = self.feature_layer( xtar2 )
+
+        xsrc  = self.source_outlayer(  xsrc )
+        xtar1 = self.target1_outlayer( xtar1 )
+        xtar2 = self.target2_outlayer( xtar2 )
+        return xsrc,xtar1,xtar2
+        
+    def forward_oneflow( self, coord_src_t, src_feat_t,
+                         coord_tar_t, tar_feat_t,
+                         pair_flow_v, batchsize,
+                         DEVICE, return_truth=False,
+                         npts=None):
+        """
+        run the network. evaluate only one flow: use only in DEPLOY!
+        """
+        
+        srcx = ( coord_src_t, src_feat_t, batchsize )
+        tar1 = ( coord_tar_t, tar_feat_t, batchsize )
+
+        xsrc = self.source_inputlayer(srcx)
+        xsrc = self.stem( xsrc )
+        xsrc = self.resnet_layers( xsrc )
+        xsrc = self.feature_layer( xsrc )
+
+        xtar1 = self.target1_inputlayer(tar1)
+        xtar1 = self.stem( xtar1 )
+        xtar1 = self.resnet_layers( xtar1 )
+        xtar1 = self.feature_layer( xtar1 )
+
+        xsrc  = self.source_outlayer(  xsrc )
+        xtar1 = self.target1_outlayer( xtar1 )
+        #print "source feature tensor: ",xsrc.shape,xsrc.grad_fn
+
+        if npts is None:
+            npts = self.neval
+        
+        bstart_src  = 0
+        bstart_tar1 = 0
+        if return_truth:
+            truthvec1 = torch.zeros( (1,1,npts), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+        
+        for b in range(batchsize):
+            if batchsize>1:
+                nbatch_src  = coord_src_t[:,2].eq(b).sum()
+                nbatch_tar1 = coord_tar_t[:,2].eq(b).sum()
+            else:
+                nbatch_src  = coord_src_t.shape[0]
+                nbatch_tar1 = coord_tar_t.shape[0]
+            
+            bend_src = bstart_src   + nbatch_src
+            bend_tar1 = bstart_tar1 + nbatch_tar1
+
+            pred1,t1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
+                                             xsrc[bstart_src:bend_src,:],
+                                             xtar1[bstart_tar1:bend_tar1,:],
+                                             pair_flow_v[b], DEVICE, return_truth,
+                                             npts )
+
+            if return_truth:
+                truthvec1[0,0,b*self.neval:b*self.neval+npts] = t1
+
+            bstart_src = bend_src
+            bstart_tar1 = bend_tar1
+            
+        #print "return results"
+        if not return_truth:
+            return pred1
+        else:
+            return pred1,truthvec1
+        
+
                         
     def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchidx,DEVICE,return_truth,npts):
 
@@ -160,7 +258,7 @@ class LArMatch(nn.Module):
         nsamples = c_int()
         nsamples.value = self.neval
         nfilled = c_int()
-        print "matchidx: ",matchidx.shape,matchidx.dtype            
+        #print "matchidx: ",matchidx.shape,matchidx.dtype            
         #print "make pairs of feature vectors to evaluate"
         
         # gather feature vector pairs

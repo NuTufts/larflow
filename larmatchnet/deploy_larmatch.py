@@ -38,6 +38,8 @@ NUM_PAIRS=20000
 ADC_PRODUCER="wire"
 CHSTATUS_PRODUCER="wire"
 DEVICE=torch.device("cpu")
+RETURN_TRUTH=False
+BATCHSIZE = 1
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
@@ -90,8 +92,10 @@ NENTRIES = io.get_n_entries()
 if args.num_events>0 and args.num_events<NENTRIES:
     NENTRIES = args.num_events
 
-dt_net  = 0.
-dt_save = 0.
+dt_prep  = 0.
+dt_chunk = 0.
+dt_net   = 0.
+dt_save  = 0.
 
 for ientry in range(NENTRIES):
 
@@ -105,94 +109,163 @@ for ientry in range(NENTRIES):
     print("==========================================")
     print("Entry {}".format(ientry))
 
-    for source_plane in ["Y"]:
-        preplarmatch[source_plane].process( io )
-    flowdata_v  =  preplarmatch[source_plane].getMatchData()
-    sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow_plane2")
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
-    srcmeta     = adc_v.at(2).meta()
-    ev_badch    = io.get_data(larcv.kProductChStatus,"wire")
+    ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
 
+    # run the larflow match prep classes
+    t_prep = time.time()
+    for source_plane in ["Y","U","V"]:
+        # parse the image and produce candidate pixel matches
+        print(" made match pairs for source plane=",source_plane)
+        preplarmatch[source_plane].process( io )
+    t_prep = time.time()-t_prep
+    print("  time to prep matches: ",t_prep,"secs")
+    dt_prep += t_prep
+    
+    # we get the sparse images for each plane
+    # we get sparse info from output of prepflowmatch class
+    source_plane = "Y"
+    plane_index  = 2
+
+    # get the sparse ADC images produced by the preplarmatch class above
+    sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow_plane%d"%(plane_index))
+    
+    # Prep sparse ADC numpy arrays
     nsparsepts = sparseimg_v.at(0).len()
-    source_np  = larcv.as_sparseimg_ndarray( sparseimg_v.at(0) )
-    target1_np = larcv.as_sparseimg_ndarray( sparseimg_v.at(1) )
-    target2_np = larcv.as_sparseimg_ndarray( sparseimg_v.at(2) )
+    sparse_adc_np = { "Y":larcv.as_sparseimg_ndarray( sparseimg_v.at(0) ),
+                      "U":larcv.as_sparseimg_ndarray( sparseimg_v.at(1) ),
+                      "V":larcv.as_sparseimg_ndarray( sparseimg_v.at(2) ) }
+    coord_t = {"Y":torch.from_numpy( sparse_adc_np["Y"][:,0:2].astype(np.long) ),
+               "U":torch.from_numpy( sparse_adc_np["U"][:,0:2].astype(np.long) ),
+               "V":torch.from_numpy( sparse_adc_np["V"][:,0:2].astype(np.long) )}
+    feat_t  = {"Y":torch.from_numpy( sparse_adc_np["Y"][:,2].reshape(  (coord_t["Y"].shape[0], 1) ) ),
+               "U":torch.from_numpy( sparse_adc_np["U"][:,2].reshape(  (coord_t["U"].shape[0], 1) ) ),
+               "V":torch.from_numpy( sparse_adc_np["V"][:,2].reshape(  (coord_t["V"].shape[0], 1) ) )}
+
+
+    # we can run the whole sparse images through the network
+    #  to get the individual feature vectors at each coodinate
+    t_start = time.time()
+    outfeat_y, outfeat_u, outfeat_v = model.forward_features( coord_t["Y"], feat_t["Y"],
+                                                              coord_t["U"], feat_t["U"],
+                                                              coord_t["V"], feat_t["V"], 1 )
+    outfeat_t = {"Y":outfeat_y,
+                 "U":outfeat_u,
+                 "V":outfeat_v}
     
-    coord_src_t  = torch.from_numpy( source_np[:,0:2].astype(np.long) )
-    coord_tar1_t = torch.from_numpy( target1_np[:,0:2].astype(np.long) )
-    coord_tar2_t = torch.from_numpy( target2_np[:,0:2].astype(np.long) )
-    feat_src_t   = torch.from_numpy( source_np[:,2].reshape(  (coord_src_t.shape[0], 1) ) )
-    feat_tar1_t  = torch.from_numpy( target1_np[:,2].reshape( (coord_tar1_t.shape[0],1) ) )
-    feat_tar2_t  = torch.from_numpy( target2_np[:,2].reshape( (coord_tar2_t.shape[0],1) ) )
+    dt_net_feats = time.time()-t_start
+    print("compute features: ",dt_net_feats,"secs")
+    dt_net += dt_net_feats
+
+    for (source_plane,tar1_plane,tar2_plane,src_idx,tar1_idx,tar2_idx) in [ ("Y","U","V",2,0,1) ]:
+        # match data for this source plane
+        flowdata_v  =  preplarmatch[source_plane].getMatchData()
+        # get the image meta of the source image
+        srcmeta     = adc_v.at(src_idx).meta()
+
+        # get the sparse ADC images produced by this source plane's preplarmatch class
+        sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow_plane%d"%(src_idx))
     
-    print("number of flowmaps: {}".format(flowdata_v.size()))
-    print("num sparse indices=",nsparsepts)
-
-    sparse_index1 = 0
-    sparse_index2 = 0
-
-    y = c_double()
-    z = c_double()
-
-    while sparse_index1<nsparsepts and sparse_index2<nsparsepts:
-
-        npairs1       = c_int()
-        npairs2       = c_int()
-        npairs1.value = 0
-        npairs2.value = 0
+        # Get source and target planes
+        nsparsepts = sparseimg_v.at(0).len()
+        source_np  = sparse_adc_np[source_plane]
+        target1_np = sparse_adc_np[tar1_plane]
+        target2_np = sparse_adc_np[tar2_plane]
+    
+        coord_src_t  = coord_t[source_plane]
+        coord_tar1_t = coord_t[tar1_plane]
+        coord_tar2_t = coord_t[tar2_plane]
+        feat_src_t   = feat_t[source_plane]
+        feat_tar1_t  = feat_t[tar1_plane]
+        feat_tar2_t  = feat_t[tar2_plane]
         
-        num_sparse_index1 = c_int()
-        num_sparse_index2 = c_int()
-        num_sparse_index1.value = 0
-        num_sparse_index2.value = 0
-    
-        matchpair1 = larflow.get_chunk_pair_array( sparse_index1, NUM_PAIRS, flowdata_v.at(0), num_sparse_index1, npairs1 )
-        matchpair2 = larflow.get_chunk_pair_array( sparse_index2, NUM_PAIRS, flowdata_v.at(1), num_sparse_index2, npairs2 )
-    
-        print("max(matchpair1)=",np.max(matchpair1))
-        print("sparse_index1=",sparse_index1," npairs1_filled=",npairs1.value)
-        print("sparse_index2=",sparse_index2," npairs2_filled=",npairs2.value)
-        matchpair1_t = torch.from_numpy( matchpair1 )
-        matchpair2_t = torch.from_numpy( matchpair2 )
+        print("number of flowmaps: {}".format(flowdata_v.size()))
+        print("num sparse indices=",nsparsepts)
 
-        tstart = time.time()
-        
-        pred1_t, pred2_t = model( coord_src_t,  feat_src_t,
-                                  coord_tar1_t, feat_tar1_t,
-                                  coord_tar2_t, feat_tar2_t,
-                                  [matchpair1_t], [matchpair2_t], 1,
-                                  torch.device("cpu"), npts1=npairs1.value, npts2=npairs2.value )
-
-        print("pred1_t=",pred1_t.shape," pred2_t=",pred2_t.shape)
-        prob1 = sigmoid(pred1_t)
-        prob2 = sigmoid(pred2_t)
-
-        dt_net  += time.time()-tstart
-
-
-        tstart = time.time()
-        
-        print("call make_larflow_hits(...)")
-        larflow.make_larflow_hits_with_deadchs( prob1.detach().numpy().reshape( (1,pred1_t.shape[-1]) ),
-                                                source_np, target1_np,
-                                                matchpair1, 0,
-                                                srcmeta, adc_v, ev_badch,
-                                                evout_lfhits_y2u )
-        larflow.make_larflow_hits_with_deadchs( prob2.detach().numpy().reshape( (1,pred2_t.shape[-1]) ),
-                                                source_np, target2_np,
-                                                matchpair2, 1,
-                                                srcmeta, adc_v, ev_badch, 
-                                                evout_lfhits_y2v )
-
-        print("  lfhits(y->u)=",evout_lfhits_y2u.size()," lfhits(y->v)=",evout_lfhits_y2v.size())
-
-        dt_save += time.time()-tstart
+        # we tackle each flow direction separately
+        for (iflow,tar_idx,tar_plane,target_np,evout_lfhits) in [ (0,tar1_idx,tar1_plane,target1_np,evout_lfhits_y2u),
+                                                                  (1,tar2_idx,tar2_plane,target2_np,evout_lfhits_y2v)]:
+            # track the source pixel we've evaluated
+            sparse_index = 0
+            y = c_double()
+            z = c_double()
+            coord_tar_t = coord_t[tar_plane]
             
-        sparse_index1 += num_sparse_index1.value+1
-        sparse_index2 += num_sparse_index2.value+1
+            # loop until we've evaluated the matches for each source point
+            print("== flow direction [",iflow,"] ",source_plane,"->",tar_plane,"==")
+            while sparse_index<nsparsepts:
 
-    print("save hits: Y2U=",evout_lfhits_y2u.size()," Y2V=",evout_lfhits_y2v.size())
-    print("time elapsed: net=",dt_net," save=",dt_save)
+                npairs = c_int()
+                npairs.value = 0
+                num_sparse_index = c_int()
+                num_sparse_index.value = 0
+                tstart = time.time()
+                matchpair_np = larflow.get_chunk_pair_array( sparse_index, NUM_PAIRS,
+                                                             flowdata_v.at(iflow), num_sparse_index, npairs )
+                #print("  max(matchpair)=",np.max(matchpair_np))
+                t_chunk = time.time()-tstart
+                print("  sparse_index=",sparse_index," npairs_filled=",npairs.value," time to make chunk=",t_chunk," secs")
+                dt_chunk += t_chunk
+
+                
+                # run matches through classifier portion of network
+                matchpair_t = torch.from_numpy( matchpair_np )
+                
+                # track indices through the batch
+                bstart_src = 0
+                bstart_tar = 0
+                if RETURN_TRUTH:
+                    truthvec = torch.zeros( (1,1,npairs.value), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
+        
+                for b in range(BATCHSIZE):
+                    if BATCHSIZE>1:
+                        nbatch_src = coord_src_t[:,2].eq(b).sum()
+                        nbatch_tar = coord_tar_t[:,2].eq(b).sum()
+                    else:
+                        nbatch_src = coord_src_t.shape[0]
+                        nbatch_tar = coord_tar_t.shape[0]
+            
+                    bend_src = bstart_src + nbatch_src
+                    bend_tar = bstart_tar + nbatch_tar
+                    tstart = time.time()
+                    pred_t, truth_t = model.classify_sample( coord_src_t[bstart_src:bend_src,:],
+                                                             outfeat_t[source_plane][bstart_src:bend_src,:],
+                                                             outfeat_t[tar_plane][bstart_tar:bend_tar,:],
+                                                             matchpair_t, torch.device("cpu"),
+                                                             RETURN_TRUTH, npairs.value )
+                    dt_net_classify = time.time()-tstart
+                    dt_net  += dt_net_classify
+                    prob = sigmoid(pred_t)                
+                    print("  batch[",b,"] pred_t=",pred_t.shape," time-elapsed=",dt_net_classify,"secs")
+
+
+                    tstart = time.time()
+                    print("  call make_larflow_hits(...)")
+                    larflow.make_larflow_hits_with_deadchs( prob.detach().numpy().reshape( (1,pred_t.shape[-1]) ),
+                                                            source_np, target_np,
+                                                            matchpair_np, tar_idx,
+                                                            srcmeta, adc_v, ev_badch,
+                                                            evout_lfhits )
+
+                    dt_make_hits = time.time()-tstart
+                    print("  lfhits(",source_plane,"->",tar_plane,")=",evout_lfhits.size()," secs elapsed=",dt_make_hits)
+                    dt_save += dt_make_hits
+            
+                sparse_index += num_sparse_index.value+1
+                
+            # end of flow loop
+            print("end of flow loop")
+
+
+        # End of while loop
+        print("end of flow direction loop")
+        
+        print("saved hits. Source Plane=",source_plane," Y2U=",evout_lfhits_y2u.size()," Y2V=",evout_lfhits_y2v.size())
+        print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
+        
+    print("end of source plane loop")
+
+    # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
     out.next_event(True)
 
