@@ -8,6 +8,7 @@ parser.add_argument("--output", "-o",required=True,type=str,help="Output file (l
 parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,help="Indicate that input larcv file is tick-backward")
 parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point")
 parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events")
+parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -17,6 +18,7 @@ import ROOT as rt
 from ROOT import std
 from larlite import larlite,larutil
 from larcv import larcv
+larcv.PSet
 from larflow import larflow
 import torch
 
@@ -37,11 +39,30 @@ ADC_PRODUCER="wire"
 CHSTATUS_PRODUCER="wire"
 DEVICE=torch.device("cpu")
 
-preplarmatch = larflow.PrepFlowMatchData("deployY")
-preplarmatch.setSourcePlaneIndex(2)
-preplarmatch.setADCproducer(ADC_PRODUCER);
-preplarmatch.setChStatusProducer(CHSTATUS_PRODUCER);
-preplarmatch.initialize()
+# DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
+# we use a config file
+main_pset = larcv.CreatePSetFromFile("prepflowmatchdata.cfg","ProcessDriver")
+driver_pset = main_pset.get_pset("ProcessDriver")
+proclist_pset = driver_pset.get_pset("ProcessList")
+
+preplarmatch = {}
+for source_plane in ["Y","U","V"]:
+    prepcfg = proclist_pset.get_pset("PrepFlowMatch%s"%(source_plane))
+    print(prepcfg.dump())
+    preplarmatch[source_plane] = larflow.PrepFlowMatchData("deploy%s"%(source_plane))
+    preplarmatch[source_plane].configure( prepcfg )
+    print("'HAS_MC' SET TO: ",args.has_mc)
+    preplarmatch[source_plane].hasMCtruth( args.has_mc )
+    
+    preplarmatch[source_plane].setADCproducer(ADC_PRODUCER);
+    preplarmatch[source_plane].setChStatusProducer(CHSTATUS_PRODUCER);
+
+    preplarmatch[source_plane].initialize()
+
+#preplarmatch = larflow.PrepFlowMatchData("deployY")
+#preplarmatch.setSourcePlaneIndex(2)
+#preplarmatch.initialize()
+
 
 model = LArMatch(neval=NUM_PAIRS).to(DEVICE)
 model.load_state_dict(checkpoint["state_dict"])
@@ -84,8 +105,9 @@ for ientry in range(NENTRIES):
     print("==========================================")
     print("Entry {}".format(ientry))
 
-    preplarmatch.process( io )
-    flowdata_v  =  preplarmatch.getMatchData()
+    for source_plane in ["Y"]:
+        preplarmatch[source_plane].process( io )
+    flowdata_v  =  preplarmatch[source_plane].getMatchData()
     sparseimg_v = io.get_data(larcv.kProductSparseImage,"larflow_plane2")
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
     srcmeta     = adc_v.at(2).meta()
