@@ -40,7 +40,15 @@ CHSTATUS_PRODUCER="wire"
 DEVICE=torch.device("cpu")
 RETURN_TRUTH=False
 BATCHSIZE = 1
-SOURCE_PLANE_LIST = ["Y"]
+SOURCE_PLANE_LIST = ["Y","U","V"]
+#SOURCE_PLANE_LIST = ["Y"]
+#FLOW_DIRS = [ ("Y","U","V",2,0,1) ]
+#FLOW_DIRS = [ ("U","V","Y",0,1,2) ]
+#FLOW_DIRS = [ ("V","U","Y",1,0,2) ]
+FLOW_DIRS = [ ("Y","U","V",2,0,1),
+              ("U","V","Y",0,1,2),
+              ("V","U","Y",1,0,2) ]
+
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
@@ -61,10 +69,6 @@ for source_plane in SOURCE_PLANE_LIST:
     preplarmatch[source_plane].setChStatusProducer(CHSTATUS_PRODUCER);
 
     preplarmatch[source_plane].initialize()
-
-#preplarmatch = larflow.PrepFlowMatchData("deployY")
-#preplarmatch.setSourcePlaneIndex(2)
-#preplarmatch.initialize()
 
 
 model = LArMatch(neval=NUM_PAIRS).to(DEVICE)
@@ -98,17 +102,21 @@ dt_chunk = 0.
 dt_net   = 0.
 dt_save  = 0.
 
+# setup the hit maker
+hitmaker = larflow.FlowMatchHitMaker()
+
 for ientry in range(NENTRIES):
 
-    evout_lfhits_y2u = out.get_data(larlite.data.kLArFlow3DHit,"larmatchy2u")
-    evout_lfhits_y2v = out.get_data(larlite.data.kLArFlow3DHit,"larmatchy2v")
-    evout_lfhits_y2u.clear()
-    evout_lfhits_y2v.clear()
+    evout_lfhits = out.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    evout_lfhits.clear()
 
     io.read_entry(ientry)
     
     print("==========================================")
     print("Entry {}".format(ientry))
+
+    # clear the hit maker
+    hitmaker.clear();
 
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
     ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
@@ -158,8 +166,8 @@ for ientry in range(NENTRIES):
     dt_net_feats = time.time()-t_start
     print("compute features: ",dt_net_feats,"secs")
     dt_net += dt_net_feats
-
-    for (source_plane,tar1_plane,tar2_plane,src_idx,tar1_idx,tar2_idx) in [ ("Y","U","V",2,0,1) ]:
+    
+    for (source_plane,tar1_plane,tar2_plane,src_idx,tar1_idx,tar2_idx) in FLOW_DIRS:
         # match data for this source plane
         flowdata_v  =  preplarmatch[source_plane].getMatchData()
         # get the image meta of the source image
@@ -185,8 +193,8 @@ for ientry in range(NENTRIES):
         print("num sparse indices=",nsparsepts)
 
         # we tackle each flow direction separately
-        for (iflow,tar_idx,tar_plane,target_np,evout_lfhits) in [ (0,tar1_idx,tar1_plane,target1_np,evout_lfhits_y2u),
-                                                                  (1,tar2_idx,tar2_plane,target2_np,evout_lfhits_y2v)]:
+        for (iflow,tar_idx,tar_plane,target_np,evout) in [ (0,tar1_idx,tar1_plane,target1_np,evout_lfhits),
+                                                           (1,tar2_idx,tar2_plane,target2_np,evout_lfhits)]:
             # track the source pixel we've evaluated
             sparse_index = 0
             y = c_double()
@@ -242,15 +250,22 @@ for ientry in range(NENTRIES):
 
 
                     tstart = time.time()
-                    print("  call make_larflow_hits(...)")
-                    larflow.make_larflow_hits_with_deadchs( prob.detach().numpy().reshape( (1,pred_t.shape[-1]) ),
-                                                            source_np, target_np,
-                                                            matchpair_np, tar_idx,
-                                                            srcmeta, adc_v, ev_badch,
-                                                            evout_lfhits )
+                    #print("  call make_larflow_hits(...)")                    
+                    #larflow.make_larflow_hits_with_deadchs( prob.detach().numpy().reshape( (1,pred_t.shape[-1]) ),
+                    #                                        source_np, target_np,
+                    #                                        matchpair_np,
+                    #                                        src_idx, tar_idx,
+                    #                                        srcmeta, adc_v, ev_badch,
+                    #                                        evout )
+                    prob_np = prob.detach().numpy().reshape( (1,pred_t.shape[-1]) )
+                    print("  add data to hitmaker(...). probshape=",prob_np.shape)
+                    hitmaker.add_match_data( prob_np,
+                                             source_np, target_np,
+                                             matchpair_np,
+                                             src_idx, tar_idx,
+                                             srcmeta, adc_v, ev_badch )
 
                     dt_make_hits = time.time()-tstart
-                    print("  lfhits(",source_plane,"->",tar_plane,")=",evout_lfhits.size()," secs elapsed=",dt_make_hits)
                     dt_save += dt_make_hits
             
                 sparse_index += num_sparse_index.value+1
@@ -258,14 +273,17 @@ for ientry in range(NENTRIES):
             # end of flow loop
             print("end of flow loop")
 
-
         # End of while loop
         print("end of flow direction loop")
         
-        print("saved hits. Source Plane=",source_plane," Y2U=",evout_lfhits_y2u.size()," Y2V=",evout_lfhits_y2v.size())
-        print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
-        
     print("end of source plane loop")
+
+    tstart = time.time()    
+    hitmaker.make_hits( ev_badch, evout_lfhits )
+    dt_make_hits = time.time()-tstart
+    dt_save += dt_make_hits
+    print("make hits: ",dt_make_hits," secs")
+    print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)    
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
