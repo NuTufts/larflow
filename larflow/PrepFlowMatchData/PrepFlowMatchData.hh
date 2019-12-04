@@ -37,6 +37,7 @@ namespace larflow {
     bool process( larcv::IOManager& mgr );
     void finalize();
 
+    void setSourcePlaneIndex( int index )        { _source_plane=index; };
     void setADCproducer( std::string name )      { _input_adc_producername=name; };
     void setChStatusProducer( std::string name ) { _input_chstatus_producername=name; };
     void setLArFlowproducer( std::string name )  { _input_trueflow_producername=name; };

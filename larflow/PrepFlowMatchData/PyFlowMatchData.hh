@@ -40,7 +40,8 @@ namespace larflow {
   // convert to larflow3dhits
   void make_larflow_hits( PyObject* pair_probs,
                           PyObject* source_sparseimg, PyObject* target_sparseimg,
-                          PyObject* matchpairs, const int target_plane,
+                          PyObject* matchpairs,
+                          const int source_plane, const int target_plane,
                           const larcv::ImageMeta& source_meta,
                           const std::vector<larcv::Image2D>& img_v,
                           larlite::event_larflow3dhit& hit_v,
@@ -48,12 +49,13 @@ namespace larflow {
 
   // convert to larflow3dhits
   void make_larflow_hits_with_deadchs( PyObject* pair_probs,
-                          PyObject* source_sparseimg, PyObject* target_sparseimg,
-                          PyObject* matchpairs, const int target_plane,
-                          const larcv::ImageMeta& source_meta,
-                          const std::vector<larcv::Image2D>& img_v,
-                          const larcv::EventChStatus& ev_status,                                       
-                          larlite::event_larflow3dhit& hit_v );
+                                       PyObject* source_sparseimg, PyObject* target_sparseimg,
+                                       PyObject* matchpairs,
+                                       const int source_plane, const int target_plane,
+                                       const larcv::ImageMeta& source_meta,
+                                       const std::vector<larcv::Image2D>& img_v,
+                                       const larcv::EventChStatus& ev_status,                                       
+                                       larlite::event_larflow3dhit& hit_v );
 
 
   

@@ -3,12 +3,13 @@ set(MODULE_NAME PrepFlowMatchData )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS FlowMatchMap.hh PrepFlowMatchData.hh PyFlowMatchData.hh )
+set( HEADERS FlowMatchMap.hh PrepFlowMatchData.hh PyFlowMatchData.hh FlowMatchHitMaker.h)
 
 add_library( ${LIBNAME} SHARED
   FlowMatchMap.cxx
   PrepFlowMatchData.cxx
-  PyFlowMatchData.cxx)
+  PyFlowMatchData.cxx
+  FlowMatchHitMaker.cxx)
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

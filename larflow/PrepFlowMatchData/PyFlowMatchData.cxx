@@ -140,6 +140,7 @@ namespace larflow {
   void make_larflow_hits( PyObject* pair_probs,
                           PyObject* source_sparseimg, PyObject* target_sparseimg,
                           PyObject* matchpairs,
+                          const int source_plane,
                           const int target_plane,
                           const larcv::ImageMeta& source_meta,
                           const std::vector<larcv::Image2D>& img_v,
@@ -180,7 +181,16 @@ namespace larflow {
     // std::cout << "target matrix: (" << target_dims[0] << "," << target_dims[1] << ")" << std::endl;
 
     const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
-    int other_plane = ( target_plane==0 ) ? 1 : 0;
+    int other_plane = -1;
+    if ( source_plane==2 ) {
+      other_plane = ( target_plane==0 ) ? 1 : 0;
+    }
+    else if ( source_plane==1 ) {
+      other_plane = ( target_plane==0 ) ? 2 : 0;
+    }
+    else if ( source_plane==0 ) {
+      other_plane = ( target_plane==1 ) ? 2 : 1;
+    }
 
     for (int ipair=0; ipair<(int)pair_dims[1]; ipair++) {
 
@@ -198,7 +208,7 @@ namespace larflow {
       float tick = source_meta.pos_y( srcrow );
       float x = (tick-3200.0)*cm_per_tick;
       double y, z;
-      larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)2, (UChar_t)target_plane, y, z );
+      larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
 
       Double_t pos[3] = { 0, y, z };
       float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
@@ -248,6 +258,7 @@ namespace larflow {
   void make_larflow_hits_with_deadchs( PyObject* pair_probs,
                                        PyObject* source_sparseimg, PyObject* target_sparseimg,
                                        PyObject* matchpairs,
+                                       const int source_plane,
                                        const int target_plane,
                                        const larcv::ImageMeta& source_meta,
                                        const std::vector<larcv::Image2D>& img_v,
@@ -257,6 +268,7 @@ namespace larflow {
     make_larflow_hits( pair_probs,
                        source_sparseimg, target_sparseimg,
                        matchpairs,
+                       source_plane,
                        target_plane,
                        source_meta,
                        img_v, hit_v, &ev_chstatus );
