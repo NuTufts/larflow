@@ -59,6 +59,12 @@ find_package( PythonInterp 2.7 REQUIRED )
 find_package( PythonLibs 2.7 REQUIRED )
 execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
 
+#---Eigen
+find_package(Eigen3 REQUIRED)
+
+#---Cilantro
+set( CILANTRO_INC_DIR "$ENV{CILANTRO_INC_DIR}" )
+
 ## Setup
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
