@@ -20,6 +20,7 @@ namespace reco {
     std::vector<float>                pca_eigenvalues;
     std::vector<int>                  ordered_idx_v; // index of points, ordered by projected pos on 1st pca axis
     std::vector<float>                pca_proj_v;    // projection of point onto pca axis, follows ordered_idx_v
+    std::vector< std::vector<float> > pca_ends_v;    // points on 1st pca-line out to the maximum projection distance from center
 
   };
   

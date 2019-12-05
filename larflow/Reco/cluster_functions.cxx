@@ -94,6 +94,16 @@ namespace reco {
       cluster.ordered_idx_v[i] = ordered_v[i].idx;
       cluster.pca_proj_v[i]    = ordered_v[i].s;
     }
+
+    // define ends
+    cluster.pca_ends_v.resize(2);
+    cluster.pca_ends_v[0].resize(3,0);
+    cluster.pca_ends_v[1].resize(3,0);
+    for (int i=0; i<3; i++) {
+      cluster.pca_ends_v[0][i] = cluster.pca_center[i] + cluster.pca_proj_v.front()*cluster.pca_axis_v[0][i];
+      cluster.pca_ends_v[1][i] = cluster.pca_center[i] + cluster.pca_proj_v.back()*cluster.pca_axis_v[0][i];
+    }
+    
     
   }
 
@@ -121,9 +131,9 @@ namespace reco {
       std::cout << "cluster: s_min=" << cluster.pca_proj_v.front() << " s_max=" << cluster.pca_proj_v.back() << std::endl;
       
       for (int i=0; i<3; i++ ) {
-        pca_points[0][i] = cluster.pca_center[i] + (cluster.pca_proj_v.front()-5)*cluster.pca_axis_v[0][i];
+        pca_points[0][i] = cluster.pca_ends_v[0][i] - 5.0*cluster.pca_axis_v[0][i];
         pca_points[1][i] = cluster.pca_center[i];
-        pca_points[2][i] = cluster.pca_center[i] + (cluster.pca_proj_v.back()+5)*cluster.pca_axis_v[0][i];
+        pca_points[2][i] = cluster.pca_ends_v[1][i] + 5.0*cluster.pca_axis_v[0][i];
         //pca_points[0][i] = cluster.pca_center[i] - 10*cluster.pca_axis_v[0][i];
         //pca_points[1][i] = cluster.pca_center[i];
         //pca_points[2][i] = cluster.pca_center[i] + 10*cluster.pca_axis_v[0][i];        
@@ -137,6 +147,10 @@ namespace reco {
     j >> o;
     o.close();
   }
+
+  // bool cluster_testcluster( const cluster_t& a, const cluster_t& b ) {
+  //   // we get end points
+  // }
 
   
 }
