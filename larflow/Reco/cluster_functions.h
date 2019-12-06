@@ -5,6 +5,9 @@
 #include <string>
 #include "DataFormat/larflow3dhit.h"
 
+#include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/ImageMeta.h"
+
 namespace larflow {
 namespace reco {
 
@@ -15,6 +18,7 @@ namespace reco {
   struct cluster_t {
     
     std::vector< std::vector<float> > points_v;
+    std::vector< std::vector<int>   > imgcoord_v;
     std::vector< std::vector<float> > pca_axis_v;
     std::vector<float>                pca_center;
     std::vector<float>                pca_eigenvalues;
@@ -33,7 +37,15 @@ namespace reco {
   void cluster_pca( cluster_t& cluster );
 
   void cluster_runpca( std::vector<cluster_t>& cluster_v );
-    
+
+  void cluster_splitbytrackshower( const std::vector<larlite::larflow3dhit>& hit_v,
+                                   const std::vector<larcv::Image2D>& ssnettrack_image_v,
+                                   std::vector<larlite::larflow3dhit>& track_hit_v,
+                                   std::vector<larlite::larflow3dhit>& shower_hit_v );
+
+  void cluster_imageprojection( const cluster_t& cluster, std::vector<larcv::Image2D>& clust2d_images_v );
+
+  void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v );
 }
 }
 

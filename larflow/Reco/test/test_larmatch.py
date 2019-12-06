@@ -13,45 +13,51 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 
 
-print("parse data")
-with open('dump.json','r') as f:
-    data = json.load(f)
-
-cluster_v = []
-pca_v     = []
-
-for cidx,cluster in enumerate(data["clusters"][:-1]):
-    pts = np.zeros( (len(cluster["hits"]),3) )
-    for idx,hit in enumerate(cluster["hits"]):
-        for i in range(3):
-            pts[idx,i] = hit[i]
-    color = "rgb(%d,%d,%d)"%(np.random.randint(0,256),np.random.randint(0,256),np.random.randint(0,256))
-    clusterplot = {
-        "type":"scatter3d",
-        "x":pts[:,0],
-        "y":pts[:,1],
-        "z":pts[:,2],
-        "mode":"markers",
-        "name":"c%d"%(cidx),
-        "marker":{"color":color,"size":1,"colorscale":'Viridis'}
-    }
-    cluster_v.append( clusterplot )
+cluster_dict = {}
+pca_dict = {}
+for top in ["track","shower"]:
     
-    pca_pts = np.zeros( (3,3) )
-    for idx,pt in enumerate(cluster["pca"]):
-        for i in range(3):
-            pca_pts[idx,i] = pt[i]
-    pca_plot = {
-        "type":"scatter3d",
-        "x":pca_pts[:,0],
-        "y":pca_pts[:,1],
-        "z":pca_pts[:,2],
-        "mode":"lines",
-        "name":"pca%d"%(cidx),
-        "line":{"color":"rgb(255,255,255)","size":2}
-    }
-    pca_v.append( pca_plot )
+    print("parse data for ",top)
+    with open('dump_%s.json'%(top),'r') as f:
+        data = json.load(f)
+
+    cluster_v = []
+    pca_v     = []
+
+    for cidx,cluster in enumerate(data["clusters"][:-1]):
+        pts = np.zeros( (len(cluster["hits"]),3) )
+        for idx,hit in enumerate(cluster["hits"]):
+            for i in range(3):
+                pts[idx,i] = hit[i]
+        color = "rgb(%d,%d,%d)"%(np.random.randint(0,256),np.random.randint(0,256),np.random.randint(0,256))
+        clusterplot = {
+            "type":"scatter3d",
+            "x":pts[:,0],
+            "y":pts[:,1],
+            "z":pts[:,2],
+            "mode":"markers",
+            "name":"%s[%d]"%(top,cidx),
+            "marker":{"color":color,"size":1,"colorscale":'Viridis'}
+        }
+        cluster_v.append( clusterplot )
     
+        pca_pts = np.zeros( (3,3) )
+        for idx,pt in enumerate(cluster["pca"]):
+            for i in range(3):
+                pca_pts[idx,i] = pt[i]
+        pca_plot = {
+            "type":"scatter3d",
+            "x":pca_pts[:,0],
+            "y":pca_pts[:,1],
+            "z":pca_pts[:,2],
+            "mode":"lines",
+            "name":"pca-%s[%d]"%(top,cidx),
+            "line":{"color":"rgb(255,255,255)","size":2}
+        }
+        pca_v.append( pca_plot )
+
+    cluster_dict[top] = cluster_v
+    pca_dict[top] = pca_v
 
 app = dash.Dash(
     __name__,
@@ -89,15 +95,25 @@ plot_layout = {
 app.layout = html.Div( [
     html.Div( [
         dcc.Graph(
-            id="det3d",
+            id="det3d_track",
             figure={
-                "data": cluster_v+pca_v,
+                "data": cluster_dict["track"]+pca_dict["track"],
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},
         )],
               className="graph__container"),
-    ] )
+    html.Div( [
+        dcc.Graph(
+            id="det3d_shower",
+            figure={
+                "data": cluster_dict["shower"]+pca_dict["shower"],
+                "layout": plot_layout,
+            },
+            config={"editable": True, "scrollZoom": False},
+        )],
+        className="graph__container"),
+] )
 
 if __name__ == "__main__":
     app.run_server(debug=True)
