@@ -13,9 +13,11 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 
 
+contour_types = ["track","split"]
+
 cluster_dict = {}
 pca_dict = {}
-for top in ["track","shower"]:
+for top in contour_types:
     
     print("parse data for ",top)
     with open('dump_%s.json'%(top),'r') as f:
@@ -107,7 +109,7 @@ app.layout = html.Div( [
         dcc.Graph(
             id="det3d_shower",
             figure={
-                "data": cluster_dict["shower"]+pca_dict["shower"],
+                "data": cluster_dict[contour_types[1]]+pca_dict[contour_types[1]],
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},

@@ -46,6 +46,7 @@ namespace reco {
   void cluster_imageprojection( const cluster_t& cluster, std::vector<larcv::Image2D>& clust2d_images_v );
 
   void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v );
+
 }
 }
 
