@@ -289,6 +289,7 @@ for ientry in range(NENTRIES):
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
     out.next_event(True)
 
+    io.clear_entry()
 
 print("Close output")
 out.close()
