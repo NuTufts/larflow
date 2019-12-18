@@ -15,7 +15,8 @@ namespace reco {
    *
    */
   void cluster_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
-                              std::vector< cluster_t >& cluster_v ) {
+                              std::vector< cluster_t >& cluster_v,
+                              const float maxdist, const int minsize, const int maxkd ) {
 
     clock_t start = clock();
     
@@ -27,9 +28,12 @@ namespace reco {
       points_v.push_back( lfhit );
     }
     
-    std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v = ublarcvapp::dbscan::DBScan::makeCluster3f( 5.0, 5, 5, points_v );
+    std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v = ublarcvapp::dbscan::DBScan::makeCluster3f( maxdist, minsize, maxkd, points_v );
 
-    for ( auto const& cluster : dbcluster_v ) {
+    
+    for (int ic=0; ic<(int)dbcluster_v.size()-1;ic++) {
+      // skip the last cluster, which are noise points
+      auto const& cluster = dbcluster_v[ic];
       cluster_t c;
       c.points_v.reserve(cluster.size());
       c.imgcoord_v.reserve(cluster.size());
@@ -62,7 +66,8 @@ namespace reco {
     }
     cilantro::PrincipalComponentAnalysis3f pca( eigen_v );
     cluster.pca_center.resize(3,0);
-    cluster.pca_eigenvalues.resize(3,0);    
+    cluster.pca_eigenvalues.resize(3,0);
+    cluster.pca_axis_v.clear();
     for (int i=0; i<3; i++) {
       cluster.pca_center[i] = pca.getDataMean()(i);
       cluster.pca_eigenvalues[i] = pca.getEigenValues()(i);
@@ -280,8 +285,75 @@ namespace reco {
     
   }
 
-  
-  
+  /**
+   * calculate closest distance between end points
+   *
+   */
+  float cluster_closest_endpt_dist( const cluster_t& clust_a, const cluster_t& clust_b,
+                                    std::vector< std::vector<float> >& endpts ) {
+    // 2x2 calculation
+
+    float dist[4] = {0};
+    for (int i=0; i<2; i++) {
+      for (int j=0; j<2; j++) {
+        for (int k=0; k<3; k++) {
+          dist[ 2*i+j ] += (clust_a.pca_ends_v[i][k] - clust_b.pca_ends_v[j][k])*(clust_a.pca_ends_v[i][k] - clust_b.pca_ends_v[j][k]);
+        }
+      }
+    }
+
+    float mindist = -1.0;
+    int mini = 0;
+    int minj = 0;
+    for (int k=0; k<4; k++ ) {
+      if ( dist[k]<mindist || mindist<0 ) {
+        mindist = dist[k];
+        mini = k/2;
+        minj = k%2;
+      }
+    }
+
+    endpts.resize(2);
+    endpts[0].resize(3,0);
+    endpts[1].resize(3,0);
+    for (int k=0; k<3; k++ ) {
+      endpts[0][k] = clust_a.pca_ends_v[mini][k];
+      endpts[1][k] = clust_b.pca_ends_v[minj][k];
+    }
+    
+    if ( mindist>0 )
+      mindist = sqrt(mindist);
+    
+    return mindist;
+  }
+
+  /** 
+   * calculate cosine between first PCA axis of two clusters
+   */
+  float cluster_cospca( const cluster_t& clust_a, const cluster_t& clust_b ) {
+    float cospca = 0.;
+    float lena = 0.;
+    float lenb = 0.;
+    for ( int k=0; k<3; k++ ) {
+      cospca += clust_a.pca_axis_v[0][k]*clust_b.pca_axis_v[0][k];
+    }
+    return cospca;
+  }
+
+  cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b ) {
+    // copy first
+    cluster_t merge = clust_a;
+
+    merge.points_v.reserve(   merge.points_v.size()+clust_b.points_v.size() );
+    merge.imgcoord_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() ); 
+    for ( size_t i=0; i<clust_b.points_v.size(); i++ ) {
+      merge.points_v.push_back(   clust_b.points_v[i] );
+      merge.imgcoord_v.push_back( clust_b.imgcoord_v[i] );
+    }
+
+    cluster_pca( merge );
+    return merge;
+  }
 
   
 }

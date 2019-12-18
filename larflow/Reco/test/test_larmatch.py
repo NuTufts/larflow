@@ -13,7 +13,10 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 
 
-contour_types = ["track","split"]
+#contour_types = ["track","split"]
+#contour_types = ["track","shower"]
+#contour_types = ["split","merged"]
+contour_types = ["all","shower"]
 
 cluster_dict = {}
 pca_dict = {}
@@ -97,9 +100,9 @@ plot_layout = {
 app.layout = html.Div( [
     html.Div( [
         dcc.Graph(
-            id="det3d_track",
+            id="det3d_%s"%(contour_types[0]),
             figure={
-                "data": cluster_dict["track"]+pca_dict["track"],
+                "data": cluster_dict[contour_types[0]]+pca_dict[contour_types[0]],
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},
@@ -107,7 +110,7 @@ app.layout = html.Div( [
               className="graph__container"),
     html.Div( [
         dcc.Graph(
-            id="det3d_shower",
+            id="det3d_%s"%(contour_types[1]),
             figure={
                 "data": cluster_dict[contour_types[1]]+pca_dict[contour_types[1]],
                 "layout": plot_layout,

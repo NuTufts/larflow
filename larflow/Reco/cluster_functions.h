@@ -29,7 +29,8 @@ namespace reco {
   };
   
   void cluster_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
-                              std::vector< cluster_t >& cluster_v );
+                              std::vector< cluster_t >& cluster_v,
+                              const float maxdist=5.0, const int minsize=5, const int maxkd=5 );
 
   void cluster_dump2jsonfile( const std::vector<cluster_t>& cluster_v,
                               std::string outfilename );  
@@ -47,6 +48,13 @@ namespace reco {
 
   void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v );
 
+  float cluster_closest_endpt_dist( const cluster_t& clusta, const cluster_t& clust_b,
+                                    std::vector< std::vector<float> >& endpts );
+  
+  float cluster_cospca( const cluster_t& clusta, const cluster_t& clustb );
+
+  cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b );
+  
 }
 }
 
