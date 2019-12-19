@@ -37,7 +37,10 @@ namespace reco {
 
     larlite::larflowcluster makeLArFlowCluster( cluster_t& cluster,
                                                 const std::vector<larcv::Image2D>& ssnet_showerimg_v,
-                                                const std::vector<larcv::Image2D>& ssnet_trackimg_v );
+                                                const std::vector<larcv::Image2D>& ssnet_trackimg_v,
+                                                const std::vector<larcv::Image2D>& adc_v,
+                                                const std::vector<larlite::larflow3dhit>& source_lfhit_v );
+                                                
     
     
   };

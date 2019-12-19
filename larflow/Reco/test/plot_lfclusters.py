@@ -13,7 +13,8 @@ import numpy as np
 import ROOT as rt
 from larlite import larlite
 
-color_by_options = ["ssnet","charge","matchprob"]
+color_by_options = ["ssnet","charge","prob","dead","cluster"]
+colorscale = "Viridis"
 
 treename = "pcacluster"
 inputfile = "larflow_reco.root"
@@ -47,7 +48,38 @@ def make_figures(entry,plotby="ssnet"):
                 pts[idx,i] = hit[i]
             if plotby=="ssnet":
                 pts[idx,3] = hit.shower_score
-            
+            elif plotby in ["charge","dead"]:
+                totq = 0.
+                npix = 0
+                for p in xrange(3):
+                    if hit[3+p]>5:
+                        totq += hit[3+p]
+                        npix += 1
+                if npix>0:
+                    totq /= float(npix)
+                if totq>150.0:
+                    totq = 150.0
+                elif totq<0:
+                    totq = 0.0
+                    
+                if plotby=="charge":
+                    pts[idx,3] = totq
+                else:
+                    if npix<3:
+                        pts[idx,3] = 5.0
+                    else:
+                        pts[idx,3] = 10.0
+            elif plotby=="prob":
+                prob = hit[6]
+                if prob<0.5:
+                    prob *= 2.0
+                pts[idx,3] = prob
+
+        if plotby in ["ssnet","charge","prob","dead"]:
+            colors = pts[:,3]
+        elif plotby in ["cluster"]:
+            r3 = np.random.randint(255,size=3)
+            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
         clusterplot = {
             "type":"scatter3d",
             "x":pts[:,0],
@@ -55,7 +87,7 @@ def make_figures(entry,plotby="ssnet"):
             "z":pts[:,2],
             "mode":"markers",
             "name":"[%d]"%(icluster),
-            "marker":{"color":pts[:,3],"size":1,"colorscale":'Viridis'}
+            "marker":{"color":colors,"size":1,"colorscale":colorscale}
         }
         cluster_traces_v.append( clusterplot )
     
@@ -88,19 +120,24 @@ server = app.server
 
 axis_template = {
     "showbackground": True,
-    "backgroundcolor": "#141414",
-    "gridcolor": "rgb(255, 255, 255)",
-    "zerolinecolor": "rgb(255, 255, 255)",
+    #"backgroundcolor": "#141414", # black
+    #"gridcolor": "rgba(255, 255, 255)",
+    #"zerolinecolor": "rgba(255, 255, 255)",    
+    "backgroundcolor": "rgba(100, 100, 100,0.5)",    
+    "gridcolor": "rgb(50, 50, 50)",
+    "zerolinecolor": "rgb(0, 0, 0)",
 }
 
 plot_layout = {
     "title": "",
     "height":800,
     "margin": {"t": 0, "b": 0, "l": 0, "r": 0},
-    "font": {"size": 12, "color": "white"},
+    "font": {"size": 12, "color": "black"},
     "showlegend": False,
-    "plot_bgcolor": "#141414",
-    "paper_bgcolor": "#141414",
+    #"plot_bgcolor": "#141414",
+    #"paper_bgcolor": "#141414",
+    "plot_bgcolor": "#ffffff",
+    "paper_bgcolor": "#ffffff",
     "scene": {
         "xaxis": axis_template,
         "yaxis": axis_template,
@@ -122,7 +159,8 @@ plotopt = dcc.Dropdown(
         {'label':'ssnet','value':'ssnet'},
         {'label':'charge','value':'charge'},
         {'label':'prob','value':'prob'},
-        {'label':'cluster','value':'cluster'}],
+        {'label':'cluster','value':'cluster'},
+        {'label':'on dead channel','value':'dead'}],
     value='ssnet',
     id='plotbyopt',
     )
@@ -162,6 +200,9 @@ def cb_render(*vals):
         raise PreventUpdate
     if vals[1]>=nentries or vals[1]<0:
         print("Input event is out of range")
+        raise PreventUpdate
+    if vals[2] is None:
+        print("Plot-by option is None")
         raise PreventUpdate
 
     cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2])

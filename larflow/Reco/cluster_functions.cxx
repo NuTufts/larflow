@@ -37,6 +37,7 @@ namespace reco {
       cluster_t c;
       c.points_v.reserve(cluster.size());
       c.imgcoord_v.reserve(cluster.size());
+      c.hitidx_v.reserve(cluster.size());
       for ( auto const& hitidx : cluster ) {
         // store 3d position and 2D image coordinates
         c.points_v.push_back( points_v.at(hitidx) );
@@ -46,6 +47,7 @@ namespace reco {
         coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
         coord[2] = (int)hit_v[hitidx].srcwire;
         c.imgcoord_v.push_back( coord );
+        c.hitidx_v.push_back(hitidx);
       }
       cluster_v.emplace_back(std::move(c));
     }
@@ -345,10 +347,12 @@ namespace reco {
     cluster_t merge = clust_a;
 
     merge.points_v.reserve(   merge.points_v.size()+clust_b.points_v.size() );
-    merge.imgcoord_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() ); 
+    merge.imgcoord_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
+    merge.hitidx_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
     for ( size_t i=0; i<clust_b.points_v.size(); i++ ) {
       merge.points_v.push_back(   clust_b.points_v[i] );
       merge.imgcoord_v.push_back( clust_b.imgcoord_v[i] );
+      merge.hitidx_v.push_back( clust_b.hitidx_v[i] );
     }
 
     cluster_pca( merge );

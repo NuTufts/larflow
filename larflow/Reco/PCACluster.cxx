@@ -83,8 +83,8 @@ namespace reco {
     nmerged = merge_clusters( cluster_track_v, adc_v, 10.0, 30.0, 10.0 );
     std::cout << "[merger-0 maxdist=10.0, maxangle=30.0, maxpca=10.0] number merged=" << nmerged << std::endl;
 
-    nmerged = merge_clusters( cluster_track_v, adc_v, 20.0, 15.0, 10.0 );
-    std::cout << "[merger-1 maxdist=20.0, maxangle=10.0, maxpca=10.0] number merged=" << nmerged << std::endl;    
+    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 15.0, 10.0 );
+    std::cout << "[merger-1 maxdist=30.0, maxangle=15.0, maxpca=10.0] number merged=" << nmerged << std::endl;    
 
     nmerged = merge_clusters( cluster_track_v, adc_v, 20.0, 60.0, 15.0, true );
     std::cout << "[merger-2 maxdist=5.0, maxangle=60.0, maxpca=5.0] number merged=" << nmerged << std::endl;
@@ -104,17 +104,20 @@ namespace reco {
     
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
-    //evout_lfcluster->reserve( final_v.size() );    
-    for ( auto& cluster : final_v ) {
-      larlite::larflowcluster lfcluster = makeLArFlowCluster( cluster, ssnet_showerimg_v, ssnet_trackimg_v );
+    for ( auto& c : cluster_track_v ) {
+      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, track_hit_v );
       evout_lfcluster->emplace_back( std::move(lfcluster) );
-    }//end of cluster loop
+    }
+    for ( auto& c : cluster_shower_v ) {
+      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
+      evout_lfcluster->emplace_back( std::move(lfcluster) );
+    }
 
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_shower_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "lfshower" );
     //evout_shower_lfcluster->reserve( cluster_shower_v.size() );
     for ( auto& cluster : cluster_shower_v ) {
-      larlite::larflowcluster lfcluster = makeLArFlowCluster( cluster, ssnet_showerimg_v, ssnet_trackimg_v );
+      larlite::larflowcluster lfcluster = makeLArFlowCluster( cluster, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
       evout_shower_lfcluster->emplace_back( std::move(lfcluster) );
     }//end of cluster loop
     
@@ -240,6 +243,7 @@ namespace reco {
         cluster_t contourcluster;
         contourcluster.points_v.reserve( clust.imgcoord_v.size() );
         contourcluster.imgcoord_v.reserve( clust.imgcoord_v.size() );
+        contourcluster.hitidx_v.reserve( clust.imgcoord_v.size() );
 
         std::vector<int> candidate_idx;
         
@@ -260,6 +264,7 @@ namespace reco {
               // include in new cluster
               contourcluster.points_v.push_back(   clust.points_v[idx] );
               contourcluster.imgcoord_v.push_back( clust.imgcoord_v[idx] );
+              contourcluster.hitidx_v.push_back( clust.hitidx_v[idx] );
               incontour = true;
               candidate_idx.push_back(idx);
             }
@@ -306,6 +311,7 @@ namespace reco {
           if ( claimedpts[idx]==0 ) {
             unclaimedcluster.points_v.push_back(   clust.points_v[idx] );
             unclaimedcluster.imgcoord_v.push_back( clust.imgcoord_v[idx] );
+            unclaimedcluster.hitidx_v.push_back( clust.hitidx_v[idx] );
           }
         }
         larflow::reco::cluster_pca( unclaimedcluster );
@@ -430,9 +436,11 @@ namespace reco {
           cluster_t c;
           c.points_v.reserve( dbclust.size() );
           c.imgcoord_v.reserve( dbclust.size() );
+          c.hitidx_v.reserve( dbclust.size() );
           for ( auto const& hitidx : dbclust ) {
             c.points_v.push_back( cluster.points_v[hitidx] );
             c.imgcoord_v.push_back( cluster.imgcoord_v[hitidx] );
+            c.hitidx_v.push_back( cluster.hitidx_v[hitidx] );
           }
           
           cluster_pca( c );
@@ -449,7 +457,9 @@ namespace reco {
 
   larlite::larflowcluster PCACluster::makeLArFlowCluster( cluster_t& cluster,
                                                           const std::vector<larcv::Image2D>& ssnet_showerimg_v,
-                                                          const std::vector<larcv::Image2D>& ssnet_trackimg_v ) {
+                                                          const std::vector<larcv::Image2D>& ssnet_trackimg_v,
+                                                          const std::vector<larcv::Image2D>& adc_v,
+                                                          const std::vector<larlite::larflow3dhit>& source_lfhit_v ) {
     
     larlite::larflowcluster lfcluster;
     lfcluster.reserve( cluster.points_v.size() );
@@ -459,10 +469,21 @@ namespace reco {
       int ihit = cluster.ordered_idx_v[ii];
         
       larlite::larflow3dhit lfhit;
-      lfhit.resize(3,0);
+      lfhit.resize(7,0); // (x,y,z,pixU,pixV,pixY,matchprob)
 
+      int row = adc_v.front().meta().row( cluster.imgcoord_v[ihit][3], __FILE__, __LINE__ );
+      
       // transfer 3D points
       for (int i=0; i<3; i++) lfhit[i] = cluster.points_v[ihit][i];
+
+      // transfer charge
+      for (int i=0; i<3; i++) {
+        int col = adc_v.front().meta().col( cluster.imgcoord_v[ihit][i], __FILE__, __LINE__ );
+        lfhit[3+i] = adc_v[i].pixel( row, col );
+      }
+
+      // transfer larmatch probability
+      lfhit[6] = source_lfhit_v[ cluster.hitidx_v[ihit] ].track_score; // yeah, sorry for ad-hocness
 
       // transfer image coordates
       lfhit.srcwire = cluster.imgcoord_v[ihit][2];

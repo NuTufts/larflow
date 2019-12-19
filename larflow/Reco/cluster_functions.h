@@ -19,6 +19,7 @@ namespace reco {
     
     std::vector< std::vector<float> > points_v;
     std::vector< std::vector<int>   > imgcoord_v;
+    std::vector< int >                hitidx_v;      // index of larflow hit this point comes from
     std::vector< std::vector<float> > pca_axis_v;
     std::vector<float>                pca_center;
     std::vector<float>                pca_eigenvalues;
