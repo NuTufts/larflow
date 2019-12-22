@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/pcaxis.h"
 
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -55,6 +56,8 @@ namespace reco {
   float cluster_cospca( const cluster_t& clusta, const cluster_t& clustb );
 
   cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b );
+
+  larlite::pcaxis cluster_make_pcaxis( const cluster_t& cluster, int id=0 );
   
 }
 }

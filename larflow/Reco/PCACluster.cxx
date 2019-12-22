@@ -41,10 +41,10 @@ namespace reco {
       ssnet_showerimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[0]);
 
     // cluster all hits
-    std::vector<larflow::reco::cluster_t> cluster_all_v;
-    larflow::reco::cluster_larflow3dhits( *ev_lfhits, cluster_all_v );
-    larflow::reco::cluster_runpca( cluster_all_v );
-    larflow::reco::cluster_dump2jsonfile( cluster_all_v, "dump_all.json" );    
+    // std::vector<larflow::reco::cluster_t> cluster_all_v;
+    // larflow::reco::cluster_larflow3dhits( *ev_lfhits, cluster_all_v );
+    // larflow::reco::cluster_runpca( cluster_all_v );
+    //larflow::reco::cluster_dump2jsonfile( cluster_all_v, "dump_all.json" );    
 
     // containers for track and shower hits
     std::vector<larlite::larflow3dhit> track_hit_v;
@@ -62,8 +62,8 @@ namespace reco {
     larflow::reco::cluster_larflow3dhits( shower_hit_v, cluster_shower_v, 20.0, 5, 5 );
     larflow::reco::cluster_runpca( cluster_shower_v );
 
-    larflow::reco::cluster_dump2jsonfile( cluster_track_v,  "dump_track.json" );
-    larflow::reco::cluster_dump2jsonfile( cluster_shower_v, "dump_shower.json" );    
+    //larflow::reco::cluster_dump2jsonfile( cluster_track_v,  "dump_track.json" );
+    //larflow::reco::cluster_dump2jsonfile( cluster_shower_v, "dump_shower.json" );    
 
     // we perform split functions on the track clusters
     int nsplit = 0;
@@ -76,7 +76,7 @@ namespace reco {
     std::cout << "defrag clusters" << std::endl;
     defragment_clusters( cluster_track_v, 10.0 );
     
-    larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_split.json" );
+    //larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_split.json" );
 
     // now we merge
     int nmerged = 0;
@@ -89,7 +89,7 @@ namespace reco {
     nmerged = merge_clusters( cluster_track_v, adc_v, 20.0, 60.0, 15.0, true );
     std::cout << "[merger-2 maxdist=5.0, maxangle=60.0, maxpca=5.0] number merged=" << nmerged << std::endl;
     
-    larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_merged.json" );
+    //larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_merged.json" );
 
     std::vector<cluster_t> final_v;
     for ( auto& c : cluster_track_v )
@@ -97,20 +97,31 @@ namespace reco {
     for ( auto& c : cluster_shower_v )
       final_v.push_back(c);
       
-    larflow::reco::cluster_dump2jsonfile( final_v, "dump_final.json" );
+    //larflow::reco::cluster_dump2jsonfile( final_v, "dump_final.json" );
 
     //if (true)
     //return;
     
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
+    larlite::event_pcaxis*         evout_pcaxis    = (larlite::event_pcaxis*)        ioll.get_data( larlite::data::kPCAxis,         "pcacluster" );
+    int cidx = 0;
     for ( auto& c : cluster_track_v ) {
+      // cluster of hits
       larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, track_hit_v );
       evout_lfcluster->emplace_back( std::move(lfcluster) );
+      // pca-axis
+      larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
+      evout_pcaxis->push_back( llpca );
+      cidx++;
     }
     for ( auto& c : cluster_shower_v ) {
       larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
       evout_lfcluster->emplace_back( std::move(lfcluster) );
+      // pca-axis
+      larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
+      evout_pcaxis->push_back( llpca );
+      cidx++;      
     }
 
     // form clusters of larflow hits for saving

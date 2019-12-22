@@ -359,6 +359,30 @@ namespace reco {
     return merge;
   }
 
+  /**
+   * convert PC axis information in cluster into larlite object
+   */
+  larlite::pcaxis cluster_make_pcaxis( const cluster_t& c, int cidx ) {
+
+    // pca-axis
+    larlite::pcaxis::EigenVectors e_v;
+    // just std::vector< std::vector<double> >
+    // we store axes (3) and then the 1st axis end points. So five vectors.
+    for ( auto const& a_v : c.pca_axis_v ) {
+      std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
+        e_v.push_back( da_v );
+    }
+    // start and end points
+    for ( auto const& p_v : c.pca_ends_v ) {
+      std::vector<double> dp_v = { (double)p_v[0], (double)p_v[1], (double)p_v[2] };
+      e_v.push_back( dp_v );
+    }
+    double eigenval[3] = { c.pca_eigenvalues[0], c.pca_eigenvalues[1], c.pca_eigenvalues[2] };
+    double centroid[3] = { c.pca_center[0], c.pca_center[1], c.pca_center[2] };
+    larlite::pcaxis llpca( true, c.points_v.size(), eigenval, e_v, centroid, 0, cidx );
+
+    return llpca;
+  }
   
 }
 }
