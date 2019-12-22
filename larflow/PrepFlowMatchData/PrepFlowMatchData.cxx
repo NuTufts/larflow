@@ -6,6 +6,7 @@
 #include "larcv/core/DataFormat/SparseImage.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
+#include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
 #include <sstream>
 
@@ -30,6 +31,7 @@ namespace larflow {
     _positive_example_distance(0),
     _use_3plane_constraint(true),
     _debug_detailed_output(false),
+    _use_gapch(false),
     _source_plane(-1),
     _matchdata_v(nullptr),
     _ana_tree(nullptr)
@@ -62,6 +64,9 @@ namespace larflow {
     _use_3plane_constraint       = pset.get<bool>("Use3PlaneConstraint",true);
 
     _debug_detailed_output       = pset.get<bool>("DetailedDebugOutput",false);
+
+    // use gap channels instead of dead channels, if we dont believe the dead channels
+    _use_gapch                   = pset.get<bool>("UseGapChannels",false);
 
     useAnaTree(true);
   }
@@ -98,6 +103,7 @@ namespace larflow {
 
     larcv::EventChStatus* ev_chstatus = nullptr;
     if ( _use_3plane_constraint ) {
+      LARCV_NORMAL() << "Using Three Plane Constraint. Retrieving Channel Status..." << std::endl;
       ev_chstatus = (larcv::EventChStatus*)mgr.get_data(larcv::kProductChStatus, _input_chstatus_producername );
     }
 
@@ -113,6 +119,38 @@ namespace larflow {
     auto const& srcimg = ev_adc->Image2DArray().at(srcindex);
     const larcv::Image2D* tarimg[2] = { &ev_adc->Image2DArray().at(target_index[0]),
                                         &ev_adc->Image2DArray().at(target_index[1]) };
+
+    ublarcvapp::EmptyChannelAlgo empty_algo;
+    std::vector<larcv::Image2D> badch_v;
+    std::vector<larcv::Image2D> gapch_v;
+
+    if ( ev_chstatus ) {
+      badch_v = empty_algo.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, *ev_chstatus );
+      LARCV_INFO() << "Made Bad Channel Image: " << badch_v.front().meta().dump() << std::endl;      
+      if ( _use_gapch ) {
+        gapch_v = empty_algo.findMissingBadChs( ev_adc->Image2DArray(), badch_v, 10.0, 100 );
+        for ( size_t p=0; p<badch_v.size(); p++ ) {
+          for ( size_t c=0; c<badch_v[p].meta().cols(); c++ ) {
+            //std::cout << "plane[" << p << "] badch=" << c << " status=" << badch_v[p].pixel(0,c) << std::endl;          
+            if ( gapch_v[p].pixel(0,c)>0 ) {
+              //std::cout << "plane[" << p << "] gapch=" << c << std::endl;
+              badch_v[p].paint_col(c,255);
+            }
+          }
+        }
+        LARCV_INFO() << "Made Gap Channel Image: " << gapch_v.front().meta().dump() << std::endl;
+      }
+      larcv::EventImage2D* ev_badchout = (larcv::EventImage2D*)mgr.get_data( larcv::kProductImage2D, "prepflowbadch" );
+      if ( ev_badchout->Image2DArray().size()==0 ) {
+        for ( auto& badch : badch_v )
+          ev_badchout->Append( badch );
+      }
+    }
+    else {
+      LARCV_INFO() << "Not making badch or gapch images" << std::endl;
+    }
+    
+    
 
     // create matchability image
     std::vector<larcv::Image2D> matchability_v;
@@ -184,7 +222,7 @@ namespace larflow {
 
     LARCV_DEBUG() << "Number of source image pixels: " << spsrc.len() << std::endl;
     LARCV_DEBUG() << "Occupancy of source image: "
-                  << float(spsrc.len())/float(spsrc.meta(0).cols()*spsrc.meta(1).rows())
+                  << float(spsrc.len())/float(spsrc.meta(0).cols()*spsrc.meta(0).rows())
                   << std::endl;    
 
     std::vector< larcv::SparseImage > spimg_v;
@@ -205,6 +243,10 @@ namespace larflow {
     
     // now we make the flowmatch map for the source image, for both flows.
     _matchdata_v->clear();
+    int n3plane = 0;
+    int n2plane = 0;
+
+    // loop over flow directions
     for (int i=0; i<2; i++ ) {
 
       LARCV_DEBUG() << "make match map: flowdir=" << i << std::endl;
@@ -280,22 +322,39 @@ namespace larflow {
 
           int nmatches = 0;
           std::vector<int> tar_col_v;
+          std::vector<float> other_wire_adc_v;
           for ( size_t idx=0; idx<target_index_v.size(); idx++ ) {
             int tarcol = sptar.getfeature( target_index_v[idx], 1 );
 
             if ( tarcol<(int)umin || tarcol>(int)umax ) continue;
 
+            
             // if we enforce 3-plane consistency, we need to check for charge in the other plane
+            bool indead = false;            
             if ( _use_3plane_constraint ) {
               double y, z;
               larutil::Geometry::GetME()->IntersectionPoint( col, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
               Double_t pos[3] = { 0, y, z };
               float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
+              int i_other_wire = (int)other_wire;
+
+              if ( other_wire-(float)i_other_wire >0.5 )
+                i_other_wire += 1;
               if ( other_wire<0 || (int)other_wire>=(int)larutil::Geometry::GetME()->Nwires(other_plane) )
                 continue;
-              float other_adc  = ev_adc->Image2DArray()[other_plane].pixel( row, (int)other_wire,__FILE__,__LINE__ );
 
-              bool indead = false;
+
+              float other_adc  = 0.;
+              for (int dc=-2; dc<=2; dc++ ) {
+                int c = i_other_wire+dc;
+                if ( c<0 || c>=(int)larutil::Geometry::GetME()->Nwires(other_plane) ) continue;
+                float test_c = ev_adc->Image2DArray()[other_plane].pixel( row, c, __FILE__,__LINE__ );
+                if ( test_c>other_adc )
+                  other_adc = test_c;
+                if ( other_adc>10.0 )
+                  break;
+              }
+
               if ( other_adc<10.0 ) {
 
                 // not using dead channels, other plane is below threshold. skip this combination
@@ -303,19 +362,36 @@ namespace larflow {
                   continue;
 
                 // if event chstatus pointer is not null, we check the ch status
-                int chstatus = ev_chstatus->Status( other_plane ).Status( other_wire );
-                if ( chstatus==4 ) {
-                  // good channel, so we ignore this match
+                // int chstatus = ev_chstatus->Status( other_plane ).Status( other_wire );
+                // if ( chstatus==4 ) {
+                //   // good channel so ignore this match
+                //   continue;
+                // }
+                
+                if ( badch_v[other_plane].pixel( row, (int)i_other_wire)<1 ) {
+                  // good channel, so ignore                  
                   continue;
                 }
-              }
-            }
 
+                // otherwise pass, but in dead region
+                indead = true;                
+              }
+
+              other_wire_adc_v.push_back( other_adc );
+              
+            }// if use three-plane constraint
+
+            if ( indead )
+              n2plane++;
+            else
+              n3plane++;
+            
             // moving on, we store this combination
             
             tar_col_v.push_back( tarcol );
             within_bounds_target_v.push_back( target_index_v[idx] );
 
+            // === [ MC ] =========================
 	    if ( _has_mctruth && abs(tarcol-target_col)<=_positive_example_distance ) {
 	      // within positive example distance
 	      if ( !_use_soft_truth || tarcol==target_col ) {
@@ -333,7 +409,8 @@ namespace larflow {
               truth_v.push_back(0.0);
               _nfalse_pairs[i]++;              
             }
-          }
+            
+          }//end of loop over target columns for this row
           
           if ( matchable==1 ) {
             if ( _has_mctruth && nmatches!=1 ) {
@@ -349,7 +426,12 @@ namespace larflow {
           std::stringstream sstarcol;          
           if ( logger().debug() ) {
             sstarcol << "{ ";
-            for ( auto const& tarcol : tar_col_v ) sstarcol << tarcol << " ";
+            for ( size_t ii=0; ii<tar_col_v.size(); ii++ ) {
+              sstarcol << tar_col_v[ii];
+              if ( _use_3plane_constraint )
+                sstarcol << "(" << other_wire_adc_v[ii] << ")";
+              sstarcol << " ";
+            }
             sstarcol << "}";
           }
 
@@ -359,7 +441,7 @@ namespace larflow {
                           << " matchable=" << matchable
                           << " bounds=[" << umin << "," << umax << "]"
                           << std::endl;
-            LARCV_DEBUG() << "  has " << target_index_v.size() << " potential matches " << sstarcol.str()
+            LARCV_DEBUG() << "  has " << target_index_v.size() << " potential matches and " << tar_col_v.size() << " saved matches with " << sstarcol.str()
                           << "  and " << nmatches << " correct match" << std::endl;
           }
           matchmap.add_matchdata( ipt, within_bounds_target_v, truth_v );
@@ -376,6 +458,8 @@ namespace larflow {
     
     LARCV_INFO() << "number of true matches:  flow[0]=" << _ntrue_pairs[0]  << "  flow[1]=" << _ntrue_pairs[1]  << std::endl;
     LARCV_INFO() << "number of false matches: flow[0]=" << _nfalse_pairs[0] << "  flow[1]=" << _nfalse_pairs[1] << std::endl;
+    LARCV_INFO() << "number of three-plane matches: " << n3plane << std::endl;
+    LARCV_INFO() << "number of two-plane+dead region matches: " << n2plane << std::endl;
 
 
     LARCV_DEBUG() << "pass sparse images to iomanager" << std::endl;
@@ -484,7 +568,7 @@ namespace larflow {
 
         if ( (int)umin>=geo->Nwires(target_plane) ) umin = (float)geo->Nwires(target_plane)-1;
         if ( (int)umax>=geo->Nwires(target_plane) ) umax = (float)geo->Nwires(target_plane)-1;
-
+        
         _wire_bounds[i][isrc] = std::vector<int>{ (int)umin, (int)umax };
         //LARCV_DEBUG() << " src[" << isrc << "] -> plane[" << i << "]: (" << umin << "," << umax << ")" << std::endl;
       }

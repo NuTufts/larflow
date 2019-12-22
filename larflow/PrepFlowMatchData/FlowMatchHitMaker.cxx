@@ -84,14 +84,25 @@ namespace larflow {
 
     auto const& other_plane_status = ev_chstatus.Status( other_plane );
 
+    // choose threshold
+    float match_prob_threshold = 0.5;
+    // if (other_plane==2) 
+    //   match_prob_threshold = 0.1;
+
+    bool require_3plane = false;
+      
     // loop over each candidate match
+    int n_indead = 0;
+    int n_2plane = 0;
+    int n_3plane = 0;
+    int nrepeated = 0;
     for (int ipair=0; ipair<(int)pair_dims[1]; ipair++) {
 
       // score for this match
       float prob = probs_carray[0][ipair];
 
       // match threshold
-      if ( prob<0.5 ) continue;
+      if ( prob<match_prob_threshold ) continue;
 
       // get source and target index (in sparse image)
       int srcidx = matchpairs_carray[ipair][0];
@@ -108,11 +119,18 @@ namespace larflow {
       larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
       float tick = source_meta.pos_y( srcrow );
 
-      //std::cout << "pair[" << ipair << "] (t,y,z)=(" << tick << "," << y << "," << z << ") " << std::endl;
-
       Double_t pos[3] = { 0, y, z };
       float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
       float other_adc  = img_v[other_plane].pixel( srcrow, (int)other_wire );
+
+      std::vector<int> img_coords(3,0);
+      img_coords[ source_plane ] = srccol;
+      img_coords[ target_plane ] = tarcol;
+      img_coords[ other_plane  ] = (int)other_wire;
+
+      // std::cout << "pair[" << ipair << "] (t,y,z)=(" << tick << "," << y << "," << z << ") "
+      //           << "imgcoords=[" << img_coords[0] << "," << img_coords[1] << "," << img_coords[2] << "]"
+      //           << std::endl;
       //std::cout << "    otherplane=" << other_plane << std::endl;
 
       // determine if this is a valid point
@@ -124,17 +142,32 @@ namespace larflow {
         // if event chstatus pointer is not null, we check the ch status
         int chstatus = other_plane_status.Status( other_wire );
         if ( chstatus==4 ) {
-          // good + below threshold so we ignore this match
-          continue;
+          if ( require_3plane ) {
+            // good + below threshold so we ignore this match
+            continue;
+          }
+          else {
+            // accept anyway
+            n_2plane++;
+          }
         }
-        indead = true;
+        else {
+          // in dead, so accept
+          indead = true;
+          n_indead++;
+        }
+      }
+      else {
+        // all three planes have charge
+        n_3plane++;
       }
 
       // now look for the wire-triple in the match data list
-      std::vector<int> triple(3,0);
+      std::vector<int> triple(4,0);
       triple[ source_plane ] = srccol;
       triple[ target_plane ] = tarcol;
       triple[ other_plane  ] = int(other_wire);
+      triple[ 3 ] = (int)tick;
 
       //std::cout << "    triple=" << triple[0] << "," << triple[1] << "," << triple[2] << std::endl;
 
@@ -150,15 +183,23 @@ namespace larflow {
         _match_map[ triple ] = int(_matches_v.size())-1;
         it = _match_map.find( triple );
       }
+      else {
+        nrepeated++;
+      }
 
       auto& m = _matches_v.at( it->second );
       // set the score given here
-      if ( indead ) prob *= 0.5;
+      //if ( indead ) prob *= 0.5;
       m.set_score( source_plane, target_plane, prob );
 
     }//end of score loop
 
-    std::cout << "process match data. number of triples with match information: " << _match_map.size() << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+    std::cout << "process match data. " << std::endl;
+    std::cout << "  number of triples with match information: " << _match_map.size() << std::endl;
+    std::cout << "  number of: 3-plane=" << n_3plane << " 2-plane=" << n_2plane << " 2-plane+dead=" << n_indead << std::endl;
+    std::cout << "  num repeated: " << nrepeated << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
   }
 
   /*
@@ -174,6 +215,9 @@ namespace larflow {
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
     hit_v.reserve(maxsize);
     for ( auto const& m : _matches_v ) {
+
+      //std::cout << "[FlowMatchHitMaker::make_hits] tick=" << m.tyz[0] << " hit=(" << m.U << "," << m.V << "," << m.Y << ")" << std::endl;
+      
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
       hit.srcwire = m.Y;

@@ -58,16 +58,16 @@ namespace larflow {
 
       void set_score ( int source_plane, int target_plane, float prob ) {
         if ( source_plane==2 ) {
-          if ( target_plane==0 )      YU = prob;
-          else if ( target_plane==1 ) YV = prob;
+          if ( target_plane==0 && prob>YU )      YU = prob;
+          else if ( target_plane==1 && prob>YV ) YV = prob;
         }
         else if ( source_plane==1 ) {
-          if ( target_plane==0 )      VU = prob;
-          else if ( target_plane==2 ) VY = prob;
+          if ( target_plane==0 && prob>VU )      VU = prob;
+          else if ( target_plane==2 && prob>VY ) VY = prob;
         }
         else if ( source_plane==0 ) {
-          if ( target_plane==1 )      UV = prob;
-          else if ( target_plane==2 ) UY = prob;
+          if ( target_plane==1 && prob>UV )      UV = prob;
+          else if ( target_plane==2 && prob>UY ) UY = prob;
         };
       };
 

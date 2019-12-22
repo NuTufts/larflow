@@ -44,6 +44,7 @@ namespace larflow {
     void hasMCtruth( bool hasmc )  { _has_mctruth=hasmc; };
     void useSoftTruthVector( bool usesoft ) { _use_soft_truth = usesoft; };
     void useAnaTree( bool useana ) { _use_ana_tree=useana; };
+    void useGapCh( bool use=true ) { _use_gapch=use; };
 
     const std::vector<FlowMatchMap>& getMatchData() const;
 
@@ -59,6 +60,7 @@ namespace larflow {
     int         _source_plane;
     bool        _use_3plane_constraint;
     bool        _debug_detailed_output;
+    bool        _use_gapch;
     
     TTree* _ana_tree;
     std::vector< FlowMatchMap >* _matchdata_v;

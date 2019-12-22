@@ -20,6 +20,9 @@ message("python include: ${PYTHON_INCLUDE_PATH}")
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
 
+# ublarcvapp libs used
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
+
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
 target_include_directories(${LIBNAME}
@@ -27,13 +30,14 @@ target_include_directories(${LIBNAME}
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
   ${LARCV_INCLUDE_DIR}
   ${LARLITE_INC_DIRS}
+  ${UBLARCVAPP_INCLUDE_DIR}
   ${PYTHON_INCLUDE_PATH}
   ${NUMPY_INCLUDES}
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/mrcnnmatch
   ${PROJECT_SOURCE_DIR}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
+target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
 
 include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
