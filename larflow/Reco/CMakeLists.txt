@@ -3,9 +3,9 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h )
+set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h CRTMatch.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx )
+add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx CRTMatch.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
