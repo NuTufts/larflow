@@ -27,8 +27,8 @@ if __name__ == "__main__":
 
     criterion = SparseLArMatchLoss()
 
-    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
-    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/loose_positive_examples/larmatch_train_p00.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/loose_positive_examples/larmatch_train_p00.root"]
     device = torch.device("cpu")
     io = LArMatchDataset( input_larcv_files, input_ana_files, npairs=MAX_PAIRS_TESTED )
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     start = time.time()
     loss = criterion( match1, match2, truth1, truth2 )
-    print "loss calc time: ",time.time()-start," secs; loss=",loss
+    print "loss calc time: ",time.time()-start," secs; loss=",loss.item()
 
     start = time.time()
     loss.backward()

@@ -43,19 +43,22 @@ from loss_larmatch import SparseLArMatchLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="run1/checkpoint.30000th.tar"
+CHECKPOINT_FILE="run6/checkpoint.500000th.tar"
 
-TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_training_data/"
-INPUTFILE_TRAIN=["larmatch_larcv_train_p0.root","larmatch_larcv_train_p1.root"]
-INPUTANA_TRAIN=["larmatch_larcv_train_p0.root","larmatch_larcv_train_p1.root"]
-INPUTFILE_VALID=["larmatch_larcv_valid.root"]
-INPUTANA_VALID=["larmatch_larcv_valid.root"]
+TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_training_data/loose_positive_examples/"
+INPUTFILE_TRAIN=["larmatch_train_p00.root",
+                 "larmatch_train_p01.root",
+                 "larmatch_train_p02.root",
+                 "larmatch_train_p03.root",
+                 "larmatch_train_p04.root"]
+INPUTFILE_VALID=["larmatch_valid_p00.root",
+                 "larmatch_valid_p01.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 30001
-NUM_ITERS   = 200000
+START_ITER  = 500000
+NUM_ITERS   = 1000000
 TEST_NUM_MATCH_PAIRS = 20000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -86,7 +89,7 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=1000
+ITER_PER_CHECKPOINT=10000
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -136,7 +139,7 @@ def main():
     criterion = SparseLArMatchLoss()
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-5
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -150,6 +153,8 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), 
                                  lr=lr, 
                                  weight_decay=weight_decay)
+    if RESUME_FROM_CHECKPOINT:
+        optimizer.load_state_dict( checkpoint["optimizer"] )
 
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = False
