@@ -42,15 +42,15 @@ from loss_sparse_larflow import SparseLArFlow3DConsistencyLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.10000th.tar"
+CHECKPOINT_FILE="run1_checkpoints/checkpoint.41000th.tar"
 
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/sparse_larflow/prepsparsedata"
 #TRAIN_DATA_FOLDER="/tmp/"
 TRAIN_DATA_FOLDER="/home/twongj01/data/larflow_sparse_training_data/"
-INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v5.root",
-                 "larflow_sparsify_cropped_train2_v5.root",
-                 "larflow_sparsify_cropped_train3_v5.root"]
-INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v5.root"]
+INPUTFILE_TRAIN=["larflow_sparsify_cropped_train1_v2.root",
+                 "larflow_sparsify_cropped_train2_v2.root",
+                 "larflow_sparsify_cropped_train3_v2.root"]
+INPUTFILE_VALID=["larflow_sparsify_cropped_valid_v2.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
@@ -58,13 +58,13 @@ TICKBACKWARD=False
 START_ITER  = 0
 NUM_ITERS   = 50000
 
-BATCHSIZE_TRAIN=16 # batches per training iteration
+BATCHSIZE_TRAIN=32 # batches per training iteration
 BATCHSIZE_VALID=4  # batches per validation iteration
 NWORKERS_TRAIN=6   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
 
-NBATCHES_per_itertrain = 4
-NBATCHES_per_step      = 4 # if >1 we use gradient accumulation
+NBATCHES_per_itertrain = 2
+NBATCHES_per_step      = 2 # if >1 we use gradient accumulation
 trainbatches_per_print = -1
 
 NBATCHES_per_itervalid = 16
@@ -109,11 +109,11 @@ def main():
     imgdims = 2
     ninput_features  = 16
     noutput_features = 16
-    nplanes = 6
-    nfeatures_per_layer = [8,8,8,8,8,8]
+    nplanes = 8
+    nfeatures_per_layer = [8,8,8,8,8,8,8,8]
     flowdirs = ['y2u','y2v']
     
-    model = SparseLArFlow( (IMAGE_HEIGHT,IMAGE_WIDTH), imgdims,
+    model = SparseLArFlow( (1024,1024), imgdims,
                            ninput_features, noutput_features,
                            nplanes, features_per_layer=nfeatures_per_layer,
                            home_gpu=None, predict_classvec=PREDICT_CLASSVEC,
@@ -221,7 +221,7 @@ def main():
         #if GPUMODE:
         #    optimizer.cuda(GPUID)
 
-        for ii in range(START_ITER, NUM_ITERS):
+        for ii in range(START_ITER, START_ITER+NUM_ITERS):
 
             adjust_learning_rate(optimizer, ii, lr)
             print "MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),

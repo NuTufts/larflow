@@ -26,7 +26,8 @@ namespace reco {
     std::vector<cluster_t> findTrunkCandidates( const cluster_t& showerclust,
                                                 const std::vector<larcv::Image2D>& adc_v );
     
-
+    void dump2json( const std::vector<cluster_t>& shower_v, std::string outfile );
+    
   };
   
 

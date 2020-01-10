@@ -41,7 +41,7 @@ from loss_larmatch import SparseLArMatchLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="run6/checkpoint.500000th.tar"
 
@@ -57,8 +57,8 @@ TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 500000
-NUM_ITERS   = 1000000
+START_ITER  = 0
+NUM_ITERS   = 2000
 TEST_NUM_MATCH_PAIRS = 20000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -176,7 +176,7 @@ def main():
     print "Number of (training) Epochs to run: ",epochs    
     print "Iterations per epoch: ",iter_per_epoch
 
-    if False:
+    if True:
         print "passed setup successfully"
         sys.exit(0)
 
