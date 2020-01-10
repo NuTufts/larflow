@@ -181,8 +181,8 @@ class LArMatchDataset:
 if __name__ == "__main__":
 
 
-    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
-    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/larmatch_larcv_train_p0.root"]
+    input_larcv_files = ["/home/twongj01/data/larmatch_training_data/loose_positive_examples/larmatch_train_p00.root"]
+    input_ana_files   = ["/home/twongj01/data/larmatch_training_data/loose_positive_examples/larmatch_train_p00.root"]
     #input_larcv_files = ["test_larcv.root"]
     #input_ana_files   = ["ana_flowmatch_data.root"]
     device = torch.device("cpu")
