@@ -22,10 +22,11 @@ namespace reco {
     void process( larcv::IOManager& iolc, larlite::storage_manager& ioll );
 
 
-  protected:
-    
-    int split_clusters( std::vector<cluster_t>& cluster_v,
-                        const std::vector<larcv::Image2D>& adc_v );
+    static int split_clusters( std::vector<cluster_t>& cluster_v,
+                               const std::vector<larcv::Image2D>& adc_v,
+                               const float min_second_pca_len );
+
+  protected:    
     
     int merge_clusters( std::vector<cluster_t>& cluster_v,
                         const std::vector<larcv::Image2D>& adc_v,

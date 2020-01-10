@@ -37,6 +37,7 @@ checkpoint = torch.load( checkpointfile, map_location={"cuda:0":"cpu",
 NUM_PAIRS=20000
 ADC_PRODUCER="wire"
 CHSTATUS_PRODUCER="wire"
+USE_GAPCH=True
 DEVICE=torch.device("cpu")
 RETURN_TRUTH=False
 BATCHSIZE = 1
@@ -67,6 +68,8 @@ for source_plane in SOURCE_PLANE_LIST:
     
     preplarmatch[source_plane].setADCproducer(ADC_PRODUCER);
     preplarmatch[source_plane].setChStatusProducer(CHSTATUS_PRODUCER);
+    preplarmatch[source_plane].useGapCh(USE_GAPCH)
+    preplarmatch[source_plane].set_verbosity(0)
 
     preplarmatch[source_plane].initialize()
 
@@ -258,6 +261,7 @@ for ientry in range(NENTRIES):
                     #                                        srcmeta, adc_v, ev_badch,
                     #                                        evout )
                     prob_np = prob.detach().numpy().reshape( (1,pred_t.shape[-1]) )
+                    #prob_np[:] = 1.0 # hack to check
                     print("  add data to hitmaker(...). probshape=",prob_np.shape)
                     hitmaker.add_match_data( prob_np,
                                              source_np, target_np,
@@ -282,16 +286,18 @@ for ientry in range(NENTRIES):
     hitmaker.make_hits( ev_badch, evout_lfhits )
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits
+    print("number of hits made: ",evout_lfhits.size())
     print("make hits: ",dt_make_hits," secs")
     print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)    
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
     out.next_event(True)
-
+    #io.save_entry()
     io.clear_entry()
 
 print("Close output")
 out.close()
+io.finalize()
 
 print("DONE")

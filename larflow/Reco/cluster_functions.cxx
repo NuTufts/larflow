@@ -125,6 +125,63 @@ namespace reco {
       cluster.pca_ends_v[0][i] = cluster.pca_center[i] + cluster.pca_proj_v.front()*cluster.pca_axis_v[0][i];
       cluster.pca_ends_v[1][i] = cluster.pca_center[i] + cluster.pca_proj_v.back()*cluster.pca_axis_v[0][i];
     }
+
+    float len3 = 0;
+    std::vector<float> d3(3);    
+    for (int i=0; i<3; i++ ) {
+      d3[i] = cluster.pca_ends_v[1][i] - cluster.pca_ends_v[0][i];
+      len3 += d3[i]*d3[i];      
+    }
+    len3 = sqrt(len3);    
+    cluster.pca_len = len3;
+      
+    // define radius of each point to the pca-axis
+    float max_r = 0.;
+    float ave_r2 = 0.;
+    cluster.pca_radius_v.resize( ordered_v.size(), 0 );
+    for ( size_t i=0; i<ordered_v.size(); i++ ) {
+      // get distance of point from pca-axis
+      // http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+      std::vector<float>& pt = cluster.points_v[ ordered_v[i].idx ];
+
+      std::vector<float> d1(3);
+      std::vector<float> d2(3);
+
+      float len1 = 0.;
+      for (int i=0; i<3; i++ ) {
+        d1[i] = pt[i] - cluster.pca_ends_v[0][i];
+        d2[i] = pt[i] - cluster.pca_ends_v[1][i];
+        len1 += d1[i]*d1[i];
+      }
+      len1 = sqrt(len1);
+
+      if ( len3<1.0e-4 ) {
+        cluster.pca_radius_v[i] = len1;
+      }
+      else {
+
+        // cross-product
+        std::vector<float> d1xd2(3);
+        d1xd2[0] =  d1[1]*d2[2] - d1[2]*d2[1];
+        d1xd2[1] = -d1[0]*d2[2] + d1[2]*d2[0];
+        d1xd2[2] =  d1[0]*d2[1] - d1[1]*d2[0];
+        float len1x2 = 0.;
+        for ( int i=0; i<3; i++ ) {
+          len1x2 += d1xd2[i]*d1xd2[i];
+        }
+        len1x2 = sqrt(len1x2);
+        cluster.pca_radius_v[i]  = len3/len1x2; // distance of point from PCA-axis
+      }
+      ave_r2 += cluster.pca_radius_v[i]*cluster.pca_radius_v[i];
+      if ( max_r < cluster.pca_radius_v[i] )
+        max_r = cluster.pca_radius_v[i];
+      
+    }//end of loop over ordered points
+
+    ave_r2 = sqrt( ave_r2/cluster.pca_radius_v.size() );
+
+    cluster.pca_max_r  = max_r;
+    cluster.pca_ave_r2 = ave_r2;
     
     
   }
@@ -382,6 +439,35 @@ namespace reco {
     larlite::pcaxis llpca( true, c.points_v.size(), eigenval, e_v, centroid, 0, cidx );
 
     return llpca;
+  }
+
+
+  /**
+   * convert larflow cluster back into a cluster_t object.
+   *
+   * we assume that the larflowcluster was made using the tools in this module
+   *
+   */
+  cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster ) {
+
+    cluster_t c;
+    c.points_v.reserve( 2*lfcluster.size() );
+    c.imgcoord_v.reserve( 2*lfcluster.size() );
+    c.hitidx_v.reserve( 2*lfcluster.size() );
+    for ( auto const& lfhit : lfcluster ) {
+      std::vector<float> pos   = { lfhit[0], lfhit[1], lfhit[2] };
+      std::vector<int>   coord = { lfhit.targetwire[0],
+                                   lfhit.targetwire[1],
+                                   lfhit.targetwire[2],
+                                   lfhit.tick };
+      c.points_v.push_back( pos );
+      c.imgcoord_v.push_back( coord );
+      c.hitidx_v.push_back( (int)c.points_v.size()-1 );
+    }
+
+    cluster_pca( c );
+
+    return c;
   }
   
 }

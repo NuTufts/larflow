@@ -15,12 +15,12 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
     
-color_by_options = ["ssnet","charge","prob","dead","cluster"]
+color_by_options = ["ssnet","charge","prob","dead","cluster","shower"]
 colorscale = "Viridis"
 
-treename = "pcacluster"
 #inputfile = "larflow_reco.root"
-inputfile = "larflow_reco_extbnb_run3.root"
+#inputfile = "larflow_reco_extbnb_run3.root"
+inputfile = "larflow_cluster_eLEE_sample2.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( inputfile )
@@ -29,7 +29,7 @@ io.open()
 nentries = io.get_entries()
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,plotby="ssnet"):
+def make_figures(entry,plotby="ssnet", treenames=["pcacluster","lfshower"]):
     from larcv import larcv
     larcv.load_pyutil()
 
@@ -39,61 +39,70 @@ def make_figures(entry,plotby="ssnet"):
     global io
     io.go_to(entry)
 
-    evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
-    evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
-    nclusters = evclusters.size()
+    if plotby=="shower":
+        treenames = ["lfshower"]
 
-    cluster_traces_v = []
+    cluster_traces_v = []        
+    for treename in treenames:
+        evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
+        evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
+        nclusters = evclusters.size()
 
-    for icluster in xrange(nclusters):
+        print("[%s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
 
-        cluster = evclusters.at(icluster)
-        nhits = cluster.size()
 
-        if plotby in ["ssnet","cluster"]:
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
-        elif plotby=="charge":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wcharge( cluster )
-        elif plotby=="prob":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wprob( cluster )
-        elif plotby=="dead":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wdeadch( cluster )
+        for icluster in xrange(nclusters):
+
+            cluster = evclusters.at(icluster)
+            nhits = cluster.size()
+
+            if plotby in ["ssnet","cluster","shower"]:
+                pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
+            elif plotby=="charge":
+                pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wcharge( cluster )
+            elif plotby=="prob":
+                pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wprob( cluster )
+            elif plotby=="dead":
+                pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wdeadch( cluster )
         
-        if plotby in ["ssnet","charge","prob","dead"]:
-            colors = pts[:,3]
-        elif plotby in ["cluster"]:
-            r3 = np.random.randint(255,size=3)
-            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
-        clusterplot = {
-            "type":"scatter3d",
-            "x":pts[:,0],
-            "y":pts[:,1],
-            "z":pts[:,2],
-            "mode":"markers",
-            "name":"[%d]"%(icluster),
-            "marker":{"color":colors,"size":1,"colorscale":colorscale}
-        }
-        cluster_traces_v.append( clusterplot )
+            if plotby in ["ssnet","charge","prob","dead"]:
+                colors = pts[:,3]
+            elif plotby in ["cluster","shower"]:
+                r3 = np.random.randint(255,size=3)
+                colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
+                
+            clusterplot = {
+                "type":"scatter3d",
+                "x":pts[:,0],
+                "y":pts[:,1],
+                "z":pts[:,2],
+                "mode":"markers",
+                "name":"%s[%d]"%(treename,icluster),
+                "marker":{"color":colors,"size":1,"colorscale":colorscale}
+            }
+            cluster_traces_v.append( clusterplot )
 
-        # PCA-axis
-        llpca = evpcaxis.at(icluster)
+            # PCA-axis
+            llpca = evpcaxis.at( icluster )
 
-        pca_pts = np.zeros( (3,3) )
-        for i in range(3):
-            pca_pts[0,i] = llpca.getEigenVectors()[3][i]
-            pca_pts[1,i] = llpca.getAvePosition()[i]
-            pca_pts[2,i] = llpca.getEigenVectors()[4][i]
+            pca_pts = np.zeros( (3,3) )
+            for i in range(3):
+                pca_pts[0,i] = llpca.getEigenVectors()[3][i]
+                pca_pts[1,i] = llpca.getAvePosition()[i]
+                pca_pts[2,i] = llpca.getEigenVectors()[4][i]
             
-        pca_plot = {
-            "type":"scatter3d",
-            "x":pca_pts[:,0],
-            "y":pca_pts[:,1],
-            "z":pca_pts[:,2],
-            "mode":"lines",
-            "name":"pca[%d]"%(icluster),
-            "line":{"color":"rgb(255,255,255)","size":2}
-        }
-        cluster_traces_v.append( pca_plot )
+            pca_plot = {
+                "type":"scatter3d",
+                "x":pca_pts[:,0],
+                "y":pca_pts[:,1],
+                "z":pca_pts[:,2],
+                "mode":"lines",
+                "name":"%s-pca[%d]"%(treename,icluster),
+                "line":{"color":"rgb(255,255,255)","size":2}
+            }
+            cluster_traces_v.append( pca_plot )
+
+        # end of loop over treenames
 
     return cluster_traces_v
 
@@ -149,7 +158,8 @@ plotopt = dcc.Dropdown(
         {'label':'charge','value':'charge'},
         {'label':'prob','value':'prob'},
         {'label':'cluster','value':'cluster'},
-        {'label':'on dead channel','value':'dead'}],
+        {'label':'on dead channel','value':'dead'},
+        {'label':'shower-only','value':'shower'}],    
     value='ssnet',
     id='plotbyopt',
     )

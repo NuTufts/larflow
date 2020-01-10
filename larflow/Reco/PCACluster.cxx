@@ -13,6 +13,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <ctime>
+
 namespace larflow {
 namespace reco {
 
@@ -68,7 +70,7 @@ namespace reco {
     // we perform split functions on the track clusters
     int nsplit = 0;
     for (int ipass=0; ipass<3; ipass++ ) {
-      nsplit = split_clusters( cluster_track_v, adc_v );
+      nsplit = split_clusters( cluster_track_v, adc_v, 10.0 );
       std::cout << "splitting: pass[" << ipass << "] num split=" << nsplit << std::endl;      
       if (nsplit==0 ) break;
     }
@@ -115,28 +117,46 @@ namespace reco {
       evout_pcaxis->push_back( llpca );
       cidx++;
     }
-    for ( auto& c : cluster_shower_v ) {
-      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
-      evout_lfcluster->emplace_back( std::move(lfcluster) );
-      // pca-axis
-      larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
-      evout_pcaxis->push_back( llpca );
-      cidx++;      
-    }
+    // for ( auto& c : cluster_shower_v ) {
+    //   larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
+    //   evout_lfcluster->emplace_back( std::move(lfcluster) );
+    //   // pca-axis
+    //   larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
+    //   evout_pcaxis->push_back( llpca );
+    //   cidx++;      
+    // }
 
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_shower_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "lfshower" );
+    larlite::event_pcaxis*         evout_shower_pcaxis    = (larlite::event_pcaxis*)        ioll.get_data( larlite::data::kPCAxis,         "lfshower" );    
     //evout_shower_lfcluster->reserve( cluster_shower_v.size() );
+    cidx = 0;
     for ( auto& cluster : cluster_shower_v ) {
       larlite::larflowcluster lfcluster = makeLArFlowCluster( cluster, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, shower_hit_v );
       evout_shower_lfcluster->emplace_back( std::move(lfcluster) );
+      // pca-axis
+      larlite::pcaxis llpca = cluster_make_pcaxis( cluster, cidx );
+      evout_shower_pcaxis->push_back( llpca );
+      cidx++;
     }//end of cluster loop
     
   }
 
+  /* 
+   * split clusters using 2D contours.
+   * 
+   * Is a static function, allowing other routines to use this algorithm.
+   *
+   * @param[in] min_second_pca_len Minimum second PC axis eigenvalue to perform split. Else returns cluster as is.
+   *
+   */
   int PCACluster::split_clusters( std::vector<cluster_t>& cluster_v,
-                                  const std::vector<larcv::Image2D>& adc_v ) {
+                                  const std::vector<larcv::Image2D>& adc_v,
+                                  const float min_second_pca_len ) {
 
+    std::cout << "[PCACluster::split_clusters] start" << std::endl;
+    std::clock_t begin = std::clock();
+    
     // allocate output vector of clusters
     std::vector<cluster_t> out_v;
 
@@ -162,7 +182,7 @@ namespace reco {
                 << " [1]=" << clust.pca_eigenvalues[1]
                 << " [2]=" << clust.pca_eigenvalues[2]
                 << std::endl;
-      if ( clust.pca_eigenvalues[1]<10.0 ) {
+      if ( clust.pca_eigenvalues[1]<min_second_pca_len ) {
         // cluster is line-enough, just pass on
         out_v.emplace_back( std::move(clust) );
         continue;
@@ -206,10 +226,11 @@ namespace reco {
             //std::cout << "  icontour[" << ictr << "] pca not valid" << std::endl;
             continue;
           }
-          
+
+          // skip contours with a large 2nd pc-axis
           if ( contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)>5.0 ) continue;
           
-          // find max-dist from start-end of pca-axis
+          // find max-dist from start-end of pc-axis
           float pca_dist = 0;
           float dx = 0;
           for ( size_t i=0; i<2; i++ ) {
@@ -218,7 +239,7 @@ namespace reco {
             pca_dist += dx*dx;
           }
           pca_dist = sqrt(pca_dist);
-          std::cout << "  icontour[" << ictr << "] "
+          std::cout << "  icontour[" << ictr << "] plane=" << p 
                     << " pca-dist=" << pca_dist
                     << " eigenvals [0]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(0)
                     << " [1]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)
@@ -336,6 +357,11 @@ namespace reco {
 
     std::swap( out_v, cluster_v );
     //end of split cluster
+
+    std::clock_t end = std::clock();
+    float elapsed = float( end-begin )/CLOCKS_PER_SEC;
+    std::cout << "[PCACluster::split_clusters] end; elapsed=" << elapsed << " secs" << std::endl;
+
 
     return nsplit;
   }
