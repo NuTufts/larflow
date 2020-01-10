@@ -176,7 +176,7 @@ def main():
     print "Number of (training) Epochs to run: ",epochs    
     print "Iterations per epoch: ",iter_per_epoch
 
-    if True:
+    if False:
         print "passed setup successfully"
         sys.exit(0)
 
