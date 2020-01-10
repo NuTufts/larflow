@@ -29,7 +29,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 
 # tensorboardX
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 # dataset interface
 from larcvdataset.larcvserver import LArCVServer
