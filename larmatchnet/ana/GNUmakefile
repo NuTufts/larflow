@@ -10,7 +10,7 @@ CXXFLAGS+= -I$(LARFLOW_INCDIR)
 
 LDFLAGS= -L$(LARFLOW_LIBDIR) -lLArFlow_PrepFlowMatchData
 LDFLAGS+=`larlite-config --libs`
-LDFLAGS+=`larcv-config --libs`
+LDFLAGS+=`larcv-config --libs` -lLArCVCorePyUtil
 LDFLAGS+=`ublarcvapp-config --libs`
 LDFLAGS+=`root-config --libs`
 

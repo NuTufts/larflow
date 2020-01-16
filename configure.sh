@@ -42,9 +42,9 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 
 
 # SETUP CILANTRO
-export CILANTRO_INC_DIR=${LARFLOW_BASEDIR}/cilantro/include
-export CILANTRO_LIB_DIR=${LARFLOW_BASEDIR}/cilantro/build
-[[ ":$LD_LIBRARY_PATH:" != *":${CILANTRO_LIB_DIR}:"* ]] && LD_LIBRARY_PATH="${CILANTRO_LIB_DIR}:${LD_LIBRARY_PATH}"
+#export CILANTRO_INC_DIR=${LARFLOW_BASEDIR}/cilantro/include
+#export CILANTRO_LIB_DIR=${LARFLOW_BASEDIR}/cilantro/build
+#[[ ":$LD_LIBRARY_PATH:" != *":${CILANTRO_LIB_DIR}:"* ]] && LD_LIBRARY_PATH="${CILANTRO_LIB_DIR}:${LD_LIBRARY_PATH}"
 
 # SETUP EIGEN
 export EIGEN_INC_DIR=/usr/include/eigen3
