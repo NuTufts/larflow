@@ -70,15 +70,40 @@ namespace reco {
       };
     };
 
-
+    // list of nodes
     std::vector< Node_t > node_v;
+    std::vector< std::vector<int> > _unassigned_pixels_vv;
 
-    Node_t* findTrackID( int trackid );    
+    // number of planes
+    size_t _nplanes; // set when _scanPixelData is run
+
+    // search methods
+    Node_t* findTrackID( int trackid );
+
+    // print info methods
     void printAllNodeInfo();
     void printNodeInfo( const Node_t& node );
     std::string strNodeInfo( const Node_t& node );
+    void printGraph( Node_t* start_node=nullptr );
+
+    // get pixels
+    std::vector< std::vector<int> > getPixelsFromParticleAndDaughters( int trackid );
+
+    // graph traversal
+    std::vector<Node_t*> getNodeAndDescendentsFromTrackID( const int& trackid );
+    void recursiveGetNodeAndDescendents( Node_t* node, std::vector<Node_t*>& nodelist );
+
+    // get primary list
+    std::vector<Node_t*> getPrimaryParticles( bool exclude_neutrons=true );
+
+  protected:
+    
     void _recursivePrintGraph( Node_t* node, int& depth );
-    void printGraph();
+    void _scanPixelData( const std::vector<larcv::Image2D>& adc_v,
+                         const std::vector<larcv::Image2D>& segment_v,
+                         const std::vector<larcv::Image2D>& instance_v,
+                         const std::vector<larcv::Image2D>& ancestor_v,
+                         const std::vector<float> threshold_v );
     
   };
   

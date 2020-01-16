@@ -139,10 +139,19 @@ namespace reco {
       
     }//end of node loop
 
+    std::vector<float> threshold_v(adc_v.size(),10.0);
+    _scanPixelData( adc_v, segment_v, instance_v, ancestor_v, threshold_v );
+    
     //printAllNodeInfo();
     //printGraph();
   }
 
+  /**
+   * locate Node_t in node_v using trackid (from geant4)
+   *
+   * @return The node if found, nullptr if not found
+   *
+   */
   MCPixelPGraph::Node_t* MCPixelPGraph::findTrackID( int trackid ) {
     Node_t dummy;
     dummy.tid = trackid;
@@ -154,13 +163,23 @@ namespace reco {
     //std::cout << "find trackid=" << trackid << ": " << strNodeInfo( *it ) << std::endl;    
     return &*(it+0);
   }
-  
+
+  /**
+   * print node info for all nodes stored in node_v
+   *
+   */
   void MCPixelPGraph::printAllNodeInfo()  {
     for ( auto const& node : node_v ) {
       printNodeInfo(node);
     }
   }
 
+  /**
+   * create string with info from a given Node_t
+   *
+   * @param[in] node Note_t object to make info for.
+   *
+   */
   std::string MCPixelPGraph::strNodeInfo( const Node_t& node ) {
     std::stringstream ss;
     ss << "node[" << node.nodeidx << "," << &node << "] "
@@ -171,25 +190,41 @@ namespace reco {
        << " ndaughters=" << node.daughter_v.size()
        << " npixels=(";
     for ( size_t i=0; i<node.pix_vv.size(); i++ ) {
-      ss << node.pix_vv[i].size();
+      ss << node.pix_vv[i].size()/2;
       if ( i+1<node.pix_vv.size() ) ss << ", ";
     }
     ss << ")";
 
     return ss.str();
   }
-  
+
+  /**
+   * print Node_t info to standard out
+   *
+   * @param[in] node Node_t object to print info for.
+   *
+   */
   void MCPixelPGraph::printNodeInfo( const Node_t& node ) {
     std::cout << strNodeInfo(node) << std::endl;
   }
 
-  void MCPixelPGraph::printGraph() {
+  /**
+   * dump graph to standard out
+   *
+   */
+  void MCPixelPGraph::printGraph( Node_t* rootnode ) {
     //  here we go!
     std::cout << "=======[ MCPixelPGraph::printGraph ]==============" << std::endl;
     int depth = 0;
-    _recursivePrintGraph( &node_v.front(), depth );
+    if (rootnode==nullptr )
+      rootnode = &node_v.front();
+    _recursivePrintGraph( rootnode, depth );
   }
-  
+
+  /*
+   * internal recursive function that prints node info
+   *
+   */
   void MCPixelPGraph::_recursivePrintGraph( Node_t* node, int& depth ) {
     if ( depth<0 ) return; // we're done (error?)
     
@@ -210,6 +245,170 @@ namespace reco {
     --depth;
     return;
   }
+
+  /**
+   * internal method to scan the adc and truth images and fill pixel locations in the Node_t objects
+   *
+   */
+  void MCPixelPGraph::_scanPixelData( const std::vector<larcv::Image2D>& adc_v,
+                                      const std::vector<larcv::Image2D>& segment_v,
+                                      const std::vector<larcv::Image2D>& instance_v,
+                                      const std::vector<larcv::Image2D>& ancestor_v,
+                                      const std::vector<float> threshold_v ) {
+
+    _nplanes = adc_v.size();
+
+    // need to check that images have same meta (they should!)
+    
+    // loop through nodes and setup pixel arrays    
+    for (auto& node : node_v ) {
+      node.pix_vv.resize(_nplanes);
+      for ( size_t p=0; p<_nplanes; p++ ) {
+        node.pix_vv[p].clear();
+      }
+    }
+
+    // track how efficient we were in assigning owner to pixel
+    std::vector<int> nabove_thresh(_nplanes,0); // all pixels (some will be cosmic with no truth of course)
+    std::vector<int> nabove_thresh_withlabel(_nplanes,0); // pixels with labels
+    std::vector<int> nassigned(_nplanes,0);               // assignable to node in node_v
+    _unassigned_pixels_vv.clear();
+    _unassigned_pixels_vv.resize(_nplanes);
+    
+    // loop through images, store pixels into graph nodes
+    for ( size_t p=0; p<_nplanes; p++ ) {
+
+      _unassigned_pixels_vv[p].clear();
+
+      auto const& meta = adc_v[p].meta();
+      const float threshold = threshold_v[p];
       
+      for (size_t r=0; r<meta.rows(); r++) {
+        int tick = (int)meta.pos_y(r);
+        for (size_t c=0; c<meta.cols(); c++ ) {
+          int wire = (int)meta.pos_x(c);
+
+          float adc = adc_v[p].pixel(r,c);
+          if ( adc<threshold )
+            continue;
+
+          nabove_thresh[p]++;
+          
+          // above threshold, now lets find instance or ancestor
+          int tid = instance_v[p].pixel(r,c);
+          int aid = ancestor_v[p].pixel(r,c);
+
+          if ( tid>0 || aid>0 )
+            nabove_thresh_withlabel[p]++;
+
+          Node_t* node = nullptr;
+
+          if ( tid>0 ) {
+            // first we use the instance ID          
+            node = findTrackID( tid );
+          }
+
+          // use ancestor if we could not find the node
+          if ( !node && aid>0) {
+            node = findTrackID( aid );
+          }
+
+          if ( node ) {
+            nassigned[p]++;
+            node->pix_vv[p].push_back( tick );
+            node->pix_vv[p].push_back( wire );
+          }
+          else {
+            _unassigned_pixels_vv[p].push_back( tick );
+            _unassigned_pixels_vv[p].push_back( wire );
+          }
+          
+        }//end of loop over columns
+      }//end of loop over rows
+    }//end of loop over planes
+
+    std::cout << "[MCPixelPGraph::_scanPixelData]" << std::endl;
+    for (size_t p=0; p<_nplanes; p++ ) {
+      std::cout << " plane[" << p << "]"
+                << " num above threshold=" << nabove_thresh[p]
+                << " and with label=" << nabove_thresh_withlabel[p]
+                << " num assigned=" << nassigned[p];
+      if ( nabove_thresh_withlabel[p]>0 )
+        std::cout << " fraction=" << float(nassigned[p])/float(nabove_thresh_withlabel[p]);
+      std::cout << std::endl;
+    }
+  }
+
+  /**
+   * get pixels associated with node and its descendents
+   * 
+   */
+  std::vector< std::vector<int> > MCPixelPGraph::getPixelsFromParticleAndDaughters( int trackid ) {
+    std::vector< std::vector<int> > pixels_vv(_nplanes);
+
+    std::vector<MCPixelPGraph::Node_t*> nodelist = getNodeAndDescendentsFromTrackID( trackid );
+    for ( auto const& pnode : nodelist ) {
+      for ( size_t p=0; p<3; p++ ) {
+        if ( pnode->pix_vv[p].size()>0 ) {
+          pixels_vv[p].insert( pixels_vv[p].end(), pnode->pix_vv[p].begin(), pnode->pix_vv[p].end() );
+        }
+      }
+    }
+
+    return pixels_vv;    
+  }
+
+  /**
+   * get list of Nodes_t that are decendents of the given trackID
+   *
+   *
+   */
+  std::vector<MCPixelPGraph::Node_t*> MCPixelPGraph::getNodeAndDescendentsFromTrackID( const int& trackid ) {
+    std::vector<MCPixelPGraph::Node_t*> nodelist;
+
+    Node_t* rootnode = findTrackID( trackid );
+    if ( rootnode==nullptr )
+      return nodelist;
+
+    nodelist.push_back( rootnode );
+    recursiveGetNodeAndDescendents( rootnode, nodelist );
+    return nodelist;
+  }
+
+  /**
+   * recursively get list of Nodes_t that are descendents of the given Node_t*
+   *
+   * follows depth-first traversal
+   */
+  void MCPixelPGraph::recursiveGetNodeAndDescendents( Node_t* node, std::vector<Node_t*>& nodelist ) {
+    if ( node==nullptr ) return;
+    for ( auto& pdaughter : node->daughter_v ) {
+      nodelist.push_back( pdaughter );
+      recursiveGetNodeAndDescendents( pdaughter, nodelist );
+    }
+    return;
+  }
+
+  /**
+   * get list of primary particles
+   *
+   * by default, neutrons are excluded
+   *
+   */
+  std::vector<MCPixelPGraph::Node_t*> MCPixelPGraph::getPrimaryParticles( bool exclude_neutrons ) {
+    std::vector<Node_t*> nodelist;
+    Node_t* rootnode = &node_v[0];
+    for ( auto& node : node_v ) {
+      if ( node.mother==rootnode ) {
+        // primary
+        if ( !exclude_neutrons || node.pid!=2212 ) {
+          nodelist.push_back( &node );
+        }
+      }
+    }
+    return nodelist;      
+  }
+  
+
 }
 }
