@@ -29,7 +29,7 @@ int main( int nargs, char** argv ) {
   larlite::storage_manager ioll( larlite::storage_manager::kREAD );
   ioll.add_in_filename( "../test/merged_dlreco_eLEE_sample2.root" );
   ioll.add_in_filename( "../test/larmatch_eLEE_sample2.root" );
-  ioll.add_in_filename( "../test/larflow_cluster_eLEE_sample2.root" );
+  ioll.add_in_filename( "../test/larflow_cluster_eLEE_sample2_full.root" );
   ioll.open();
 
   larcv::IOManager iolcv( larcv::IOManager::kREAD, "iolcv", larcv::IOManager::kTickBackward );
@@ -44,6 +44,24 @@ int main( int nargs, char** argv ) {
 
   std::cout << "Num entries: " << nentries << std::endl;
 
+  TFile* out = new TFile("out_ana_showercluster.root","recreate");
+
+  TTree* truthmatchana = new TTree("truthmatchana","Info for best Truth-Matched Cluster");
+  int entry;
+  float EnuMeV;
+  float EeMeV;
+  int   cluster_max_truthpix;
+  int   cluster_max_recopix;  
+  float cluster_max_truthfraction;
+  float truetrunk_pix_planeave;
+  truthmatchana->Branch( "entry",  &entry,  "entry/I" );  
+  truthmatchana->Branch( "EnuMeV", &EnuMeV, "ENuMeV/F" );
+  truthmatchana->Branch( "EeMeV",  &EeMeV,  "EeMeV/F" );
+  truthmatchana->Branch( "cluster_max_recopix",       &cluster_max_recopix,       "cluster_max_recopix/I" );  
+  truthmatchana->Branch( "cluster_max_truthpix",      &cluster_max_truthpix,      "cluster_max_truthpix/I" );
+  truthmatchana->Branch( "cluster_max_truthfraction", &cluster_max_truthfraction, "cluster_max_truthfraction/F" );
+  truthmatchana->Branch( "truetrunk_pix_planeave",    &truetrunk_pix_planeave,    "truetrunk_pix_planeave/F" );
+
   larflow::reco::MCPixelPGraph mcpg;
 
   for ( int ientry=0; ientry<nentries; ientry++ ) {
@@ -51,6 +69,8 @@ int main( int nargs, char** argv ) {
     std::cout << "===============" << std::endl;
     std::cout << " Entry " << ientry << std::endl;
     std::cout << "===============" << std::endl;
+
+    entry = ientry;
 
     // load entry
     ioll.go_to(ientry);
@@ -89,13 +109,23 @@ int main( int nargs, char** argv ) {
     // we build a set of (tick,wire) pairs for look up reasons
     std::set< std::pair<int,int> > electron_pixels_vv[3];
 
+    truetrunk_pix_planeave = 0.;
+    int nplane_w_truth = 0;
     for ( size_t p=0; p<3; p++ ) {
+
       int ntruthpixels = prim_electron->pix_vv[p].size()/2;
+      truetrunk_pix_planeave += (float)ntruthpixels;
+      if ( ntruthpixels>0 )
+        nplane_w_truth++;
+      
       for ( int ipix=0; ipix<ntruthpixels; ipix++ ) {
         int tick = prim_electron->pix_vv[p][ 2*ipix ];
         int wire = prim_electron->pix_vv[p][ 2*ipix+1 ];
         electron_pixels_vv[p].insert( std::pair<int,int>(tick,wire) );
       }
+
+      if ( nplane_w_truth>0 )
+        truetrunk_pix_planeave /= (float)nplane_w_truth;
     }
 
     // get truth info for primary electron
@@ -106,12 +136,14 @@ int main( int nargs, char** argv ) {
     double profE = mcshower_v->at( prim_electron->vidx ).DetProfile().E();
     double stepE = mcshower_v->at( prim_electron->vidx ).Start().E();
     std::cout << "truth shower profileE=" << profE << " MeV stepE=" << stepE << " MeV" << std::endl;
+    EeMeV = profE;
 
     // neutrino energy
     const larlite::mctruth& mctruth
       = ((larlite::event_mctruth*)ioll.get_data(larlite::data::kMCTruth,"generator"))->front();
     float trueNuE = mctruth.GetNeutrino().Nu().Trajectory().front().E()*1000.0;
     std::cout << "truth neutrino energy= " << trueNuE << " MeV" << std::endl;
+    EnuMeV = trueNuE;
 
     // loop over clusters, get the fraction that lie on truth pixels
     // for larflow, might make mistakes, so 2 of 3 planes must be on pixels
@@ -148,16 +180,33 @@ int main( int nargs, char** argv ) {
         max_cluster = i;
       }
     }
+    if ( max_cluster>=0 ) {
+      cluster_max_truthpix = max_pixels;
+      cluster_max_truthfraction = truth_fraction_v[max_cluster];
+      cluster_max_recopix  = (int)shower_cluster_v[max_cluster].imgcoord_v.size();
+    }
+    else {
+      cluster_max_truthpix = 0;
+      cluster_max_recopix  = 0;
+      cluster_max_truthfraction = 0.0;
+    }
+        
 
     std::cout << "--------------------------------------------------------------------------" << std::endl;
     std::cout << "Max shower reco cluster=" << max_cluster
               << " max pixels in cluster=" << max_pixels
               << " fraction=" << truth_fraction_v[max_cluster]
               << std::endl;
-    std::cout << "--------------------------------------------------------------------------" << std::endl;    
+    std::cout << "--------------------------------------------------------------------------" << std::endl;
+
+    truthmatchana->Fill();
     
   }
 
+  truthmatchana->Write();
+
+  out->Close();
+  
   return 0;
   
 }
