@@ -22,6 +22,7 @@
 #pragma link C++ class larflow::reco::PyLArFlow+;
 #pragma link C++ class larflow::reco::ShowerReco+;
 #pragma link C++ class larflow::reco::MCPixelPGraph+;
+#pragma link C++ class larflow::reco::VertexCandidate+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;

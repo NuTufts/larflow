@@ -2,7 +2,6 @@
 
 #include <fstream>
 
-#include "nlohmann/json.hpp"
 #include "ublarcvapp/dbscan/DBScan.h"
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
 #include <cilantro/principal_component_analysis.hpp>
@@ -60,12 +59,26 @@ namespace reco {
   void cluster_pca( cluster_t& cluster ) {
 
     //std::cout << "[cluster_pca]" << std::endl;
+    cluster.bbox_v.resize(3);
+    for (size_t i=0; i<3; i++ ) {
+      cluster.bbox_v[i].resize(2,0);
+      cluster.bbox_v[i][0] = 1.0e9;  // initial min value
+      cluster.bbox_v[i][1] = -1.0e9; // initial max value
+    }
     
     std::vector< Eigen::Vector3f > eigen_v;
     eigen_v.reserve( cluster.points_v.size() );
     for ( auto const& hit : cluster.points_v ) {
+      // store values for PCA 
       eigen_v.push_back( Eigen::Vector3f( hit[0], hit[1], hit[2] ) );
+      // also determine axis-aligned bounding box values
+      for (int i=0; i<3; i++ ) {
+        if ( hit[i]<cluster.bbox_v[i][0] ) cluster.bbox_v[i][0] = hit[i];
+        if ( hit[i]>cluster.bbox_v[i][1] ) cluster.bbox_v[i][1] = hit[i];
+      }
     }
+
+    
     cilantro::PrincipalComponentAnalysis3f pca( eigen_v );
     cluster.pca_center.resize(3,0);
     cluster.pca_eigenvalues.resize(3,0);
@@ -203,30 +216,40 @@ namespace reco {
 
     for ( auto const& cluster : cluster_v ) {
       //std::cout << "cluster: nhits=" << cluster.points_v.size() << std::endl;
-      nlohmann::json jcluster;
-      jcluster["hits"] = cluster.points_v;
-
-      // save start, center, end of pca to make line
-      std::vector< std::vector<float> > pca_points(3);
-      for (int i=0; i<3; i++ )
-        pca_points[i].resize(3,0);
-
-      //std::cout << "cluster: s_min=" << cluster.pca_proj_v.front() << " s_max=" << cluster.pca_proj_v.back() << std::endl;
-      
-      for (int i=0; i<3; i++ ) {
-        pca_points[0][i] = cluster.pca_ends_v[0][i] - 5.0*cluster.pca_axis_v[0][i];
-        pca_points[1][i] = cluster.pca_center[i];
-        pca_points[2][i] = cluster.pca_ends_v[1][i] + 5.0*cluster.pca_axis_v[0][i];
-      }
-      jcluster["pca"] = pca_points;
-
+      nlohmann::json jcluster = cluster_json(cluster);
       j["clusters"].emplace_back( std::move(jcluster) );      
     }
-
+    
     std::ofstream o(outfilename.c_str());
     j >> o;
     o.close();
   }
+
+  /**
+   * convert cluster into json object
+   * 
+   * usually for easy export
+   *
+   */
+  nlohmann::json cluster_json( const cluster_t& cluster ) {
+
+    nlohmann::json jcluster;
+    jcluster["hits"] = cluster.points_v;
+
+    // save start, center, end of pca to make line
+    std::vector< std::vector<float> > pca_points(3);
+    for (int i=0; i<3; i++ )
+      pca_points[i].resize(3,0);
+
+    for (int i=0; i<3; i++ ) {
+      pca_points[0][i] = cluster.pca_ends_v[0][i] - 5.0*cluster.pca_axis_v[0][i];
+      pca_points[1][i] = cluster.pca_center[i];
+      pca_points[2][i] = cluster.pca_ends_v[1][i] + 5.0*cluster.pca_axis_v[0][i];
+    }
+    jcluster["pca"] = pca_points;
+    return jcluster;
+  }
+    
 
   /**
    * we split larflow points by projecting into planes and getting scores
@@ -345,7 +368,7 @@ namespace reco {
   }
 
   /**
-   * calculate closest distance between end points
+   * calculate closest distance between end points using simple distance between points
    *
    */
   float cluster_closest_endpt_dist( const cluster_t& clust_a, const cluster_t& clust_b,
@@ -399,6 +422,10 @@ namespace reco {
     return cospca;
   }
 
+  /**
+   * make a new cluster that is a combination of two clusters
+   *
+   */
   cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b ) {
     // copy first
     cluster_t merge = clust_a;
