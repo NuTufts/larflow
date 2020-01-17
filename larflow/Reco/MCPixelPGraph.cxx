@@ -1,6 +1,7 @@
 #include "MCPixelPGraph.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/DataFormatTypes.h"
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
 
@@ -68,12 +69,12 @@ namespace reco {
     for (int vidx=0; vidx<(int)shower_v.size(); vidx++ ) {
       const larlite::mcshower& mcsh = shower_v[vidx];
 
-      // std::cout << "shower[" << vidx << "] origin=" << mcsh.Origin()
-      //           << " tid=" << mcsh.TrackID()
-      //           << " mid=" << mcsh.MotherTrackID()
-      //           << " aid=" << mcsh.AncestorTrackID()
-      //           << " pid=" << mcsh.PdgCode()
-      //           << std::endl;
+      std::cout << "shower[" << vidx << "] origin=" << mcsh.Origin()
+                << " tid=" << mcsh.TrackID()
+                << " mid=" << mcsh.MotherTrackID()
+                << " aid=" << mcsh.AncestorTrackID()
+                << " pid=" << mcsh.PdgCode()
+                << std::endl;
       
       if ( mcsh.Origin()==1 ) {
         // neutrino origin
@@ -274,6 +275,8 @@ namespace reco {
     std::vector<int> nassigned(_nplanes,0);               // assignable to node in node_v
     _unassigned_pixels_vv.clear();
     _unassigned_pixels_vv.resize(_nplanes);
+
+    std::set<int> shower_ancestor_ids;
     
     // loop through images, store pixels into graph nodes
     for ( size_t p=0; p<_nplanes; p++ ) {
@@ -297,9 +300,14 @@ namespace reco {
           // above threshold, now lets find instance or ancestor
           int tid = instance_v[p].pixel(r,c);
           int aid = ancestor_v[p].pixel(r,c);
+          int seg = segment_v[p].pixel(r,c);
 
           if ( tid>0 || aid>0 )
             nabove_thresh_withlabel[p]++;
+
+          if ( seg==(int)larcv::kROIEminus || seg==(int)larcv::kROIGamma ) {
+            shower_ancestor_ids.insert( aid );
+          }
 
           Node_t* node = nullptr;
 
@@ -337,6 +345,11 @@ namespace reco {
         std::cout << " fraction=" << float(nassigned[p])/float(nabove_thresh_withlabel[p]);
       std::cout << std::endl;
     }
+    std::cout << "  ancestor list from all shower pixels: [";
+    for ( auto& aid : shower_ancestor_ids )
+      std::cout << aid << " ";
+    std::cout << "]" << std::endl;
+    
   }
 
   /**

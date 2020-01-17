@@ -43,11 +43,10 @@ for ientry in xrange( nentries ):
         print " image[",p,"] ",adc_v[p].meta().dump()
     
     # make histogram
-    hist_v = []
+    hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
     for ih in xrange(adc_v.size()):
-        h = larcv.rootutils.as_th2d( adc_v[ih], "hentry%d_plane%d"%(ientry,ih) )
+        h = hist_v[ih]
         h.GetZaxis().SetRangeUser(0,100)
-        hist_v.append(h)
 
     mcpg.buildgraph( iolcv, ioll )
     #mcpg.printAllNodeInfo()
