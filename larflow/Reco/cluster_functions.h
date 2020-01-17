@@ -66,6 +66,10 @@ namespace reco {
 
   cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster );
   
+  std::vector<float> cluster_pixelsum( const cluster_t& cluster,
+                                       const std::vector<larcv::Image2D>& img_v  );
+  
+  
 }
 }
 

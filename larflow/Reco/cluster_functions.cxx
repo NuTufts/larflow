@@ -469,6 +469,38 @@ namespace reco {
 
     return c;
   }
+
+  /*
+   * project hits into the ADC image and get the total pixel sum for each plane
+   *
+   */
+  std::vector<float> cluster_pixelsum( const cluster_t& cluster,
+                                       const std::vector<larcv::Image2D>& img_v  ) {
+    
+    std::vector<float> cluster_adc(3,0.0);
+
+    std::vector<larcv::Image2D> blank_v;
+    for (auto const& img : img_v ) {
+      larcv::Image2D blank(img.meta());
+      blank.paint(0);
+      blank_v.emplace_back( std::move(blank) );
+    }
+
+    for ( size_t ihit=0; ihit<cluster.imgcoord_v.size(); ihit++ ) {
+      int row = img_v[0].meta().row( cluster.imgcoord_v[ihit][3], __FILE__, __LINE__ );
+      for ( size_t p=0; p<img_v.size(); p++ ) {
+        int col = img_v[p].meta().col( cluster.imgcoord_v[ihit][p], __FILE__, __LINE__ );
+        float used   = blank_v[p].pixel(row,col);
+        if ( used<1.0 ) {
+          float pixval = img_v[p].pixel(row,col);
+          cluster_adc[p] += pixval;
+          // mark it to not be reused
+          blank_v[p].set_pixel(row,col,10.0);
+        }
+      }
+    }
+    return cluster_adc;
+  }
   
 }
 }

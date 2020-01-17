@@ -3,6 +3,7 @@
 #include <set>
 
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflowcluster.h"
@@ -53,6 +54,7 @@ int main( int nargs, char** argv ) {
   int   cluster_max_truthpix;
   int   cluster_max_recopix;  
   float cluster_max_truthfraction;
+  float cluster_max_pixelsum[3];
   float truetrunk_pix_planeave;
   truthmatchana->Branch( "entry",  &entry,  "entry/I" );  
   truthmatchana->Branch( "EnuMeV", &EnuMeV, "ENuMeV/F" );
@@ -60,6 +62,7 @@ int main( int nargs, char** argv ) {
   truthmatchana->Branch( "cluster_max_recopix",       &cluster_max_recopix,       "cluster_max_recopix/I" );  
   truthmatchana->Branch( "cluster_max_truthpix",      &cluster_max_truthpix,      "cluster_max_truthpix/I" );
   truthmatchana->Branch( "cluster_max_truthfraction", &cluster_max_truthfraction, "cluster_max_truthfraction/F" );
+  truthmatchana->Branch( "cluster_max_pixelsum",      cluster_max_pixelsum,       "cluster_max_pixelsum[3]/F" );  
   truthmatchana->Branch( "truetrunk_pix_planeave",    &truetrunk_pix_planeave,    "truetrunk_pix_planeave/F" );
 
   larflow::reco::MCPixelPGraph mcpg;
@@ -90,6 +93,10 @@ int main( int nargs, char** argv ) {
       larflow::reco::cluster_t c = larflow::reco::cluster_from_larflowcluster( lfcluster );
       shower_cluster_v.emplace_back( std::move(c) );
     }
+
+    // get ADC images
+    larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->Image2DArray();
 
     // we are after the primary electron, get it's data
     std::vector<larflow::reco::MCPixelPGraph::Node_t*> nodelist
@@ -184,11 +191,14 @@ int main( int nargs, char** argv ) {
       cluster_max_truthpix = max_pixels;
       cluster_max_truthfraction = truth_fraction_v[max_cluster];
       cluster_max_recopix  = (int)shower_cluster_v[max_cluster].imgcoord_v.size();
+      std::vector<float> pixsum = larflow::reco::cluster_pixelsum( shower_cluster_v[max_cluster], adc_v );
+      for (int i=0; i<3; i++ ) cluster_max_pixelsum[i] = pixsum[i];
     }
     else {
       cluster_max_truthpix = 0;
       cluster_max_recopix  = 0;
       cluster_max_truthfraction = 0.0;
+      for (int i=0; i<3; i++ ) cluster_max_pixelsum[i] = 0.;
     }
         
 
