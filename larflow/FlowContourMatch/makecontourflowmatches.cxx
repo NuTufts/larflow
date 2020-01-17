@@ -351,8 +351,8 @@ namespace larflow {
       
       TCanvas c("cflow","FlowContourMatch",1400,600);
       c.Divide(2,1);
-      TH2D hadc_source = larcv::as_th2d( src_adc_full, "hadc_source" );
-      TH2D hadc_target = larcv::as_th2d( tar_adc_full, "hadc_target" );
+      TH2D hadc_source = larcv::rootutils::as_th2d( src_adc_full, "hadc_source" );
+      TH2D hadc_target = larcv::rootutils::as_th2d( tar_adc_full, "hadc_target" );
       TGraph gsrcpts( vis_row[0].size(), vis_col[0].data(), vis_row[0].data() );
       TGraph gtarpts( vis_row[1].size(), vis_col[1].data(), vis_row[1].data() );
       TGraph gtarcontourpts( vis_col[2].size(), vis_col[2].data(), vis_row[1].data() );
@@ -395,13 +395,13 @@ namespace larflow {
       ccheck.Divide(3,1);
       ccheck.Draw();
       ccheck.cd(1);
-      TH2D hsrc_crop = larcv::as_th2d( src_adc_crop, "hsrc_crop" );
+      TH2D hsrc_crop = larcv::rootutils::as_th2d( src_adc_crop, "hsrc_crop" );
       hsrc_crop.Draw("colz");
       ccheck.cd(2);
-      TH2D htar_crop = larcv::as_th2d( tar_adc_crop, "htar_crop" );
+      TH2D htar_crop = larcv::rootutils::as_th2d( tar_adc_crop, "htar_crop" );
       htar_crop.Draw("colz");
       ccheck.cd(3);
-      TH2D hflow_crop = larcv::as_th2d( flow_img_crop, "hflow_crop" );
+      TH2D hflow_crop = larcv::rootutils::as_th2d( flow_img_crop, "hflow_crop" );
       //hflow_crop.GetZaxis()->SetRangeUser(-832,832);      
       hflow_crop.Draw("colz");
       ccheck.Update();
