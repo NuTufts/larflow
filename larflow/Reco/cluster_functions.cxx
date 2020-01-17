@@ -170,7 +170,7 @@ namespace reco {
           len1x2 += d1xd2[i]*d1xd2[i];
         }
         len1x2 = sqrt(len1x2);
-        cluster.pca_radius_v[i]  = len3/len1x2; // distance of point from PCA-axis
+        cluster.pca_radius_v[i]  = len1x2/len3; // distance of point from PCA-axis
       }
       ave_r2 += cluster.pca_radius_v[i]*cluster.pca_radius_v[i];
       if ( max_r < cluster.pca_radius_v[i] )
