@@ -4,12 +4,14 @@
 #include "larcv/core/DataFormat/DataFormatTypes.h"
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
+#include "DataFormat/mctruth.h"
 
 namespace larflow {
 namespace reco {
 
   void MCPixelPGraph::buildgraph( larcv::IOManager& iolcv,
                                   larlite::storage_manager& ioll ) {
+    
     larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     larcv::EventImage2D* ev_seg = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
     larcv::EventImage2D* ev_ins = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
@@ -17,12 +19,13 @@ namespace reco {
 
     larlite::event_mctrack*  ev_mctrack  = (larlite::event_mctrack*) ioll.get_data( larlite::data::kMCTrack,  "mcreco" );
     larlite::event_mcshower* ev_mcshower = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
+    larlite::event_mctruth*  ev_mctruth  = (larlite::event_mctruth*) ioll.get_data( larlite::data::kMCTruth,  "generator" );
 
     buildgraph( ev_adc->Image2DArray(),
                 ev_seg->Image2DArray(),
                 ev_ins->Image2DArray(),
                 ev_anc->Image2DArray(),
-                *ev_mcshower, *ev_mctrack );
+                *ev_mcshower, *ev_mctrack, *ev_mctruth );
   }
   
   void MCPixelPGraph::buildgraph( const std::vector<larcv::Image2D>& adc_v,
@@ -30,7 +33,8 @@ namespace reco {
                                   const std::vector<larcv::Image2D>& instance_v,
                                   const std::vector<larcv::Image2D>& ancestor_v,
                                   const larlite::event_mcshower& shower_v,
-                                  const larlite::event_mctrack&  track_v ) {
+                                  const larlite::event_mctrack&  track_v,
+                                  const larlite::event_mctruth&  mctruth_v ) {
 
     // how do we build this graph?
     // we want to order N
@@ -46,6 +50,17 @@ namespace reco {
 
     // Create ROOT node
     Node_t neutrino ( node_v.size(), -1, 0, 0, -1 );
+
+    // if there is a neutrino, then we add the start position
+    if ( mctruth_v.size()>0 ) {
+      const larlite::mctruth& mct = mctruth_v.front();
+      neutrino.E_MeV = mct.GetNeutrino().Nu().Trajectory().front().E()*1000.0;
+      neutrino.start.resize(3);
+      neutrino.start[0] = mct.GetNeutrino().Nu().Trajectory().front().X();
+      neutrino.start[1] = mct.GetNeutrino().Nu().Trajectory().front().Y();
+      neutrino.start[2] = mct.GetNeutrino().Nu().Trajectory().front().Z();
+    }
+    
     node_v.emplace_back( std::move(neutrino) );
 
     for (int vidx=0; vidx<(int)track_v.size(); vidx++ ) {
@@ -67,6 +82,12 @@ namespace reco {
         else if ( mct.PdgCode()==2112 ) tracknode.E_MeV -= 940.0;
         else if ( abs(mct.PdgCode())==13 )   tracknode.E_MeV -= 105.;
         else if ( abs(mct.PdgCode())==211 )  tracknode.E_MeV -= 135.;
+
+        tracknode.start.resize(3);
+        tracknode.start[0] = mct.Start().X();
+        tracknode.start[1] = mct.Start().Y();
+        tracknode.start[2] = mct.Start().Z();        
+        
         node_v.emplace_back( std::move(tracknode) );
       }
     }
@@ -85,6 +106,11 @@ namespace reco {
         // neutrino origin
         Node_t showernode( node_v.size(), 1, mcsh.TrackID(), vidx, mcsh.PdgCode() );
         showernode.E_MeV = mcsh.Start().E();
+        showernode.start.resize(3);
+        showernode.start[0] = mcsh.Start().X();
+        showernode.start[1] = mcsh.Start().Y();
+        showernode.start[2] = mcsh.Start().Z();
+        
         node_v.emplace_back( std::move(showernode) );
       }
     }
@@ -194,6 +220,7 @@ namespace reco {
        << " trackid=" << node.tid
        << " pdg=" << node.pid
        << " KE=" << node.E_MeV << " MeV"
+       << " start=(" << node.start[0] << "," << node.start[1] << "," << node.start[2] << ")"
        << " (mid,mother)=(" << node.mid << "," << node.mother << ") "
        << " ndaughters=" << node.daughter_v.size()
        << " npixels=(";

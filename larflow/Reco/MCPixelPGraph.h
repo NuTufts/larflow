@@ -30,7 +30,8 @@ namespace reco {
                      const std::vector<larcv::Image2D>& instance_v,
                      const std::vector<larcv::Image2D>& ancestor_v,
                      const larlite::event_mcshower& shower_v,
-                     const larlite::event_mctrack&  track_v );
+                     const larlite::event_mctrack&  track_v,
+                     const larlite::event_mctruth&  mctruth_v );
 
 
     struct Node_t {
@@ -45,6 +46,7 @@ namespace reco {
       std::vector<int>      daughter_idx_v; // daughter node indices in node_v
       std::vector<Node_t*>  daughter_v;     // pointer to daughters 
       std::vector< std::vector<int> > pix_vv; // pixels in each plane. pixels stored in (row,col)
+      std::vector<float> start;
 
       Node_t()
       : nodeidx(-1),
@@ -54,7 +56,8 @@ namespace reco {
         pid(-1),
         mother(nullptr),
         mid(-1),
-        E_MeV(-1.0)
+        E_MeV(-1.0),
+        start({0,0,0})
       {};
         
       Node_t(int _nodeidx, int _type, int _tid, int _vidx, int _pid, Node_t* _mother=nullptr, int _mid=-1, float _energy=-1.0 )
@@ -65,7 +68,8 @@ namespace reco {
         pid(_pid),
         mother(_mother),
         mid(_mid),
-        E_MeV(_energy)
+        E_MeV(_energy),
+        start({0,0,0})
       {};
 
       bool operator<( const Node_t& rhs ) const {
