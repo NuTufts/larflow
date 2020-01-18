@@ -40,7 +40,8 @@ namespace reco {
       int tid;        // geant4 track-ID
       int pid;        // particle ID
       Node_t* mother; // pointer to Mother Node_t
-      int mid;        // mother nodeidx      
+      int mid;        // mother nodeidx
+      float E_MeV;    // energy
       std::vector<int>      daughter_idx_v; // daughter node indices in node_v
       std::vector<Node_t*>  daughter_v;     // pointer to daughters 
       std::vector< std::vector<int> > pix_vv; // pixels in each plane. pixels stored in (row,col)
@@ -52,17 +53,20 @@ namespace reco {
         vidx(-1),
         pid(-1),
         mother(nullptr),
-        mid(-1)
+        mid(-1),
+        E_MeV(-1.0)
       {};
         
-      Node_t(int _nodeidx, int _type, int _tid, int _vidx, int _pid, Node_t* _mother=nullptr, int _mid=-1 )
+      Node_t(int _nodeidx, int _type, int _tid, int _vidx, int _pid, Node_t* _mother=nullptr, int _mid=-1, float _energy=-1.0 )
       : nodeidx(_nodeidx),
         type(_type),
         tid(_tid),
         vidx(_vidx),
         pid(_pid),
         mother(_mother),
-        mid(_mid) {};
+        mid(_mid),
+        E_MeV(_energy)
+      {};
 
       bool operator<( const Node_t& rhs ) const {
         if ( tid < rhs.tid ) return true;

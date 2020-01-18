@@ -10,7 +10,7 @@ print larflow.reco.cluster_t
 print larflow.reco.cluster_larflow3dhits
 
 ientry = 0
-max_entries = 3
+max_entries = None
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 #io.add_in_filename( "larmatch-testfile.root" )
@@ -31,7 +31,7 @@ iolcv.initialize()
 pcacluster = larflow.reco.PCACluster()
 
 nentries = iolcv.get_n_entries()
-if nentries>max_entries:
+if max_entries is not None and nentries>max_entries:
     nentries = max_entries
     
 io.next_event()

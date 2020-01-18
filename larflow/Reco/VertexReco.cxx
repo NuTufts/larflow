@@ -3,9 +3,31 @@
 #include "TVector3.h"
 #include <fstream>
 
+#include "larcv/core/DataFormat/EventImage2D.h"
+#include "DataFormat/larflowcluster.h"
+
 namespace larflow {
 namespace reco {
 
+  std::vector<VertexReco::Candidate_t> VertexReco::findVertices( larcv::IOManager& iolcv,
+                                                                 larlite::storage_manager& ioll ) {
+    
+    larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    
+    larlite::event_larflowcluster* ev_lftrack
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
+    larlite::event_larflowcluster* ev_lfshower
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "lfshower" );
+    
+    std::vector<VertexReco::Candidate_t> trackshower_vtx_v = trackShowerIntersections( *ev_lftrack,
+                                                                                       *ev_lfshower,
+                                                                                       ev_adc->Image2DArray(),
+                                                                                       10.0,
+                                                                                       10.0 );
+
+    return trackshower_vtx_v;
+  }
+  
   std::vector<VertexReco::Candidate_t> VertexReco::trackShowerIntersections( const larlite::event_larflowcluster& lftrack_v,
                                                                              const larlite::event_larflowcluster& lfshower_v,
                                                                              const std::vector<larcv::Image2D>& adc_v,
@@ -77,6 +99,8 @@ namespace reco {
         
       }
     }
+
+    dumpCandidates2json( candidate_v, "out_prototype_vertex.json" );
 
     return candidate_v;
   }

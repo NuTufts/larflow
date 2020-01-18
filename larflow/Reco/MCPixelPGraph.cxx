@@ -62,6 +62,11 @@ namespace reco {
       if ( mct.Origin()==1 ) {
         // neutrino origin
         Node_t tracknode( node_v.size(), 0, mct.TrackID(), vidx, mct.PdgCode() );
+        tracknode.E_MeV = mct.Start().E();
+        if ( mct.PdgCode()==2212 ) tracknode.E_MeV -= 938.0;
+        else if ( mct.PdgCode()==2112 ) tracknode.E_MeV -= 940.0;
+        else if ( abs(mct.PdgCode())==13 )   tracknode.E_MeV -= 105.;
+        else if ( abs(mct.PdgCode())==211 )  tracknode.E_MeV -= 135.;
         node_v.emplace_back( std::move(tracknode) );
       }
     }
@@ -79,6 +84,7 @@ namespace reco {
       if ( mcsh.Origin()==1 ) {
         // neutrino origin
         Node_t showernode( node_v.size(), 1, mcsh.TrackID(), vidx, mcsh.PdgCode() );
+        showernode.E_MeV = mcsh.Start().E();
         node_v.emplace_back( std::move(showernode) );
       }
     }
@@ -187,6 +193,7 @@ namespace reco {
        << " (type,vidx)=(" << node.type << "," << node.vidx << ") "
        << " trackid=" << node.tid
        << " pdg=" << node.pid
+       << " KE=" << node.E_MeV << " MeV"
        << " (mid,mother)=(" << node.mid << "," << node.mother << ") "
        << " ndaughters=" << node.daughter_v.size()
        << " npixels=(";
