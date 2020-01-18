@@ -51,12 +51,15 @@ for jvertex in jvertices:
             "z":hit_np[:,2],
             "mode":"markers",
             "name":"c",
-            "marker":{"color":colors[ic],"size":1,"opacity":0.3}}
-
+            "marker":{"color":colors[ jvertex["cluster_types"][ic] ],"size":1,"opacity":0.3}}
+        
+        traces3d.append( cluster_plot )
+        
         line_np = np.zeros( (3,3) )
         for ihit in xrange(3):
             for i in xrange(3):
                 line_np[ihit,i] = cluster["pca"][ihit][i]
+        
                 
         pca_plot = {
             "type":"scatter3d",
@@ -66,21 +69,19 @@ for jvertex in jvertices:
             "mode":"lines",
             "name":"pca",
             "line":{"color":"rgb(255,255,255)","size":2} }
-
-        vertex_plot = {
-            "type":"scatter3d",
-            "x":[jvertex["pos"][0]],
-            "y":[jvertex["pos"][1]],
-            "z":[jvertex["pos"][2]],
-            "mode":"markers",
-            "name":"vtx",
-            "marker":{"color":"rgb(0,0,0)","size":4,"opacity":1.0} }
-
-        print("vertex pos: ",jvertex["pos"])
-        
-        traces3d.append( cluster_plot )
         traces3d.append( pca_plot )
-        traces3d.append( vertex_plot )
+    
+    vertex_plot = {
+        "type":"scatter3d",
+        "x":[jvertex["pos"][0]],
+        "y":[jvertex["pos"][1]],
+        "z":[jvertex["pos"][2]],
+        "mode":"markers",
+        "name":"vtx",
+        "marker":{"color":"rgb(0,0,0)","size":4,"opacity":1.0} }
+
+    print("vertex pos: ",jvertex["pos"])
+    traces3d.append( vertex_plot )
         
         
 app = dash.Dash(

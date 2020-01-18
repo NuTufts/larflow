@@ -242,9 +242,9 @@ namespace reco {
       pca_points[i].resize(3,0);
 
     for (int i=0; i<3; i++ ) {
-      pca_points[0][i] = cluster.pca_ends_v[0][i] - 5.0*cluster.pca_axis_v[0][i];
+      pca_points[0][i] = cluster.pca_ends_v[0][i];// - 5.0*cluster.pca_axis_v[0][i];
       pca_points[1][i] = cluster.pca_center[i];
-      pca_points[2][i] = cluster.pca_ends_v[1][i] + 5.0*cluster.pca_axis_v[0][i];
+      pca_points[2][i] = cluster.pca_ends_v[1][i];// + 5.0*cluster.pca_axis_v[0][i];
     }
     jcluster["pca"] = pca_points;
     return jcluster;

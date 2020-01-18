@@ -57,8 +57,14 @@ namespace reco {
       // enforce min size
       if ( shower.points_v.size()<10 ) continue;
 
+      // create a candidate
+      Candidate_t vtx;
+      vtx.type = kUnconnectedTrackShower;
+      vtx.cluster_v.push_back( shower );
+      vtx.prong_v.push_back( kShowerProng );
+          
       for ( auto const& track : track_v ) {
-        if ( track.points_v.size()<10 ) continue;
+        if ( track.points_v.size()<10 || track.pca_len<3.0 ) continue;
 
         // test for closest ends
         std::vector< std::vector<float> > endpts;
@@ -80,26 +86,31 @@ namespace reco {
         TVector3 axb = a.Cross(b);
         float linelinedist = fabs(c.Dot(axb))/axb.Mag();
 
-        if ( endptdist < 10.0 && linelinedist < 5.0 ) {
+        if ( endptdist < 5.0 && linelinedist < 5.0 ) {
 
-          // create a candidate
-          Candidate_t vtx;
+          // add prong to candidate
           if ( endptdist<1.0 )
             vtx.type = kConnectedTrackShower;
-          else
-            vtx.type = kUnconnectedTrackShower;
-          vtx.pos.resize(3);
-          for (int i=0; i<3; i++ ) vtx.pos[i] = 0.5*( endpts[0][i]+endpts[1][i] ); // mid point of closest line for now.
-          vtx.cluster_v.push_back( track );
-          vtx.cluster_v.push_back( shower );          
-          vtx.prong_v = { kTrackProng, kShowerProng };
 
-          candidate_v.emplace_back( std::move(vtx) );
+          if ( vtx.pos.size()==0 ) {
+            // set for first time
+            vtx.pos.resize(3);
+            for (int i=0; i<3; i++ ) vtx.pos[i] = 0.5*( endpts[0][i]+endpts[1][i] ); // mid point of closest line for now.
+          }
+          vtx.cluster_v.push_back( track );
+
+          vtx.prong_v.push_back( kTrackProng );
+
         }
         
+      }//end of track loop
+      
+      // save if we have more than the shower in the cluster
+      if ( vtx.cluster_v.size()>1 ) {
+        candidate_v.emplace_back( std::move(vtx) );
       }
     }
-
+    
     dumpCandidates2json( candidate_v, "out_prototype_vertex.json" );
 
     return candidate_v;
@@ -115,11 +126,18 @@ namespace reco {
       nlohmann::json jvtx;
 
       std::vector< nlohmann::json > jcluster_v;
+      std::vector<int>              ctype_v(vtx.cluster_v.size());
+      int ii=0;
       for ( auto const& cluster: vtx.cluster_v ) {
         jcluster_v.push_back( cluster_json(cluster) );
+        if ( vtx.prong_v[ii]==kTrackProng ) ctype_v[ii] = 0;
+        else if ( vtx.prong_v[ii]==kShowerProng ) ctype_v[ii] = 1;
+        else ctype_v[ii] = 2;
+        ii++;
       }
       jvtx["clusters"] = jcluster_v;
       jvtx["pos"]      = vtx.pos;
+      jvtx["cluster_types"] = ctype_v;
 
       jvtx_v.emplace_back( std::move(jvtx) );
     }
