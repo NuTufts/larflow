@@ -49,6 +49,16 @@ namespace reco {
                                                        const float max_end_dist,
                                                        const float max_inter_dist );
 
+    std::vector<Candidate_t> trackShowerIntersections( const std::vector<cluster_t>& track_v,
+                                                       const std::vector<cluster_t>& shower_v,
+                                                       const std::vector<larcv::Image2D>& adc_v,
+                                                       const float max_end_dist,
+                                                       const float max_inter_dist );
+
+    std::vector< Candidate_t > showerEndActivity( const std::vector<cluster_t>& track_v,
+                                                  const std::vector<cluster_t>& shower_v,
+                                                  const std::vector<larcv::Image2D>& adc_v );
+
     void dumpCandidates2json( const std::vector< Candidate_t >& vtx_v, std::string outfile );
     
   };

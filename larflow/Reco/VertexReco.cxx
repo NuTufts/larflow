@@ -18,9 +18,24 @@ namespace reco {
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
     larlite::event_larflowcluster* ev_lfshower
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "lfshower" );
+
+    // convert track and shower back to cluster_t
+    std::vector<cluster_t> shower_v;
+    std::vector<cluster_t> track_v;
     
-    std::vector<VertexReco::Candidate_t> trackshower_vtx_v = trackShowerIntersections( *ev_lftrack,
-                                                                                       *ev_lfshower,
+    for ( auto const& lfc : *ev_lftrack ) {
+      cluster_t cluster = cluster_from_larflowcluster( lfc );
+      track_v.emplace_back( std::move(cluster) );
+    }
+    
+    for ( auto const& lfc : *ev_lfshower ) {
+      cluster_t cluster = cluster_from_larflowcluster( lfc );
+      shower_v.emplace_back( std::move(cluster) );
+    }
+
+    
+    std::vector<VertexReco::Candidate_t> trackshower_vtx_v = trackShowerIntersections( track_v,
+                                                                                       shower_v,
                                                                                        ev_adc->Image2DArray(),
                                                                                        10.0,
                                                                                        10.0 );
@@ -33,21 +48,32 @@ namespace reco {
                                                                              const std::vector<larcv::Image2D>& adc_v,
                                                                              const float max_end_dist,
                                                                              const float max_inter_dist ) {
-    std::vector<Candidate_t> candidate_v;
-
     // convert track and shower back to cluster_t
     std::vector<cluster_t> shower_v;
     std::vector<cluster_t> track_v;
-
+    
     for ( auto const& lfc : lftrack_v ) {
       cluster_t cluster = cluster_from_larflowcluster( lfc );
       track_v.emplace_back( std::move(cluster) );
     }
-
+    
     for ( auto const& lfc : lfshower_v ) {
       cluster_t cluster = cluster_from_larflowcluster( lfc );
       shower_v.emplace_back( std::move(cluster) );
     }
+
+    return trackShowerIntersections( track_v, shower_v, adc_v, max_end_dist, max_inter_dist );
+
+  }
+
+  
+  std::vector<VertexReco::Candidate_t> VertexReco::trackShowerIntersections( const std::vector<cluster_t>& track_v,
+                                                                             const std::vector<cluster_t>& shower_v,
+                                                                             const std::vector<larcv::Image2D>& adc_v,
+                                                                             const float max_end_dist,
+                                                                             const float max_inter_dist ) {
+    std::vector<Candidate_t> candidate_v;
+
 
     // ok, look at each shower, test against each track cluster
     // shitty N^2. Maybe we enforce hit size
@@ -112,6 +138,25 @@ namespace reco {
     }
     
     dumpCandidates2json( candidate_v, "out_prototype_vertex.json" );
+
+    return candidate_v;
+  }
+
+  std::vector< VertexReco::Candidate_t > VertexReco::showerEndActivity( const std::vector<cluster_t>& track_v,
+                                                                        const std::vector<cluster_t>& shower_v,
+                                                                        const std::vector<larcv::Image2D>& adc_v ) {
+    std::vector<Candidate_t> candidate_v;
+
+    // project both pca-line ends into all planes
+    // in each plane, find maximum pixel
+    // sum pixel values in box in each plane
+    // are any of these really the end point?
+    // can make (3*2)/2=3 3d points. is it certain distance to pca-ends?
+    // finally, need to argue that points around vertex end, is empty, excluding attached cluster
+    //   - each point, find cluster 3d vertex point is in.
+    //   - excluding this cluster + shower cluster, no more than X other-cluster points can be near activity point
+    //     though dont count points with Y cm from 3D point (so its a 3D shell of points must be empty)
+    // finish this, then can try to see what efficiency is.
 
     return candidate_v;
   }
