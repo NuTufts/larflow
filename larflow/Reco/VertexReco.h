@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "nlohmann/json.hpp"
+
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 
@@ -59,7 +61,19 @@ namespace reco {
                                                   const std::vector<cluster_t>& shower_v,
                                                   const std::vector<larcv::Image2D>& adc_v );
 
+    std::vector< cluster_t > _mergeShowerClusters( const std::vector<cluster_t>& shower_v,
+                                                   const float max_endpt_dist );
+    std::vector< cluster_t > _mergeShowerAndTrackClusters( const std::vector<cluster_t>& shower_v,
+                                                           const std::vector<cluster_t>& track_v );
+    
+    std::vector<float> _findMaxChargePixel( const std::vector<float>& pt3d,
+                                            const larcv::Image2D& adc,
+                                            const int boxradius,
+                                            const float pixel_threshold );
+    
+
     void dumpCandidates2json( const std::vector< Candidate_t >& vtx_v, std::string outfile );
+    nlohmann::json dump2json( const std::vector< VertexReco::Candidate_t >& vtx_v );    
     
   };
   

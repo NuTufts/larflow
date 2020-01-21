@@ -62,6 +62,8 @@ namespace reco {
 
   float cluster_closest_endpt_dist( const cluster_t& clusta, const cluster_t& clust_b,
                                     std::vector< std::vector<float> >& endpts );
+
+  bool cluster_endpt_in_bbox( const cluster_t& clust_a, const cluster_t& clust_b );
   
   float cluster_cospca( const cluster_t& clusta, const cluster_t& clustb );
 

@@ -409,6 +409,35 @@ namespace reco {
     return mindist;
   }
 
+  /**
+   * one of the end pts are in the bounding box
+   *
+   */
+  bool cluster_endpt_in_bbox( const cluster_t& clust_a, const cluster_t& clust_b ) {
+
+    bool a_in_b = false;
+    bool b_in_a = false;
+    for (int iend=0; iend<2; iend++) {
+      int dims_inside = 0;
+      for (int i=0; i<3; i++ ) {
+        if ( clust_a.pca_ends_v[iend][i]>=clust_b.bbox_v[i][0] && clust_a.pca_ends_v[iend][i]<=clust_b.bbox_v[i][1] )
+          dims_inside++;
+      }
+      if ( dims_inside==3 )
+        a_in_b = true;
+      
+      dims_inside = 0;
+      for (int i=0; i<3; i++ ) {
+        if ( clust_b.pca_ends_v[iend][i]>=clust_a.bbox_v[i][0] && clust_b.pca_ends_v[iend][i]<=clust_a.bbox_v[i][1] )
+          dims_inside++;
+      }
+      if ( dims_inside==3 )
+        b_in_a = true;
+    }
+
+    return a_in_b || b_in_a;
+  }
+
   /** 
    * calculate cosine between first PCA axis of two clusters
    */

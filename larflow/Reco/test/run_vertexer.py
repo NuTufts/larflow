@@ -30,12 +30,13 @@ vtx_reco = larflow.reco.VertexReco()
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
 nentries = 1
+start_entry = 3
 
 print "Start loop."
 
 outio.next_event()
-for ientry in xrange( nentries ):
-
+for ientry in xrange( start_entry, start_entry+nentries ):
+    print "[ RUN ENTRY ",ientry," ]"
     io.go_to(ientry)    
     iolcv.read_entry(ientry)
 

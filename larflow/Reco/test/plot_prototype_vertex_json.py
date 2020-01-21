@@ -80,7 +80,7 @@ for jvertex in jvertices:
         "name":"vtx",
         "marker":{"color":"rgb(0,0,0)","size":4,"opacity":1.0} }
 
-    print("vertex pos: ",jvertex["pos"])
+    print("vertex [type ",jvertex["type"],"] pos: ",jvertex["pos"])
     traces3d.append( vertex_plot )
         
         
