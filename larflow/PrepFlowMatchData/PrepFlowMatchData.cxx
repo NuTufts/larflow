@@ -9,6 +9,7 @@
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
 #include <sstream>
+#include <ctime>
 
 namespace larflow {
 
@@ -21,6 +22,12 @@ namespace larflow {
   // ---------------------------------------------------------
   // PREP FLOW MATCH MAP CLASS
 
+  /**
+   * constructor
+   *
+   * @param[in] instance_name Provide unique name to instance
+   *
+   */
   PrepFlowMatchData::PrepFlowMatchData( std::string instance_name )
     : larcv::ProcessBase(instance_name),
     _input_adc_producername(""),
@@ -37,6 +44,12 @@ namespace larflow {
     _ana_tree(nullptr)
   {}
 
+  /**
+   * configure the class
+   *
+   * @param[in] pset configurtion block
+   *
+   */
   void PrepFlowMatchData::configure( const larcv::PSet& pset ) {
 
     // the source plane index
@@ -71,11 +84,23 @@ namespace larflow {
     useAnaTree(true);
   }
 
+  /** 
+   * initialize class
+   *
+   * sets up ana tree which outputs the prepdata and loads list of overlapping wires
+   *
+   */
   void PrepFlowMatchData::initialize() {
     _setup_ana_tree();
     _extract_wire_overlap_bounds();
+    _pbadch_v.clear();
   }
 
+  /**
+   * return collection of wire matches
+   *    * only run after having run PrepFlowMatchData::process
+   *
+   */
   const std::vector<FlowMatchMap>& PrepFlowMatchData::getMatchData() const {
     if ( _matchdata_v==nullptr ) {
       LARCV_CRITICAL() << "Need to initialize class first." << std::endl;
@@ -83,7 +108,52 @@ namespace larflow {
     }
     return *_matchdata_v;
   }
+
+  /**
+   * return a name associated to each flow direction
+   *
+   */
+  std::string PrepFlowMatchData::getFlowDirName( FlowDir_t flowdir ) {
+    switch( flowdir ) {
+    case kU2V:
+      return "u2v";
+      break;
+    case kU2Y:
+      return "u2y";
+      break;
+    case kV2U:
+      return "v2u";
+      break;
+    case kV2Y:
+      return "v2y";
+      break;
+    case kY2U:
+      return "y2u";
+      break;
+    case kY2V:
+      return "y2v";
+      break;
+    case kNumFlows:
+      return "allflows";
+      break;
+    default:
+      throw std::runtime_error("invalid flow direction");
+      break;
+    }
+    return "oh-oh";
+  }
   
+  /** 
+   * make cross-plane pixel match candidates for one event
+   *
+   * to run this code, one needs an IOManager with the following trees
+   *  - ADC image
+   *  - True flow images (made using uboonecode::Supera)
+   *  - Channel Status class (info will be augmented with empty channels as well)
+   *
+   * @param[in] mgr LArCV data interface containing the event data
+   *
+   */
   bool PrepFlowMatchData::process( larcv::IOManager& mgr ) {
     // first we sparsify data,
     // then for each flow direction,
@@ -110,21 +180,28 @@ namespace larflow {
     // make sparse image for the source ADC + 2 x (true flow + matachabilitity)+weights+nchoice,
     //  + 2 x sparse target images
 
-    // goes into function eventually
+    // Define source plane and target planes. Get associated ADC images.
     int srcindex        = _source_plane;
     int target_index[2] = { _target_planes[_flowdirs[0]],
                             _target_planes[_flowdirs[1]] };
     int flow_index[2]   = { (int)_flowdirs[0], (int)_flowdirs[1] }; // Y->U, Y->V
 
     auto const& srcimg = ev_adc->Image2DArray().at(srcindex);
-    const larcv::Image2D* tarimg[2] = { &ev_adc->Image2DArray().at(target_index[0]),
-                                        &ev_adc->Image2DArray().at(target_index[1]) };
+    std::vector<const larcv::Image2D*> tarimg = { &ev_adc->Image2DArray().at(target_index[0]),
+                                                  &ev_adc->Image2DArray().at(target_index[1]) };
+    std::vector<const larcv::Image2D*> flowimg_v(2,nullptr);
+    if ( _has_mctruth ) {
+      for (int i=0; i<2; i++ ) 
+        flowimg_v[i] = &(ev_flow->Image2DArray().at(flow_index[i]));
+    }
 
+    // Make both bad channel and gap channel images
     ublarcvapp::EmptyChannelAlgo empty_algo;
     std::vector<larcv::Image2D> badch_v;
     std::vector<larcv::Image2D> gapch_v;
 
-    if ( ev_chstatus ) {
+    if ( ev_chstatus && _pbadch_v.size()==0 ) {
+      std::clock_t begin_badch = std::clock();
       badch_v = empty_algo.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, *ev_chstatus );
       LARCV_INFO() << "Made Bad Channel Image: " << badch_v.front().meta().dump() << std::endl;      
       if ( _use_gapch ) {
@@ -140,59 +217,34 @@ namespace larflow {
         }
         LARCV_INFO() << "Made Gap Channel Image: " << gapch_v.front().meta().dump() << std::endl;
       }
+      // save the prepare bad/gap channel image to the manager
       larcv::EventImage2D* ev_badchout = (larcv::EventImage2D*)mgr.get_data( larcv::kProductImage2D, "prepflowbadch" );
       if ( ev_badchout->Image2DArray().size()==0 ) {
         for ( auto& badch : badch_v )
           ev_badchout->Append( badch );
       }
+      std::clock_t end_badch = std::clock();
+      LARCV_INFO() << "Time elapsed to make and store bad channel image: " << float(end_badch-begin_badch)/float(CLOCKS_PER_SEC) << std::endl;
+      provideBadChannelImages( badch_v );
     }
     else {
-      LARCV_INFO() << "Not making badch or gapch images" << std::endl;
+      if ( _pbadch_v.size()>0 )
+        LARCV_INFO() << "Badch images already provided." << std::endl;
+      else
+        LARCV_INFO() << "Not making badch or gapch images" << std::endl;
     }
     
     
-
     // create matchability image
     std::vector<larcv::Image2D> matchability_v;
     if ( _has_mctruth )  {
-      for ( size_t i=0; i<2; i++ ) {
+      std::clock_t begin_match = std::clock();
+      _makeMatchabilityImage( srcimg, tarimg, flowimg_v, matchability_v );
+      std::clock_t end_match   = std::clock();
+      LARCV_INFO() << "Time to make matchability images: " << float(end_match-begin_match)/float(CLOCKS_PER_SEC);
+    }
 
-        LARCV_DEBUG() << "make matchability image for flowdir=" << i << std::endl;
-      
-        larcv::Image2D matchability( srcimg.meta() );
-        matchability.paint(0.0);
-        
-        auto const& tar     = *tarimg[i];
-        auto const& flowimg = ev_flow->Image2DArray().at( flow_index[i] );
-        
-        // we check matchability of flow.  does flow go into a dead region?
-        for ( size_t c=0; c<srcimg.meta().cols(); c++ ) {
-          for ( size_t r=0; r<srcimg.meta().rows(); r++ ) {
-            float adc = srcimg.pixel(r,c,__FILE__,__LINE__);
-            if ( adc<10.0 ) continue;
-            float flow = flowimg.pixel(r,c,__FILE__,__LINE__);
-            
-            if ( flow<=-4000) continue;
-            
-            int target_col = (int)c + (int)flow;
-            
-            int hastarget = 1;
-            if ( target_col<0 || target_col>=(int)tar.meta().cols() )
-              hastarget = 0;
-            else if ( tar.pixel( r, target_col,__FILE__,__LINE__ )<10.0 )
-              hastarget = 0;
-            
-            if ( hastarget==1 )
-              matchability.set_pixel(r,c,1.0);
-            
-          }
-        }//end of col loop
-        
-        matchability_v.emplace_back( std::move(matchability) );
-      }
-    }//end of has truth
-
-    // Now make sparse images
+    // Make sparse images
 
     // Source Image: combined with features [adc,trueflow1,trueflow2,matchable1,matchable2]
     std::vector< const larcv::Image2D* > img_v;
@@ -250,7 +302,7 @@ namespace larflow {
     for (int i=0; i<2; i++ ) {
 
       LARCV_DEBUG() << "make match map: flowdir=" << i << std::endl;
-      
+      std::clock_t begin_matchmap = std::clock();
 
       auto& sparsesrc = spimg_v[0];
       auto& sptar     = spimg_v[1+i];
@@ -266,6 +318,8 @@ namespace larflow {
       FlowMatchMap matchmap( source_plane, target_plane );      
       
       // first, we scan the target sparse image, making a map of row to vector of column indices
+      // essentially, giving us the columns with charge for each target
+      std::clock_t start_targetmap = std::clock();
       std::map< int, std::vector<int> > targetmap;
       for ( size_t ipt=0; ipt<sptar.len(); ipt++ ) {
         int   col = (int)sptar.getfeature(ipt,1);
@@ -275,13 +329,17 @@ namespace larflow {
         auto it=targetmap.find( row );
         if ( it==targetmap.end() ) {
           targetmap[row] = std::vector<int>();
+          targetmap[row].reserve(10); ///< trading mem for time here
           it = targetmap.find(row);
         }
         it->second.push_back( ipt ); // add in the index of this point
       }
+      std::clock_t end_targetmap = std::clock();
+      float elapsed_targetmap = float(end_targetmap-start_targetmap)/float(CLOCKS_PER_SEC);
       LARCV_DEBUG() << "target[row] -> {target indices} map define (flowdir=" << i << ")."
                     << " elements=" << targetmap.size()
                     << std::endl;
+      LARCV_INFO() << "Prep Target Map: " << elapsed_targetmap << " sec" << std::endl;
 
       int npix_w_matches  = 0;
       int npix_wo_matches = 0;
@@ -368,7 +426,7 @@ namespace larflow {
                 //   continue;
                 // }
                 
-                if ( badch_v[other_plane].pixel( row, (int)i_other_wire)<1 ) {
+                if ( _pbadch_v[other_plane]->pixel( row, (int)i_other_wire)<1 ) {
                   // good channel, so ignore                  
                   continue;
                 }
@@ -452,7 +510,14 @@ namespace larflow {
       }//loop over points
       
       _matchdata_v->emplace_back( std::move(matchmap) );
-      LARCV_INFO() << "matched map flowdir=" << i << ": matchable hasmatch=" << npix_w_matches << " hasnomatch=" << npix_wo_matches << std::endl;
+
+      std::clock_t end_matchmap = std::clock();
+      
+      LARCV_INFO() << "matched map flowdir=" << i << ": "
+                   << " matchable hasmatch=" << npix_w_matches
+                   << " hasnomatch=" << npix_wo_matches
+                   << " elapsed=" << float(end_matchmap-begin_matchmap)/float(CLOCKS_PER_SEC)
+                   << std::endl;
       
     }//end of loop over flow directions
     
@@ -469,11 +534,18 @@ namespace larflow {
     ev_out->Emplace( std::move( spimg_v ) );
     
     if ( _use_ana_tree ) {
+      std::clock_t begin_saveana = std::clock();
       LARCV_DEBUG() << "save flow match maps to ana tree" << std::endl;    
       _ana_tree->Fill();
+      std::clock_t end_saveana = std::clock();
+      LARCV_INFO() << "time to save ana tree = " << float(end_saveana-begin_saveana)/float(CLOCKS_PER_SEC) << std::endl;
     }
 
-    LARCV_DEBUG() << "done" << std::endl;    
+    // clear out badch image pointers, so don't accidently use ones from previous events    
+    _pbadch_v.clear();
+    
+    LARCV_DEBUG() << "done" << std::endl;
+
     return true;
   }
 
@@ -576,5 +648,67 @@ namespace larflow {
     LARCV_DEBUG() << "defined overlapping wire bounds" << std::endl;
     //std::cin.get();
   }
+
+  /**
+   * make matchability image
+   *
+   */
+  void PrepFlowMatchData::_makeMatchabilityImage( const larcv::Image2D& srcimg,
+                                                  const std::vector<const larcv::Image2D*>& tarimg_v,
+                                                  const std::vector<const larcv::Image2D*>& flowimg_v,
+                                                  std::vector<larcv::Image2D>& matchability_v ) {
+
+    matchability_v.clear();
+    
+    // loop over flow directions (2 in MicroBooNE)
+    for ( size_t i=0; i<2; i++ ) {
+
+      LARCV_DEBUG() << "make matchability image for flowdir=" << i << std::endl;
+      larcv::Image2D matchability( srcimg.meta() );
+      matchability.paint(0.0);
+        
+      auto const& tar     = *tarimg_v[i];
+      //auto const& flowimg = flowimg_v.at( flow_index[i] );
+      auto const& flowimg = *flowimg_v[i];
+        
+      // we check matchability of flow.  does flow go into a dead region?
+      // we try to setup the loop to be vectorize (and use open MP?)
+      const std::vector<float>& srcdata  = srcimg.as_vector();
+      const std::vector<float>& tardata  = tar.as_vector();
+      const std::vector<float>& flowdata = flowimg.as_vector();
+      std::vector<float>& matchdata     = matchability.as_mod_vector();
+      size_t ncols = srcimg.meta().cols();
+      size_t nrows = srcimg.meta().rows();
+      int    tar_ncols = (int)tar.meta().cols();
+      int    tar_nrows = (int)tar.meta().rows();
+      for ( size_t c=0; c<ncols; c++ ) {
+        for ( size_t r=0; r<nrows; r++ ) {
+
+          float adc  = srcdata[  c*nrows + r ];
+          float flow = flowdata[ c*nrows + r ];
+            
+          if ( adc<10.0 ) continue;            
+          if ( flow<=-4000) continue;
+            
+          int target_col = (int)c + (int)flow;
+          if ( target_col>=0 && target_col<tar_ncols && tardata[ target_col*tar_nrows+(int)r ]<10.0 ) {
+            matchdata[ c*nrows + r ] = 1.0;
+          }
+            
+        }
+      }//end of col loop
+        
+      matchability_v.emplace_back( std::move(matchability) );
+    }//end of flow loop
+
+  }
+
+  // /**
+  //  * make sparse matrix
+  //  *
+  //  */
+  // std::vector<larcv::SparseImage> PrepFlowMatchData::_makeFlowSparseImage( const std::vector<larcv::Image2D>& ) {
+
+  // }
   
 }

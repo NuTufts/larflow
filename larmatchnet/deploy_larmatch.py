@@ -19,6 +19,7 @@ from ROOT import std
 from larlite import larlite,larutil
 from larcv import larcv
 larcv.PSet
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 import torch
 
@@ -79,18 +80,25 @@ model.load_state_dict(checkpoint["state_dict"])
 
 print("loaded MODEL")
 
+# setup filename
+outfilestem = args.output
+if len(args.output)>=5 and args.output[-5:]==".root":
+    outfilestem = args.output[:-5]
+    
+
 tickdir = larcv.IOManager.kTickForward
 if args.tickbackwards:
     tickdir = larcv.IOManager.kTickBackward
 io = larcv.IOManager( larcv.IOManager.kBOTH, "larcvio", tickdir )
 io.add_in_file( args.supera )
-io.set_out_file( "test.root" )
+io.set_out_file( "%s_larcv.root"%(outfilestem) )
 io.set_verbosity(1)
 io.reverse_all_products()
+io.addto_storeonly_list( larcv.kProductImage2D, "prepflowbadch" )
 io.initialize()
 
 out = larlite.storage_manager( larlite.storage_manager.kWRITE )
-out.set_out_filename( args.output )
+out.set_out_filename( "%s_larlite.root"%(outfilestem) )
 out.open()
 
 sigmoid = torch.nn.Sigmoid()
@@ -108,6 +116,9 @@ dt_save  = 0.
 # setup the hit maker
 hitmaker = larflow.FlowMatchHitMaker()
 
+# setup badch maker
+badchmaker = ublarcvapp.EmptyChannelAlgo()
+
 for ientry in range(NENTRIES):
 
     evout_lfhits = out.get_data(larlite.data.kLArFlow3DHit,"larmatch")
@@ -124,11 +135,23 @@ for ientry in range(NENTRIES):
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
     ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
 
+    t_badch = time.time()
+    badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, ev_badch )
+    print("Number of badcv images: ",badch_v.size())
+    gapch_v = badchmaker.findMissingBadChs( adc_v, badch_v, 10.0, 100 )
+    for p in xrange(badch_v.size()):
+        for c in xrange(badch_v[p].meta().cols()):
+            if ( gapch_v[p].pixel(0,c)>0 ):
+                badch_v[p].paint_col(c,255);
+    dt_badch = time.time()-t_badch
+    print( "Made EVENT Gap Channel Image: ",gapch_v.front().meta().dump(), " elasped=",dt_badch," secs")
+
     # run the larflow match prep classes
     t_prep = time.time()
     for source_plane in SOURCE_PLANE_LIST:
         # parse the image and produce candidate pixel matches
         print(" made match pairs for source plane=",source_plane)
+        preplarmatch[source_plane].provideBadChannelImages( badch_v )
         preplarmatch[source_plane].process( io )
     t_prep = time.time()-t_prep
     print("  time to prep matches: ",t_prep,"secs")
@@ -293,7 +316,7 @@ for ientry in range(NENTRIES):
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
     out.next_event(True)
-    #io.save_entry()
+    io.save_entry()
     io.clear_entry()
 
 print("Close output")

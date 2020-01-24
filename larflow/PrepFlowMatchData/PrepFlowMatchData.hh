@@ -24,7 +24,7 @@ namespace larflow {
 
   public:
 
-    typedef enum { kU2V=0, kU2Y, kV2U, kV2Y, kY2U, kY2V } FlowDir_t;
+    typedef enum { kU2V=0, kU2Y, kV2U, kV2Y, kY2U, kY2V, kNumFlows } FlowDir_t;
     
     PrepFlowMatchData( std::string instance_name );
     virtual ~PrepFlowMatchData() {
@@ -37,6 +37,7 @@ namespace larflow {
     bool process( larcv::IOManager& mgr );
     void finalize();
 
+    static std::string getFlowDirName( FlowDir_t flowdir );
     void setSourcePlaneIndex( int index )        { _source_plane=index; };
     void setADCproducer( std::string name )      { _input_adc_producername=name; };
     void setChStatusProducer( std::string name ) { _input_chstatus_producername=name; };
@@ -78,6 +79,27 @@ namespace larflow {
     const int _source_planes[6] = { 0, 0, 1, 1, 2, 2 };
     const int _target_planes[6] = { 1, 2, 0, 2, 0, 1 };
     const int _other_planes[6]  = { 2, 1, 2, 0, 1, 0 };
+
+
+    // methods
+    // -------
+
+    void _makeMatchabilityImage( const larcv::Image2D& srcimg,
+                                 const std::vector<const larcv::Image2D*>& tarimg_v,
+                                 const std::vector<const larcv::Image2D*>& flowimg_v,
+                                 std::vector<larcv::Image2D>& matchability_v );
+
+    // bad channel image. allow way to set it.
+  protected:
+    std::vector<const larcv::Image2D*> _pbadch_v;
+  public:
+    void provideBadChannelImages( const std::vector<larcv::Image2D>& badch_v ) {
+      _pbadch_v.clear();
+      for ( auto const& img : badch_v ) {
+        _pbadch_v.push_back( &img );
+      }
+    };
+    
     
   };
 

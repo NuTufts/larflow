@@ -178,7 +178,7 @@ namespace larflow {
         m.set_wire( source_plane, srccol );
         m.set_wire( target_plane, tarcol );
         m.set_wire( other_plane,  int(other_wire) );
-        m.tyz = { tick, y, z };
+        m.tyz = { (float)tick, (float)y, (float)z };
         _matches_v.emplace_back( std::move(m) );
         _match_map[ triple ] = int(_matches_v.size())-1;
         it = _match_map.find( triple );
@@ -221,14 +221,14 @@ namespace larflow {
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
       hit.srcwire = m.Y;
-      hit.targetwire.resize(2);
+      hit.targetwire.resize(3);
       hit.targetwire[0] = m.U;
       hit.targetwire[1] = m.V;
+      hit.targetwire[2] = m.Y;
       hit.idxhit = idx;
-      hit.flowdir = larlite::larflow3dhit::kY2U;
 
       float x = (m.tyz[0]-3200.0)*cm_per_tick;
-      hit.resize(3,0);
+      hit.resize(3+6+1,0);
       hit[0] = x;
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
@@ -236,8 +236,19 @@ namespace larflow {
       // use the highest
       std::vector<float> scores = m.get_scores();
       float maxscore = 0;
-      for ( auto& s : scores ) maxscore = (s>maxscore) ? s : maxscore;
+      int maxdir = -1;
+      for ( int i=0; i<scores.size(); i++ ) {
+        float s = scores[i];
+        if ( s>maxscore ) {
+          maxscore = s;
+          maxdir = i;
+        }
+        hit[3+i] = s;
+      }
+      hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
+      hit[9] = maxscore;
       hit.track_score = maxscore;
+      
       hit_v.emplace_back( std::move(hit) );
     }
 
