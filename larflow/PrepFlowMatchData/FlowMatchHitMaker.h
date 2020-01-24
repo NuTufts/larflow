@@ -20,7 +20,8 @@ namespace larflow {
   class FlowMatchHitMaker {
   public:
     
-    FlowMatchHitMaker() {};
+    FlowMatchHitMaker()
+      : _match_score_threshold(0.5) {};
     virtual ~FlowMatchHitMaker() {};
 
     typedef struct match_t {
@@ -85,9 +86,10 @@ namespace larflow {
     } match_t;
 
 
-    
+    float _match_score_threshold;
     std::vector<match_t> _matches_v; //< vector of match information
     std::map< std::vector<int>, int > _match_map; // map of (Y,U,V) triple to positin in matches_v
+    
 
     void clear() { _matches_v.clear(); _match_map.clear(); };
     int add_match_data( PyObject* pair_probs,
@@ -97,6 +99,7 @@ namespace larflow {
                         const larcv::ImageMeta& source_meta,
                         const std::vector<larcv::Image2D>& img_v,
                         const larcv::EventChStatus& ev_chstatus );
+    void set_score_threshold( float score ) { _match_score_threshold = score; };
 
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;

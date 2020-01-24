@@ -9,6 +9,7 @@ parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,he
 parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point")
 parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events")
 parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth")
+parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,help="If flag given, will use WC tagger image to mask cosmics")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -51,7 +52,6 @@ FLOW_DIRS = [ ("Y","U","V",2,0,1),
               ("U","V","Y",0,1,2),
               ("V","U","Y",1,0,2) ]
 
-
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
 main_pset = larcv.CreatePSetFromFile("prepflowmatchdata.cfg","ProcessDriver")
@@ -66,8 +66,12 @@ for source_plane in SOURCE_PLANE_LIST:
     preplarmatch[source_plane].configure( prepcfg )
     print("'HAS_MC' SET TO: ",args.has_mc)
     preplarmatch[source_plane].hasMCtruth( args.has_mc )
-    
-    preplarmatch[source_plane].setADCproducer(ADC_PRODUCER);
+
+    if not args.has_wirecell:
+        preplarmatch[source_plane].setADCproducer(ADC_PRODUCER);
+    else:
+        preplarmatch[source_plane].setADCproducer("wirewc")
+        
     preplarmatch[source_plane].setChStatusProducer(CHSTATUS_PRODUCER);
     preplarmatch[source_plane].useGapCh(USE_GAPCH)
     preplarmatch[source_plane].set_verbosity(0)
@@ -115,6 +119,7 @@ dt_save  = 0.
 
 # setup the hit maker
 hitmaker = larflow.FlowMatchHitMaker()
+hitmaker.set_score_threshold( args.min_score )
 
 # setup badch maker
 badchmaker = ublarcvapp.EmptyChannelAlgo()
@@ -128,12 +133,28 @@ for ientry in range(NENTRIES):
     
     print("==========================================")
     print("Entry {}".format(ientry))
-
+    
     # clear the hit maker
     hitmaker.clear();
 
     adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
     ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
+
+    if args.has_wirecell:
+        # make wirecell masked image
+        print("making wirecell masked image")
+        start_wcmask = time.time()
+        ev_wcthrumu = io.get_data(larcv.kProductImage2D,"thrumu")
+        ev_wcwire   = io.get_data(larcv.kProductImage2D,"wirewc")
+        for p in xrange(adc_v.size()):            
+            adc = larcv.Image2D(adc_v[p]) # a copy
+            np_adc = larcv.as_ndarray(adc)
+            np_wc  = larcv.as_ndarray(ev_wcthrumu.Image2DArray()[p])
+            np_adc[ np_wc>0.0 ] = 0.0
+            masked = larcv.as_image2d_meta( np_adc, adc.meta() )
+            ev_wcwire.Append(masked)
+        end_wcmask = time.time()
+        print("time to mask: ",end_wcmask-start_wcmask," secs")
 
     t_badch = time.time()
     badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, ev_badch )

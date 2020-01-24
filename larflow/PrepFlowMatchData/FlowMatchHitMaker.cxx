@@ -85,7 +85,7 @@ namespace larflow {
     auto const& other_plane_status = ev_chstatus.Status( other_plane );
 
     // choose threshold
-    float match_prob_threshold = 0.5;
+    //float match_prob_threshold = 0.5;
     // if (other_plane==2) 
     //   match_prob_threshold = 0.1;
 
@@ -102,7 +102,7 @@ namespace larflow {
       float prob = probs_carray[0][ipair];
 
       // match threshold
-      if ( prob<match_prob_threshold ) continue;
+      if ( prob<_match_score_threshold ) continue;
 
       // get source and target index (in sparse image)
       int srcidx = matchpairs_carray[ipair][0];
