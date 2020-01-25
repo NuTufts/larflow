@@ -18,6 +18,8 @@ from ublarcvapp import ublarcvapp
 from larflow import larflow
 larflow.FlowTriples
 
+badchmaker = ublarcvapp.EmptyChannelAlgo()
+
 io = larcv.IOManager( larcv.IOManager.kREAD, "io", larcv.IOManager.kTickBackward )
 for f in args.input_larcv:
     io.add_in_file( f )
@@ -31,11 +33,14 @@ for ientry in xrange(nentries):
 
     ev_adc  = io.get_data( larcv.kProductImage2D, "wire" )
     adc_v   = ev_adc.Image2DArray()
-    badch_v = std.vector("larcv::Image2D")()
-    for iadc in xrange(adc_v.size()):
-        badch = larcv.Image2D( adc_v[iadc].meta() )
-        badch_v.push_back( badch )
 
+    ev_chstatus = io.get_data( larcv.kProductChStatus, "wire" )
+    
+    badch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
+                                              4, 3, 2400, 1008*6, 3456, 6, 1,
+                                              1.0, 100, -1.0 );
+    print("made badch_v, size=",badch_v.size())
+    
     trips = larflow.FlowTriples( 2, 0, adc_v, badch_v, 10.0 )
     break
 
