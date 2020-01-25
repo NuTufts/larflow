@@ -3,9 +3,11 @@ set(MODULE_NAME PrepFlowMatchData )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS FlowMatchMap.hh PrepFlowMatchData.hh PyFlowMatchData.hh FlowMatchHitMaker.h)
+set( HEADERS WireOverlap.h FlowTriples.h FlowMatchMap.hh PrepFlowMatchData.hh PyFlowMatchData.hh FlowMatchHitMaker.h )
 
 add_library( ${LIBNAME} SHARED
+  WireOverlap.cxx
+  FlowTriples.cxx
   FlowMatchMap.cxx
   PrepFlowMatchData.cxx
   PyFlowMatchData.cxx

@@ -10,7 +10,11 @@
 #pragma link off all functions;
 
 #pragma link C++ namespace larflow;
+#pragma link C++ namespace std;
 
+#pragma link C++ class std::vector< std::vector<int> >+;
+#pragma link C++ class larflow::WireOverlap+;
+#pragma link C++ class larflow::FlowTriples+;
 #pragma link C++ class larflow::FlowMatchMap+;
 #pragma link C++ class larflow::PrepFlowMatchData+;
 #pragma link C++ class larflow::FlowMatchHitMaker+;
