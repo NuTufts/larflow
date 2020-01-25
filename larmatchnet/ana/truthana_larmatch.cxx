@@ -70,11 +70,18 @@ void track_shower_labels_from_instanceimage( const std::vector<larcv::Image2D>& 
 int main( int nargs, char** argv ) {
 
   std::cout << "larfow truth data" << std::endl;
+  if ( nargs==1 ) {
+    std::cout << "=== ARGUMENTS ===" << std::endl;
+    std::cout <<  "truthana_larmatch [supera] [larcv truth] [larmatch] [larlite mcinfo]" << std::endl;
+    return 0;
+  }
 
   std::string input_supera   = argv[1];
   std::string input_lcvtruth = argv[2];
   std::string input_larmatch = argv[3];
   std::string input_mcinfo   = argv[4];
+  std::string adc_name = "wiremc";
+  std::string chstatus_name = "wiremc";
 
   larcv::IOManager io( larcv::IOManager::kBOTH, "io", larcv::IOManager::kTickBackward );
   io.add_in_file( input_supera );
@@ -96,8 +103,8 @@ int main( int nargs, char** argv ) {
     char prepname[50];
     sprintf(prepname,"soureplane%d",(int)p);
     larflow::PrepFlowMatchData prepmatchdata(prepname);
-    prepmatchdata.setADCproducer("wire");
-    prepmatchdata.setChStatusProducer("wire");    
+    prepmatchdata.setADCproducer(adc_name);
+    prepmatchdata.setChStatusProducer(chstatus_name);
     prepmatchdata.setSourcePlaneIndex( (int)p );
     prepmatchdata.setLArFlowproducer("larflow");
     prepmatchdata.hasMCtruth(true);
@@ -124,45 +131,46 @@ int main( int nargs, char** argv ) {
   for (int n=0; n<=larflow::PrepFlowMatchData::kNumFlows; n++ ) {
     char name[100];
     sprintf( name, "hprob_v_coldist_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );
-    hprob_v_coldist[n] = new TH2D( name,  ";distance from true target wire (cm); match probability", 1000, 0, 1000, 100, 0.5, 1.0 );
+    hprob_v_coldist[n] = new TH2D( name,  ";distance from true target wire (cm); match probability", 1000, 0, 1000, 100, 0.0, 1.0 );
   }
 
   // score output versus num matches
-  TH2D* hprob_v_nmatches_good[ nhists ] = { nullptr };
-  TH2D* hprob_v_nmatches_bad[ nhists ]  = { nullptr };  
-  for (int n=0; n<=larflow::PrepFlowMatchData::kNumFlows; n++ ) {
-    char goodname[100];
-    sprintf( goodname, "hprob_v_nmatches_good_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
-    hprob_v_nmatches_good[n] = new TH2D( goodname, "", 100, 0, 100, 100, 0.0, 1.0 );
+  // TH2D* hprob_v_nmatches_good[ nhists ] = { nullptr };
+  // TH2D* hprob_v_nmatches_bad[ nhists ]  = { nullptr };  
+  // for (int n=0; n<=larflow::PrepFlowMatchData::kNumFlows; n++ ) {
+  //   char goodname[100];
+  //   sprintf( goodname, "hprob_v_nmatches_good_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
+  //   hprob_v_nmatches_good[n] = new TH2D( goodname, "", 100, 0, 100, 100, 0.0, 1.0 );
 
-    char badname[100];
-    sprintf( badname, "hprob_v_nmatches_bad_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
-    hprob_v_nmatches_bad[n] = new TH2D( badname, "", 100, 0, 100, 100, 0.0, 1.0 );
-  }
+  //   char badname[100];
+  //   sprintf( badname, "hprob_v_nmatches_bad_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
+  //   hprob_v_nmatches_bad[n] = new TH2D( badname, "", 100, 0, 100, 100, 0.0, 1.0 );
+  // }
     
   // error in flow (using max match)
   TH1D* herrflow[ nhists ] = { nullptr };
   TH1D* herrflow_shape[ nhists ][2] = { nullptr };  
-  for (int n=0; n<=larflow::PrepFlowMatchData::kNumFlows; n++ ) {
+  for (int n=0; n<larflow::PrepFlowMatchData::kNumFlows; n++ ) {
     char name[100];
-    sprintf( name, "herrflow_bestmatch_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
+    sprintf( name, "herrflow_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
     herrflow[n] = new TH1D(name, "", 1000, 0, 1000 );
 
     char showername[100];
-    sprintf( showername, "herrflow_bestmatch_shower_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
-    herrflow_shape[n][0] = new TH1D( showername, "", 1000, 0, 1000 );
+    sprintf( showername, "herrflow_shower_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
+    //herrflow_shape[n][0] = new TH1D( showername, "", 1000, 0, 1000 );
 
     char trackname[100];
-    sprintf( trackname, "herrflow_bestmatch_track_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
-    herrflow_shape[n][1] = new TH1D( trackname, "", 1000, 0, 1000 );
+    sprintf( trackname, "herrflow_track_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
+    //herrflow_shape[n][1] = new TH1D( trackname, "", 1000, 0, 1000 );
   }
+  herrflow[larflow::PrepFlowMatchData::kNumFlows] = new TH1D( "herrflow_bestmatch", "", 1000, 0, 1000 );
   
   // number of matches distribution
   TH1D* hnmatches[ nhists ] = { nullptr };
   for (int n=0; n<=larflow::PrepFlowMatchData::kNumFlows; n++ ) {
     char name[100];
     sprintf( name, "hnmatches_%s", larflow::PrepFlowMatchData::getFlowDirName( (larflow::PrepFlowMatchData::FlowDir_t)n ).c_str() );    
-    hnmatches[n] = new TH1D( name, "", 100, 0, 100000 );
+    //hnmatches[n] = new TH1D( name, "", 100, 0, 100000 );
   }
 
   // for debug, can plot into whole image space
@@ -174,12 +182,12 @@ int main( int nargs, char** argv ) {
     std::cout << "[ Entry " << ientry << " ]" << std::endl;
     io.read_entry(ientry);
 
-    larcv::EventImage2D* ev_adc      = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,"wire");
-    larcv::EventImage2D* ev_flow     = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,"larflow");
-    larcv::EventImage2D* ev_ancestor = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,"ancestor");
-    larcv::EventImage2D* ev_segment  = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,"segment");
-    larcv::EventImage2D* ev_instance = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,"instance");
-    larcv::EventChStatus* ev_badch   = (larcv::EventChStatus*)io.get_data(larcv::kProductChStatus, "wire" );
+    larcv::EventImage2D* ev_adc      = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,  adc_name );
+    larcv::EventImage2D* ev_flow     = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,  "larflow" );
+    larcv::EventImage2D* ev_ancestor = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,  "ancestor" );
+    larcv::EventImage2D* ev_segment  = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,  "segment" );
+    larcv::EventImage2D* ev_instance = (larcv::EventImage2D*)io.get_data(larcv::kProductImage2D,  "instance" );
+    larcv::EventChStatus* ev_badch   = (larcv::EventChStatus*)io.get_data(larcv::kProductChStatus, adc_name );
 
     std::cout << "num images: "            << ev_adc->Image2DArray().size()      << std::endl;
     std::cout << "num flow truth images: " << ev_flow->Image2DArray().size()     << std::endl;
@@ -216,9 +224,9 @@ int main( int nargs, char** argv ) {
 
     std::vector<larcv::Image2D> labeled_v;
     track_shower_labels_from_instanceimage( ev_adc->Image2DArray(), ev_instance->Image2DArray(),
-                                            *evmctrack, *evmcshower,
-                                            labeled_v );
-
+                                            *evmctrack, *evmcshower, labeled_v );
+                                            
+    
     // // for debug
     // //char labelname[50];
     // //sprintf(labelname,"labels_entry%d",ientry);
@@ -285,6 +293,7 @@ int main( int nargs, char** argv ) {
         if ( has_trueflow[i]==1 ) {
           hprob_v_coldist[i]->Fill( flowerr, score_v[i] );
           hprob_v_coldist[6]->Fill( flowerr, score_v[i] );
+          herrflow[i]->Fill( flowerr );
         }
 
       }//end of score loop

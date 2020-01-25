@@ -1,15 +1,18 @@
+#!/usr/bin/env python
 from __future__ import print_function
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("run LArFlow-LArMatch on data")
 parser.add_argument("--supera","-su",required=True,type=str,help="LArCV file with ADC images")
 parser.add_argument("--weights","-w",required=True,type=str,help="Weight files")
-parser.add_argument("--output", "-o",required=True,type=str,help="Output file (larlite format)")
-parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,help="Indicate that input larcv file is tick-backward")
-parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point")
-parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events")
-parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth")
-parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,help="If flag given, will use WC tagger image to mask cosmics")
+parser.add_argument("--output", "-o",required=True,type=str,help="Stem name of output files: [stem]_larlite.root, [stem]_larcv.root")
+parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,help="Indicate that input larcv file is tick-backward [default: F]")
+parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point [default: 0.5]")
+parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events [default: -1 -> All]")
+parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth [default: F]")
+parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,help="If flag given, will use WC tagger image to mask cosmics [default: F]")
+parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of ADC tree [default: wire]")
+parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -37,8 +40,8 @@ checkpointfile = args.weights
 checkpoint = torch.load( checkpointfile, map_location={"cuda:0":"cpu",
                                                        "cuda:1":"cpu"} )
 NUM_PAIRS=20000
-ADC_PRODUCER="wire"
-CHSTATUS_PRODUCER="wire"
+ADC_PRODUCER=args.adc_name
+CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
 DEVICE=torch.device("cpu")
 RETURN_TRUTH=False
