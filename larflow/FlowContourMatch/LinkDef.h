@@ -11,9 +11,8 @@
 
 #pragma link C++ namespace larflow+;
 #pragma link C++ class larflow::ContourFlowMatch_t+;
-#pragma link C++ class ContourFlowMatch_t+;
 #pragma link C++ class std::pair<int,int> SrcTarPair_t+;
-#pragma link C++ class std::map<SrcTarPair_t,ContourFlowMatch_t>+;
+#pragma link C++ class std::map<SrcTarPair_t,larflow::ContourFlowMatch_t>+;
 #pragma link C++ class larflow::ContourFlowMatchDict+;
 
 #pragma link C++ function larflow::makeHitsFromPixels+;

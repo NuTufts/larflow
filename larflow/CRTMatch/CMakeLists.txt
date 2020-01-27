@@ -1,11 +1,11 @@
-set(MODULE_NAME Reco )
+set(MODULE_NAME CRTMatch )
 
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h ShowerReco.h MCPixelPGraph.h VertexReco.h )
+set( HEADERS CRTMatch.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx ShowerReco.cxx MCPixelPGraph.cxx VertexReco.cxx )
+add_library( ${LIBNAME} SHARED CRTMatch.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -32,7 +32,7 @@ target_include_directories(${LIBNAME}
   ${CILANTRO_INC_DIR}
   ${OpenCV_INCLUDE_DIRS}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
+target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} LArFlow_Reco )
 
 include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} ${HEADERS} LINKDEF LinkDef.h)

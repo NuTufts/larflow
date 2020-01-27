@@ -15,7 +15,7 @@
 #include "DataFormat/larflowcluster.h"
 
 namespace larflow {
-namespace reco {
+namespace crtmatch {
 
   class CRTMatch {
 

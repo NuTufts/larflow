@@ -3,7 +3,7 @@
 #include "LArUtil/LArProperties.h"
 
 namespace larflow {
-namespace reco {
+namespace crtmatch {
 
   void CRTMatch::clear() {
     _intime_opflash_v.clear();
