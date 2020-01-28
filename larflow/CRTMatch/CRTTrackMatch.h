@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/core/DataFormat/storage_manager.h"
@@ -15,7 +16,7 @@
 namespace larflow {
 namespace crtmatch {
 
-  class CRTTrackMatch {
+  class CRTTrackMatch : public larcv::larcv_base {
 
   public:
 
@@ -24,13 +25,18 @@ namespace crtmatch {
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void set_max_iters( int tries ) { _max_iters = tries; };
+    void set_col_neighborhood( int cols )   { _col_neighborhood = cols; };
+    void set_max_fit_step_size( float cm )  { _max_fit_step_size = cm; };
+    void set_max_last_step_size( float cm ) { _max_last_step_size = cm; };
+    void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
 
     // struct to assemble info
     struct crttrack_t {
 
-      int crt_track_index;      
-      const larlite::crttrack* pcrttrack;
+      int crt_track_index;                 
+      const larlite::crttrack* pcrttrack;  // pointer to original CRT track object
 
+      std::vector< std::vector<double> >   hit_pos_vv;      // modified CRT hit positions
       std::vector< std::vector< int > >    pixellist_vv[3]; // (row,col) of pixels near line
       std::vector< float >                 pixelrad_vv[3];  // pixel radius from crt-track line
       std::vector< std::vector< double > > pixelpos_vv;     // pixel radius from crt-track line
@@ -81,7 +87,16 @@ namespace crtmatch {
 
     larutil::SpaceChargeMicroBooNE* _sce;
     larutil::SpaceChargeMicroBooNE* _reverse_sce;
-    int _max_iters;
+
+    // algorithm parameters
+    int _max_iters;            //< max attempts to improve CRT track fit
+    int _col_neighborhood;     //< window to search for charge around track
+    float _max_fit_step_size;  //< max step size when fittering
+    float _max_last_step_size; //< max step size for final fit
+    std::string _adc_producer; //< name of ADC image tree
+    std::string _crttrack_producer; //< name of CRT track producer
+    std::vector<std::string> _opflash_producer_v;  //< name of opflash producer
+    bool _make_debug_images;
 
   };
   

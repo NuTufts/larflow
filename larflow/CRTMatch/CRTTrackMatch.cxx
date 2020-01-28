@@ -9,13 +9,22 @@
 #include "TH2D.h"
 #include "TCanvas.h"
 #include "TGraph.h"
-#include "TRandom3.h"
+#include "TStyle.h"
 
 namespace larflow {
 namespace crtmatch {
 
   CRTTrackMatch::CRTTrackMatch()
-    : _max_iters(20) {
+    : larcv::larcv_base("CRTTrackMatch"),
+    _max_iters(20),
+    _col_neighborhood(100),
+    _max_fit_step_size(1.0),
+    _max_last_step_size(0.1),
+    _adc_producer("wire"),
+    _crttrack_producer("crttrack"),
+    _opflash_producer_v( {"simpleFlashBeam","simpleFlashCosmic"} ),
+    _make_debug_images(false)
+  {
     _sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Forward );
     _reverse_sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Backward );
   }
@@ -24,78 +33,106 @@ namespace crtmatch {
     delete _sce;
     delete _reverse_sce;
   }
-  
-  void CRTTrackMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
-    larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
-    larlite::event_crttrack* ev_crttrack = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "crttrack" );
 
+  /**
+   * process the event data found in the larcv and larlite event data containers
+   *
+   */
+  void CRTTrackMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
+
+    // collect input
+    // --------------
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_producer );
+    auto const& adc_v = ev_adc->Image2DArray();
+    
+    larlite::event_crttrack* ev_crttrack
+      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, _crttrack_producer );
+
+    std::vector< larlite::event_opflash* > opflash_v;
+    for ( auto& flashname : _opflash_producer_v ) {
+      larlite::event_opflash* ev_opflash
+        = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, flashname );
+      opflash_v.push_back( ev_opflash );
+    }
     
     // vizualize for debug
-    std::vector<TH2D> h2d_v;
-    h2d_v = larcv::rootutils::as_th2d_v( ev_adc->Image2DArray(), "crttrack_adc" );
-    std::vector< TGraph* > graph_v[3];
+    std::vector<TH2D> h2d_v; // for adc image
+    std::vector< std::vector< TGraph* > > graph_vv( adc_v.size() ); // for projected crttrack path in image planes
+    if ( _make_debug_images ) {
+      h2d_v = larcv::rootutils::as_th2d_v( ev_adc->Image2DArray(), "crttrack_adc" );
+    }
     
-
-    std::vector< crttrack_t > data_v;
+    // try to fit crt track path
+    std::vector< crttrack_t > fitted_v;
     for ( size_t i=0; i<ev_crttrack->size(); i++ ) {
 
-      crttrack_t data = _find_optimal_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
+      crttrack_t fit = _find_optimal_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
 
-      // crttrack_t data = _collect_chargepixels_for_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
+      // save, only if there are points inside the TPC and in the image
+      if ( fit.pixelpos_vv.size()>0 ) {
+        
+        fitted_v.emplace_back( std::move(fit) );
+        
+      }//if fitted track has image path with charge
       
-      // std::cout << "[CRTTrackMatch::process] track collected "
-      //           << "npts=" << data.pixelpos_vv.size() << " "
-      //           << "plane pixels=("
-      //           << data.pixellist_vv[0].size() << ","
-      //           << data.pixellist_vv[1].size() << ","
-      //           << data.pixellist_vv[2].size() << ")"
-      //           << " length=" << data.len_intpc_sce
-      //           << " totq=(" << data.totalq_v[0] << "," << data.totalq_v[1] << "," << data.totalq_v[2] << ")"
-      //           << std::endl;
+    }//end of crttrack loop
+
+    if ( _make_debug_images ) {
+
+      gStyle->SetOptStat(0);
       
-      if ( data.pixelpos_vv.size()>0 ) {
-        for ( size_t p=0; p<3; p++ ) {
-          if ( data.pixelcoord_vv[p].size()==0 ) continue;
-          TGraph* g = new TGraph( data.pixelcoord_vv[p].size() );
-          for ( size_t n=0; n<data.pixelcoord_vv.size(); n++ ) {
-            g->SetPoint( n, data.pixelcoord_vv[n][p], data.pixelcoord_vv[n][3] );
+      int nplanes = (int)adc_v.size();
+      
+      TCanvas c("c","c",1000,400*nplanes);
+      c.Divide(1,nplanes);
+      
+      for ( int p=0; p<nplanes; p++ ) {
+        
+        c.cd(p+1);
+        h2d_v[p].Draw("colz");
+
+        if ( p<=1 )
+          h2d_v[p].GetXaxis()->SetRangeUser(0,2400);
+
+        for ( auto const& fit : fitted_v ) {
+
+          TGraph* g = new TGraph( fit.pixelcoord_vv[p].size() );
+          for ( size_t n=0; n<fit.pixelcoord_vv.size(); n++ ) {
+            g->SetPoint( n, fit.pixelcoord_vv[n][p], fit.pixelcoord_vv[n][3] );
           }          
           g->SetLineWidth(1);
-          if ( data.pixelpos_vv.front()[0]<80.0 )
+          if ( fit.pixelpos_vv.front()[0]<80.0 )
             g->SetLineColor(kMagenta);
-          else if ( data.pixelpos_vv.front()[0]>160.0 )
+          else if ( fit.pixelpos_vv.front()[0]>160.0 )
             g->SetLineColor(kCyan);
           else
             g->SetLineColor(kOrange);
-          
-          graph_v[p].push_back( g );
-        }
-        //break;
-      }
+
+          g->Draw("L");
+          graph_vv[p].push_back( g );
+        }// fitted loop
         
-    }
+        std::cout << "graphs in plane[" << p << "]: " << graph_vv[p].size() << std::endl;
+      }//end of plane loop
 
+      c.Update();
 
-    TCanvas c("c","c",1200,600);
-    c.Divide(1,3);
-    for ( size_t p=0; p<3; p++ ) {
-      c.cd(p+1);
-      h2d_v[p].Draw("colz");
-      std::cout << "graphs in plane[" << p << "]: " << graph_v[p].size() << std::endl;
-      for ( auto& g : graph_v[p] ) {
-        //std::cout << " " << g.N() << std::endl;
-        //g->SetMarkerStyle(20);
-        g->Draw("Lsame");
+      // save canvas
+      char name[100];
+      sprintf( name, "crttrackmatch_debug_run%d_subrun%d_event%d.png",
+               (int)iolcv.event_id().run(),
+               (int)iolcv.event_id().subrun(),
+               (int)iolcv.event_id().event() );
+      c.SaveAs(name);
+
+      // clean up
+      for ( int p=0; p<nplanes; p++ ) {
+        for ( auto& pg : graph_vv[p] )
+          delete pg;
       }
-    }
-    c.Update();
-    
-    char name[100];
-    sprintf( name, "crttrackmatch_debug_run%d_subrun%d_event%d.png",
-             (int)iolcv.event_id().run(),
-             (int)iolcv.event_id().subrun(),
-             (int)iolcv.event_id().event() );
-    c.SaveAs(name);
+
+    }//end of block to make debug image
 
     
   }
@@ -107,17 +144,16 @@ namespace crtmatch {
   CRTTrackMatch::crttrack_t CRTTrackMatch::_find_optimal_track( const larlite::crttrack& crt,
                                                                 const std::vector<larcv::Image2D>& adc_v ) {
     
-    std::cout << "[CRTTrackMatch::_find_optimal_track]" << std::endl;
-    std::cout << "  hit1 pos w/ error: ("
-              << " " << crt.x1_pos << " +/- " << crt.x1_err << ","
-              << " " << crt.y1_pos << " +/- " << crt.y1_err << ","
-              << " " << crt.z1_pos << " +/- " << crt.z1_err << ")"
-              << std::endl;
-    std::cout << "  hit2 pos w/ error: ("
-              << " " << crt.x2_pos << " +/- " << crt.x2_err << ","
-              << " " << crt.y2_pos << " +/- " << crt.y2_err << ","
-              << " " << crt.z2_pos << " +/- " << crt.z2_err << ")"
-              << std::endl;
+    LARCV_DEBUG() << "  hit1 pos w/ error: ("
+                  << " " << crt.x1_pos << " +/- " << crt.x1_err << ","
+                  << " " << crt.y1_pos << " +/- " << crt.y1_err << ","
+                  << " " << crt.z1_pos << " +/- " << crt.z1_err << ")"
+                  << std::endl;
+    LARCV_DEBUG() << "  hit2 pos w/ error: ("
+                  << " " << crt.x2_pos << " +/- " << crt.x2_err << ","
+                  << " " << crt.y2_pos << " +/- " << crt.y2_err << ","
+                  << " " << crt.z2_pos << " +/- " << crt.z2_err << ")"
+                  << std::endl;
 
     // walk the point in a 5 cm range
     std::vector< double > hit1_center = { crt.x1_pos, crt.y1_pos, crt.z1_pos };
@@ -126,39 +162,22 @@ namespace crtmatch {
 
     const int ntries   = _max_iters; // max iterations
 
-    TRandom3 rand(123);
-
-    float bestfit_q_per_len = 0.;
-
-    int neighborhood = 100;
-
     // first try, latest iteration of track
     crttrack_t first = _collect_chargepixels_for_track( hit1_center,
                                                         hit2_center,
                                                         t0_usec,
                                                         adc_v,
-                                                        1.0, neighborhood );
+                                                        _max_fit_step_size,
+                                                        _col_neighborhood );
+    
     // provide additional info, besides projected points found
     first.pcrttrack = &crt;
     first.t0_usec   = t0_usec;
 
-    float old_q_per_cm = 0;
-    for (int j=0; j<3; j++ ) {
-      if ( first.totalq_v[j]>old_q_per_cm )
-        old_q_per_cm = first.totalq_v[j];
-    }
-    if ( first.len_intpc_sce>0.0 )
-      old_q_per_cm /= first.len_intpc_sce;
+    LARCV_INFO() << "first try: " << _str( first ) << std::endl;
     
-    
-    std::cout << "first try: " << _str( first ) << " q/cm=" << old_q_per_cm << std::endl;
-
     for (int itry=0; itry<ntries; itry++ ) {
 
-      // neighborhood -= 10;
-      // if (neighborhood<1 )
-      //   neighborhood = 1;
-      
       // next use the found points to fit a new track direction
       std::vector<double> hit1_new;
       std::vector<double> hit2_new;
@@ -166,63 +185,61 @@ namespace crtmatch {
       if ( !foundproposal )
         break;
 
-      std::cout << "  proposal moves CRT hits to: "
-                << "(" << hit1_new[0] << "," << hit1_new[1] << "," << hit1_new[2] << ") "
-                << "(" << hit2_new[0] << "," << hit2_new[1] << "," << hit2_new[2] << ") "
-                << std::endl;
-      std::cout << "  proposal shifts: "
-                << "(" << hit1_new[0]-hit1_center[0]
-                << "," << hit1_new[1]-hit1_center[1]
-                << "," << hit1_new[2]-hit1_center[2] << ") "
-                << "(" << hit2_new[0]-hit2_center[0]
-                << "," << hit2_new[1]-hit2_center[1]
-                << "," << hit2_new[2]-hit2_center[2] << ") "
-                << std::endl;
+      LARCV_DEBUG() << "  proposal moves CRT hits to: "
+                    << "(" << hit1_new[0] << "," << hit1_new[1] << "," << hit1_new[2] << ") "
+                    << "(" << hit2_new[0] << "," << hit2_new[1] << "," << hit2_new[2] << ") "
+                    << std::endl;
+      LARCV_DEBUG() << "  proposal shifts: "
+                    << "(" << hit1_new[0]-hit1_center[0]
+                    << "," << hit1_new[1]-hit1_center[1]
+                    << "," << hit1_new[2]-hit1_center[2] << ") "
+                    << "(" << hit2_new[0]-hit2_center[0]
+                    << "," << hit2_new[1]-hit2_center[1]
+                    << "," << hit2_new[2]-hit2_center[2] << ") "
+                    << std::endl;
 
       // make a new track
       crttrack_t sample = _collect_chargepixels_for_track( hit1_new, hit2_new,
                                                            t0_usec,
                                                            adc_v,
-                                                           1.0, neighborhood );
+                                                           _max_fit_step_size,
+                                                           _col_neighborhood );
       sample.pcrttrack = &crt;
       sample.t0_usec = t0_usec;
+      sample.hit_pos_vv.clear();
+      sample.hit_pos_vv.push_back( hit1_new );
+      sample.hit_pos_vv.push_back( hit2_new );
 
-      std::cout << " ... [try " << itry << "] " << _str(sample) << std::endl;
+      LARCV_DEBUG() << " ... [try " << itry << "] " << _str(sample) << std::endl;
 
       float err_diff = 0.;
-      for (size_t p=0; p<3; p++ ) {
+      for (size_t p=0; p<adc_v.size(); p++ ) {
         err_diff += (first.toterr_v[p] - sample.toterr_v[p]);
       }
       
-      //if ( new_q_per_cm > old_q_per_cm ) {
       if ( err_diff>0.0 ) {      
-        std::cout << " ... error improved by " << err_diff << ", replace old" << std::endl;
+        LARCV_DEBUG() << " ... error improved by " << err_diff << ", replace old" << std::endl;
         // replace the old
         std::swap( sample, first );
         hit1_center = hit1_new;
         hit2_center = hit2_new;
       }
       else {
-        std::cout << " ... no improvement ... stop " << std::endl;
+        LARCV_INFO() << " ... no improvement after " << itry << " iterations" << std::endl;
         break;
       }
       
     }//end over try loop
-    
-    // if ( old_q_per_cm==0 ) {
-    //   crttrack_t empty(-1,&crt);
-    //   return empty;
-    // }
-    
-    std::cout << " making best fit track" << std::endl;
+        
     crttrack_t bestfit_data = _collect_chargepixels_for_track( hit1_center,
                                                                hit2_center,
                                                                t0_usec,
                                                                adc_v,
-                                                               0.1, 10 );
+                                                               _max_last_step_size,
+                                                               10 );
     bestfit_data.pcrttrack = &crt;
     bestfit_data.t0_usec = t0_usec;
-    std::cout << " track after fit: " << _str(bestfit_data) << std::endl;
+    LARCV_INFO() << " track after fit: " << _str(bestfit_data) << std::endl;
     
     return bestfit_data;
     

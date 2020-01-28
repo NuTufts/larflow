@@ -27,10 +27,11 @@ iolcv.initialize()
 
 crtmatch = larflow.crtmatch.CRTTrackMatch()
 crtmatch.set_max_iters( 20 )
+crtmatch.make_debug_images( True )
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-#nentries = 1
+nentries = 5
 
 print "Start loop."
 
