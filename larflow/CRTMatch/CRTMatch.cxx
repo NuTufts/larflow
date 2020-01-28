@@ -2,6 +2,8 @@
 
 #include "LArUtil/LArProperties.h"
 
+#include "TRandom2.h"
+
 namespace larflow {
 namespace crtmatch {
 
