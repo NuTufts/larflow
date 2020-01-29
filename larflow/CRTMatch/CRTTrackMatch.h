@@ -9,6 +9,7 @@
 #include "larlite/core/DataFormat/storage_manager.h"
 #include "larlite/core/DataFormat/crttrack.h"
 #include "larlite/core/DataFormat/opflash.h"
+#include "larlite/core/DataFormat/larflowcluster.h"
 #include "larlite/core/LArUtil/SpaceChargeMicroBooNE.h"
 
 #include "larflow/Reco/cluster_functions.h"
@@ -83,7 +84,12 @@ namespace crtmatch {
 
 
     std::string _str( const CRTTrackMatch::crttrack_t& data );
+
+    void _matchOpflashes( std::vector< const larlite::event_opflash* > flash_vv,
+                          const std::vector<CRTTrackMatch::crttrack_t>& tracks_v,
+                          std::vector< larlite::opflash >& matched_opflash_v );
     
+    larlite::larflowcluster _crttrack2larflowcluster( const CRTTrackMatch::crttrack_t& fitdata );    
 
     larutil::SpaceChargeMicroBooNE* _sce;
     larutil::SpaceChargeMicroBooNE* _reverse_sce;
@@ -93,6 +99,7 @@ namespace crtmatch {
     int _col_neighborhood;     //< window to search for charge around track
     float _max_fit_step_size;  //< max step size when fittering
     float _max_last_step_size; //< max step size for final fit
+    float _max_dt_flash_crt;   // < maximum time difference (usec) between opflash and crttrack
     std::string _adc_producer; //< name of ADC image tree
     std::string _crttrack_producer; //< name of CRT track producer
     std::vector<std::string> _opflash_producer_v;  //< name of opflash producer

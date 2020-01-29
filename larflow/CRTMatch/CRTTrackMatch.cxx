@@ -20,6 +20,7 @@ namespace crtmatch {
     _col_neighborhood(100),
     _max_fit_step_size(1.0),
     _max_last_step_size(0.1),
+    _max_dt_flash_crt(10.0),
     _adc_producer("wire"),
     _crttrack_producer("crttrack"),
     _opflash_producer_v( {"simpleFlashBeam","simpleFlashCosmic"} ),
@@ -49,7 +50,7 @@ namespace crtmatch {
     larlite::event_crttrack* ev_crttrack
       = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, _crttrack_producer );
 
-    std::vector< larlite::event_opflash* > opflash_v;
+    std::vector< const larlite::event_opflash* > opflash_v;
     for ( auto& flashname : _opflash_producer_v ) {
       larlite::event_opflash* ev_opflash
         = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, flashname );
@@ -71,12 +72,55 @@ namespace crtmatch {
 
       // save, only if there are points inside the TPC and in the image
       if ( fit.pixelpos_vv.size()>0 ) {
-        
+
+        LARCV_NORMAL() << "found fitted CRT track: " << _str(fit) << std::endl;
         fitted_v.emplace_back( std::move(fit) );
         
       }//if fitted track has image path with charge
       
     }//end of crttrack loop
+
+    // match opflashes
+    std::vector< larlite::opflash > matched_opflash_v;
+    _matchOpflashes( opflash_v, fitted_v, matched_opflash_v );
+
+    // now store data
+    // (1) new crt object with updated hit positions (and old hit positions as well)
+    // (2) matched opflash objects
+    // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
+    larlite::event_crttrack* out_crttrack
+      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack" );
+    larlite::event_opflash* out_opflash
+      = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, "fitcrttrack" );
+    larlite::event_larflowcluster* out_lfcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
+
+    for (int i=0; i<fitted_v.size(); i++ ) {
+      auto& fitdata = fitted_v[i];
+      larlite::crttrack outcrt( *fitdata.pcrttrack );
+
+      // record shift
+      outcrt.x1_err = fitdata.hit_pos_vv[0][0] - outcrt.x1_pos;
+      outcrt.y1_err = fitdata.hit_pos_vv[0][1] - outcrt.y1_pos;
+      outcrt.z1_err = fitdata.hit_pos_vv[0][2] - outcrt.z1_pos;      
+      outcrt.x2_err = fitdata.hit_pos_vv[1][0] - outcrt.x2_pos;
+      outcrt.y2_err = fitdata.hit_pos_vv[1][1] - outcrt.y2_pos;
+      outcrt.z2_err = fitdata.hit_pos_vv[1][2] - outcrt.z2_pos;
+
+      // record new hit positions
+      outcrt.x1_pos = fitdata.hit_pos_vv[0][0];
+      outcrt.y1_pos = fitdata.hit_pos_vv[0][1];
+      outcrt.z1_pos = fitdata.hit_pos_vv[0][2];
+      outcrt.x2_pos = fitdata.hit_pos_vv[1][0];
+      outcrt.y2_pos = fitdata.hit_pos_vv[1][1];
+      outcrt.z2_pos = fitdata.hit_pos_vv[1][2];
+
+      larlite::larflowcluster cluster = _crttrack2larflowcluster( fitdata );
+
+      out_crttrack->emplace_back( std::move(outcrt) );
+      out_opflash->emplace_back( std::move(matched_opflash_v[i]) );
+      
+    }
 
     if ( _make_debug_images ) {
 
@@ -134,6 +178,14 @@ namespace crtmatch {
 
     }//end of block to make debug image
 
+
+    // store results
+    // --------------
+    // we place into the larlite tree, the following info
+    // (1) modified crttrack objects -- for ones we found through the fit -- with updated hit positions
+    // (2) opflash matched to the crt object
+    // (3) larflowcluster of larflow3dhit: the hits associate a space-point with the image coordinates we found
+    //       for a crt hit
     
   }
 
@@ -239,6 +291,8 @@ namespace crtmatch {
                                                                10 );
     bestfit_data.pcrttrack = &crt;
     bestfit_data.t0_usec = t0_usec;
+    bestfit_data.hit_pos_vv.push_back( hit1_center );
+    bestfit_data.hit_pos_vv.push_back( hit2_center );    
     LARCV_INFO() << " track after fit: " << _str(bestfit_data) << std::endl;
     
     return bestfit_data;
@@ -472,7 +526,7 @@ namespace crtmatch {
       
     }//end of old point loop
 
-    std::cout << " found " << candidate_points_vv.size() << " new 3D points from " << old.pixelpos_vv.size() << " points" << std::endl;
+    //std::cout << " found " << candidate_points_vv.size() << " new 3D points from " << old.pixelpos_vv.size() << " points" << std::endl;
 
     // make cluster, and pca
     larflow::reco::cluster_t cluster;
@@ -579,6 +633,144 @@ namespace crtmatch {
     
     return true;
     
+  }
+
+  /**
+   * match opflashes to crttrack_t using closest time
+   *
+   * ties are broken based on closest centroids based 
+   *   on pca-center of tracks and charge-weighted mean of flashes
+   * the crttrack_t objects are assumed to have been made in _find_optimal_track(...)
+   */
+  void CRTTrackMatch::_matchOpflashes( std::vector< const larlite::event_opflash* > flash_vv,
+                                       const std::vector<CRTTrackMatch::crttrack_t>& tracks_v,
+                                       std::vector< larlite::opflash >& matched_opflash_v ) {
+
+    std::vector< std::vector<int> > used_flash_v( flash_vv.size() );
+    for ( size_t i=0; i<flash_vv.size(); i++ )
+      used_flash_v[i].resize( flash_vv[i]->size(), 0 );
+    
+    for ( auto const& trackdata : tracks_v ) {
+
+      std::vector< const larlite::opflash* > matched_in_time_v;
+      std::vector<float> dt_usec_v;
+      std::vector< std::pair<int,int> > matched_index_v;
+
+      float closest_time = 10e9;
+
+      for ( size_t i=0; i<flash_vv.size(); i++ ) {
+        for ( size_t j=0; j<flash_vv[i]->size(); j++ ) {
+          if ( used_flash_v[i][j]>0 ) continue;
+          
+          float dt_usec = trackdata.t0_usec - flash_vv[i]->at(j).Time();
+
+          //std::cout <<" ... compare flash and crttrack time: " << flash_vv[i]->at(j).Time() << " vs. " << trackdata.t0_usec << " dt=" << dt_usec << std::endl;
+          
+          if ( fabs(dt_usec) < closest_time )
+            closest_time = fabs(dt_usec);
+
+          if ( fabs(dt_usec)<_max_dt_flash_crt ) {
+            matched_in_time_v.push_back( &(flash_vv[i]->at(j)) );
+            dt_usec_v.push_back( dt_usec );
+            matched_index_v.push_back( std::pair<int,int>( i, j ) );
+            //std::cout << "[CRTTrackMatch]  ...  crt-track and opflash matched. dt_usec=" << dt_usec << std::endl;
+          }
+          
+        }
+      }
+
+      LARCV_NORMAL() << "crt-track has " << matched_index_v.size() << " flash matches. closest time=" << closest_time  << std::endl;
+
+      
+      if ( matched_in_time_v.size()==0 ) {
+        // make empty opflash at the time of the crttrack
+        std::vector< double > PEperOpDet(32,0.0);
+        larlite::opflash blank_flash( trackdata.t0_usec, 0.0, trackdata.t0_usec, 0,
+                                      PEperOpDet );
+        matched_opflash_v.emplace_back( std::move(blank_flash) );
+      }
+      else if ( matched_in_time_v.size()==1 ) {
+        // store a copy of the opflash
+        matched_opflash_v.push_back( *matched_in_time_v[0] );
+        used_flash_v[ matched_index_v[0].first ][ matched_index_v[1].second ] = 1;
+      }
+      else {
+      
+        float smallest_dist = 1.0e9;
+        const larlite::opflash* closest_opflash = nullptr;
+
+        // we have a loose initial standard. if more than one, we use a tighter standard
+        bool have_tight_match = false;
+        for ( auto& dt_usec : dt_usec_v ) {
+          if ( fabs(dt_usec)<1.5 ) have_tight_match = true;
+        }
+
+        for ( size_t i=0; i<matched_in_time_v.size(); i++ ) {
+
+          // ignore loose match if we know we have at least one good one
+          if ( have_tight_match && dt_usec_v[i]>1.5 ) continue;
+
+          // get middle of 3d cluster
+          std::vector< float > ave_pos_v(3,0);
+          int npoints = 0;
+
+          for ( auto const& pixpos : trackdata.pixelpos_vv ) {
+            for (int v=0; v<3; v++ ) ave_pos_v[v] += pixpos[v];
+            npoints++;
+          }
+
+          if (npoints>0) {
+            for (int v=0; v<3; v++ ) ave_pos_v[v] /= float(npoints);
+          }
+
+          // get mean of opflash
+          std::vector<float> flashcenter = { 0.0,
+                                             (float)matched_in_time_v[i]->YCenter(),
+                                             (float)matched_in_time_v[i]->ZCenter() };
+
+          float dist = 0.;
+          for (int v=1; v<3; v++ ) {
+            dist += ( flashcenter[v]-ave_pos_v[v] )*( flashcenter[v]-ave_pos_v[v] );
+          }
+          dist = sqrt(dist);
+
+          if ( dist<smallest_dist ) {
+            smallest_dist = dist;
+            closest_opflash = matched_in_time_v[i];
+          }
+          std::cout << "[CRTTrackMatch]  ... distance between opflash and track center: " << dist << " cm" << std::endl;
+        }//end of candidate opflash match
+
+        // store best match
+        if ( closest_opflash ) {
+          matched_opflash_v.push_back( *closest_opflash );
+        }
+        else {
+          // shouldnt get here
+          throw std::runtime_error( "should not get here" );
+        }
+      }//else more than 1 match
+          
+    }//end of track data loop
+
+    // check we have the right amount of flashes
+    if ( matched_opflash_v.size()!=tracks_v.size() ) {
+      throw std::runtime_error( "different amount of input crttrack data and opflashes");
+    }
+  }
+
+  
+  /**
+   * store crttrack_t data in a cluster of larflow3dhits
+   *
+   */
+  larlite::larflowcluster CRTTrackMatch::_crttrack2larflowcluster( const CRTTrackMatch::crttrack_t& fitdata ) {
+    larlite::larflowcluster cluster;
+
+    // loop over hits, store crttrack_t data in a cluster of larflow3dhits
+
+
+    return cluster;
   }
   
 }
