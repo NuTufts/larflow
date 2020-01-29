@@ -41,6 +41,9 @@ namespace crtmatch {
    */
   void CRTTrackMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
+    // clear containers storing output of algorithm    
+    clear_output_containers();
+    
     // collect input
     // --------------
     larcv::EventImage2D* ev_adc
@@ -65,7 +68,6 @@ namespace crtmatch {
     }
     
     // try to fit crt track path
-    std::vector< crttrack_t > fitted_v;
     for ( size_t i=0; i<ev_crttrack->size(); i++ ) {
 
       crttrack_t fit = _find_optimal_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
@@ -74,29 +76,18 @@ namespace crtmatch {
       if ( fit.pixelpos_vv.size()>0 ) {
 
         LARCV_NORMAL() << "found fitted CRT track: " << _str(fit) << std::endl;
-        fitted_v.emplace_back( std::move(fit) );
+        _fitted_crttrack_v.emplace_back( std::move(fit) );
         
       }//if fitted track has image path with charge
       
     }//end of crttrack loop
 
     // match opflashes
-    std::vector< larlite::opflash > matched_opflash_v;
-    _matchOpflashes( opflash_v, fitted_v, matched_opflash_v );
 
-    // now store data
-    // (1) new crt object with updated hit positions (and old hit positions as well)
-    // (2) matched opflash objects
-    // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
-    larlite::event_crttrack* out_crttrack
-      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack" );
-    larlite::event_opflash* out_opflash
-      = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, "fitcrttrack" );
-    larlite::event_larflowcluster* out_lfcluster
-      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
+    _matchOpflashes( opflash_v, _fitted_crttrack_v, _matched_opflash_v );
 
-    for (int i=0; i<fitted_v.size(); i++ ) {
-      auto& fitdata = fitted_v[i];
+    for (int i=0; i<_fitted_crttrack_v.size(); i++ ) {
+      auto& fitdata = _fitted_crttrack_v[i];
       larlite::crttrack outcrt( *fitdata.pcrttrack );
 
       // record shift
@@ -115,11 +106,11 @@ namespace crtmatch {
       outcrt.y2_pos = fitdata.hit_pos_vv[1][1];
       outcrt.z2_pos = fitdata.hit_pos_vv[1][2];
 
-      larlite::larflowcluster cluster = _crttrack2larflowcluster( fitdata );
-
-      out_crttrack->emplace_back( std::move(outcrt) );
-      out_opflash->emplace_back( std::move(matched_opflash_v[i]) );
+      _modified_crttrack_v.emplace_back( std::move(outcrt) );
       
+      larlite::larflowcluster cluster = _crttrack2larflowcluster( fitdata );
+      _cluster_v.emplace_back( std::move(cluster) );
+
     }
 
     if ( _make_debug_images ) {
@@ -139,7 +130,7 @@ namespace crtmatch {
         if ( p<=1 )
           h2d_v[p].GetXaxis()->SetRangeUser(0,2400);
 
-        for ( auto const& fit : fitted_v ) {
+        for ( auto const& fit : _fitted_crttrack_v ) {
 
           TGraph* g = new TGraph( fit.pixelcoord_vv[p].size() );
           for ( size_t n=0; n<fit.pixelcoord_vv.size(); n++ ) {
@@ -177,15 +168,6 @@ namespace crtmatch {
       }
 
     }//end of block to make debug image
-
-
-    // store results
-    // --------------
-    // we place into the larlite tree, the following info
-    // (1) modified crttrack objects -- for ones we found through the fit -- with updated hit positions
-    // (2) opflash matched to the crt object
-    // (3) larflowcluster of larflow3dhit: the hits associate a space-point with the image coordinates we found
-    //       for a crt hit
     
   }
 
@@ -765,12 +747,72 @@ namespace crtmatch {
    *
    */
   larlite::larflowcluster CRTTrackMatch::_crttrack2larflowcluster( const CRTTrackMatch::crttrack_t& fitdata ) {
+    
     larlite::larflowcluster cluster;
 
     // loop over hits, store crttrack_t data in a cluster of larflow3dhits
+    for ( size_t i=0; i<fitdata.pixelpos_vv.size(); i++ ) {
 
+      larlite::larflow3dhit lfhit;
+      lfhit.resize(3,0);
+      lfhit.targetwire.resize(3,0);
+      lfhit.X_truth.resize(3,0); // store pre-sce position, CRT hit1, CRT hit2
+      for (int v=0; v<3; v++ ) {
+        lfhit[v]            = fitdata.pixelpos_vv[i][v];
+        lfhit.targetwire[v] = fitdata.pixelcoord_vv[i][v];
+        lfhit.X_truth[v]    = fitdata.pixelpos_vv[i][3+v];
+      }
+      lfhit.tick = fitdata.pixelcoord_vv[i][3];
+      lfhit.srcwire = fitdata.pixelcoord_vv[i][2];
+      lfhit.idxhit = i;
+      
+      cluster.emplace_back( std::move(lfhit) );
+    }
 
     return cluster;
+  }
+
+  /**
+   * save information into larlite::storage_manager
+   *
+   */
+  void CRTTrackMatch::save_to_file( larlite::storage_manager& ioll ) {
+
+    // now store data
+    // --------------
+    // (1) new crt object with updated hit positions (and old hit positions as well)
+    // (2) matched opflash objects
+    // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
+    larlite::event_crttrack* out_crttrack
+      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack" );
+    larlite::event_opflash* out_opflash
+      = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, "fitcrttrack" );
+    larlite::event_larflowcluster* out_lfcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
+
+    for ( auto& crttrack : _modified_crttrack_v ) {
+      out_crttrack->push_back(crttrack);
+    }
+
+    for ( auto& opflash : _matched_opflash_v ) {
+      float petot = 0.;
+      for (int n=0; n<opflash.nOpDets(); n++)
+        petot += opflash.PE(n);
+      std::cout << "opflash pe: " << petot << " nopdets=" << opflash.nOpDets() << std::endl;
+      out_opflash->emplace_back(std::move(opflash));
+    }
+
+    for ( auto& cluster : _cluster_v ) {
+      out_lfcluster->push_back( cluster );
+    }
+
+  }
+
+  void CRTTrackMatch::clear_output_containers() {
+    _fitted_crttrack_v.clear();   //< result of crt track fitter
+    _matched_opflash_v.clear();   //< opflashes matched to tracks in _fitted_crttrack_v
+    _modified_crttrack_v.clear(); //< crttrack object with modified end points
+    _cluster_v.clear();
   }
   
 }

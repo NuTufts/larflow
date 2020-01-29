@@ -31,6 +31,9 @@ namespace crtmatch {
     void set_max_last_step_size( float cm ) { _max_last_step_size = cm; };
     void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
 
+    void save_to_file( larlite::storage_manager& ioll );
+    void clear_output_containers();
+
     // struct to assemble info
     struct crttrack_t {
 
@@ -50,6 +53,13 @@ namespace crtmatch {
       int opflash_index;
       const larlite::opflash*  opflash;
 
+      crttrack_t()
+      : crt_track_index(-1),
+        pcrttrack( nullptr ),
+        totalq_v( {0,0,0} ),
+        toterr_v( {0,0,0} ),
+        len_intpc_sce(0.0)
+      {};
       crttrack_t( int idx, const larlite::crttrack* ptrack )
       : crt_track_index(idx),
         pcrttrack( ptrack ),
@@ -104,6 +114,12 @@ namespace crtmatch {
     std::string _crttrack_producer; //< name of CRT track producer
     std::vector<std::string> _opflash_producer_v;  //< name of opflash producer
     bool _make_debug_images;
+
+    // products of algorithm
+    std::vector< crttrack_t >        _fitted_crttrack_v;   //< result of crt track fitter
+    std::vector< larlite::opflash >  _matched_opflash_v;   //< opflashes matched to tracks in _fitted_crttrack_v
+    std::vector< larlite::crttrack > _modified_crttrack_v; //< crttrack object with modified end points
+    std::vector< larlite::larflowcluster > _cluster_v;
 
   };
   

@@ -13,12 +13,12 @@ from larflow import larflow
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 #io.add_in_filename(  "larflow_reco_extbnb_run3.root" )
 io.add_in_filename(  "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root" )
-#io.set_out_filename( "crtmatch_reco_extbnb_run3.root" )
+#io.set_out_filename( "crttrack_match_reco_extbnb_run3.root" )
 io.open()
 
-#outio = larlite.storage_manager( larlite.storage_manager.kWRITE )
-#outio.set_out_filename( "crtmatch_reco_extbnb_run3.root" )
-#outio.open()
+outio = larlite.storage_manager( larlite.storage_manager.kWRITE )
+outio.set_out_filename( "crttrack_match_reco_extbnb_run3.root" )
+outio.open()
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 iolcv.add_in_file( "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root" )
@@ -36,8 +36,8 @@ nentries = 2
 print "Start loop."
 
 #outio.next_event()
-for ientry in xrange( 1, nentries ):
-#for ientry in xrange( 1, 2 ):
+#for ientry in xrange( 1, nentries ):
+for ientry in xrange( 0, 2 ):
 
     io.go_to(ientry)    
     iolcv.read_entry(ientry)
@@ -68,11 +68,12 @@ for ientry in xrange( 1, nentries ):
 
     crtmatch.process( iolcv, io )
 
-    #outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
-    #outio.next_event()
+    crtmatch.save_to_file( outio )
+    outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
+    outio.next_event()
     #break
 
 
 io.close()
 iolcv.finalize()
-#outio.close()
+outio.close()
