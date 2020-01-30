@@ -31,7 +31,7 @@ namespace crtmatch {
     void set_max_last_step_size( float cm ) { _max_last_step_size = cm; };
     void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
 
-    void save_to_file( larlite::storage_manager& ioll );
+    void save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
     void clear_output_containers();
 
     // struct to assemble info

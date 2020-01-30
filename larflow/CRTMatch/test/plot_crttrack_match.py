@@ -55,6 +55,8 @@ def load_event_data( ioll, ientry ):
         vis_crttrack = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
         vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
         vis_larflow  = [ lardly.data.visualize_larlite_larflowhits( ev_cluster.at(n) ) ]
+        for vis_lf in vis_larflow:
+            vis_lf["marker"]["color"]="rgb(0,0,255)"
         entrydata.append( vis_crttrack + vis_opflash + vis_larflow )
 
     return entrydata

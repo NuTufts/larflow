@@ -20,7 +20,7 @@ namespace crtmatch {
     _col_neighborhood(100),
     _max_fit_step_size(1.0),
     _max_last_step_size(0.1),
-    _max_dt_flash_crt(10.0),
+    _max_dt_flash_crt(2.0),
     _adc_producer("wire"),
     _crttrack_producer("crttrack"),
     _opflash_producer_v( {"simpleFlashBeam","simpleFlashCosmic"} ),
@@ -88,6 +88,7 @@ namespace crtmatch {
 
     for (int i=0; i<_fitted_crttrack_v.size(); i++ ) {
       auto& fitdata = _fitted_crttrack_v[i];
+
       larlite::crttrack outcrt( *fitdata.pcrttrack );
 
       // record shift
@@ -776,7 +777,7 @@ namespace crtmatch {
    * save information into larlite::storage_manager
    *
    */
-  void CRTTrackMatch::save_to_file( larlite::storage_manager& ioll ) {
+  void CRTTrackMatch::save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
 
     // now store data
     // --------------
@@ -790,20 +791,23 @@ namespace crtmatch {
     larlite::event_larflowcluster* out_lfcluster
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
 
-    for ( auto& crttrack : _modified_crttrack_v ) {
-      out_crttrack->push_back(crttrack);
-    }
+    for (size_t i=0; i<_modified_crttrack_v.size(); i++ ) {
+      auto& crttrack = _modified_crttrack_v[i];
+      auto& opflash  = _matched_opflash_v[i];
+      auto& cluster  = _cluster_v[i];
+      
+      if ( remove_if_no_flash && _matched_opflash_v[i].TotalPE()==0.0 ) {
+        LARCV_INFO() << "no matching flash for fitted CRT track[" << i << "], not saving" << std::endl;
+        continue;
+      }
+      
+      float petot = opflash.TotalPE();
+      LARCV_NORMAL() << "saving track with opflash pe=" << petot << " nopdets=" << opflash.nOpDets() << std::endl;
 
-    for ( auto& opflash : _matched_opflash_v ) {
-      float petot = 0.;
-      for (int n=0; n<opflash.nOpDets(); n++)
-        petot += opflash.PE(n);
-      std::cout << "opflash pe: " << petot << " nopdets=" << opflash.nOpDets() << std::endl;
-      out_opflash->emplace_back(std::move(opflash));
-    }
-
-    for ( auto& cluster : _cluster_v ) {
+      out_crttrack->push_back(crttrack);            
+      out_opflash->push_back(opflash);
       out_lfcluster->push_back( cluster );
+      
     }
 
   }

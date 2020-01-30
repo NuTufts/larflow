@@ -31,13 +31,13 @@ crtmatch.make_debug_images( True )
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 2
+nentries = 5
 
 print "Start loop."
 
 #outio.next_event()
-#for ientry in xrange( 1, nentries ):
-for ientry in xrange( 0, 2 ):
+for ientry in xrange( 0, nentries ):
+#for ientry in xrange( 0, 2 ):
 
     io.go_to(ientry)    
     iolcv.read_entry(ientry)
