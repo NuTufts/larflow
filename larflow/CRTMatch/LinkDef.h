@@ -11,7 +11,7 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::crtmatch;
-#pragma link C++ class larflow::crtmatch::CRTMatch+;
+#pragma link C++ class larflow::crtmatch::CRTHitMatch+;
 #pragma link C++ class larflow::crtmatch::CRTTrackMatch+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

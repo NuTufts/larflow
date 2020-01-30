@@ -1,5 +1,5 @@
-#ifndef __LARFLOW_RECO_CRTMATCH_H__
-#define __LARFLOW_RECO_CRTMATCH_H__
+#ifndef __LARFLOW_RECO_CRTHITMATCH_H__
+#define __LARFLOW_RECO_CRTHITMATCH_H__
 
 /**
  * goal of class is to match larflow track clusters with CRT hits and then optical flashes
@@ -17,12 +17,12 @@
 namespace larflow {
 namespace crtmatch {
 
-  class CRTMatch {
+  class CRTHitMatch {
 
   public:
 
-    CRTMatch() {};
-    virtual ~CRTMatch() {};
+    CRTHitMatch() {};
+    virtual ~CRTHitMatch() {};
     
     void addIntimeOpFlashes( const larlite::event_opflash& opflash_v );
     void addCosmicOpFlashes( const larlite::event_opflash& opflash_v );

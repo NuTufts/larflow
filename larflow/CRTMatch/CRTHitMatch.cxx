@@ -1,4 +1,4 @@
-#include "CRTMatch.h"
+#include "CRTHitMatch.h"
 
 #include "LArUtil/LArProperties.h"
 
@@ -7,7 +7,7 @@
 namespace larflow {
 namespace crtmatch {
 
-  void CRTMatch::clear() {
+  void CRTHitMatch::clear() {
     _intime_opflash_v.clear();
     _outtime_opflash_v.clear();
     _crthit_v.clear();
@@ -16,27 +16,27 @@ namespace crtmatch {
     _pcaxis_v.clear();
   }
   
-  void CRTMatch::addIntimeOpFlashes( const larlite::event_opflash& opflash_v ) {
+  void CRTHitMatch::addIntimeOpFlashes( const larlite::event_opflash& opflash_v ) {
     for ( auto const& opf : opflash_v )
       _intime_opflash_v.push_back( opf );
   }
 
-  void CRTMatch::addCosmicOpFlashes( const larlite::event_opflash& opflash_v ) {
+  void CRTHitMatch::addCosmicOpFlashes( const larlite::event_opflash& opflash_v ) {
     for ( auto const& opf : opflash_v )
       _outtime_opflash_v.push_back( opf );
   }
 
-  void CRTMatch::addCRThits( const larlite::event_crthit& crthit_v ) {
+  void CRTHitMatch::addCRThits( const larlite::event_crthit& crthit_v ) {
     for ( auto const& hit : crthit_v )
       _crthit_v.push_back( hit );
   }
   
-  void CRTMatch::addCRTtracks( const larlite::event_crttrack& crttrack_v ) {
+  void CRTHitMatch::addCRTtracks( const larlite::event_crttrack& crttrack_v ) {
     for ( auto const& track : _crttrack_v )
       _crttrack_v.push_back( track );
   }
   
-  void CRTMatch::addLArFlowClusters( const larlite::event_larflowcluster& lfcluster_v,
+  void CRTHitMatch::addLArFlowClusters( const larlite::event_larflowcluster& lfcluster_v,
                                      const larlite::event_pcaxis& pcaxis_v ) {
     for ( auto const& cluster : lfcluster_v ) {
       _lfcluster_v.push_back( &cluster );
@@ -48,7 +48,7 @@ namespace crtmatch {
   }
   
 
-  void CRTMatch::match( larlite::storage_manager& llio, larlite::storage_manager& outio ) {
+  void CRTHitMatch::match( larlite::storage_manager& llio, larlite::storage_manager& outio ) {
 
     _hit2trackidx_v.resize( _crthit_v.size() );
     printHitInfo();
@@ -58,7 +58,7 @@ namespace crtmatch {
     larlite::event_pcaxis* ev_pcaout = (larlite::event_pcaxis*)outio.get_data( larlite::data::kPCAxis, "crtmatch" );
 
     std::cout << "==============================" << std::endl;
-    std::cout << "[ CRTMatch ]" << std::endl;
+    std::cout << "[ CRTHitMatch ]" << std::endl;
     for (size_t itrack=0; itrack<_pcaxis_v.size(); itrack++ ) {
       auto const& pca = *_pcaxis_v[itrack];
 
@@ -130,7 +130,7 @@ namespace crtmatch {
     return;
   }
 
-  void CRTMatch::printHitInfo() {
+  void CRTHitMatch::printHitInfo() {
     
     std::cout << "===============================================" << std::endl;
     std::cout << "[ CRT HIT INFO ]" << std::endl;
@@ -152,7 +152,7 @@ namespace crtmatch {
     
   }
 
-  float CRTMatch::makeOneMatch( const larlite::pcaxis& lfcluster_axis, const larlite::crthit& hit,
+  float CRTHitMatch::makeOneMatch( const larlite::pcaxis& lfcluster_axis, const larlite::crthit& hit,
                                 std::vector<float>& panel_pos ) {
     
     int   crt_plane_dim[4] = {        1,        0,       0,      1 }; // Y-axis, X-axis, X-axis, Y-axis
@@ -219,7 +219,7 @@ namespace crtmatch {
     return dist;
   }
 
-  float CRTMatch::getLength( const larlite::pcaxis& pca ) {
+  float CRTHitMatch::getLength( const larlite::pcaxis& pca ) {
     float dist = 0.;
     for (int i=0; i<3; i++ ) {
       float dx = ( pca.getEigenVectors()[3][i]-pca.getEigenVectors()[4][i] );

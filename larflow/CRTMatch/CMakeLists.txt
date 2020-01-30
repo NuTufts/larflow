@@ -3,9 +3,9 @@ set(MODULE_NAME CRTMatch )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS CRTMatch.h CRTTrackMatch.h )
+set( HEADERS CRTHitMatch.h CRTTrackMatch.h )
 
-add_library( ${LIBNAME} SHARED CRTMatch.cxx CRTTrackMatch.cxx )
+add_library( ${LIBNAME} SHARED CRTHitMatch.cxx CRTTrackMatch.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
