@@ -27,7 +27,7 @@ crt_inputfile   = "crttrack_match_reco_extbnb_run3.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( merged_inputfile )
-io.add_in_filename( track_inputfile )
+#io.add_in_filename( track_inputfile )
 io.add_in_filename( crt_inputfile )
 io.open()
 
