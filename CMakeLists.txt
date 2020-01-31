@@ -65,6 +65,9 @@ find_package(Eigen3 REQUIRED)
 #---Cilantro
 set( CILANTRO_INC_DIR "$ENV{CILANTRO_INC_DIR}" )
 
+#--- glog
+find_package(glog REQUIRED)
+
 ## Setup
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
