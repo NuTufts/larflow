@@ -24,7 +24,7 @@ colorscale = "Viridis"
 
 treename = "pcacluster"
 merged_inputfile = "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root"
-track_inputfile = "larflow_reco_extbnb_run3.root"
+track_inputfile = "larflow_reco_extbnb_run3_vp.root"
 crt_inputfile   = "crtmatch_reco_extbnb_run3.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
@@ -72,10 +72,10 @@ def make_crt_hits( io_ll ):
     print("Visualize CRT")
     ev_crthits = io_ll.get_data(larlite.data.kCRTHit,"crthitcorr")
     crthit_v = [ lardly.data.visualize_larlite_event_crthit( ev_crthits, "crthitcorr", window=[-3200,3200]) ]
-    filtered_crthit_v = lardly.ubdl.filter_crthits_wopreco( evopflash_beam, evopflash_cosmic, ev_crthits )
-    if False:
-        vis_filtered_crthit_v = [ lardly.data.visualize_larlite_crthit( x ) for x in filtered_crthit_v ]
-        return vis_filtered_crthit_v
+    #filtered_crthit_v = lardly.ubdl.filter_crthits_wopreco( evopflash_beam, evopflash_cosmic, ev_crthits )
+    #if True:
+    #    vis_filtered_crthit_v = [ lardly.data.visualize_larlite_crthit( x ) for x in filtered_crthit_v ]
+    #    return vis_filtered_crthit_v
 
     return crthit_v
 
@@ -186,7 +186,7 @@ plot_layout = {
         "xaxis": axis_template,
         "yaxis": axis_template,
         "zaxis": axis_template,
-        "aspectratio": {"x": 1, "y": 1, "z": 3},
+        "aspectratio": {"x": 1, "y": 1, "z": 1.2},
         "camera": {"eye": {"x": 1, "y": 1, "z": 1},
                    "up":dict(x=0, y=1, z=0)},
         "annotations": [],

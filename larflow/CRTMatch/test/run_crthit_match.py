@@ -6,12 +6,10 @@ from larlite import larlite
 from larcv import larcv
 from larflow import larflow
 
-print larflow.reco.cluster_t
-print larflow.reco.cluster_larflow3dhits
-
+print larflow.crtmatch.CRTHitMatch
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
-io.add_in_filename(  "larflow_reco_extbnb_run3.root" )
+io.add_in_filename(  "larflow_reco_extbnb_run3_vp.root" )
 io.add_in_filename(  "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root" )
 #io.set_out_filename( "crtmatch_reco_extbnb_run3.root" )
 io.open()
@@ -25,11 +23,11 @@ iolcv.add_in_file( "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbe
 iolcv.reverse_all_products()
 iolcv.initialize()
 
-crtmatch = larflow.reco.CRTMatch()
+crtmatch = larflow.crtmatch.CRTHitMatch()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 5
+#nentries = 5
 
 print "Start loop."
 raw_input()

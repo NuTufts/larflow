@@ -26,12 +26,12 @@ iolcv.reverse_all_products()
 iolcv.initialize()
 
 crtmatch = larflow.crtmatch.CRTTrackMatch()
-crtmatch.set_max_iters( 20 )
-crtmatch.make_debug_images( True )
+crtmatch.set_max_iters( 25 )
+crtmatch.make_debug_images( False )
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 5
+#nentries = 5
 
 print "Start loop."
 
