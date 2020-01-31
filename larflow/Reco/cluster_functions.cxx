@@ -3,12 +3,17 @@
 #include <fstream>
 
 #include "ublarcvapp/dbscan/DBScan.h"
+#include "ublarcvapp/dbscan/sDBScan.h"
+// #include "ublarcvapp/dbscan/DBScan_vp.h"
+// #include "ublarcvapp/dbscan/dataset.h"
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
 #include <cilantro/principal_component_analysis.hpp>
 
 namespace larflow {
 namespace reco {
 
+  ClusterFunctions::ClusterFunctions() {}
+  
   /**
    * we use db scan to make an initial set of clusters
    *
@@ -24,7 +29,8 @@ namespace reco {
     points_v.reserve( hit_v.size() );
     
     for ( auto const& lfhit : hit_v ) {
-      points_v.push_back( lfhit );
+      std::vector<float > hit = { (float)lfhit[0], (float)lfhit[1], (float)lfhit[2] };
+      points_v.push_back( hit );
     }
     
     std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v = ublarcvapp::dbscan::DBScan::makeCluster3f( maxdist, minsize, maxkd, points_v );
@@ -56,6 +62,109 @@ namespace reco {
     std::cout << "[cluster_larflow3dhits] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
   }
 
+  /**
+   * we use alternative simple dbscan package to make an initial set of clusters
+   *
+   */
+  void cluster_sdbscan_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
+                                      std::vector< cluster_t >& cluster_v,
+                                      const float maxdist, const int minsize, const int maxkd ) {
+    
+    clock_t start = clock();
+    
+    // convert points into list of floats
+    std::vector< std::vector<float> > points_v;
+    points_v.reserve( hit_v.size() );
+    
+    for ( auto const& lfhit : hit_v ) {
+      std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
+      points_v.push_back( hit );
+    }
+
+    auto sdbscan = ublarcvapp::dbscan::SDBSCAN< std::vector<float>, float >();
+    sdbscan.Run( &points_v, 3, maxdist, minsize );
+    
+    auto noise = sdbscan.Noise;
+    auto dbcluster_v = sdbscan.Clusters;
+    
+    for (int ic=0; ic<(int)dbcluster_v.size();ic++) {
+      // skip the last cluster, which are noise points
+      auto const& cluster = dbcluster_v[ic];
+      cluster_t c;
+      c.points_v.reserve(cluster.size());
+      c.imgcoord_v.reserve(cluster.size());
+      c.hitidx_v.reserve(cluster.size());
+      for ( auto const& hitidx : cluster ) {
+        // store 3d position and 2D image coordinates
+        c.points_v.push_back( points_v.at(hitidx) );
+        std::vector<int> coord(4,0);
+        coord[3] = hit_v[hitidx].tick;
+        coord[0] = (int)hit_v[hitidx].targetwire[0]; // U-plane
+        coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
+        coord[2] = (int)hit_v[hitidx].targetwire[2]; // Y-plane
+        c.imgcoord_v.push_back( coord );
+        c.hitidx_v.push_back(hitidx);
+      }
+      cluster_v.emplace_back(std::move(c));
+    }
+    clock_t end = clock();
+    double elapsed = double(end-start)/CLOCKS_PER_SEC;
+    
+    std::cout << "[cluster_simple_larflow3dhits] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+  }
+
+  /**
+   * we use alternative simple dbscan package to make an initial set of clusters
+   *
+   */
+  // void cluster_dbscan_vp_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
+  //                                       std::vector< cluster_t >& cluster_v,
+  //                                       const float maxdist, const int minsize, const int maxkd ) {
+    
+  //   clock_t start = clock();
+
+  //   ublarcvapp::dbscan::Dataset::Ptr dataset = ublarcvapp::dbscan::Dataset::create();
+    
+  //   // convert points into list of floats
+  //   for ( auto const& lfhit : hit_v ) {
+  //     Eigen::Vector3f vec( lfhit[0], lfhit[1], lfhit[2] );
+  //     dataset->data().emplace_back( std::move(vec) );
+  //   }
+
+  //   std::cout << "fit dbscan_vp" << std::endl;
+  //   ublarcvapp::dbscan::DBSCAN_VP::Ptr dbscan
+  //     = boost::make_shared< ublarcvapp::dbscan::DBSCAN_VP >( dataset );
+  //   dbscan->fit();
+
+  //   std::cout << "predict dbscan_vp" << std::endl;    
+  //   const unsigned int num_clusters = dbscan->predict( maxdist, minsize );
+  //   std::cout << "dbscan_vp gives " << num_clusters << " clusters" << std::endl;    
+    
+  //   const ublarcvapp::dbscan::DBSCAN_VP::Labels& l = dbscan->get_labels();
+
+  //   cluster_v.resize( num_clusters );
+    
+  //   for (size_t hitidx=0; hitidx<l.size(); hitidx++ ) {
+  //     // skip the last cluster, which are noise points
+  //     auto& c = cluster_v[ l[hitidx] ];
+
+  //     // store 3d position and 2D image coordinates
+  //     c.points_v.push_back( hit_v[hitidx] );
+  //     std::vector<int> coord(4,0);
+  //     coord[3] = hit_v[hitidx].tick;
+  //     coord[0] = (int)hit_v[hitidx].targetwire[0]; // U-plane
+  //     coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
+  //     coord[2] = (int)hit_v[hitidx].targetwire[2]; // Y-plane
+  //     c.imgcoord_v.push_back( coord );
+  //     c.hitidx_v.push_back(hitidx);
+  //   }
+
+  //   clock_t end = clock();
+  //   double elapsed = double(end-start)/CLOCKS_PER_SEC;
+    
+  //   std::cout << "[cluster_dbscan_vp_larflow3dhits] made clusters: " << cluster_v.size() << " elapsed=" << elapsed << " secs" << std::endl;    
+  // }
+  
   void cluster_pca( cluster_t& cluster ) {
 
     //std::cout << "[cluster_pca]" << std::endl;
@@ -258,7 +367,8 @@ namespace reco {
   void cluster_splitbytrackshower( const std::vector<larlite::larflow3dhit>& hit_v,
                                    const std::vector<larcv::Image2D>& ssnettrack_image_v,
                                    std::vector<larlite::larflow3dhit>& track_hit_v,
-                                   std::vector<larlite::larflow3dhit>& shower_hit_v ) {
+                                   std::vector<larlite::larflow3dhit>& shower_hit_v,
+                                   float min_larmatch_score ) {
 
     clock_t begin = clock();
     
@@ -270,8 +380,17 @@ namespace reco {
     std::vector< const larcv::ImageMeta* > meta_v( ssnettrack_image_v.size(),0);
     for ( size_t p=0; p<ssnettrack_image_v.size(); p++ )
       meta_v[p] = &(ssnettrack_image_v[p].meta());
+
+    int below_threshold = 0.;
     
     for ( auto const & hit : hit_v ) {
+
+      //std::cout << "hit[9]=" << hit[9] << std::endl;
+      if ( min_larmatch_score>0 && hit.size()>=10 && hit[9]<min_larmatch_score ) {
+        below_threshold++;
+        continue;
+      }
+      
       std::vector<float> scores(3,0);
       scores[0] = ssnettrack_image_v[0].pixel( meta_v[0]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[0], __FILE__, __LINE__ );
       scores[1] = ssnettrack_image_v[1].pixel( meta_v[1]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[1], __FILE__, __LINE__ );
@@ -305,6 +424,7 @@ namespace reco {
               << "original=" << hit_v.size()
               << " into track=" << track_hit_v.size()
               << " and shower=" << shower_hit_v.size()
+              << " below-threshold=" << below_threshold
               << " elasped=" << elapsed << " secs"
               << std::endl;
   }

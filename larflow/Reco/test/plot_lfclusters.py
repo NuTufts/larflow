@@ -19,8 +19,9 @@ color_by_options = ["ssnet","charge","prob","dead","cluster","shower"]
 colorscale = "Viridis"
 
 #inputfile = "larflow_reco.root"
-#inputfile = "larflow_reco_extbnb_run3.root"
-inputfile = "larflow_cluster_eLEE_sample2_full.root"
+inputfile = "larflow_reco_extbnb_run3_vp.root"
+#inputfile = "larflow_reco_extbnb_run3_original.root"
+#inputfile = "larflow_cluster_eLEE_sample2_full.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( inputfile )

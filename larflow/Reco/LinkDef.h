@@ -8,11 +8,15 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link off all namespaces;
 
 //#pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::reco;
+#pragma link C++ class larflow::reco::ClusterFunctions+;
 #pragma link C++ class larflow::reco::cluster_t+;
 #pragma link C++ function larflow::reco::cluster_larflow3dhits+;
+#pragma link C++ function larflow::reco::cluster_sdbscan_larflow3dhits+;
+#pragma link C++ function larflow::reco::cluster_dbscan_vp_larflow3dhits+;
 #pragma link C++ function larflow::reco::cluster_dump2jsonfile+;
 #pragma link C++ function larflow::reco::cluster_splitbytrackshower+;
 #pragma link C++ function larflow::reco::cluster_imageprojection+;

@@ -15,6 +15,16 @@
 namespace larflow {
 namespace reco {
 
+
+  class ClusterFunctions {
+    
+  public:
+
+    ClusterFunctions();
+    virtual ~ClusterFunctions() {};
+    
+  };
+    
   /**
    * cluster used in the functions below
    *
@@ -42,6 +52,15 @@ namespace reco {
                               std::vector< cluster_t >& cluster_v,
                               const float maxdist=5.0, const int minsize=5, const int maxkd=5 );
 
+  void cluster_sdbscan_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
+                                      std::vector< cluster_t >& cluster_v,
+                                      const float maxdist=5.0, const int minsize=5, const int maxkd=5 );
+
+  /* not working */
+  /* void cluster_dbscan_vp_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v, */
+  /*                                       std::vector< cluster_t >& cluster_v, */
+  /*                                       const float maxdist=5.0, const int minsize=5, const int maxkd=5 ); */
+  
   nlohmann::json cluster_json( const cluster_t& cluster );
   
   void cluster_dump2jsonfile( const std::vector<cluster_t>& cluster_v,
@@ -54,7 +73,8 @@ namespace reco {
   void cluster_splitbytrackshower( const std::vector<larlite::larflow3dhit>& hit_v,
                                    const std::vector<larcv::Image2D>& ssnettrack_image_v,
                                    std::vector<larlite::larflow3dhit>& track_hit_v,
-                                   std::vector<larlite::larflow3dhit>& shower_hit_v );
+                                   std::vector<larlite::larflow3dhit>& shower_hit_v,
+                                   float min_larmatch_score=0.0 );
 
   void cluster_imageprojection( const cluster_t& cluster, std::vector<larcv::Image2D>& clust2d_images_v );
 
@@ -76,7 +96,7 @@ namespace reco {
   std::vector<float> cluster_pixelsum( const cluster_t& cluster,
                                        const std::vector<larcv::Image2D>& img_v  );
   
-  
+
 }
 }
 

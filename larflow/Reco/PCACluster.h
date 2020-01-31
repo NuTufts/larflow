@@ -16,11 +16,24 @@ namespace reco {
   class PCACluster {
   public:
 
-    PCACluster() {};
+    PCACluster()
+      : _min_larmatch_score(0.0),
+      _downsample_fraction(1.0),
+      _maxdist(10.0),
+      _minsize(5),
+      _maxkd(10)
+      {};
     virtual ~PCACluster() {};
 
     void process( larcv::IOManager& iolc, larlite::storage_manager& ioll );
 
+    void set_min_larmatch_score( float min_score ) { _min_larmatch_score = min_score; };
+    void set_downsample_fraction( float keepfrac ) { _downsample_fraction = keepfrac; };
+    void set_dbscan_pars( float maxdist, int minsize, int maxkd ) {
+      _maxdist = maxdist;
+      _minsize = minsize;
+      _maxkd = maxkd;
+    };
 
     static int split_clusters( std::vector<cluster_t>& cluster_v,
                                const std::vector<larcv::Image2D>& adc_v,
@@ -42,7 +55,12 @@ namespace reco {
                                                 const std::vector<larcv::Image2D>& adc_v,
                                                 const std::vector<larlite::larflow3dhit>& source_lfhit_v );
                                                 
-    
+
+    float _min_larmatch_score;
+    float _downsample_fraction;
+    float _maxdist;
+    int   _minsize;
+    int   _maxkd;
     
   };
 

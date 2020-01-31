@@ -10,6 +10,8 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 
+#include "TRandom3.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -53,11 +55,27 @@ namespace reco {
     std::vector<larlite::larflow3dhit> shower_hit_v;
 
     // divide pixels by track and shower
-    larflow::reco::cluster_splitbytrackshower( *ev_lfhits, ssnet_trackimg_v, track_hit_v, shower_hit_v );
+    larflow::reco::cluster_splitbytrackshower( *ev_lfhits, ssnet_trackimg_v, track_hit_v, shower_hit_v, _min_larmatch_score );
+
+    // downsample track points
+    std::vector<larlite::larflow3dhit> downsample_hit_v;
+    TRandom3 rand(12345);
+    if ( _downsample_fraction<1.0 ) {
+      for ( auto const& hit : track_hit_v ) {
+        if ( rand.Uniform()<_downsample_fraction )
+          downsample_hit_v.push_back(hit);
+      }
+      std::cout << "downsample track points from " << track_hit_v.size() << " to " << downsample_hit_v.size() << std::endl;
+    }
+    else {
+      std::swap(downsample_hit_v, track_hit_v );
+    }
 
     // cluster each hit type, define pca by the pixels
     std::vector<larflow::reco::cluster_t> cluster_track_v;
-    larflow::reco::cluster_larflow3dhits( track_hit_v, cluster_track_v );
+    //larflow::reco::cluster_larflow3dhits( track_hit_v, cluster_track_v ); // my implementation, i think its wrong
+    larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_track_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+    //larflow::reco::cluster_dbscan_vp_larflow3dhits( track_hit_v, cluster_track_v ); // supposedly uses openmp, doesnt work
     larflow::reco::cluster_runpca( cluster_track_v );
 
     std::vector<larflow::reco::cluster_t> cluster_shower_v;
@@ -82,13 +100,13 @@ namespace reco {
 
     // now we merge
     int nmerged = 0;
-    nmerged = merge_clusters( cluster_track_v, adc_v, 10.0, 30.0, 10.0 );
+    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 10.0, 10.0 );
     std::cout << "[merger-0 maxdist=10.0, maxangle=30.0, maxpca=10.0] number merged=" << nmerged << std::endl;
 
-    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 15.0, 10.0 );
+    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 30.0, 10.0 );
     std::cout << "[merger-1 maxdist=30.0, maxangle=15.0, maxpca=10.0] number merged=" << nmerged << std::endl;    
 
-    nmerged = merge_clusters( cluster_track_v, adc_v, 20.0, 60.0, 15.0, true );
+    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 60.0, 20.0, true );
     std::cout << "[merger-2 maxdist=5.0, maxangle=60.0, maxpca=5.0] number merged=" << nmerged << std::endl;
     
     //larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_merged.json" );
@@ -110,7 +128,7 @@ namespace reco {
     int cidx = 0;
     for ( auto& c : cluster_track_v ) {
       // cluster of hits
-      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, track_hit_v );
+      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, downsample_hit_v );
       evout_lfcluster->emplace_back( std::move(lfcluster) );
       // pca-axis
       larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
