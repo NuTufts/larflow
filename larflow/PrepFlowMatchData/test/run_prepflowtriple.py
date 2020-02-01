@@ -16,7 +16,8 @@ from ROOT import std
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-larflow.FlowTriples
+
+rt.gStyle.SetOptStat(0)
 
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 
@@ -40,7 +41,35 @@ for ientry in xrange(nentries):
                                               4, 3, 2400, 1008*6, 3456, 6, 1,
                                               1.0, 100, -1.0 );
     print("made badch_v, size=",badch_v.size())
+
+    tripmaker = larflow.PrepMatchTriplets()
+    tripmaker.process( adc_v, badch_v, 10.0 )
+
+    th2d_sparse_v = tripmaker.plot_sparse_images( adc_v, "sparse" )
+    csparse = rt.TCanvas("sparse","sparse",1400,1000)
+    csparse.Divide(3,2)
+    for p in xrange(3):
+        csparse.cd(p+1)
+        if p in [0,1]:
+            th2d_sparse_v[p].GetXaxis().SetRangeUser(0,2400)
+        th2d_sparse_v[p].Draw("colz")
     
-    trips = larflow.FlowTriples( 2, 0, adc_v, badch_v, 10.0 )
+    # badch
+    th2d_badch_v = larcv.rootutils.as_th2d_v( badch_v, "badch_entry%d"%(ientry))
+    th2d_adcch_v = larcv.rootutils.as_th2d_v( adc_v,   "adcch_entry%d"%(ientry))    
+    cbadch = rt.TCanvas("badch","badch",1400,1000)
+    cbadch.Divide(3,2)
+    for p in xrange(3):
+        if p in [0,1]:
+            th2d_badch_v[p].GetXaxis().SetRangeUser(0,2400)
+            th2d_adcch_v[p].GetXaxis().SetRangeUser(0,2400)            
+        cbadch.cd(p+1)
+        th2d_badch_v[p].Draw("colz")
+        cbadch.cd(p+4)
+        th2d_adcch_v[p].Draw("colz")
+
+    
+    print("[view triple points")
+    raw_input()
     break
 

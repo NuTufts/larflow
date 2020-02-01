@@ -2,13 +2,40 @@
 #include "WireOverlap.h"
 
 #include <ctime>
+#include <sstream>
 
 namespace larflow {
+
+  /**
+   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching
+   *
+   */
+  FlowTriples::FlowTriples( int source, int target,
+                            const std::vector<larcv::Image2D>& adc_v,
+                            const std::vector<larcv::Image2D>& badch_v,
+                            float threshold, bool save_index ) {
+    
+    _sparseimg_vv = make_initial_sparse_image( adc_v, threshold );
+    _makeTriples( source, target, adc_v, badch_v, _sparseimg_vv, threshold, save_index );
+    
+  }
 
   FlowTriples::FlowTriples( int source, int target,
                             const std::vector<larcv::Image2D>& adc_v,
                             const std::vector<larcv::Image2D>& badch_v,
-                            float threshold ) {
+                            const std::vector< std::vector<PixData_t> >& sparseimg_vv,
+                            float threshold, bool save_index ) {
+
+    _makeTriples( source, target, adc_v, badch_v, sparseimg_vv, threshold, save_index );
+    
+  }
+  
+  void FlowTriples::_makeTriples( int source, int target,
+                                  const std::vector<larcv::Image2D>& adc_v,
+                                  const std::vector<larcv::Image2D>& badch_v,
+                                  const std::vector< std::vector<PixData_t> >& sparseimg_vv,                                  
+                                  float threshold, bool save_index ) {
+
 
     std::clock_t start_ = std::clock();
 
@@ -22,7 +49,7 @@ namespace larflow {
       _other_plane = ( target==0 ) ? 2 : 0;
       break;
     case 2:
-      _other_plane = ( target==2 ) ? 1 : 2;
+      _other_plane = ( target==0 ) ? 1 : 0;
       break;
     default:
       char msg[100];
@@ -30,57 +57,41 @@ namespace larflow {
       throw std::runtime_error( msg );
       break;
     }
-
-    // sparsify planes
-    _sparseimg_vv.resize(adc_v.size());
-    for ( size_t p=0; p<adc_v.size(); p++ ) {
-      _sparseimg_vv.reserve( (int)0.1 * adc_v[p].as_vector().size() );
-
-      for ( size_t r=0; r<adc_v[p].meta().rows(); r++ ) {
-        for ( size_t c=0; c<adc_v[p].meta().cols(); c++ ) {
-          float val = adc_v[p].pixel(r,c);
-          if ( val>=threshold ) {
-            _sparseimg_vv[p].push_back( PixData_t((int)r,(int)c, val) );
-          }
-        }
-      }
-      // should be sorted in (r,c). do i pull the trigger and sort?
-      // std::sort( _sparseimg_vv[p].begin(), _sparseimg_vv[p].end() );
-      int idx=0;
-      for ( auto& pix : _sparseimg_vv[p] ) {
-        pix.idx = idx;
-        idx++;
-      }
-      std::cout << "[FlowTriples] plane[" << p << "] has " << _sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
-    }
-
-    // make possible triples
-    _triple_v.reserve( _sparseimg_vv[_source_plane].size() );
     
-    for ( auto& srcpix : _sparseimg_vv[_source_plane] ) {
+    // allocate space for triples
+    _triple_v.reserve( sparseimg_vv[_source_plane].size() );
 
-      // we get the wires this pixel overlaps with
+    int ndeadch_added = 0;
+    std::map< std::pair<int,int>, int > _added_dead_channel_pixels[3];
+    _deadch_to_add.resize( adc_v.size() );
+
+    // make possible triples based on going from source pixel to target pixels
+    for ( auto& srcpix : sparseimg_vv[_source_plane] ) {
+
+      // we get all the target plane wires this pixel overlaps with
       std::vector< std::vector<int> > overlap = larflow::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
-      //std::cout << "  target overlap size for sourcepixel=" << srcpix.col << ": " << overlap[0].size() << std::endl;
-      if ( overlap[0].size()==0 ) continue;
+      // std::cout << " srcwire=" << srcpix.col << " row=" << srcpix.row 
+      //           << " tar=[" << overlap[0].front() << "," << overlap[0].back() << "]";
+      
+      if ( overlap[0].size()==0 ) {
+        //std::cout << " -- target no overlap" << std::endl;
+        continue;
+      }
 
       // get iterator to overlap[0] vector
       auto it_overlap0 = overlap[0].begin();
       
-      // get the lowerbound
+      // get the lowerbound pixel for (row,col) in target image
       PixData_t lb( srcpix.row, (int)overlap[0][0], 0.0 );
-      auto it_target = std::lower_bound( _sparseimg_vv[_target_plane].begin(), _sparseimg_vv[_target_plane].end(), lb );
+      auto it_target = std::lower_bound( sparseimg_vv[_target_plane].begin(), sparseimg_vv[_target_plane].end(), lb );
+      //if ( it_target!=sparseimg_vv[_target_plane].end() )
+      //std::cout << " tarlb(row,col)=(" << it_target->row << "," << it_target->col << ") ";
 
-      // for debug
-      // std::cout << "  src(" << srcpix.row << "," << srcpix.col << ") target bounds=[" << overlap[0].front() << "," << overlap[0].back() << "]"
-      //           << " pos=" << it_target-_sparseimg_vv[_target_plane].begin() << "/" << _sparseimg_vv[_target_plane].size();
-      // if ( it_target!=_sparseimg_vv[_target_plane].end() )
-      //   std::cout << " target pixel=(" << it_target->row << "," << it_target->col << ")";
-      // else
-      //   std::cout << " not found.";
-      // std::cout << std::endl;
-      
-      while ( it_target!=_sparseimg_vv[_target_plane].end() && it_target->row==srcpix.row ) {
+      // std::cout << " other=[" << overlap[1].front() << "," << overlap[1].back() << "]"
+      //           << std::endl;
+
+      // iterator forward in target wire with charge, until we go to another row (different time)
+      while ( it_target!=sparseimg_vv[_target_plane].end() && it_target->row==srcpix.row ) {
 
         // break if we out of range over the target wire
         if ( it_target->col>overlap[0].back() || it_target->row!=srcpix.row ) break;
@@ -99,27 +110,103 @@ namespace larflow {
           it_overlap0++;
         }
         //std::cout << " ivec=" << ivec << std::endl;
+
+        int otherwire = overlap[1][ivec];
+        //std::cout << "  ... search for otherwire=" << otherwire << " ivec=" << ivec << std::endl;
         
         // now find the other plane
-        // first search for pixel in sparseimg vector
-        auto it_other = std::lower_bound( _sparseimg_vv[_other_plane].begin(),
-                                          _sparseimg_vv[_other_plane].end(),
-                                          PixData_t( srcpix.row, overlap[1][ivec],0.0) );
-        if ( it_other!=_sparseimg_vv[_other_plane].end() && it_other->col==overlap[1][ivec] && it_other->row==srcpix.row ) {
-          // valid triple: found pixel in other plane sparse data, so much charge
-          std::vector<int> trip = { srcpix.idx, it_target->idx, it_other->idx, srcpix.row }; // store position in sparsematrix
-          _triple_v.push_back( trip );
+        // first search for pixel in other plane sparseimg vector (that is above threshold)
+        auto it_other = std::lower_bound( sparseimg_vv[_other_plane].begin(),
+                                          sparseimg_vv[_other_plane].end(),
+                                          PixData_t( srcpix.row, otherwire-2, 0.0) );
+
+        // for debug
+        // if ( it_other!=sparseimg_vv[_other_plane].end() ) {
+        //   std::cout << " ... otherlb(r,c)=" << it_other->row << "," << it_other->col << ")" << std::endl;
+        // }
+
+        bool found = false;
+        if ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
+          // pixels to search
+          while ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
+            if ( abs(it_other->col-otherwire)<=1 ) {
+              // valid triple with charge: found pixel in other plane sparse data with charge
+              // std::cout << " .... looking for row=" << srcpix.row
+              //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
+              //           << std::endl;
+              // std::cout << "  ... found triple with charge" << std::endl;
+              if (save_index) {
+                std::vector<int> trip = { srcpix.idx, it_target->idx, it_other->idx, srcpix.row }; // store positions in sparsematrix
+                _triple_v.push_back( trip );
+              }
+              else {
+                std::vector<int> trip = { srcpix.col, it_target->col, it_other->col, srcpix.row }; // store positions in sparsematrix
+                _triple_v.push_back( trip );                
+              }
+              found = true;
+              break;
+            }
+            it_other++;
+          }
         }
-        else if ( badch_v[ _other_plane ].pixel( srcpix.row, overlap[1][ivec] ) > 0 ) {
-          // check badchannel
-          std::vector<int> trip = { srcpix.idx, it_target->idx, -1, srcpix.row }; // store position in sparsematrix, omit last plane
-          _triple_v.push_back( trip );          
+
+        if ( !found && badch_v[ _other_plane ].pixel( srcpix.row, otherwire ) > 0 ) {
+          // badchannel, other wire lands in dead channel
+          // check we have this pixel
+          // std::cout << " ... looking for badch row=" << srcpix.row
+          //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
+          //           << std::endl;          
+          // std::cout << "  ... found triple with dead channel" << std::endl;
+          
+          auto it_dead_other = _added_dead_channel_pixels[_other_plane].find( std::pair<int,int>(srcpix.row,otherwire) );
+          int otherplane_index = 0;
+
+          if ( it_dead_other==_added_dead_channel_pixels[_other_plane].end() ) {
+            // was not in the creation set, create this pixel in the other plane sparse image
+            otherplane_index = sparseimg_vv[_other_plane].size() + _deadch_to_add[_other_plane].size();
+            PixData_t badpix( srcpix.row, otherwire, 0.0 );
+            badpix.idx = otherplane_index;
+            // this screws up the search, but at the end, so won't matter?
+            _deadch_to_add[_other_plane].push_back( badpix );
+            _added_dead_channel_pixels[_other_plane][ std::pair<int,int>(srcpix.row,otherwire) ]  = otherplane_index;
+            ndeadch_added++;
+          }
+          else {
+            otherplane_index = it_dead_other->second;
+          }
+
+          if (save_index) {
+            // store position in sparsematrix, omit last plane            
+            std::vector<int> trip = { srcpix.idx, it_target->idx, otherplane_index, srcpix.row }; 
+            _triple_v.push_back( trip );
+          }
+          else {
+            // store position in image
+            std::vector<int> trip = { srcpix.col, it_target->col, otherwire, srcpix.row }; 
+            _triple_v.push_back( trip );            
+          }
+        }
+        else {
+
+          // std::cout << "looking for row=" << srcpix.row
+          //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
+          //           << std::endl;                    
+          
+          // if ( it_other==sparseimg_vv[_other_plane].end() )
+          //   std::cout << "  ... no triple" << std::endl;
+          // else
+          //   std::cout << "  ... lowerbound found, but no match? lowerbound otherpix=(" <<it_other->row << "," << it_other->col << ")" <<  std::endl;
+          
         }
         
         // iterate the target pixel
         it_target++;
-      }
+      }//target while loop
     }
+
+    // for ( auto& deadpix : _deadch_to_add[_other_plane] ) {
+    //   sparseimg_vv[_other_plane].push_back( deadpix );
+    // }
     
     _triple_v.shrink_to_fit();
 
@@ -128,10 +215,96 @@ namespace larflow {
     std::cout << "[FlowTriples] for flow source[" << _source_plane << "] "
               << "to target[" << _target_plane << "] planes "
               << "found " << _triple_v.size() << " triples "
+              << "ndeadch-added=" << ndeadch_added << " "
               << "elasped=" << float(end_-start_)/float(CLOCKS_PER_SEC)
               << std::endl;
+    
     
   }
 
 
+  std::vector<TH2D> FlowTriples::plot_triple_data( const std::vector<larcv::Image2D>& adc_v,
+                                                   const std::vector< std::vector<PixData_t> >& sparseimg_vv,
+                                                   std::string hist_stem_name ) {
+
+    std::vector<TH2D> out_v;
+    
+    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+      std::stringstream ss;
+      ss << "htriples_plane" << p << "_" << hist_stem_name;
+      auto const& meta = adc_v[p].meta();
+      TH2D hist( ss.str().c_str(), "",
+                 meta.cols(), meta.min_x(), meta.max_x(),
+                 meta.rows(), meta.min_y(), meta.max_y() );
+      out_v.emplace_back(std::move(hist));
+    }
+
+    std::vector<int> pl = { _source_plane, _target_plane, _other_plane };
+    for ( auto const& trip : _triple_v ) {
+      for (size_t i=0; i<3; i++ ) {
+        auto const& pix = sparseimg_vv[ pl[i] ][ trip[i] ];
+        out_v[ pl[i] ].SetBinContent( pix.col+1, pix.row+1, pix.val+1 );
+      }
+    }
+
+    return out_v;
+  }
+
+  std::vector<TH2D> FlowTriples::plot_sparse_data( const std::vector<larcv::Image2D>& adc_v,
+                                                   const std::vector< std::vector<PixData_t> >& sparseimg_vv,
+                                                   std::string hist_stem_name ) {
+
+    std::vector<TH2D> out_v;
+    
+    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+      std::stringstream ss;
+      ss << "htriples_plane" << p << "_" << hist_stem_name;
+      auto const& meta = adc_v[p].meta();
+      TH2D hist( ss.str().c_str(), "",
+                 meta.cols(), meta.min_x(), meta.max_x(),
+                 meta.rows(), meta.min_y(), meta.max_y() );
+
+      for ( auto const& pix : sparseimg_vv[p] ) {
+        if (pix.val>=10 )
+          hist.SetBinContent( pix.col+1, pix.row+1, pix.val );
+      }
+      
+      out_v.emplace_back(std::move(hist));
+    }
+
+
+    return out_v;
+  }
+
+  std::vector< std::vector<FlowTriples::PixData_t> >
+  FlowTriples::make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v,
+                                          float threshold ) {
+
+    // sparsify planes: pixels must be above threshold
+    std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size());
+    
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+
+      for ( size_t r=0; r<adc_v[p].meta().rows(); r++ ) {
+        for ( size_t c=0; c<adc_v[p].meta().cols(); c++ ) {
+          float val = adc_v[p].pixel(r,c);
+          if ( val>=threshold ) {
+            sparseimg_vv[p].push_back( PixData_t((int)r,(int)c, val) );
+          }
+        }
+      }
+      // should be sorted in (r,c). do i pull the trigger and sort?
+      // std::sort( sparseimg_vv[p].begin(), sparseimg_vv[p].end() );
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p] ) {
+        pix.idx = idx;
+        idx++;
+      }
+      std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
+    }
+
+    return sparseimg_vv;
+  }
+  
 }

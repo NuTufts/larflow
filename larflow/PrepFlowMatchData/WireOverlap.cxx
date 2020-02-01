@@ -13,6 +13,11 @@ namespace larflow {
 
   WireOverlap::WireOverlap() {};
 
+  /**
+   * 
+   * build what wires can overlap with each other
+   *
+   */
   void WireOverlap::_build() {
 
     if (_isbuilt) return;
@@ -43,7 +48,7 @@ namespace larflow {
           otherplane = ( tarplane==0 ) ? 2 : 0;
           break;
         case 2:
-          otherplane = ( tarplane==2 ) ? 1 : 2;
+          otherplane = ( tarplane==0 ) ? 1 : 0;
           break;
         }
         
@@ -85,17 +90,18 @@ namespace larflow {
             if ( crosses ) {
               Double_t pos[3] = { 0, y, z };
               int otherwire = geo->WireCoordinate( pos, otherplane );
-              if ( otherwire>=0 || otherwire<geo->Nwires(tarplane) ) {
+              if ( otherwire>=0 && otherwire<geo->Nwires(otherplane) ) {
                 _wire_targetoverlap[iflow][isrc].push_back( tarwire );                    
                 _wire_otheroverlap[iflow][isrc].push_back(  otherwire );
               }
             }
 
           }//loop over scan range
-          
+
         }//loop over source wires
 
         _planeflow2mapindex[ std::pair<int,int>(srcplane,tarplane) ] = iflow;
+        _planeflow2mapindex[ std::pair<int,int>(tarplane,srcplane) ] = iflow;        
         // increment flow        
         iflow++;
       }
@@ -108,6 +114,18 @@ namespace larflow {
               << std::endl;
   }
 
+  /** 
+   * given a wire on the a defined source plane, 
+   * what wires in the target plane, and other planes are intersected
+   *
+   * @param[in] sourceplane The index of the source plane. {0:U,1:V,2:Y}
+   * @param[in] targetplane The index of the target plane. {0:U,1:V,2:Y}
+   * @param[in] source_wire The index of the wire in the source plane.
+   *
+   * @param[out] double vector with outer index being the plane {target,other}, 
+   *             the inner vector is a list of wire IDs from each plane
+   *
+   */
   std::vector< std::vector<int> > WireOverlap::getOverlappingWires( int sourceplane, int targetplane, int source_wire ) {
     
     if ( !_isbuilt ) _build();
