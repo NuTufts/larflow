@@ -49,12 +49,23 @@ namespace reco {
     void defragment_clusters( std::vector<cluster_t>& cluster_v,
                               const float max_2nd_pca_eigenvalue );
 
+    void absorb_nearby_hits( cluster_t& cluster, std::vector<int>& used_hits_v );
+
     larlite::larflowcluster makeLArFlowCluster( cluster_t& cluster,
                                                 const std::vector<larcv::Image2D>& ssnet_showerimg_v,
                                                 const std::vector<larcv::Image2D>& ssnet_trackimg_v,
                                                 const std::vector<larcv::Image2D>& adc_v,
                                                 const std::vector<larlite::larflow3dhit>& source_lfhit_v );
-                                                
+
+    cluster_t absorb_nearby_hits( const cluster_t& cluster,
+                                  const std::vector<larlite::larflow3dhit>& hit_v,
+                                  std::vector<int>& used_hits_v,
+                                  float max_dist2line );
+    
+    void multipassCluster( const std::vector<larlite::larflow3dhit>& inputhits,
+                           const std::vector<larcv::Image2D>& adc_v,
+                           std::vector<cluster_t>& output_cluster_v,
+                           std::vector<int>& used_hits_v );
 
     float _min_larmatch_score;
     float _downsample_fraction;

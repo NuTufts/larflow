@@ -44,12 +44,6 @@ namespace reco {
     for ( size_t p=0; p<3; p++ )
       ssnet_showerimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[0]);
 
-    // cluster all hits
-    // std::vector<larflow::reco::cluster_t> cluster_all_v;
-    // larflow::reco::cluster_larflow3dhits( *ev_lfhits, cluster_all_v );
-    // larflow::reco::cluster_runpca( cluster_all_v );
-    //larflow::reco::cluster_dump2jsonfile( cluster_all_v, "dump_all.json" );    
-
     // containers for track and shower hits
     std::vector<larlite::larflow3dhit> track_hit_v;
     std::vector<larlite::larflow3dhit> shower_hit_v;
@@ -57,70 +51,21 @@ namespace reco {
     // divide pixels by track and shower
     larflow::reco::cluster_splitbytrackshower( *ev_lfhits, ssnet_trackimg_v, track_hit_v, shower_hit_v, _min_larmatch_score );
 
-    // downsample track points
-    std::vector<larlite::larflow3dhit> downsample_hit_v;
-    TRandom3 rand(12345);
-    if ( _downsample_fraction<1.0 ) {
-      for ( auto const& hit : track_hit_v ) {
-        if ( rand.Uniform()<_downsample_fraction )
-          downsample_hit_v.push_back(hit);
-      }
-      std::cout << "downsample track points from " << track_hit_v.size() << " to " << downsample_hit_v.size() << std::endl;
-    }
-    else {
-      std::swap(downsample_hit_v, track_hit_v );
-    }
-
-    // cluster each hit type, define pca by the pixels
-    std::vector<larflow::reco::cluster_t> cluster_track_v;
-    //larflow::reco::cluster_larflow3dhits( track_hit_v, cluster_track_v ); // my implementation, i think its wrong
-    larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_track_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
-    //larflow::reco::cluster_dbscan_vp_larflow3dhits( track_hit_v, cluster_track_v ); // supposedly uses openmp, doesnt work
-    larflow::reco::cluster_runpca( cluster_track_v );
+    // cluster track hits
+    std::vector<int> used_hits_v;
+    std::vector<cluster_t> cluster_track_v;
+    multipassCluster( track_hit_v, adc_v, cluster_track_v, used_hits_v );
 
     std::vector<larflow::reco::cluster_t> cluster_shower_v;
-    larflow::reco::cluster_larflow3dhits( shower_hit_v, cluster_shower_v, 20.0, 5, 5 );
+    larflow::reco::cluster_sdbscan_larflow3dhits( shower_hit_v, cluster_shower_v, 20.0, 5, 5 );
     larflow::reco::cluster_runpca( cluster_shower_v );
-
-    //larflow::reco::cluster_dump2jsonfile( cluster_track_v,  "dump_track.json" );
-    //larflow::reco::cluster_dump2jsonfile( cluster_shower_v, "dump_shower.json" );    
-
-    // we perform split functions on the track clusters
-    int nsplit = 0;
-    for (int ipass=0; ipass<3; ipass++ ) {
-      nsplit = split_clusters( cluster_track_v, adc_v, 10.0 );
-      std::cout << "splitting: pass[" << ipass << "] num split=" << nsplit << std::endl;      
-      if (nsplit==0 ) break;
-    }
-
-    std::cout << "defrag clusters" << std::endl;
-    defragment_clusters( cluster_track_v, 10.0 );
-    
-    //larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_split.json" );
-
-    // now we merge
-    int nmerged = 0;
-    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 10.0, 10.0 );
-    std::cout << "[merger-0 maxdist=10.0, maxangle=30.0, maxpca=10.0] number merged=" << nmerged << std::endl;
-
-    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 30.0, 10.0 );
-    std::cout << "[merger-1 maxdist=30.0, maxangle=15.0, maxpca=10.0] number merged=" << nmerged << std::endl;    
-
-    nmerged = merge_clusters( cluster_track_v, adc_v, 30.0, 60.0, 20.0, true );
-    std::cout << "[merger-2 maxdist=5.0, maxangle=60.0, maxpca=5.0] number merged=" << nmerged << std::endl;
-    
-    //larflow::reco::cluster_dump2jsonfile( cluster_track_v, "dump_merged.json" );
 
     std::vector<cluster_t> final_v;
     for ( auto& c : cluster_track_v )
       final_v.push_back(c);
     for ( auto& c : cluster_shower_v )
       final_v.push_back(c);
-      
-    //larflow::reco::cluster_dump2jsonfile( final_v, "dump_final.json" );
 
-    //if (true)
-    //return;
     
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
@@ -128,7 +73,7 @@ namespace reco {
     int cidx = 0;
     for ( auto& c : cluster_track_v ) {
       // cluster of hits
-      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, downsample_hit_v );
+      larlite::larflowcluster lfcluster = makeLArFlowCluster( c, ssnet_showerimg_v, ssnet_trackimg_v, adc_v, track_hit_v );
       evout_lfcluster->emplace_back( std::move(lfcluster) );
       // pca-axis
       larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
@@ -157,6 +102,27 @@ namespace reco {
       evout_shower_pcaxis->push_back( llpca );
       cidx++;
     }//end of cluster loop
+
+    // make noise cluster
+    larlite::event_larflowcluster* evout_noise_lfcluster = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "lfnoise" );    
+    larlite::event_pcaxis*         evout_noise_pcaxis    = (larlite::event_pcaxis*)        ioll.get_data( larlite::data::kPCAxis,         "lfnoise" );
+    larlite::larflowcluster lfnoise;
+    cluster_t noise_cluster;
+    for ( size_t i=0; i<track_hit_v.size(); i++ ) {
+      auto& hit = track_hit_v[i];
+      if ( used_hits_v[i]==0 ) {
+        std::vector<float> pt = { hit[0], hit[1], hit[2] };
+        std::vector<int> coord_v = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+        noise_cluster.points_v.push_back( pt  );
+        noise_cluster.imgcoord_v.push_back( coord_v );
+        noise_cluster.hitidx_v.push_back( i );
+        lfnoise.push_back( hit );
+      }
+    }
+    cluster_pca( noise_cluster );
+    larlite::pcaxis noise_pca = cluster_make_pcaxis( noise_cluster );
+    evout_noise_pcaxis->push_back( noise_pca );
+    evout_noise_lfcluster->push_back( lfnoise );
     
   }
 
@@ -580,7 +546,161 @@ namespace reco {
     
     return lfcluster;
   }
-  
+
+  cluster_t PCACluster::absorb_nearby_hits( const cluster_t& cluster,
+                                            const std::vector<larlite::larflow3dhit>& hit_v,
+                                            std::vector<int>& used_hits_v,
+                                            float max_dist2line ) {
+
+    cluster_t newcluster;
+    int nused = 0;
+    for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
+
+      auto const& hit = hit_v[ihit];
+
+      if ( used_hits_v[ ihit ]==1 ) continue;
+      
+      // apply quick bounding box test
+      if ( hit[0] < cluster.bbox_v[0][0] || hit[0]>cluster.bbox_v[0][1]
+           || hit[1] < cluster.bbox_v[1][0] || hit[1]>cluster.bbox_v[1][1]
+           || hit[2] < cluster.bbox_v[2][0] || hit[2]>cluster.bbox_v[2][1] ) {
+        continue;
+      }
+
+      // else calculate distance from pca-line
+      float dist2line = cluster_dist_from_pcaline( cluster, hit );
+
+      if ( dist2line < max_dist2line ) {
+        std::vector<float> pt = { hit[0], hit[1], hit[2] };
+        std::vector<int> coord_v = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+        newcluster.points_v.push_back( pt );
+        newcluster.imgcoord_v.push_back( coord_v );
+        newcluster.hitidx_v.push_back( ihit );
+        used_hits_v[ihit] = 1;
+        nused++;
+      }
+      
+    }
+
+    std::cout << "[absorb_nearby_hits] cluster absorbed " << nused << " hits" << std::endl;    
+    cluster_pca( newcluster );
+
+
+    
+    return newcluster;
+  }
+
+  void PCACluster::multipassCluster( const std::vector<larlite::larflow3dhit>& inputhits,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     std::vector<cluster_t>& output_cluster_v,
+                                     std::vector<int>& used_hits_v ) {
+    const int max_passes = 3;
+    const int max_pts_to_cluster = 30000;
+    
+    TRandom3 rand(12345);
+
+    used_hits_v.resize( inputhits.size(), 0 );
+
+    output_cluster_v.clear();
+    
+    for ( int ipass=0; ipass<max_passes; ipass++ ) {
+
+      // count points remaining      
+      int total_pts_remaining = 0;
+      if ( ipass==0 ) {
+        // on first pass, all points remain
+        total_pts_remaining = (int)inputhits.size();
+      }
+      else {
+        // on rest of passes, we count
+        for ( auto const& used : used_hits_v ) {
+          if ( used==0 ) {
+            total_pts_remaining++;
+          }
+        }
+      }
+
+      // downsample points, if needed
+      std::vector<larlite::larflow3dhit> downsample_hit_v;
+      downsample_hit_v.reserve( max_pts_to_cluster );
+
+      float downsample_fraction = (float)max_pts_to_cluster/(float)total_pts_remaining;
+      if ( total_pts_remaining>max_pts_to_cluster ) {
+        for ( size_t ihit=0; ihit<inputhits.size(); ihit++ ) {
+          if ( used_hits_v[ihit]==0 ) {
+            if ( rand.Uniform()<downsample_fraction ) {
+              downsample_hit_v.push_back( inputhits[ihit] );
+            }
+          }
+        }
+      }
+      else {
+        for ( size_t ihit=0; ihit<inputhits.size(); ihit++ ) {
+          if ( used_hits_v[ihit]==0 ) {
+            downsample_hit_v.push_back( inputhits[ihit] );
+          }
+        }
+      }
+
+      std::cout << "[pass " << ipass << "] remaining hits downsampled to " << downsample_hit_v.size() << " of " << total_pts_remaining << std::endl;
+
+      // cluster these hits
+      std::vector<larflow::reco::cluster_t> cluster_pass_v;
+      larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+      larflow::reco::cluster_runpca( cluster_pass_v );
+
+      // we then absorb the hits around these clusters
+      std::vector<larflow::reco::cluster_t> dense_cluster_v;
+      for ( auto const& ds_cluster : cluster_pass_v ) {
+        cluster_t dense_cluster = absorb_nearby_hits( ds_cluster,
+                                                      inputhits,
+                                                      used_hits_v,
+                                                      20.0 );
+        dense_cluster_v.emplace_back( std::move(dense_cluster) );
+      }
+      int nused_tot = 0;
+      for ( auto& used : used_hits_v ) {
+        nused_tot += used;
+      }
+      std::cout << "[PCACluster, pass " << ipass << "] after absorbing hits to sparse clusters: " << nused_tot << " of " << used_hits_v.size() << " all hits" << std::endl;
+      
+      // we perform split functions on the clusters
+      int nsplit = 0;
+      for (int isplit=0; isplit<3; isplit++ ) {
+        nsplit = split_clusters( dense_cluster_v, adc_v, 10.0 );
+        std::cout << "[PCACluster, pass " << ipass << "] splitting, pass" << isplit << ": num split=" << nsplit << std::endl;      
+        if (nsplit==0 ) break;
+      }
+
+      std::cout << "[PCACluster, pass " << ipass << "] defrag clusters" << std::endl;
+      defragment_clusters( dense_cluster_v, 10.0 );
+
+      // now split and merge with pass clusters
+      for ( auto& dense : dense_cluster_v ) {
+        output_cluster_v.emplace_back( std::move(dense) );
+      }
+      
+      // now we merge
+      int nmerged = 0;
+      nmerged = merge_clusters( output_cluster_v, adc_v, 30.0, 10.0, 10.0 );
+      std::cout << "[PCACluster, pass " << ipass << "] merger-0 maxdist=10.0, maxangle=30.0, maxpca=10.0: number merged=" << nmerged << std::endl;
+
+      nmerged = merge_clusters( output_cluster_v, adc_v, 30.0, 30.0, 10.0 );
+      std::cout << "[PCACluster, pass " << ipass << "] merger-1 maxdist=10.0, maxangle=30.0, maxpca=10.0: number merged=" << nmerged << std::endl;
+      
+      nmerged = merge_clusters( output_cluster_v, adc_v, 30.0, 60.0, 20.0, true );
+      std::cout << "[PCACluster, pass " << ipass << "] merger-1 maxdist=10.0, maxangle=30.0, maxpca=10.0: number merged=" << nmerged << std::endl;      
+      
+    }
+
+    int nused_final = 0;
+    for ( auto& used : used_hits_v )
+      nused_final += used;
+    
+    std::cout << "[PCACluster, multipass result] nclusters=" << output_cluster_v.size() << " nused=" << nused_final << std::endl;
+    
+  }
+                                     
   
 }
 }

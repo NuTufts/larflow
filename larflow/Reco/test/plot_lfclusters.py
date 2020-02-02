@@ -15,11 +15,12 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
     
-color_by_options = ["ssnet","charge","prob","dead","cluster","shower"]
+color_by_options = ["ssnet","charge","prob","dead","cluster","shower","noise"]
 colorscale = "Viridis"
 
 #inputfile = "larflow_reco.root"
-inputfile = "larflow_reco_extbnb_run3_vp.root"
+#inputfile = "larflow_reco_extbnb_run3_vp.root"
+inputfile = "larflow_reco_extbnb_run3_x.root"
 #inputfile = "larflow_reco_extbnb_run3_original.root"
 #inputfile = "larflow_cluster_eLEE_sample2_full.root"
 
@@ -42,14 +43,17 @@ def make_figures(entry,plotby="ssnet", treenames=["pcacluster","lfshower"]):
 
     if plotby=="shower":
         treenames = ["lfshower"]
+    elif plotby=="noise":
+        treenames = ["lfnoise"]
 
     cluster_traces_v = []        
     for treename in treenames:
+
         evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
         evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
         nclusters = evclusters.size()
 
-        print("[%s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
+        print("[tree %s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
 
 
         for icluster in xrange(nclusters):
@@ -57,7 +61,7 @@ def make_figures(entry,plotby="ssnet", treenames=["pcacluster","lfshower"]):
             cluster = evclusters.at(icluster)
             nhits = cluster.size()
 
-            if plotby in ["ssnet","cluster","shower"]:
+            if plotby in ["ssnet","cluster","shower","noise"]:
                 pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
             elif plotby=="charge":
                 pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wcharge( cluster )
@@ -68,7 +72,7 @@ def make_figures(entry,plotby="ssnet", treenames=["pcacluster","lfshower"]):
         
             if plotby in ["ssnet","charge","prob","dead"]:
                 colors = pts[:,3]
-            elif plotby in ["cluster","shower"]:
+            elif plotby in ["cluster","shower","noise"]:
                 r3 = np.random.randint(255,size=3)
                 colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
                 
@@ -160,7 +164,8 @@ plotopt = dcc.Dropdown(
         {'label':'prob','value':'prob'},
         {'label':'cluster','value':'cluster'},
         {'label':'on dead channel','value':'dead'},
-        {'label':'shower-only','value':'shower'}],    
+        {'label':'shower-only','value':'shower'},
+        {'label':'noise-only','value':'noise'}],            
     value='ssnet',
     id='plotbyopt',
     )

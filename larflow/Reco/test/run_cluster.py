@@ -11,8 +11,8 @@ larflow.reco.ClusterFunctions()
 print larflow.reco.ClusterFunctions
 
 ientry = 0
-max_entries = None
-#max_entries = 5
+#max_entries = None
+max_entries = 1
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
@@ -29,7 +29,7 @@ iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBa
 # EXTBNB RUN 3
 io.add_in_filename(  "larmatch_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3_larlite.root" )
 #io.set_out_filename( "larflow_reco_extbnb_run3.root" )
-io.set_out_filename( "larflow_reco_extbnb_run3_vp.root" )
+io.set_out_filename( "larflow_reco_extbnb_run3_x.root" )
 iolcv.add_in_file(   "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root" )
 
 io.open()

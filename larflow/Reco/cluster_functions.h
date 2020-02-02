@@ -95,7 +95,9 @@ namespace reco {
   
   std::vector<float> cluster_pixelsum( const cluster_t& cluster,
                                        const std::vector<larcv::Image2D>& img_v  );
-  
+
+  float cluster_dist_from_pcaline( const cluster_t& cluster,
+                                   const std::vector<float>& pt );
 
 }
 }
