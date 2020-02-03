@@ -24,13 +24,13 @@ iolcv.reverse_all_products()
 iolcv.initialize()
 
 crtmatch = larflow.crtmatch.CRTHitMatch()
+crtmatch.set_verbosity(1)
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-#nentries = 5
+nentries = 1
 
 print "Start loop."
-raw_input()
 
 outio.next_event()
 for ientry in xrange( nentries ):
@@ -62,7 +62,7 @@ for ientry in xrange( nentries ):
     dtload = time.time()-dtload
     print "time to load inputs: ",dtload," secs"
 
-    crtmatch.match( io, outio )
+    crtmatch.process( iolcv, io  )
 
     outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     outio.next_event()    

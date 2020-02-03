@@ -1,6 +1,7 @@
 #include "CRTHitMatch.h"
 
 #include "LArUtil/LArProperties.h"
+#include "larflow/Reco/cluster_functions.h"
 
 #include "TRandom2.h"
 
@@ -37,7 +38,7 @@ namespace crtmatch {
   }
   
   void CRTHitMatch::addLArFlowClusters( const larlite::event_larflowcluster& lfcluster_v,
-                                     const larlite::event_pcaxis& pcaxis_v ) {
+                                        const larlite::event_pcaxis& pcaxis_v ) {
     for ( auto const& cluster : lfcluster_v ) {
       _lfcluster_v.push_back( &cluster );
     }
@@ -46,83 +47,233 @@ namespace crtmatch {
       _pcaxis_v.push_back( &pca );
     }
   }
+
+  bool CRTHitMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& llio ) {
+
+    clear();
+
+    larlite::event_opflash* beamflash
+      = (larlite::event_opflash*)llio.get_data( larlite::data::kOpFlash, "simpleFlashBeam" );
+    larlite::event_opflash* cosmicflash
+      = (larlite::event_opflash*)llio.get_data( larlite::data::kOpFlash, "simpleFlashCosmic" );
+    addIntimeOpFlashes( *beamflash );
+    addCosmicOpFlashes( *cosmicflash );
+
+    // get crt hits
+    larlite::event_crthit* crthit_v
+      = (larlite::event_crthit*)llio.get_data( larlite::data::kCRTHit, "crthitcorr" );
+    addCRThits( *crthit_v );
+
+    // get clusters
+    larlite::event_larflowcluster* lfclusters_v
+      = (larlite::event_larflowcluster*)llio.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
+    larlite::event_pcaxis* pcaxis_v
+      = (larlite::event_pcaxis*)llio.get_data( larlite::data::kPCAxis, "pcacluster" );
+    addLArFlowClusters( *lfclusters_v, *pcaxis_v );
+    
+    return makeMatches();
+  }
   
+  bool CRTHitMatch::makeMatches() {
 
-  void CRTHitMatch::match( larlite::storage_manager& llio, larlite::storage_manager& outio ) {
+    // compile matches
+    compilematches();
 
-    _hit2trackidx_v.resize( _crthit_v.size() );
-    printHitInfo();
+    std::vector<int> used_tracks_v( _lfcluster_v.size(), 0 );
 
+    std::vector<int> matched_hitidx;
+    std::vector<larlite::larflowcluster> matched_cluster;
+    
+    // process matches in greedy fashion
+    for ( auto& m : _all_rank_v ) {
+
+      // get index of crt hit of this match
+      int crthitidx = m.hitidx;
+
+      auto& hit_matches_v = _hit2track_rank_v[ crthitidx ];
+
+      if ( hit_matches_v.size()==0 ) continue; // shouldn't happen
+      
+      if ( hit_matches_v.size()==1 ) {
+
+        // if track already used. skip
+        if ( used_tracks_v[ m.trackidx ]==1 )
+          continue;
+
+        // if not, make the match
+        LARCV_INFO() << " store single crt-hit to cluster match" << std::endl;
+        matched_hitidx.push_back( crthitidx );
+        matched_cluster.push_back( *_lfcluster_v[ m.trackidx ] );
+
+      }
+      else {
+        // more than 1, attempt a merge
+
+        // set the usage vector for these matches
+        bool has_unused = false;
+        std::vector<int> used_track_v( hit_matches_v.size(), 0 );
+        for ( size_t i=0; i<hit_matches_v.size(); i++ ) {
+          used_track_v[i] = used_tracks_v[ hit_matches_v[i].trackidx ];
+          if ( used_track_v[i]==0 )
+            has_unused = true;
+        }
+
+        bool performed_merge = false;
+        larlite::larflowcluster merge = _merge_matched_cluster( hit_matches_v,
+                                                                used_track_v,
+                                                                performed_merge );
+
+        // make match based on merge result
+        if (performed_merge) {        
+          matched_hitidx.push_back( crthitidx );
+          matched_cluster.push_back( merge );
+          LARCV_INFO() << "store merged clusters" << std::endl;
+        }
+
+      }
+      
+      
+    }//end of loop over all rank matches
+
+    LARCV_NORMAL() << "number of crt-hit to track matches: " << matched_cluster.size() << std::endl;
+
+    // now match CRT hits with tracks to opflashes
+    // make list of flashes
+    std::vector< const larlite::opflash* > flash_v;
+    for ( auto const& flash : _intime_opflash_v )
+      flash_v.push_back( &flash );
+    for ( auto const& flash : _outtime_opflash_v )
+      flash_v.push_back( &flash );
+    // make list of crt hits with matches
+    std::vector< const larlite::crthit* > match_hit_v;
+    for ( auto const& hitidx : matched_hitidx ) {
+      match_hit_v.push_back( &_crthit_v[ hitidx ] );
+    }
+    std::vector< larlite::opflash > matched_opflash_v;
+    _matchOpflashes( flash_v, match_hit_v, matched_cluster, matched_opflash_v );
+
+    return true;
+    
+  }
+
+  /**
+   * run track match to crt hits
+   *
+   * use add functions to provide inputs. need the following:
+   *
+   * larlite products:
+   *   opflash: typically 'simpleFlashBeam' and 'simpleFlashCosmic'
+   *   larflowcluster: typically 'pcacluster'
+   *   pcaxis: pc axis to larflowcluster above, typically 'pcacluster'
+   *   crttrack: typically 'crttrack'
+   *   crthit: typically 'crthitcorr'
+   *  
+   */
+  void CRTHitMatch::compilematches() {
+
+    _hit2track_rank_v.resize( _crthit_v.size() );
+
+    // plane positions
     float crt_plane_pos[4] = { -261.606, -142.484, 393.016, 618.25 }; // bottom, side, side, top
 
-    larlite::event_pcaxis* ev_pcaout = (larlite::event_pcaxis*)outio.get_data( larlite::data::kPCAxis, "crtmatch" );
+    //larlite::event_pcaxis* ev_pcaout = (larlite::event_pcaxis*)outio.get_data( larlite::data::kPCAxis, "crtmatch" );
 
-    std::cout << "==============================" << std::endl;
-    std::cout << "[ CRTHitMatch ]" << std::endl;
+    // loop over larflow tracks, assign it to the best hit in each CRT plane
+    // we are filling out _hit2track_rank_v[ hit index ] -> list of track indices
+    LARCV_INFO() << "==============================" << std::endl;
+    LARCV_INFO() << " Start match function" << std::endl;
+    
     for (size_t itrack=0; itrack<_pcaxis_v.size(); itrack++ ) {
+
+      // represent track and its direction with its pc axis
       auto const& pca = *_pcaxis_v[itrack];
 
+      // enforce minimum length
       float len = getLength(pca);
-      if ( len<10.0 ) continue;
+      if ( len<5.0 ) continue;
 
       // allocate vars for best intersection for each CRT plane
-      float min_dist[4] = { 1.0e9, 1.0e9, 1.0e9, 1.0e9 };
+      float min_dist[4]  = { 1.0e9, 1.0e9, 1.0e9, 1.0e9 };
       int best_hitidx[4] = {-1, -1, -1, -1};
       std::vector<float> best_panel_pos[4];
       for (int i=0; i<4; i++) best_panel_pos[i].resize(3,0);
-      
+
+      // loop over crt hits
       for (size_t jhit=0; jhit<_crthit_v.size(); jhit++) {
         auto const& crthit = _crthit_v[jhit];
         int crtplane = crthit.plane;
 
+        // calculate distance to crt hit and position of intersection on the panel
         std::vector<float> panel_pos;
         float dist = makeOneMatch( pca, crthit, panel_pos );
 
+        // update closest hit on the plane
         if ( dist>0 && dist<min_dist[crtplane] ) {
           min_dist[crtplane] = dist;
           best_hitidx[crtplane] = jhit;
           best_panel_pos[crtplane] = panel_pos;
         }
       }//end of hit loop
-      std::cout << " [" << itrack << "] closest dist per plane = "
-                << "[ " << min_dist[0] << ", " << min_dist[1] << ", " << min_dist[2] << ", " << min_dist[3] << "]"
-                << std::endl;
+      LARCV_DEBUG() << " [" << itrack << "] closest dist per plane = "
+                    << "[ " << min_dist[0] << ", " << min_dist[1] << ", " << min_dist[2] << ", " << min_dist[3] << "]"
+                    << std::endl;
 
+      // loop over plane
       for (int p=0; p<4; p++ ) {
+
+        // if a good hit found in the plane
         if ( best_hitidx[p]>=0 ) {
           auto const& besthit = _crthit_v[best_hitidx[p]];        
-          std::cout << " crt_hit=(" << besthit.x_pos << ", " << besthit.y_pos << "," << besthit.z_pos << ") ";
-          std::cout << " panel_pos=(" << best_panel_pos[p][0] << "," << best_panel_pos[p][1] << "," << best_panel_pos[p][2] << ") ";
-          std::cout << std::endl;
-          _hit2trackidx_v[ best_hitidx[p] ].push_back( itrack );
+          LARCV_DEBUG() << " crt_hit=(" << besthit.x_pos << ", " << besthit.y_pos << "," << besthit.z_pos << ") "
+                        << " panel_pos=(" << best_panel_pos[p][0] << "," << best_panel_pos[p][1] << "," << best_panel_pos[p][2] << ") "
+                        << std::endl;
 
-          if ( min_dist[p]>=0 && min_dist[p]<30.0 ) {
+          if ( min_dist[p]>=0 && min_dist[p]<50.0 ) {
             float line[3] = {0};
-            float len = 0.;
+            float dist = 0.;
             for (int i=0; i<3; i++ ) {
               line[i] = best_panel_pos[p][i]-pca.getAvePosition()[i];
-              len += line[i]*line[i];
+              dist += line[i]*line[i];
             }
-            len = sqrt(len);
-            for (int i=0; i<3; i++ ) line[i] /= len;
-          
+            dist = sqrt(dist);
+            for (int i=0; i<3; i++ ) line[i] /= dist;
+            
+            // store a match
+            match_t m;
+            m.hitidx   = best_hitidx[p];
+            m.trackidx = itrack;
+            m.tracklen = len;
+            m.dist2hit = min_dist[p];
+            
+            _hit2track_rank_v[ best_hitidx[p] ].push_back( m );
+            _all_rank_v.push_back( m );
+            
             // store for visualization purposes
-            larlite::pcaxis::EigenVectors e_v; // 3-axis + 2-endpoints
-            for ( size_t p=0; p<3; p++ ) {
-              std::vector<double> da_v = { line[0], line[1], line[2] };
-              e_v.push_back( da_v );
-            }
-            std::vector<double> centroid_v = { pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] };
-            std::vector<double> panel_v = { best_panel_pos[p][0], best_panel_pos[p][1], best_panel_pos[p][2] };
-            e_v.push_back( centroid_v );
-            e_v.push_back( panel_v );
-            double eigenval[3] = { min_dist[p], 0, 0 };
-            larlite::pcaxis llpca( true, 1, eigenval, e_v, centroid_v.data(), 0, itrack );
-            ev_pcaout->emplace_back( std::move(llpca) );
-          }
-        }
+            // larlite::pcaxis::EigenVectors e_v; // 3-axis + 2-endpoints
+            // for ( size_t p=0; p<3; p++ ) {
+            //   std::vector<double> da_v = { line[0], line[1], line[2] };
+            //   e_v.push_back( da_v );
+            // }
+            // std::vector<double> centroid_v = { pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] };
+            // std::vector<double> panel_v = { best_panel_pos[p][0], best_panel_pos[p][1], best_panel_pos[p][2] };
+            // e_v.push_back( centroid_v );
+            // e_v.push_back( panel_v );
+            // double eigenval[3] = { min_dist[p], 0, 0 };
+            // larlite::pcaxis llpca( true, 1, eigenval, e_v, centroid_v.data(), 0, itrack );
+            // //ev_pcaout->emplace_back( std::move(llpca) );
+            
+          } // close enough to a hit to register a match
+        }//if valid hit found for plane
       }//end of loop over CRT planes
       
+    }//end of loop over tracks
+
+    // sort the all rank list
+    std::sort( _all_rank_v.begin(), _all_rank_v.end() );
+
+    // sort each hit list
+    for ( auto& hitmatches : _hit2track_rank_v ) {
+      std::sort( hitmatches.begin(), hitmatches.end() );
     }
 
     printHitInfo();
@@ -132,28 +283,29 @@ namespace crtmatch {
 
   void CRTHitMatch::printHitInfo() {
     
-    std::cout << "===============================================" << std::endl;
-    std::cout << "[ CRT HIT INFO ]" << std::endl;
+    LARCV_NORMAL() << "===============================================" << std::endl;
+    LARCV_NORMAL() << "[ CRT HIT INFO ]" << std::endl;
     for ( size_t idx=0; idx<_crthit_v.size(); idx++ ) {
       auto const& hit = _crthit_v.at(idx);
-      std::cout << " [" << idx << "] ";
+      std::stringstream ss;
+      ss << " [hit " << idx
+         << " p=" << hit.plane
+         << " pos=(" << hit.x_pos << ", " << hit.y_pos << ", " << hit.z_pos << ") "
+         << " t=" << hit.ts2_ns*1.0e-3 << " usec ]";
       
-      std::cout << " matches[";
-      for ( auto const& hidx : _hit2trackidx_v[idx] )
-        std::cout << " " << hidx;
-      std::cout << " ] ";
-      
-      std::cout << "(p=" << hit.plane
-                << ", " << hit.x_pos << ", " << hit.y_pos << ", " << hit.z_pos << ") "
-                << "t=" << hit.ts2_ns*1.0e-3 << " usec"
-                << std::endl;
+      ss << " matches[";
+      for ( auto const& hidx : _hit2track_rank_v[idx] )
+        ss << " (" << hidx.dist2hit << "," << hidx.tracklen << ")";
+      ss << " ] ";
+      LARCV_NORMAL() << ss.str() << std::endl;
     }
-    std::cout << "===============================================" << std::endl;    
+    LARCV_NORMAL() << "===============================================" << std::endl;    
     
   }
 
-  float CRTHitMatch::makeOneMatch( const larlite::pcaxis& lfcluster_axis, const larlite::crthit& hit,
-                                std::vector<float>& panel_pos ) {
+  float CRTHitMatch::makeOneMatch( const larlite::pcaxis& lfcluster_axis,
+                                   const larlite::crthit& hit,
+                                   std::vector<float>& panel_pos ) {
     
     int   crt_plane_dim[4] = {        1,        0,       0,      1 }; // Y-axis, X-axis, X-axis, Y-axis
     float endpts[2][3];
@@ -219,6 +371,10 @@ namespace crtmatch {
     return dist;
   }
 
+  /**
+   * get length of pc axis for cluster
+   *
+   */
   float CRTHitMatch::getLength( const larlite::pcaxis& pca ) {
     float dist = 0.;
     for (int i=0; i<3; i++ ) {
@@ -226,6 +382,189 @@ namespace crtmatch {
       dist += dx*dx;
     }
     return sqrt(dist);
+  }
+
+  /**
+   * match opflashes to crttrack_t using closest time
+   *
+   * ties are broken based on closest centroids based 
+   *   on pca-center of tracks and charge-weighted mean of flashes
+   * the crttrack_t objects are assumed to have been made in _find_optimal_track(...)
+   */
+  void CRTHitMatch::_matchOpflashes( const std::vector< const larlite::opflash* >& flash_v,
+                                     const std::vector< const larlite::crthit* >&  hit_v,
+                                     const std::vector< larlite::larflowcluster >& cluster_v,
+                                     std::vector< larlite::opflash >& matched_opflash_v ) {
+
+    std::vector< int > used_flash_v( flash_v.size(), 0 );
+    const float _max_dt_flash_crt = 2.0;
+
+    for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
+
+      auto const& crt = *hit_v[ihit];
+        
+      std::vector< const larlite::opflash* > matched_in_time_v;
+      std::vector<float> dt_usec_v;
+      std::vector< int > matched_index_v;
+
+      float closest_time = 10e9;
+
+      for ( size_t i=0; i<flash_v.size(); i++ ) {
+        if ( used_flash_v[i]>0 ) continue;
+          
+        float dt_usec = crt.ts2_ns*1.0e-3 - flash_v[i]->Time();
+
+        if ( fabs(dt_usec) < closest_time )
+          closest_time = fabs(dt_usec);
+
+        if ( fabs(dt_usec)<_max_dt_flash_crt ) {
+          matched_in_time_v.push_back( flash_v[i] );
+          dt_usec_v.push_back( dt_usec );
+          matched_index_v.push_back( i );
+          LARCV_INFO() << "  ...  crt-track and opflash matched. dt_usec=" << dt_usec << std::endl;
+        }
+          
+      }//end of flash loop
+
+      LARCV_NORMAL() << "crt-hit has " << matched_index_v.size() << " flash matches. closest time=" << closest_time  << std::endl;
+
+      
+      if ( matched_in_time_v.size()==0 ) {
+        // make empty opflash at the time of the crttrack
+        std::vector< double > PEperOpDet(32,0.0);
+        larlite::opflash blank_flash( crt.ts2_ns*1.0e-3,
+                                      0.0,
+                                      crt.ts2_ns*1.0e-3,
+                                      0,
+                                      PEperOpDet );
+        matched_opflash_v.emplace_back( std::move(blank_flash) );
+      }
+      else if ( matched_in_time_v.size()==1 ) {
+        // store a copy of the single matched opflash
+        matched_opflash_v.push_back( *matched_in_time_v[0] );
+        used_flash_v[ matched_index_v[0] ] = 1;
+      }
+      else {
+
+        // choose closest using distance from center of flash and track
+        // need mean of cluster
+        std::vector<float> cluster_mean(3,0);
+        for ( auto const& hit : cluster_v[ ihit ] ) {
+          for (int i=0; i<3; i++)
+            cluster_mean[i] += hit[i];
+        }
+        for (int i=0; i<3; i++ )
+          cluster_mean[i] /= (float)cluster_v[ihit].size();
+        
+        float smallest_dist = 1.0e9;
+        const larlite::opflash* closest_opflash = nullptr;
+
+        // we have a loose initial standard. if more than one, we use a tighter standard
+        bool have_tight_match = false;
+        for ( auto& dt_usec : dt_usec_v ) {
+          if ( fabs(dt_usec)<1.5 ) have_tight_match = true;
+        }
+
+        for ( size_t i=0; i<matched_in_time_v.size(); i++ ) {
+
+          // ignore loose match if we know we have at least one good one
+          if ( have_tight_match && dt_usec_v[i]>1.5 ) continue;
+
+          // get mean of opflash
+          std::vector<float> flashcenter = { 0.0,
+                                             (float)matched_in_time_v[i]->YCenter(),
+                                             (float)matched_in_time_v[i]->ZCenter() };
+
+          float dist = 0.;
+          for (int v=1; v<3; v++ ) {
+            dist += ( flashcenter[v]-cluster_mean[v] )*( flashcenter[v]-cluster_mean[v] );
+          }
+          dist = sqrt(dist);
+
+          if ( dist<smallest_dist ) {
+            smallest_dist = dist;
+            closest_opflash = matched_in_time_v[i];
+          }
+          LARCV_INFO() << "  ... distance between opflash and track center: " << dist << " cm" << std::endl;
+        }//end of candidate opflash match
+        
+        // store best match
+        if ( closest_opflash ) {
+          matched_opflash_v.push_back( *closest_opflash );
+        }
+        else {
+          // shouldnt get here
+          throw std::runtime_error( "should not get here" );
+        }
+      }//else more than 1 match
+          
+    }//end of CRT HIT loop
+
+    // check we have the right amount of flashes
+    if ( matched_opflash_v.size()!=cluster_v.size() || matched_opflash_v.size()!=hit_v.size() ) {
+      throw std::runtime_error( "different amount of input crt-hit, cluster, and opflashes");
+    }
+    
+  }
+
+  /**
+   * using sorted match list per hit, we determine if we should merge the clusters
+   *
+   */
+  larlite::larflowcluster CRTHitMatch::_merge_matched_cluster( const std::vector< CRTHitMatch::match_t >& hit_match_v,
+                                                               std::vector<int>& used_in_merge,
+                                                               bool& merged ) {
+
+    merged = false;
+    larlite::larflowcluster lfcluster;
+
+    // if one or zero matches, nothing to do here.
+    if ( hit_match_v.size()<=1 )
+      return lfcluster;
+
+    // we use cluster tools, so start by converting best track 
+    larflow::reco::cluster_t mergecluster;
+    int nmerged = 0;
+    for ( size_t idx=0; idx<hit_match_v.size(); idx++ ) {
+
+      larflow::reco::cluster_t c = larflow::reco::cluster_from_larflowcluster( *_lfcluster_v[ hit_match_v[idx].trackidx ] );
+      if ( nmerged==0 ) {
+        // first cluster
+        std::swap(mergecluster,c);
+        used_in_merge[idx] = 1;
+        merged = true;
+        nmerged++;
+        continue;
+      }
+
+      // determine a good match
+      std::vector< std::vector<float> > closestpts_vv;
+      float endptdist = larflow::reco::cluster_closest_endpt_dist( mergecluster, c, closestpts_vv );
+      float cospca = cluster_cospca( mergecluster, c );
+      cospca = 1.0 - fabs(cospca);
+
+      if ( float(cospca)*180.0/3.14159 < 20.0 && endptdist < 30.0 ) {
+      
+        larflow::reco::cluster_t testmerge = larflow::reco::cluster_merge( mergecluster, c );
+
+        if ( testmerge.pca_eigenvalues[1] < 30.0 ) {
+          merged = true;
+          used_in_merge[idx] = 1;
+          nmerged++;
+          std::swap( mergecluster, testmerge );
+        }
+        
+      }
+    }
+
+    for ( size_t idx=0; idx<hit_match_v.size(); idx++ ) {
+      if ( used_in_merge[idx]==1 ) {
+        for ( auto const& hit : *_lfcluster_v[ hit_match_v[idx].trackidx ] )
+          lfcluster.push_back( hit );
+      }
+    }
+
+    return lfcluster;
   }
   
 }

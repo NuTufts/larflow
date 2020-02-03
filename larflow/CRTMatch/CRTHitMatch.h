@@ -7,6 +7,8 @@
  */
 
 #include <vector>
+#include "larcv/core/Base/larcv_base.h"
+#include "larcv/core/DataFormat/IOManager.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/crthit.h"
 #include "DataFormat/crttrack.h"
@@ -17,11 +19,28 @@
 namespace larflow {
 namespace crtmatch {
 
-  class CRTHitMatch {
+  class CRTHitMatch : public larcv::larcv_base {
 
   public:
 
-    CRTHitMatch() {};
+    struct match_t {
+      int hitidx;
+      int trackidx;
+      // variables to rank matches
+      float dist2hit;
+      float tracklen;
+      bool operator<( const match_t& rhs ) {
+        // for distances over 10 cm, we rank by distance
+        if ( dist2hit<rhs.dist2hit )
+          return true;
+        return false;
+      };
+
+    };
+    
+    CRTHitMatch()
+      : larcv::larcv_base("CRTHitMatch")
+      {};
     virtual ~CRTHitMatch() {};
     
     void addIntimeOpFlashes( const larlite::event_opflash& opflash_v );
@@ -31,7 +50,9 @@ namespace crtmatch {
     void addLArFlowClusters( const larlite::event_larflowcluster& lfcluster_v, const larlite::event_pcaxis& pcaxis );
 
     void clear();
-    void match( larlite::storage_manager& llio, larlite::storage_manager& outio );
+    bool process( larcv::IOManager& iocv, larlite::storage_manager& ioll );
+    bool makeMatches();
+    void compilematches();
     void printHitInfo();
 
     float makeOneMatch( const larlite::pcaxis& lfcluster_axis, const larlite::crthit& hit, std::vector<float>& panel_pos );
@@ -50,7 +71,19 @@ namespace crtmatch {
     std::vector< const larlite::pcaxis* >         _pcaxis_v;
 
 
-    std::vector< std::vector<int> >               _hit2trackidx_v;
+    std::vector< std::vector< match_t > >         _hit2track_rank_v; // matches for each hit
+    std::vector< match_t >                        _all_rank_v;       // all matches
+
+
+    void _matchOpflashes( const std::vector< const larlite::opflash* >& flash_v,
+                          const std::vector< const larlite::crthit* >&  hit_v,
+                          const std::vector< larlite::larflowcluster >& cluster_v,
+                          std::vector< larlite::opflash >& matched_opflash_v );
+    
+    
+    larlite::larflowcluster _merge_matched_cluster( const std::vector< CRTHitMatch::match_t >& hit_match_v,
+                                                    std::vector<int>& used_in_merge,
+                                                    bool& merged );
     
   };
   
