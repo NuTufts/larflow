@@ -24,7 +24,7 @@ colorscale = "Viridis"
 
 treename = "pcacluster"
 merged_inputfile = "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root"
-track_inputfile = "larflow_reco_extbnb_run3_vp.root"
+track_inputfile = "larflow_reco_extbnb_run3.root"
 crt_inputfile   = "crtmatch_reco_extbnb_run3.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )

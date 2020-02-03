@@ -582,9 +582,19 @@ namespace reco {
       
     }
 
-    std::cout << "[absorb_nearby_hits] cluster absorbed " << nused << " hits" << std::endl;    
-    cluster_pca( newcluster );
-
+    if (nused>=10 ) {
+      std::cout << "[absorb_nearby_hits] cluster absorbed " << nused << " hits" << std::endl;      
+      cluster_pca( newcluster );
+    }
+    else {
+      // throw them back
+      std::cout << "[absorb_nearby_hits] cluster hits " << nused << " below threshold" << std::endl;            
+      for ( auto& idx : newcluster.hitidx_v )
+        used_hits_v[idx] = 0;
+      newcluster.points_v.clear();
+      newcluster.imgcoord_v.clear();
+      newcluster.hitidx_v.clear();
+    }
 
     
     return newcluster;
@@ -656,7 +666,8 @@ namespace reco {
                                                       inputhits,
                                                       used_hits_v,
                                                       20.0 );
-        dense_cluster_v.emplace_back( std::move(dense_cluster) );
+        if ( dense_cluster.points_v.size()>0 ) 
+          dense_cluster_v.emplace_back( std::move(dense_cluster) );
       }
       int nused_tot = 0;
       for ( auto& used : used_hits_v ) {
