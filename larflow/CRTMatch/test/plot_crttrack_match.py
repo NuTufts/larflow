@@ -286,12 +286,24 @@ def load_entry(*vals):
     options = []
     for n in xrange(len(EVENT_DATA)):
         options.append( {'label':n,'value':n} )
+    options.append( {'label':"all",'value':"all"} )
 
     if len(EVENT_DATA)>0:
         print("set figure data")
         if vals[2] in ["notloaded","noevents"]:
             vals[-1]["data"] = detdata+crtdata+EVENT_DATA[0]
             return options,0,vals[-1]
+        elif vals[2] in ["all"]:
+            traces = detdata+crtdata
+            for ev in EVENT_DATA:
+                for tr in ev:
+                    # pass along all but opflash
+                    if "opflash" in tr["name"]:
+                        continue
+                    else:
+                        traces.append( tr )
+            vals[-1]["data"] = traces
+            return options,"all",vals[-1]
         else:
             vals[-1]["data"] = detdata+crtdata+EVENT_DATA[ int(vals[2]) ] 
             return options,int(vals[2]),vals[-1]
