@@ -16,7 +16,7 @@ namespace crtmatch {
 
   CRTTrackMatch::CRTTrackMatch()
     : larcv::larcv_base("CRTTrackMatch"),
-    _max_iters(20),
+    _max_iters(25),
     _col_neighborhood(100),
     _max_fit_step_size(1.0),
     _max_last_step_size(0.1),

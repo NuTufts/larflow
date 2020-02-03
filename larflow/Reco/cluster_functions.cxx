@@ -626,11 +626,17 @@ namespace reco {
    */
   cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster ) {
 
+    std::cout << "[cluster_from_larflowcluster] input cluster size=" << lfcluster.size() << std::endl;
     cluster_t c;
     c.points_v.reserve( 2*lfcluster.size() );
     c.imgcoord_v.reserve( 2*lfcluster.size() );
     c.hitidx_v.reserve( 2*lfcluster.size() );
     for ( auto const& lfhit : lfcluster ) {
+      //if ( lfhit.size()<3 ) continue;
+      //if ( lfhit.targetwire.size()<3 ) continue;
+      // std::cout << "lfhit: " << lfhit[0] << "," << lfhit[1] << "," << lfhit[2] << std::endl;
+      // std::cout << "   coord=(" << lfhit.targetwire[0] << "," << lfhit.targetwire[1] << "," << lfhit.targetwire[2] << ")" << std::endl;
+      // std::cout << "   tick=" << lfhit.tick << std::endl;
       std::vector<float> pos   = { lfhit[0], lfhit[1], lfhit[2] };
       std::vector<int>   coord = { lfhit.targetwire[0],
                                    lfhit.targetwire[1],

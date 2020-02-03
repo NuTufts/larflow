@@ -23,7 +23,7 @@ crtdata = lardly.CRTOutline().getlines()
 # debug, use fixed file names, eventually use arguments
 merged_inputfile = "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root"
 track_inputfile = "larflow_reco_extbnb_run3.root"
-crt_inputfile   = "crttrack_match_reco_extbnb_run3.root"
+crt_inputfile   = "crt_match_reco_extbnb_run3.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( merged_inputfile )
@@ -39,25 +39,29 @@ def load_event_data( ioll, ientry ):
     get the graph objects for each crt track
     """
     io.go_to(ientry)
-    ev_crttrack = io.get_data(larlite.data.kCRTTrack, "fitcrttrack" )
-    ev_opflash  = io.get_data(larlite.data.kOpFlash,  "fitcrttrack" )
-    ev_cluster  = io.get_data(larlite.data.kLArFlowCluster, "fitcrttrack" )
 
-    ntracks = ev_crttrack.size()
+    print("entry[",ientry,"]")    
     entrydata = []
+    
+    for treename in ["fitcrttrack","matchcrthit"]:
+        ev_crttrack = io.get_data(larlite.data.kCRTTrack, treename )
+        ev_opflash  = io.get_data(larlite.data.kOpFlash,  treename )
+        ev_cluster  = io.get_data(larlite.data.kLArFlowCluster, treename )
 
-    print("entry[",ientry,"]")
-    print(" ncrttrack=",ev_crttrack.size(),")")
-    print(" nopflash=",ev_opflash.size(),")")
-    print(" ncluster=",ev_cluster.size(),")")
+        ntracks = ev_crttrack.size()
 
-    for n in xrange(ntracks):
-        vis_crttrack = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
-        vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
-        vis_larflow  = [ lardly.data.visualize_larlite_larflowhits( ev_cluster.at(n) ) ]
-        for vis_lf in vis_larflow:
-            vis_lf["marker"]["color"]="rgb(0,0,255)"
-        entrydata.append( vis_crttrack + vis_opflash + vis_larflow )
+        print(" tree set: ",treename)
+        print("   ncrttrack=",ev_crttrack.size(),")")
+        print("   nopflash=",ev_opflash.size(),")")
+        print("   ncluster=",ev_cluster.size(),")")
+
+        for n in xrange(ntracks):
+            vis_crttrack = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
+            vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
+            vis_larflow  = [ lardly.data.visualize_larlite_larflowhits( ev_cluster.at(n) ) ]
+            for vis_lf in vis_larflow:
+                vis_lf["marker"]["color"]="rgb(0,0,255)"
+            entrydata.append( vis_crttrack + vis_opflash + vis_larflow )
 
     return entrydata
     

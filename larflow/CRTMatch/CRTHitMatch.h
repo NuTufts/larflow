@@ -16,6 +16,8 @@
 #include "DataFormat/pcaxis.h"
 #include "DataFormat/larflowcluster.h"
 
+#include "larflow/Reco/cluster_functions.h"
+
 namespace larflow {
 namespace crtmatch {
 
@@ -51,6 +53,8 @@ namespace crtmatch {
 
     void clear();
     bool process( larcv::IOManager& iocv, larlite::storage_manager& ioll );
+    void save_to_file( larlite::storage_manager& outll, bool remove_if_no_flash=true );
+    
     bool makeMatches();
     void compilematches();
     void printHitInfo();
@@ -68,6 +72,7 @@ namespace crtmatch {
     
     // clusters
     std::vector< const larlite::larflowcluster* > _lfcluster_v;
+    //std::vector< larlite::larflowcluster >        _lfcluster_v;    
     std::vector< const larlite::pcaxis* >         _pcaxis_v;
 
 
@@ -84,6 +89,15 @@ namespace crtmatch {
     larlite::larflowcluster _merge_matched_cluster( const std::vector< CRTHitMatch::match_t >& hit_match_v,
                                                     std::vector<int>& used_in_merge,
                                                     bool& merged );
+
+    // output containers
+    std::vector<int>                       _matched_hitidx;
+    std::vector< const larlite::opflash* > _flash_v;    
+    std::vector< const larlite::crthit* >  _match_hit_v;    
+    std::vector<larlite::larflowcluster>   _matched_cluster;
+    std::vector<larflow::reco::cluster_t>  _matched_cluster_t;
+    std::vector< larlite::opflash >        _matched_opflash_v;
+    std::vector<int>                       _used_tracks_v;
     
   };
   
