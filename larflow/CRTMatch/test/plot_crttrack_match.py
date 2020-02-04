@@ -276,11 +276,14 @@ def load_entry(*vals):
 
     entry = int(vals[1])
 
+    opt = vals[2]
+    
     # update entry, if needed
     if CURRENT_EVENT is None or entry!=CURRENT_EVENT:
-        print("load entry %d"%(int(vals[1])))
+        print("load new entry %d"%(int(vals[1])))
         EVENT_DATA = load_event_data( io, int(vals[1]) )
         CURRENT_EVENT = entry
+        opt = "all"
 
     # reset data load
     options = []
@@ -290,10 +293,10 @@ def load_entry(*vals):
 
     if len(EVENT_DATA)>0:
         print("set figure data")
-        if vals[2] in ["notloaded","noevents"]:
+        if opt in ["notloaded","noevents"]:
             vals[-1]["data"] = detdata+crtdata+EVENT_DATA[0]
             return options,0,vals[-1]
-        elif vals[2] in ["all"]:
+        elif opt in ["all"]:
             traces = detdata+crtdata
             for ev in EVENT_DATA:
                 for tr in ev:
@@ -305,8 +308,8 @@ def load_entry(*vals):
             vals[-1]["data"] = traces
             return options,"all",vals[-1]
         else:
-            vals[-1]["data"] = detdata+crtdata+EVENT_DATA[ int(vals[2]) ] 
-            return options,int(vals[2]),vals[-1]
+            vals[-1]["data"] = detdata+crtdata+EVENT_DATA[ int(opt) ] 
+            return options,int(opt),vals[-1]
     else:
         return options,"noevents",vals[-1]
 

@@ -17,14 +17,14 @@ iolcv.reverse_all_products()
 iolcv.initialize()
 
 outio = larlite.storage_manager( larlite.storage_manager.kWRITE )
-outio.set_out_filename( "crt_match_reco_extbnb_run3.root" )
+outio.set_out_filename( "crt_match_reco_extbnb_run3_valgrind.root" )
 outio.open()
 
 crtmatch = larflow.crtmatch.CRTMatch()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 2
+#nentries = 2
 
 print "Start loop."
 

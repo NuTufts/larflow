@@ -675,7 +675,7 @@ namespace crtmatch {
       else if ( matched_in_time_v.size()==1 ) {
         // store a copy of the opflash
         matched_opflash_v.push_back( *matched_in_time_v[0] );
-        used_flash_v[ matched_index_v[0].first ][ matched_index_v[1].second ] = 1;
+        used_flash_v[ matched_index_v[0].first ][ matched_index_v[0].second ] = 1;
       }
       else {
       
@@ -688,6 +688,7 @@ namespace crtmatch {
           if ( fabs(dt_usec)<1.5 ) have_tight_match = true;
         }
 
+        int flashindex[2] = { 0, 0 };
         for ( size_t i=0; i<matched_in_time_v.size(); i++ ) {
 
           // ignore loose match if we know we have at least one good one
@@ -720,6 +721,8 @@ namespace crtmatch {
           if ( dist<smallest_dist ) {
             smallest_dist = dist;
             closest_opflash = matched_in_time_v[i];
+            flashindex[0]   = matched_index_v[i].first;
+            flashindex[1]   = matched_index_v[i].second;
           }
           std::cout << "[CRTTrackMatch]  ... distance between opflash and track center: " << dist << " cm" << std::endl;
         }//end of candidate opflash match
@@ -727,6 +730,7 @@ namespace crtmatch {
         // store best match
         if ( closest_opflash ) {
           matched_opflash_v.push_back( *closest_opflash );
+          used_flash_v[ flashindex[0] ][ flashindex[1] ] = 1;
         }
         else {
           // shouldnt get here
