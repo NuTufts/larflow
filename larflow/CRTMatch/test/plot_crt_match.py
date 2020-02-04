@@ -313,29 +313,6 @@ def load_entry(*vals):
     else:
         return options,"noevents",vals[-1]
 
-# @app.callback(
-#     [Output("det3d","figure"),
-#      Output("out","children")],
-#     [Input("plot","n_clicks")],
-#     [State("input_event","value"),
-#      State("plotbyopt","value"),
-#      State("det3d","figure")],
-#     )
-# def cb_render(*vals):
-#     if vals[1] is None:
-#         print("Input event is none")
-#         raise PreventUpdate
-#     if vals[1]>=nentries or vals[1]<0:
-#         print("Input event is out of range")
-#         raise PreventUpdate
-#     if vals[2] is None:
-#         print("Plot-by option is None")
-#         raise PreventUpdate
-
-#     cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2])
-#     #print(cluster_traces_v)
-#     vals[-1]["data"] = cluster_traces_v
-#     return vals[-1],"event requested: {} {}".format(vals[1],vals[2])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
