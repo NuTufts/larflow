@@ -316,15 +316,14 @@ namespace larflow {
     nsamples = 0;
     
     int end_idx = start_idx + max_num_samples;
-    end_idx = ( end_idx>=(int)_triplet_v.size() ) ? _triplet_v.size() : end_idx; // cap to number of triplets
-    end_idx = ( end_idx>=(int)idx_v.size() )      ?  idx_v.size()     : end_idx; // cap to number of indices
+    end_idx = ( end_idx>(int)idx_v.size() )   ?  idx_v.size() : end_idx; // cap to number of indices
       
     for ( int idx=start_idx; idx<end_idx; idx++ ) {
-
-      *((long*)PyArray_GETPTR2( array, nsamples, 0)) = (long)_triplet_v[idx][srcplane];
-      *((long*)PyArray_GETPTR2( array, nsamples, 1)) = (long)_triplet_v[idx][tarplane];
+      int tripidx = idx_v[idx];
+      *((long*)PyArray_GETPTR2( array, nsamples, 0)) = (long)_triplet_v[tripidx][srcplane];
+      *((long*)PyArray_GETPTR2( array, nsamples, 1)) = (long)_triplet_v[tripidx][tarplane];
       if ( withtruth ) {
-        *((long*)PyArray_GETPTR2( array, nsamples, 2)) = (long)_truth_2plane_v[idx][(int)kdir];
+        *((long*)PyArray_GETPTR2( array, nsamples, 2)) = (long)_truth_2plane_v[tripidx][(int)kdir];
       }
       nsamples++;
       if (nsamples==max_num_samples)
@@ -365,5 +364,29 @@ namespace larflow {
 
   }
 
+  /**
+   *
+   * randomly select a set of 2 plane indices
+   *
+   */
+  PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
+                                                         const int& start_index,
+                                                         const int& max_num_pairs,
+                                                         int& last_index,
+                                                         int& num_pairs_filled,
+                                                         bool with_truth ) {
+    
+    std::vector<int> idx_v( max_num_pairs, 0 );
+    last_index = start_index + max_num_pairs;
+    last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
+    
+    for ( int i=start_index; i<last_index; i++ ) {
+      idx_v[i] = (int)i;
+    }
+
+    return make_2plane_match_array( kdir, max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
+
+  }
+  
   
 }

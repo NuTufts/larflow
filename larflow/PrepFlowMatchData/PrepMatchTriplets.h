@@ -60,6 +60,12 @@ namespace larflow {
                                      int& nfilled,
                                      bool withtruth );
 
+    PyObject* get_chunk_2plane_matches( larflow::FlowDir_t kdir,
+                                        const int& start_index,
+                                        const int& max_num_pairs,
+                                        int& last_index,
+                                        int& num_pairs_filled,
+                                        bool with_truth );
 
     
   };
