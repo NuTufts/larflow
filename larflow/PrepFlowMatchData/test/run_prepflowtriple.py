@@ -4,7 +4,9 @@ import os,sys,argparse
 parser = argparse.ArgumentParser(description='Run Prep LArFlow Match Data')
 parser.add_argument('-olcv','--out-larcv',required=True,type=str,help="Filename for LArCV output")
 #parser.add_argument("-c","--config",required=True,type=str,help="Configuration file")
+parser.add_argument("-mc","--has-mc",default=False,action="store_true",help="Has MC information")
 parser.add_argument('input_larcv',nargs='+',help="Input larcv files")
+
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -28,6 +30,8 @@ io.reverse_all_products()
 io.initialize()
 
 nentries = io.get_n_entries()
+nentries = 1
+
 for ientry in xrange(nentries):
 
     io.read_entry(ientry)
@@ -36,6 +40,10 @@ for ientry in xrange(nentries):
     adc_v   = ev_adc.Image2DArray()
 
     ev_chstatus = io.get_data( larcv.kProductChStatus, "wire" )
+
+    if args.has_mc:
+        ev_larflow = io.get_data( larcv.kProductImage2D, "larflow" )
+        larflow_v  = ev_larflow.Image2DArray()
     
     badch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
                                               4, 3, 2400, 1008*6, 3456, 6, 1,
@@ -44,8 +52,11 @@ for ientry in xrange(nentries):
 
     tripmaker = larflow.PrepMatchTriplets()
     tripmaker.process( adc_v, badch_v, 10.0 )
+    if args.has_mc:
+        tripmaker.make_truth_vector( larflow_v )
 
     th2d_sparse_v = tripmaker.plot_sparse_images( adc_v, "sparse" )
+    th2d_truth3_v = tripmaker.plot_truth_images( adc_v, "truth3" )
     csparse = rt.TCanvas("sparse","sparse",1400,1000)
     csparse.Divide(3,2)
     for p in xrange(3):
@@ -53,6 +64,13 @@ for ientry in xrange(nentries):
         if p in [0,1]:
             th2d_sparse_v[p].GetXaxis().SetRangeUser(0,2400)
         th2d_sparse_v[p].Draw("colz")
+
+        print("make triplet truth image plane={}".format(p))
+        csparse.cd(4+p)
+        if p in [0,1]:
+            th2d_truth3_v[p].GetXaxis().SetRangeUser(0,2400)
+        th2d_truth3_v[p].Draw("colz")
+        
     
     # badch
     th2d_badch_v = larcv.rootutils.as_th2d_v( badch_v, "badch_entry%d"%(ientry))
