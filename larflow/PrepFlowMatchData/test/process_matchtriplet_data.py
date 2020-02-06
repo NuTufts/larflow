@@ -39,6 +39,6 @@ for ientry in xrange(nentries):
     driver.process_entry(ientry)
 
     # for debug
-    break
+    #break
 
 driver.finalize()

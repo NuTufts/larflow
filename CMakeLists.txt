@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(larflow VERSION 0.1)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 #---Install location by default is in the build directory
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "${CMAKE_BUILD_DIR}" FORCE )
