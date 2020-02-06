@@ -9,7 +9,9 @@ namespace larflow {
   
   void MatchTripletProcessor::configure( const larcv::PSet& pset )
   {
-    _has_mc = pset.get<bool>("HasMC");
+    _has_mc   = pset.get<bool>("HasMC");
+    _adc_treename      = pset.get<std::string>("ADCName");
+    _chstatus_treename = pset.get<std::string>("ChStatusName");
   }
     
   void MatchTripletProcessor::initialize()
@@ -31,11 +33,11 @@ namespace larflow {
   {
 
     larcv::EventImage2D* ev_adc
-      = (larcv::EventImage2D*)mgr.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)mgr.get_data( larcv::kProductImage2D, _adc_treename );
     auto const& adc_v  = ev_adc->Image2DArray();
 
     larcv::EventChStatus* ev_chstatus
-      = (larcv::EventChStatus*)mgr.get_data( larcv::kProductChStatus, "wire" );
+      = (larcv::EventChStatus*)mgr.get_data( larcv::kProductChStatus, _chstatus_treename );
 
     larcv::EventImage2D* ev_larflow = nullptr;
     if (_has_mc ) {

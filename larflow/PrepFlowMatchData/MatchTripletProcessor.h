@@ -16,7 +16,9 @@ namespace larflow {
       : larcv::ProcessBase(instance_name),
       _p_matchdata_v(nullptr),      
       _ana_tree(nullptr),
-      _has_mc(false)
+      _has_mc(false),
+      _adc_treename("wire"),
+      _chstatus_treename("wire")
       {};
     virtual ~MatchTripletProcessor() {};
 
@@ -28,6 +30,8 @@ namespace larflow {
     std::vector< larflow::PrepMatchTriplets >* _p_matchdata_v;
     TTree* _ana_tree;
     bool   _has_mc;
+    std::string _adc_treename;
+    std::string _chstatus_treename;
 
     ublarcvapp::EmptyChannelAlgo _badchmaker;
       
