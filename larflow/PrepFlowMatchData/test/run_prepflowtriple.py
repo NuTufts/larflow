@@ -1,9 +1,9 @@
 from __future__ import print_function
-import os,sys,argparse
+import os,sys,argparse,time
+from ctypes import c_int
 
 parser = argparse.ArgumentParser(description='Run Prep LArFlow Match Data')
 parser.add_argument('-olcv','--out-larcv',required=True,type=str,help="Filename for LArCV output")
-#parser.add_argument("-c","--config",required=True,type=str,help="Configuration file")
 parser.add_argument("-mc","--has-mc",default=False,action="store_true",help="Has MC information")
 parser.add_argument('input_larcv',nargs='+',help="Input larcv files")
 
@@ -16,6 +16,7 @@ args = parser.parse_args(sys.argv[1:])
 import ROOT as rt
 from ROOT import std
 from larcv import larcv
+larcv.load_pyutil()
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 
@@ -55,8 +56,32 @@ for ientry in xrange(nentries):
     if args.has_mc:
         tripmaker.make_truth_vector( larflow_v )
 
+    ntriples = tripmaker._triplet_v.size()
+    startidx = 0
+    NUM_PAIRS = 20000
+    while startidx<ntriples:
+        # get indices
+        npairs      = c_int()
+        npairs.value = 0
+        last_index  = c_int()
+        last_index.value = 0
+        with_truth  = False
+
+        tstart = time.time()
+        print("create matchpairs: startidx=",startidx," of ",ntriples)
+        matchpair_np = tripmaker.get_chunk_2plane_matches( 4,
+                                                           startidx,
+                                                           NUM_PAIRS,
+                                                           last_index,
+                                                           npairs,
+                                                           with_truth )
+        startidx += NUM_PAIRS
+        print("made pairs last_index=",last_index.value," npairs=",npairs.value)
+        
+
     th2d_sparse_v = tripmaker.plot_sparse_images( adc_v, "sparse" )
-    th2d_truth3_v = tripmaker.plot_truth_images( adc_v, "truth3" )
+    if args.has_mc:
+        th2d_truth3_v = tripmaker.plot_truth_images( adc_v, "truth3" )
     csparse = rt.TCanvas("sparse","sparse",1400,1000)
     csparse.Divide(3,2)
     for p in xrange(3):
@@ -65,11 +90,12 @@ for ientry in xrange(nentries):
             th2d_sparse_v[p].GetXaxis().SetRangeUser(0,2400)
         th2d_sparse_v[p].Draw("colz")
 
-        print("make triplet truth image plane={}".format(p))
-        csparse.cd(4+p)
-        if p in [0,1]:
-            th2d_truth3_v[p].GetXaxis().SetRangeUser(0,2400)
-        th2d_truth3_v[p].Draw("colz")
+        if args.has_mc:
+            print("make triplet truth image plane={}".format(p))
+            csparse.cd(4+p)
+            if p in [0,1]:
+                th2d_truth3_v[p].GetXaxis().SetRangeUser(0,2400)
+            th2d_truth3_v[p].Draw("colz")
         
     
     # badch
@@ -87,7 +113,7 @@ for ientry in xrange(nentries):
         th2d_adcch_v[p].Draw("colz")
 
     
-    print("[view triple points")
+    print("[view triple points] ENTER to continue.")
     raw_input()
     break
 

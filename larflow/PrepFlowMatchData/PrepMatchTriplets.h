@@ -1,9 +1,6 @@
 #ifndef __LARFLOW_PREP_PREPLARMATCHDATA_H__
 #define __LARFLOW_PREP_PREPLARMATCHDATA_H__
 
-struct _object;
-typedef _object PyObject;
-
 #include <Python.h>
 #include "bytesobject.h"
 
@@ -18,7 +15,9 @@ namespace larflow {
   class PrepMatchTriplets {
   public:
 
-    PrepMatchTriplets() {};
+    PrepMatchTriplets()
+    : _setup_numpy(false)
+    {};
     virtual ~PrepMatchTriplets() {};
 
     void process( const std::vector<larcv::Image2D>& adc_v,
@@ -67,6 +66,7 @@ namespace larflow {
                                         int& num_pairs_filled,
                                         bool with_truth );
 
+    bool _setup_numpy;
     
   };
 

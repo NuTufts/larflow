@@ -1,4 +1,5 @@
 #include "FlowMatchHitMaker.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
 
 #include "larcv/core/PyUtil/PyUtils.h"
@@ -119,9 +120,22 @@ namespace larflow {
       larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
       float tick = source_meta.pos_y( srcrow );
 
+      if ( y<-117 || y>117 || z<0 || z>1036 ) continue;
+
       Double_t pos[3] = { 0, y, z };
       float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
-      float other_adc  = img_v[other_plane].pixel( srcrow, (int)other_wire );
+      float other_adc  = 0;
+      try {
+        img_v[other_plane].pixel( srcrow, (int)other_wire, __FILE__, __LINE__ );
+      }
+      catch (std::exception& e ) {
+        std::cout << "Error getting other plane pixel, (r,c)=(" << srcrow << "," << other_wire << "). "
+                  << "for pos(y,z)=(" << y << ", " << z << "). "
+                  << "from (src,tar) intersection=(" << srccol << "," << tarcol << ")"
+                  << std::endl;
+        std::cout << "error: " << e.what() << std::endl;
+        continue;
+      }
 
       std::vector<int> img_coords(3,0);
       img_coords[ source_plane ] = srccol;

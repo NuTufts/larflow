@@ -1,6 +1,7 @@
 #include "PrepMatchTriplets.h"
 #include "FlowTriples.h"
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
 
 #include <sstream>
@@ -8,6 +9,8 @@
 #include <algorithm>    // std::shuffle
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
+
+#include "larcv/core/PyUtil/PyUtils.h"
 
 namespace larflow {
 
@@ -264,7 +267,10 @@ namespace larflow {
    */
   PyObject* PrepMatchTriplets::make_sparse_image( int plane ) {
     
-    import_array1(0);
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
 
     npy_intp* dims = new npy_intp[2];
     dims[0] = (int)_sparseimg_vv[plane].size();
@@ -276,8 +282,8 @@ namespace larflow {
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 2, dims, NPY_FLOAT );
 
     for ( size_t idx=0; idx<_sparseimg_vv[plane].size(); idx++ ) {
-      *((float*)PyArray_GETPTR2( array, (int)idx, 0)) = (float)_sparseimg_vv[plane][idx].col;
-      *((float*)PyArray_GETPTR2( array, (int)idx, 1)) = (float)_sparseimg_vv[plane][idx].row;
+      *((float*)PyArray_GETPTR2( array, (int)idx, 0)) = (float)_sparseimg_vv[plane][idx].row;
+      *((float*)PyArray_GETPTR2( array, (int)idx, 1)) = (float)_sparseimg_vv[plane][idx].col;
       *((float*)PyArray_GETPTR2( array, (int)idx, 2)) = (float)_sparseimg_vv[plane][idx].val;      
     }
     
@@ -297,17 +303,18 @@ namespace larflow {
                                                         const bool withtruth,
                                                         int& nsamples )
   {
-    
-    import_array1(0);
 
-    npy_intp* dims = new npy_intp[2];
-    dims[0] = max_num_samples;
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
 
-    // if we want truth, we include additional value with 1=correct match, 0=false    
-    dims[1] = (withtruth) ? 3 : 2;
+    int nd = 2;
+    int ndims2 = (withtruth) ? 3 : 2;
+    npy_intp dims[] = { max_num_samples, ndims2 };
 
     // output array
-    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 2, dims, NPY_LONG );
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );
 
     int srcplane,tarplane;
     larflow::LArFlowConstants::getFlowPlanes( kdir, srcplane, tarplane );
@@ -317,7 +324,10 @@ namespace larflow {
     
     int end_idx = start_idx + max_num_samples;
     end_idx = ( end_idx>(int)idx_v.size() )   ?  idx_v.size() : end_idx; // cap to number of indices
-      
+
+    std::cout << "[PrepMatchTriplets::make_2plane_match_array] src=" << srcplane << " tar=" << tarplane << " withtruth=" << withtruth << " "
+              << "make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]" << std::endl;
+    
     for ( int idx=start_idx; idx<end_idx; idx++ ) {
       int tripidx = idx_v[idx];
       *((long*)PyArray_GETPTR2( array, nsamples, 0)) = (long)_triplet_v[tripidx][srcplane];
@@ -330,6 +340,8 @@ namespace larflow {
         break;
 
     }//end of indices loop
+
+    std::cout << "[PrepMatchTriplets::make_2plane_match_array] nsamples=" << nsamples << std::endl;
 
     // zero rest of array
     if ( nsamples<max_num_samples ) {
@@ -381,7 +393,7 @@ namespace larflow {
     last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
     
     for ( int i=start_index; i<last_index; i++ ) {
-      idx_v[i] = (int)i;
+      idx_v[i-start_index] = (int)i;
     }
 
     return make_2plane_match_array( kdir, max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
