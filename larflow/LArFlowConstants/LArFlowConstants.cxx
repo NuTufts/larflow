@@ -76,6 +76,36 @@ namespace larflow {
 
     return FlowPlaneMatrix[sourceplane][targetplane];
   }
+
+  void LArFlowConstants::getFlowPlanes( FlowDir_t dir, int& sourceplane, int& targetplane ) {
+    switch( dir ) {
+    case kU2V:
+      sourceplane = 0;
+      targetplane = 1;
+      break;
+    case kU2Y:
+      sourceplane = 0;
+      targetplane = 2;
+      break;
+    case kV2U:
+      sourceplane = 1;
+      targetplane = 0;
+      break;
+    case kV2Y:
+      sourceplane = 1;
+      targetplane = 2;
+      break;
+    case kY2U:
+      sourceplane = 2;
+      targetplane = 0;
+      break;
+    case kY2V:
+      sourceplane = 2;
+      targetplane = 1;
+      break;
+    }
+    
+  }
   
 }
     

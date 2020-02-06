@@ -20,6 +20,7 @@ namespace larflow {
     static std::string getFlowName( FlowDir_t dir );  
     static FlowDir_t   getFlowDirection( int sourceplane, int targetplane );
     static int         getOtherPlane( int sourceplane, int targetplane );
+    static void        getFlowPlanes( FlowDir_t dir, int& sourceplane, int& targetplane );
 
   };
   

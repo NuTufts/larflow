@@ -6,20 +6,22 @@
 
 #include <vector>
 #include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/Processor/ProcessBase.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "FlowTriples.h"
 #include "TH2D.h"
 
 namespace larflow {
 
-  class PrepMatchTriplets {
+  class PrepMatchTriplets  {
   public:
 
     PrepMatchTriplets()
-    : _setup_numpy(false)
+      : _setup_numpy(false)
     {};
     virtual ~PrepMatchTriplets() {};
 
+    
     void process( const std::vector<larcv::Image2D>& adc_v,
                   const std::vector<larcv::Image2D>& badch_v,
                   const float adc_threshold );

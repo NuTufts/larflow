@@ -10,9 +10,6 @@ parser.add_argument('input_larcv',nargs='+',help="Input larcv files")
 
 args = parser.parse_args(sys.argv[1:])
 
-#print("inputfiles: ",args.input_larcv)
-#print("type(inpufiles)=",type(args.input_larcv))
-
 import ROOT as rt
 from ROOT import std
 from larcv import larcv

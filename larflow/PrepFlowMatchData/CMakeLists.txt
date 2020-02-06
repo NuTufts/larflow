@@ -6,6 +6,7 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 set( HEADERS WireOverlap.h FlowTriples.h FlowMatchMap.hh
   PrepMatchTriplets.h
   PrepFlowMatchData.hh
+  MatchTripletProcessor.h
   PyFlowMatchData.hh
   FlowMatchHitMaker.h )
 
@@ -13,6 +14,7 @@ add_library( ${LIBNAME} SHARED
   WireOverlap.cxx
   FlowTriples.cxx
   PrepMatchTriplets.cxx
+  MatchTripletProcessor.cxx  
   FlowMatchMap.cxx
   PrepFlowMatchData.cxx
   PyFlowMatchData.cxx
@@ -46,7 +48,7 @@ target_include_directories(${LIBNAME}
   )
 target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
+include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${UBLARCVAPP_INCLUDE_DIR} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 

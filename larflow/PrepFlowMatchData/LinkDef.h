@@ -18,6 +18,8 @@
 #pragma link C++ class larflow::FlowMatchMap+;
 #pragma link C++ class larflow::PrepFlowMatchData+;
 #pragma link C++ class larflow::PrepMatchTriplets+;
+#pragma link C++ class std::vector<larflow::PrepMatchTriplets>+;
+#pragma link C++ class larflow::MatchTripletProcessor+;
 #pragma link C++ class larflow::FlowMatchHitMaker+;
 #pragma link C++ function larflow::sample_pair_array( const int&, const FlowMatchMap&, int&, bool )+;
 #pragma link C++ function larflow::get_chunk_pair_array( const int&, const int&, const FlowMatchMap&, int&, int&, bool )+;
