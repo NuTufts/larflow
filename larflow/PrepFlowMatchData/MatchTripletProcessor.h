@@ -8,6 +8,10 @@
 
 namespace larflow {
 
+  /**
+   * class that implements a larcv Processor for generating possible (u,v,y) triplets using PrepMatchTriplets class 
+   *
+   */
   class MatchTripletProcessor : public larcv::ProcessBase {
 
   public:
@@ -37,6 +41,10 @@ namespace larflow {
       
   };
 
+  /**
+   * Factory class that builds MatchTripletProcessor instances for the LArCV process driver framework
+   *
+   */
   class MatchTripletProcessorFactory : public larcv::ProcessFactoryBase {
   public:
     MatchTripletProcessorFactory() { larcv::ProcessFactory::get().add_factory("MatchTripletProcessor",this); };

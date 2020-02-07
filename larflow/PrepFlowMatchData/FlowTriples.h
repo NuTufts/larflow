@@ -10,11 +10,19 @@
 
 namespace larflow {
 
-  
+
+  /**
+   * Class for generating and storing possible (U,V,Y) combintations extracted from wire plane images
+   *
+   */
   class FlowTriples {
 
   public:
 
+    /** 
+     * struct to represent a pixel
+     *
+     */
     struct PixData_t {
       int row;
       int col;

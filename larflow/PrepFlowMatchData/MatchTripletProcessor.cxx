@@ -6,14 +6,22 @@
 namespace larflow {
 
   static MatchTripletProcessorFactory __global_MatchTripletProcessorFactory__;
-  
+
+  /**
+   * configure algorithm using parameters from a configuration pset
+   *
+   */
   void MatchTripletProcessor::configure( const larcv::PSet& pset )
   {
     _has_mc   = pset.get<bool>("HasMC");
     _adc_treename      = pset.get<std::string>("ADCName");
     _chstatus_treename = pset.get<std::string>("ChStatusName");
   }
-    
+
+  /**
+   * initialize class, allocating mem for triplets and instantiating output TTree
+   *
+   */
   void MatchTripletProcessor::initialize()
   {
 
@@ -28,7 +36,11 @@ namespace larflow {
     _ana_tree->Branch( "triplet_v",  _p_matchdata_v );
     
   }
-  
+
+  /**
+   * process data for one event, gathering input from the given larcv::IOManager
+   *
+   */
   bool MatchTripletProcessor::process( larcv::IOManager& mgr )
   {
 
@@ -54,14 +66,18 @@ namespace larflow {
       (*_p_matchdata_v)[0].make_truth_vector( ev_larflow->Image2DArray() );
     
     int ntriples = (int)(*_p_matchdata_v)[0]._triplet_v.size();
-    
+
     LARCV_NORMAL() << "produced " << ntriples << " triplets to test/train" << std::endl;
     _ana_tree->Fill();
 
     return true;
   }
 
-  
+
+  /**
+   * Wrte the output TTree
+   *
+   */
   void MatchTripletProcessor::finalize()
   {
     _ana_tree->Write();
