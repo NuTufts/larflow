@@ -86,22 +86,7 @@ namespace larflow {
 
     _source_plane = source;
     _target_plane = target;
-    switch ( source ) {
-    case 0:
-      _other_plane = ( target==1 ) ? 2 : 1;
-      break;
-    case 1:
-      _other_plane = ( target==0 ) ? 2 : 0;
-      break;
-    case 2:
-      _other_plane = ( target==0 ) ? 1 : 0;
-      break;
-    default:
-      char msg[100];
-      sprintf( msg, "Unrecognized combination of source[%d] and target[%d] planes", source, target );
-      throw std::runtime_error( msg );
-      break;
-    }
+    _other_plane  = larflow::LArFlowConstants::getOtherPlane( source, target );
     
     // allocate space for triples
     _triple_v.reserve( sparseimg_vv[_source_plane].size() );
@@ -141,7 +126,7 @@ namespace larflow {
         // break if we out of range over the target wire
         if ( it_target->col>overlap[0].back() || it_target->row!=srcpix.row ) break;
 
-        // find position in overlap[0] in order to get overlap[1] element, i.e. the other the source+target wires intersect
+        // find position in overlap[0] in order to get overlap[1] element, i.e. the other wire the source+target wires intersect
         it_overlap0 = std::lower_bound( it_overlap0, overlap[0].end(), it_target->col );
         if ( it_overlap0==overlap[0].end() ) {
           //std::cout << " column not in list: break" << std::endl;
@@ -159,7 +144,8 @@ namespace larflow {
         int otherwire = overlap[1][ivec];
         //std::cout << "  ... search for otherwire=" << otherwire << " ivec=" << ivec << std::endl;
         
-        // now find the other plane
+        // now find the other plane pixel in the sparse matrix.
+        // we allow for a little slop
         // first search for pixel in other plane sparseimg vector (that is above threshold)
         auto it_other = std::lower_bound( sparseimg_vv[_other_plane].begin(),
                                           sparseimg_vv[_other_plane].end(),
@@ -170,10 +156,13 @@ namespace larflow {
         //   std::cout << " ... otherlb(r,c)=" << it_other->row << "," << it_other->col << ")" << std::endl;
         // }
 
-        bool found = false;
+        // now we scan through the pixels in the other plane
+        bool found = false;        
         if ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
           // pixels to search
           while ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
+            // if a pixel in the other plane is found close to the one we searched for,
+            //  we know it has charge, so we store the triple
             if ( abs(it_other->col-otherwire)<=1 ) {
               // valid triple with charge: found pixel in other plane sparse data with charge
               // std::cout << " .... looking for row=" << srcpix.row
@@ -195,14 +184,17 @@ namespace larflow {
           }
         }
 
+        // if we did not find a pixel in the other plane, then we check if it is in a bad region
         if ( !found && badch_v[ _other_plane ].pixel( srcpix.row, otherwire ) > 0 ) {
           // badchannel, other wire lands in dead channel
+          
           // check we have this pixel
           // std::cout << " ... looking for badch row=" << srcpix.row
           //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
           //           << std::endl;          
           // std::cout << "  ... found triple with dead channel" << std::endl;
-          
+
+          // store this dead pixel to add to the sparsematrix after we complete the search method
           auto it_dead_other = _added_dead_channel_pixels[_other_plane].find( std::pair<int,int>(srcpix.row,otherwire) );
           int otherplane_index = 0;
 

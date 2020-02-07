@@ -11,6 +11,7 @@
 #include <chrono>       // std::chrono::system_clock
 
 #include "larcv/core/PyUtil/PyUtils.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 namespace larflow {
 
@@ -153,7 +154,7 @@ namespace larflow {
           imgindex_v[ 3 ]        = trip[3];
 
           _triplet_v.push_back( imgindex_v );
-          _flowdir_v.push_back( larflow::getFlowDirection( srcplane, tarplane ) );
+          _flowdir_v.push_back( larflow::LArFlowConstants::getFlowDirection( srcplane, tarplane ) );
         }
         
       }
