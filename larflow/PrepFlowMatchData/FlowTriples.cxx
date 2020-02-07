@@ -7,7 +7,19 @@
 namespace larflow {
 
   /**
-   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching
+   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   *
+   * this version takes image2d as input
+   *
+   * @param[in] source The source plane index, where we start the match with a pixel above threshold.
+   * @param[in] target The target plane index, where we match to pixels above threshold
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] threshold Pixels that we consider must be above this value
+   * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
+   *                       If false, we save the image col posiiton.
+   *                       Saving the col position requires searching the sparse matrix entries, but one can append to matrix.
+   *                       Saving the index requires no searching, but look-up is broken if matrix is changed.
    *
    */
   FlowTriples::FlowTriples( int source, int target,
@@ -20,6 +32,23 @@ namespace larflow {
     
   }
 
+  /**
+   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   *
+   * this version takes the sparse matrix representation of the image, skipping its generation
+   *
+   * @param[in] source The source plane index, where we start the match with a pixel above threshold.
+   * @param[in] target The target plane index, where we match to pixels above threshold
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
+   * @param[in] threshold Pixels that we consider must be above this value
+   * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
+   *                       If false, we save the image col posiiton.
+   *                       Saving the col position requires searching the sparse matrix entries, but one can append to matrix.
+   *                       Saving the index requires no searching, but look-up is broken if matrix is changed.
+   *
+   */  
   FlowTriples::FlowTriples( int source, int target,
                             const std::vector<larcv::Image2D>& adc_v,
                             const std::vector<larcv::Image2D>& badch_v,
@@ -29,7 +58,23 @@ namespace larflow {
     _makeTriples( source, target, adc_v, badch_v, sparseimg_vv, threshold, save_index );
     
   }
-  
+
+  /**
+   * using the list of pixels in the sparse matrix representation, build the list of possible
+   *  three-plane triplets
+   *
+   * @param[in] source The source plane index, where we start the match with a pixel above threshold.
+   * @param[in] target The target plane index, where we match to pixels above threshold
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
+   * @param[in] threshold Pixels that we consider must be above this value
+   * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
+   *                       If false, we save the image col posiiton.
+   *                       Saving the col position requires searching the sparse matrix entries, but one can append to matrix.
+   *                       Saving the index requires no searching, but look-up is broken if matrix is changed.
+   *
+   */    
   void FlowTriples::_makeTriples( int source, int target,
                                   const std::vector<larcv::Image2D>& adc_v,
                                   const std::vector<larcv::Image2D>& badch_v,
@@ -223,6 +268,14 @@ namespace larflow {
   }
 
 
+  /**
+   * use a th2d to plot the projected locations of the triplets in each of the planes
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
+   * @param[in] hist_stem_name  Stem of histogram name generated.
+   *
+   */    
   std::vector<TH2D> FlowTriples::plot_triple_data( const std::vector<larcv::Image2D>& adc_v,
                                                    const std::vector< std::vector<PixData_t> >& sparseimg_vv,
                                                    std::string hist_stem_name ) {
@@ -250,6 +303,14 @@ namespace larflow {
     return out_v;
   }
 
+  /**
+   * make a TH2D in order to visualize the sparse matrix data
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
+   * @param[in] hist_stem_name  Stem of histogram name generated.
+   *
+   */      
   std::vector<TH2D> FlowTriples::plot_sparse_data( const std::vector<larcv::Image2D>& adc_v,
                                                    const std::vector< std::vector<PixData_t> >& sparseimg_vv,
                                                    std::string hist_stem_name ) {
@@ -276,6 +337,14 @@ namespace larflow {
     return out_v;
   }
 
+  
+  /**
+   * convert the wire image data into a sparse represntation
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] hist_stem_name  Stem of histogram name generated.
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
   std::vector< std::vector<FlowTriples::PixData_t> >
   FlowTriples::make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v,
                                           float threshold ) {
