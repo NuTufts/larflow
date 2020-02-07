@@ -14,7 +14,19 @@
 
 namespace larflow {
 
-
+  /**
+   * make the possible hit triplets from all the wire plane images
+   *
+   * this function is expected to populate the following data members:
+   *  _sparseimg_vv
+   *  _imgmeta_v
+   *  _triplet_v
+   *  _flowdir_v
+   *
+   * @param[in] adc_v   Vector of wire plane images.
+   * @param[in] badch_v Vector of bad channel images.
+   * @param[in] adc_threshold Threshold value for pixels we will consider.
+   */
   void PrepMatchTriplets::process( const std::vector<larcv::Image2D>& adc_v,
                                    const std::vector<larcv::Image2D>& badch_v,
                                    const float adc_threshold ) {
@@ -23,6 +35,9 @@ namespace larflow {
     
     // first we make a common sparse image
     _sparseimg_vv = larflow::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
+    _imgmeta_v.clear();
+    for ( auto const& img : adc_v )
+      _imgmeta_v.push_back( img.meta() );
       
 
     // then we make the flow triples for each of the six flows
@@ -138,6 +153,7 @@ namespace larflow {
           imgindex_v[ 3 ]        = trip[3];
 
           _triplet_v.push_back( imgindex_v );
+          _flowdir_v.push_back( larflow::getFlowDirection( srcplane, tarplane ) );
         }
         
       }
@@ -151,14 +167,20 @@ namespace larflow {
 
   }//end of process method
 
-  std::vector<TH2D> PrepMatchTriplets::plot_sparse_images( const std::vector<larcv::Image2D>& adc_v,
-                                                           std::string hist_stem_name )
+  /**
+   * plot the sparse image pixels in a th2d
+   *
+   * @param[in] hist_stem_name Stem of name given to generated histograms.
+   * @return    vector of TH2D that visualize the sparse images.
+   *
+   */
+  std::vector<TH2D> PrepMatchTriplets::plot_sparse_images( std::string hist_stem_name )
   {
     std::vector<TH2D> out_v;
-    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+    for ( int p=0; p<(int)_imgmeta_v.size(); p++ ) {
       std::stringstream ss;
       ss << "htriples_plane" << p << "_" << hist_stem_name;
-      auto const& meta = adc_v[p].meta();
+      auto const& meta = _imgmeta_v[p];
       TH2D hist( ss.str().c_str(), "",
                  meta.cols(), meta.min_x(), meta.max_x(),
                  meta.rows(), meta.min_y(), meta.max_y() );
@@ -173,7 +195,15 @@ namespace larflow {
   }
 
   /**
-   * use larflow truth images to assign good versus bad match for triples
+   * use larflow truth images to assign good versus bad match for triplets
+   *
+   * this method populates the values for:
+   * _truth_v
+   *
+   * There should be a value of either (1) for correct triplet
+   *  and (2) for false triplet
+   *
+   * @param[in] larflow_v Vector of Image2D which contain true flow information between planes.
    *
    */
   void PrepMatchTriplets::make_truth_vector( const std::vector<larcv::Image2D>& larflow_v )
@@ -232,16 +262,19 @@ namespace larflow {
 
   /**
    * plot truth image for debug
+   *
+   * @param[in] hist_stem_name Stem of name given to histograms made.
+   * @return Vector of TH2D that plots the information.
+   *
    */
-  std::vector<TH2D> PrepMatchTriplets::plot_truth_images( const std::vector<larcv::Image2D>& adc_v,
-                                                          std::string hist_stem_name )
+  std::vector<TH2D> PrepMatchTriplets::plot_truth_images( std::string hist_stem_name )
   {
     std::vector<TH2D> out_v;
 
-    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+    for ( int p=0; p<(int)_imgmeta_v.size(); p++ ) {
       std::stringstream ss;
       ss << "htriples_truth_plane" << p << "_" << hist_stem_name;
-      auto const& meta = adc_v[p].meta();
+      auto const& meta = _imgmeta_v[p];
       TH2D hist( ss.str().c_str(), "",
                  meta.cols(), meta.min_x(), meta.max_x(),
                  meta.rows(), meta.min_y(), meta.max_y() );
@@ -253,9 +286,12 @@ namespace larflow {
       auto& trip  = _triplet_v[i];
       auto& truth = _truth_v[i];
       std::vector< const FlowTriples::PixData_t* > pix_v( trip.size(), 0 );
-      for (int p=0; p<(int)adc_v.size(); p++ ) {
+      for (int p=0; p<(int)_imgmeta_v.size(); p++ ) {
         pix_v[p] = &_sparseimg_vv[p][ trip[p] ];
-        out_v[p].SetBinContent( pix_v[p]->col+1, pix_v[p]->row+1, 1 + 10*truth );
+        int col = pix_v[p]->col+1;
+        int row = pix_v[p]->row+1;
+        if ( out_v[p].GetBinContent( col+1, row+1 )<10 )
+          out_v[p].SetBinContent( col+1, row+1, 1 + 10*truth );
       }
     }
     return out_v;
@@ -264,6 +300,8 @@ namespace larflow {
   /**
    * return a numpy array containing the sparse image information
    *
+   * @param[in] plane Plane index for sparse image requested.
+   * @return numpy array with shape (N,3) containing info from sparse matrix. each row contains (row,col,pixel value).
    */
   PyObject* PrepMatchTriplets::make_sparse_image( int plane ) {
     
