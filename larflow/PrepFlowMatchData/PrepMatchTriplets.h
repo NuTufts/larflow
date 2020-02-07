@@ -28,16 +28,15 @@ namespace larflow {
 
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
     
-    std::vector<TH2D> plot_sparse_images( const std::vector<larcv::Image2D>& adc_v,
-                                          std::string hist_stem_name );
+    std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
+                                          
 
-    std::vector<TH2D> plot_truth_images( const std::vector<larcv::Image2D>& adc_v,
-                                         std::string hist_stem_name );
+    std::vector<TH2D> plot_truth_images( std::string hist_stem_name );
 
     /* std::vector<TH2D> plot_truth2plane_images( const std::vector<larcv::Image2D>& adc_v, */
     /*                                            std::string hist_stem_name ); */
     
-    
+    std::vector< larcv::ImageMeta >                       _imgmeta_v;
     std::vector< std::vector< FlowTriples::PixData_t > >  _sparseimg_vv;   ///< sparse representation of image
     std::vector< std::vector<int> >                       _triplet_v;      ///< set of sparseimage indices indicating candidate 3-plane match (U-index,V-index,Y-index,tick)
     std::vector< int >                                    _truth_v;        ///< indicates if index set in _triple_v is true match (1) or not (0)
