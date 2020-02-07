@@ -12,6 +12,7 @@
 
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
+#include "ublarcvapp/UBWireTool/UBWireTool.h"
 
 namespace larflow {
 
@@ -30,7 +31,9 @@ namespace larflow {
    */
   void PrepMatchTriplets::process( const std::vector<larcv::Image2D>& adc_v,
                                    const std::vector<larcv::Image2D>& badch_v,
-                                   const float adc_threshold ) {
+                                   const float adc_threshold,
+                                   const bool check_wire_intersection )
+  {
 
     std::clock_t start = std::clock();
     
@@ -93,6 +96,9 @@ namespace larflow {
     std::set< std::vector<int> > triplet_set;
     _triplet_v.clear();
     _triplet_v.reserve( 500000  );
+
+    int   n_not_crosses = 0;
+    float n_bad_triarea = 0;
     
     for ( auto& triplet_data : triplet_v ) {    
       int srcplane = triplet_data.get_source_plane_index();
@@ -143,6 +149,20 @@ namespace larflow {
         imgcoord_v[ tarplane ] = trip[1];
         imgcoord_v[ othplane ] = trip[2];
         imgcoord_v[ 3 ]        = trip[3];
+
+        // check triplet 3d consistency, using ublarcvapp tool
+        int crosses = 1;
+        double tri_area = 0.;
+
+        if ( check_wire_intersection ) {
+          std::vector<float> intersection;
+          ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, intersection, tri_area, crosses );
+          if ( crosses==0 ) {
+            n_not_crosses++;
+            continue;
+          }
+        }
+        
         auto it_trip = triplet_set.find( imgcoord_v );
         if ( it_trip==triplet_set.end() ) {
           triplet_set.insert( imgcoord_v );
@@ -155,6 +175,7 @@ namespace larflow {
 
           _triplet_v.push_back( imgindex_v );
           _flowdir_v.push_back( larflow::LArFlowConstants::getFlowDirection( srcplane, tarplane ) );
+          _triarea_v.push_back( tri_area );
         }
         
       }
@@ -165,6 +186,7 @@ namespace larflow {
     std::cout << "[PrepMatchTriplets] made total of " << _triplet_v.size()
               << " unique index triplets. time elapsed=" << float(end-start)/float(CLOCKS_PER_SEC)
               << std::endl;
+    std::cout << "[PrepMatchTriplets] number removed for not intersectin: " << n_not_crosses << std::endl;
 
   }//end of process method
 

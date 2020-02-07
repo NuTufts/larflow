@@ -24,7 +24,8 @@ namespace larflow {
     
     void process( const std::vector<larcv::Image2D>& adc_v,
                   const std::vector<larcv::Image2D>& badch_v,
-                  const float adc_threshold );
+                  const float adc_threshold,
+                  const bool check_wire_interection = false );
 
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
     
@@ -39,7 +40,7 @@ namespace larflow {
     std::vector< std::vector<int> >                       _truth_2plane_v; ///< truth vectors for 2 plane flows. inner vector is 1/0 for all 2-plane flow dirs
     std::vector< float >                                  _weight_v;       ///< assigned weight for triplet
     std::vector< larflow::FlowDir_t >                     _flowdir_v;      ///< flow direction te triplet comes from
-
+    std::vector< float >                                  _triarea_v;      ///< area of triangle formed by the intersection of the 3 wires. measure of 3D consistency.
 
     // python/numpy functions, to help network interface
     PyObject* make_sparse_image( int plane );
