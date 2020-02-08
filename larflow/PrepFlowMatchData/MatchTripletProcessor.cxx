@@ -16,6 +16,7 @@ namespace larflow {
     _has_mc   = pset.get<bool>("HasMC");
     _adc_treename      = pset.get<std::string>("ADCName");
     _chstatus_treename = pset.get<std::string>("ChStatusName");
+    _check_intersection = pset.get<bool>("CheckIntersection");
   }
 
   /**
@@ -61,7 +62,7 @@ namespace larflow {
                                                     1.0, 100, -1.0 );
     LARCV_INFO() << "made badch_v, size=" << badch_v.size() << std::endl;
     
-    (*_p_matchdata_v)[0].process( adc_v, badch_v, 10.0 );
+    (*_p_matchdata_v)[0].process( adc_v, badch_v, 10.0, _check_intersection );
     if (_has_mc)
       (*_p_matchdata_v)[0].make_truth_vector( ev_larflow->Image2DArray() );
     

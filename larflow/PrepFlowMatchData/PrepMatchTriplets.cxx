@@ -1,3 +1,4 @@
+
 #include "PrepMatchTriplets.h"
 #include "FlowTriples.h"
 
@@ -10,6 +11,7 @@
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
+#include "larlite/core/LArUtil/LArProperties.h"
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
@@ -45,18 +47,23 @@ namespace larflow {
       
 
     // then we make the flow triples for each of the six flows
+    // we order the flows based on the quality of the planes, with the Y plane being better
+    
+    FlowDir_t flow_order[] = { kY2V, kY2U, kV2Y, kU2Y, kU2V, kV2U };
+    
     std::vector< larflow::FlowTriples > triplet_v( larflow::kNumFlows );
-    for (int sourceplane=0; sourceplane<(int)adc_v.size(); sourceplane++ ) {
-      for (int targetplane=0; targetplane<(int)adc_v.size(); targetplane++ ) {
+    for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
 
-        if ( sourceplane==targetplane ) continue;
+      // if ( flowindex!=kV2Y )
+      //   continue;
+      
+      int sourceplane, targetplane;
+      larflow::LArFlowConstants::getFlowPlanes( (larflow::FlowDir_t)flowindex, sourceplane, targetplane );
 
-        int flowindex = (int)larflow::LArFlowConstants::getFlowDirection( sourceplane, targetplane );
-        // save pixel position, rather than index: we will reindex after adding dead channels
-        triplet_v[ flowindex ] = FlowTriples( sourceplane, targetplane,
-                                              adc_v, badch_v,
-                                              _sparseimg_vv, 10.0, false );        
-      }
+      // save pixel position, rather than index: we will reindex after adding dead channels
+      triplet_v[flowindex]  = FlowTriples( sourceplane, targetplane,
+                                           adc_v, badch_v,
+                                           _sparseimg_vv, 10.0, false );
     }
 
     // collect the unique dead channel additions to each plane
@@ -66,11 +73,14 @@ namespace larflow {
     std::cout << "sparse pixel totals before deadch additions: "
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
-    
-    for ( auto& triplet : triplet_v ) {
 
-      int otherplane = triplet.get_other_plane_index();
+    for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
       
+      // if ( flowindex!=kV2Y )
+      //   continue;
+
+      auto& triplet = triplet_v[flowindex];
+      int otherplane = triplet.get_other_plane_index();
       std::vector<FlowTriples::PixData_t>& pix_v = triplet.getDeadChToAdd()[ otherplane ];
       
       for ( auto& pix : pix_v ) {
@@ -82,7 +92,7 @@ namespace larflow {
         }
       }
     }
-
+    
     std::cout << "sparse pixel totals before deadch additions: "
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
@@ -91,7 +101,7 @@ namespace larflow {
     for ( auto& pix_v : _sparseimg_vv ) {
       std::sort( pix_v.begin(), pix_v.end() );
     }
-
+    
     // condense and reindex matches
     std::set< std::vector<int> > triplet_set;
     _triplet_v.clear();
@@ -99,11 +109,25 @@ namespace larflow {
 
     int   n_not_crosses = 0;
     float n_bad_triarea = 0;
-    
-    for ( auto& triplet_data : triplet_v ) {    
+
+    for (int iflow=0; iflow<(int)larflow::kNumFlows; iflow++) {
+      
+      larflow::FlowDir_t flowdir=flow_order[iflow];
+
+      // if ( flowdir!=kV2Y )
+      //   continue;
+      
+      auto& triplet_data = triplet_v[ (int)flowdir ];
+      
       int srcplane = triplet_data.get_source_plane_index();
       int tarplane = triplet_data.get_target_plane_index();
       int othplane = triplet_data.get_other_plane_index();
+
+      std::cout << "[PrepMatchTriplets] combine matches from flow "
+                << larflow::LArFlowConstants::getFlowName(flowdir)
+                << " planes={" << srcplane << " -> " << tarplane << ", " << othplane << "}"
+                << std::endl;            
+      
       for ( auto& trip : triplet_data.getTriples() ) {
 
         std::vector<FlowTriples::PixData_t> pix_v(3);
@@ -153,15 +177,20 @@ namespace larflow {
         // check triplet 3d consistency, using ublarcvapp tool
         int crosses = 1;
         double tri_area = 0.;
-
+        std::vector<float> intersection = {0,0,0};
+        
         if ( check_wire_intersection ) {
-          std::vector<float> intersection;
-          ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, intersection, tri_area, crosses );
+          std::vector<float> zy;
+          ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, zy, tri_area, crosses );
           if ( crosses==0 ) {
             n_not_crosses++;
             continue;
           }
+          intersection[1] = zy[1];
+          intersection[2] = zy[0];
+          intersection[0] = (adc_v[0].meta().pos_y( imgcoord_v[3] )-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
         }
+        
         
         auto it_trip = triplet_set.find( imgcoord_v );
         if ( it_trip==triplet_set.end() ) {
@@ -174,8 +203,11 @@ namespace larflow {
           imgindex_v[ 3 ]        = trip[3];
 
           _triplet_v.push_back( imgindex_v );
-          _flowdir_v.push_back( larflow::LArFlowConstants::getFlowDirection( srcplane, tarplane ) );
-          _triarea_v.push_back( tri_area );
+          _flowdir_v.push_back( flowdir );
+          if ( check_wire_intersection) {
+            _triarea_v.push_back( tri_area );
+            _pos_v.push_back( intersection );
+          }
         }
         
       }
@@ -186,7 +218,7 @@ namespace larflow {
     std::cout << "[PrepMatchTriplets] made total of " << _triplet_v.size()
               << " unique index triplets. time elapsed=" << float(end-start)/float(CLOCKS_PER_SEC)
               << std::endl;
-    std::cout << "[PrepMatchTriplets] number removed for not intersectin: " << n_not_crosses << std::endl;
+    std::cout << "[PrepMatchTriplets] number removed for not intersecting: " << n_not_crosses << std::endl;
 
   }//end of process method
 
@@ -244,6 +276,8 @@ namespace larflow {
     for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
       // for each triplet, we look for truth flows that connect the planes
       auto const& triplet = _triplet_v[itrip];
+      larflow::FlowDir_t flow_dir_origin = _flowdir_v[itrip];
+      
       _truth_2plane_v[itrip].resize( (int)larflow::kNumFlows, 0 );
       
       std::vector< const FlowTriples::PixData_t* > pix_v( _sparseimg_vv.size() );
@@ -252,11 +286,14 @@ namespace larflow {
 
       int ngood_connections = 0;
       for ( int idir=0; idir<larflow::kNumFlows; idir++ ) {
+        if ( idir!=(int)flow_dir_origin )
+          continue;
+        
         int srcplane, tarplane;
         larflow::LArFlowConstants::getFlowPlanes( (FlowDir_t)idir, srcplane, tarplane );
-        float pixflow = larflow_v[idir].pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
+        float pixflow  = larflow_v[idir].pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
         int target_col = pix_v[srcplane]->col + (int)pixflow;
-        if ( abs(target_col-pix_v[tarplane]->col)<true_match_span ) {
+        if ( fabs(pixflow)!=0 && abs(target_col-pix_v[tarplane]->col)<true_match_span ) {
           ngood_connections++;
           _truth_2plane_v[itrip][idir] = 1;
           ndoublet_truth[idir]++;

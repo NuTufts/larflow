@@ -22,7 +22,8 @@ namespace larflow {
       _ana_tree(nullptr),
       _has_mc(false),
       _adc_treename("wire"),
-      _chstatus_treename("wire")
+      _chstatus_treename("wire"),
+      _check_intersection(false)
       {};
     virtual ~MatchTripletProcessor() {};
 
@@ -36,6 +37,7 @@ namespace larflow {
     bool   _has_mc;
     std::string _adc_treename;
     std::string _chstatus_treename;
+    bool   _check_intersection;
 
     ublarcvapp::EmptyChannelAlgo _badchmaker;
       

@@ -13,6 +13,7 @@ tree = tfile.Get("larmatchtriplet")
 nentries = tree.GetEntries()
 
 print "Number of entries: ",nentries
+PLOT_TRIAREA = False
 
 for ientry in xrange(nentries):
     tree.GetEntry(ientry)
@@ -36,6 +37,14 @@ for ientry in xrange(nentries):
             th2d_truth_v[p].GetXaxis().SetRangeUser(0,2400)
 
     c.Update()
+
+    if PLOT_TRIAREA:
+        ctri = rt.TCanvas("ctri","ctri",600,400)
+        htri = rt.TH1D("htri_entry%d"%(ientry),"",100,0,1)
+        for i in xrange(tree.triplet_v.front()._triarea_v.size()):
+            htri.Fill( tree.triplet_v.front()._triarea_v[i] )
+        htri.Draw()
+        ctri.Update()
 
     print "[ENTER]"
     raw_input()

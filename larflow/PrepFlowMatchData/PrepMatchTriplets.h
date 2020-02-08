@@ -41,6 +41,7 @@ namespace larflow {
     std::vector< float >                                  _weight_v;       ///< assigned weight for triplet
     std::vector< larflow::FlowDir_t >                     _flowdir_v;      ///< flow direction te triplet comes from
     std::vector< float >                                  _triarea_v;      ///< area of triangle formed by the intersection of the 3 wires. measure of 3D consistency.
+    std::vector< std::vector<float> >                     _pos_v;          ///< approx. 3d position of triplet
 
     // python/numpy functions, to help network interface
     PyObject* make_sparse_image( int plane );

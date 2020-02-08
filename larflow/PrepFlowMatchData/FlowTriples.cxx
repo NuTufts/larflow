@@ -100,8 +100,11 @@ namespace larflow {
 
       // we get all the target plane wires this pixel overlaps with
       std::vector< std::vector<int> > overlap = larflow::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
-      // std::cout << " srcwire=" << srcpix.col << " row=" << srcpix.row 
-      //           << " tar=[" << overlap[0].front() << "," << overlap[0].back() << "]";
+      // std::cout << "FlowTriples[" << _source_plane << "," << _target_plane << "," << _other_plane << "] "
+      //           << " srcwire=" << srcpix.col << " row=" << srcpix.row 
+      //           << " tar-overlap=[" << overlap[0].front() << "," << overlap[0].back() << "] "
+      //           << " oth-overlap=[" << overlap[1].front() << "," << overlap[1].back() << "] "
+      //           << std::endl;
       
       if ( overlap[0].size()==0 ) {
         //std::cout << " -- target no overlap" << std::endl;
@@ -158,17 +161,18 @@ namespace larflow {
 
         // now we scan through the pixels in the other plane
         bool found = false;        
-        if ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
+        if ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row && it_other->col<=otherwire ) {
           // pixels to search
           while ( it_other!=sparseimg_vv[_other_plane].end() && it_other->row==srcpix.row ) {
             // if a pixel in the other plane is found close to the one we searched for,
             //  we know it has charge, so we store the triple
+            //valid triple
+            // std::cout << " .... looking for row=" << srcpix.row << " otherwire=" << otherwire
+            //           << " cols=(" << srcpix.col << "," << it_target->col << "," << it_other->col << ")"
+            //           << std::endl;
+            
             if ( abs(it_other->col-otherwire)<=1 ) {
-              // valid triple with charge: found pixel in other plane sparse data with charge
-              // std::cout << " .... looking for row=" << srcpix.row
-              //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
-              //           << std::endl;
-              // std::cout << "  ... found triple with charge" << std::endl;
+              //std::cout << "  ... found triple with charge" << std::endl;
               if (save_index) {
                 std::vector<int> trip = { srcpix.idx, it_target->idx, it_other->idx, srcpix.row }; // store positions in sparsematrix
                 _triple_v.push_back( trip );
