@@ -15,7 +15,7 @@ nentries = tree.GetEntries()
 print "Number of entries: ",nentries
 PLOT_TRIAREA = False
 
-for ientry in xrange(nentries):
+for ientry in xrange(0,nentries):
     tree.GetEntry(ientry)
     print "[ENTRY ",ientry,"]"
     

@@ -30,83 +30,79 @@ namespace larflow {
     float dt_intersect = 0.;
     
     // build wire overlap data
-    for ( int srcplane=0; srcplane<3; srcplane++ ) {
-      for (int tarplane=0; tarplane<3; tarplane++) {
-        if ( tarplane==srcplane ) continue;
+    for ( int flowdir=0; flowdir<(int)larflow::kNumFlows; flowdir++ ) {
 
-        int flowdir    = (int)larflow::LArFlowConstants::getFlowDirection(srcplane,tarplane);
-        int otherplane = larflow::LArFlowConstants::getOtherPlane(srcplane,tarplane);
+      int srcplane, tarplane;
+      larflow::LArFlowConstants::getFlowPlanes((larflow::FlowDir_t)flowdir,srcplane,tarplane);
+      int otherplane = larflow::LArFlowConstants::getOtherPlane(srcplane,tarplane);
 
-        std::cout << "[WireOverlap::build] constructing overlap maps for flow[" << flowdir << "]: "
-                  << "planes [" << srcplane << "] -> [" << tarplane << ", " << otherplane << "] "
-                  << std::endl;
+      std::cout << "[WireOverlap::build] constructing overlap maps for flow[" << flowdir << "]: "
+                << "planes [" << srcplane << "] -> [" << tarplane << ", " << otherplane << "] "
+                << std::endl;
         
                 
-        _wire_targetoverlap[flowdir].resize( geo->Nwires(srcplane) );        
-        _wire_otheroverlap[flowdir].resize(  geo->Nwires(srcplane) );
+      _wire_targetoverlap[flowdir].resize( geo->Nwires(srcplane) );        
+      _wire_otheroverlap[flowdir].resize(  geo->Nwires(srcplane) );
         
-        for (int isrc=0; isrc<(int)geo->Nwires(srcplane); isrc++) {
+      for (int isrc=0; isrc<(int)geo->Nwires(srcplane); isrc++) {
 
-          Double_t xyzstart[3];
-          Double_t xyzend[3];
-          geo->WireEndPoints( (UChar_t)srcplane, (UInt_t)isrc, xyzstart, xyzend );
+        Double_t xyzstart[3];
+        Double_t xyzend[3];
+        geo->WireEndPoints( (UChar_t)srcplane, (UInt_t)isrc, xyzstart, xyzend );
 
-          float u1 = geo->WireCoordinate( xyzstart, (UInt_t)tarplane );
-          float u2 = geo->WireCoordinate( xyzend,   (UInt_t)tarplane );
+        float u1 = geo->WireCoordinate( xyzstart, (UInt_t)tarplane );
+        float u2 = geo->WireCoordinate( xyzend,   (UInt_t)tarplane );
 
-          float umin = (u1<u2) ? u1 : u2;
-          float umax = (u1>u2) ? u1 : u2;
+        float umin = (u1<u2) ? u1 : u2;
+        float umax = (u1>u2) ? u1 : u2;
 
-          umin -= 5.0;
-          umax += 5.0;
+        umin -= 5.0;
+        umax += 5.0;
 
-          if ( umin<0 ) umin = 0;
-          if ( umax<0 ) umax = 0;
+        if ( umin<0 ) umin = 0;
+        if ( umax<0 ) umax = 0;
 
-          if ( (int)umin>=geo->Nwires(tarplane) ) umin = (float)geo->Nwires(tarplane)-1;
-          if ( (int)umax>=geo->Nwires(tarplane) ) umax = (float)geo->Nwires(tarplane)-1;
+        if ( (int)umin>=geo->Nwires(tarplane) ) umin = (float)geo->Nwires(tarplane)-1;
+        if ( (int)umax>=geo->Nwires(tarplane) ) umax = (float)geo->Nwires(tarplane)-1;
+        
+        int nwires = umax-umin+1;
+        _wire_targetoverlap[flowdir][isrc].reserve( nwires );
+        _wire_otheroverlap[flowdir][isrc].reserve( nwires );
 
-          int nwires = umax-umin+1;
-          _wire_targetoverlap[flowdir][isrc].reserve( nwires );
-          _wire_otheroverlap[flowdir][isrc].reserve( nwires );
+        for (int i=0; i<nwires; i++) {
+          int tarwire = (int)umin+i;
+          UInt_t src_ch = geo->PlaneWireToChannel( (UInt_t)srcplane, (UInt_t)isrc );
+          UInt_t tar_ch = geo->PlaneWireToChannel( (UInt_t)tarplane, (UInt_t)tarwire );
+          
+          
+          Double_t y,z;
+          //std::clock_t xs_start = std::clock();
+          bool crosses  = geo->ChannelsIntersect( src_ch, tar_ch, y, z );
+          //dt_intersect += float(std::clock()-xs_start)/float(CLOCKS_PER_SEC);
+          
+          if ( crosses ) {
+            Double_t pos[3] = { 0, y, z };
+            int otherwire = geo->WireCoordinate( pos, otherplane );
 
-          for (int i=0; i<nwires; i++) {
-            int tarwire = (int)umin+i;
-            UInt_t src_ch = geo->PlaneWireToChannel( (UInt_t)srcplane, (UInt_t)isrc );
-            UInt_t tar_ch = geo->PlaneWireToChannel( (UInt_t)tarplane, (UInt_t)tarwire );
-
-
-            Double_t y,z;
-            //std::clock_t xs_start = std::clock();
-            bool crosses  = geo->ChannelsIntersect( src_ch, tar_ch, y, z );
-            //dt_intersect += float(std::clock()-xs_start)/float(CLOCKS_PER_SEC);
-
-            if ( crosses ) {
-              Double_t pos[3] = { 0, y, z };
-              int otherwire = geo->WireCoordinate( pos, otherplane );
-
-              // for debug
-              // if ( srcplane==1 && tarplane==2 )
-              //   std::cout << "[" << srcplane << "," << tarplane << "," << otherplane << "] "
-              //             << "wire=(" << xyzstart[1] << "," << xyzstart[2] << ")->(" << xyzend[1] << "," << xyzend[2] << ") "
-              //             << "channels intersecting: (" << isrc << "," << tarwire << ") "
-              //             << "@ (y,z)=(" << y << "," << z << ") -> otherwire="
-              //             << otherwire << std::endl;
-              
-              if ( otherwire>=0 && otherwire<geo->Nwires(otherplane) ) {
-                _wire_targetoverlap[flowdir][isrc].push_back( tarwire );                    
-                _wire_otheroverlap[flowdir][isrc].push_back(  otherwire );
-              }
+            // for debug
+            // if ( srcplane==1 && tarplane==2 )
+            //   std::cout << "[" << srcplane << "," << tarplane << "," << otherplane << "] "
+            //             << "wire=(" << xyzstart[1] << "," << xyzstart[2] << ")->(" << xyzend[1] << "," << xyzend[2] << ") "
+            //             << "channels intersecting: (" << isrc << "," << tarwire << ") "
+            //             << "@ (y,z)=(" << y << "," << z << ") -> otherwire="
+            //             << otherwire << std::endl;
+            
+            if ( otherwire>=0 && otherwire<geo->Nwires(otherplane) ) {
+              _wire_targetoverlap[flowdir][isrc].push_back( tarwire );                    
+              _wire_otheroverlap[flowdir][isrc].push_back(  otherwire );
             }
+            
 
-          }//loop over scan range
+          }
 
-        }//loop over source wires
-
-        _planeflow2mapindex[ std::pair<int,int>(srcplane,tarplane) ] = flowdir;
-        _planeflow2mapindex[ std::pair<int,int>(tarplane,srcplane) ] = flowdir;        
-
-      }
+        }//loop over scan range
+        
+      }//loop over source wires
 
       _isbuilt = true;
     }//end of loop over source planes
