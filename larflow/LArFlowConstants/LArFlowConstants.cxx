@@ -58,6 +58,10 @@ namespace larflow {
       throw std::runtime_error( msg );
       break;
     }
+
+    char msg[100];
+    sprintf( msg, "Unrecognized combination of sourceplane[%d] and targetplane[%d] planes", sourceplane, targetplane );
+    throw std::runtime_error( msg );
     
   }
 
@@ -72,7 +76,6 @@ namespace larflow {
     if ( targetplane<0 || targetplane>=3 ) {
       throw std::runtime_error("[LArFlowConstants.cxx:getFlowDirection] invalid target plane index");
     }
-    
 
     return FlowPlaneMatrix[sourceplane][targetplane];
   }
@@ -102,6 +105,9 @@ namespace larflow {
     case kY2V:
       sourceplane = 2;
       targetplane = 1;
+      break;
+    default:
+      throw std::runtime_error("[LArFlowConstants.cxx:getFlowPlanes] invalid flow direction");
       break;
     }
     

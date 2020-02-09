@@ -29,6 +29,8 @@ namespace larflow {
    * @param[in] adc_v   Vector of wire plane images.
    * @param[in] badch_v Vector of bad channel images.
    * @param[in] adc_threshold Threshold value for pixels we will consider.
+   * @param[in] check_wire_intersection Check that triplet produces a good wire intersection inside the TPC.
+   *                                    Also saves the 3D position for each triplet. (Makes slower; For debug.)
    */
   void PrepMatchTriplets::process( const std::vector<larcv::Image2D>& adc_v,
                                    const std::vector<larcv::Image2D>& badch_v,
@@ -259,7 +261,8 @@ namespace larflow {
    * use larflow truth images to assign good versus bad match for triplets
    *
    * this method populates the values for:
-   * _truth_v
+   * _truth_v: 1 or 0 if triplet is a correct match
+   * _truth_2plane_v: value for all 6 flows, 1 or 0 if correct flow
    *
    * There should be a value of either (1) for correct triplet
    *  and (2) for false triplet
