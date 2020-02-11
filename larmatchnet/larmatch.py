@@ -13,9 +13,11 @@ class LArMatch(nn.Module):
                  classifier_nfeatures=[32,32],
                  leakiness=0.1,
                  neval=20000,
+                 classifier_ninput_planes=3,
                  device=torch.device("cpu")):
         super(LArMatch,self).__init__()
 
+        # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.source_inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
         self.target1_inputlayer = scn.InputLayer(ndimensions,inputshape,mode=0)
         self.target2_inputlayer = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -39,7 +41,8 @@ class LArMatch(nn.Module):
 
         # CLASSIFER: MATCH/NO-MATCH
         classifier_layers = OrderedDict()
-        classifier_layers["class0conv"] = torch.nn.Conv1d(2*features_per_layer,classifier_nfeatures[0],1)
+        self.classifier_ninput_planes = classifier_ninput_planes
+        classifier_layers["class0conv"] = torch.nn.Conv1d(self.classifier_ninput_planes*features_per_layer,classifier_nfeatures[0],1)
         classifier_layers["class0relu"] = torch.nn.ReLU()
         for ilayer,nfeats in enumerate(classifier_nfeatures[1:]):
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
@@ -247,10 +250,10 @@ class LArMatch(nn.Module):
                         
     def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchidx,DEVICE,return_truth,npts):
 
-        from larcv import larcv
-        larcv.load_pyutil()
-        from larflow import larflow
-        from ctypes import c_int
+        #from larcv import larcv
+        #larcv.load_pyutil()
+        #from larflow import larflow
+        #from ctypes import c_int
         
         coord_src_cpu = coord_src_t.to(torch.device("cpu"))
         
@@ -278,5 +281,18 @@ class LArMatch(nn.Module):
             return pred,matchidx[:,2]
 
                     
-        
-        
+    def classify_triplet(self, feat_u_t, feat_v_t, feat_y_t,
+                         index_t, npts, DEVICE ):
+        """
+        classify triplet of (u,v,y) wire plane pixel locations as being a true or false position.
+        use information from concat feature vectors.
+
+        inputs:
+        feat_u_t 
+        """
+        feats   = [ feat_u_t, feat_v_t, feat_y_t ]
+        for f in feats:
+            f = f.to(DEVICE)
+        feats_t = [ torch.transpose( torch.index_select( feats[x], 0, index_t[:npts,x] ), 0, 1 ) for x in xrange(0,3) ]
+        pred = self.classifier(feats_t)
+        return pred
