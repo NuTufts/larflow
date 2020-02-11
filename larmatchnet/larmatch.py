@@ -290,9 +290,13 @@ class LArMatch(nn.Module):
         inputs:
         feat_u_t 
         """
+        print "index: ",index_t.shape," ",feat_u_t.shape
         feats   = [ feat_u_t, feat_v_t, feat_y_t ]
         for f in feats:
             f = f.to(DEVICE)
         feats_t = [ torch.transpose( torch.index_select( feats[x], 0, index_t[:npts,x] ), 0, 1 ) for x in xrange(0,3) ]
-        pred = self.classifier(feats_t)
+        veclen = feats_t[0].shape[0]+feats_t[1].shape[0]+feats_t[2].shape[0]
+        matchvec = torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=0 ).reshape( (1,veclen,feats_t[0].shape[1]) )
+        print "matchvec: ",matchvec.shape
+        pred = self.classifier(matchvec)
         return pred

@@ -40,7 +40,7 @@ from loss_larmatch import SparseLArMatchLoss
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
-GPUMODE=False
+GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE=""
@@ -54,7 +54,7 @@ TICKBACKWARD=False
 # =======================
 START_ITER  = 0
 NUM_ITERS   = 2000
-TEST_NUM_MATCH_PAIRS = 20000
+TEST_NUM_MATCH_PAIRS = 50000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
 BATCHSIZE_VALID=1  # batches per validation iteration
@@ -91,12 +91,18 @@ PREDICT_CLASSVEC=True
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
 writer = SummaryWriter()
+train_entry = 0
+valid_entry = 0
+TRAIN_NENTRIES = 0
+VALID_NENTRIES = 0
 
 def main():
 
     global best_prec1
     global writer
     global num_iters
+    global TRAIN_NENTRIES
+    global VALID_NENTRIES
 
     if GPUMODE:
         DEVICE = torch.device("cuda:%d"%(DEVICE_IDS[0]))
@@ -134,7 +140,7 @@ def main():
     criterion = SparseLArMatchLoss()
 
     # training parameters
-    lr = 1.0e-5
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -165,19 +171,20 @@ def main():
     for f in validdata:
         iovalid.Add(f)
 
-    NENTRIES = iotrain.GetEntries()
-    iter_per_epoch = NENTRIES/(itersize_train)
-    epochs = float(NUM_ITERS)/float(NENTRIES)
+    TRAIN_NENTRIES = iotrain.GetEntries()
+    iter_per_epoch = TRAIN_NENTRIES/(itersize_train)
+    epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
+    VALID_NENTRIES = iovalid.GetEntries()
 
     print "Number of iterations to run: ",NUM_ITERS
-    print "Entries in the training set: ",NENTRIES
-    print "Entries in the validation set: ",iovalid.GetEntries()
+    print "Entries in the training set: ",TRAIN_NENTRIES
+    print "Entries in the validation set: ",VALID_NENTRIES
     print "Entries per iter (train): ",itersize_train
     print "Entries per iter (valid): ",itersize_valid
     print "Number of (training) Epochs to run: ",epochs    
     print "Iterations per epoch: ",iter_per_epoch
 
-    if True:
+    if False:
         print "passed setup successfully"
         sys.exit(0)
 
@@ -271,7 +278,7 @@ def train(train_loader, device, batchsize,
           nbatches, nbatches_per_step,
           iiter, print_freq):
     """
-    train_loader: data loader
+    train_loader: TChain with data
     device: device we are training on
     batchsize: number of images per batch
     model: network are training
@@ -283,6 +290,7 @@ def train(train_loader, device, batchsize,
     print_freq: number of batches we run before printing out some statistics
     """
     global writer
+    global train_entry
 
     # timers for profiling
     batch_time = AverageMeter() # total for batch
@@ -318,22 +326,34 @@ def train(train_loader, device, batchsize,
         # GET THE DATA
         end = time.time()
             
-        flowdata = train_loader.gettensorbatch(batchsize,device)
-        print "entries: ",flowdata["entries"]
+        flowdata = load_larmatch_triplets( train_loader, train_entry, TEST_NUM_MATCH_PAIRS, True )
+        if train_entry+1<TRAIN_NENTRIES:
+            train_entry += 1
+        else:
+            train_entry = 0
+        print "loaded train entry: ",flowdata["entry"]
         
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
         end = time.time()
 
-        predict1_t,predict2_t,truth1_t,truth2_t = model( flowdata["coord_source"],  flowdata["feat_source"],
-                                                         flowdata["coord_target1"], flowdata["feat_target1"],
-                                                         flowdata["coord_target2"], flowdata["feat_target2"],
-                                                         flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
-                                                         1, device, return_truth=True,
-                                                         npts1=flowdata["npairs1"][0], npts2=flowdata["npairs2"][0])
+        coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
+        feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
+        match_t = torch.from_numpy( flowdata['matchpairs'] ).to(device)
+        label_t = torch.from_numpy( flowdata['labels'] ).to(device)
+
+        # first get feature vectors
+        feat_u_t, feat_v_t, feat_y_t = model.forward_features( coord_t[0], feat_t[0],
+                                                               coord_t[1], feat_t[1],
+                                                               coord_t[2], feat_t[2], 1 )
+
+        # next evaluate match classifier
+        pred_t = model.classify_triplet( feat_u_t, feat_v_t, feat_y_t, match_t, flowdata['npairs'], device )
+
+        pred_t = pred_t.reshape( (pred_t.shape[-1]) )
                 
-        totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
+        totloss = criterion.forward_triplet( pred_t, label_t )
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -341,7 +361,7 @@ def train(train_loader, device, batchsize,
 
         # compute gradient and do SGD step
         if RUNPROFILER:
-            torch.cuda.synchronize()                
+            torch.cuda.synchronize()
         end = time.time()
 
         # allow for gradient accumulation
@@ -370,7 +390,7 @@ def train(train_loader, device, batchsize,
         loss_meters["total"].update( totloss.item()*float(nbatches_per_step) )
         
         # measure accuracy and update meters
-        acc = accuracy(predict1_t,predict2_t,truth1_t,truth2_t,acc_meters)
+        acc = accuracy(pred_t,label_t,acc_meters)
             
         # update time meter
         time_meters["accuracy"].update(time.time()-end)            
@@ -411,6 +431,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     average percent of predictions within 5 pixels of truth
     """
     global writer
+    global valid_entry
 
     # accruacy and loss meters
     lossnames    = ("total")
@@ -436,22 +457,38 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         
         tdata_start = time.time()
 
-        flowdata = val_loader.gettensorbatch(batchsize,device)
-        print "entries: ",flowdata["entries"]        
+        flowdata = load_larmatch_triplets( val_loader, valid_entry, TEST_NUM_MATCH_PAIRS, True )
+        if valid_entry+1<VALID_NENTRIES:
+            valid_entry += 1
+        else:
+            valid_entry = 0        
+
+        coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
+        feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
+        match_t = torch.from_numpy( flowdata['matchpairs'] ).to(device)
+        label_t = torch.from_numpy( flowdata['labels'] ).to(device)
+
+        print "loaded train entry: ",flowdata["entry"]
         time_meters["data"].update( time.time()-tdata_start )
         
-        # compute output
+        # compute model output
+        if RUNPROFILER:
+            torch.cuda.synchronize()
         tforward = time.time()
-        with torch.set_grad_enabled(False):
-            predict1_t,predict2_t,truth1_t,truth2_t = model( flowdata["coord_source"],  flowdata["feat_source"],
-                                                             flowdata["coord_target1"], flowdata["feat_target1"],
-                                                             flowdata["coord_target2"], flowdata["feat_target2"],
-                                                             flowdata["pairs_flow1"],   flowdata["pairs_flow2"],
-                                                             1, device, return_truth=True,
-                                                             npts1=flowdata["npairs1"][0],
-                                                             npts2=flowdata["npairs2"][0] )
-            totloss = criterion( predict1_t, predict2_t, truth1_t, truth2_t )
+               
+        # first get feature vectors
+        feat_u_t, feat_v_t, feat_y_t = model.forward_features( coord_t[0], feat_t[0],
+                                                               coord_t[1], feat_t[1],
+                                                               coord_t[2], feat_t[2], 1 )
         
+        # next evaluate match classifier
+        pred_t = model.classify_triplet( feat_u_t, feat_v_t, feat_y_t, match_t, flowdata['npairs'], device )
+
+        pred_t = pred_t.reshape( (pred_t.shape[-1]) )        
+                
+        totloss = criterion.forward_triplet( pred_t, label_t )
+
+                
         time_meters["forward"].update(time.time()-tforward)
 
         # update loss meters
@@ -460,7 +497,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         
         # measure accuracy and update meters
         end = time.time()
-        acc = accuracy(predict1_t,predict2_t,truth1_t,truth2_t,acc_meters)
+        acc = accuracy(pred_t,label_t,acc_meters)
         time_meters["accuracy"].update(time.time()-end)        
             
         # measure elapsed time for batch
@@ -517,20 +554,17 @@ def adjust_learning_rate(optimizer, epoch, lr):
         param_group['lr'] = lr
 
 
-def accuracy(predict1_t, predict2_t, truth1_t, truth2_t,acc_meters):
+def accuracy(predict_t, truth_t, acc_meters):
     """Computes the accuracy metrics."""
-    pred1 = predict1_t.detach()
-    pred2 = predict2_t.detach()
-    #print pred1.gt(0.5)
-    #print truth1_t
+    pred = predict_t.detach()
     
-    pos_correct = (pred1.gt(0.0).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
-    pos_wrong   = (pred1.lt(0.0).type(torch.int)*truth1_t).sum().to(torch.device("cpu")).item()
-    neg_correct = (pred1.lt(0.0)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
-    neg_wrong   = (pred1.gt(0.0)*truth1_t.eq(0)).sum().to(torch.device("cpu")).item()
+    pos_correct = (pred.gt(0.0).type(torch.int)*truth_t).sum().to(torch.device("cpu")).item()
+    pos_wrong   = (pred.lt(0.0).type(torch.int)*truth_t).sum().to(torch.device("cpu")).item()
+    neg_correct = (pred.lt(0.0)*truth_t.eq(0)).sum().to(torch.device("cpu")).item()
+    neg_wrong   = (pred.gt(0.0)*truth_t.eq(0)).sum().to(torch.device("cpu")).item()
 
-    npos = float(truth1_t.sum().to(torch.device("cpu")).item())
-    nneg = float(truth1_t.eq(0).sum().to(torch.device("cpu")).item())
+    npos = float(truth_t.sum().to(torch.device("cpu")).item())
+    nneg = float(truth_t.eq(0).sum().to(torch.device("cpu")).item())
 
     acc_meters["pos_correct"].update( float(pos_correct)/npos )
     acc_meters["pos_wrong"].update(   float(pos_wrong)/npos )

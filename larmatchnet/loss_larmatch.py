@@ -30,7 +30,7 @@ class SparseLArMatchLoss(nn.Module):
         
     def forward_triplet(self,pred,truth):
         weight    = torch.ones( (1,), requires_grad=False, dtype=torch.float ).to(pred.device)
-        weight[0] = float(pred.shape[2])/float(truth.sum())
+        weight[0] = float(pred.shape[0])/float(truth.sum())
         bce       = torch.nn.BCEWithLogitsLoss( pos_weight=weight, reduction='mean' )
         loss      = bce( pred, truth.type(torch.float) )
         return loss

@@ -32,9 +32,9 @@ def load_larmatch_triplets(tchain, current_entry,
     # prepare data dictionary
     for p in xrange(3):
         data["coord_%d"%(p)] = spdata_v[p][:,0:2].astype( dtype=np.int32 )
-        data["feat_%d"%(p)]  = spdata_v[p][:,2]
-    data["matchpairs"] = index_array[:,0:3].astype( dtype=np.int32 )
-    data["labels"]     = index_array[:,3].astype( dtype=np.int32 )
+        data["feat_%d"%(p)]  = spdata_v[p][:,2].reshape( (spdata_v[p].shape[0], 1) )
+    data["matchpairs"] = index_array[:,0:3].astype( dtype=np.long )
+    data["labels"]     = index_array[:,3].astype( dtype=np.long )
     data["npairs"]     = nfilled.value
 
     tottime = time.time()-t_start
