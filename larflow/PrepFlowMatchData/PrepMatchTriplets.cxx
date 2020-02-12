@@ -491,7 +491,7 @@ namespace larflow {
 
   /**
    *
-   * randomly select a set of 2 plane indices
+   * get sequential set of matches
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
@@ -600,6 +600,29 @@ namespace larflow {
 
   }
   
+
+  /**
+   *
+   * get sequential set of triplet indices
+   *
+   */
+  PyObject* PrepMatchTriplets::get_chunk_triplet_matches( const int& start_index,
+                                                          const int& max_num_pairs,
+                                                          int& last_index,
+                                                          int& num_pairs_filled,
+                                                          bool with_truth ) {
+    
+    std::vector<int> idx_v( max_num_pairs, 0 );
+    last_index = start_index + max_num_pairs;
+    last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
+    
+    for ( int i=start_index; i<last_index; i++ ) {
+      idx_v[i-start_index] = (int)i;
+    }
+
+    return make_triplet_array( max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
+
+  }
   
   
 }

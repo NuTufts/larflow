@@ -9,7 +9,7 @@ from ctypes import c_int
 
 # test file
 infile = "out.root"
-PLOT = False
+PLOT = True
 if PLOT:
     rt.gStyle.SetOptStat(0)
 

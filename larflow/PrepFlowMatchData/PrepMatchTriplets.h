@@ -75,6 +75,14 @@ namespace larflow {
     
     PyObject* sample_triplet_matches( const int& num_max_samples, int& nfilled, bool withtruth );
 
+    PyObject* get_chunk_triplet_matches( const int& start_index,
+                                         const int& max_num_pairs,
+                                         int& last_index,
+                                         int& num_pairs_filled,
+                                         bool with_truth );
+    
+    //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
+
     bool _setup_numpy;
     
   };
