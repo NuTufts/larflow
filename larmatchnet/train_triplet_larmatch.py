@@ -41,19 +41,24 @@ from loss_larmatch import SparseLArMatchLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE=""
+CHECKPOINT_FILE="checkpoint.2000th.tar"
 
-TRAIN_DATA_FOLDER="./"
-INPUTFILE_TRAIN=["example_triplet_data.root"]
-INPUTFILE_VALID=["example_triplet_data.root"]
+TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_triplet_data"
+INPUTFILE_TRAIN=["larmatch_train_p00.root",
+                 "larmatch_train_p01.root",
+                 "larmatch_train_p02.root",
+                 "larmatch_train_p03.root",
+                 "larmatch_train_p04.root"]
+INPUTFILE_VALID=["larmatch_valid_p00.root",
+                 "larmatch_valid_p01.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
-NUM_ITERS   = 2000
+START_ITER  = 2000
+NUM_ITERS   = 150000
 TEST_NUM_MATCH_PAIRS = 50000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -84,15 +89,15 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=10000
+ITER_PER_CHECKPOINT=1000
 PREDICT_CLASSVEC=True
 # ===================================================
 
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
 writer = SummaryWriter()
-train_entry = 0
-valid_entry = 0
+train_entry = 2000
+valid_entry = 200
 TRAIN_NENTRIES = 0
 VALID_NENTRIES = 0
 
@@ -353,7 +358,7 @@ def train(train_loader, device, batchsize,
 
         pred_t = pred_t.reshape( (pred_t.shape[-1]) )
                 
-        totloss = criterion.forward_triplet( pred_t, label_t )
+        totloss = criterion.forward_triplet( pred_t[:flowdata['npairs']], label_t[:flowdata['npairs']] )
             
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -390,7 +395,7 @@ def train(train_loader, device, batchsize,
         loss_meters["total"].update( totloss.item()*float(nbatches_per_step) )
         
         # measure accuracy and update meters
-        acc = accuracy(pred_t,label_t,acc_meters)
+        acc = accuracy(pred_t[:flowdata['npairs']],label_t[:flowdata['npairs']],acc_meters)
             
         # update time meter
         time_meters["accuracy"].update(time.time()-end)            
@@ -486,7 +491,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
         pred_t = pred_t.reshape( (pred_t.shape[-1]) )        
                 
-        totloss = criterion.forward_triplet( pred_t, label_t )
+        totloss = criterion.forward_triplet( pred_t[:flowdata['npairs']],
+                                             label_t[:flowdata['npairs']] )
 
                 
         time_meters["forward"].update(time.time()-tforward)
@@ -497,7 +503,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         
         # measure accuracy and update meters
         end = time.time()
-        acc = accuracy(pred_t,label_t,acc_meters)
+        acc = accuracy(pred_t[:flowdata['npairs']],label_t[:flowdata['npairs']],acc_meters)
         time_meters["accuracy"].update(time.time()-end)        
             
         # measure elapsed time for batch

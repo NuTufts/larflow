@@ -1,9 +1,6 @@
 [submodule "larcvdataset"]
 	path = larcvdataset
 	url = https://github.com/larbys/larcvdataset
-[submodule "cilantro"]
-	path = cilantro
-	url = https://github.com/NuTufts/cilantro.git
 [submodule "Pangolin"]
 	path = Pangolin
 	url = https://github.com/NuTufts/Pangolin.git
