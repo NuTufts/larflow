@@ -381,6 +381,7 @@ namespace larflow {
         it = _match_map.find( triple );
       }
       else {
+        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << ")" << std::endl;
         nrepeated++;
       }
 

@@ -612,9 +612,10 @@ namespace larflow {
                                                           int& num_pairs_filled,
                                                           bool with_truth ) {
     
-    std::vector<int> idx_v( max_num_pairs, 0 );
     last_index = start_index + max_num_pairs;
     last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
+    num_pairs_filled = last_index-start_index;
+    std::vector<int> idx_v( num_pairs_filled, 0 );    
     
     for ( int i=start_index; i<last_index; i++ ) {
       idx_v[i-start_index] = (int)i;

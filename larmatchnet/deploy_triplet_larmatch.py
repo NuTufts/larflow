@@ -138,7 +138,7 @@ for ientry in range(NENTRIES):
 
     # run the larflow match prep classes
     t_prep = time.time()
-    preplarmatch.process( adc_v, badch_v, 10.0, True )
+    preplarmatch.process( adc_v, badch_v, 10.0, False )
     t_prep = time.time()-t_prep
     print("  time to prep matches: ",t_prep,"secs")
     dt_prep += t_prep
