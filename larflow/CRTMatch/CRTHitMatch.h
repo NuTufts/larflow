@@ -60,7 +60,9 @@ namespace crtmatch {
     void printHitInfo();
 
     float makeOneMatch( const larlite::pcaxis& lfcluster_axis, const larlite::crthit& hit, std::vector<float>& panel_pos );
-    float getLength( const larlite::pcaxis& pca );    
+    float getLength( const larlite::pcaxis& pca );
+
+    bool was_cluster_used( int idx );
 
     // data stores
     std::vector<larlite::opflash> _intime_opflash_v;  ///< flashes in unbiased beam readout

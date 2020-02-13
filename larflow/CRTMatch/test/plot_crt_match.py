@@ -22,8 +22,8 @@ crtdata = lardly.CRTOutline().getlines()
 
 # debug, use fixed file names, eventually use arguments
 merged_inputfile = "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root"
-track_inputfile = "larflow_reco_extbnb_run3.root"
-crt_inputfile   = "crt_match_reco_extbnb_run3.root"
+track_inputfile = "larflow_triple_reco_extbnb_run3.root"
+crt_inputfile   = "crt_match_reco_extbnb_run3_triplet.root"
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( merged_inputfile )
@@ -63,127 +63,16 @@ def load_event_data( ioll, ientry ):
                 vis_lf["marker"]["color"]="rgb(0,0,255)"
             entrydata.append( vis_crttrack + vis_opflash + vis_larflow )
 
-    return entrydata
+    ev_unmatched = io.get_data(larlite.data.kLArFlowCluster, "crtunmatched")
+    vis_unmatched = [ lardly.data.visualize_larlite_larflowhits( ev_unmatched.at(n) ) for n in range(ev_unmatched.size()) ]
+    for vis in vis_unmatched:
+        vis["marker"]["color"] = "rgb(50,50,50)"
+
+    return entrydata,vis_unmatched
     
     
-
-def make_crtmatch_line( ioll ):
-
-    line_traces_v = []
-    
-    ev_crtline = ioll.get_data( larlite.data.kPCAxis, "crtmatch" )
-
-    for i in xrange(ev_crtline.size()):
-        crtline = ev_crtline.at(i)
-
-        pca_pts = np.zeros( (3,3) )
-        for ipt in range(3):
-            pca_pts[0,ipt] = crtline.getEigenVectors()[3][ipt]
-            pca_pts[1,ipt] = crtline.getAvePosition()[ipt]
-            pca_pts[2,ipt] = crtline.getEigenVectors()[4][ipt]
-            
-        pca_plot = {
-            "type":"scatter3d",
-            "x":pca_pts[:,0],
-            "y":pca_pts[:,1],
-            "z":pca_pts[:,2],
-            "mode":"lines",
-            "name":"pca[%d]"%(i),
-            "line":{"color":"rgb(0,0,0)","size":4}
-        }
-
-        line_traces_v.append( pca_plot  )
-
-    return line_traces_v
-
-def make_crt_hits( io_ll ):
-    evopflash_beam   = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
-    evopflash_cosmic = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
-    
-    print("Visualize CRT")
-    ev_crthits = io_ll.get_data(larlite.data.kCRTHit,"crthitcorr")
-    crthit_v = [ lardly.data.visualize_larlite_event_crthit( ev_crthits, "crthitcorr", window=[-3200,3200]) ]
-    filtered_crthit_v = lardly.ubdl.filter_crthits_wopreco( evopflash_beam, evopflash_cosmic, ev_crthits )
-    if False:
-        vis_filtered_crthit_v = [ lardly.data.visualize_larlite_crthit( x ) for x in filtered_crthit_v ]
-        return vis_filtered_crthit_v
-
-    return crthit_v
-
-def make_figures(entry,plotby="ssnet"):
-    from larcv import larcv
-    larcv.load_pyutil()
-
-    from larflow import larflow
-    larcv.SetPyUtil()    
-    print("making figures for entry={} plot-by={}".format(entry,plotby))
-    global io
-    io.go_to(entry)
-
-    evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
-    evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
-    nclusters = evclusters.size()
-
-    cluster_traces_v = []
-
-    for icluster in xrange(nclusters):
-
-        cluster = evclusters.at(icluster)
-        nhits = cluster.size()
-
-        if plotby in ["ssnet","cluster"]:
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
-        elif plotby=="charge":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wcharge( cluster )
-        elif plotby=="prob":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wprob( cluster )
-        elif plotby=="dead":
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wdeadch( cluster )
-        
-        if plotby in ["ssnet","charge","prob","dead"]:
-            colors = pts[:,3]
-        elif plotby in ["cluster"]:
-            r3 = np.random.randint(255,size=3)
-            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
-        clusterplot = {
-            "type":"scatter3d",
-            "x":pts[:,0],
-            "y":pts[:,1],
-            "z":pts[:,2],
-            "mode":"markers",
-            "name":"[%d]"%(icluster),
-            "marker":{"color":colors,"size":1,"colorscale":colorscale}
-        }
-        cluster_traces_v.append( clusterplot )
-
-        # PCA-axis
-        llpca = evpcaxis.at(icluster)
-
-        pca_pts = np.zeros( (3,3) )
-        for i in range(3):
-            pca_pts[0,i] = llpca.getEigenVectors()[3][i]
-            pca_pts[1,i] = llpca.getAvePosition()[i]
-            pca_pts[2,i] = llpca.getEigenVectors()[4][i]
-            
-        pca_plot = {
-            "type":"scatter3d",
-            "x":pca_pts[:,0],
-            "y":pca_pts[:,1],
-            "z":pca_pts[:,2],
-            "mode":"lines",
-            "name":"pca[%d]"%(icluster),
-            "line":{"color":"rgb(255,255,255)","size":4}
-        }
-        cluster_traces_v.append( pca_plot )
-
-    pcalines = make_crtmatch_line( io )
-    crthits  = make_crt_hits( io )
-
-    return detdata+crtdata+cluster_traces_v+pcalines+crthits
-
-        
-
 EVENT_DATA = None
+UNMATCHED_CLUSTERS = None
 CURRENT_EVENT = None
     
 app = dash.Dash(
@@ -264,6 +153,7 @@ app.layout = html.Div( [
     [State("input_event","value"),State("plottrack","value"),State("det3d","figure")])
 def load_entry(*vals):
     global EVENT_DATA
+    global UNMATCHED_CLUSTERS
     global io
     global CURRENT_EVENT
     
@@ -279,9 +169,10 @@ def load_entry(*vals):
     opt = vals[2]
     
     # update entry, if needed
+
     if CURRENT_EVENT is None or entry!=CURRENT_EVENT:
         print("load new entry %d"%(int(vals[1])))
-        EVENT_DATA = load_event_data( io, int(vals[1]) )
+        EVENT_DATA,UNMATCHED_CLUSTERS = load_event_data( io, int(vals[1]) )
         CURRENT_EVENT = entry
         opt = "all"
 
@@ -305,6 +196,8 @@ def load_entry(*vals):
                         continue
                     else:
                         traces.append( tr )
+            for ev in UNMATCHED_CLUSTERS:
+                traces.append(ev)
             vals[-1]["data"] = traces
             return options,"all",vals[-1]
         else:

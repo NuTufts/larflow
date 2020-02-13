@@ -13,6 +13,7 @@ parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If 
 parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,help="If flag given, will use WC tagger image to mask cosmics [default: F]")
 parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of ADC tree [default: wire]")
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
+parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -35,14 +36,16 @@ from larmatch import LArMatch
 print(larutil.Geometry.GetME())
 driftv = larutil.LArProperties.GetME().DriftVelocity()
 
+
+devname=args.device_name
+DEVICE=torch.device(devname)
 checkpointfile = args.weights
-checkpoint = torch.load( checkpointfile, map_location={"cuda:0":"cpu",
-                                                       "cuda:1":"cpu"} )
+checkpoint = torch.load( checkpointfile, map_location={"cuda:0":devname,
+                                                       "cuda:1":devname} )
 NUM_PAIRS=50000
 ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
-DEVICE=torch.device("cpu")
 RETURN_TRUTH=False
 BATCHSIZE = 1
 
@@ -67,6 +70,11 @@ io = larcv.IOManager( larcv.IOManager.kBOTH, "larcvio", tickdir )
 io.add_in_file( args.supera )
 io.set_out_file( "%s_larcv.root"%(outfilestem) )
 io.set_verbosity(1)
+io.specify_data_read( larcv.kProductImage2D,  "larflow" )
+io.specify_data_read( larcv.kProductImage2D,  args.adc_name )
+io.specify_data_read( larcv.kProductChStatus, args.chstatus_name )
+if args.has_wirecell:
+    io.specify_data_read( larcv.kProductChStatus, "thrumu" )
 io.reverse_all_products()
 io.initialize()
 
@@ -146,8 +154,8 @@ for ientry in range(NENTRIES):
     
     # Prep sparse ADC numpy arrays
     sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in xrange(3) ]
-    coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ) for p in xrange(3) ]
-    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ) for p in xrange(3) ]
+    coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ).to(DEVICE) for p in xrange(3) ]
+    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ).to(DEVICE) for p in xrange(3) ]
 
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate
@@ -185,10 +193,10 @@ for ientry in range(NENTRIES):
         startidx = int(last_index.value)
 
         # run matches through classifier portion of network
-        matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) )
+        matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
                 
         if with_truth:
-            truthvec = torch.from_numpy( sparse_np_v[:,3].astype(np.long) )
+            truthvec = torch.from_numpy( sparse_np_v[:,3].astype(np.long) ).to(DEVICE)
         
         tstart = time.time()
         pred_t = model.classify_triplet( outfeat_u, outfeat_v, outfeat_y, matchpair_t, int(npairs.value), DEVICE )
@@ -199,7 +207,7 @@ for ientry in range(NENTRIES):
 
 
         tstart = time.time()
-        prob_np = prob_t.detach().numpy().reshape( (prob_t.shape[-1]) )
+        prob_np = prob_t.to(torch.device("cpu")).detach().numpy().reshape( (prob_t.shape[-1]) )
         #prob_np[:] = 1.0 # hack to check
         print("  add data to hitmaker(...). probshape=",prob_np.shape)
         pos_v = std.vector("std::vector<float>")()

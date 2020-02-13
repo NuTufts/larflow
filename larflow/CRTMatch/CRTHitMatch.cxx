@@ -694,6 +694,16 @@ namespace crtmatch {
     }
     
   }
-  
+
+  bool CRTHitMatch::was_cluster_used( int idx ) {
+    if (idx<0 || idx>=_used_tracks_v.size() )
+      return false;
+
+    if ( _used_tracks_v[idx]==1 )
+      return true;
+
+    return false;
+  }
+
 }
 }
