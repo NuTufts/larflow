@@ -208,6 +208,12 @@ namespace larflow {
 
     }//end of score loop
 
+
+    PyArray_Free( pair_probs, (void*)probs_carray );
+    PyArray_Free( source_sparseimg, (void*)source_carray );
+    PyArray_Free( target_sparseimg, (void*)target_carray );
+    PyArray_Free( matchpairs, (void*)matchpairs_carray );    
+    
     std::cout << "-------------------------------------------------" << std::endl;
     std::cout << "process match data. " << std::endl;
     std::cout << "  number of triples with match information: " << _match_map.size() << std::endl;
@@ -287,63 +293,45 @@ namespace larflow {
     larcv::SetPyUtil();
     std::cout << " done" << std::endl;
 
-    // cast numpy data to C-arrays
-    const int dtype = NPY_FLOAT;
-    PyArray_Descr *descr = PyArray_DescrFromType(dtype);
-
-    // match scores
-    npy_intp pair_dims[1];
-    float *probs_carray;
-    if ( PyArray_AsCArray( &triple_probs, (void*)&probs_carray, pair_dims, 1, descr )<0 ) {
-      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for pair prob matrix");
-    }
+    // // match scores
+    int pair_ndims = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
     std::cout << "[FlowMatchHitMaker] pair prob dims=(" << pair_dims[0] << ")" << std::endl;
 
-    // triplet indicies for each match
-    npy_intp index_dims[2];
-    long **index_carray;
-    if ( PyArray_AsCArray( &triplet_indices, (void**)&index_carray, index_dims, 2, PyArray_DescrFromType(NPY_LONG) )<0 ) {
-      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for triplet matrix");
-    }    
-    std::cout << "[FlowMatchHitMaker] index array dims=(" << index_dims[0] << "," << index_dims[1] << ")" << std::endl;
+    // // triplet indicies for each match
+    // npy_intp index_dims[2];
+    // std::cout << "[FlowMatchHitMaker] index array dims=(" << index_dims[0] << "," << index_dims[1] << ")" << std::endl;
     
-    // sparse images
-    npy_intp imgu_dims[2];
-    float **imgu_carray;
-    if ( PyArray_AsCArray( &imgu_sparseimg, (void**)&imgu_carray, imgu_dims, 2, descr )<0 ) {
-      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for source sparse-image matrix");
-    }
-    std::cout << "[FlowMatchHitMaker] img[u] prob dims=(" << imgu_dims[0] << "," << imgu_dims[1] << ")" << std::endl;
+    // // sparse images
+    // npy_intp imgu_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[u] prob dims=(" << imgu_dims[0] << "," << imgu_dims[1] << ")" << std::endl;
 
-    npy_intp imgv_dims[2];
-    float **imgv_carray;
-    if ( PyArray_AsCArray( &imgv_sparseimg, (void**)&imgv_carray, imgv_dims, 2, descr )<0 ) {
-      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for source sparse-image matrix");
-    }
-    std::cout << "[FlowMatchHitMaker] img[v] prob dims=(" << imgv_dims[0] << "," << imgv_dims[1] << ")" << std::endl;
+    // npy_intp imgv_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[v] prob dims=(" << imgv_dims[0] << "," << imgv_dims[1] << ")" << std::endl;
 
-    npy_intp imgy_dims[2];
-    float **imgy_carray;
-    if ( PyArray_AsCArray( &imgy_sparseimg, (void**)&imgy_carray, imgy_dims, 2, descr )<0 ) {
-      larcv::logger::get("PyFlowMatchData::make_larflow_hits").send(larcv::msg::kCRITICAL,__FUNCTION__,__LINE__, "cannot get carray for source sparse-image matrix");
-    }
-    std::cout << "[FlowMatchHitMaker] img[y] prob dims=(" << imgy_dims[0] << "," << imgy_dims[1] << ")" << std::endl;
+    // npy_intp imgy_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[y] prob dims=(" << imgy_dims[0] << "," << imgy_dims[1] << ")" << std::endl;
 
     bool precalc_pos = ( pos_vv.size()>0 ) ? true : false;
     int nrepeated = 0;
     int nbelowminprob = 0.;
     
     // loop over each candidate triplet
-    for (int ipair=0; ipair<(int)pair_dims[1]; ipair++) {
+    for (int ipair=0; ipair<(int)pair_dims[0]; ipair++) {
 
       // score for this match
-      float prob = probs_carray[ipair];
+      float prob = *(float*)PyArray_GETPTR1( (PyArrayObject*)triple_probs, ipair );
 
+      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+      
       std::vector<int> triple(4,0); // (col,col,col,tick)
-      triple[ 0 ] = (int)imgu_carray[ index_carray[ipair][0] ][1];
-      triple[ 1 ] = (int)imgv_carray[ index_carray[ipair][1] ][1];
-      triple[ 2 ] = (int)imgy_carray[ index_carray[ipair][2] ][1];
-      triple[ 3 ] = (int)adc_v[2].meta().pos_y( imgy_carray[ index_carray[ipair][2] ][0] );
+      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
       
       // match threshold
       if ( prob<_match_score_threshold ) {
@@ -391,7 +379,7 @@ namespace larflow {
       m.set_score( 2, 0, prob );
 
     }//end of score loop
-
+    
     std::cout << "-------------------------------------------------" << std::endl;
     std::cout << "process match data. " << std::endl;
     std::cout << "  number of triples with match information: " << _match_map.size() << std::endl;

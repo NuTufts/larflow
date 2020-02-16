@@ -220,7 +220,7 @@ for ientry in range(NENTRIES):
                                          adc_v )
         dt_make_hits = time.time()-tstart
         dt_save += dt_make_hits
-            
+
         
     print("end of loop over flow matches")
 

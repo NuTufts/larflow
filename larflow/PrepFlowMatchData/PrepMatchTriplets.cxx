@@ -399,6 +399,7 @@ namespace larflow {
       *((float*)PyArray_GETPTR2( array, (int)idx, 1)) = (float)_sparseimg_vv[plane][idx].col;
       *((float*)PyArray_GETPTR2( array, (int)idx, 2)) = (float)_sparseimg_vv[plane][idx].val;      
     }
+
     
     return (PyObject*)array;
   }
@@ -575,6 +576,8 @@ namespace larflow {
         }
       }
     }
+
+    
     
     // return the array
     return (PyObject*)array;
