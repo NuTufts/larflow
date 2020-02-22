@@ -114,7 +114,7 @@ for ientry in range(NENTRIES):
     # clear the hit maker
     hitmaker.clear();
 
-    adc_v       = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()
+    adc_v = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()            
     ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
 
     if args.has_wirecell:
@@ -130,6 +130,7 @@ for ientry in range(NENTRIES):
             np_adc[ np_wc>0.0 ] = 0.0
             masked = larcv.as_image2d_meta( np_adc, adc.meta() )
             ev_wcwire.Append(masked)
+        adc_v = ev_wcwire.Image2DArray()
         end_wcmask = time.time()
         print("time to mask: ",end_wcmask-start_wcmask," secs")
 
