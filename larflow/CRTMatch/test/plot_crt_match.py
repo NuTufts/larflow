@@ -1,6 +1,12 @@
 from __future__ import print_function
 import os,sys,argparse,json
 
+parser = argparse.ArgumentParser("Visualize CRT-match output")
+parser.add_argument("-dl","--input-dlmerged",type=str,required=True,help="input DL merged file")
+parser.add_argument("-cl","--input-cluster", type=str,required=True,help="input PCA cluster file (larlite)")
+parser.add_argument("-cm","--input-crtmatch", type=str,required=True,help="input CRT-Match file (larlite)")
+args = parser.parse_args()
+
 import numpy as np
 import ROOT as rt
 from larlite import larlite
@@ -21,13 +27,12 @@ detdata = lardly.DetectorOutline().getlines()
 crtdata = lardly.CRTOutline().getlines()
 
 # debug, use fixed file names, eventually use arguments
-merged_inputfile = "merged_dlreco_extbnb_run3_821c2dfc-96b0-4725-a187-6b628cbbbea3.root"
-track_inputfile = "larflow_triple_reco_extbnb_run3.root"
-crt_inputfile   = "crt_match_reco_extbnb_run3_triplet.root"
+merged_inputfile = args.input_dlmerged
+track_inputfile  = args.input_cluster
+crt_inputfile    = args.input_crtmatch
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( merged_inputfile )
-#io.add_in_filename( track_inputfile )
 io.add_in_filename( crt_inputfile )
 io.open()
 
