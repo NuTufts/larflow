@@ -116,6 +116,10 @@ for ientry in range(NENTRIES):
 
     adc_v = io.get_data(larcv.kProductImage2D,ADC_PRODUCER).Image2DArray()            
     ev_badch    = io.get_data(larcv.kProductChStatus,CHSTATUS_PRODUCER)
+    if args.has_mc:
+        print("Retrieving larflow truth...")
+        ev_larflow = io.get_data(larcv.kProductImage2D,"larflow")
+        flow_v     = ev_larflow.Image2DArray()
 
     if args.has_wirecell:
         # make wirecell masked image
@@ -148,6 +152,9 @@ for ientry in range(NENTRIES):
     # run the larflow match prep classes
     t_prep = time.time()
     preplarmatch.process( adc_v, badch_v, 10.0, False )
+    if args.has_mc:
+        print("processing larflow truth...")
+        preplarmatch.make_truth_vector( flow_v )
     t_prep = time.time()-t_prep
     print("  time to prep matches: ",t_prep,"secs")
     dt_prep += t_prep
@@ -200,7 +207,7 @@ for ientry in range(NENTRIES):
         matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
                 
         if with_truth:
-            truthvec = torch.from_numpy( sparse_np_v[:,3].astype(np.long) ).to(DEVICE)
+            truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
         
         tstart = time.time()
         pred_t = model.classify_triplet( outfeat_u, outfeat_v, outfeat_y, matchpair_t, int(npairs.value), DEVICE )
