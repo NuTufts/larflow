@@ -174,7 +174,10 @@ for ientry in range(NENTRIES):
     npairs.value = 0
     last_index  = c_int()
     last_index.value = 0
-    with_truth  = False
+    if args.has_mc:
+        with_truth  = True
+    else:
+        with_truth  = False
     tstart = time.time()
 
     ntriplets = preplarmatch._triplet_v.size()
