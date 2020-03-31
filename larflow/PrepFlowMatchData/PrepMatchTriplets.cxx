@@ -399,6 +399,7 @@ namespace larflow {
       *((float*)PyArray_GETPTR2( array, (int)idx, 1)) = (float)_sparseimg_vv[plane][idx].col;
       *((float*)PyArray_GETPTR2( array, (int)idx, 2)) = (float)_sparseimg_vv[plane][idx].val;      
     }
+
     
     return (PyObject*)array;
   }
@@ -491,7 +492,7 @@ namespace larflow {
 
   /**
    *
-   * randomly select a set of 2 plane indices
+   * get sequential set of matches
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
@@ -575,6 +576,8 @@ namespace larflow {
         }
       }
     }
+
+    
     
     // return the array
     return (PyObject*)array;
@@ -600,6 +603,30 @@ namespace larflow {
 
   }
   
+
+  /**
+   *
+   * get sequential set of triplet indices
+   *
+   */
+  PyObject* PrepMatchTriplets::get_chunk_triplet_matches( const int& start_index,
+                                                          const int& max_num_pairs,
+                                                          int& last_index,
+                                                          int& num_pairs_filled,
+                                                          bool with_truth ) {
+    
+    last_index = start_index + max_num_pairs;
+    last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
+    num_pairs_filled = last_index-start_index;
+    std::vector<int> idx_v( num_pairs_filled, 0 );    
+    
+    for ( int i=start_index; i<last_index; i++ ) {
+      idx_v[i-start_index] = (int)i;
+    }
+
+    return make_triplet_array( max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
+
+  }
   
   
 }

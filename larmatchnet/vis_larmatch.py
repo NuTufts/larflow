@@ -15,7 +15,7 @@ Note that step (3) has to be done each time you start a new shell.
 
 parser = argparse.ArgumentParser("test_3d lardly viewer")
 parser.add_argument("-ll","--larlite",required=True,type=str,help="larlite file with dltagger_allreco tracks")
-parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
+#parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
 parser.add_argument("-p","--minprob",type=float,default=0.0,help="score threshold on hits")
 
 args = parser.parse_args(sys.argv[1:])
@@ -34,28 +34,46 @@ import lardly
 
 
 input_larlite = args.larlite
-ientry        = args.entry
 
 # LARLITE
 io_ll = larlite.storage_manager(larlite.storage_manager.kREAD)
 io_ll.add_in_filename( input_larlite )
 io_ll.open()
-io_ll.go_to(ientry)
 
-# OPFLASH
-ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
-print("num larflow hits: ",ev_lfhits.size())
-lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
-
+NENTRIES = io_ll.get_entries()
+CURRENT_ENTRY = None
 detdata = lardly.DetectorOutline()
 
+def make_figures(entry):
+
+    global io_ll
+    global args
+    
+    io_ll.go_to(entry)
+
+    # OPFLASH
+    ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    print("num larflow hits: ",ev_lfhits.size())
+    lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
+
+    return lfhits_v
+
+# WIDGET FOR INPUT
+eventinput = dcc.Input(
+    id="input_event",
+    type="number",
+    placeholder="Input Event")
+
+# APP
 app = dash.Dash(
     __name__,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 
+# SERVER
 server = app.server
 
+# AXIS TEMPLATE
 axis_template = {
     "showbackground": True,
     "backgroundcolor": "#141414",
@@ -63,6 +81,7 @@ axis_template = {
     "zerolinecolor": "rgb(255, 255, 255)",
 }
 
+# 3D PLOTTING OPTIONS
 plot_layout = {
     "title": "",
     "height":800,
@@ -82,19 +101,58 @@ plot_layout = {
     },
 }
 
-
+# LAYOUT OF VIEWER
 app.layout = html.Div( [
+    # Add input widget
+    html.Div( [ eventinput, html.Button("Plot",id="plot") ] ),
+    # Dividing line
+    html.Hr(),
+    # 3D graph
     html.Div( [
         dcc.Graph(
             id="det3d",
             figure={
-                "data": detdata.getlines()+lfhits_v,
+                "data": detdata.getlines(),
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},
         )],
               className="graph__container"),
-    ] )
+    # A place for output
+    html.Div(id="out")
+] )
+
+# ACTION OF BUTTON
+@app.callback(
+    [Output("det3d","figure"),
+     Output("out","children")],
+    [Input("plot","n_clicks")],
+    [State("input_event","value"),
+     State("det3d","figure")],
+    )
+def cb_render(*vals):
+
+    global CURRENT_ENTRY
+    
+    if vals[1] is None:
+        print("Input event is none")
+        raise PreventUpdate
+    if vals[1]>=NENTRIES or vals[1]<0:
+        print("Input event is out of range")
+        raise PreventUpdate
+
+    entry = int(vals[1])
+    if CURRENT_ENTRY is None or CURRENT_ENTRY!=entry:
+        # get the data
+        lfhit_traces_v = make_figures(int(vals[1]))
+        # set the data
+        vals[-1]["data"] = detdata.getlines()+lfhit_traces_v
+        CURRENT_ENTRY = entry
+        return vals[-1],"Event[{}] plotted".format(vals[1])
+    else:
+        # no need to update
+        raise PreventUpdate
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)

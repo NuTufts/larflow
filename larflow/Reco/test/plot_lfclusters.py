@@ -1,6 +1,10 @@
 from __future__ import print_function
 import os,sys,argparse,json
 
+parser = argparse.ArgumentParser("Plot PCA cluster output")
+parser.add_argument("input_file",type=str,help="file produced by PCACluster (run in run_cluster.py)")
+args = parser.parse_args()
+
 import numpy as np
 import ROOT as rt
 from larlite import larlite
@@ -18,11 +22,7 @@ from dash.exceptions import PreventUpdate
 color_by_options = ["ssnet","charge","prob","dead","cluster","shower","noise"]
 colorscale = "Viridis"
 
-#inputfile = "larflow_reco.root"
-#inputfile = "larflow_reco_extbnb_run3_vp.root"
-inputfile = "larflow_reco_extbnb_run3_x.root"
-#inputfile = "larflow_reco_extbnb_run3_original.root"
-#inputfile = "larflow_cluster_eLEE_sample2_full.root"
+inputfile = args.input_file
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( inputfile )
