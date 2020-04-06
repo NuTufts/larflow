@@ -26,13 +26,14 @@
 
 namespace larcv {
   class Image2D;
-  
+  class IOManager;
 }
 
 namespace larlite {
   class event_mctrack;
   class event_mcshower;
   class event_mctruth;
+  class storage_manager;
 }
 
 namespace larutil {
@@ -54,6 +55,9 @@ namespace keypoints {
     PrepKeypointData() {};
     virtual ~PrepKeypointData() {};
 
+    void process( larcv::IOManager& iolcv,
+                  larlite::storage_manager& ioll );
+    
     void process( const std::vector<larcv::Image2D>&    adc_v,
                   const std::vector<larcv::Image2D>&    badch_v,
                   const std::vector<larcv::Image2D>&    segment_v,
