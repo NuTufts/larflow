@@ -49,6 +49,11 @@ for ientry in xrange( nentries ):
     iolcv.read_entry(ientry)
 
     kpana.process( iolcv, ioll )
+
+    kpd = kpana.get_keypoint_array()
+    print "kpd: ",kpd.shape
+    for p in xrange(kpd.shape[0]):
+        print " [",p,"] imgcoord: ",kpd[p,0:4]
     
     print "[enter to continue]"
     raw_input()

@@ -288,11 +288,28 @@ namespace keypoints {
       PrepKeypointData::_setup_numpy = true;
     }
     
-    // first count the number of points
+    // first count the number of unique points
+    std::set< std::vector<int> >    unique_coords;
+    std::vector< std::vector<int> > kpd_index;
     int npts = 0;
-    for ( auto const& kpd : _kpd_v ) {
-      if (kpd.imgcoord_start.size()>0) npts++;
-      if (kpd.imgcoord_end.size()>0)   npts++;
+    for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
+      auto const& kpd = _kpd_v[ikpd];
+
+      if (kpd.imgcoord_start.size()>0) {
+        if ( unique_coords.find( kpd.imgcoord_start )==unique_coords.end() ) {
+          kpd_index.push_back( std::vector<int>{(int)ikpd,0} );
+          unique_coords.insert( kpd.imgcoord_start );
+          npts++;
+        }
+      }
+      
+      if (kpd.imgcoord_end.size()>0) {
+        if ( unique_coords.find( kpd.imgcoord_end )==unique_coords.end() ) {
+          kpd_index.push_back( std::vector<int>{(int)ikpd,1} );
+          unique_coords.insert( kpd.imgcoord_end );
+          npts++;
+        }
+      }
     }
     
     int nd = 2;
@@ -300,12 +317,12 @@ namespace keypoints {
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
     size_t ipt = 0;
-    for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
-      auto const& kpd = _kpd_v[ikpd];
+    for ( auto& kpdidx : kpd_index ) {
+      
+      auto const& kpd = _kpd_v[kpdidx[0]];
 
-      if ( kpd.imgcoord_start.size()>0 ) {
-        ipt++;
-        // img coordinates
+      if ( kpdidx[1]==0 ) {
+        // start img coordinates
         for ( size_t i=0; i<4; i++ )
           *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_start[i];
         // 3D point
@@ -318,10 +335,8 @@ namespace keypoints {
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
       }
-      
-      if ( kpd.imgcoord_end.size()>0 ) {
-        ipt++;
-        // img coordinates
+      else if ( kpdidx[1]==1 ) {
+        // end img coordinates
         for ( size_t i=0; i<4; i++ )
           *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_end[i];
         // 3D point
@@ -334,7 +349,7 @@ namespace keypoints {
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
       }
-
+      ipt++;
     }// end of loop over keypointdata structs
 
     return (PyObject*)array;

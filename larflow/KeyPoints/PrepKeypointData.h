@@ -116,6 +116,8 @@ namespace keypoints {
 
     std::string str( const KPdata& kpd );
 
+  public:
+
     PyObject* get_keypoint_array() const;
 
 
