@@ -22,8 +22,13 @@
  *
  */
 
+#include <Python.h>
+#include "bytesobject.h"
+
 #include <vector>
 #include <string>
+
+#include "KPdata.h"
 
 namespace larcv {
   class Image2D;
@@ -70,31 +75,32 @@ namespace keypoints {
 
   protected:
 
-    struct KPdata {
-      int crossingtype;
-      std::vector<int> imgcoord_start;
-      std::vector<int> imgcoord_end;
-      std::vector<float> startpt;
-      std::vector<float> endpt;
-      int trackid;
-      int pid;
-      int vid;
-      int is_shower;
-      int origin;
-      KPdata() {
-        crossingtype = -1;
-        imgcoord_start.clear();
-        imgcoord_end.clear();
-        startpt.clear();
-        endpt.clear();
-        trackid = 0;
-        pid = 0;
-        vid = 0;
-        is_shower = 0;
-        origin = -1;
-      };
-      ~KPdata() {};
-    };
+    /* struct KPdata { */
+    /*   int crossingtype; */
+    /*   std::vector<int> imgcoord_start; */
+    /*   std::vector<int> imgcoord_end; */
+    /*   std::vector<float> startpt; */
+    /*   std::vector<float> endpt; */
+    /*   int trackid; */
+    /*   int pid; */
+    /*   int vid; */
+    /*   int is_shower; */
+    /*   int origin; */
+    /*   KPdata() { */
+    /*     crossingtype = -1; */
+    /*     imgcoord_start.clear(); */
+    /*     imgcoord_end.clear(); */
+    /*     startpt.clear(); */
+    /*     endpt.clear(); */
+    /*     trackid = 0; */
+    /*     pid = 0; */
+    /*     vid = 0; */
+    /*     is_shower = 0; */
+    /*     origin = -1; */
+    /*   }; */
+    /*   ~KPdata() {}; */
+    /* }; */
+    std::vector<KPdata> _kpd_v;
     
     std::vector<KPdata>    
       getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
@@ -102,13 +108,20 @@ namespace keypoints {
                         const larlite::event_mctrack& mctrack_v,
                         larutil::SpaceChargeMicroBooNE* psce );
     
-    std::vector<PrepKeypointData::KPdata>
+    std::vector<KPdata>
       getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
                        const std::vector<larcv::Image2D>& adc_v,
                        const larlite::event_mcshower& mcshower_v,
                        larutil::SpaceChargeMicroBooNE* psce );
 
     std::string str( const KPdata& kpd );
+
+    PyObject* get_keypoint_array() const;
+
+
+  private:
+
+    static bool _setup_numpy;
     
   };
 

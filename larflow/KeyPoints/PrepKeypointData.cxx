@@ -1,5 +1,8 @@
 #include "PrepKeypointData.h"
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+
 #include <sstream>
 
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
@@ -18,6 +21,8 @@
 namespace larflow {
 namespace keypoints {
 
+  bool PrepKeypointData::_setup_numpy = false;
+  
   /**
    * process one event, given io managers
    *
@@ -83,27 +88,32 @@ namespace keypoints {
                      mcshower_v, mctrack_v, mctruth_v );
 
 
+    // build key-points
+    _kpd_v.clear();
+    
     // build crossing points for muon track primaries
-    std::vector<PrepKeypointData::KPdata> track_kpd
+    std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
     std::cout << "[Track Endpoint Results]" << std::endl;
     for ( auto const& kpd : track_kpd ) {
       std::cout << "  " << str(kpd) << std::endl;
+      _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // add points for shower starts
-    std::vector<PrepKeypointData::KPdata> shower_kpd
+    std::vector<KPdata> shower_kpd
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
     std::cout << "[Shower Endpoint Results]" << std::endl;
     for ( auto const& kpd : shower_kpd ) {
       std::cout << "  " << str(kpd) << std::endl;
+      _kpd_v.emplace_back( std::move(kpd) );      
     }
 
   }
 
   
-  std::vector<PrepKeypointData::KPdata>
+  std::vector<KPdata>
   PrepKeypointData::getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                       const std::vector<larcv::Image2D>& adc_v,
                                       const larlite::event_mctrack& mctrack_v,
@@ -175,7 +185,7 @@ namespace keypoints {
     return kpd_v;
   }
 
-  std::vector<PrepKeypointData::KPdata>
+  std::vector<KPdata>
   PrepKeypointData::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                      const std::vector<larcv::Image2D>& adc_v,
                                      const larlite::event_mcshower& mcshower_v,
@@ -235,7 +245,7 @@ namespace keypoints {
     return kpd_v;
   }
 
-  std::string PrepKeypointData::str( const PrepKeypointData::KPdata& kpd )
+  std::string PrepKeypointData::str( const KPdata& kpd )
   {
     std::stringstream ss;
     ss << "[type=" << kpd.crossingtype << " pid=" << kpd.pid
@@ -262,6 +272,72 @@ namespace keypoints {
       ss << " endpt=(" << kpd.endpt[0] << "," << kpd.endpt[1] << "," << kpd.endpt[2] << ") ";
     
     return ss.str();
+  }
+
+
+  /**
+   * return an array with keypoints
+   * array columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
+   *
+   */
+  PyObject* PrepKeypointData::get_keypoint_array() const
+  {
+
+    if ( !PrepKeypointData::_setup_numpy ) {
+      import_array1(0);
+      PrepKeypointData::_setup_numpy = true;
+    }
+    
+    // first count the number of points
+    int npts = 0;
+    for ( auto const& kpd : _kpd_v ) {
+      if (kpd.imgcoord_start.size()>0) npts++;
+      if (kpd.imgcoord_end.size()>0)   npts++;
+    }
+    
+    int nd = 2;
+    npy_intp dims[] = { npts, 10 };
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
+
+    size_t ipt = 0;
+    for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
+      auto const& kpd = _kpd_v[ikpd];
+
+      if ( kpd.imgcoord_start.size()>0 ) {
+        ipt++;
+        // img coordinates
+        for ( size_t i=0; i<4; i++ )
+          *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_start[i];
+        // 3D point
+        for ( size_t i=0; i<3; i++ )
+          *((float*)PyArray_GETPTR2(array,ipt,4+i)) = (float)kpd.startpt[i];
+        // is shower
+        *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
+        // origin
+        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.is_shower;
+        // PID
+        *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
+      }
+      
+      if ( kpd.imgcoord_end.size()>0 ) {
+        ipt++;
+        // img coordinates
+        for ( size_t i=0; i<4; i++ )
+          *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_end[i];
+        // 3D point
+        for ( size_t i=0; i<3; i++ )
+          *((float*)PyArray_GETPTR2(array,ipt,4+i)) = (float)kpd.endpt[i];
+        // is shower
+        *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
+        // origin
+        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.is_shower;
+        // PID
+        *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
+      }
+
+    }// end of loop over keypointdata structs
+
+    return (PyObject*)array;
   }
   
 }

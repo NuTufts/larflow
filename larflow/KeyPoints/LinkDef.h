@@ -11,6 +11,7 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::keypoints;
+#pragma link C++ struct larflow::keypoints::KPdata+;
 #pragma link C++ class larflow::keypoints::PrepKeypointData+;
 
 //ADD_NEW_CLASS ... do not change this line
