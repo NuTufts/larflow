@@ -331,7 +331,7 @@ namespace keypoints {
         // is shower
         *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
         // origin
-        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.is_shower;
+        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
       }
@@ -345,7 +345,7 @@ namespace keypoints {
         // is shower
         *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
         // origin
-        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.is_shower;
+        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
       }
