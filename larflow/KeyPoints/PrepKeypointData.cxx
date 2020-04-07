@@ -92,6 +92,14 @@ namespace keypoints {
       std::cout << "  " << str(kpd) << std::endl;
     }
 
+    // add points for shower starts
+    std::vector<PrepKeypointData::KPdata> shower_kpd
+      = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
+    std::cout << "[Shower Endpoint Results]" << std::endl;
+    for ( auto const& kpd : shower_kpd ) {
+      std::cout << "  " << str(kpd) << std::endl;
+    }
+
   }
 
   
@@ -132,6 +140,8 @@ namespace keypoints {
         kpd.trackid = pnode->tid;
         kpd.pid     = pnode->pid;
         kpd.vid     = pnode->vidx;
+        kpd.is_shower = 0;
+        kpd.origin  = pnode->origin;
         
         std::vector< int > imgcoords_start;
         std::vector< int > imgcoords_end;
@@ -165,10 +175,73 @@ namespace keypoints {
     return kpd_v;
   }
 
+  std::vector<PrepKeypointData::KPdata>
+  PrepKeypointData::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     const larlite::event_mcshower& mcshower_v,
+                                     larutil::SpaceChargeMicroBooNE* psce )
+  {
+
+    // get list of primaries
+    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
+      = mcpg.getPrimaryParticles();
+
+    // output vector of keypoint data
+    std::vector<KPdata> kpd_v;
+
+    for ( auto const& pnode : primaries ) {
+
+      if ( abs(pnode->pid)!=11
+           && abs(pnode->pid)!=22 )
+        continue;
+
+      auto const& mcshr = mcshower_v.at( pnode->vidx );
+
+      //we convert shower to track trajectory
+      larlite::mctrack mct;
+      mct.push_back( mcshr.Start() );
+      mct.push_back( mcshr.End() );
+
+      int crossingtype =
+        ublarcvapp::mctools::CrossingPointsAnaMethods::
+        doesTrackCrossImageBoundary( mct,
+                                     adc_v.front().meta(),
+                                     4050.0,
+                                     psce );
+
+      if ( crossingtype>=0 ) {
+
+        KPdata kpd;
+        kpd.crossingtype = crossingtype;
+        kpd.trackid = pnode->tid;
+        kpd.pid     = pnode->pid;
+        kpd.vid     = pnode->vidx;
+        kpd.origin  = pnode->origin;
+        
+        std::vector< int > imgcoords_start;
+        imgcoords_start
+          = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mct, adc_v.front().meta(),
+                                                                                       4050.0, true, 0.3, 0.1,
+                                                                                       kpd.startpt, psce );
+        if ( imgcoords_start.size()>0 ) {
+          kpd.imgcoord_start = imgcoords_start;
+          kpd.is_shower = 1;
+          kpd_v.emplace_back( std::move(kpd) );
+        }
+      }
+
+    }//end of primary loop
+    
+    return kpd_v;
+  }
+
   std::string PrepKeypointData::str( const PrepKeypointData::KPdata& kpd )
   {
     std::stringstream ss;
-    ss << "[type=" << kpd.crossingtype << " pid=" << kpd.pid << " vid=" << kpd.vid << "] ";
+    ss << "[type=" << kpd.crossingtype << " pid=" << kpd.pid
+       << " vid=" << kpd.vid
+       << " isshower=" << kpd.is_shower
+       << " origin=" << kpd.origin << "] ";
 
     if ( kpd.imgcoord_start.size()>0 )
       ss << " imgstart=(" << kpd.imgcoord_start[0] << ","

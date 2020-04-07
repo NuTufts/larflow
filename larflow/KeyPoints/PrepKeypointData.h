@@ -79,6 +79,8 @@ namespace keypoints {
       int trackid;
       int pid;
       int vid;
+      int is_shower;
+      int origin;
       KPdata() {
         crossingtype = -1;
         imgcoord_start.clear();
@@ -88,6 +90,8 @@ namespace keypoints {
         trackid = 0;
         pid = 0;
         vid = 0;
+        is_shower = 0;
+        origin = -1;
       };
       ~KPdata() {};
     };
@@ -98,6 +102,11 @@ namespace keypoints {
                         const larlite::event_mctrack& mctrack_v,
                         larutil::SpaceChargeMicroBooNE* psce );
     
+    std::vector<PrepKeypointData::KPdata>
+      getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                       const std::vector<larcv::Image2D>& adc_v,
+                       const larlite::event_mcshower& mcshower_v,
+                       larutil::SpaceChargeMicroBooNE* psce );
 
     std::string str( const KPdata& kpd );
     
