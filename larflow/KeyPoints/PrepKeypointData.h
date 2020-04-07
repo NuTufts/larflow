@@ -23,6 +23,7 @@
  */
 
 #include <vector>
+#include <string>
 
 namespace larcv {
   class Image2D;
@@ -69,12 +70,37 @@ namespace keypoints {
 
   protected:
 
-    void getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
-                           const std::vector<larcv::Image2D>& adc_v,
-                           const larlite::event_mctrack& mctrack_v,
-                           larutil::SpaceChargeMicroBooNE* psce );
+    struct KPdata {
+      int crossingtype;
+      std::vector<int> imgcoord_start;
+      std::vector<int> imgcoord_end;
+      std::vector<float> startpt;
+      std::vector<float> endpt;
+      int trackid;
+      int pid;
+      int vid;
+      KPdata() {
+        crossingtype = -1;
+        imgcoord_start.clear();
+        imgcoord_end.clear();
+        startpt.clear();
+        endpt.clear();
+        trackid = 0;
+        pid = 0;
+        vid = 0;
+      };
+      ~KPdata() {};
+    };
+    
+    std::vector<KPdata>    
+      getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                        const std::vector<larcv::Image2D>& adc_v,
+                        const larlite::event_mctrack& mctrack_v,
+                        larutil::SpaceChargeMicroBooNE* psce );
     
 
+    std::string str( const KPdata& kpd );
+    
   };
 
 }
