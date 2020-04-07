@@ -32,7 +32,7 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 1
+nentries = 5
 
 print "Start loop."
 kpana = larflow.keypoints.PrepKeypointData()
@@ -89,7 +89,7 @@ for ientry in xrange( nentries ):
     
     print "[enter to continue]"
     raw_input()
-    sys.exit(0)    
+    #sys.exit(0)    
 
 
 print "=== FIN =="

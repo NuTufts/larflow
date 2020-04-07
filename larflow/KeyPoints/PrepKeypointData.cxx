@@ -120,6 +120,8 @@ namespace keypoints {
                                       larutil::SpaceChargeMicroBooNE* psce )
   {
 
+    bool verbose = true;
+    
     // get list of primaries
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
       = mcpg.getPrimaryParticles();
@@ -156,22 +158,22 @@ namespace keypoints {
         std::vector< int > imgcoords_start;
         std::vector< int > imgcoords_end;
 
-        if ( crossingtype==0 || crossingtype==2) {
+        if ( crossingtype>=0 && crossingtype<=2) {
           imgcoords_start
             = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                          4050.0, true, 0.3, 0.1,
-                                                                                         kpd.startpt, psce );
+                                                                                         kpd.startpt, psce, verbose );
           if ( imgcoords_start.size()>0 ) {
             kpd.imgcoord_start = imgcoords_start;
           }
           
         }
 
-        if ( crossingtype==1 || crossingtype==2 ) {
+        if ( crossingtype>=0 && crossingtype<=2 ) {
           imgcoords_end
             = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                          4050.0, false, 0.3, 0.1,
-                                                                                         kpd.endpt, psce );
+                                                                                         kpd.endpt, psce, verbose );
           if ( imgcoords_end.size()>0 ) {
             kpd.imgcoord_end = imgcoords_end;
           }
@@ -232,7 +234,7 @@ namespace keypoints {
         imgcoords_start
           = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mct, adc_v.front().meta(),
                                                                                        4050.0, true, 0.3, 0.1,
-                                                                                       kpd.startpt, psce );
+                                                                                       kpd.startpt, psce, false );
         if ( imgcoords_start.size()>0 ) {
           kpd.imgcoord_start = imgcoords_start;
           kpd.is_shower = 1;
