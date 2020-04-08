@@ -26,8 +26,12 @@ namespace keypoints {
       origin = -1;
     };
     ~KPdata() {};
+
   };
-  
+
+  bool kpdata_compare_x( const KPdata* lhs, const KPdata* rhs );
+  bool kpdata_compare_y( const KPdata* lhs, const KPdata* rhs );
+  bool kpdata_compare_z( const KPdata* lhs, const KPdata* rhs );
   
 }
 }

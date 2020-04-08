@@ -4,6 +4,8 @@
 #include <numpy/ndarrayobject.h>
 
 #include <sstream>
+#include <algorithm>
+#include <queue>
 
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
@@ -13,6 +15,7 @@
 
 // larlite
 #include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "LArUtil/LArProperties.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
@@ -21,7 +24,66 @@
 namespace larflow {
 namespace keypoints {
 
+  bool compare_x( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+    if ( lhs->bounds[0][0] < rhs->bounds[0][0] )
+      return true;
+    return false;
+  }
+  
+  bool compare_y( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+    if ( lhs->bounds[1][0] < rhs->bounds[1][0] )
+        return true;
+    return false;
+  }
+  
+  bool compare_z( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+    if ( lhs->bounds[2][0] < rhs->bounds[2][0] )
+        return true;
+    return false;
+  }
+
+  std::string strnode( const bvhnode_t* node ) {
+    std::stringstream ss;
+    if ( node->children.size()>0 ) {
+      ss << "node: x[" << node->bounds[0][0] << "," << node->bounds[0][1] << "] "
+         << "y[" << node->bounds[1][0] << "," << node->bounds[1][1] << "] "
+         << "z[" << node->bounds[2][0] << "," << node->bounds[2][1] << "] ";
+    }
+    else {
+      ss << "LEAF: "
+         << "x[" << node->bounds[0][0] << "] "
+         << "y[" << node->bounds[1][0] << "] " 
+         << "z[" << node->bounds[2][0] << "] "
+         << "kpdata-index=" << node->kpdidx;
+    }
+    return ss.str();
+  }
+
+  void print_graph( const bvhnode_t* node ) {
+    int depth=0;
+    _recurse_printgraph( node, depth );
+  }
+  
+  void _recurse_printgraph( const bvhnode_t* node, int& depth ) {
+    std::string info =  strnode(node);
+    std::string branch = "";
+    for (int i=0; i<depth; i++)
+      branch += " |";
+    if ( depth>0 ) 
+      branch += "-- ";
+
+    std::cout << branch << info << std::endl;
+
+    // we loop through our daughters
+    for ( auto& child : node->children ) {
+      ++depth;
+      _recurse_printgraph( child, depth );
+    }
+    --depth;
+  }
+  
   bool PrepKeypointData::_setup_numpy = false;
+
   
   /**
    * process one event, given io managers
@@ -110,6 +172,8 @@ namespace keypoints {
       _kpd_v.emplace_back( std::move(kpd) );      
     }
 
+    makeBVH();
+    printBVH();
   }
 
   
@@ -343,7 +407,10 @@ namespace keypoints {
       const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
       const std::vector<float>& pos   = match_proposals._pos_v[imatch];
 
-      // dump loop is to 
+      // dumb assignment, loops over all truth keypoints
+      // smarter one uses a BVH structure (does being in a leaf volume guarentee that point is the closest?)
+      // O(200k) proposals x 40 keypoints
+      // brute forces is O(8M) while BVH is O(737K), a factor of 10 speed-up
     }
       
   }
@@ -352,11 +419,138 @@ namespace keypoints {
    * we build a boundary volume hierarchy tree, using a top-down method
    *
    */
-  // void PrepKeypointData::makeBVH() {
+  void PrepKeypointData::makeBVH() {
 
+    std::cout << "=========================" << std::endl;
+    std::cout << " makeBVH" << std::endl;
+    std::cout << "=========================" << std::endl;    
     
+    clearBVH();
     
-  // }
+    // xlimits derived from bound of image
+    float xmin_det = (2400-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+    float xmax_det = (2400+1008*6-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+
+    // make the root node    
+    _bvhroot = new bvhnode_t(xmin_det,xmax_det,-118,118,0,1036);
+
+    // make a node for all points
+    std::vector< bvhnode_t* > leafs;
+    int ikpd = 0;
+    for ( auto const& kpd : _kpd_v ) {
+      bvhnode_t* node = new bvhnode_t( kpd.keypt[0], kpd.keypt[0],
+                                       kpd.keypt[1], kpd.keypt[1],
+                                       kpd.keypt[2], kpd.keypt[2] );
+      node->kpdidx = ikpd;
+      ikpd++;
+      leafs.push_back( node );
+      node->mother = _bvhroot;
+      _bvhroot->children.push_back( node );
+    }
+
+    std::queue< bvhnode_t* > q;
+    q.push( _bvhroot );
+
+    while ( q.size()>0 ) {
+      std::cout << "process node on the queue" << std::endl;
+      bvhnode_t* node = q.front();
+      q.pop();
+
+      // get longest dim of box
+      float dimlen = 0;
+      int longdim = 0;
+      for (int i=0; i<3; i++ ) {
+        float len = node->bounds[i][1]-node->bounds[i][0];
+        if (len>dimlen) {
+          longdim = i;
+          dimlen  = len;
+        }
+      }
+      // set this longest dim as the splitting dimension of this node
+      node->splitdim = longdim;
+
+      // sort children by the dim
+      if      ( longdim==0 ) std::sort( node->children.begin(), node->children.end(), compare_x );
+      else if ( longdim==1 ) std::sort( node->children.begin(), node->children.end(), compare_y );
+      else if ( longdim==2 ) std::sort( node->children.begin(), node->children.end(), compare_z );
+
+      // get the center point to make a box
+      int lowidx  = 0;
+      int highidx = 0;
+      if ( node->children.size()%2==0 ) {
+        // even
+        highidx = node->children.size()/2; // 4/2 = 2
+        lowidx = highidx-1;                // 1
+      }
+      else {
+        // odd
+        lowidx = node->children.size()/2; // 3/2 = 1
+        highidx = lowidx + 1;             // 2
+      }
+
+      // calculate midpoint using leaf nodes
+      float midpt = 0.5*(node->children[lowidx]->bounds[longdim][0] + node->children[highidx]->bounds[longdim][0] );
+
+      // we define two new boundary volume, using the midpoint of low and high
+      // to split the previous volume.
+      // we split the children into them.
+      // if the node only has one, then its a leaf node
+      float lo_bounds[3][2];
+      float hi_bounds[3][2];
+      for (int i=0; i<3; i++ ) {
+        for (int j=0; j<2; j++ ) {
+          lo_bounds[i][j] = node->bounds[i][j];
+          hi_bounds[i][j] = node->bounds[i][j];
+        }
+      }
+      lo_bounds[longdim][1] = midpt;
+      hi_bounds[longdim][0] = midpt;
+      bvhnode_t* lo_node = new bvhnode_t( lo_bounds[0][0], lo_bounds[0][1],
+                                          lo_bounds[1][0], lo_bounds[1][1],
+                                          lo_bounds[2][0], lo_bounds[2][1] );
+      bvhnode_t* hi_node = new bvhnode_t( hi_bounds[0][0], hi_bounds[0][1],
+                                          hi_bounds[1][0], hi_bounds[1][1],
+                                          hi_bounds[2][0], hi_bounds[2][1] );
+
+      // now we divide the node's children into the new nodes
+      for (int i=0; i<=lowidx; i++ ) {
+        node->children[i]->mother = lo_node;
+        lo_node->children.push_back( node->children[i] );
+      }
+      for (int i=highidx; i<node->children.size(); i++ ) {
+        node->children[i]->mother = hi_node;        
+        hi_node->children.push_back( node->children[i] );
+      }
+
+      // clear the node's children and replace it with the new nodes
+      node->children.clear();
+      node->children.push_back( lo_node );
+      node->children.push_back( hi_node );
+
+
+      //set them into the queue if they have more than one child
+      if (lo_node->children.size()>1 )
+        q.push( lo_node );
+      if (hi_node->children.size()>1 )
+        q.push( hi_node );
+
+      std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
+    }//end of loop over queue
+    
+  }
+
+  void PrepKeypointData::clearBVH() {
+    for ( auto& pnode : _bvhnodes_v )
+      delete pnode;
+    _bvhnodes_v.clear();
+    if ( _bvhroot )
+      delete _bvhroot;
+    _bvhroot = nullptr;
+  }
+
+  void PrepKeypointData::printBVH() {
+    print_graph( _bvhroot );
+  }
   
 }
 }
