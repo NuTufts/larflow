@@ -11,6 +11,7 @@ import ROOT as rt
 from larcv import larcv
 from larlite import larlite
 from larflow import larflow
+from ublarcvapp import ublarcvapp
 
 """
 test script for the PrepKeypointData class
@@ -32,12 +33,14 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 5
+nentries = 10
 
 print "Start loop."
-kpana = larflow.keypoints.PrepKeypointData()
-
 tmp = rt.TFile("temp.root","recreate")
+
+badchmaker = ublarcvapp.EmptyChannelAlgo()
+trips = larflow.PrepMatchTriplets()
+kpana = larflow.keypoints.PrepKeypointData()
     
 for ientry in xrange( nentries ):
 
@@ -52,6 +55,19 @@ for ientry in xrange( nentries ):
     adc_v = ev_adc.Image2DArray()
     for p in xrange(adc_v.size()):
         print " image[",p,"] ",adc_v[p].meta().dump()
+
+    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
+    ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
+    larflow_v  = ev_larflow.Image2DArray()
+    
+    badch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
+                                              4, 3, 2400, 1008*6, 3456, 6, 1,
+                                              1.0, 100, -1.0 );
+    print("made badch_v, size=",badch_v.size())
+
+    tripmaker = larflow.PrepMatchTriplets()
+    tripmaker.process( adc_v, badch_v, 10.0, True )
+    tripmaker.make_truth_vector( larflow_v )
     
     kpana.process( iolcv, ioll )
 
@@ -59,6 +75,8 @@ for ientry in xrange( nentries ):
     print "kpd: ",kpd.shape
     for p in xrange(kpd.shape[0]):
         print " [",p,"] imgcoord: ",kpd[p,0:4]
+
+    kpana.make_proposal_labels( tripmaker )
 
     # visualize output
     c = rt.TCanvas("c","c",1200,1800)
@@ -88,8 +106,17 @@ for ientry in xrange( nentries ):
     c.Update()
     
     print "[enter to continue]"
-    raw_input()
-    #sys.exit(0)    
+    #raw_input()
+    #sys.exit(0)
+    #break
 
+print "NCLOSE: ",kpana._nclose
+print "NFAR: ",kpana._nfar
+print "FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar)
+
+tmp.cd()
+kpana.writeHists()
+
+del kpana
 
 print "=== FIN =="

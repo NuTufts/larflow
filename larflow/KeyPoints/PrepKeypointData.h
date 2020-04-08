@@ -32,6 +32,8 @@
 
 #include "KPdata.h"
 
+class TH1F;
+
 namespace larcv {
   class Image2D;
   class IOManager;
@@ -81,15 +83,15 @@ namespace keypoints {
   bool compare_z( const bvhnode_t* lhs, const bvhnode_t* rhs );
   std::string strnode( const bvhnode_t* node );
   void print_graph( const bvhnode_t* node );
-  void _recurse_printgraph( const bvhnode_t* node, int& depth );  
+  void _recurse_printgraph( const bvhnode_t* node, int& depth );
+  const bvhnode_t* recurse_findleaf( const std::vector<float>& testpt, const bvhnode_t* node );
+  
   
   class PrepKeypointData {
   public:
 
-    PrepKeypointData()
-      : _bvhroot(nullptr)
-    {};
-    virtual ~PrepKeypointData() {};
+    PrepKeypointData();
+    virtual ~PrepKeypointData();
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll );
@@ -147,6 +149,16 @@ namespace keypoints {
     // this provides the labels for each triplet proposal made by
     // larflow::PrepMatchTriplets
     std::vector< std::vector<float> > _match_proposal_labels_v;
+    void findClosestKeypoint( const std::vector<float>& testpt,
+                              int& kpindex, float& dist );
+
+  public:
+    
+    TH1F* hdist[3];
+    TH1F* hdpix[4];
+    int _nclose;
+    int _nfar;
+    void writeHists();
     
   private:
     

@@ -83,9 +83,49 @@ namespace keypoints {
     }
     --depth;
   }
+
+  const bvhnode_t* recurse_findleaf( const std::vector<float>& testpt,
+                                     const bvhnode_t* node ) {
+
+    // is leaf?
+    if ( node->children.size()==0 ) return node;
+    // if child leaf?
+    if ( node->children.size()==1 ) return node->children[0];
+
+    // choose child to descend into
+    if ( testpt[node->splitdim] < node->children[0]->bounds[node->splitdim][1] )
+      return recurse_findleaf( testpt, node->children[0] );
+    else
+      return recurse_findleaf( testpt, node->children[1] );
+    
+  }
   
   bool PrepKeypointData::_setup_numpy = false;
+  
+  PrepKeypointData::PrepKeypointData()
+      : _bvhroot(nullptr)
+  {
+    _nclose = 0;
+    _nfar   = 0;
+    
+    hdist[0] = new TH1F("hdist_x","",2002,-500,500.0);
+    hdist[1] = new TH1F("hdist_y","",2002,-500,500.0);
+    hdist[2] = new TH1F("hdist_z","",2002,-500,500.0);
+    
+    hdpix[0] = new TH1F("hdpix_dt","",1001,-500,500);
+    hdpix[1] = new TH1F("hdpix_du","",1001,-500,500);
+    hdpix[2] = new TH1F("hdpix_dv","",1001,-500,500);
+    hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);        
+  }
 
+  PrepKeypointData::~PrepKeypointData()
+  {
+    for (int v=0; v<3; v++ )
+      if ( hdist[v] ) delete hdist[v];
+    for (int v=0; v<4; v++ )
+      if ( hdpix[v] ) delete hdpix[v];
+  }
+  
   
   /**
    * process one event, given io managers
@@ -429,38 +469,14 @@ namespace keypoints {
   }
 
   /**
-   * given a set of match proposals, we make labels for each
-   * label columns:
-   *  [0]:   has true end-point with X cm
-   *  [1-3]: shift in 3D points from point to closest end-point
-   *  [4-9]: shift in 2D pixels from image points to closest end-point
-   */
-  void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
-  {
-
-    _match_proposal_labels_v.resize(match_proposals._triplet_v.size());
-
-    for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
-      const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
-      const std::vector<float>& pos   = match_proposals._pos_v[imatch];
-
-      // dumb assignment, loops over all truth keypoints
-      // smarter one uses a BVH structure (does being in a leaf volume guarentee that point is the closest?)
-      // O(200k) proposals x 40 keypoints
-      // brute forces is O(8M) while BVH is O(737K), a factor of 10 speed-up
-    }
-      
-  }
-
-  /**
    * we build a boundary volume hierarchy tree, using a top-down method
    *
    */
   void PrepKeypointData::makeBVH() {
 
-    std::cout << "=========================" << std::endl;
-    std::cout << " makeBVH" << std::endl;
-    std::cout << "=========================" << std::endl;    
+    // std::cout << "=========================" << std::endl;
+    // std::cout << " makeBVH" << std::endl;
+    // std::cout << "=========================" << std::endl;    
     
     clearBVH();
     
@@ -489,7 +505,7 @@ namespace keypoints {
     q.push( _bvhroot );
 
     while ( q.size()>0 ) {
-      std::cout << "process node on the queue" << std::endl;
+      //std::cout << "process node on the queue" << std::endl;
       bvhnode_t* node = q.front();
       q.pop();
 
@@ -580,10 +596,10 @@ namespace keypoints {
       node->children.push_back( lo_node );
       node->children.push_back( hi_node );
 
-      std::cout << "[split " << strnode(node) << " nchild=" << nchild << "]" << std::endl;
-      std::cout << "  splitdim=" << longdim << " gapsize=" << dimlen << std::endl;
-      std::cout << "  lo: " << strnode(lo_node) << " nchild=" << lo_node->children.size() << std::endl;
-      std::cout << "  hi: " << strnode(hi_node) << " nchild=" << hi_node->children.size() << std::endl;      
+      // std::cout << "[split " << strnode(node) << " nchild=" << nchild << "]" << std::endl;
+      // std::cout << "  splitdim=" << longdim << " gapsize=" << dimlen << std::endl;
+      // std::cout << "  lo: " << strnode(lo_node) << " nchild=" << lo_node->children.size() << std::endl;
+      // std::cout << "  hi: " << strnode(hi_node) << " nchild=" << hi_node->children.size() << std::endl;      
 
       //set them into the queue if they have more than one child
       if (lo_node->children.size()>1 )
@@ -591,8 +607,8 @@ namespace keypoints {
       if (hi_node->children.size()>1 )
         q.push( hi_node );
 
-      std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
-      std::cin.get();
+      //std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
+      //std::cin.get();
     }//end of loop over queue
     
   }
@@ -608,6 +624,97 @@ namespace keypoints {
 
   void PrepKeypointData::printBVH() {
     print_graph( _bvhroot );
+  }
+
+  void PrepKeypointData::findClosestKeypoint( const std::vector<float>& testpt,
+                                              int& kpindex, float& dist ) {
+    
+  }
+
+  /**
+   * given a set of match proposals, we make labels for each
+   * label columns:
+   *  [0]:   has true end-point with X cm
+   *  [1-3]: shift in 3D points from point to closest end-point
+   *  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
+   */
+  void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
+  {
+
+    _match_proposal_labels_v.clear();
+    _match_proposal_labels_v.reserve(match_proposals._triplet_v.size());
+
+
+    for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
+      const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
+      const std::vector<float>& pos   = match_proposals._pos_v[imatch];
+
+      // dumb assignment, loops over all truth keypoints
+      // smarter one uses a BVH structure (does being in a leaf volume guarentee that point is the closest?)
+      // O(200k) proposals x 40 keypoints
+      // brute forces is O(8M) while BVH is O(737K), a factor of 10 speed-up
+      // std::cout << "[match " << imatch << "] "
+      //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
+      //           << std::endl;
+      const bvhnode_t* leaf = recurse_findleaf( pos, _bvhroot );
+      // std::cout << "  leaf-node[kpdindex: " << leaf->kpdidx << "] keypt="
+      //           << "(" << leaf->bounds[0][0] << ","
+      //           << leaf->bounds[1][0] << ","
+      //           << leaf->bounds[2][0] << ")"
+      //           << std::endl;
+      auto const& kpd = _kpd_v[ leaf->kpdidx ];
+
+      std::vector<float> label_v(10,0);
+      
+      float dist = 0.0;
+      std::vector<float> leafpos(3,0);
+      for (int i=0; i<3; i++ ) {
+        leafpos[i] = leaf->bounds[i][0];
+        dist += (pos[i]-leafpos[i])*(pos[i]-leafpos[i]);
+      }
+      dist = sqrt(dist);
+
+      // make label vector
+
+      // within 50 pixels/15 cm
+      if ( dist<0.3*50 ) {
+        label_v[0] = 1.0;
+        _nclose++;
+      }
+      else {
+        label_v[0] = 0.0;
+        _nfar++;
+      }
+
+      // shift in 3D
+      for (int i=0; i<3; i++ ) {
+        label_v[1+i] = leafpos[i]-pos[i];
+        hdist[i]->Fill(label_v[1+i]);
+      }
+
+      // shift in imgcoords
+      std::vector<int> imgcoords(4,0);
+      imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
+      for (int p=0; p<3; p++ ) {
+        imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
+      }
+      for (int i=0; i<4; i++) {
+        label_v[4+i] = imgcoords[i]-kpd.imgcoord[i];
+        hdpix[i]->Fill( label_v[4+i] );
+      }
+
+      _match_proposal_labels_v.push_back(label_v);
+    }//end of match proposal loop
+      
+  }
+
+  void PrepKeypointData::writeHists() {
+    for (int i=0; i<3; i++ ) {
+      hdist[i]->Write();
+    }
+    for (int i=0; i<4; i++ ) {
+      hdpix[i]->Write();
+    }
   }
   
 }
