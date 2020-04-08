@@ -47,7 +47,9 @@ namespace keypoints {
     if ( node->children.size()>0 ) {
       ss << "node: x[" << node->bounds[0][0] << "," << node->bounds[0][1] << "] "
          << "y[" << node->bounds[1][0] << "," << node->bounds[1][1] << "] "
-         << "z[" << node->bounds[2][0] << "," << node->bounds[2][1] << "] ";
+         << "z[" << node->bounds[2][0] << "," << node->bounds[2][1] << "] "
+         << "splitdim=" << node->splitdim;
+      
     }
     else {
       ss << "LEAF: "
@@ -172,6 +174,10 @@ namespace keypoints {
       _kpd_v.emplace_back( std::move(kpd) );      
     }
 
+    // filter duplicates
+    filter_duplicates();
+
+    // make BVH tree (to help truth point search speed)
     makeBVH();
     printBVH();
   }
@@ -333,6 +339,37 @@ namespace keypoints {
   }
 
 
+  /** 
+   * filter out duplicates
+   *
+   */
+  void PrepKeypointData::filter_duplicates()
+  {
+
+    // first count the number of unique points
+    std::set< std::vector<int> >    unique_coords;
+    std::vector< std::vector<int> > kpd_index;
+    int npts = 0;
+    for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
+      auto const& kpd = _kpd_v[ikpd];
+
+      if (kpd.imgcoord.size()>0) {
+        if ( unique_coords.find( kpd.imgcoord )==unique_coords.end() ) {
+          kpd_index.push_back( std::vector<int>{(int)ikpd,0} );
+          unique_coords.insert( kpd.imgcoord );
+          npts++;
+        }
+      }      
+    }
+
+    std::vector<KPdata> kpd_v;
+    for ( auto const& kpdidx : kpd_index ) {
+      kpd_v.emplace_back( std::move( _kpd_v[kpdidx[0]] ) );
+    }
+    std::swap(kpd_v,_kpd_v);
+
+  }
+  
   /**
    * return an array with keypoints
    * array columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
@@ -456,40 +493,56 @@ namespace keypoints {
       bvhnode_t* node = q.front();
       q.pop();
 
-      // get longest dim of box
-      float dimlen = 0;
-      int longdim = 0;
-      for (int i=0; i<3; i++ ) {
-        float len = node->bounds[i][1]-node->bounds[i][0];
-        if (len>dimlen) {
-          longdim = i;
-          dimlen  = len;
-        }
+      // make copies of child pointers in order to sort by dimension
+      std::vector< bvhnode_t* > x_v[3];
+      for (int v=0; v<3; v++) {
+        x_v[v].resize(node->children.size(),nullptr);
+        for (size_t i=0; i<node->children.size(); i++)
+          x_v[v][i] = node->children[i];
       }
-      // set this longest dim as the splitting dimension of this node
-      node->splitdim = longdim;
+      std::sort( x_v[0].begin(), x_v[0].end(), compare_x );
+      std::sort( x_v[1].begin(), x_v[1].end(), compare_y );
+      std::sort( x_v[2].begin(), x_v[2].end(), compare_z );
+      int nchild = (int)x_v[0].size();
 
-      // sort children by the dim
-      if      ( longdim==0 ) std::sort( node->children.begin(), node->children.end(), compare_x );
-      else if ( longdim==1 ) std::sort( node->children.begin(), node->children.end(), compare_y );
-      else if ( longdim==2 ) std::sort( node->children.begin(), node->children.end(), compare_z );
-
-      // get the center point to make a box
+      // we split by the largest gap
+      float dimlen = -1;
+      int longdim = 0;
+      float midpt = 0.0;
       int lowidx  = 0;
       int highidx = 0;
-      if ( node->children.size()%2==0 ) {
-        // even
-        highidx = node->children.size()/2; // 4/2 = 2
-        lowidx = highidx-1;                // 1
-      }
-      else {
-        // odd
-        lowidx = node->children.size()/2; // 3/2 = 1
-        highidx = lowidx + 1;             // 2
-      }
+      for (int i=0; i<3; i++ ) {
 
-      // calculate midpoint using leaf nodes
-      float midpt = 0.5*(node->children[lowidx]->bounds[longdim][0] + node->children[highidx]->bounds[longdim][0] );
+        // get the center point to make a box
+        int _lowidx  = 0;
+        int _highidx = 0;
+        if ( nchild%2==0 ) {
+          // even
+          _highidx = nchild/2; // 4/2 = 2
+          _lowidx  = _highidx-1;                // 1
+        }
+        else {
+          // odd
+          _lowidx  = nchild/2; // 3/2 = 1
+          _highidx = _lowidx + 1;             // 2
+        }
+
+        // calculate gap dist
+        float gapdim = 
+          fabs(x_v[i][_lowidx]->bounds[i][0] - x_v[i][_highidx]->bounds[i][0]);
+
+        if ( gapdim>=dimlen ) {
+          longdim = i;        
+          // calculate midpoint using leaf nodes
+          midpt   = 0.5*(x_v[i][_lowidx]->bounds[i][0] + x_v[i][_highidx]->bounds[i][0] );
+          lowidx  = _lowidx;
+          highidx = _highidx;
+          dimlen  = gapdim;
+        }
+      }// end of loop over dimensions
+      
+      // set this longest dim as the splitting dimension of this node
+      node->splitdim = longdim;
 
       // we define two new boundary volume, using the midpoint of low and high
       // to split the previous volume.
@@ -514,12 +567,12 @@ namespace keypoints {
 
       // now we divide the node's children into the new nodes
       for (int i=0; i<=lowidx; i++ ) {
-        node->children[i]->mother = lo_node;
-        lo_node->children.push_back( node->children[i] );
+        x_v[longdim][i]->mother = lo_node;
+        lo_node->children.push_back( x_v[longdim][i] );
       }
-      for (int i=highidx; i<node->children.size(); i++ ) {
-        node->children[i]->mother = hi_node;        
-        hi_node->children.push_back( node->children[i] );
+      for (int i=highidx; i<nchild; i++ ) {
+        x_v[longdim][i]->mother = hi_node;        
+        hi_node->children.push_back( x_v[longdim][i] );
       }
 
       // clear the node's children and replace it with the new nodes
@@ -527,6 +580,10 @@ namespace keypoints {
       node->children.push_back( lo_node );
       node->children.push_back( hi_node );
 
+      std::cout << "[split " << strnode(node) << " nchild=" << nchild << "]" << std::endl;
+      std::cout << "  splitdim=" << longdim << " gapsize=" << dimlen << std::endl;
+      std::cout << "  lo: " << strnode(lo_node) << " nchild=" << lo_node->children.size() << std::endl;
+      std::cout << "  hi: " << strnode(hi_node) << " nchild=" << hi_node->children.size() << std::endl;      
 
       //set them into the queue if they have more than one child
       if (lo_node->children.size()>1 )
@@ -535,6 +592,7 @@ namespace keypoints {
         q.push( hi_node );
 
       std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
+      std::cin.get();
     }//end of loop over queue
     
   }

@@ -124,6 +124,7 @@ namespace keypoints {
 
     std::string str( const KPdata& kpd );
 
+    void filter_duplicates();
     
   protected:
     
