@@ -120,7 +120,7 @@ namespace keypoints {
                                       larutil::SpaceChargeMicroBooNE* psce )
   {
 
-    bool verbose = true;
+    bool verbose = false;
     
     // get list of primaries
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
@@ -146,41 +146,44 @@ namespace keypoints {
                                      psce );
 
       if ( crossingtype>=0 ) {
-
-        KPdata kpd;
-        kpd.crossingtype = crossingtype;
-        kpd.trackid = pnode->tid;
-        kpd.pid     = pnode->pid;
-        kpd.vid     = pnode->vidx;
-        kpd.is_shower = 0;
-        kpd.origin  = pnode->origin;
         
-        std::vector< int > imgcoords_start;
-        std::vector< int > imgcoords_end;
-
         if ( crossingtype>=0 && crossingtype<=2) {
-          imgcoords_start
-            = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
-                                                                                         4050.0, true, 0.3, 0.1,
-                                                                                         kpd.startpt, psce, verbose );
-          if ( imgcoords_start.size()>0 ) {
-            kpd.imgcoord_start = imgcoords_start;
+          KPdata kpd;
+          kpd.crossingtype = crossingtype;
+          kpd.trackid = pnode->tid;
+          kpd.pid     = pnode->pid;
+          kpd.vid     = pnode->vidx;
+          kpd.is_shower = 0;
+          kpd.origin  = pnode->origin;
+          kpd.imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
+                                                                                       4050.0, true, 0.3, 0.1,
+                                                                                       kpd.keypt, psce, verbose );
+          if ( kpd.imgcoord.size()>0 ) {
+            kpd_v.emplace_back( std::move(kpd) );            
           }
           
         }
 
         if ( crossingtype>=0 && crossingtype<=2 ) {
-          imgcoords_end
-            = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
-                                                                                         4050.0, false, 0.3, 0.1,
-                                                                                         kpd.endpt, psce, verbose );
-          if ( imgcoords_end.size()>0 ) {
-            kpd.imgcoord_end = imgcoords_end;
+          KPdata kpd;
+          kpd.crossingtype = crossingtype;
+          kpd.trackid = pnode->tid;
+          kpd.pid     = pnode->pid;
+          kpd.vid     = pnode->vidx;
+          kpd.is_shower = 0;
+          kpd.origin  = pnode->origin;
+          kpd.imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
+                                                                                       4050.0, false, 0.3, 0.1,
+                                                                                       kpd.keypt, psce, verbose );
+          if ( kpd.imgcoord.size()>0 ) {
+            kpd_v.emplace_back( std::move(kpd) );
           }
         }
 
-        kpd_v.emplace_back( std::move(kpd) );
-      }
+
+      }//if track in image
 
     }//end of primary loop
 
@@ -229,15 +232,13 @@ namespace keypoints {
         kpd.pid     = pnode->pid;
         kpd.vid     = pnode->vidx;
         kpd.origin  = pnode->origin;
+        kpd.is_shower = 1;
         
-        std::vector< int > imgcoords_start;
-        imgcoords_start
-          = ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mct, adc_v.front().meta(),
-                                                                                       4050.0, true, 0.3, 0.1,
-                                                                                       kpd.startpt, psce, false );
-        if ( imgcoords_start.size()>0 ) {
-          kpd.imgcoord_start = imgcoords_start;
-          kpd.is_shower = 1;
+        kpd.imgcoord = 
+          ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mct, adc_v.front().meta(),
+                                                                                     4050.0, true, 0.3, 0.1,
+                                                                                     kpd.keypt, psce, false );
+        if ( kpd.imgcoord.size()>0 ) {
           kpd_v.emplace_back( std::move(kpd) );
         }
       }
@@ -255,24 +256,15 @@ namespace keypoints {
        << " isshower=" << kpd.is_shower
        << " origin=" << kpd.origin << "] ";
 
-    if ( kpd.imgcoord_start.size()>0 )
-      ss << " imgstart=(" << kpd.imgcoord_start[0] << ","
-         << kpd.imgcoord_start[1] << ","
-         << kpd.imgcoord_start[2] << ","
-         << kpd.imgcoord_start[3] << ") ";
+    if ( kpd.imgcoord.size()>0 )
+      ss << " imgstart=(" << kpd.imgcoord[0] << ","
+         << kpd.imgcoord[1] << ","
+         << kpd.imgcoord[2] << ","
+         << kpd.imgcoord[3] << ") ";
 
-    if ( kpd.startpt.size()>0 )
-      ss << " startpt=(" << kpd.startpt[0] << "," << kpd.startpt[1] << "," << kpd.startpt[2] << ") ";
-        
-    if ( kpd.imgcoord_end.size()>0 ) 
-      ss << " imgend=(" << kpd.imgcoord_end[0] << ","
-         << kpd.imgcoord_end[1] << ","
-         << kpd.imgcoord_end[2] << ","
-         << kpd.imgcoord_end[3] << ") ";
-
-    if ( kpd.endpt.size()>0 )
-      ss << " endpt=(" << kpd.endpt[0] << "," << kpd.endpt[1] << "," << kpd.endpt[2] << ") ";
-    
+    if ( kpd.keypt.size()>0 )
+      ss << " keypt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ") ";
+            
     return ss.str();
   }
 
@@ -297,21 +289,13 @@ namespace keypoints {
     for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
       auto const& kpd = _kpd_v[ikpd];
 
-      if (kpd.imgcoord_start.size()>0) {
-        if ( unique_coords.find( kpd.imgcoord_start )==unique_coords.end() ) {
+      if (kpd.imgcoord.size()>0) {
+        if ( unique_coords.find( kpd.imgcoord )==unique_coords.end() ) {
           kpd_index.push_back( std::vector<int>{(int)ikpd,0} );
-          unique_coords.insert( kpd.imgcoord_start );
+          unique_coords.insert( kpd.imgcoord );
           npts++;
         }
-      }
-      
-      if (kpd.imgcoord_end.size()>0) {
-        if ( unique_coords.find( kpd.imgcoord_end )==unique_coords.end() ) {
-          kpd_index.push_back( std::vector<int>{(int)ikpd,1} );
-          unique_coords.insert( kpd.imgcoord_end );
-          npts++;
-        }
-      }
+      }      
     }
     
     int nd = 2;
@@ -326,36 +310,53 @@ namespace keypoints {
       if ( kpdidx[1]==0 ) {
         // start img coordinates
         for ( size_t i=0; i<4; i++ )
-          *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_start[i];
+          *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord[i];
         // 3D point
         for ( size_t i=0; i<3; i++ )
-          *((float*)PyArray_GETPTR2(array,ipt,4+i)) = (float)kpd.startpt[i];
+          *((float*)PyArray_GETPTR2(array,ipt,4+i)) = (float)kpd.keypt[i];
         // is shower
         *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
         // origin
         *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
+        ipt++;
       }
-      else if ( kpdidx[1]==1 ) {
-        // end img coordinates
-        for ( size_t i=0; i<4; i++ )
-          *((float*)PyArray_GETPTR2(array,ipt,i)) = (float)kpd.imgcoord_end[i];
-        // 3D point
-        for ( size_t i=0; i<3; i++ )
-          *((float*)PyArray_GETPTR2(array,ipt,4+i)) = (float)kpd.endpt[i];
-        // is shower
-        *((float*)PyArray_GETPTR2(array,ipt,7)) = (float)kpd.is_shower;
-        // origin
-        *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
-        // PID
-        *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
-      }
-      ipt++;
     }// end of loop over keypointdata structs
 
     return (PyObject*)array;
   }
+
+  /**
+   * given a set of match proposals, we make labels for each
+   * label columns:
+   *  [0]:   has true end-point with X cm
+   *  [1-3]: shift in 3D points from point to closest end-point
+   *  [4-9]: shift in 2D pixels from image points to closest end-point
+   */
+  void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
+  {
+
+    _match_proposal_labels_v.resize(match_proposals._triplet_v.size());
+
+    for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
+      const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
+      const std::vector<float>& pos   = match_proposals._pos_v[imatch];
+
+      // dump loop is to 
+    }
+      
+  }
+
+  /**
+   * we build a boundary volume hierarchy tree, using a top-down method
+   *
+   */
+  // void PrepKeypointData::makeBVH() {
+
+    
+    
+  // }
   
 }
 }

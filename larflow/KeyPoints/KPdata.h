@@ -8,10 +8,8 @@ namespace keypoints {
 
   struct KPdata {
     int crossingtype;
-    std::vector<int> imgcoord_start;
-    std::vector<int> imgcoord_end;
-    std::vector<float> startpt;
-    std::vector<float> endpt;
+    std::vector<int> imgcoord;
+    std::vector<float> keypt;
     int trackid;
     int pid;
     int vid;
@@ -19,10 +17,8 @@ namespace keypoints {
     int origin;
     KPdata() {
       crossingtype = -1;
-      imgcoord_start.clear();
-      imgcoord_end.clear();
-      startpt.clear();
-      endpt.clear();
+      imgcoord.clear();
+      keypt.clear();
       trackid = 0;
       pid = 0;
       vid = 0;

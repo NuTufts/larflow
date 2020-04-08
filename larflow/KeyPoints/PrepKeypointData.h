@@ -28,6 +28,8 @@
 #include <vector>
 #include <string>
 
+#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+
 #include "KPdata.h"
 
 namespace larcv {
@@ -73,34 +75,12 @@ namespace keypoints {
                   const larlite::event_mcshower& mcshower_v,
                   const larlite::event_mctruth&  mctruth_v );
 
+    void make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals );
+    
   protected:
 
-    /* struct KPdata { */
-    /*   int crossingtype; */
-    /*   std::vector<int> imgcoord_start; */
-    /*   std::vector<int> imgcoord_end; */
-    /*   std::vector<float> startpt; */
-    /*   std::vector<float> endpt; */
-    /*   int trackid; */
-    /*   int pid; */
-    /*   int vid; */
-    /*   int is_shower; */
-    /*   int origin; */
-    /*   KPdata() { */
-    /*     crossingtype = -1; */
-    /*     imgcoord_start.clear(); */
-    /*     imgcoord_end.clear(); */
-    /*     startpt.clear(); */
-    /*     endpt.clear(); */
-    /*     trackid = 0; */
-    /*     pid = 0; */
-    /*     vid = 0; */
-    /*     is_shower = 0; */
-    /*     origin = -1; */
-    /*   }; */
-    /*   ~KPdata() {}; */
-    /* }; */
-    std::vector<KPdata> _kpd_v;
+    // KPdata in KPdata.h    
+    std::vector<KPdata> _kpd_v; 
     
     std::vector<KPdata>    
       getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
@@ -118,9 +98,36 @@ namespace keypoints {
 
   public:
 
+    struct bvhnode_t {
+      float bounds[3][2]; //bounding box
+      int splitdim;       // dimension we split with (-1) is a leaf
+      int kpdidx;         // index to point in the boundary volume
+      bvhnode_t* left;
+      bvhnode_t* right;
+      bvhnode_t()
+      : splitdim(-1),
+        kpdidx(-1),
+        left(nullptr),
+        right(nullptr)
+      {};
+    };
+
+  protected:
+    
+    std::vector< bvhnode_t* > _bvhnodes_v;
+    bvhnode_t* _bvhroot;
+    
+  public:
+
     PyObject* get_keypoint_array() const;
 
 
+  protected:
+
+    // this provides the labels for each triplet proposal made by
+    // larflow::PrepMatchTriplets
+    std::vector< std::vector<float> > _match_proposal_labels_v;
+    
   private:
 
     static bool _setup_numpy;
