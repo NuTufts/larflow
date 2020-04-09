@@ -8,7 +8,8 @@ set( HEADERS WireOverlap.h FlowTriples.h FlowMatchMap.hh
   PrepFlowMatchData.hh
   MatchTripletProcessor.h
   PyFlowMatchData.hh
-  FlowMatchHitMaker.h )
+  FlowMatchHitMaker.h
+  PrepSSNetTriplet.h )
 
 add_library( ${LIBNAME} SHARED
   WireOverlap.cxx
@@ -18,7 +19,8 @@ add_library( ${LIBNAME} SHARED
   FlowMatchMap.cxx
   PrepFlowMatchData.cxx
   PyFlowMatchData.cxx
-  FlowMatchHitMaker.cxx)
+  FlowMatchHitMaker.cxx
+  PrepSSNetTriplet.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

@@ -9,6 +9,7 @@ parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,
 parser.add_argument("-vis", "--visualize", action='store_true',default=False,help="Visualize Keypoints in TCanvas [default: false]")
 parser.add_argument("-bvh", "--use-bvh", action='store_true',default=False,help="Use BVH [default: false]")
 parser.add_argument("-tri", "--save-triplets",action='store_true',default=False,help="Save triplet data [default: false]")
+parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -38,6 +39,8 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
+if args.nentries>=0 and args.nentries<nentries:
+    nentries = args.nentries
 
 print "Start loop."
 tmp = rt.TFile(args.output,"recreate")
@@ -47,6 +50,8 @@ ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
 kpana.useBVH( args.use_bvh )
 kpana.defineAnaTree()
+ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
+ssnet.defineAnaTree()
 
 if args.save_triplets:
     triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
@@ -93,6 +98,9 @@ for ientry in xrange( nentries ):
 
     kpana.make_proposal_labels( tripmaker )
     kpana.fillAnaTree()
+
+    ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    
     if args.save_triplets:
         triptree.Fill()
     nrun += 1
@@ -141,9 +149,11 @@ print "Time: ",float(dtime)/float(nrun)," sec/event"
 tmp.cd()
 kpana.writeAnaTree()
 kpana.writeHists()
+ssnet.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
 
 del kpana
+del ssnet
 
 print "=== FIN =="

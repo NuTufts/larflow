@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os,sys,argparse,json
 from ctypes import c_int
+from math import log
 
 parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
@@ -20,7 +21,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
     
-color_by_options = ["truthmatch","isclosematch","dist2keypoint"]
+color_by_options = ["truthmatch","isclosematch","dist2keypoint","ssnetlabels","ssnetweights"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -30,6 +31,7 @@ for opt in color_by_options:
 tfile = rt.TFile(args.input_file,'open')
 ev_triplet  = tfile.Get('larmatchtriplet')
 ev_keypoint = tfile.Get('keypointlabels')
+ev_ssnet    = tfile.Get("ssnetlabels")
 
 nentries = ev_keypoint.GetEntries()
 print("NENTRIES: ",nentries)
@@ -42,6 +44,7 @@ def make_figures(entry,plotby="truthmatch"):
 
     ev_triplet.GetEntry(entry)
     ev_keypoint.GetEntry(entry)
+    ev_ssnet.GetEntry(entry)
 
     # Get proposed points numpy
     triplet = ev_triplet.triplet_v.at(0)
@@ -55,10 +58,11 @@ def make_figures(entry,plotby="truthmatch"):
     pos3d = np.zeros( (nsamples,4) )
 
     traces_v = []
-    
+
     for i in xrange(nsamples):
         for v in xrange(3):
             pos3d[i,v] = triplet._pos_v[  index[i] ][v]
+    
 
     if plotby=="truthmatch":
         for i in xrange(nsamples):
@@ -66,6 +70,12 @@ def make_figures(entry,plotby="truthmatch"):
     elif plotby=="isclosematch":
         for i in xrange(nsamples):
             pos3d[i,3] = ev_keypoint.kplabel[ index[i] ][0]
+    elif plotby=="ssnetlabels":
+        for i in xrange(nsamples):
+            pos3d[i,3] = ev_ssnet.trackshower_label_v[ index[i] ]
+    elif plotby=="ssnetweights":
+        for i in xrange(nsamples):
+            pos3d[i,3] = log(1.0+ev_ssnet.trackshower_weight_v[ index[i] ])
     elif plotby=="dist2keypoint":
         for i in xrange(nsamples):
             dist = 0.0
