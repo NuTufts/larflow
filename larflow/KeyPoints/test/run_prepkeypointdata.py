@@ -6,6 +6,7 @@ parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input L
 parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree with Wire ADC values [default: wire]")
 parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,help="Input LArCV data is tick-backward [default: false]")
 parser.add_argument("-vis", "--visualize", action='store_true',default=False,help="Visualize Keypoints in TCanvas [default: false]")
+parser.add_argument("-bvh", "--use-bvh", action='store_true',default=False,help="Use BVH [default: false]")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -42,6 +43,7 @@ tmp = rt.TFile("temp.root","recreate")
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 trips = larflow.PrepMatchTriplets()
 kpana = larflow.keypoints.PrepKeypointData()
+kpana.useBVH( args.use_bvh )
 kpana.defineAnaTree()
 
 start = time.time()

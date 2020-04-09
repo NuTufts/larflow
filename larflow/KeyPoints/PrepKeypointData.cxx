@@ -35,6 +35,7 @@ namespace keypoints {
    */
   PrepKeypointData::PrepKeypointData()
     : _bvhroot(nullptr),
+      _use_bvh(true),
       _label_tree(nullptr)
   {
     _nclose = 0;
@@ -617,31 +618,52 @@ namespace keypoints {
     for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
       const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
       const std::vector<float>& pos   = match_proposals._pos_v[imatch];
+      // std::cout << "[match " << imatch << "] "
+      //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
+      //           << std::endl;
 
+      std::vector<float> label_v(10,0);
+      float dist = 1.0e9;
+      
       // dumb assignment, loops over all truth keypoints
       // smarter one uses a BVH structure (does being in a leaf volume guarentee that point is the closest?)
       // O(200k) proposals x 40 keypoints
       // brute forces is O(8M) while BVH is O(737K), a factor of 10 speed-up
-      // std::cout << "[match " << imatch << "] "
-      //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
-      //           << std::endl;
-      const bvhnode_t* leaf = recurse_findleaf( pos, _bvhroot );
-      // std::cout << "  leaf-node[kpdindex: " << leaf->kpdidx << "] keypt="
-      //           << "(" << leaf->bounds[0][0] << ","
-      //           << leaf->bounds[1][0] << ","
-      //           << leaf->bounds[2][0] << ")"
-      //           << std::endl;
-      auto const& kpd = _kpd_v[ leaf->kpdidx ];
-
-      std::vector<float> label_v(10,0);
-      
-      float dist = 0.0;
+      const bvhnode_t* leaf = nullptr;
+      const KPdata* kpd = nullptr;
       std::vector<float> leafpos(3,0);
-      for (int i=0; i<3; i++ ) {
-        leafpos[i] = leaf->bounds[i][0];
-        dist += (pos[i]-leafpos[i])*(pos[i]-leafpos[i]);
+      
+      if ( _use_bvh ) {
+        leaf = recurse_findleaf( pos, _bvhroot );
+        // std::cout << "  leaf-node[kpdindex: " << leaf->kpdidx << "] keypt="
+        //           << "(" << leaf->bounds[0][0] << ","
+        //           << leaf->bounds[1][0] << ","
+        //           << leaf->bounds[2][0] << ")"
+        //           << std::endl;
+        kpd = &(_kpd_v[ leaf->kpdidx ]);
+     
+        for (int i=0; i<3; i++ ) {
+          leafpos[i] = leaf->bounds[i][0];
+          dist += (pos[i]-leafpos[i])*(pos[i]-leafpos[i]);
+        }
+        dist = sqrt(dist);
       }
-      dist = sqrt(dist);
+      else {
+        // brute force
+        for (auto const& testkpd : _kpd_v ) {
+          float testdist = 0.;
+          for ( int v=0; v<3; v++ )
+            testdist += (testkpd.keypt[v]-pos[v])*(testkpd.keypt[v]-pos[v]);
+          testdist = sqrt(testdist);
+
+          if ( dist>testdist ) {
+            dist = testdist;
+            for (int v=0; v<3; v++ )
+              leafpos[v] = testkpd.keypt[v];
+            kpd = &testkpd;
+          }
+        }
+      }
 
       // make label vector
 
@@ -668,7 +690,7 @@ namespace keypoints {
         imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
       }
       for (int i=0; i<4; i++) {
-        label_v[4+i] = imgcoords[i]-kpd.imgcoord[i];
+        label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
         hdpix[i]->Fill( label_v[4+i] );
       }
 

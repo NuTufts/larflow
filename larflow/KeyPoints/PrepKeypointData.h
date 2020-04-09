@@ -107,12 +107,14 @@ namespace keypoints {
     // BVH data
     std::vector< bvhnode_t* > _bvhnodes_v;
     bvhnode_t* _bvhroot;
+    bool _use_bvh;
     void clearBVH();
     void makeBVH();
 
   public:
 
     // BVH public methods
+    void useBVH( bool use ) { _use_bvh = use; };    
     void printBVH();
     
   public:
