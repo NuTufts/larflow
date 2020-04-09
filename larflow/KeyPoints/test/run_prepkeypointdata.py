@@ -1,15 +1,18 @@
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("Test PrepKeypointData")
-parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input larlite file")
-parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file")
+parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input larlite file [required]")
+parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file [required]")
+parser.add_argument("-o","--output",required=True,type=str,help="output file name [required]")
 parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree with Wire ADC values [default: wire]")
 parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,help="Input LArCV data is tick-backward [default: false]")
 parser.add_argument("-vis", "--visualize", action='store_true',default=False,help="Visualize Keypoints in TCanvas [default: false]")
 parser.add_argument("-bvh", "--use-bvh", action='store_true',default=False,help="Use BVH [default: false]")
+parser.add_argument("-tri", "--save-triplets",action='store_true',default=False,help="Save triplet data [default: false]")
 args = parser.parse_args()
 
 import ROOT as rt
+from ROOT import std
 from larcv import larcv
 from larlite import larlite
 from larflow import larflow
@@ -35,16 +38,20 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-#nentries = 1
+nentries = 1
 
 print "Start loop."
-tmp = rt.TFile("temp.root","recreate")
+tmp = rt.TFile(args.output,"recreate")
 
 badchmaker = ublarcvapp.EmptyChannelAlgo()
-trips = larflow.PrepMatchTriplets()
+ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
 kpana.useBVH( args.use_bvh )
 kpana.defineAnaTree()
+
+if args.save_triplets:
+    triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
+    triptree.Branch("triplet_v",ev_triplet)
 
 start = time.time()
 
@@ -57,6 +64,8 @@ for ientry in xrange( nentries ):
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
+    tripmaker = ev_triplet[0]
+    
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
     print "number of images: ",ev_adc.Image2DArray().size()
     adc_v = ev_adc.Image2DArray()
@@ -72,7 +81,7 @@ for ientry in xrange( nentries ):
                                               1.0, 100, -1.0 );
     print("made badch_v, size=",badch_v.size())
 
-    tripmaker = larflow.PrepMatchTriplets()
+    #tripmaker = larflow.PrepMatchTriplets()
     tripmaker.process( adc_v, badch_v, 10.0, True )
     tripmaker.make_truth_vector( larflow_v )
     
@@ -85,6 +94,8 @@ for ientry in xrange( nentries ):
 
     kpana.make_proposal_labels( tripmaker )
     kpana.fillAnaTree()
+    if args.save_triplets:
+        triptree.Fill()
     nrun += 1
     
     if args.visualize:
@@ -131,6 +142,8 @@ print "Time: ",float(dtime)/float(nrun)," sec/event"
 tmp.cd()
 kpana.writeAnaTree()
 kpana.writeHists()
+if args.save_triplets:
+    triptree.Write()
 
 del kpana
 

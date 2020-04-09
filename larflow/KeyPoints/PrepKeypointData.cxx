@@ -35,7 +35,7 @@ namespace keypoints {
    */
   PrepKeypointData::PrepKeypointData()
     : _bvhroot(nullptr),
-      _use_bvh(true),
+      _use_bvh(false),
       _label_tree(nullptr)
   {
     _nclose = 0;
@@ -158,6 +158,12 @@ namespace keypoints {
 
     // filter duplicates
     filter_duplicates();
+
+    // copy positions of keypoints into flat vector for storage
+    _kppos_v.clear();
+    for ( auto const& kpd : _kpd_v ) {
+      _kppos_v.push_back( kpd.keypt );
+    }
 
     // make BVH tree (to help truth point search speed)
     makeBVH();
@@ -634,6 +640,7 @@ namespace keypoints {
       std::vector<float> leafpos(3,0);
       
       if ( _use_bvh ) {
+        throw std::runtime_error("BVH method should not be used");
         leaf = recurse_findleaf( pos, _bvhroot );
         // std::cout << "  leaf-node[kpdindex: " << leaf->kpdidx << "] keypt="
         //           << "(" << leaf->bounds[0][0] << ","
@@ -724,6 +731,7 @@ namespace keypoints {
     _label_tree->Branch("subrun",&_subrun,"subrun/I");
     _label_tree->Branch("event",&_event,"event/I");
     _label_tree->Branch("kplabel",&_match_proposal_labels_v);
+    _label_tree->Branch("kppos",&_kppos_v);
   }
 
   void PrepKeypointData::writeAnaTree()

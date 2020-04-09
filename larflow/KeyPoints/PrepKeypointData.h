@@ -138,6 +138,7 @@ namespace keypoints {
     int _subrun;
     int _event;
     TTree* _label_tree; ///< tree for storing labels
+    std::vector< std::vector<float> > _kppos_v;
     
   public:
     
