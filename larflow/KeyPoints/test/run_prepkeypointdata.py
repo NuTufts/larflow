@@ -38,7 +38,6 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 1
 
 print "Start loop."
 tmp = rt.TFile(args.output,"recreate")
