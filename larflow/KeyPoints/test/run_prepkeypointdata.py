@@ -1,10 +1,11 @@
-import os,sys,argparse
+import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("Test PrepKeypointData")
 parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input larlite file")
 parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file")
 parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree with Wire ADC values [default: wire]")
 parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,help="Input LArCV data is tick-backward [default: false]")
+parser.add_argument("-vis", "--visualize", action='store_true',default=False,help="Visualize Keypoints in TCanvas [default: false]")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -33,7 +34,7 @@ iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-nentries = 10
+#nentries = 1
 
 print "Start loop."
 tmp = rt.TFile("temp.root","recreate")
@@ -41,7 +42,11 @@ tmp = rt.TFile("temp.root","recreate")
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 trips = larflow.PrepMatchTriplets()
 kpana = larflow.keypoints.PrepKeypointData()
-    
+kpana.defineAnaTree()
+
+start = time.time()
+
+nrun = 0
 for ientry in xrange( nentries ):
 
     print 
@@ -77,36 +82,40 @@ for ientry in xrange( nentries ):
         print " [",p,"] imgcoord: ",kpd[p,0:4]
 
     kpana.make_proposal_labels( tripmaker )
+    kpana.fillAnaTree()
+    nrun += 1
+    
+    if args.visualize:
+        # visualize output
+        c = rt.TCanvas("c","c",1200,1800)
+        c.Divide(1,3)
 
-    # visualize output
-    c = rt.TCanvas("c","c",1200,1800)
-    c.Divide(1,3)
+        # make histogram and graphs
+        hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
+        for ih in xrange(adc_v.size()):
+            h = hist_v[ih]
+            h.GetZaxis().SetRangeUser(0,100)
 
-    # make histogram and graphs
-    hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
-    for ih in xrange(adc_v.size()):
-        h = hist_v[ih]
-        h.GetZaxis().SetRangeUser(0,100)
+        g_v = [ rt.TGraph( int(kpd.shape[0]) ) for p in xrange(3) ]
+        for g in g_v:
+            g.SetMarkerStyle(20)
+        for ipt in xrange(kpd.shape[0]):
+            for p in xrange(3):
+                row = kpd[ipt,0]
+                if row==0:
+                    row+=1
+                g_v[p].SetPoint(ipt,kpd[ipt,1+p],adc_v[p].meta().pos_y(long(row)))
 
-    g_v = [ rt.TGraph( int(kpd.shape[0]) ) for p in xrange(3) ]
-    for g in g_v:
-        g.SetMarkerStyle(20)
-    for ipt in xrange(kpd.shape[0]):
         for p in xrange(3):
-            row = kpd[ipt,0]
-            if row==0:
-                row+=1
-            g_v[p].SetPoint(ipt,kpd[ipt,1+p],adc_v[p].meta().pos_y(long(row)))
+            c.cd(1+p)
+            hist_v[p].Draw("colz")
+            g_v[p].Draw("P")
+    
+        c.Update()    
+        print "[enter to continue]"
+        raw_input()
 
-    for p in xrange(3):
-        c.cd(1+p)
-        hist_v[p].Draw("colz")
-        g_v[p].Draw("P")
     
-    c.Update()
-    
-    print "[enter to continue]"
-    #raw_input()
     #sys.exit(0)
     #break
 
@@ -114,7 +123,11 @@ print "NCLOSE: ",kpana._nclose
 print "NFAR: ",kpana._nfar
 print "FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar)
 
+dtime = time.time()-start
+print "Time: ",float(dtime)/float(nrun)," sec/event"
+
 tmp.cd()
+kpana.writeAnaTree()
 kpana.writeHists()
 
 del kpana

@@ -24,86 +24,18 @@
 namespace larflow {
 namespace keypoints {
 
-  bool compare_x( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
-    if ( lhs->bounds[0][0] < rhs->bounds[0][0] )
-      return true;
-    return false;
-  }
-  
-  bool compare_y( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
-    if ( lhs->bounds[1][0] < rhs->bounds[1][0] )
-        return true;
-    return false;
-  }
-  
-  bool compare_z( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
-    if ( lhs->bounds[2][0] < rhs->bounds[2][0] )
-        return true;
-    return false;
-  }
 
-  std::string strnode( const bvhnode_t* node ) {
-    std::stringstream ss;
-    if ( node->children.size()>0 ) {
-      ss << "node: x[" << node->bounds[0][0] << "," << node->bounds[0][1] << "] "
-         << "y[" << node->bounds[1][0] << "," << node->bounds[1][1] << "] "
-         << "z[" << node->bounds[2][0] << "," << node->bounds[2][1] << "] "
-         << "splitdim=" << node->splitdim;
-      
-    }
-    else {
-      ss << "LEAF: "
-         << "x[" << node->bounds[0][0] << "] "
-         << "y[" << node->bounds[1][0] << "] " 
-         << "z[" << node->bounds[2][0] << "] "
-         << "kpdata-index=" << node->kpdidx;
-    }
-    return ss.str();
-  }
-
-  void print_graph( const bvhnode_t* node ) {
-    int depth=0;
-    _recurse_printgraph( node, depth );
-  }
-  
-  void _recurse_printgraph( const bvhnode_t* node, int& depth ) {
-    std::string info =  strnode(node);
-    std::string branch = "";
-    for (int i=0; i<depth; i++)
-      branch += " |";
-    if ( depth>0 ) 
-      branch += "-- ";
-
-    std::cout << branch << info << std::endl;
-
-    // we loop through our daughters
-    for ( auto& child : node->children ) {
-      ++depth;
-      _recurse_printgraph( child, depth );
-    }
-    --depth;
-  }
-
-  const bvhnode_t* recurse_findleaf( const std::vector<float>& testpt,
-                                     const bvhnode_t* node ) {
-
-    // is leaf?
-    if ( node->children.size()==0 ) return node;
-    // if child leaf?
-    if ( node->children.size()==1 ) return node->children[0];
-
-    // choose child to descend into
-    if ( testpt[node->splitdim] < node->children[0]->bounds[node->splitdim][1] )
-      return recurse_findleaf( testpt, node->children[0] );
-    else
-      return recurse_findleaf( testpt, node->children[1] );
-    
-  }
-  
+  /**
+   * static variable to track if numpy environment has been setup
+   */
   bool PrepKeypointData::_setup_numpy = false;
-  
+
+  /**
+   * constructor
+   */
   PrepKeypointData::PrepKeypointData()
-      : _bvhroot(nullptr)
+    : _bvhroot(nullptr),
+      _label_tree(nullptr)
   {
     _nclose = 0;
     _nfar   = 0;
@@ -118,18 +50,24 @@ namespace keypoints {
     hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);        
   }
 
+  /**
+   * deconstructor
+   */
   PrepKeypointData::~PrepKeypointData()
   {
     for (int v=0; v<3; v++ )
       if ( hdist[v] ) delete hdist[v];
     for (int v=0; v<4; v++ )
       if ( hdpix[v] ) delete hdpix[v];
+    if ( _label_tree ) delete _label_tree;      
   }
   
   
   /**
    * process one event, given io managers
    *
+   * @param[in] iolcv LArCV IOManager containing event data
+   * @param[in] ioll  LArLite storage_manager containing event data
    */
   void PrepKeypointData::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
@@ -138,9 +76,9 @@ namespace keypoints {
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
     auto ev_ancestor = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
 
-    auto ev_mctrack  = (larlite::event_mctrack*)ioll.get_data(  larlite::data::kMCTrack, "mcreco" );
+    auto ev_mctrack  = (larlite::event_mctrack*)ioll.get_data(  larlite::data::kMCTrack,  "mcreco" );
     auto ev_mcshower = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
-    auto ev_mctruth  = (larlite::event_mctruth*)ioll.get_data(  larlite::data::kMCTruth, "generator" );
+    auto ev_mctruth  = (larlite::event_mctruth*)ioll.get_data(  larlite::data::kMCTruth,  "generator" );
     
     std::vector<larcv::Image2D> badch_v;
     for ( auto const& img : ev_adc->Image2DArray() ) {
@@ -158,7 +96,10 @@ namespace keypoints {
     std::cout << "  mctracks: " << ev_mctrack->size() << std::endl;
     std::cout << "  mcshowers: " << ev_mcshower->size() << std::endl;
     std::cout << "  mctruths: " << ev_mctruth->size() << std::endl;
-                                                         
+
+    _run    = iolcv.event_id().run();
+    _subrun = iolcv.event_id().subrun();
+    _event  = iolcv.event_id().event();    
     
     process( ev_adc->Image2DArray(),
              badch_v,
@@ -222,7 +163,11 @@ namespace keypoints {
     printBVH();
   }
 
-  
+
+  /**
+   * make list of end-points for track-like particles
+   *
+   */
   std::vector<KPdata>
   PrepKeypointData::getMuonEndpoints( ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                       const std::vector<larcv::Image2D>& adc_v,
@@ -300,6 +245,10 @@ namespace keypoints {
     return kpd_v;
   }
 
+  /**
+   * make list of end-points for shower-like particles
+   *
+   */  
   std::vector<KPdata>
   PrepKeypointData::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                      const std::vector<larcv::Image2D>& adc_v,
@@ -358,6 +307,10 @@ namespace keypoints {
     return kpd_v;
   }
 
+  /**
+   * make info string for KPdata
+   *
+   */    
   std::string PrepKeypointData::str( const KPdata& kpd )
   {
     std::stringstream ss;
@@ -497,6 +450,7 @@ namespace keypoints {
       node->kpdidx = ikpd;
       ikpd++;
       leafs.push_back( node );
+      _bvhnodes_v.push_back( node );
       node->mother = _bvhroot;
       _bvhroot->children.push_back( node );
     }
@@ -580,6 +534,9 @@ namespace keypoints {
       bvhnode_t* hi_node = new bvhnode_t( hi_bounds[0][0], hi_bounds[0][1],
                                           hi_bounds[1][0], hi_bounds[1][1],
                                           hi_bounds[2][0], hi_bounds[2][1] );
+      // add them into node list, so we know to destroy them
+      _bvhnodes_v.push_back( lo_node );
+      _bvhnodes_v.push_back( hi_node );
 
       // now we divide the node's children into the new nodes
       for (int i=0; i<=lowidx; i++ ) {
@@ -613,6 +570,12 @@ namespace keypoints {
     
   }
 
+  /**
+   * clear past BVH nodes
+   *
+   * clears _bvhnode_v container and _bvhroot node.
+   *
+   */
   void PrepKeypointData::clearBVH() {
     for ( auto& pnode : _bvhnodes_v )
       delete pnode;
@@ -622,6 +585,9 @@ namespace keypoints {
     _bvhroot = nullptr;
   }
 
+  /**
+   * print current BVH tree
+   */
   void PrepKeypointData::printBVH() {
     print_graph( _bvhroot );
   }
@@ -632,11 +598,14 @@ namespace keypoints {
   }
 
   /**
-   * given a set of match proposals, we make labels for each
+   * given a set of match proposals, we make labels
+   *
    * label columns:
    *  [0]:   has true end-point with X cm
    *  [1-3]: shift in 3D points from point to closest end-point
    *  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
+   *
+   * 
    */
   void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
   {
@@ -708,7 +677,12 @@ namespace keypoints {
       
   }
 
-  void PrepKeypointData::writeHists() {
+  /** 
+   * write tracking histograms
+   *
+   */
+  void PrepKeypointData::writeHists()
+  {
     for (int i=0; i<3; i++ ) {
       hdist[i]->Write();
     }
@@ -716,6 +690,27 @@ namespace keypoints {
       hdpix[i]->Write();
     }
   }
+
+  /**
+   * define ROOT tree where we save the labels
+   *
+   */
+  void PrepKeypointData::defineAnaTree()
+  {
+    _label_tree = new TTree("keypointlabels","Key point Training Labels");
+    _label_tree->Branch("run",&_run,"run/I");
+    _label_tree->Branch("subrun",&_subrun,"subrun/I");
+    _label_tree->Branch("event",&_event,"event/I");
+    _label_tree->Branch("kplabel",&_match_proposal_labels_v);
+  }
+
+  void PrepKeypointData::writeAnaTree()
+  {
+    if (_label_tree)
+      _label_tree->Write();
+  }
+
+  
   
 }
 }
