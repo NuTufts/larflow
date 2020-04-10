@@ -40,6 +40,7 @@ def load_larmatch_kps(loader, current_entry,
     data["matchpairs"]     = matchdata["matchtriplet"][:,0:3].astype( dtype=np.long )
     data["larmatchlabels"] = matchdata["matchtriplet"][:,3].astype( dtype=np.long )
     data["npairs"]     = nfilled.value
+    data["truematch_index"]  = np.argwhere(data['larmatchlabels']==1 ).squeeze().astype( dtype=np.long )
 
     tottime = time.time()-t_start
 

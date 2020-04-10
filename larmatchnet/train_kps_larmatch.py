@@ -47,7 +47,7 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.300000th.tar"
+CHECKPOINT_FILE="triplet_train1/checkpoint.300000th.tar"
 
 TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet"
 INPUTFILE_TRAIN=["larmatch_keypointssnet_small_sample_test.root"]
@@ -158,7 +158,7 @@ def main():
     criterion = SparseLArMatchKPSLoss()
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-2
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -234,7 +234,7 @@ def main():
             if ii%ITER_PER_VALID==0 and ii>0:
                 try:
                     totloss, totacc = validate(iovalid, DEVICE, BATCHSIZE_VALID,
-                                               model, criterion,
+                                               model_dict, criterion,
                                                NBATCHES_per_itervalid, ii,
                                                validbatches_per_print)
                 except Exception,e:
@@ -350,12 +350,6 @@ def train(train_loader, device, batchsize,
             train_entry += 1
         else:
             train_entry = 0
-        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"]
-        
-        # compute output
-        if RUNPROFILER:
-            torch.cuda.synchronize()
-        end = time.time()
 
         coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
         feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
@@ -364,10 +358,19 @@ def train(train_loader, device, batchsize,
         ssnet_label_t = torch.from_numpy( flowdata['ssnetlabel'] ).to(device)
         kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device)
         kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
-        ssnet_weight_t = torch.from_numpy( flowdata['ssnetweight'] ).to(device)
+        ssnet_weight_t  = torch.from_numpy( flowdata['ssnetweight'] ).to(device)
+        truematch_idx_t = torch.from_numpy( flowdata['truematch_index'] ).to(device)
 
-        # clamp features
+        for p in xrange(3):
+            feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
+
+        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"]
         
+        # compute output
+        if RUNPROFILER:
+            torch.cuda.synchronize()
+        end = time.time()
+            
 
         # first get feature vectors
         feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
@@ -406,7 +409,7 @@ def train(train_loader, device, batchsize,
         
         totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
                                                                            match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,
-                                                                           ssnet_weight_t )
+                                                                           truematch_idx_t, ssnet_weight_t, True )
 
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -501,7 +504,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters[l] = AverageMeter()
     
     # switch to evaluate mode
-    model.eval()
+    for name,m in model.items():
+        m.eval()
     
     iterstart = time.time()
     nnone = 0
@@ -518,31 +522,64 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
         coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
         feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
-        match_t = torch.from_numpy( flowdata['matchpairs'] ).to(device)
-        label_t = torch.from_numpy( flowdata['labels'] ).to(device)
+        match_t       = torch.from_numpy( flowdata['matchpairs'] ).to(device)
+        match_label_t = torch.from_numpy( flowdata['larmatchlabels'] ).to(device)
+        ssnet_label_t = torch.from_numpy( flowdata['ssnetlabel'] ).to(device)
+        kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device)
+        kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
+        ssnet_weight_t = torch.from_numpy( flowdata['ssnetweight'] ).to(device)
+        truematch_idx_t = torch.from_numpy( flowdata['truematch_index'] ).to(device)        
 
-        print "loaded train entry: ",flowdata["entry"]
+        # CLAMP ADC VALUES
+        for p in xrange(3):
+            feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
+        
+        print "loaded valid entry: ",flowdata["entry"]
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute model output
         if RUNPROFILER:
             torch.cuda.synchronize()
         tforward = time.time()
-               
+
         # first get feature vectors
-        feat_u_t, feat_v_t, feat_y_t = model.forward_features( coord_t[0], feat_t[0],
-                                                               coord_t[1], feat_t[1],
-                                                               coord_t[2], feat_t[2], 1 )
+        feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
+                                                                           coord_t[1], feat_t[1],
+                                                                           coord_t[2], feat_t[2], 1,
+                                                                           verbose=True )
+
+
+        # extract features according to sampled match indices
+        feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
+                                                             match_t, flowdata['npairs'],
+                                                             device, verbose=True )
+
+        # next evaluate larmatch match classifier
+        match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
+        match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
+        print "[larmatch train] match-pred=",match_pred_t.shape
+
+        # next evaluate ssnet classifier
+        ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
+        ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+        ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
+        #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
+        print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
         
-        # next evaluate match classifier
-        pred_t = model.classify_triplet( feat_u_t, feat_v_t, feat_y_t, match_t, flowdata['npairs'], device )
-
-        pred_t = pred_t.reshape( (pred_t.shape[-1]) )        
-                
-        totloss = criterion.forward_triplet( pred_t[:flowdata['npairs']],
-                                             label_t[:flowdata['npairs']] )
-
-                
+        # next evaluate ssnet classifier
+        kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
+        kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+        print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
+        
+        # next evaluate ssnet classifier
+        kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
+        kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
+        kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
+        print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
+        
+        totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
+                                                                           match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,
+                                                                           truematch_idx_t, ssnet_weight_t, verbose=True )
         time_meters["forward"].update(time.time()-tforward)
 
         # update loss meters
@@ -551,7 +588,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         
         # measure accuracy and update meters
         end = time.time()
-        acc = accuracy(pred_t[:flowdata['npairs']],label_t[:flowdata['npairs']],acc_meters)
+        acc = accuracy(match_pred_t[:flowdata['npairs']],match_label_t[:flowdata['npairs']],acc_meters)
         time_meters["accuracy"].update(time.time()-end)        
             
         # measure elapsed time for batch
