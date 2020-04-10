@@ -3,12 +3,13 @@ set(MODULE_NAME KeyPoints )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS KPdata.h bvhnode_t.h PrepKeypointData.h )
+set( HEADERS KPdata.h bvhnode_t.h PrepKeypointData.h LoaderKeypointData.h )
 
 add_library( ${LIBNAME} SHARED
   KPdata.cxx
   bvhnode_t.cxx
-  PrepKeypointData.cxx )
+  PrepKeypointData.cxx
+  LoaderKeypointData.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
