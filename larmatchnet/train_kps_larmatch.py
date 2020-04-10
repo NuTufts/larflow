@@ -40,7 +40,7 @@ from larmatch_ssnet_classifier import LArMatchSSNetClassifier
 from larmatch_keypoint_classifier import LArMatchKeypointClassifier
 from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
 from load_larmatch_kps import load_larmatch_kps
-from loss_larmatch import SparseLArMatchLoss
+from loss_larmatch_kps import SparseLArMatchKPSLoss
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
@@ -155,7 +155,7 @@ def main():
         return
 
     # define loss function (criterion) and optimizer
-    criterion = SparseLArMatchLoss()
+    criterion = SparseLArMatchKPSLoss()
 
     # training parameters
     lr = 1.0e-3
@@ -359,8 +359,12 @@ def train(train_loader, device, batchsize,
 
         coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
         feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
-        match_t = torch.from_numpy( flowdata['matchpairs'] ).to(device)
-        label_t = torch.from_numpy( flowdata['larmatchlabels'] ).to(device)
+        match_t       = torch.from_numpy( flowdata['matchpairs'] ).to(device)
+        match_label_t = torch.from_numpy( flowdata['larmatchlabels'] ).to(device)
+        ssnet_label_t = torch.from_numpy( flowdata['ssnetlabel'] ).to(device)
+        kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device)
+        kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
+        ssnet_weight_t = torch.from_numpy( flowdata['ssnetweight'] ).to(device)
 
         # clamp features
         
@@ -384,6 +388,8 @@ def train(train_loader, device, batchsize,
 
         # next evaluate ssnet classifier
         ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
+        ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+        ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
         #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
         print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
         
@@ -394,12 +400,14 @@ def train(train_loader, device, batchsize,
         
         # next evaluate ssnet classifier
         kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
+        kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
+        kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
         print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
         
-        totloss = criterion.forward_triplet( match_pred_t[:flowdata['npairs']], label_t[:flowdata['npairs']] )
+        totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
+                                                                           match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,
+                                                                           ssnet_weight_t )
 
-        sys.exit(-1)
-            
         if RUNPROFILER:
             torch.cuda.synchronize()
         time_meters["forward"].update(time.time()-end)
@@ -435,7 +443,7 @@ def train(train_loader, device, batchsize,
         loss_meters["total"].update( totloss.item()*float(nbatches_per_step) )
         
         # measure accuracy and update meters
-        acc = accuracy(pred_t[:flowdata['npairs']],label_t[:flowdata['npairs']],acc_meters)
+        acc = accuracy(match_pred_t[:flowdata['npairs']],match_label_t[:flowdata['npairs']],acc_meters)
             
         # update time meter
         time_meters["accuracy"].update(time.time()-end)            
