@@ -16,16 +16,19 @@ Load LArMatch Triplet data files for training and deploy
 def load_larmatch_kps(loader, current_entry,
                       npairs=50000,verbose=False):
     
-    data    = {"entry":current_entry}
+    data    = {"entry":current_entry,
+               "tree_entry":int(current_entry)%int(loader.GetEntries())}
 
     t_start = time.time()
     
     # get data from match tree
     tio     = time.time()
-    nbytes  = loader.load_entry(current_entry)
+    nbytes  = loader.load_entry(data["tree_entry"])
+    if verbose:
+        print "nbytes: ",nbytes," for tree entry=",data['tree_entry']
     nfilled = c_int()
     nfilled.value = 0
-    spdata_v    = [ loader.ttriplet.triplet_v[0].make_sparse_image( p ) for p in xrange(3) ]
+    spdata_v    = [ loader.triplet_v[0].make_sparse_image( p ) for p in xrange(3) ]
     matchdata   = loader.sample_data( npairs, nfilled, True )
     data.update(matchdata)
     dtio        = time.time()-tio

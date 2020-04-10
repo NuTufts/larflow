@@ -6,18 +6,21 @@ from utils_sparselarflow import create_resnet_layer
 
 class LArMatch(nn.Module):
 
-    def __init__(self,ndimensions=2,inputshape=(3456,1028),
+    def __init__(self,ndimensions=2,inputshape=(3456,1024),
                  nlayers=8,features_per_layer=16,
                  input_nfeatures=1,
                  stem_nfeatures=32,
                  classifier_nfeatures=[32,32],
+                 keypoint_nfeatures=[32,32],
+                 kpshift_nfeatures=[64,64,64],
                  leakiness=0.1,
                  neval=20000,
-                 classifier_ninput_planes=3,
+                 ninput_planes=3,
                  device=torch.device("cpu")):
         super(LArMatch,self).__init__()
 
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
+        self.ninput_planes = ninput_planes        
         self.source_inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
         self.target1_inputlayer = scn.InputLayer(ndimensions,inputshape,mode=0)
         self.target2_inputlayer = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -41,8 +44,7 @@ class LArMatch(nn.Module):
 
         # CLASSIFER: MATCH/NO-MATCH
         classifier_layers = OrderedDict()
-        self.classifier_ninput_planes = classifier_ninput_planes
-        classifier_layers["class0conv"] = torch.nn.Conv1d(self.classifier_ninput_planes*features_per_layer,classifier_nfeatures[0],1)
+        classifier_layers["class0conv"] = torch.nn.Conv1d(self.ninput_planes*features_per_layer,classifier_nfeatures[0],1)
         classifier_layers["class0relu"] = torch.nn.ReLU()
         for ilayer,nfeats in enumerate(classifier_nfeatures[1:]):
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
@@ -51,121 +53,33 @@ class LArMatch(nn.Module):
         #classifier_layers["sigmoid"]  = torch.nn.Sigmoid()
         self.classifier = torch.nn.Sequential( classifier_layers )
         
-
         # POINTS TO EVAL PER IMAGE
         self.neval = neval
-
-    def forward( self, coord_src_t, src_feat_t,
-                 coord_tar1_t, tar1_feat_t,
-                 coord_tar2_t, tar2_feat_t,
-                 pair_flow1_v, pair_flow2_v, batchsize,
-                 DEVICE, return_truth=False,
-                 npts1=None, npts2=None ):
-        """
-        run the network: used in training
-
-        inputs
-        ------
-        coord_flow1_t [ (N,3) Torch Tensor ]: list of (row,col,batchid) N pix coordinates
-        src_feat_t  [ (N,) torch tensor ]: list of pixel values for source image
-        tar1_feat_t [ (N,) torch tensor ]: list of pixel values for target 1 image
-        tar2_feat_t [ (N,) torch tensor ]: list of pixel values for target 2 image. provide NULL if nflows==1
-        batchsize [int]: batch size
-
-        outputs
-        -------
-        [ (N,) torch tensor ] flow values to target 1
-        [ (N,) torch tensor ] flow values to target 2
-        """
-        srcx = ( coord_src_t,  src_feat_t,  batchsize )
-        tar1 = ( coord_tar1_t, tar1_feat_t, batchsize )
-        tar2 = ( coord_tar2_t, tar2_feat_t, batchsize )
-
-        xsrc = self.source_inputlayer(srcx)
-        xsrc = self.stem( xsrc )
-        xsrc = self.resnet_layers( xsrc )
-        xsrc = self.feature_layer( xsrc )
-
-        xtar1 = self.target1_inputlayer(tar1)
-        xtar1 = self.stem( xtar1 )
-        xtar1 = self.resnet_layers( xtar1 )
-        xtar1 = self.feature_layer( xtar1 )
-
-        xtar2 = self.target1_inputlayer(tar2)
-        xtar2 = self.stem( xtar2 )
-        xtar2 = self.resnet_layers( xtar2 )
-        xtar2 = self.feature_layer( xtar2 )
-
-        xsrc  = self.source_outlayer(  xsrc )
-        xtar1 = self.target1_outlayer( xtar1 )
-        xtar2 = self.target2_outlayer( xtar2 )
-        #print "source feature tensor: ",xsrc.shape,xsrc.grad_fn
-
-        if npts1 is None:
-            npts1 = self.neval
-        if npts2 is None:
-            npts2 = self.neval
-        
-        bstart_src  = 0
-        bstart_tar1 = 0
-        bstart_tar2 = 0
-        if return_truth:
-            truthvec1 = torch.zeros( (1,1,npts1), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
-            truthvec2 = torch.zeros( (1,1,npts2), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
-        
-        for b in range(batchsize):
-            if batchsize>1:
-                nbatch_src = coord_src_t[:,2].eq(b).sum()
-                nbatch_tar1 = coord_tar1_t[:,2].eq(b).sum()
-                nbatch_tar2 = coord_tar2_t[:,2].eq(b).sum()
-            else:
-                nbatch_src  = coord_src_t.shape[0]
-                nbatch_tar1 = coord_tar1_t.shape[0]
-                nbatch_tar2 = coord_tar2_t.shape[0]
-            
-            bend_src  = bstart_src  + nbatch_src
-            bend_tar1 = bstart_tar1 + nbatch_tar1
-            bend_tar2 = bstart_tar2 + nbatch_tar2
-
-            pred1,t1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
-                                             xsrc[bstart_src:bend_src,:],
-                                             xtar1[bstart_tar1:bend_tar1,:],
-                                             pair_flow1_v[b], DEVICE, return_truth,
-                                             npts1 )
-            pred2,t2 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
-                                             xsrc[bstart_src:bend_src,:],
-                                             xtar2[bstart_tar2:bend_tar2,:],
-                                             pair_flow2_v[b], DEVICE, return_truth,
-                                             npts2 )
-            if return_truth:
-                truthvec1[0,0,b*self.neval:b*self.neval+npts1] = t1
-                truthvec2[0,0,b*self.neval:b*self.neval+npts2] = t2 
-            bstart_src = bend_src
-            bstart_tar1 = bend_tar1
-            bstart_tar2 = bend_tar2
-            
-        #print "return results"
-        if not return_truth:
-            return pred1,pred2
-        else:
-            return pred1,pred2,truthvec1,truthvec2
 
     def forward_features( self, coord_src_t, src_feat_t,
                           coord_tar1_t, tar1_feat_t,
                           coord_tar2_t, tar2_feat_t,
-                          batchsize ):
+                          batchsize, verbose=False ):
 
         """
         run the feature generating portion of network only. get feature vector at each coordinate.
         For deploy only. By saving feature layers, can reduce time run.
         """
+        if verbose:
+            print "[larmatch] "
+            print "  coord[src]=",coord_src_t.shape," feat[src]=",coord_src_t.shape
+        
         srcx = ( coord_src_t,  src_feat_t,  batchsize )
         tar1 = ( coord_tar1_t, tar1_feat_t, batchsize )
         tar2 = ( coord_tar2_t, tar2_feat_t, batchsize )
 
         xsrc = self.source_inputlayer(srcx)
         xsrc = self.stem( xsrc )
+        if verbose:
+            print "  stem[src]=",xsrc.features.shape
         xsrc = self.resnet_layers( xsrc )
+        if verbose:
+            print "  resnet[src]=",xsrc.features.shape
         xsrc = self.feature_layer( xsrc )
 
         xtar1 = self.target1_inputlayer(tar1)
@@ -173,7 +87,7 @@ class LArMatch(nn.Module):
         xtar1 = self.resnet_layers( xtar1 )
         xtar1 = self.feature_layer( xtar1 )
 
-        xtar2 = self.target1_inputlayer(tar2)
+        xtar2 = self.target2_inputlayer(tar2)
         xtar2 = self.stem( xtar2 )
         xtar2 = self.resnet_layers( xtar2 )
         xtar2 = self.feature_layer( xtar2 )
@@ -181,108 +95,35 @@ class LArMatch(nn.Module):
         xsrc  = self.source_outlayer(  xsrc )
         xtar1 = self.target1_outlayer( xtar1 )
         xtar2 = self.target2_outlayer( xtar2 )
+
+        if verbose:
+            print "  outfeat[src]=",xsrc.shape
+        
         return xsrc,xtar1,xtar2
-        
-    def forward_oneflow( self, coord_src_t, src_feat_t,
-                         coord_tar_t, tar_feat_t,
-                         pair_flow_v, batchsize,
-                         DEVICE, return_truth=False,
-                         npts=None):
+                                
+    def extract_features(self, feat_u_t, feat_v_t, feat_y_t, index_t, npts, DEVICE, verbose=False ):
+        """ 
+        take in index list and concat the triplet feature vector
         """
-        run the network. evaluate only one flow: use only in DEPLOY!
-        """
+        if verbose:
+            print "[larmatch::extract_features]"
+            print "  index-shape=",index_t.shape," feat-u-shape=",feat_u_t.shape
+
+        feats   = [ feat_u_t, feat_v_t, feat_y_t ]
+        for f in feats:
+            f = f.to(DEVICE)
+        feats_t = [ torch.index_select( feats[x], 0, index_t[:npts,x] ) for x in xrange(0,3) ]
+        if verbose:
+            print "  index-selected feats_t[0]=",feats_t[0].shape
         
-        srcx = ( coord_src_t, src_feat_t, batchsize )
-        tar1 = ( coord_tar_t, tar_feat_t, batchsize )
+        veclen = feats_t[0].shape[1]+feats_t[1].shape[1]+feats_t[2].shape[1]
+        matchvec = torch.transpose( torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=1 ), 1, 0 ).reshape(1,veclen,npts)
+        if verbose:
+            print "  output-triplet-tensor: ",matchvec.shape
 
-        xsrc = self.source_inputlayer(srcx)
-        xsrc = self.stem( xsrc )
-        xsrc = self.resnet_layers( xsrc )
-        xsrc = self.feature_layer( xsrc )
-
-        xtar1 = self.target1_inputlayer(tar1)
-        xtar1 = self.stem( xtar1 )
-        xtar1 = self.resnet_layers( xtar1 )
-        xtar1 = self.feature_layer( xtar1 )
-
-        xsrc  = self.source_outlayer(  xsrc )
-        xtar1 = self.target1_outlayer( xtar1 )
-        #print "source feature tensor: ",xsrc.shape,xsrc.grad_fn
-
-        if npts is None:
-            npts = self.neval
-        
-        bstart_src  = 0
-        bstart_tar1 = 0
-        if return_truth:
-            truthvec1 = torch.zeros( (1,1,npts), requires_grad=False, dtype=torch.int32 ).to( DEVICE )
-        
-        for b in range(batchsize):
-            if batchsize>1:
-                nbatch_src  = coord_src_t[:,2].eq(b).sum()
-                nbatch_tar1 = coord_tar_t[:,2].eq(b).sum()
-            else:
-                nbatch_src  = coord_src_t.shape[0]
-                nbatch_tar1 = coord_tar_t.shape[0]
-            
-            bend_src = bstart_src   + nbatch_src
-            bend_tar1 = bstart_tar1 + nbatch_tar1
-
-            pred1,t1 = self.classify_sample( coord_src_t[bstart_src:bend_src,:],
-                                             xsrc[bstart_src:bend_src,:],
-                                             xtar1[bstart_tar1:bend_tar1,:],
-                                             pair_flow_v[b], DEVICE, return_truth,
-                                             npts )
-
-            if return_truth:
-                truthvec1[0,0,b*self.neval:b*self.neval+npts] = t1
-
-            bstart_src = bend_src
-            bstart_tar1 = bend_tar1
-            
-        #print "return results"
-        if not return_truth:
-            return pred1
-        else:
-            return pred1,truthvec1
-        
-
-                        
-    def classify_sample(self,coord_src_t,feat_src_t,feat_tar_t,matchidx,DEVICE,return_truth,npts):
-
-        #from larcv import larcv
-        #larcv.load_pyutil()
-        #from larflow import larflow
-        #from ctypes import c_int
-        
-        coord_src_cpu = coord_src_t.to(torch.device("cpu"))
-        
-        # make random list of source indices
-        nsamples = c_int()
-        nsamples.value = self.neval
-        nfilled = c_int()
-        #print "matchidx: ",matchidx.shape,matchidx.dtype            
-        #print "make pairs of feature vectors to evaluate"
-        
-        # gather feature vector pairs
-        matchidx = matchidx.to(DEVICE)
-        srcfeats = torch.transpose( torch.index_select( feat_src_t, 0, matchidx[:npts,0] ), 0, 1 )
-        tarfeats = torch.transpose( torch.index_select( feat_tar_t, 0, matchidx[:npts,1] ), 0, 1 )
-        #print "feats: src=",srcfeats.grad_fn," tar=",tarfeats.grad_fn
-        matchvec = torch.cat( (srcfeats,tarfeats), dim=0 ).reshape( (1,srcfeats.shape[0]+tarfeats.shape[0],srcfeats.shape[1]) )
-        #print "match pair tensor made: ",matchvec.shape,matchvec.requires_grad,matchvec.grad_fn
-        
-        #print "nsrc indices used: ",nfilled,". run classifiers"
-
-        pred = self.classifier(matchvec)
-        if not return_truth:
-            return pred,None
-        else:
-            return pred,matchidx[:,2]
-
-                    
-    def classify_triplet(self, feat_u_t, feat_v_t, feat_y_t,
-                         index_t, npts, DEVICE ):
+        return matchvec
+    
+    def classify_triplet(self,triplet_feat_t):
         """
         classify triplet of (u,v,y) wire plane pixel locations as being a true or false position.
         use information from concat feature vectors.
@@ -290,13 +131,18 @@ class LArMatch(nn.Module):
         inputs:
         feat_u_t 
         """
-        print "index: ",index_t.shape," ",feat_u_t.shape
-        feats   = [ feat_u_t, feat_v_t, feat_y_t ]
-        for f in feats:
-            f = f.to(DEVICE)
-        feats_t = [ torch.transpose( torch.index_select( feats[x], 0, index_t[:npts,x] ), 0, 1 ) for x in xrange(0,3) ]
-        veclen = feats_t[0].shape[0]+feats_t[1].shape[0]+feats_t[2].shape[0]
-        matchvec = torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=0 ).reshape( (1,veclen,feats_t[0].shape[1]) )
-        print "matchvec: ",matchvec.shape
-        pred = self.classifier(matchvec)
+        pred = self.classifier(triplet_feat_t)
         return pred
+
+    def forward_keypoint(self,triplet_feat_t):
+        """
+        classify triplet of (u,v,y) wire plane pixel combination as being (background,track,shower)
+        use information from concat feature vectors.
+
+        inputs:
+        feat_u_t 
+        """
+        pred    = self.keypoint_classifier(matchvec)
+        shift = self.kpshift(matchvec)
+        return pred,shift
+    
