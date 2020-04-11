@@ -45,7 +45,7 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="triplet_train1/checkpoint.300000th.tar"
 
@@ -158,7 +158,7 @@ def main():
     criterion = SparseLArMatchKPSLoss()
 
     # training parameters
-    lr = 1.0e-2
+    lr = 1.0e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 

@@ -24,6 +24,9 @@ def load_larmatch_kps(loader, current_entry,
     # get data from match tree
     tio     = time.time()
     nbytes  = loader.load_entry(data["tree_entry"])
+    dtio        = time.time()-tio
+
+    
     if verbose:
         print "nbytes: ",nbytes," for tree entry=",data['tree_entry']
     nfilled = c_int()
@@ -31,7 +34,7 @@ def load_larmatch_kps(loader, current_entry,
     spdata_v    = [ loader.triplet_v[0].make_sparse_image( p ) for p in xrange(3) ]
     matchdata   = loader.sample_data( npairs, nfilled, True )
     data.update(matchdata)
-    dtio        = time.time()-tio
+
 
     # prepare data dictionary
     for p in xrange(3):
@@ -40,12 +43,11 @@ def load_larmatch_kps(loader, current_entry,
     data["matchpairs"]     = matchdata["matchtriplet"][:,0:3].astype( dtype=np.long )
     data["larmatchlabels"] = matchdata["matchtriplet"][:,3].astype( dtype=np.long )
     data["npairs"]     = nfilled.value
-    data["truematch_index"]  = np.argwhere(data['larmatchlabels']==1 ).squeeze().astype( dtype=np.long )
 
     tottime = time.time()-t_start
 
     if verbose:
-        print "[load cropped sparse dual flow]"        
+        print "[load larmatch kps sample]"        
         print "  io time: %.3f secs"%(dtio)
         print "  tot time: %.3f secs"%(tottime)
         
@@ -70,6 +72,8 @@ if __name__ == "__main__":
     nmax    = c_int()
     nfilled = c_int()
     nmax.value = 50000
+
+    nentries = 1000000000
     
     for ientry in xrange(nentries):
         print "[LOAD ENTRY ",ientry,"]"
@@ -80,6 +84,7 @@ if __name__ == "__main__":
                 #print "   ",arr
             else:
                 print x,": ",arr
+        del data
 
     print "[fin]"
     raw_input()
