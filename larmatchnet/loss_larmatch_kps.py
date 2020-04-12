@@ -65,9 +65,9 @@ class SparseLArMatchKPSLoss(nn.Module):
         #kpshift_loss = 0.1*kpshift_loss.sum()/(3.0*fmatchlabel.sum())
 
         if verbose:
-            print " loss-larmatch: ",loss.item()
-            print " loss-ssnet: ",ssnet_loss.item()
-            print " loss-kplabel: ",kp_loss.item()
+            print " loss-larmatch: ",loss.detach().item()
+            print " loss-ssnet: ",ssnet_loss.detach().item()
+            print " loss-kplabel: ",kp_loss.detach().item()
             #print " loss-kpshift: ",kpshift_loss.item()
 
         #totloss = loss+ssnet_loss+kp_loss+kpshift_loss

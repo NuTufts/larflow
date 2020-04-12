@@ -90,7 +90,7 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=1000
+ITER_PER_CHECKPOINT=100
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -140,10 +140,8 @@ def main():
         best_prec1 = checkpoint["best_prec1"]
         if CHECKPOINT_FROM_DATA_PARALLEL:
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
-        model.load_state_dict(checkpoint["state_dict"])
-        #ssnet_head.load_state_dict(checkpoint["state_dict"])
-        #kplabel_head.load_state_dict(checkpoint["state_dict"])
-        #lpshift_head.load_state_dict(checkpoint["state_dict"])        
+        for n,m in model_dict.items():
+            m.load_state_dict(checkpoint["state_"+n])
 
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
         model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
@@ -260,7 +258,10 @@ def main():
                     save_checkpoint({
                         'iter':ii,
                         'epoch': ii/iter_per_epoch,
-                        'state_dict': model.state_dict(),
+                        'state_larmatch': model_dict["larmatch"].state_dict(),
+                        'state_ssnet': model_dict["ssnet"].state_dict(),
+                        'state_kplabel': model_dict["kplabel"].state_dict(),
+                        'state_kpshift': model_dict["kpshift"].state_dict(),                                                
                         'best_prec1': best_prec1,
                         'optimizer' : optimizer.state_dict(),
                     }, is_best, -1)
@@ -271,7 +272,10 @@ def main():
                 save_checkpoint({
                     'iter':ii,
                     'epoch': ii/iter_per_epoch,
-                    'state_dict': model.state_dict(),
+                    'state_larmatch': model_dict["larmatch"].state_dict(),
+                    'state_ssnet': model_dict["ssnet"].state_dict(),
+                    'state_kplabel': model_dict["kplabel"].state_dict(),
+                    'state_kpshift': model_dict["kpshift"].state_dict(),                                                
                     'best_prec1': best_prec1,
                     'optimizer' : optimizer.state_dict(),
                 }, False, ii)
@@ -283,7 +287,10 @@ def main():
         save_checkpoint({
             'iter':NUM_ITERS,
             'epoch': float(NUM_ITERS)/iter_per_epoch,
-            'state_dict': model.state_dict(),
+            'state_larmatch': model_dict["larmatch"].state_dict(),
+            'state_ssnet': model_dict["ssnet"].state_dict(),
+            'state_kplabel': model_dict["kplabel"].state_dict(),
+            'state_kpshift': model_dict["kpshift"].state_dict(),                                                
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, False, NUM_ITERS)
