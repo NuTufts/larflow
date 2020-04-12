@@ -74,7 +74,7 @@ namespace prepflowmatchdata {
     _trackshower_label_v.clear();
     _trackshower_label_v.resize( ntriplets, 0 );
     _trackshower_weight_v.clear();
-    _trackshower_weight_v.resize( ntriplets, 0 );
+    _trackshower_weight_v.resize( ntriplets, 1.0 );
     _trackshower_num_v.clear();
     _trackshower_num_v.resize(3,0.0);
 
@@ -87,6 +87,8 @@ namespace prepflowmatchdata {
 
       // if the triplet is bad, leave the label as 0 (background)
       if ( tripletmaker._truth_v[itrip]==0 ) {
+        _trackshower_label_v[itrip] = 0;
+        _trackshower_weight_v[itrip] = 1.;
         _trackshower_num_v[0] += 1.0;
         continue;
       }
