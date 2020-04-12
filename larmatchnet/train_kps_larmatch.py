@@ -51,8 +51,8 @@ CHECKPOINT_FILE="triplet_train1/checkpoint.300000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 
 TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet"
-INPUTFILE_TRAIN=["larmatch_keypointssnet_small_sample_test.root"]
-INPUTFILE_VALID=["larmatch_keypointssnet_small_sample_test.root"]
+INPUTFILE_TRAIN=["larmatch_keypointssnet_small_sample_test2.root"]
+INPUTFILE_VALID=["larmatch_keypointssnet_small_sample_test2.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
@@ -324,7 +324,7 @@ def train(train_loader, device, batchsize,
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","shower","track","ssnet-all","kp_pos")
+    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_pos")
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -515,7 +515,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","shower","track","ssnet-all","kp_pos")
+    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_pos")
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -714,6 +714,7 @@ def accuracy(match_pred_t, match_label_t,
         ssnet_pred     = ssnet_pred_t.detach()
     ssnet_class    = torch.argmax( ssnet_pred, 1 )
     ssnet_correct  = ssnet_class.eq( ssnet_label_t )
+    ssbg_correct   = ssnet_correct[ ssnet_label_t==0 ].sum().item()    
     track_correct  = ssnet_correct[ ssnet_label_t==1 ].sum().item()
     shower_correct = ssnet_correct[ ssnet_label_t==2 ].sum().item()    
     ssnet_tot_correct = ssnet_correct.sum().item()
@@ -721,6 +722,8 @@ def accuracy(match_pred_t, match_label_t,
         acc_meters["shower"].update( float(shower_correct)/float(ssnet_label_t.eq(2).sum().item()) )
     if ssnet_label_t.eq(1).sum().item()>0:
         acc_meters["track"].update(  float(track_correct)/float(ssnet_label_t.eq(1).sum().item())  )
+    if ssnet_label_t.eq(0).sum().item()>0:
+        acc_meters["ss-bg"].update(  float(ssbg_correct)/float(ssnet_label_t.eq(0).sum().item())  )
     acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
 
     # KP METRIC

@@ -48,10 +48,11 @@ class LArMatch(nn.Module):
         # CLASSIFER: MATCH/NO-MATCH
         classifier_layers = OrderedDict()
         classifier_layers["class0conv"] = torch.nn.Conv1d(self.ninput_planes*features_per_layer,classifier_nfeatures[0],1)
+        #classifier_layers["class0bn"]   = torch.nn.BatchNorm1d        
         classifier_layers["class0relu"] = torch.nn.ReLU()
-        #classifier_layers["class0bn"]   = torch.nn.BatchNorm1d
         for ilayer,nfeats in enumerate(classifier_nfeatures[1:]):
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
+            #classifier_layers["class0bn"]   = torch.nn.BatchNorm1d                    
             classifier_layers["class%drelu"%(ilayer+1)] = torch.nn.ReLU()
         classifier_layers["classout"] = torch.nn.Conv1d(nfeats,1,1)
         #classifier_layers["sigmoid"]  = torch.nn.Sigmoid()

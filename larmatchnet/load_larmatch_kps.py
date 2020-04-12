@@ -124,7 +124,7 @@ if __name__ == "__main__":
     nmax.value = 50000
 
     nentries = 1000000000
-    batchsize = 10
+    batchsize = 1
     
     for ientry in xrange(0,nentries,batchsize):
         print "[LOAD ENTRY ",ientry,"]"
@@ -136,7 +136,6 @@ if __name__ == "__main__":
             else:
                 print x,": ",arr
         del data
-        break
 
     print "[fin]"
     raw_input()
