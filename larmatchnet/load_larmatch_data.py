@@ -70,7 +70,7 @@ def load_larmatch_data(io,has_truth=True,
 
 class LArMatchDataset:
 
-    def __init__( self, input_larcv_files, input_ana_files, npairs=20000 ):
+    def __init__( self, input_larcv_files, input_ana_files, npairs=20000 use_triplets=True ):
 
         self.input_larcv_files = input_larcv_files
         self.input_ana_files   = input_ana_files

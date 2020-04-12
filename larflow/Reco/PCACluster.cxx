@@ -665,7 +665,7 @@ namespace reco {
         cluster_t dense_cluster = absorb_nearby_hits( ds_cluster,
                                                       inputhits,
                                                       used_hits_v,
-                                                      20.0 );
+                                                      10.0 );
         if ( dense_cluster.points_v.size()>0 ) 
           dense_cluster_v.emplace_back( std::move(dense_cluster) );
       }

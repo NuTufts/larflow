@@ -1,26 +1,15 @@
-set(MODULE_NAME PrepFlowMatchData )
+set(MODULE_NAME KeyPoints )
 
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS WireOverlap.h FlowTriples.h FlowMatchMap.hh
-  PrepMatchTriplets.h
-  PrepFlowMatchData.hh
-  MatchTripletProcessor.h
-  PyFlowMatchData.hh
-  FlowMatchHitMaker.h
-  PrepSSNetTriplet.h )
+set( HEADERS KPdata.h bvhnode_t.h PrepKeypointData.h LoaderKeypointData.h )
 
 add_library( ${LIBNAME} SHARED
-  WireOverlap.cxx
-  FlowTriples.cxx
-  PrepMatchTriplets.cxx
-  MatchTripletProcessor.cxx  
-  FlowMatchMap.cxx
-  PrepFlowMatchData.cxx
-  PyFlowMatchData.cxx
-  FlowMatchHitMaker.cxx
-  PrepSSNetTriplet.cxx )
+  KPdata.cxx
+  bvhnode_t.cxx
+  PrepKeypointData.cxx
+  LoaderKeypointData.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -32,7 +21,10 @@ message("python include: ${PYTHON_INCLUDE_PATH}")
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
 
 # ublarcvapp libs used
-set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod LArCVApp_MCTools )
+
+# larflow libs
+set(LARFLOW_LIBS_USED LArFlow_PrepFlowMatchData )
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
@@ -48,7 +40,7 @@ target_include_directories(${LIBNAME}
   ${CMAKE_CURRENT_SOURCE_DIR}/mrcnnmatch
   ${PROJECT_SOURCE_DIR}
   )
-target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
+target_link_libraries(${LIBNAME} ${LARFLOW_LIBS_USED} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
 
 include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${UBLARCVAPP_INCLUDE_DIR} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)

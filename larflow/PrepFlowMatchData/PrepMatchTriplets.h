@@ -45,7 +45,8 @@ namespace larflow {
 
     // python/numpy functions, to help network interface
     PyObject* make_sparse_image( int plane );
-    
+
+    // 2 plane preparation
     PyObject* make_2plane_match_array( larflow::FlowDir_t kdir,
                                        const int max_num_samples,
                                        const std::vector<int>& idx_v,
@@ -64,6 +65,23 @@ namespace larflow {
                                         int& last_index,
                                         int& num_pairs_filled,
                                         bool with_truth );
+
+    // Triplet preparation
+    PyObject* make_triplet_array( const int max_num_samples,
+                                  const std::vector<int>& idx_v,
+                                  const int start_idx,
+                                  const bool withtruth,
+                                  int& nsamples );
+    
+    PyObject* sample_triplet_matches( const int& num_max_samples, int& nfilled, bool withtruth );
+
+    PyObject* get_chunk_triplet_matches( const int& start_index,
+                                         const int& max_num_pairs,
+                                         int& last_index,
+                                         int& num_pairs_filled,
+                                         bool with_truth );
+    
+    //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 
     bool _setup_numpy;
     

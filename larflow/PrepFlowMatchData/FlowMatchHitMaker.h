@@ -101,6 +101,15 @@ namespace larflow {
                         const larcv::EventChStatus& ev_chstatus );
     void set_score_threshold( float score ) { _match_score_threshold = score; };
 
+    int add_triplet_match_data( PyObject* triple_probs,
+                                PyObject* triplet_indices,
+                                PyObject* sparseimg_u,
+                                PyObject* sparseimg_v,
+                                PyObject* sparseimg_y,
+                                const std::vector< std::vector<float> >& pos_vv,
+                                const std::vector<larcv::Image2D>& adc_v );
+    
+
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
 

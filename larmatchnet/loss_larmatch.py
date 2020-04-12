@@ -7,6 +7,9 @@ class SparseLArMatchLoss(nn.Module):
         super(SparseLArMatchLoss,self).__init__()
 
     def forward(self,pred1,pred2,truth1,truth2):
+        return forward_2plane(pred1,pred2,truth1,truth2)
+        
+    def forward_2plane(self,pred1,pred2,truth1,truth2):
 
         # FLOW1
         #print "pred1, truth1.sum: ",float(pred1.shape[2])," ",float(truth1.sum())
@@ -25,3 +28,9 @@ class SparseLArMatchLoss(nn.Module):
 
         return 0.5*(loss1+loss2)
         
+    def forward_triplet(self,pred,truth):
+        weight    = torch.ones( (1,), requires_grad=False, dtype=torch.float ).to(pred.device)
+        weight[0] = float(pred.shape[0])/float(truth.sum())
+        bce       = torch.nn.BCEWithLogitsLoss( pos_weight=weight, reduction='mean' )
+        loss      = bce( pred, truth.type(torch.float) )
+        return loss

@@ -10,6 +10,7 @@
 #pragma link off all functions;
 
 #pragma link C++ namespace larflow;
+#pragma link C++ namespace larflow::prepflowmatchdata;
 #pragma link C++ namespace std;
 
 #pragma link C++ class std::vector< std::vector<int> >+;
@@ -21,6 +22,7 @@
 #pragma link C++ class std::vector<larflow::PrepMatchTriplets>+;
 #pragma link C++ class larflow::MatchTripletProcessor+;
 #pragma link C++ class larflow::FlowMatchHitMaker+;
+#pragma link C++ class larflow::prepflowmatchdata::PrepSSNetTriplet+;
 #pragma link C++ function larflow::sample_pair_array( const int&, const FlowMatchMap&, int&, bool )+;
 #pragma link C++ function larflow::get_chunk_pair_array( const int&, const int&, const FlowMatchMap&, int&, int&, bool )+;
 #pragma link C++ function larflow::make_larflow_hits( PyObject*, PyObject*, PyObject*, const larcv::ImageMeta&, larlite::event_larflow3dhit&, const larcv::EventChStatus* )+;

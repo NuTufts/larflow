@@ -208,6 +208,12 @@ namespace larflow {
 
     }//end of score loop
 
+
+    PyArray_Free( pair_probs, (void*)probs_carray );
+    PyArray_Free( source_sparseimg, (void*)source_carray );
+    PyArray_Free( target_sparseimg, (void*)target_carray );
+    PyArray_Free( matchpairs, (void*)matchpairs_carray );    
+    
     std::cout << "-------------------------------------------------" << std::endl;
     std::cout << "process match data. " << std::endl;
     std::cout << "  number of triples with match information: " << _match_map.size() << std::endl;
@@ -268,6 +274,119 @@ namespace larflow {
 
   };
 
+  /**
+   * compile network output into hit candidate information
+   *
+   * 
+   */
+  int FlowMatchHitMaker::add_triplet_match_data( PyObject* triple_probs,
+                                                 PyObject* triplet_indices,
+                                                 PyObject* imgu_sparseimg,
+                                                 PyObject* imgv_sparseimg,
+                                                 PyObject* imgy_sparseimg,
+                                                 const std::vector< std::vector<float> >& pos_vv,
+                                                 const std::vector<larcv::Image2D>& adc_v ) {
+
+    // enable numpy environment (if not already set)
+    std::cout << "setting pyutils ... ";
+    import_array1(0);    
+    larcv::SetPyUtil();
+    std::cout << " done" << std::endl;
+
+    // // match scores
+    int pair_ndims = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
+    std::cout << "[FlowMatchHitMaker] pair prob dims=(" << pair_dims[0] << ")" << std::endl;
+
+    // // triplet indicies for each match
+    // npy_intp index_dims[2];
+    // std::cout << "[FlowMatchHitMaker] index array dims=(" << index_dims[0] << "," << index_dims[1] << ")" << std::endl;
+    
+    // // sparse images
+    // npy_intp imgu_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[u] prob dims=(" << imgu_dims[0] << "," << imgu_dims[1] << ")" << std::endl;
+
+    // npy_intp imgv_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[v] prob dims=(" << imgv_dims[0] << "," << imgv_dims[1] << ")" << std::endl;
+
+    // npy_intp imgy_dims[2];
+    // std::cout << "[FlowMatchHitMaker] img[y] prob dims=(" << imgy_dims[0] << "," << imgy_dims[1] << ")" << std::endl;
+
+    bool precalc_pos = ( pos_vv.size()>0 ) ? true : false;
+    int nrepeated = 0;
+    int nbelowminprob = 0.;
+    
+    // loop over each candidate triplet
+    for (int ipair=0; ipair<(int)pair_dims[0]; ipair++) {
+
+      // score for this match
+      float prob = *(float*)PyArray_GETPTR1( (PyArrayObject*)triple_probs, ipair );
+
+      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+      
+      std::vector<int> triple(4,0); // (col,col,col,tick)
+      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
+      
+      // match threshold
+      if ( prob<_match_score_threshold ) {
+        nbelowminprob++;
+        continue;
+      }
+
+      std::vector<float> pos(3,0);
+      
+      if ( precalc_pos ) {
+        pos = pos_vv[ipair];
+      }
+      else {
+        
+        // get the other plane wire
+        // convert row to tick
+        double y, z;
+        larutil::Geometry::GetME()->IntersectionPoint( triple[2], triple[0], (UChar_t)2, (UChar_t)0, y, z );
+
+        pos[0] = (triple[3]-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+        pos[1] = y;
+        pos[2] = z;
+        
+      }
+
+      auto it = _match_map.find( triple );
+      if ( it==_match_map.end() ) {
+        // if not in match map, we create a new entry
+        match_t m;
+        for ( size_t p=0; p<3; p++ )
+          m.set_wire( p, triple[p] );
+        m.tyz = { (float)triple[3], (float)pos[1], (float)pos[2] };
+        _matches_v.emplace_back( std::move(m) );
+        _match_map[ triple ] = int(_matches_v.size())-1;
+        it = _match_map.find( triple );
+      }
+      else {
+        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << ")" << std::endl;
+        nrepeated++;
+      }
+
+      auto& m = _matches_v.at( it->second );
+      // set the score given here
+      //if ( indead ) prob *= 0.5;
+      m.set_score( 2, 0, prob );
+
+    }//end of score loop
+    
+    std::cout << "-------------------------------------------------" << std::endl;
+    std::cout << "process match data. " << std::endl;
+    std::cout << "  number of triples with match information: " << _match_map.size() << std::endl;
+    std::cout << "  num repeated: " << nrepeated << std::endl;
+    std::cout << "  num below min prob: " << nbelowminprob << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+  }
 
 };
 

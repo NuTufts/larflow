@@ -399,6 +399,7 @@ namespace larflow {
       *((float*)PyArray_GETPTR2( array, (int)idx, 1)) = (float)_sparseimg_vv[plane][idx].col;
       *((float*)PyArray_GETPTR2( array, (int)idx, 2)) = (float)_sparseimg_vv[plane][idx].val;      
     }
+
     
     return (PyObject*)array;
   }
@@ -491,7 +492,7 @@ namespace larflow {
 
   /**
    *
-   * randomly select a set of 2 plane indices
+   * get sequential set of matches
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
@@ -510,6 +511,126 @@ namespace larflow {
     }
 
     return make_2plane_match_array( kdir, max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
+
+  }
+
+  /**
+   * return a numpy array with indices to the sparse matrix ADC array
+   *
+   * @param[in] max_num_samples Maximum number of samples to return. Dim[0] of returned array.
+   * @param[in] idx_v List of triplet_v indices to use
+   * @param[in] start_idx First index in idx_v to copy
+   * @param[in] withtruth If true, additional element added to Dim[1]
+                          which contains if triplet is true match (1) or fals match (0).
+   * @param[out] nsamples Returns the number of indices we copied.
+   * @return A numpy array, with type NPY_LONG and dimensions (max_num_samples, 4 or 5)
+   *         columns: [u-index,v-index,y-index,truthlabel(if asked),triplet-index]
+   *
+   */
+  PyObject* PrepMatchTriplets::make_triplet_array( const int max_num_samples,
+                                                   const std::vector<int>& idx_v,
+                                                   const int start_idx,
+                                                   const bool withtruth,
+                                                   int& nsamples )
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+    int nd = 2;
+    int ndims2 = (withtruth) ? 5 : 4;
+    npy_intp dims[] = { max_num_samples, ndims2 };
+
+    // output array
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );
+
+    // number of pairs we've stored
+    nsamples = 0;
+    
+    int end_idx = start_idx + max_num_samples;
+    end_idx = ( end_idx>(int)idx_v.size() )   ?  idx_v.size() : end_idx; // cap to number of indices
+
+    std::cout << "[PrepMatchTriplets::make_triplet_array] withtruth=" << withtruth << " "
+              << "make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]"
+              << std::endl;
+    
+    for ( int idx=start_idx; idx<end_idx; idx++ ) {
+      int tripidx = idx_v[idx];
+      for (size_t p=0; p<3; p++ )
+        *((long*)PyArray_GETPTR2( array, nsamples, p)) = (long)_triplet_v[tripidx][p];
+      if ( withtruth ) {
+        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = (long)_truth_v[tripidx];
+        *((long*)PyArray_GETPTR2( array, nsamples, 4)) = (long)tripidx;
+      }
+      else {
+        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = (long)tripidx;
+      }
+      nsamples++;
+      if (nsamples==max_num_samples)
+        break;
+    }//end of indices loop
+
+    std::cout << "[PrepMatchTriplets::make_triplet_array] nsamples=" << nsamples << std::endl;
+
+    // zero rest of array
+    if ( nsamples<max_num_samples ) {
+      for ( size_t i=nsamples; i<max_num_samples; i++ ) {
+        for (int j=0; j<dims[1]; j++) {
+          *((long*)PyArray_GETPTR2( array, i, j)) = 0;
+        }
+      }
+    }
+
+    
+    
+    // return the array
+    return (PyObject*)array;
+    
+  }
+
+
+  /**
+   *
+   * randomly select a set of triplet matches
+   *
+   */
+  PyObject* PrepMatchTriplets::sample_triplet_matches( const int& nsamples,
+                                                       int& nfilled,
+                                                       bool withtruth ) {
+
+    std::vector<int> idx_v( _triplet_v.size() );
+    for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
+    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
+    shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    
+    return make_triplet_array( nsamples, idx_v, 0, withtruth, nfilled );
+
+  }
+  
+
+  /**
+   *
+   * get sequential set of triplet indices
+   *
+   */
+  PyObject* PrepMatchTriplets::get_chunk_triplet_matches( const int& start_index,
+                                                          const int& max_num_pairs,
+                                                          int& last_index,
+                                                          int& num_pairs_filled,
+                                                          bool with_truth ) {
+    
+    last_index = start_index + max_num_pairs;
+    last_index = ( last_index>(int)_triplet_v.size() ) ? (int)_triplet_v.size() : last_index;
+    num_pairs_filled = last_index-start_index;
+    std::vector<int> idx_v( num_pairs_filled, 0 );    
+    
+    for ( int i=start_index; i<last_index; i++ ) {
+      idx_v[i-start_index] = (int)i;
+    }
+
+    return make_triplet_array( max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
 
   }
   
