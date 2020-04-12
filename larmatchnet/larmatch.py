@@ -9,7 +9,7 @@ class LArMatch(nn.Module):
     def __init__(self,ndimensions=2,inputshape=(3456,1024),
                  nlayers=8,features_per_layer=16,
                  input_nfeatures=1,
-                 stem_nfeatures=32,
+                 stem_nfeatures=16,
                  classifier_nfeatures=[32,32],
                  keypoint_nfeatures=[32,32],
                  kpshift_nfeatures=[64,64,64],
@@ -29,6 +29,9 @@ class LArMatch(nn.Module):
         self.stem = scn.Sequential() 
         self.stem.add( scn.SubmanifoldConvolution(ndimensions, input_nfeatures, stem_nfeatures, 3, False ) )
         self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+        self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
+        self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+        self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
 
         # RESNET BLOCK
         self.resnet_layers = create_resnet_layer(10, stem_nfeatures, features_per_layer, leakiness=leakiness )
@@ -46,6 +49,7 @@ class LArMatch(nn.Module):
         classifier_layers = OrderedDict()
         classifier_layers["class0conv"] = torch.nn.Conv1d(self.ninput_planes*features_per_layer,classifier_nfeatures[0],1)
         classifier_layers["class0relu"] = torch.nn.ReLU()
+        #classifier_layers["class0bn"]   = torch.nn.BatchNorm1d
         for ilayer,nfeats in enumerate(classifier_nfeatures[1:]):
             classifier_layers["class%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             classifier_layers["class%drelu"%(ilayer+1)] = torch.nn.ReLU()
