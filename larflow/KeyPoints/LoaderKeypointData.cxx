@@ -194,7 +194,14 @@ namespace keypoints {
     int ssnet_label_nd = 1;
     npy_intp ssnet_label_dims1[] = { (long)pos_match_index.size() };
     npy_intp ssnet_label_dims2[] = { (long)pos_match_index.size() };
-    npy_intp ssnet_label_dims3[] = { (long)pos_match_index.size() };    
+    npy_intp ssnet_label_dims3[] = { (long)pos_match_index.size() };
+
+    if ( !_exclude_neg_examples ) {
+      // we're going to load negative triplet examples too
+      ssnet_label_dims1[0] = num_max_samples;
+      ssnet_label_dims2[0] = num_max_samples;
+      ssnet_label_dims3[0] = num_max_samples;
+    }
 
     ssnet_label        = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims1, NPY_LONG );
     ssnet_top_weight   = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims2, NPY_FLOAT );
@@ -204,10 +211,10 @@ namespace keypoints {
     int ntrack = 0;
     int nshower = 0;
 
-    for ( size_t i=0; i<pos_match_index.size(); i++ ) {
+    for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
 
       // get the sample index
-      int idx = pos_match_index[i];
+      int idx = (_exclude_neg_examples ) ? pos_match_index[i] : i;
 
       // get the triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
@@ -228,7 +235,7 @@ namespace keypoints {
     float w_sh = (nshower) ? float(ntot)/float(nshower) : 0.;
     float w_norm = nbg*w_bg + ntrack*w_tr + nshower*w_sh;
 
-    for ( size_t i=0; i<pos_match_index.size(); i++ ) {
+    for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
       long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
       if ( label==0 )
         *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_bg/w_norm;
@@ -237,7 +244,7 @@ namespace keypoints {
       else if ( label==2 )
         *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_sh/w_norm;
     }
-
+    
     return 0;
   }
 
@@ -255,15 +262,20 @@ namespace keypoints {
 
     int kplabel_nd = 1;
     npy_intp kplabel_dims[] = { (long)pos_match_index.size() };
+
+    if ( !_exclude_neg_examples ) {
+      kplabel_dims[0] = num_max_samples;
+    }
+    
     //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
     int npos = 0;
     int nneg = 0;
 
-    for (size_t i=0; i<pos_match_index.size(); i++ ) {
+    for (int i=0; i<(int)kplabel_dims[0]; i++ ) {
       // sample array index
-      int idx = pos_match_index[i];
+      int idx = (_exclude_neg_examples) ? pos_match_index[i] : (int)i;
       // triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
       // hard label
@@ -285,15 +297,21 @@ namespace keypoints {
     }
 
     // weights for positive and negative examples
-    kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
+    int kpweight_nd = 1;
+    npy_intp kpweight_dims[] = { (long)pos_match_index.size() };
+    if ( !_exclude_neg_examples )
+      kpweight_dims[0] = num_max_samples;
+    kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
     float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.0;
     float w_neg = (nneg) ? float(npos+nneg)/float(nneg) : 0.0;
     float w_norm = w_pos*npos + w_neg*nneg;
 
-    for (size_t i=0; i<pos_match_index.size(); i++ ) {
+    std::cout << "KPWEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+    
+    for (int i=0; i<kpweight_dims[0]; i++ ) {
       // sample array index
-      int idx = pos_match_index[i];
+      int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
       // triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
       // hard label
@@ -302,7 +320,7 @@ namespace keypoints {
         *((float*)PyArray_GETPTR1(kplabel_weight,i)) = w_pos/w_norm;
       }
       else {
-        *((float*)PyArray_GETPTR1(kplabel_label,i))  = w_neg/w_norm;
+        *((float*)PyArray_GETPTR1(kplabel_weight,i))  = w_neg/w_norm;
       }
     }
 

@@ -24,7 +24,8 @@ namespace keypoints {
       : ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr),
-      _setup_numpy(false)
+      _setup_numpy(false),
+      _exclude_neg_examples(true)
     {};
     
     LoaderKeypointData( std::vector<std::string>& input_v );
@@ -44,10 +45,13 @@ namespace keypoints {
     std::vector< int   >*                    ssnet_label_v;    
     std::vector< float >*                    ssnet_weight_v;
 
+    void exclude_false_triplets( bool exclude ) { _exclude_neg_examples = exclude; };
     void load_tree();
     unsigned long load_entry( int entry );
     unsigned long GetEntries();    
-    PyObject* sample_data( const int& num_max_samples, int& nfilled, bool withtruth );
+    PyObject* sample_data( const int& num_max_samples,
+                           int& nfilled,
+                           bool withtruth );
     
   protected:
     
@@ -75,6 +79,7 @@ namespace keypoints {
                              PyArrayObject*& kpshift_label );
     
     bool _setup_numpy;
+    bool _exclude_neg_examples;
     
   };
   
