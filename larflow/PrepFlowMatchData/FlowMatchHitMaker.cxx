@@ -225,11 +225,20 @@ namespace larflow {
   /*
    * uses the match data in _matches_v to make hits
    *
+   * make larlite::larflow3dhit objects based on stored match data
+   * the object is a wrapper around a vector<float>
+   *
+   * columns:
+   * [0-2]:   x,y,z
+   * [3-9]:   6 flow direction scores + 1 max scire (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
+   * [10-12]: 3 ssnet scores, (bg,track,shower)
+   * [13]:    1 keypoint label score
    */
   void FlowMatchHitMaker::make_hits( const larcv::EventChStatus& ev_chstatus,
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
 
     const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    const int ncolumns = 14;
     
     int idx = 0;
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
@@ -248,7 +257,7 @@ namespace larflow {
       hit.idxhit = idx;
 
       float x = (m.tyz[0]-3200.0)*cm_per_tick;
-      hit.resize(3+6+1,0);
+      hit.resize(ncolumns,0);
       hit[0] = x;
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
@@ -268,6 +277,15 @@ namespace larflow {
       hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
       hit[9] = maxscore;
       hit.track_score = maxscore;
+
+      if ( has_ssnet_scores && m.ssnet_scores.size()==3) {
+        for (int c=0; c<3; c++)
+          hit[10 + c] = m.ssnet_scores[c];
+      }
+      
+      if ( has_kplabel_scores ) {
+        hit[13] = m.keypoint_score;
+      }
       
       hit_v.emplace_back( std::move(hit) );
     }
@@ -388,5 +406,133 @@ namespace larflow {
     std::cout << "-------------------------------------------------" << std::endl;
   }
 
+
+  /**
+   * store ssnet scores in match_t struct
+   *
+   * add_triplet_match_data needed to have been run first
+   *
+   */
+  int FlowMatchHitMaker::add_triplet_ssnet_scores( PyObject* triplet_indices,
+                                                   PyObject* imgu_sparseimg,
+                                                   PyObject* imgv_sparseimg,
+                                                   PyObject* imgy_sparseimg,
+                                                   const larcv::ImageMeta& meta,
+                                                   PyObject* ssnet_scores ) {
+
+    has_ssnet_scores = true;
+    
+    // match triplets
+    int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
+
+    int ss_pair_ndims      = PyArray_NDIM( (PyArrayObject*)ssnet_scores );
+    npy_intp* ss_pair_dims = PyArray_DIMS( (PyArrayObject*)ssnet_scores );
+    std::cout << "[FlowMatchHitMaker::add_triplet_ssnet_scores] score dims="
+              << "(" << ss_pair_dims[0] << "," << ss_pair_dims[1] << ")"
+              << std::endl;            
+
+    for (int ipair=0; ipair<(int)ss_pair_dims[1]; ipair++ ) {
+      // get the triplet indices
+      
+      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+      
+      std::vector<int> triple(4,0); // (col,col,col,tick)
+      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (int)meta.pos_y( row );
+    
+      // look for the triplet in the map
+      auto it = _match_map.find( triple );
+      if ( it!=_match_map.end() ) {
+        int matchidx = it->second;
+        auto& match = _matches_v[matchidx];
+
+        // store the ssnet scores
+        match.ssnet_scores.resize(3,0.0);
+        //std::cout << "save ssnet scores: ";
+        for (int p=0; p<3; p++) {
+          match.ssnet_scores[p] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, p, ipair ));
+          //std::cout << match.ssnet_scores[p] << " ";
+        }
+        //std::cout << std::endl;
+      }
+      else {
+        std::cout << "could not find match for triplet: ("
+                  << triple[0] << ","
+                  << triple[1] << ","
+                  << triple[2] << ","
+                  << triple[3] << ")"
+                  << std::endl;
+      }
+    }
+    
+    return 0;
+  }
+
+  /**
+   * store keypoint label scores in match_t struct
+   *
+   * add_triplet_match_data needed to have been run first
+   *
+   */
+  int FlowMatchHitMaker::add_triplet_keypoint_scores( PyObject* triplet_indices,
+                                                      PyObject* imgu_sparseimg,
+                                                      PyObject* imgv_sparseimg,
+                                                      PyObject* imgy_sparseimg,
+                                                      const larcv::ImageMeta& meta,                                                      
+                                                      PyObject* kplabel_scores ) {
+
+    has_kplabel_scores = true;
+    
+    // match triplets
+    int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
+
+    int kp_pair_ndims      = PyArray_NDIM( (PyArrayObject*)kplabel_scores );
+    npy_intp* kp_pair_dims = PyArray_DIMS( (PyArrayObject*)kplabel_scores );
+    std::cout << "[FlowMatchHitMaker::add_triplet_keypoint_scores] score dims=(" << kp_pair_dims[0] << ")" << std::endl;    
+
+    for (int ipair=0; ipair<(int)kp_pair_dims[0]; ipair++ ) {
+      // get the triplet indices
+      
+      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+      
+      std::vector<int> triple(4,0); // (col,col,col,tick)
+      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (int)meta.pos_y( row );
+    
+      // look for the triplet in the map
+      auto it = _match_map.find( triple );
+      if ( it!=_match_map.end() ) {
+        int matchidx = it->second;
+        auto& match = _matches_v[matchidx];
+
+        // store the kplabel scores
+        match.keypoint_score = (float)*((float*)PyArray_GETPTR1( (PyArrayObject*)kplabel_scores, ipair ));
+      }
+      else {
+        std::cout << "could not find match for triplet: ("
+                  << triple[0] << ","
+                  << triple[1] << ","
+                  << triple[2] << ","
+                  << triple[3] << ")"
+                  << std::endl;
+      }
+    }
+    
+    return 0;
+  }
+  
+  
 };
 
