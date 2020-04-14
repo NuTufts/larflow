@@ -45,21 +45,28 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="triplet_train1/checkpoint.300000th.tar"
+CHECKPOINT_FILE="train_kps_part1/checkpoint.100000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 
-TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet"
-INPUTFILE_TRAIN=["larmatch_keypointssnet_small_sample_test2.root"]
-INPUTFILE_VALID=["larmatch_keypointssnet_small_sample_test2.root"]
+TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_training_data/"
+INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
+                 "larmatch_kps_train_p07.root",
+                 "larmatch_kps_train_p08.root",
+                 "larmatch_kps_train_p09.root",
+                 "larmatch_kps_train_p01.root",
+                 "larmatch_kps_train_p02.root",
+                 "larmatch_kps_train_p03.root",
+                 "larmatch_kps_train_p04.root"]
+INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
-NUM_ITERS   = 150000
-TEST_NUM_MATCH_PAIRS = 20000
+START_ITER  = 100001
+NUM_ITERS   = 500000
+TEST_NUM_MATCH_PAIRS = 10000
 ADC_MAX = 400.0
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -90,7 +97,7 @@ CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=100
+ITER_PER_CHECKPOINT=1000
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -321,6 +328,7 @@ def train(train_loader, device, batchsize,
     """
     global writer
     global train_entry
+    
 
     # timers for profiling
     batch_time    = AverageMeter() # total for batch
