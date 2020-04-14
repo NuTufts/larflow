@@ -5,7 +5,6 @@ import numpy as np
 from larcv import larcv
 from larflow import larflow
 from ROOT import std
-from larcvdataset.larcvserver import LArCVServer
 from ctypes import c_int
 
 """

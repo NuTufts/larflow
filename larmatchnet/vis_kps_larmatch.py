@@ -24,7 +24,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
     
-color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","keypoint"]
+color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -66,7 +66,7 @@ def make_figures(entry,plotby="larmatch"):
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]        
         return lfhits_v    
-    elif plotby in ["ssn-bg","ssn-track","ssn-shower","keypoint"]:
+    elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
         for ipt in xrange(npoints):
@@ -78,7 +78,11 @@ def make_figures(entry,plotby="larmatch"):
             xyz[ptsused,0] = hit[0]
             xyz[ptsused,1] = hit[1]
             xyz[ptsused,2] = hit[2]
-            xyz[ptsused,3] = hit[hitindex]
+            if plotby=="ssn-class":
+                idx = np.argmax( np.array( (hit[10],hit[11],hit[12]) ) )
+                xyz[ptsused,3] = float(idx)/2.0
+            else:
+                xyz[ptsused,3] = hit[hitindex]
             #print(xyz[ptsused,3])
             ptsused += 1
 
