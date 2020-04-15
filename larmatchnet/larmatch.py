@@ -6,7 +6,7 @@ from utils_sparselarflow import create_resnet_layer
 
 class LArMatch(nn.Module):
 
-    def __init__(self,ndimensions=2,inputshape=(3456,1024),
+    def __init__(self,ndimensions=2,inputshape=(1024,3456),
                  nlayers=8,features_per_layer=16,
                  input_nfeatures=1,
                  stem_nfeatures=16,
@@ -88,7 +88,9 @@ class LArMatch(nn.Module):
         """
         if verbose:
             print "[larmatch] "
-            print "  coord[src]=",coord_src_t.shape," feat[src]=",coord_src_t.shape
+            print "  coord[src]=",coord_src_t.shape," feat[src]=",src_feat_t.shape
+            print "  coord dump: "
+            print coord_tar2_t
         
         srcx = ( coord_src_t,  src_feat_t,  batchsize )
         tar1 = ( coord_tar1_t, tar1_feat_t, batchsize )
@@ -102,26 +104,32 @@ class LArMatch(nn.Module):
         xsrc = self.resnet_layers( xsrc )
         if verbose: print "  resnet[src]=",xsrc.features.shape
         xsrc = self.feature_layer( xsrc )
-
+        if verbose: print "  feature[src]=",xsrc.features.shape
+        
         xtar1 = self.target1_inputlayer(tar1)
         xtar1 = self.stem( xtar1 )
+        if verbose: print "  stem[tar1]=",xtar1.features.shape                    
         if self.use_unet: xtar1 =self.unet_layers(xtar1)
+        if verbose: print "  unet[tar1]=",xtar1.features.shape        
         xtar1 = self.resnet_layers( xtar1 )
+        if verbose: print "  resnet[tar1]=",xtar1.features.shape        
         xtar1 = self.feature_layer( xtar1 )
+        if verbose: print "  feature[tar1]=",xtar1.features.shape        
 
         xtar2 = self.target2_inputlayer(tar2)
         xtar2 = self.stem( xtar2 )
+        if verbose: print "  stem[tar2]=",xtar2.features.shape                            
         if self.use_unet: xtar2 =self.unet_layers(xtar2)
+        if verbose: print "  unet[tar2]=",xtar2.features.shape        
         xtar2 = self.resnet_layers( xtar2 )
+        if verbose: print "  resnet[tar2]=",xtar2.features.shape                
         xtar2 = self.feature_layer( xtar2 )
+        if verbose: print "  feature[tar2]=",xtar2.features.shape                
 
         xsrc  = self.source_outlayer(  xsrc )
         xtar1 = self.target1_outlayer( xtar1 )
         xtar2 = self.target2_outlayer( xtar2 )
 
-        if verbose:
-            print "  outfeat[src]=",xsrc.shape
-        
         return xsrc,xtar1,xtar2
                                 
     def extract_features(self, feat_u_t, feat_v_t, feat_y_t, index_t, npts, DEVICE, verbose=False ):
@@ -140,9 +148,11 @@ class LArMatch(nn.Module):
             print "  index-selected feats_t[0]=",feats_t[0].shape
         
         veclen = feats_t[0].shape[1]+feats_t[1].shape[1]+feats_t[2].shape[1]
-        matchvec = torch.transpose( torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=1 ), 1, 0 ).reshape(1,veclen,npts)
-        if verbose:
-            print "  output-triplet-tensor: ",matchvec.shape
+        catvec = torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=1 )
+        if verbose: print "  concat out: ",catvec.shape
+        matchvec = torch.transpose( catvec, 1, 0 ).reshape(1,veclen,npts)
+        if verbose: print "  output-triplet-tensor: ",matchvec.shape
+            
 
         return matchvec
     
