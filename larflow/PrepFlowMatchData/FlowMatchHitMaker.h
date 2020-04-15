@@ -21,7 +21,9 @@ namespace larflow {
   public:
     
     FlowMatchHitMaker()
-      : _match_score_threshold(0.5) {};
+      : _match_score_threshold(0.5),
+      has_ssnet_scores(false),
+      has_kplabel_scores(false) {};
     virtual ~FlowMatchHitMaker() {};
 
     typedef struct match_t {
@@ -39,9 +41,13 @@ namespace larflow {
 
       std::array<float,3> tyz;
 
+      std::vector<float> ssnet_scores;
+      float keypoint_score;
+
       match_t()
       : Y(0),U(0),V(0),
-        YU(0),YV(0),UV(0),UY(0),VU(0),VY(0)
+        YU(0),YV(0),UV(0),UY(0),VU(0),VY(0),
+        keypoint_score(0.0)
       {};
       
       bool operator<(const match_t& rhs) const {
@@ -89,9 +95,10 @@ namespace larflow {
     float _match_score_threshold;
     std::vector<match_t> _matches_v; //< vector of match information
     std::map< std::vector<int>, int > _match_map; // map of (Y,U,V) triple to positin in matches_v
-    
+    bool has_ssnet_scores;
+    bool has_kplabel_scores;
 
-    void clear() { _matches_v.clear(); _match_map.clear(); };
+    void clear() { _matches_v.clear(); _match_map.clear(); has_ssnet_scores=false; has_kplabel_scores=false; };
     int add_match_data( PyObject* pair_probs,
                         PyObject* source_sparseimg, PyObject* target_sparseimg,
                         PyObject* matchpairs,
@@ -108,8 +115,21 @@ namespace larflow {
                                 PyObject* sparseimg_y,
                                 const std::vector< std::vector<float> >& pos_vv,
                                 const std::vector<larcv::Image2D>& adc_v );
-    
 
+    int add_triplet_ssnet_scores( PyObject* triplet_indices,
+                                  PyObject* sparseimg_u,
+                                  PyObject* sparseimg_v,
+                                  PyObject* sparseimg_y,
+                                  const larcv::ImageMeta& meta,                                  
+                                  PyObject* ssnet_scores );
+
+    int add_triplet_keypoint_scores( PyObject* triplet_indices,
+                                     PyObject* sparseimg_u,
+                                     PyObject* sparseimg_v,
+                                     PyObject* sparseimg_y,
+                                     const larcv::ImageMeta& meta,                                     
+                                     PyObject* kplabel_scores );
+    
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
 
