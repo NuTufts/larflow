@@ -116,7 +116,7 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the GPU
-    model = LArMatch(neval=TEST_NUM_MATCH_PAIRS).to(DEVICE)
+    model = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to(DEVICE)
     ssnet_head = LArMatchSSNetClassifier().to(DEVICE)
     kplabel_head = LArMatchKeypointClassifier().to(DEVICE)
     kpshift_head = LArMatchKPShiftRegressor().to(DEVICE)
