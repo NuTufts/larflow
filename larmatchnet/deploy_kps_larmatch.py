@@ -14,6 +14,7 @@ parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,hel
 parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of ADC tree [default: wire]")
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
+parser.add_argument("--use-unet","-unet",default=False,action='store_true',help="Use UNet version")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -54,7 +55,7 @@ BATCHSIZE = 1
 preplarmatch = larflow.PrepMatchTriplets()
 
 # MULTI-HEAD LARMATCH MODEL
-model_dict = {"larmatch":LArMatch(neval=NUM_PAIRS).to(DEVICE),
+model_dict = {"larmatch":LArMatch(neval=NUM_PAIRS,use_unet=args.use_unet).to(DEVICE),
               "ssnet":LArMatchSSNetClassifier().to(DEVICE),
               "kplabel":LArMatchKeypointClassifier().to(DEVICE),
               "kpshift":LArMatchKPShiftRegressor().to(DEVICE)}

@@ -5,7 +5,6 @@ from math import log
 
 parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
-parser.add_argument("-p","--minprob",type=float,default=0.0,help="score threshold on hits")
 args = parser.parse_args()
 
 import numpy as np
@@ -23,7 +22,7 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
-    
+
 color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]
 colorscale = "Viridis"
 option_dict = []
@@ -42,7 +41,7 @@ print("NENTRIES: ",nentries)
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
 
-def make_figures(entry,plotby="larmatch"):
+def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
@@ -63,16 +62,18 @@ def make_figures(entry,plotby="larmatch"):
     elif plotby=="keypoint":
         hitindex = 13
 
+    detdata = lardly.DetectorOutline()
+    
     if plotby=="larmatch":
-        lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]        
-        return lfhits_v    
+        lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
+        return lfhits_v + detdata.getlines()
     elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
         for ipt in xrange(npoints):
             hit = ev_lfhits.at(ipt)
 
-            if hit.track_score<args.minprob:
+            if hit.track_score<minprob:
                 continue
 
             xyz[ptsused,0] = hit[0]
@@ -97,7 +98,7 @@ def make_figures(entry,plotby="larmatch"):
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
         #print(xyz[:ptsused,3])
-        return [larflowhits]
+        return [larflowhits]+detdata.getlines()
 
                 
     return None
@@ -148,6 +149,11 @@ eventinput = dcc.Input(
     type="number",
     placeholder="Input Event")
 
+minprob_input = dcc.Input(
+    id="min_prob",
+    type="text",
+    placeholder="0.0")
+
 plotopt = dcc.Dropdown(
     options=option_dict,
     value='truthmatch',
@@ -157,6 +163,7 @@ plotopt = dcc.Dropdown(
 
 app.layout = html.Div( [
     html.Div( [ eventinput,
+                minprob_input,
                 plotopt,
                 html.Button("Plot",id="plot")
     ] ),
@@ -180,6 +187,7 @@ app.layout = html.Div( [
      Output("out","children")],
     [Input("plot","n_clicks")],
     [State("input_event","value"),
+     State("min_prob","value"),
      State("plotbyopt","value"),
      State("det3d","figure")],
     )
@@ -190,14 +198,24 @@ def cb_render(*vals):
     if vals[1]>=nentries or vals[1]<0:
         print("Input event is out of range")
         raise PreventUpdate
-    if vals[2] is None:
+    if vals[3] is None:
         print("Plot-by option is None")
         raise PreventUpdate
+    try:
+        minprob = float(vals[2])
+    except:
+        print("min prob cannot be turned into float")
+        raise PreventUpdate
+    if minprob<0:
+        minprob = 0.0
+    if minprob>1.0:
+        minprob = 1.0
+    
 
-    cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2])
+    cluster_traces_v = make_figures(int(vals[1]),plotby=vals[3],minprob=minprob)
     #print(cluster_traces_v)
     vals[-1]["data"] = cluster_traces_v
-    return vals[-1],"event requested: {} {}".format(vals[1],vals[2])
+    return vals[-1],"event requested: {} {} {}".format(vals[1],vals[2],vals[3])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
