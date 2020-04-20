@@ -51,11 +51,14 @@ def make_figures(entry):
     
     io_ll.go_to(entry)
 
+    detdata = lardly.DetectorOutline()
+    
     # OPFLASH
     ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
     print("num larflow hits: ",ev_lfhits.size())
     lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
-
+    lfhits_v += detdata.getlines()
+    
     return lfhits_v
 
 # WIDGET FOR INPUT

@@ -42,6 +42,12 @@ DEVICE=torch.device(devname)
 checkpointfile = args.weights
 checkpoint = torch.load( checkpointfile, map_location={"cuda:0":devname,
                                                        "cuda:1":devname} )
+# HACK FOR OLD FORMATS
+for name,arr in checkpoint["state_dict"].items():
+    if "weight" in name and "classifier" not in name and len(arr.shape)==3:
+        checkpoint["state_dict"][name] = arr.reshape( arr.shape[0], 1, arr.shape[1], arr.shape[2] )
+        
+
 NUM_PAIRS=50000
 ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
@@ -53,10 +59,13 @@ BATCHSIZE = 1
 # we use a config file
 preplarmatch = larflow.PrepMatchTriplets()
 
-model = LArMatch(neval=NUM_PAIRS).to(DEVICE)
+model = LArMatch(neval=NUM_PAIRS,use_unet=False,stem_nfeatures=32).to(DEVICE)
 model.load_state_dict(checkpoint["state_dict"])
 
 print("loaded MODEL")
+if False:
+    # for debug. stop after loading model
+    sys.exit(0)
 
 # setup filename
 outfilestem = args.output
@@ -205,12 +214,17 @@ for ientry in range(NENTRIES):
 
         # run matches through classifier portion of network
         matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
-                
+
+        # extract features according to sampled match indices
+        feat_triplet_t = model.extract_features( outfeat_u, outfeat_v, outfeat_y,
+                                                 matchpair_t, int(npairs.value),
+                                                 DEVICE, verbose=True )
+        
         if with_truth:
             truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
         
         tstart = time.time()
-        pred_t = model.classify_triplet( outfeat_u, outfeat_v, outfeat_y, matchpair_t, int(npairs.value), DEVICE )
+        pred_t = model.classify_triplet( feat_triplet_t )
         dt_net_classify = time.time()-tstart
         dt_net  += dt_net_classify
         prob_t = sigmoid(pred_t)

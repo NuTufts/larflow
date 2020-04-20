@@ -30,9 +30,10 @@ class LArMatch(nn.Module):
         self.stem = scn.Sequential() 
         self.stem.add( scn.SubmanifoldConvolution(ndimensions, input_nfeatures, stem_nfeatures, 3, False ) )
         self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
-        self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
+        if self.use_unet:
+            self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
+            self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+            self.stem.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, stem_nfeatures, 3, False ) )
 
         # UNET BLOCK
         if self.use_unet:
