@@ -52,6 +52,10 @@ namespace reco {
                               std::vector< cluster_t >& cluster_v,
                               const float maxdist=5.0, const int minsize=5, const int maxkd=5 );
 
+  void cluster_spacepoint_v( const std::vector< std::vector<float> >& hit_v,
+                             std::vector< cluster_t >& cluster_v,
+                             const float maxdist=5.0, const int minsize=5, const int maxkd=5 );
+  
   void cluster_sdbscan_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
                                       std::vector< cluster_t >& cluster_v,
                                       const float maxdist=5.0, const int minsize=5, const int maxkd=5 );

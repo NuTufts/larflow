@@ -3,9 +3,9 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h ShowerReco.h MCPixelPGraph.h VertexReco.h )
+set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h ShowerReco.h VertexReco.h KeypointReco.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx ShowerReco.cxx MCPixelPGraph.cxx VertexReco.cxx )
+add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx ShowerReco.cxx VertexReco.cxx KeypointReco.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -14,7 +14,7 @@ set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 message("python include: ${PYTHON_INCLUDE_PATH}")
 
 # larcv libs used
-set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan)
+set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 

@@ -20,9 +20,8 @@ namespace reco {
    */
   void cluster_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
                               std::vector< cluster_t >& cluster_v,
-                              const float maxdist, const int minsize, const int maxkd ) {
-
-    clock_t start = clock();
+                              const float maxdist, const int minsize, const int maxkd )
+  {
     
     // convert points into list of floats
     std::vector< std::vector<float> > points_v;
@@ -32,7 +31,9 @@ namespace reco {
       std::vector<float > hit = { (float)lfhit[0], (float)lfhit[1], (float)lfhit[2] };
       points_v.push_back( hit );
     }
-    
+
+
+    clock_t start = clock();  
     std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v = ublarcvapp::dbscan::DBScan::makeCluster3f( maxdist, minsize, maxkd, points_v );
 
     
@@ -59,9 +60,51 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     
-    std::cout << "[cluster_larflow3dhits] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+    std::cout << "[cluster_larflow3dhit] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
   }
 
+  /**
+   * we use db scan to make an initial set of clusters
+   *
+   */
+  void cluster_spacepoint_v( const std::vector< std::vector<float> >& points_v,
+                             std::vector< cluster_t >& cluster_v,
+                             const float maxdist, const int minsize, const int maxkd )
+  {
+
+    clock_t start = clock();  
+    std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v
+      = ublarcvapp::dbscan::DBScan::makeCluster3f( maxdist, minsize, maxkd, points_v );
+
+    
+    for (int ic=0; ic<(int)dbcluster_v.size()-1;ic++) {
+      // skip the last cluster, which are noise points
+      auto const& cluster = dbcluster_v[ic];
+      cluster_t c;
+      c.points_v.reserve(cluster.size());
+      //c.imgcoord_v.reserve(cluster.size());
+      c.hitidx_v.reserve(cluster.size());
+      for ( auto const& hitidx : cluster ) {
+        // store 3d position and 2D image coordinates
+        c.points_v.push_back( points_v.at(hitidx) );
+        // std::vector<int> coord(4,0);
+        // coord[3] = hit_v[hitidx].tick;
+        // coord[0] = (int)hit_v[hitidx].targetwire[0]; // U-plane
+        // coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
+        // coord[2] = (int)hit_v[hitidx].srcwire;
+        // c.imgcoord_v.push_back( coord );
+        c.hitidx_v.push_back(hitidx);
+      }
+      cluster_v.emplace_back(std::move(c));
+    }
+    clock_t end = clock();
+    double elapsed = double(end-start)/CLOCKS_PER_SEC;
+    
+    std::cout << "[cluster_spacepoint] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+      
+  }
+
+  
   /**
    * we use alternative simple dbscan package to make an initial set of clusters
    *

@@ -15,6 +15,7 @@
 #pragma link C++ class larflow::reco::ClusterFunctions+;
 #pragma link C++ class larflow::reco::cluster_t+;
 #pragma link C++ function larflow::reco::cluster_larflow3dhits+;
+#pragma link C++ function larflow::reco::cluster_spacepoint_v+;
 #pragma link C++ function larflow::reco::cluster_sdbscan_larflow3dhits+;
 #pragma link C++ function larflow::reco::cluster_dbscan_vp_larflow3dhits+;
 #pragma link C++ function larflow::reco::cluster_dump2jsonfile+;
@@ -24,12 +25,13 @@
 #pragma link C++ class larflow::reco::PCACluster+;
 #pragma link C++ class larflow::reco::PyLArFlow+;
 #pragma link C++ class larflow::reco::ShowerReco+;
-#pragma link C++ class larflow::reco::MCPixelPGraph+;
 #pragma link C++ class larflow::reco::VertexReco+;
 #pragma link C++ class std::vector<larflow::reco::VertexReco::Candidate_t>+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
+#pragma link C++ struct larflow::reco::KPCluster_t+;
+#pragma link C++ class larflow::reco::KeypointReco+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
