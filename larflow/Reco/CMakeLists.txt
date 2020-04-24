@@ -3,9 +3,18 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h PCACluster.h PyLArFlow.h ShowerReco.h VertexReco.h KeypointReco.h )
+set( HEADERS cluster_functions.h PCACluster.h
+  PyLArFlow.h ShowerReco.h
+  VertexReco.h KeypointReco.h
+  ShowerLikelihoodBuilder.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx PCACluster.cxx PyLArFlow.cxx ShowerReco.cxx VertexReco.cxx KeypointReco.cxx )
+add_library( ${LIBNAME} SHARED cluster_functions.cxx
+  PCACluster.cxx
+  PyLArFlow.cxx
+  ShowerReco.cxx
+  VertexReco.cxx
+  KeypointReco.cxx
+  ShowerLikelihoodBuilder.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

@@ -7,6 +7,7 @@
 #include "core/LArUtil/Geometry.h"
 #include "larcv/core/Base/larcv_logger.h"
 
+#include <stdexcept>
 
 namespace larflow {
 
@@ -103,7 +104,7 @@ namespace larflow {
       float prob = probs_carray[0][ipair];
 
       // match threshold
-      if ( prob<_match_score_threshold ) continue;
+      //if ( prob<_match_score_threshold ) continue;
 
       // get source and target index (in sparse image)
       int srcidx = matchpairs_carray[ipair][0];
@@ -245,7 +246,19 @@ namespace larflow {
     hit_v.reserve(maxsize);
     for ( auto const& m : _matches_v ) {
 
-      //std::cout << "[FlowMatchHitMaker::make_hits] tick=" << m.tyz[0] << " hit=(" << m.U << "," << m.V << "," << m.Y << ")" << std::endl;
+      // find the highest match score
+      std::vector<float> scores = m.get_scores();
+      float maxscore = 0;
+      int maxdir = -1;
+      for ( int i=0; i<scores.size(); i++ ) {
+        float s = scores[i];
+        if ( s>maxscore ) {
+          maxscore = s;
+          maxdir = i;
+        }
+      }
+      if ( maxscore<_match_score_threshold )
+        continue;
       
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
@@ -262,16 +275,9 @@ namespace larflow {
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
       
-      // use the highest
-      std::vector<float> scores = m.get_scores();
-      float maxscore = 0;
-      int maxdir = -1;
+      // store scores
       for ( int i=0; i<scores.size(); i++ ) {
         float s = scores[i];
-        if ( s>maxscore ) {
-          maxscore = s;
-          maxdir = i;
-        }
         hit[3+i] = s;
       }
       hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
@@ -289,7 +295,9 @@ namespace larflow {
       
       hit_v.emplace_back( std::move(hit) );
     }
-
+    std::cout << "[FlowMatchHitMaker::make_hits] saved " << hit_v.size() << " hits "
+              << " from "  << _matches_v.size() << " matches" << std::endl;
+    
   };
 
   /**
@@ -354,7 +362,7 @@ namespace larflow {
       // match threshold
       if ( prob<_match_score_threshold ) {
         nbelowminprob++;
-        continue;
+        //continue;
       }
 
       std::vector<float> pos(3,0);
@@ -468,6 +476,7 @@ namespace larflow {
                   << triple[2] << ","
                   << triple[3] << ")"
                   << std::endl;
+        throw std::runtime_error("bad ssnet data");
       }
     }
     
