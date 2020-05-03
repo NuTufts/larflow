@@ -6,13 +6,15 @@
 #include "DataFormat/mcshower.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
+#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
 
   ShowerLikelihoodBuilder::ShowerLikelihoodBuilder()
   {
-    _hll = new TH2F("lfshower_ll","",2000, -10, 190, 1000, 0, 100 );
+    _hll          = new TH2F("lfshower_ll","",2000, -10, 190, 1000, 0, 100 );
+    _hll_weighted = new TH2F("lfshower_ll_weighted","",2000, -10, 190, 1000, 0, 100 );
     _psce = new larutil::SpaceChargeMicroBooNE();
   }
 
@@ -176,11 +178,11 @@ namespace reco {
     for (int p=0; p<3; p++ ) shower_end[p] = shower_vtx[p] + 3.0*shower_dir[p];
 
     std::vector<double> offset = _psce->GetPosOffsets( shower_vtx[0], shower_vtx[1], shower_vtx[2] );
-    std::vector<float> shower_vtx_sce  = { shower_vtx[0] - (float)offset[0] + 0.6,
+    std::vector<float> shower_vtx_sce  = { shower_vtx[0] - (float)offset[0] + (float)0.6,
                                            shower_vtx[1] + (float)offset[1],
                                            shower_vtx[2] + (float)offset[2] };
     offset = _psce->GetPosOffsets( shower_end[0], shower_end[1], shower_end[2] );
-    std::vector<float> shower_end_sce  = { shower_end[0] - (float)offset[0] + 0.6,
+    std::vector<float> shower_end_sce  = { shower_end[0] - (float)offset[0] + (float)0.6,
                                            shower_end[1] + (float)offset[1],
                                            shower_end[2] + (float)offset[2] };
     // adjust shower dir due to SCE
@@ -193,7 +195,7 @@ namespace reco {
     for (int i=0; i<3; i++ ) shower_dir[i] /= scenorm;
     
     // convert hits into cluster_t objects
-    
+    //_analyze_clusters( truehit_v, shower_dir, shower_vtx_sce );
     
     // fill profile histogram
 
@@ -274,10 +276,108 @@ namespace reco {
       //           << std::endl;
       float w=1.;
       if ( rad>0 ) w = 1.0/rad;
-      _hll->Fill( proj, rad, w );
+      _hll_weighted->Fill( proj, rad, w );
+      _hll->Fill( proj, rad );
     }
     
   }
+
+  void ShowerLikelihoodBuilder::_analyze_clusters( std::vector< larlite::larflow3dhit >& truehit_v,
+                                                   std::vector<float>& shower_dir,
+                                                   std::vector<float>& shower_vtx )
+  {
+
+    std::vector< cluster_t > cluster_v;
+    float maxdist = 5.0;
+    int minsize = 10;
+    int maxkd = 5;
+    cluster_larflow3dhits( truehit_v, cluster_v, maxdist, minsize, maxkd );
+
+    std::cout << "[ ShowerLikelihoodBuilder::_analyze_clusters ] number of clusters: " << cluster_v.size() << std::endl;
+
+    // find the trunk, perform pca for all clusters
+    int trunk_cluster = -1;
+    float min_dist2vtx = 1.0e9;
+    for ( size_t idx=0; idx<cluster_v.size(); idx++ ) {
+      auto& cluster = cluster_v[idx];
+      cluster_pca( cluster );
+      float dist2vtx[2] = {0.};
+      for (int e=0; e<2; e++) {
+        for (int i=0; i<3; i++) {
+          dist2vtx[e] += (cluster.pca_ends_v[e][i]-shower_vtx[i])*(cluster.pca_ends_v[e][i]-shower_vtx[i]);
+        }
+
+        if ( dist2vtx[e]<min_dist2vtx ) {
+          trunk_cluster = idx;
+          min_dist2vtx = dist2vtx[e];
+        }
+      }
+    }
+
+    // get points near the vertex of the trunk cluster, within 5 cm
+    cluster_t near_vtx;
+    for ( int idx=0; idx<(int)cluster_v[trunk_cluster].points_v.size(); idx++ ) {
+      float dist = 0.;
+      for (int i=0; i<3; i++) {
+        dist += (cluster_v[trunk_cluster].points_v[idx][i]-shower_vtx[i])*(cluster_v[trunk_cluster].points_v[idx][i]-shower_vtx[i]);
+      }
+      dist = sqrt(dist);
+      if ( dist<5.0 ) {
+        near_vtx.points_v.push_back( cluster_v[trunk_cluster].points_v[idx] );
+      }
+    }
+    cluster_pca( near_vtx );
+
+    // now we measure relationships to the main cluster
+    // (1) distance of cluster-endpoint to trunk pca-axis of nearest endpt
+    // (2) cosine of pca-axes
+    // (3) impact parameter
+    
+  }
+
+  void ShowerLikelihoodBuilder::_dist2line( const std::vector<float>& ray_start,
+                                            const std::vector<float>& ray_dir,
+                                            const std::vector<float>& pt,
+                                            float& radial_dist, float& projection )
+  {
+
+    std::vector<float> d1(3);
+    std::vector<float> d2(3);
+
+    float len3 = 0.;
+    std::vector<float> end(3,0);
+    for (int i=0; i<3; i++) {
+      end[i] = ray_start[i] + ray_dir[i];
+      len3 += ray_dir[i]*ray_dir[i];
+    }
+    len3 = sqrt(len3);
+
+    float len1 = 0.;
+    for (int i=0; i<3; i++ ) {
+      d1[i] = pt[i] - ray_start[i];
+      d2[i] = pt[i] - end[i];
+      len1 += d1[i]*d1[i];
+    }
+    len1 = sqrt(len1);
+
+    // cross-product
+    std::vector<float> d1xd2(3);
+    d1xd2[0] =  d1[1]*d2[2] - d1[2]*d2[1];
+    d1xd2[1] = -d1[0]*d2[2] + d1[2]*d2[0];
+    d1xd2[2] =  d1[0]*d2[1] - d1[1]*d2[0];
+    float len1x2 = 0.;
+    for ( int i=0; i<3; i++ ) {
+      len1x2 += d1xd2[i]*d1xd2[i];
+    }
+    len1x2 = sqrt(len1x2);
+    radial_dist  = len1x2/len3; // distance of point from PCA-axis
+    
+    projection = 0.;
+    for ( int i=0; i<3; i++ )
+      projection += ray_dir[i]*d1[i]/len3;
+    
+  }
+  
 
 }
 }

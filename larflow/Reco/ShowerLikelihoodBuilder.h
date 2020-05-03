@@ -38,14 +38,29 @@ namespace reco {
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
-    TH2F* _hll;
     larflow::PrepMatchTriplets tripletalgo;
 
     void _fillProfileHist( const std::vector<larlite::larflow3dhit>& truehit_v,
                            std::vector<float>& shower_dir,
                            std::vector<float>& shower_vtx );
 
+    void _dist2line( const std::vector<float>& ray_start,
+                     const std::vector<float>& ray_dir,
+                     const std::vector<float>& pt,
+                     float& radial_dist, float& projection );
+
+    void _analyze_clusters( std::vector< larlite::larflow3dhit >& truehit_v,
+                            std::vector<float>& shower_dir,
+                            std::vector<float>& shower_vtx );
+    
+
     larutil::SpaceChargeMicroBooNE* _psce;
+    TH2F* _hll;
+    TH2F* _hll_weighted;
+    TTree* _tree_cluster_relationships;
+    float _dist2trunk;
+    
+    TTree* _tree_trunk_features;
     
   };
   
