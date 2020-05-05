@@ -8,14 +8,14 @@ CXXFLAGS+= `larcv-config --includes`
 CXXFLAGS+= `ublarcvapp-config --includes`
 CXXFLAGS+= -I$(LARFLOW_INCDIR)
 
-LDFLAGS= -L$(LARFLOW_LIBDIR) -lLArFlow_PrepFlowMatchData
+LDFLAGS= -L$(LARFLOW_LIBDIR) -lLArFlow_PrepFlowMatchData -lLArFlow_LArFlowConstants
 LDFLAGS+=`larlite-config --libs`
 LDFLAGS+=`larcv-config --libs` -lLArCVCorePyUtil
 LDFLAGS+=`ublarcvapp-config --libs`
 LDFLAGS+=`root-config --libs`
 
 
-all: truthana_larmatch
+all: 3plane_truthana_larmatch
 
 %: %.cxx
 	@echo "<< compile $@ >>"

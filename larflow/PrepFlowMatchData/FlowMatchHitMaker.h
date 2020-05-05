@@ -39,9 +39,11 @@ namespace larflow {
 
       std::array<float,3> tyz;
 
-      match_t()
+      int istruth; //true match
+      
+    match_t()
       : Y(0),U(0),V(0),
-        YU(0),YV(0),UV(0),UY(0),VU(0),VY(0)
+        YU(0),YV(0),UV(0),UY(0),VU(0),VY(0),istruth(0)
       {};
       
       bool operator<(const match_t& rhs) const {
@@ -57,6 +59,9 @@ namespace larflow {
         else if ( plane==2 ) Y = wire;
       };
 
+      void set_istruth( int label) {
+	istruth = label;
+      };
       void set_score ( int source_plane, int target_plane, float prob ) {
         if ( source_plane==2 ) {
           if ( target_plane==0 && prob>YU )      YU = prob;
