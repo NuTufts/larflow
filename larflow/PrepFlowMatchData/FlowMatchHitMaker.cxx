@@ -268,7 +268,8 @@ namespace larflow {
       hit.targetwire[1] = m.V;
       hit.targetwire[2] = m.Y;
       hit.idxhit = idx;
-
+      if(m.istruth==0) hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;
+      else{ hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;}
       float x = (m.tyz[0]-3200.0)*cm_per_tick;
       hit.resize(ncolumns,0);
       hit[0] = x;
@@ -348,16 +349,19 @@ namespace larflow {
       // score for this match
       float prob = *(float*)PyArray_GETPTR1( (PyArrayObject*)triple_probs, ipair );
 
-      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
-                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
+			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
+
       
-      std::vector<int> triple(4,0); // (col,col,col,tick)
+      std::vector<int> triple(5,0); // (col,col,col,tick, istruth)
       triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
+      triple[ 4 ] = (int)index[3];
       
       // match threshold
       if ( prob<_match_score_threshold ) {
@@ -387,6 +391,7 @@ namespace larflow {
       if ( it==_match_map.end() ) {
         // if not in match map, we create a new entry
         match_t m;
+	m.set_istruth(triple[4]);
         for ( size_t p=0; p<3; p++ )
           m.set_wire( p, triple[p] );
         m.tyz = { (float)triple[3], (float)pos[1], (float)pos[2] };
@@ -395,7 +400,7 @@ namespace larflow {
         it = _match_map.find( triple );
       }
       else {
-        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << ")" << std::endl;
+        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << "." << triple[4] <<")" << std::endl;
         nrepeated++;
       }
 
