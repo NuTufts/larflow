@@ -86,8 +86,8 @@ namespace spatialembed {
 
     std::vector<int> _triplet_ancestor_id;
     std::map<int, std::vector<int> > _ancestor2tripletidx_m;
-    void _assign_triplet_ancestorid( const PrepMatchTriplets& tripletdata,
-                                     const std::vector<larcv::Image2D>& ancestor_v );
+    void _assign_triplet_ancestor_id( const PrepMatchTriplets& tripletdata,
+                                      const std::vector<larcv::Image2D>& ancestor_v );
                                      
     
   };

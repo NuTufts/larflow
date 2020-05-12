@@ -10,6 +10,15 @@
 namespace larflow {
 namespace spatialembed {
 
+  /**
+   *
+   * prepare truth labels for the spatial embedding clustering task
+   *
+   * @param[in] iolcv    larcv::IOManager instance containing needed data products.
+   * @param[in] ioll     larlite::storage_manager instance containing needed data products.
+   * @param[in] triplets instance containing proposed pixel triplets
+   * 
+   */
   void PrepMatchEmbed::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
                                 const PrepMatchTriplets& triplets )
@@ -21,10 +30,12 @@ namespace spatialembed {
     larcv::EventImage2D* ev_ancestor
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "ancestor" );
 
+    // collect 2D pixel clusters based on ancestor ID number
     for (size_t p=0; p<3; p++ )
       _collect_ancestor_pixels( ev_image->Image2DArray()[p], ev_ancestor->Image2DArray()[p] );
 
-    // assign 
+    // assign ancestor ID to triplets
+    _assign_triplet_ancestor_id( triplets, ev_ancestor->Image2DArray() );
     
   }
   
@@ -82,6 +93,17 @@ namespace spatialembed {
     return it->second;
     
   }
-  
+
+  /*
+   * assign an ancestor id label to each triplet. 
+   * also collect indices to triplets for those with the same ancestor id.
+   * in effect clusters the triplet/3d spacepoints based on truth information found in ancestor id images.
+   *
+   */
+  void PrepMatchEmbed::_assign_triplet_ancestor_id( const PrepMatchTriplets& triplet,
+                                                    const std::vector<larcv::Image2D>& ancestor_v )
+  {
+    
+  }
 }
 }
