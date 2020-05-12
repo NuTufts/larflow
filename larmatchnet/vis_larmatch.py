@@ -15,8 +15,10 @@ Note that step (3) has to be done each time you start a new shell.
 
 parser = argparse.ArgumentParser("test_3d lardly viewer")
 parser.add_argument("-ll","--larlite",required=True,type=str,help="larlite file with dltagger_allreco tracks")
+parser.add_argument("-dl","--dlmerged",type=str,default=None,help="DL merged file that contains truth")
 #parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
 parser.add_argument("-p","--minprob",type=float,default=0.0,help="score threshold on hits")
+parser.add_argument("-mc","--has-mc",action='store_true',default=False,help="If given, will try and plot MC tracks")
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -38,6 +40,8 @@ input_larlite = args.larlite
 # LARLITE
 io_ll = larlite.storage_manager(larlite.storage_manager.kREAD)
 io_ll.add_in_filename( input_larlite )
+if args.dlmerged is not None:
+    io_ll.add_in_filename( args.dlmerged )
 io_ll.open()
 
 NENTRIES = io_ll.get_entries()
@@ -53,11 +57,14 @@ def make_figures(entry):
 
     detdata = lardly.DetectorOutline()
     
-    # OPFLASH
+    # LARFLOW HITS
     ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
     print("num larflow hits: ",ev_lfhits.size())
     lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
     lfhits_v += detdata.getlines()
+
+    #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+    #traces3d += mctrack_v    
     
     return lfhits_v
 

@@ -5,6 +5,8 @@ from math import log
 
 parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
+parser.add_argument("-dl","--dlmerged",type=str,default=None,help="DL merged file that contains truth")
+parser.add_argument("-mc","--has-mc",action='store_true',default=False,help="If given, will try and plot MC tracks")
 args = parser.parse_args()
 
 import numpy as np
@@ -32,6 +34,9 @@ for opt in color_by_options:
 # LOAD TREES
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
 io.add_in_filename( args.input_file )
+if args.dlmerged is not None:
+    io.add_in_filename( args.dlmerged )
+
 io.open()
 
 nentries = io.get_entries()
@@ -63,10 +68,15 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         hitindex = 13
 
     detdata = lardly.DetectorOutline()
+
+    traces_v = []
+    #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+    #traces3d += mctrack_v    
+
     
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
-        return lfhits_v + detdata.getlines()
+        traces_v += lfhits_v + detdata.getlines()
     elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
@@ -98,10 +108,13 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
         #print(xyz[:ptsused,3])
-        return [larflowhits]+detdata.getlines()
+        traces_v += [larflowhits]+detdata.getlines()
 
-                
-    return None
+    if args.has_mc:
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        traces_v += mctrack_v    
+        
+    return traces_v
 
 def test():
     pass
