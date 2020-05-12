@@ -14,9 +14,47 @@
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
+#include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
 namespace larflow {
 
+
+  /**
+   * convenience function that gets the data needed from an larcv::IOManager instance
+   * and runs the process method.
+   *
+   *
+   * @param[in] iolcv   larcv::IOManager instance containing needed data objects
+   * @param[in] wire_producer     Name of tree containing event ADC images
+   * @param[in] chstatus_producer Name of tree containing badch status
+   * @param[in] adc_threshold     Threshold value for pixels we will consider (typically 10.0)
+   * @param[in] check_wire_intersection Check that triplet produces a good wire intersection inside the TPC.
+   *                                    Also saves the 3D position for each triplet. (Makes slower; For debug.)
+   */
+  void PrepMatchTriplets::process( larcv::IOManager& iolcv,
+                                   std::string wire_producer,
+                                   std::string chstatus_producer,
+                                   const float adc_threshold,
+                                   const bool check_wire_intersection )
+  {
+    
+    // create bad channel maker algo
+    ublarcvapp::EmptyChannelAlgo badchmaker;
+
+    // get images
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,wire_producer);
+    
+    // get chstatus
+    larcv::EventChStatus* ev_badch
+      = (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus,chstatus_producer);
+    
+    std::vector<larcv::Image2D> badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, *ev_badch );
+    
+    process( ev_adc->Image2DArray(), badch_v, adc_threshold, check_wire_intersection );
+    
+  } 
+  
   /**
    * make the possible hit triplets from all the wire plane images
    *

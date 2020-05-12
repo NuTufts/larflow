@@ -6,6 +6,9 @@
 
 #include <vector>
 #include "larcv/core/DataFormat/Image2D.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
+#include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/Processor/ProcessBase.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "FlowTriples.h"
@@ -26,7 +29,13 @@ namespace larflow {
                   const std::vector<larcv::Image2D>& badch_v,
                   const float adc_threshold,
                   const bool check_wire_interection = false );
-
+    
+    void process( larcv::IOManager& iolcv,
+                  std::string wire_producer,
+                  std::string chstatus_producer,
+                  const float adc_threshold=10.0,
+                  const bool check_wire_intersection=false );
+    
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
     
     std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
