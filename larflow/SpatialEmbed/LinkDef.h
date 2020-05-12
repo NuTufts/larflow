@@ -11,6 +11,7 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::spatialembed;
+#pragma link C++ struct larflow::spatialembed::AncestorIDPix_t+;
 #pragma link C++ class larflow::spatialembed::PrepMatchEmbed+;
 
 //ADD_NEW_CLASS ... do not change this line
