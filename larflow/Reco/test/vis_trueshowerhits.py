@@ -83,7 +83,19 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
         traces_v.append( larflowhits )
+
+    # PCA
+    ev_pca = io.get_data( larlite.data.kPCAxis, "truthshower" )
+    pca_v = lardly.data.visualize_event_pcaxis( ev_pca )
+    traces_v += pca_v
         
+    # MC
+    ev_mcshower = io.get_data( larlite.data.kMCShower, "truthshower" )
+    if ev_mcshower.size()>0:
+        for ishower in xrange(ev_mcshower.size()):
+            shower_traces_v = lardly.data.visualize3d_larlite_mcshower( ev_mcshower.at(ishower), return_dirplot = True )
+            traces_v += shower_traces_v[1:]
+            #traces_v.append( shower_traces_v[1] )
 
     # end of loop over treenames
     traces_v += detdata.getlines()

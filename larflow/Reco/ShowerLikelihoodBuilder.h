@@ -22,6 +22,7 @@
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/Reco/cluster_functions.h"
 
 #include "TFile.h"
 #include "TH2F.h"
@@ -49,6 +50,18 @@ namespace reco {
                      const std::vector<float>& pt,
                      float& radial_dist, float& projection );
 
+    std::vector< cluster_t > cluster_v;
+    void _make_truehit_clusters( std::vector< larlite::larflow3dhit >& truehit_v );
+
+    int _find_closest_cluster( std::vector<int>& claimed_cluster_v,
+                               std::vector<float>& shower_vtx,
+                               std::vector<float>& shower_dir );
+    
+
+    int _trunk_cluster;
+    std::vector< float >     cluster_pcacos2trunk_v;
+    std::vector< float >     cluster_dist2trunk_v;
+    std::vector< float >     cluster_impactdist2trunk_v;    
     void _analyze_clusters( std::vector< larlite::larflow3dhit >& truehit_v,
                             std::vector<float>& shower_dir,
                             std::vector<float>& shower_vtx );
@@ -61,6 +74,13 @@ namespace reco {
     float _dist2trunk;
     
     TTree* _tree_trunk_features;
+
+    void _impactdist( const std::vector<float>& l_start,
+                      const std::vector<float>& l_dir,
+                      const std::vector<float>& m_start,
+                      const std::vector<float>& m_dir,
+                      float& impact_dist,
+                      float& proj_l, float& proj_m );
     
   };
   
