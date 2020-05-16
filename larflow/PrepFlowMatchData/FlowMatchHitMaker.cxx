@@ -355,13 +355,13 @@ namespace larflow {
 			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
 
       
-      std::vector<int> triple(5,0); // (col,col,col,tick, istruth)
+      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
       triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
-      triple[ 4 ] = (int)index[3];
+      triple[ 4 ] = (int)index[3]; //truth 
       
       // match threshold
       if ( prob<_match_score_threshold ) {
@@ -448,16 +448,18 @@ namespace larflow {
     for (int ipair=0; ipair<(int)ss_pair_dims[1]; ipair++ ) {
       // get the triplet indices
       
-      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
-                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
-      std::vector<int> triple(4,0); // (col,col,col,tick)
+      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
       triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
+      triple[ 4 ] = (int)index[3];
     
       // look for the triplet in the map
       auto it = _match_map.find( triple );
@@ -479,7 +481,8 @@ namespace larflow {
                   << triple[0] << ","
                   << triple[1] << ","
                   << triple[2] << ","
-                  << triple[3] << ")"
+                  << triple[3] << ","
+                  << triple[4] << ")"
                   << std::endl;
         throw std::runtime_error("bad ssnet data");
       }
@@ -514,16 +517,18 @@ namespace larflow {
     for (int ipair=0; ipair<(int)kp_pair_dims[0]; ipair++ ) {
       // get the triplet indices
       
-      long index[3] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
-                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ) };
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
-      std::vector<int> triple(4,0); // (col,col,col,tick)
+      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
       triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
+      triple[ 4 ] = (int)index[3];
     
       // look for the triplet in the map
       auto it = _match_map.find( triple );
@@ -539,7 +544,8 @@ namespace larflow {
                   << triple[0] << ","
                   << triple[1] << ","
                   << triple[2] << ","
-                  << triple[3] << ")"
+                  << triple[3] << ","
+                  << triple[4] << ")"
                   << std::endl;
       }
     }
