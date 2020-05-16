@@ -462,7 +462,7 @@ namespace larflow {
     }
 
     int nd = 2;
-    int ndims2 = (withtruth) ? 3 : 2;
+    int ndims2 = 3;
     npy_intp dims[] = { max_num_samples, ndims2 };
 
     // output array
@@ -486,6 +486,9 @@ namespace larflow {
       *((long*)PyArray_GETPTR2( array, nsamples, 1)) = (long)_triplet_v[tripidx][tarplane];
       if ( withtruth ) {
         *((long*)PyArray_GETPTR2( array, nsamples, 2)) = (long)_truth_2plane_v[tripidx][(int)kdir];
+      }
+      else {
+        *((long*)PyArray_GETPTR2( array, nsamples, 2)) = 0;
       }
       nsamples++;
       if (nsamples==max_num_samples)
@@ -561,8 +564,8 @@ namespace larflow {
    * @param[in] withtruth If true, additional element added to Dim[1]
                           which contains if triplet is true match (1) or fals match (0).
    * @param[out] nsamples Returns the number of indices we copied.
-   * @return A numpy array, with type NPY_LONG and dimensions (max_num_samples, 4 or 5)
-   *         columns: [u-index,v-index,y-index,truthlabel(if asked),triplet-index]
+   * @return A numpy array, with type NPY_LONG and dimensions (max_num_samples, 5)
+   *         columns: [u-index,v-index,y-index,truthlabel,triplet-index]
    *
    */
   PyObject* PrepMatchTriplets::make_triplet_array( const int max_num_samples,
@@ -578,7 +581,7 @@ namespace larflow {
     }
 
     int nd = 2;
-    int ndims2 = (withtruth) ? 5 : 4;
+    int ndims2 = 5;
     npy_intp dims[] = { max_num_samples, ndims2 };
 
     // output array
@@ -603,7 +606,8 @@ namespace larflow {
         *((long*)PyArray_GETPTR2( array, nsamples, 4)) = (long)tripidx;
       }
       else {
-        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = (long)tripidx;
+        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = 0;        
+        *((long*)PyArray_GETPTR2( array, nsamples, 4)) = (long)tripidx;
       }
       nsamples++;
       if (nsamples==max_num_samples)
