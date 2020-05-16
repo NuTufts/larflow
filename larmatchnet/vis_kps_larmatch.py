@@ -70,6 +70,8 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     detdata = lardly.DetectorOutline()
 
     traces_v = []
+
+    
     #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
     #traces3d += mctrack_v    
 
@@ -112,7 +114,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     if args.has_mc:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-        traces_v += mctrack_v    
+        traces_v += mctrack_v
+
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        traces_v += mcshower_v
         
     return traces_v
 
