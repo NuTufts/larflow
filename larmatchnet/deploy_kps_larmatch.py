@@ -218,7 +218,7 @@ for ientry in range(NENTRIES):
                                                                npairs,
                                                                with_truth )
         t_chunk = time.time()-t_chunk
-        print("  made matchpairs: npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
+        print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
         dt_chunk += t_chunk
             
         startidx = int(last_index.value)
