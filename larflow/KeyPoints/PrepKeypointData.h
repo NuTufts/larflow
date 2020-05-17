@@ -101,6 +101,11 @@ namespace keypoints {
     std::string str( const KPdata& kpd );
 
     void filter_duplicates();
+
+  public:
+
+    const std::vector<KPdata>& getKPdata() const { return _kpd_v; };
+    
     
   protected:
 

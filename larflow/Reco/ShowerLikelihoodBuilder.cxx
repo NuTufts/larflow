@@ -424,8 +424,6 @@ namespace reco {
     int best_matched_cluster = -1;
     for ( size_t idx=0; idx<cluster_v.size(); idx++ ) {
 
-      if ( claimed_cluster_v[idx]==1 ) continue;
-      
       auto& cluster = cluster_v[idx];
       float dist2vtx[2] = {0.};
       for (int e=0; e<2; e++) {
@@ -455,7 +453,7 @@ namespace reco {
     if ( min_dist2vtx>3.0 )
       return -1;
 
-    claimed_cluster_v[ best_matched_cluster ] = 1;
+    claimed_cluster_v[ best_matched_cluster ] += 1;
     return best_matched_cluster;
   }  
   

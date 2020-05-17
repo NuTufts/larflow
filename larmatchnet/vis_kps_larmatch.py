@@ -13,6 +13,7 @@ import numpy as np
 import ROOT as rt
 from larlite import larlite
 from larcv import larcv
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 larcv.SetPyUtil()
 
@@ -71,11 +72,6 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     traces_v = []
 
-    
-    #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-    #traces3d += mctrack_v    
-
-    
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines()

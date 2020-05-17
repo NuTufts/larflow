@@ -136,6 +136,7 @@ namespace keypoints {
 
     // build key-points
     _kpd_v.clear();
+    _kppos_v.clear();
     
     // build crossing points for muon track primaries
     std::vector<KPdata> track_kpd
@@ -153,21 +154,21 @@ namespace keypoints {
     std::cout << "[Shower Endpoint Results]" << std::endl;
     for ( auto const& kpd : shower_kpd ) {
       std::cout << "  " << str(kpd) << std::endl;
-      _kpd_v.emplace_back( std::move(kpd) );      
+      _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // filter duplicates
     filter_duplicates();
 
     // copy positions of keypoints into flat vector for storage
-    _kppos_v.clear();
     for ( auto const& kpd : _kpd_v ) {
       _kppos_v.push_back( kpd.keypt );
     }
 
     // make BVH tree (to help truth point search speed)
-    makeBVH();
-    printBVH();
+    // deprecated
+    //makeBVH();
+    //printBVH();
   }
 
 
