@@ -34,7 +34,8 @@ namespace keypoints {
    * constructor
    */
   PrepKeypointData::PrepKeypointData()
-    : _bvhroot(nullptr),
+    : _adc_image_treename("wire"),
+      _bvhroot(nullptr),
       _use_bvh(false),
       _label_tree(nullptr)
   {
@@ -72,7 +73,7 @@ namespace keypoints {
    */
   void PrepKeypointData::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
-    auto ev_adc      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wiremc");
+    auto ev_adc      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,_adc_image_treename);
     auto ev_segment  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
     auto ev_ancestor = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
