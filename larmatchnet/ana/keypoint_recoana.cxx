@@ -4,6 +4,7 @@
 #include "TTree.h"
 
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/EventPGraph.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
 #include "LArUtil/LArProperties.h"
@@ -77,6 +78,8 @@ int main( int nargs, char** argv )
 
   float vtx_qsum[3] = { 0., 0., 0. };
   float min_dist_to_vtx = 0.;
+  float min_dist_to_vtx_dl = 0.;
+  int has_good_dl_vertex = 0;
   
   ev_ana->Branch("run",&run,"run/I");
   ev_ana->Branch("subrun",&subrun,"subrun/I");
@@ -95,6 +98,8 @@ int main( int nargs, char** argv )
   ev_ana->Branch("n_false_keypoint_wct",&n_false_keypoint_wct,"n_false_keypoint_wct/I");
 
   ev_ana->Branch("min_dist_to_vtx", &min_dist_to_vtx, "min_dist_to_vtx/F" );
+  ev_ana->Branch("min_dist_to_vtx_dl", &min_dist_to_vtx_dl, "min_dist_to_vtx_dl/F" );
+  ev_ana->Branch("has_good_dl_vertex", &has_good_dl_vertex, "has_good_dl_vertex/I" );
   ev_ana->Branch("vtx_qsum",vtx_qsum, "vtx_qsum[3]/F" );
 
   TTree* kp_ana = new TTree("kprecoana_keypt","Keypoint Reco Ana per True Keypoint tree");  
@@ -142,12 +147,17 @@ int main( int nargs, char** argv )
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iocv.get_data(larcv::kProductImage2D,"wire");
     auto const& adc_v = ev_adc->Image2DArray();
+
+    // DL Vertex
+    larcv::EventPGraph* ev_pgraph =
+      (larcv::EventPGraph*)iocv.get_data(larcv::kProductPGraph,"test");
     
     std::cout << "[ENTRY " << ientry << "]" << std::endl;
     std::cout << "  number of truth keypoints: " << kpdata.getKPdata().size() << std::endl;
     std::cout << "  number of reco keypoints: " << ev_kpreco->size() << std::endl;
     std::cout << "  number of Wirecell images: " << thrumu_v.size() << std::endl;
     std::cout << "  true neutrino vertex: (" << true_vtx[0] << "," << true_vtx[1] << "," << true_vtx[2] << ")" << std::endl;
+    std::cout << "  number of DL reco vertices: " << ev_pgraph->PGraphArray().size() << std::endl;
     lmc.printInteractionInfo();
     kpdata.printKeypoints();
     
@@ -191,6 +201,25 @@ int main( int nargs, char** argv )
         }//end of if valid wire
       }//end of plane loop
     }//end of if valid tick
+
+    // get dl vertex info
+    has_good_dl_vertex = 0;
+    min_dist_to_vtx_dl = 1.0e9;
+    for ( auto const& pgraph : ev_pgraph->PGraphArray() ) {
+      for ( auto const& roi : pgraph.ParticleArray() ) {
+        float dist = 0.;
+        dist += ( roi.X()-vtx_sce[0] )*( roi.X()-vtx_sce[0] );
+        dist += ( roi.Y()-vtx_sce[1] )*( roi.Y()-vtx_sce[1] );
+        dist += ( roi.Z()-vtx_sce[2] )*( roi.Z()-vtx_sce[2] );
+        dist = sqrt(dist);
+
+        if ( min_dist_to_vtx_dl>dist ) {
+          min_dist_to_vtx_dl = dist;
+        }
+      }
+    }
+    if ( min_dist_to_vtx_dl<5.0 )
+      has_good_dl_vertex = 1;
     
     for ( auto const& kpc : *ev_kpreco ) {
 
