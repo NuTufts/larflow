@@ -62,7 +62,7 @@ int main( int nargs, char** argv )
   TTree* ev_ana = new TTree("kprecoana_event","Keypoint Reco Ana Event tree");
 
   int run,subrun,event;
-
+  
   int n_reco_kp;
   int n_near_true_vtx;
   int n_near_true_trackend;
@@ -74,6 +74,9 @@ int main( int nargs, char** argv )
   int n_near_true_trackend_wct;
   int n_near_true_showerstart_wct;
   int n_false_keypoint_wct;
+
+  float vtx_qsum[3] = { 0., 0., 0. };
+  float min_dist_to_vtx = 0.;
   
   ev_ana->Branch("run",&run,"run/I");
   ev_ana->Branch("subrun",&subrun,"subrun/I");
@@ -90,6 +93,9 @@ int main( int nargs, char** argv )
   ev_ana->Branch("n_near_true_trackend_wct",&n_near_true_trackend_wct,"n_near_true_trackend_wct/I");
   ev_ana->Branch("n_near_true_showerstart_wct",&n_near_true_showerstart_wct,"n_near_true_showerstart_wct/I");
   ev_ana->Branch("n_false_keypoint_wct",&n_false_keypoint_wct,"n_false_keypoint_wct/I");
+
+  ev_ana->Branch("min_dist_to_vtx", &min_dist_to_vtx, "min_dist_to_vtx/F" );
+  ev_ana->Branch("vtx_qsum",vtx_qsum, "vtx_qsum[3]/F" );
 
   TTree* kp_ana = new TTree("kprecoana_keypt","Keypoint Reco Ana per True Keypoint tree");  
   float vtx_sce[3];
@@ -132,6 +138,11 @@ int main( int nargs, char** argv )
       (larcv::EventImage2D*)iocv.get_data(larcv::kProductImage2D,"thrumu");
     auto const& thrumu_v = ev_thrumu->Image2DArray();
 
+    // ADC images
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iocv.get_data(larcv::kProductImage2D,"wire");
+    auto const& adc_v = ev_adc->Image2DArray();
+    
     std::cout << "[ENTRY " << ientry << "]" << std::endl;
     std::cout << "  number of truth keypoints: " << kpdata.getKPdata().size() << std::endl;
     std::cout << "  number of reco keypoints: " << ev_kpreco->size() << std::endl;
@@ -154,6 +165,33 @@ int main( int nargs, char** argv )
     n_near_true_showerstart_wct = 0;
     n_false_keypoint_wct = 0;
 
+    // characterize vertex
+    min_dist_to_vtx = 1.0e9;
+
+    // get vertex activity
+    for (int p=0; p<3; p++) vtx_qsum[p] = 0.0;
+    if ( lmc._vtx_tick>adc_v[0].meta().min_y() && lmc._vtx_tick<adc_v[0].meta().max_y() ) {
+      int row = adc_v[0].meta().row( lmc._vtx_tick );
+
+      for (int p=0; p<3; p++ ) {
+
+        if ( lmc._vtx_wire[p]>=adc_v[p].meta().min_x() && lmc._vtx_wire[p]<(int)adc_v[p].meta().max_x() ) {
+          int col = adc_v[p].meta().col( lmc._vtx_wire[p] );
+
+          for (int dr=-3; dr<=3; dr++ ) {
+            int r=row+dr;
+            if ( r<0 || r>=(int)adc_v[p].meta().rows() ) continue;
+            for (int dc=-3; dc<=3; dc++) {
+              int c = col+dc;
+              if (c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
+              if ( adc_v[p].pixel(r,c)>10.0 )
+                vtx_qsum[p] += adc_v[p].pixel(r,c);
+            }//end of col loop
+          }//end of row loop
+        }//end of if valid wire
+      }//end of plane loop
+    }//end of if valid tick
+    
     for ( auto const& kpc : *ev_kpreco ) {
 
       // determine if on Wirecell-tagged cosmic
@@ -190,8 +228,18 @@ int main( int nargs, char** argv )
 
           if ( onpixel ) nplanes_on_wctpixel++;
         }
-        if ( nplanes_on_wctpixel>=2 ) iscosmic = true;
+        if ( nplanes_on_wctpixel>=3 ) iscosmic = true;
       }
+
+      // dist to vtx
+      float reco_vtx_dist = 0.;
+      for (int i=0; i<3; i++) {
+        reco_vtx_dist += (kpc.max_pt_v[i]-true_vtx[i])*(kpc.max_pt_v[i]-true_vtx[i]);
+      }
+      reco_vtx_dist = sqrt(reco_vtx_dist);
+      if ( reco_vtx_dist < min_dist_to_vtx )
+        min_dist_to_vtx = reco_vtx_dist;
+
       
       // loop over truth keypoints and determine if near by
       int num_nearby = 0;
