@@ -208,11 +208,11 @@ int main( int nargs, char** argv )
     for ( auto const& pgraph : ev_pgraph->PGraphArray() ) {
       for ( auto const& roi : pgraph.ParticleArray() ) {
         float dist = 0.;
-        dist += ( roi.X()-vtx_sce[0] )*( roi.X()-vtx_sce[0] );
-        dist += ( roi.Y()-vtx_sce[1] )*( roi.Y()-vtx_sce[1] );
-        dist += ( roi.Z()-vtx_sce[2] )*( roi.Z()-vtx_sce[2] );
+        dist += ( roi.X()-true_vtx[0] )*( roi.X()-true_vtx[0] );
+        dist += ( roi.Y()-true_vtx[1] )*( roi.Y()-true_vtx[1] );
+        dist += ( roi.Z()-true_vtx[2] )*( roi.Z()-true_vtx[2] );
         dist = sqrt(dist);
-
+        std::cout << "dl vtx: (" << roi.X() << "," << roi.Y() << "," << roi.Z() << ") dist2vtx=" << dist << " cm" << std::endl;
         if ( min_dist_to_vtx_dl>dist ) {
           min_dist_to_vtx_dl = dist;
         }
