@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "TTree.h"
+
 // larlite
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/storage_manager.h"
@@ -17,8 +19,17 @@ namespace reco {
 
   public:
     
-    KeypointReco() { set_param_defaults(); };
-    virtual ~KeypointReco() {};
+    KeypointReco()
+      : _output_tree(nullptr)
+    { set_param_defaults(); };
+    virtual ~KeypointReco()
+      {
+        if (_output_tree) {
+          delete _output_tree;
+          _output_tree = nullptr;
+        }
+        
+      };
 
     // params
   protected:
@@ -28,6 +39,7 @@ namespace reco {
     int   _num_passes;       //< number of passes to perform
     int   _min_cluster_size; //< minimum cluster size to be a vertex (cluster of hits above threshold)
     float _max_dbscan_dist;  //< max distance parameter in DBscan used
+    
   public:
     void set_param_defaults();
     void set_threshold( float threshold )    { _score_threshold=threshold; };
@@ -64,6 +76,17 @@ namespace reco {
     void _expand_kpcluster( KPCluster& kp );
 
     void printAllKPClusterInfo();
+
+  protected:
+
+    TTree* _output_tree; // optional
+
+  public:
+
+    void bindKPClusterContainerToTree( TTree* out );
+    void setupOwnTree();
+    void writeTree() { if ( _output_tree ) _output_tree->Write(); };
+    void fillTree() {  if ( _output_tree ) _output_tree->Fill(); };
 
   };
 

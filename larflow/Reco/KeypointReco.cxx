@@ -302,5 +302,25 @@ namespace reco {
       kp.printInfo();
   }
 
+  /**
+   * make branch with pointer to output cluster container
+   *
+   */
+  void KeypointReco::bindKPClusterContainerToTree( TTree* out )
+  {
+    out->Branch( "kpcluster_v", &output_pt_v );
+  }
+
+
+  /** 
+   * create TTree instance in class and use it to store output container contents
+   *
+   */
+  void KeypointReco::setupOwnTree()
+  {
+    _output_tree = new TTree("larflow_keypointreco", "Reconstructed keypoint clusters");
+    bindKPClusterContainerToTree( _output_tree );
+  }
+  
 }
 }

@@ -29,7 +29,7 @@ from larflow import larflow
 print larflow.reco
 print larflow.reco.KeypointReco
 
-io = larlite.storage_manager( larlite.storage_manager.kBOTH )
+io = larlite.storage_manager( larlite.storage_manager.kREAD )
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
 print "[INPUT: DL MERGED] ",args.input_dlmerged
@@ -39,7 +39,7 @@ print "[OUTPUT]    ",args.output
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
-io.set_out_filename( args.output )
+#io.set_out_filename( args.output )
 iolcv.add_in_file(   args.input_dlmerged )
 
 io.open()
@@ -47,7 +47,10 @@ if args.tickbackwards:
     iolcv.reverse_all_products()
 iolcv.initialize()
 
+out = rt.TFile(args.output,"recreate")
+
 kpreco = larflow.reco.KeypointReco()
+kpreco.setupOwnTree()
 print kpreco
 
 lcv_nentries = iolcv.get_n_entries()
@@ -76,10 +79,16 @@ for ientry in xrange( args.start_entry, end_entry ):
 
     kpreco.process( ev_lfhits )
 
-    kpreco.dump2json("dump_kpreco_event%d.json"%(ientry))
+    #kpreco.dump2json("dump_kpreco_event%d.json"%(ientry))
+    kpreco.fillTree()
     
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
-    io.next_event()    
+    io.next_event()
+
+print "Event Loop finished"
+kpreco.writeTree()
+del kpreco
+out.Close()
 
 io.close()
 iolcv.finalize()

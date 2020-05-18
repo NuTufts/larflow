@@ -3,7 +3,8 @@ import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
 parser.add_argument("-dl","--input-larflow",required=True,type=str,help="larflow input")
-parser.add_argument("-kpj","--input-kpjson",required=True,type=str,help="keypoint json file")
+#parser.add_argument("-kpj","--input-kpjson",required=True,type=str,help="keypoint json file")
+parser.add_argument("-kp","--input-kpreco",required=True,type=str,help="keypoint root file")
 args = parser.parse_args()
 
 import numpy as np
@@ -31,7 +32,12 @@ io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
 io.open()
 
+kpio = rt.TFile( args.input_kpreco, "open" )
+ev_kpreco = kpio.Get("larflow_keypointreco")
+
 nentries = io.get_entries()
+nkpreco  = ev_kpreco.GetEntries()
+
 print("NENTRIES: ",nentries)
 
 def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
@@ -86,50 +92,54 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         traces_v.append( larflowhits )
         
 
-    finput = open( args.input_kpjson, 'r' )
-    jkp = json.load( finput )
-    pos = np.zeros( (len(jkp["keypoints"]),3) )
-    markers = {"colors":["rgb({},{},{})".format(np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256)) for _ in range(pos.shape[0])],
-               "size":5}
+    nbytes = ev_kpreco.GetEntry(entry)
+    if nbytes>0:    
+        # KEYPOINT PLOT
+        print("Number of reco'd Keypoints in event: ",ev_kpreco.kpcluster_v.size())
 
-    # KEYPOINT PLOT
-    for ipt,kpj in enumerate(jkp["keypoints"]):
-        print(" plot kp[",ipt,"]")
-        pos[ipt,0] = float(kpj["maxpt"][0])
-        pos[ipt,1] = float(kpj["maxpt"][1])
-        pos[ipt,2] = float(kpj["maxpt"][2])        
-    kp_plot = {
-        "type":"scatter3d",
-        "x":pos[:,0],
-        "y":pos[:,1],
-        "z":pos[:,2],
-        "mode":"markers",
-        "name":"keypoints",
-        "marker":markers
-    }
-    print("centers: ",pos)
-    traces_v.append( kp_plot )
-    
-    # PCA-AXIS PLOTS
-    pca_traces_v = []
-    for ipt,kpj in enumerate(jkp["keypoints"]):
-        pcaxis = np.zeros( (3,3) )
-        for ipt in xrange(3):
-            for j in xrange(3):
-                pcaxis[ipt,j] = kpj["clusters"]["pca"][ipt][j]
-        pca_trace = {
+        nkp = ev_kpreco.kpcluster_v.size()
+        markers = {"colors":["rgb({},{},{})".format(np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256)) for _ in range(nkp)],
+                   "size":5}
+        pos = np.zeros( (nkp,3) )
+        
+        for ipt in range(nkp):
+            kpdata = ev_kpreco.kpcluster_v.at(ipt)
+            print(" plot kp[",ipt,"]")
+            pos[ipt,0] = float(kpdata.max_pt_v[0])
+            pos[ipt,1] = float(kpdata.max_pt_v[1])
+            pos[ipt,2] = float(kpdata.max_pt_v[2]) 
+        kp_plot = {
             "type":"scatter3d",
-            "x":pcaxis[:,0],
-            "y":pcaxis[:,1],
-            "z":pcaxis[:,2],
-            "mode":"lines",
-            "name":"pca%d"%(ipt),
-            "line":{"color":"rgb(255,255,255,)","width":4}
+            "x":pos[:,0],
+            "y":pos[:,1],
+            "z":pos[:,2],
+            "mode":"markers",
+            "name":"keypoints",
+            "marker":markers
         }
-        pca_traces_v.append( pca_trace )
-    traces_v += pca_traces_v
+        #print("centers: ",pos)
+        traces_v.append( kp_plot )
+    
+        # PCA-AXIS PLOTS
+        pca_traces_v = []
+        for ipt in range(nkp):
+            pcaxis = np.zeros( (3,3) )
+            for i in range(3):
+                pcaxis[0,i] = ev_kpreco.kpcluster_v.at(ipt).pca_ends_v[0][i]
+                pcaxis[1,i] = ev_kpreco.kpcluster_v.at(ipt).pca_center[i]
+                pcaxis[2,i] = ev_kpreco.kpcluster_v.at(ipt).pca_ends_v[1][i]                
+            pca_trace = {
+                "type":"scatter3d",
+                "x":pcaxis[:,0],
+                "y":pcaxis[:,1],
+                "z":pcaxis[:,2],
+                "mode":"lines",
+                "name":"pca%d"%(ipt),
+                "line":{"color":"rgb(255,255,255,)","width":4}
+            }
+            pca_traces_v.append( pca_trace )
+        traces_v += pca_traces_v
 
-    finput.close()
 
     # end of loop over treenames
     traces_v += detdata.getlines()
