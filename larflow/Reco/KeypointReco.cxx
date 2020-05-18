@@ -21,7 +21,7 @@ namespace reco {
   
   /**
    * take in storage manager, get larflow3dhits, which stores keypoint scores, 
-   * make candidate KPCluster_t, and store them as larflow3dhit for now. (tech-debt!)
+   * make candidate KPCluster, and store them as larflow3dhit for now. (tech-debt!)
    *
    */  
   void KeypointReco::process( larlite::storage_manager& io_ll )
@@ -30,7 +30,7 @@ namespace reco {
   }
   
   /**
-   * take in larflow3dhits, which stores keypoint scores, and make candidate KPCluster_t
+   * take in larflow3dhits, which stores keypoint scores, and make candidate KPCluster
    *
    */
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
@@ -122,7 +122,7 @@ namespace reco {
 
     for ( auto& cluster : cluster_v ) {
       // make kpcluster
-      KPCluster_t kpc = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
+      KPCluster kpc = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
       auto& kpc_cluster = _cluster_v[ kpc._cluster_idx ];
 
       // We now subtract the point score from nearby points
@@ -174,12 +174,12 @@ namespace reco {
   }
 
   /**
-   * we take the cluster we've made using dbscan and make a KPCluster_t object
+   * we take the cluster we've made using dbscan and make a KPCluster object
    * we define the centroid using a weighted score
    * we define the pca as well, to help us absorb points
    *
    */
-  KPCluster_t KeypointReco::_characterize_cluster( cluster_t& cluster,
+  KPCluster KeypointReco::_characterize_cluster( cluster_t& cluster,
                                                    std::vector< std::vector<float> >& skimmed_pt_v,
                                                    std::vector< int >& skimmed_index_v )
   {
@@ -187,7 +187,7 @@ namespace reco {
     // run pca
     cluster_pca( cluster );
 
-    KPCluster_t kpc;
+    KPCluster kpc;
     kpc.center_pt_v.resize(3,0.0);
     kpc.max_pt_v.resize(4,0.0);
 
@@ -258,7 +258,7 @@ namespace reco {
    * we absorb points to clusters, using pca-line, proximity, and confidence score
    *
    */
-  void KeypointReco::_expand_kpcluster( KPCluster_t& kp )
+  void KeypointReco::_expand_kpcluster( KPCluster& kp )
   {
     // to do
   }
@@ -291,24 +291,6 @@ namespace reco {
   }
 
   /**
-   * Print cluster info to standard out
-   *
-   * @param[in] kp KPCluster_t instance to dump info on.
-   *
-   */
-  void KeypointReco::printKPClusterInfo( const KPCluster_t& kp )
-  {
-    std::cout << "[KPCluster_t]" << std::endl;
-    std::cout << " center: (" << kp.center_pt_v[0] << "," << kp.center_pt_v[1] << "," << kp.center_pt_v[2] << ")" << std::endl;
-    std::cout << " num points: " << kp.pt_pos_v.size() << std::endl;
-    std::cout << " max score: " << kp.max_score << std::endl;
-    for (int i=0; i<3; i++ ) {
-      std::cout << " pca-" << i << ": val=" << kp.pca_eigenvalues[i]
-                << " dir=(" << kp.pca_axis_v[i][0] << "," << kp.pca_axis_v[i][1] << "," << kp.pca_axis_v[i][2]  <<")" << std::endl;
-    }
-  }
-
-  /**
    * Dump all cluster info to standard out
    *
    * prints info for clusters in output_pt_v.
@@ -317,7 +299,7 @@ namespace reco {
   void KeypointReco::printAllKPClusterInfo()
   {
     for ( auto const& kp : output_pt_v )
-      printKPClusterInfo(kp);
+      kp.printInfo();
   }
 
 }

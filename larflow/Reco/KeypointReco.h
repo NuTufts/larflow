@@ -8,34 +8,10 @@
 #include "DataFormat/storage_manager.h"
 
 #include "cluster_functions.h"
+#include "KPCluster.h"
 
 namespace larflow {
 namespace reco {
-
-  struct KPCluster_t {
-    
-    std::vector< float > center_pt_v;             ///< center point
-    std::vector< std::vector<float> > pt_pos_v;   ///< points associated to the center
-    std::vector< float >              pt_score_v; ///< score of cluster points
-
-    // pca info from clustering of neighboring points
-    // this info is copied from the cluster_t object used to make it
-    std::vector< std::vector<float> > pca_axis_v;
-    std::vector<float>                pca_center;
-    std::vector<float>                pca_eigenvalues;
-    std::vector< std::vector<float> > pca_ends_v;    // points on 1st pca-line out to the maximum projection distance from center
-    std::vector< std::vector<float> > bbox_v;        // axis-aligned bounding box. calculated along with pca
-    float                             pca_max_r;
-    float                             pca_ave_r2;
-    float                             pca_len;
-
-    int                               max_idx;       //< hit in cluster with maximum score
-    float                             max_score;     //< maximum score of hit in cluster
-    std::vector<float>                max_pt_v;      //< position of maximum point
-
-    int _cluster_idx;                             ///< associated cluster_t in KeypointReco::_cluster_v (internal use only)
-    //cluster_t cluster;
-  };
   
   class KeypointReco  {
 
@@ -65,7 +41,7 @@ namespace reco {
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );
     void dump2json( std::string outfilename="dump_keypointreco.json" );    
 
-    std::vector< KPCluster_t > output_pt_v;
+    std::vector< KPCluster > output_pt_v;
     std::vector< cluster_t >   _cluster_v;
 
     // make initial points
@@ -81,13 +57,12 @@ namespace reco {
                                  std::vector<std::vector<float> >& skimmed_pt_v,
                                  std::vector<int>& skimmed_index_v );
 
-    KPCluster_t _characterize_cluster( cluster_t& cluster,
-                                       std::vector< std::vector<float> >& skimmed_pt_v,
-                                       std::vector< int >& skimmed_index_v );
+    KPCluster _characterize_cluster( cluster_t& cluster,
+                                     std::vector< std::vector<float> >& skimmed_pt_v,
+                                     std::vector< int >& skimmed_index_v );
     
-    void _expand_kpcluster( KPCluster_t& kp );
+    void _expand_kpcluster( KPCluster& kp );
 
-    void printKPClusterInfo( const KPCluster_t& kp );
     void printAllKPClusterInfo();
 
   };
