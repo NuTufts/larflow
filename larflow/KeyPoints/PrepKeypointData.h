@@ -108,6 +108,7 @@ namespace keypoints {
 
     void setADCimageTreeName(std::string treename) { _adc_image_treename=treename; };
     const std::vector<KPdata>& getKPdata() const { return _kpd_v; };
+    void printKeypoints() const;
     
     
   protected:

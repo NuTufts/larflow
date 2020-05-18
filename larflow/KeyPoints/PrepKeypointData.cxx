@@ -742,6 +742,23 @@ namespace keypoints {
       _label_tree->Write();
   }
 
+  /**
+   * dump keypoint locations to standard out
+   *
+   */
+  void PrepKeypointData::printKeypoints() const
+  {
+
+    std::cout << "[PrepKeypointData::printKeypoints] -----------------" << std::endl;
+    for ( size_t i=0; i<_kpd_v.size(); i++ ) {
+      auto const& kpd = _kpd_v[i];
+      std::cout << "  [" << i << "] "
+                << "(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ")"
+                << std::endl;
+    }
+    std::cout << "----------------------------------------------------" << std::endl;    
+    
+  }
   
   
 }
