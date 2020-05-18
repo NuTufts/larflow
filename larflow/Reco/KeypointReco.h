@@ -41,8 +41,25 @@ namespace reco {
 
   public:
     
-    KeypointReco() {};
+    KeypointReco() { set_param_defaults(); };
     virtual ~KeypointReco() {};
+
+    // params
+  protected:
+
+    float _sigma;            //< width of keypoint. used to supress neighbor keypoints
+    float _score_threshold;  //< ignore spacepoints with keypoint score below this values
+    int   _num_passes;       //< number of passes to perform
+    int   _min_cluster_size; //< minimum cluster size to be a vertex (cluster of hits above threshold)
+    float _max_dbscan_dist;  //< max distance parameter in DBscan used
+  public:
+    void set_param_defaults();
+    void set_threshold( float threshold )    { _score_threshold=threshold; };
+    void set_sigma( float sigma )            { _sigma=sigma; };
+    void set_min_cluster_size( int minsize ) { _min_cluster_size=minsize; };
+    void set_num_passes( int npasses )       { _num_passes = npasses; };
+    void set_max_dbscan_dist( float dist )   { _max_dbscan_dist = dist; };
+    
 
     void process( larlite::storage_manager& io_ll );
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );

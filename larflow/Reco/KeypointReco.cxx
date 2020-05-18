@@ -10,6 +10,15 @@
 namespace larflow {
 namespace reco {
 
+  void KeypointReco::set_param_defaults()
+  {
+    _sigma = 10.0; // cm
+    _score_threshold = 0.5;
+    _num_passes = 2;
+    _min_cluster_size = 10;
+    _max_dbscan_dist = 2.0;
+  }
+  
   /**
    * take in storage manager, get larflow3dhits, which stores keypoint scores, 
    * make candidate KPCluster_t, and store them as larflow3dhit for now. (tech-debt!)
@@ -29,15 +38,15 @@ namespace reco {
 
     output_pt_v.clear();
     
-    _make_initial_pt_data( input_lfhits, 0.50 );
+    _make_initial_pt_data( input_lfhits, _score_threshold );
 
-    for (int i=0; i<3; i++ ) {
+    for (int i=0; i<_num_passes; i++ ) {
       std::cout << "[KeypointReco::process] Pass " << i+1 << std::endl;
-      _make_kpclusters( 0.5 );
+      _make_kpclusters( _score_threshold );
       std::cout << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
       int nabove=0;
       for (auto& posv : _initial_pt_pos_v ) {
-        if (posv[3]>0.5) nabove++;
+        if (posv[3]>_score_threshold) nabove++;
       }
       std::cout << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
     }
@@ -104,12 +113,12 @@ namespace reco {
 
     // cluster the points
     std::vector< cluster_t > cluster_v;
-    float maxdist = 2.0;
-    int minsize = 5;
-    int maxkd   = 5;
+    float maxdist = _max_dbscan_dist;
+    int minsize   = _min_cluster_size;
+    int maxkd     = 5;
     cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, minsize, maxkd );
 
-    float sigma = 10.0; // fall off distance
+    float sigma = _sigma; // bandwidth
 
     for ( auto& cluster : cluster_v ) {
       // make kpcluster
