@@ -15,11 +15,11 @@ LDFLAGS+=`larlite-config --libs`
 LDFLAGS+=`root-config --libs`
 
 
-all: 3plane_truthana_larmatch keypoint_ana
+all: 3plane_truthana_larmatch keypoint_truthana keypoint_recoana
 
 %: %.cxx
 	@echo "<< compile $@ >>"
 	$(CXX) $(CXXFLAGS)  $< -o $@ $(LDFLAGS)
 
 clean:
-	@rm truthana_larmatch
+	@rm truthana_larmatch keypoint_truthana keypoint_recoana
