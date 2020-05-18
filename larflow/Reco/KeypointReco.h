@@ -29,6 +29,10 @@ namespace reco {
     float                             pca_ave_r2;
     float                             pca_len;
 
+    int                               max_idx;       //< hit in cluster with maximum score
+    float                             max_score;     //< maximum score of hit in cluster
+    std::vector<float>                max_pt_v;      //< position of maximum point
+
     int _cluster_idx;                             ///< associated cluster_t in KeypointReco::_cluster_v (internal use only)
     //cluster_t cluster;
   };
@@ -65,6 +69,9 @@ namespace reco {
                                        std::vector< int >& skimmed_index_v );
     
     void _expand_kpcluster( KPCluster_t& kp );
+
+    void printKPClusterInfo( const KPCluster_t& kp );
+    void printAllKPClusterInfo();
 
   };
 

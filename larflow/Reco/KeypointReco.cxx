@@ -29,9 +29,20 @@ namespace reco {
 
     output_pt_v.clear();
     
-    _make_initial_pt_data( input_lfhits, 0.25 );
-    _make_kpclusters( 0.7 );
+    _make_initial_pt_data( input_lfhits, 0.50 );
 
+    for (int i=0; i<3; i++ ) {
+      std::cout << "[KeypointReco::process] Pass " << i+1 << std::endl;
+      _make_kpclusters( 0.5 );
+      std::cout << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
+      int nabove=0;
+      for (auto& posv : _initial_pt_pos_v ) {
+        if (posv[3]>0.5) nabove++;
+      }
+      std::cout << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
+    }
+
+    printAllKPClusterInfo();
     std::cout << "[ KeypointReco::process ] num kpclusters = " << output_pt_v.size() << std::endl;
   }
   
@@ -41,6 +52,9 @@ namespace reco {
    * clears and fills:
    *  _initial_pt_pos_v;
    *  _initial_pt_used_v;
+   *
+   * @param[in] lfhits          LArFlow hits with keypoint network info
+   * @param[in] score_threshold Keep hits above these thresholds
    *
    */
   void KeypointReco::_make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
@@ -67,12 +81,17 @@ namespace reco {
               << "/"
               << lfhits.size()
               << std::endl;
-
-
-    
     
   }
 
+  /**
+   * Make clusters with remaining points
+   *
+   * fills member cluster container, output_pt_v.
+   * 
+   * @param[in] round_score_threshold 
+   *
+   */
   void KeypointReco::_make_kpclusters( float round_score_threshold )
   {
 
@@ -83,7 +102,6 @@ namespace reco {
                             skimmed_pt_v,
                             skimmed_index_v );
 
-
     // cluster the points
     std::vector< cluster_t > cluster_v;
     float maxdist = 2.0;
@@ -91,15 +109,32 @@ namespace reco {
     int maxkd   = 5;
     cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, minsize, maxkd );
 
+    float sigma = 10.0; // fall off distance
+
     for ( auto& cluster : cluster_v ) {
       // make kpcluster
       KPCluster_t kpc = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
       auto& kpc_cluster = _cluster_v[ kpc._cluster_idx ];
-      // tag points in total-set (_intial_pt_pos_v)
+
+      // We now subtract the point score from nearby points
       for ( auto const& idx : kpc_cluster.hitidx_v ) {
-        _initial_pt_used_v[idx] = 1;
+
+        float dist = 0.;
+        for ( int i=0; i<3; i++ )
+          dist += ( kpc.center_pt_v[i]-_initial_pt_pos_v[idx][i] )*(kpc.center_pt_v[i]-_initial_pt_pos_v[idx][i] );
+
+        float current_score = _initial_pt_pos_v[idx][3];
+
+        // suppress score based on distance from cluster centroid
+        float newscore = current_score - kpc.max_score*exp(-0.5*dist/(sigma*sigma));
+        if (newscore<0) {
+          newscore = 0.0;
+          _initial_pt_used_v[idx] = 1;
+        }
+        _initial_pt_pos_v[idx][3] = newscore;
       }
 
+      // does nothing right now
       _expand_kpcluster( kpc );
       
       output_pt_v.emplace_back( std::move(kpc) );
@@ -108,14 +143,20 @@ namespace reco {
     
   }
 
+  /**
+   * get list of points to cluster above threshold
+   *
+   * @param[in]  score_threshold   Keep points above threshold.
+   * @param[out] skimmed_pt_v      Return 3D points.
+   * @param[out] skimmed_index_v   Index of point in the Original Point list.
+   *
+   */
   void KeypointReco::_skim_remaining_points( float score_threshold,
                                              std::vector<std::vector<float> >& skimmed_pt_v,
                                              std::vector<int>& skimmed_index_v )
   {
 
     for ( size_t i=0; i<_initial_pt_pos_v.size(); i++ ) {
-      if ( _initial_pt_used_v[i]==1 ) continue;
-
       if ( _initial_pt_pos_v[i][3]>score_threshold ) {
         skimmed_pt_v.push_back( _initial_pt_pos_v[i] );
         skimmed_index_v.push_back(i);
@@ -139,8 +180,11 @@ namespace reco {
 
     KPCluster_t kpc;
     kpc.center_pt_v.resize(3,0.0);
+    kpc.max_pt_v.resize(4,0.0);
 
     float totw = 0.;
+    float max_score = 0.;
+    int   max_idx = -1;
     for ( int i=0; i<(int)cluster.points_v.size(); i++ ) {
 
       int skimidx = cluster.hitidx_v[i];
@@ -158,8 +202,15 @@ namespace reco {
       kpc.pt_pos_v.push_back(   skimmed_pt_v[ skimidx ] );
       kpc.pt_score_v.push_back( skimmed_pt_v[ skimidx ][3] );
 
+      if ( skimmed_pt_v[skimidx][3]>max_score ) {
+        max_score = skimmed_pt_v[skimidx][3];
+        max_idx   = i;
+        kpc.max_pt_v = skimmed_pt_v[skimidx];        
+      }
+
       // update the hitindex to use the total-set indexing
       cluster.hitidx_v[i] =  skimmed_index_v[skimidx];
+
     }
     if ( totw>0.0 ) {
       for (int v=0; v<3; v++ ) {
@@ -177,6 +228,10 @@ namespace reco {
     kpc.pca_max_r       = cluster.pca_max_r;
     kpc.pca_ave_r2      = cluster.pca_ave_r2;
     kpc.pca_len         = cluster.pca_len;
+
+    // store max info
+    kpc.max_score       = max_score;
+    kpc.max_idx         = max_idx;
     
     std::cout << "[KeypointReco::_characterize_cluster]" << std::endl;
     std::cout << "  center: (" << kpc.center_pt_v[0] << "," << kpc.center_pt_v[1] << "," << kpc.center_pt_v[2] << ")" << std::endl;
@@ -214,10 +269,10 @@ namespace reco {
       //std::cout << "cluster: nhits=" << cluster.points_v.size() << std::endl;
       nlohmann::json jkpc;
       jkpc["center"]   = kpc.center_pt_v;
+      jkpc["maxpt"]    = kpc.max_pt_v;
       auto& clust = _cluster_v[ kpc._cluster_idx ];
       jkpc["clusters"] = cluster_json(clust);
       j["keypoints"].emplace_back( std::move(jkpc) );
-      std::cout << "dump cluster" << std::endl;
     }
     
     std::ofstream o(outfilename.c_str());
@@ -225,7 +280,36 @@ namespace reco {
     o.close();
     
   }
-  
+
+  /**
+   * Print cluster info to standard out
+   *
+   * @param[in] kp KPCluster_t instance to dump info on.
+   *
+   */
+  void KeypointReco::printKPClusterInfo( const KPCluster_t& kp )
+  {
+    std::cout << "[KPCluster_t]" << std::endl;
+    std::cout << " center: (" << kp.center_pt_v[0] << "," << kp.center_pt_v[1] << "," << kp.center_pt_v[2] << ")" << std::endl;
+    std::cout << " num points: " << kp.pt_pos_v.size() << std::endl;
+    std::cout << " max score: " << kp.max_score << std::endl;
+    for (int i=0; i<3; i++ ) {
+      std::cout << " pca-" << i << ": val=" << kp.pca_eigenvalues[i]
+                << " dir=(" << kp.pca_axis_v[i][0] << "," << kp.pca_axis_v[i][1] << "," << kp.pca_axis_v[i][2]  <<")" << std::endl;
+    }
+  }
+
+  /**
+   * Dump all cluster info to standard out
+   *
+   * prints info for clusters in output_pt_v.
+   *
+   */
+  void KeypointReco::printAllKPClusterInfo()
+  {
+    for ( auto const& kp : output_pt_v )
+      printKPClusterInfo(kp);
+  }
 
 }
 }

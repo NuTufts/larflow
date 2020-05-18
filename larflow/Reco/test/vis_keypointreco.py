@@ -91,11 +91,13 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     pos = np.zeros( (len(jkp["keypoints"]),3) )
     markers = {"colors":["rgb({},{},{})".format(np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256)) for _ in range(pos.shape[0])],
                "size":5}
+
+    # KEYPOINT PLOT
     for ipt,kpj in enumerate(jkp["keypoints"]):
         print(" plot kp[",ipt,"]")
-        pos[ipt,0] = float(kpj["center"][0])
-        pos[ipt,1] = float(kpj["center"][1])
-        pos[ipt,2] = float(kpj["center"][2])        
+        pos[ipt,0] = float(kpj["maxpt"][0])
+        pos[ipt,1] = float(kpj["maxpt"][1])
+        pos[ipt,2] = float(kpj["maxpt"][2])        
     kp_plot = {
         "type":"scatter3d",
         "x":pos[:,0],
@@ -106,8 +108,27 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         "marker":markers
     }
     print("centers: ",pos)
-    
     traces_v.append( kp_plot )
+    
+    # PCA-AXIS PLOTS
+    pca_traces_v = []
+    for ipt,kpj in enumerate(jkp["keypoints"]):
+        pcaxis = np.zeros( (3,3) )
+        for ipt in xrange(3):
+            for j in xrange(3):
+                pcaxis[ipt,j] = kpj["clusters"]["pca"][ipt][j]
+        pca_trace = {
+            "type":"scatter3d",
+            "x":pcaxis[:,0],
+            "y":pcaxis[:,1],
+            "z":pcaxis[:,2],
+            "mode":"lines",
+            "name":"pca%d"%(ipt),
+            "line":{"color":"rgb(255,255,255,)","width":4}
+        }
+        pca_traces_v.append( pca_trace )
+    traces_v += pca_traces_v
+
     finput.close()
 
     # end of loop over treenames
