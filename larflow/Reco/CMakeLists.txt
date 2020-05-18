@@ -5,7 +5,8 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 
 set( HEADERS cluster_functions.h PCACluster.h
   PyLArFlow.h ShowerReco.h
-  VertexReco.h KeypointReco.h
+  VertexReco.h
+  KPCluster.h KeypointReco.h
   ShowerLikelihoodBuilder.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -13,6 +14,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   PyLArFlow.cxx
   ShowerReco.cxx
   VertexReco.cxx
+  KPCluster.cxx
   KeypointReco.cxx
   ShowerLikelihoodBuilder.cxx )
 

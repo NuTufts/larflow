@@ -31,7 +31,7 @@
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
-#pragma link C++ struct larflow::reco::KPCluster_t+;
+#pragma link C++ class larflow::reco::KPCluster+;
 #pragma link C++ class larflow::reco::KeypointReco+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
