@@ -47,6 +47,7 @@ namespace reco {
     std::vector<int> makeTrack( const std::vector<float>& startpt,
                                 const std::vector<float>& endpt,
                                 const larlite::event_larflow3dhit& lfhits,
+                                const std::vector<larcv::Image2D>& badch_v,                                
                                 std::vector<int>& sp_used_v );
     
 

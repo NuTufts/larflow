@@ -1,6 +1,5 @@
 #include "KPTrackFit.h"
 
-
 #include <cilantro/kd_tree.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
@@ -12,17 +11,50 @@
 #include <set>
 #include <algorithm>
 
+// larlite
+#include "LArUtil/Geometry.h"
+
+#include "TRandom3.h"
+#include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
 
-  std::vector<int> KPTrackFit::fit( const std::vector< std::vector<float> >& point_v,
+  std::vector<int> KPTrackFit::fit( const std::vector< std::vector<float> >& all_point_v,
+                                    const std::vector< larcv::Image2D >& badch_v,
                                     int start, int end )
   {
+
+
+    TRandom3 rand(314159);
+
+    // we thing out the points. aiming for 3 pts per cm on average.
+    float linedist = 0.;
+    for (int i=0; i<3; i++) {
+      linedist += (all_point_v[start][i]-all_point_v[end][i])*(all_point_v[start][i]-all_point_v[end][i]);
+    }
+    linedist = sqrt(linedist);
+
+    LARCV_NORMAL() << "Fitting " << all_point_v.size() << " given points." << std::endl;
+    
+    std::vector< std::vector<float> > point_v;
+    std::vector< int >                point_idx_v;
+    int npts = (int)linedist*5.0;
+    float frac = (float)npts/(float)all_point_v.size();
+    for (int i=0; i<(int)all_point_v.size(); i++) {
+      if ( frac>=1.0 || rand.Uniform()<frac || i==start || i==end ) {
+        point_v.push_back( all_point_v[i] );
+        point_idx_v.push_back( i );
+      }
+    }
+
+    LARCV_NORMAL() << "Fitting " << point_v.size() << " sampled points." << std::endl;    
 
     // use kdtree to make edges between points
     std::map< std::pair<int,int>, float > distmap;
     defineEdges( point_v, distmap, 10.0 );
+
+    addBadChCrossingConnections( point_v, badch_v, 10.0, 30.0, distmap );
 
     // Define Vertex and Edge objects
     struct VertexData {
@@ -115,7 +147,17 @@ namespace reco {
     }
     LARCV_DEBUG() << "end of path. npoints=" << path_idx.size() << " totlength=" << totdist << std::endl;
 
-    return path_idx;
+    if ( frac>=1.0 )
+      return path_idx;
+
+    // else we need to go back to the unsampled index
+    std::vector<int> unsampled_idx;
+    unsampled_idx.reserve( path_idx.size() );
+    for ( auto& subidx : path_idx ) {
+      unsampled_idx.push_back( point_idx_v[ subidx ] );
+    }
+
+    return unsampled_idx;
   }
   
   
@@ -169,5 +211,136 @@ namespace reco {
     
   }
 
+  void KPTrackFit::addBadChCrossingConnections( const std::vector< std::vector<float> >& point_v,
+                                                const std::vector< larcv::Image2D >& badch_v,
+                                                const float min_gap, const float max_gap,
+                                                std::map< std::pair<int,int>, float >& distmap )
+  {
+
+    struct NearDeadPix_t {
+      int idx;
+      float r;
+      bool operator< (const NearDeadPix_t& rhs ) {
+        if ( r<rhs.r ) return true;
+        return false;
+      };
+    };
+    
+    std::vector<NearDeadPix_t> neardead_idx_v;
+    
+    for ( int idx=0; idx<(int)point_v.size(); idx++ ) {
+      // check if point is near dead region
+      auto const& pt = point_v[idx];
+      int nplane_neardead = 0;
+      for ( int p=0; p<3; p++ ) {
+        int wire = (int)larutil::Geometry::GetME()->NearestWire( std::vector<double>( {pt[0],pt[1],pt[2]} ), p );
+        for (int dc=0; dc<=0; dc++) {
+          int c = wire+dc;
+          if ( c<0 || c>=(int)badch_v[p].meta().cols() ) continue;
+          if ( badch_v[p].pixel(0,c)>1 ) {
+            nplane_neardead++;
+            break;
+          }
+        }
+      }
+
+      float r = pointLineDistance( point_v.front(), point_v.back(), pt );
+      
+      if ( nplane_neardead>0 && r<20.0 ) {
+        NearDeadPix_t pix;
+        pix.idx = idx;
+        pix.r = r;
+        neardead_idx_v.push_back( pix );
+      }
+    }
+
+    sort( neardead_idx_v.begin(), neardead_idx_v.end() );
+
+    LARCV_INFO() << "points near dead regions: " << neardead_idx_v.size() << std::endl;
+
+    // we have to limit the pixels we consider
+    int ndead = (int)neardead_idx_v.size();
+    if ( ndead>1000 )
+      ndead = 1000;
+    
+    const float max_step_size = 1.0;
+    
+    // N^2 comparison. boo. only connect points with gap larger than `min_gap` parameter
+    int nadded = 0;
+    int nalready_connected = 0;
+    int npairs = -1;
+    for (int i=0; i<ndead; i++ ) {
+      for (int j=i+1; j<ndead; j++) {
+
+        npairs++;
+
+        if ( npairs%10000==0 ) LARCV_INFO() << "neardead pair " << npairs << std::endl;
+
+        int idx_i = neardead_idx_v[i].idx;
+        int idx_j = neardead_idx_v[j].idx;
+        
+        std::vector<float> pt_i = point_v[ idx_i ];
+        std::vector<float> pt_j = point_v[ idx_j ];
+
+        std::pair<int,int> pairij( idx_i, idx_j );
+        std::pair<int,int> pairji( idx_j, idx_i );
+        
+        if ( distmap.find( pairij )!=distmap.end() || distmap.find( pairji )!=distmap.end() ){
+          nalready_connected++;
+          continue;
+        }
+
+        float dist = 0.;
+        std::vector<float> gapdir(3,0);
+        for (int v=0; v<3; v++) {
+          gapdir[v] = pt_j[v]-pt_i[v];
+          dist += gapdir[v]*gapdir[v];
+        }
+        dist = sqrt(dist);
+
+        if ( dist<min_gap || dist>max_gap) continue;
+
+        for (int v=0; v<3; v++ ) gapdir[v] /= dist;
+
+        bool connect = false;
+        int nsteps_in_dead = 0;
+        int nsteps = dist/max_step_size+1;
+        float stepsize = dist/float(nsteps);
+
+        for (int istep=1; istep<=nsteps; istep++) {
+          std::vector<double> pt(3,0);
+          for (int v=0; v<3; v++) pt[v] = (double)pt_i[v] + (double)stepsize*gapdir[v];
+          bool indead = false;
+          for (int p=0; p<3; p++) {
+            int wire = (int)larutil::Geometry::GetME()->NearestWire( pt, p );
+            if ( wire<0 || wire>=(int)badch_v[p].meta().cols() ) continue;
+            if ( badch_v[p].pixel(0,wire)>0 ){
+              indead = true;
+            }
+            if ( indead ) break;
+          }
+          if ( indead ) nsteps_in_dead++;
+          if ( nsteps_in_dead>=nsteps/2 ) {
+            connect = true;
+            break;
+          }
+        }
+
+
+        if ( connect ) {
+          //LARCV_INFO() << "Added dead channel gap connection, dist=" << dist << std::endl;
+          distmap[ pairij ] = dist;
+          distmap[ pairji ] = dist;
+          nadded++;
+        }
+        
+      }
+    }
+    LARCV_INFO() << "Added " << nadded << " dead channel connections. "
+                 << "Already added: " << nalready_connected
+                 << std::endl;
+
+    
+  }  
 }
 }

@@ -1,4 +1,4 @@
-import os,sys,argparse
+import os,sys,argparse,time
 
 """
 Run the PCA-based clustering routine for track space-points.
@@ -22,13 +22,14 @@ import ROOT as rt
 from ROOT import std
 from larlite import larlite
 from larcv import larcv
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 
 print larflow.reco
 print larflow.reco.KeypointReco
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
-iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
 
 print "[INPUT: DL MERGED] ",args.input_dlmerged
 print "[INPUT: LARMATCH-KPS]  ",args.input_larflow
@@ -39,6 +40,7 @@ io.add_in_filename(  args.input_larflow )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_out_filename( args.output )
 iolcv.add_in_file(   args.input_dlmerged )
+iolcv.set_out_file( "test_trackreco2kp_larcv.root" )
 
 io.open()
 if args.tickbackwards:
@@ -63,8 +65,9 @@ if args.num_entries is not None:
 else:
     end_entry = nentries
 
-# ALGORITHM
+# ALGORITHMS
 tracker = larflow.reco.TrackReco2KP()
+badchmaker = ublarcvapp.EmptyChannelAlgo()
 
 #io.go_to( args.start_entry )
 io.next_event()
@@ -73,6 +76,33 @@ for ientry in xrange( args.start_entry, end_entry ):
     print "[ENTRY ",ientry,"]"
     iolcv.read_entry(ientry)
     kpreco.GetEntry(ientry)
+
+    # make bad channel image
+    t_badch = time.time()
+    """
+  std::vector<larcv::Image2D> EmptyChannelAlgo::makeGapChannelImage( const std::vector<larcv::Image2D>& img_v,
+                                                                     const larcv::EventChStatus& ev_status, int minstatus,
+                                                                     int nplanes, int start_tick, int nticks, int nchannels,
+                                                                     int time_downsample_factor, int wire_downsample_factor,
+                                                                     const float empty_ch_threshold,
+                                                                     const int max_empty_gap,
+                                                                     const float empty_ch_max ) {
+    """
+    ev_adc = iolcv.get_data(larcv.kProductImage2D, "wire")
+    ev_chstatus = iolcv.get_data(larcv.kProductChStatus, "wire")
+    adc_v = ev_adc.Image2DArray()
+    gapch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
+                                              4, 3, 2400, 6*1008, 3456, 6, 1,
+                                              5.0,
+                                              50,
+                                              -1.0 )
+    
+    print("Number of badcv images: ",gapch_v.size())
+    dt_badch = time.time()-t_badch
+    ev_badch = iolcv.get_data(larcv.kProductImage2D,"badch")
+    for iimg in range(gapch_v.size()):
+        ev_badch.Append( gapch_v[iimg] )
+    print( "Made EVENT Gap Channel Image: ",gapch_v.front().meta().dump(), " elasped=",dt_badch," secs")        
 
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, "larmatch" )
     print "num of hits: ",ev_lfhits.size()

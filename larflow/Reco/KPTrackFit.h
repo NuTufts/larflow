@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include "larcv/core/Base/larcv_base.h"
+#include "larcv/core/DataFormat/Image2D.h"
 
 namespace larflow {
 namespace reco {
@@ -25,11 +26,18 @@ namespace reco {
     virtual ~KPTrackFit() {};
 
     std::vector<int> fit( const std::vector< std::vector<float> >& point_v,
+                          const std::vector< larcv::Image2D >& badch_v,
                           int start, int end );
 
     void defineEdges( const std::vector< std::vector<float> >& point_v, // list of points
                       std::map< std::pair<int,int>, float >& distmap,   // map between point index and distance between points
                       const float max_neighbor_dist );                  // max distance between points
+
+    void addBadChCrossingConnections( const std::vector< std::vector<float> >& point_v,
+                                      const std::vector< larcv::Image2D >& badch_v,
+                                      const float min_gap, const float max_gap,                                      
+                                      std::map< std::pair<int,int>, float >& distmap );
+    
     
   };
 

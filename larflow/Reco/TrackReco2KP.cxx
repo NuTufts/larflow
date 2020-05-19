@@ -4,6 +4,7 @@
 
 #include "ublarcvapp/ubdllee/dwall.h"
 #include "DataFormat/track.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "geofuncs.h"
 #include "KPTrackFit.h"
@@ -16,6 +17,11 @@ namespace reco {
                               const std::vector<KPCluster>& kpcluster_v )
   {
 
+    // get bad channel image
+    larcv::EventImage2D* ev_badch
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "badch" );
+    auto const& badch_v = ev_badch->Image2DArray();
+    
     // rank KP by dwall
     std::cout << "Make KPInfo_t list" << std::endl;
     std::vector< KPInfo_t > sorted_kp_v(kpcluster_v.size());
@@ -107,7 +113,7 @@ namespace reco {
       
       std::vector<int> trackpoints_v = makeTrack( kpcluster_v[apair.start_idx].max_pt_v,
                                                   kpcluster_v[apair.end_idx].max_pt_v,
-                                                  *ev_larflowhits, sp_used_v );
+                                                  *ev_larflowhits, badch_v, sp_used_v );
       std::cout << "[pair " << ipair << "] returns track of " << trackpoints_v.size() << " spacepoints" << std::endl;
       if ( trackpoints_v.size()<=2 ) continue;
       std::cout << "[pair " << ipair << "] store track." << std::endl;
@@ -153,6 +159,7 @@ namespace reco {
   std::vector<int> TrackReco2KP::makeTrack( const std::vector<float>& startpt,
                                             const std::vector<float>& endpt,
                                             const larlite::event_larflow3dhit& lfhits,
+                                            const std::vector<larcv::Image2D>& badch_v,
                                             std::vector<int>& sp_used_v )
   {
 
@@ -267,7 +274,8 @@ namespace reco {
 
     std::cout << "RUN KPTrackFit w/ " << point_v.size() << " points in graph" << std::endl;
     KPTrackFit tracker;
-    std::vector<int> trackpoints_v = tracker.fit( pos3d_v, 0, (int)pos3d_v.size()-1 );
+    tracker.set_verbosity(larcv::msg::kINFO);
+    std::vector<int> trackpoints_v = tracker.fit( pos3d_v, badch_v, 0, (int)pos3d_v.size()-1 );
 
     std::vector<int> lfhit_index_v;
     for ( auto& idx : trackpoints_v ) {
