@@ -6,6 +6,7 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 set( HEADERS cluster_functions.h
   geofuncs.h
   KPTrackFit.h
+  SplitHitsBySSNet.h
   PCACluster.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
@@ -16,6 +17,7 @@ set( HEADERS cluster_functions.h
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
   KPTrackFit.cxx
+  SplitHitsBySSNet.cxx  
   PCACluster.cxx
   PyLArFlow.cxx
   ShowerReco.cxx
