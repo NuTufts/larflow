@@ -36,6 +36,7 @@ namespace reco {
       int start_idx;
       int end_idx;
       float dist2axis;
+      float dist2pts;
       bool operator<( const KPPair_t& rhs ) {
         if ( dist2axis<rhs.dist2axis )
           return true;
