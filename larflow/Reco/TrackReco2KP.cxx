@@ -6,6 +6,7 @@
 #include "DataFormat/track.h"
 
 #include "geofuncs.h"
+#include "KPTrackFit.h"
 
 namespace larflow {
 namespace reco {
@@ -25,6 +26,16 @@ namespace reco {
     }
 
     std::sort( sorted_kp_v.begin(), sorted_kp_v.end() );
+
+    // copy of keypoints considered
+    larlite::event_larflow3dhit* evout_kpcopy
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint");
+    for (auto const& kpc : kpcluster_v ) {
+      larlite::larflow3dhit hit;
+      hit.resize(3,0);
+      for (int i=0; i<3; i++ ) hit[i] = kpc.max_pt_v[i];
+      evout_kpcopy->emplace_back( std::move(hit) );
+    }
     
     // make pairs
     std::cout << "Make KPPair_t list" << std::endl;    
@@ -47,7 +58,7 @@ namespace reco {
         float rad_dist = pointLineDistance( kp_i.max_pt_v, line_end, kp_j.max_pt_v );
 
         // skip trying to connect points if larger than this distance
-        if ( rad_dist>20.0 )
+        if ( rad_dist>100.0 )
           continue;
         
         KPPair_t kpp;
@@ -87,7 +98,9 @@ namespace reco {
       if ( kp_used_v[ apair.start_idx ]!=0 || kp_used_v[ apair.end_idx ]!=0 ) continue;
 
       // attempt to reconstruct points
+      std::cout << "-------------------------------------" << std::endl;
       std::cout << "[pair " << ipair << "] "
+                << " KP[" << apair.start_idx << "] -> KP[" << apair.end_idx << "]"
                 << " dist2axis=" << apair.dist2axis
                 << " dist2pts=" << apair.dist2pts
                 << std::endl;
@@ -96,20 +109,43 @@ namespace reco {
                                                   kpcluster_v[apair.end_idx].max_pt_v,
                                                   *ev_larflowhits, sp_used_v );
       std::cout << "[pair " << ipair << "] returns track of " << trackpoints_v.size() << " spacepoints" << std::endl;
-      if ( trackpoints_v.size()==0 ) continue;
-      
+      if ( trackpoints_v.size()<=2 ) continue;
+      std::cout << "[pair " << ipair << "] store track." << std::endl;
+
       larlite::track track;
       track.reserve(trackpoints_v.size());
       int ipt=0;
       for ( auto& idx : trackpoints_v ) {
-        TVector3 pt = { (*ev_larflowhits)[idx][0], (*ev_larflowhits)[idx][1], (*ev_larflowhits)[idx][2] };
-        TVector3 ptdir = { 0, 0, 0};
-        track.add_vertex( pt );
-        track.add_direction( ptdir );
+        if ( idx==-1 ) {
+          TVector3 pt = { kpcluster_v[apair.start_idx].max_pt_v[0],
+                          kpcluster_v[apair.start_idx].max_pt_v[1],
+                          kpcluster_v[apair.start_idx].max_pt_v[2] };
+          TVector3 ptdir = {0,0,0};
+          track.add_vertex( pt );
+          track.add_direction( ptdir );
+        }
+        else if ( idx==-2 ) {
+
+          TVector3 pt = { kpcluster_v[apair.end_idx].max_pt_v[0],
+                          kpcluster_v[apair.end_idx].max_pt_v[1],
+                          kpcluster_v[apair.end_idx].max_pt_v[2] };
+          TVector3 ptdir = {0,0,0};
+          track.add_vertex( pt );
+          track.add_direction( ptdir );
+          
+        }
+        else {
+          TVector3 pt = { (*ev_larflowhits)[idx][0], (*ev_larflowhits)[idx][1], (*ev_larflowhits)[idx][2] };
+          TVector3 ptdir = { 0, 0, 0};
+          track.add_vertex( pt );
+          track.add_direction( ptdir );
+        }
         ipt++;
       }
       evout_track->emplace_back( std::move(track) );
-    }
+
+      //break;
+    }//end of pair loop
 
   }
   
@@ -156,6 +192,22 @@ namespace reco {
         linedir[i] /= dist;
     }
 
+    int start_idx = -1;
+    int end_idx = -1;
+
+    // make sure the start point is first
+    Point_t start;
+    start.idx = -1;      // assign later
+    start.pos = startpt; // set 3d pos
+    start.s = 0.;        // by definition
+    point_v.push_back( start );
+
+    // make the end point object, we will add it last
+    Point_t  end;
+    end.idx = -2;    // assign later
+    end.pos = endpt; // set 3d pos
+    end.s = dist;    // by definition
+    
     for (int i=0; i<(int)lfhits.size(); i++) {
 
       if ( sp_used_v[i]!=0 ) continue;
@@ -166,8 +218,24 @@ namespace reco {
         if ( lfhits[i][v]<bounds[v][0] || lfhits[i][v]>bounds[v][1] ) inbox=false;
       }
       if ( !inbox ) continue;
-      
+
+      // check if its the start and end point      
       std::vector<float> pos = { lfhits[i][0], lfhits[i][1], lfhits[i][2] };
+
+      if ( start_idx==-1 && startpt==pos ) {
+        std::cout << "found start point" << std::endl;
+        point_v[0].idx = i;
+        start_idx = i;
+        continue;
+      }
+
+      if ( end_idx==-1 && endpt==pos ) {
+        std::cout << "found end point" << std::endl;
+        end.idx = i;
+        end_idx = i;
+        continue;
+      }
+      
       float rad = pointLineDistance( startpt, endpt, pos );
 
       if ( rad<20.0 ) {
@@ -179,18 +247,43 @@ namespace reco {
         for (int v=0; v<3; v++)
           pt.s += linedir[v]*(pos[v]-startpt[v]);        
         point_v.push_back(pt);
-        sp_used_v[i] = 1;
+        //sp_used_v[i] = 1;
       }
     }
+    
+    // add end point
+    point_v.push_back( end );
 
-    sort( point_v.begin(), point_v.end() );
+    if ( point_v.size()<10 ) {
+      std::vector<int> empty;
+      return empty;
+    }
+      
+
+    std::vector< std::vector<float> > pos3d_v(point_v.size());
+    for ( int i=0; i<(int)point_v.size(); i++ ) {
+      pos3d_v[i] = point_v[i].pos;
+    }
+
+    std::cout << "RUN KPTrackFit w/ " << point_v.size() << " points in graph" << std::endl;
+    KPTrackFit tracker;
+    std::vector<int> trackpoints_v = tracker.fit( pos3d_v, 0, (int)pos3d_v.size()-1 );
+
+    std::vector<int> lfhit_index_v;
+    for ( auto& idx : trackpoints_v ) {
+      // std::cout << "  point_v[" << idx << "] lfhit[" << point_v[idx].idx << "] "
+      //           << " (" << point_v[idx].pos[0] << "," << point_v[idx].pos[1] << "," << point_v[idx].pos[2] << ")";
+      // if ( point_v[idx].idx==-1 )
+      //   std::cout << "(" << startpt[0] << "," << startpt[1] << "," << startpt[2] << ")";
+      // else if ( point_v[idx].idx==-2 )
+      //   std::cout << "(" << endpt[0] << "," << endpt[1] << "," << endpt[2] << ")";
+      // else
+      //   std::cout << " (" << lfhits[ point_v[idx].idx ][0] << "," << lfhits[ point_v[idx].idx ][1] << "," << lfhits[ point_v[idx].idx ][2] << ")";
+      // std::cout << std::endl;
+      lfhit_index_v.push_back( point_v[idx].idx );
+    }
     
-    // graph-based reconstruction
-    std::vector<int> trackpoints_v;
-    for ( auto& pt : point_v )
-      trackpoints_v.push_back( pt.idx );
-    
-    return trackpoints_v;
+    return lfhit_index_v;
   }
   
 }

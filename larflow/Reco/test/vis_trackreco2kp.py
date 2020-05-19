@@ -55,6 +55,21 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         track_trace = lardly.data.visualize_larlite_track( track, track_id=itrack, color=color )
         traces_v.append(track_trace)
 
+    # keypoints
+    ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )
+    for ikp in range(ev_kp.size()):
+        kptrace = {
+            "type":"scatter3d",
+	    "x": [ev_kp[ikp][0]],
+            "y": [ev_kp[ikp][1]],
+            "z": [ev_kp[ikp][2]],
+            "mode":"markers",
+	    "name":"KP%d"%(ikp),
+            "marker":{"color":"rgb(255,0,0)","size":3,"opacity":0.5},
+        }
+        traces_v.append(kptrace)
+
+
     # add detector outline
     traces_v += detdata.getlines()
     
