@@ -26,6 +26,10 @@ namespace reco {
    */  
   void KeypointReco::process( larlite::storage_manager& io_ll )
   {
+    larlite::event_larflow3dhit* ev_larflow_hit
+      = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+
+    process( *ev_larflow_hit );
     
   }
   
