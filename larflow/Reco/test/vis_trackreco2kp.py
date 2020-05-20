@@ -46,14 +46,19 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
     io.go_to(entry)
-    ev_tracks = io.get_data( larlite.data.kTrack, "track2kp" )
+    ev_tracks  = io.get_data( larlite.data.kTrack, "track2kp" )
+    ev_cluster = io.get_data( larlite.data.kLArFlowCluster, "track2kp" )
     traces_v = []        
 
     for itrack in range(ev_tracks.size()):
         track = ev_tracks.at(itrack)
         color = (np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256))
         track_trace = lardly.data.visualize_larlite_track( track, track_id=itrack, color=color )
+
+        track_points = lardly.data.visualize_larlite_larflowhits( ev_cluster.at(itrack), name="track%d"%(itrack) )
+        
         traces_v.append(track_trace)
+        traces_v.append(track_points)
 
     # keypoints
     ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )

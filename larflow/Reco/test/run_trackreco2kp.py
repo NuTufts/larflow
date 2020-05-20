@@ -71,6 +71,7 @@ badchmaker = ublarcvapp.EmptyChannelAlgo()
 splithits  = larflow.reco.SplitHitsBySSNet()
 
 tracker.set_larflow3dhit_tree_name( "showerhit" )
+tracker.set_verbosity(0)
 
 #io.go_to( args.start_entry )
 io.next_event()
