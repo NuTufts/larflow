@@ -68,6 +68,9 @@ else:
 # ALGORITHMS
 tracker = larflow.reco.TrackReco2KP()
 badchmaker = ublarcvapp.EmptyChannelAlgo()
+splithits  = larflow.reco.SplitHitsBySSNet()
+
+tracker.set_larflow3dhit_tree_name( "showerhit" )
 
 #io.go_to( args.start_entry )
 io.next_event()
@@ -76,7 +79,8 @@ for ientry in xrange( args.start_entry, end_entry ):
     print "[ENTRY ",ientry,"]"
     iolcv.read_entry(ientry)
     kpreco.GetEntry(ientry)
-
+    print( "num of keypoints: ",kpreco.kpcluster_v.size())
+    
     # make bad channel image
     t_badch = time.time()
     """
@@ -105,8 +109,10 @@ for ientry in xrange( args.start_entry, end_entry ):
     print( "Made EVENT Gap Channel Image: ",gapch_v.front().meta().dump(), " elasped=",dt_badch," secs")        
 
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, "larmatch" )
-    print "num of hits: ",ev_lfhits.size()
-    print "num of keypoints: ",kpreco.kpcluster_v.size()
+    print("num of hits: ",ev_lfhits.size())
+
+    splithits.process( iolcv, io )
+    print("number of track hits: ",splithits.get_track_hits().size())
     
     tracker.process( iolcv, io, kpreco.kpcluster_v )
 

@@ -4,16 +4,12 @@ namespace larflow {
 namespace reco {
 
   KPSRecoManager::KPSRecoManager()
-  {
-
-    // setup alogirthms
-    _kpreco = new KeypointReco;
-    
+  {    
+    _tracker2kp.set_larflow3dhit_tree_name( "showerhit" ); // take output of splitter
   }
 
   KPSRecoManager::~KPSRecoManager()
   {
-    delete _kpreco;
   }
   
   void KPSRecoManager::process( larcv::IOManager& iolcv,
@@ -21,13 +17,13 @@ namespace reco {
   {
 
     // load the data we need
-    
+    _splithits.process( iolcv, ioll );
 
     // KEYPOINT RECO: make keypoint candidates
-    _kpreco->process( io_ll );
+    _kpreco.process( ioll );
 
     // PARTICLE RECO
-    recoParticles( iolcv, ioll, _kpreco->output_pt_v );
+    recoParticles( iolcv, ioll, _kpreco.output_pt_v );
     
 
     // INTERACTION RECO
@@ -46,6 +42,7 @@ namespace reco {
   {
 
     // TRACK 2-KP RECO: make tracks using pairs of keypoints
+    _tracker2kp.process( iolcv, ioll, kpcluster_v );
 
     // TRACK 1-KP RECO: make tracks using clusters and single keypoint
 

@@ -106,6 +106,18 @@ namespace reco {
     _shower_hit_v.clear();
     _track_hit_v.clear();
     split( ssnet_showerimg_v, *ev_lfhit, _score_threshold, _larmatch_threshold, _shower_hit_v, _track_hit_v );
+
+    larlite::event_larflow3dhit* evout_shower_hit
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "showerhit" );
+
+    larlite::event_larflow3dhit* evout_track_hit
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "trackhit" );
+
+    for ( auto& hit : _shower_hit_v )
+      evout_shower_hit->push_back( hit );
+
+    for ( auto& hit : _track_hit_v )
+      evout_track_hit->push_back( hit );
     
   }
  

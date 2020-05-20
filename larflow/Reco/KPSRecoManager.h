@@ -9,6 +9,8 @@
 
 // larflow
 #include "KeypointReco.h"
+#include "SplitHitsBySSNet.h"
+#include "TrackReco2KP.h"
 
 namespace larflow {
 namespace reco {
@@ -24,7 +26,9 @@ namespace reco {
 
 
     // keypoint reconstruction
-    KeypointReco* _kpreco;
+    KeypointReco     _kpreco;
+    SplitHitsBySSNet _splithits;
+    TrackReco2KP     _tracker2kp;
 
 
     // Algorithms

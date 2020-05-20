@@ -12,6 +12,7 @@ set( HEADERS cluster_functions.h
   VertexReco.h
   KPCluster.h KeypointReco.h
   TrackReco2KP.h
+  KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -25,6 +26,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KPCluster.cxx
   KeypointReco.cxx
   TrackReco2KP.cxx
+  KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )
 
 # create a property to hold our headers

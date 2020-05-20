@@ -15,7 +15,9 @@ namespace reco {
   class TrackReco2KP {
   public:
 
-    TrackReco2KP() {};
+    TrackReco2KP()
+      : _larflow_hit_treename("larmatch")
+      {};
     virtual ~TrackReco2KP() {};
 
     void process( larcv::IOManager& iolcv,
@@ -49,6 +51,14 @@ namespace reco {
                                 const larlite::event_larflow3dhit& lfhits,
                                 const std::vector<larcv::Image2D>& badch_v,                                
                                 std::vector<int>& sp_used_v );
+
+  protected:
+
+    std::string _larflow_hit_treename;
+
+  public:
+
+    void set_larflow3dhit_tree_name( std::string name ) { _larflow_hit_treename=name; };
     
 
   };
