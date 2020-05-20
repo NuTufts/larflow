@@ -7,6 +7,7 @@ set( HEADERS cluster_functions.h
   geofuncs.h
   KPTrackFit.h
   SplitHitsBySSNet.h
+  DBScanLArMatchHits.h
   PCACluster.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
@@ -18,7 +19,8 @@ set( HEADERS cluster_functions.h
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
   KPTrackFit.cxx
-  SplitHitsBySSNet.cxx  
+  SplitHitsBySSNet.cxx
+  DBScanLArMatchHits.cxx
   PCACluster.cxx
   PyLArFlow.cxx
   ShowerReco.cxx
@@ -38,6 +40,9 @@ message("python include: ${PYTHON_INCLUDE_PATH}")
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
 
+# ublarcvapp libs used
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
+
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
 target_include_directories(${LIBNAME}
@@ -54,9 +59,9 @@ target_include_directories(${LIBNAME}
   ${CILANTRO_INC_DIR}
   ${OpenCV_INCLUDE_DIRS}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES})
+target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES})
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
+include_directories( ${PROJECT_SOURCE_DIR} ${UBLARCVAPP_INCLUDE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} ${HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 

@@ -5,6 +5,7 @@
 #include "nlohmann/json.hpp"
 
 #include <ctime>
+#include <fstream>
 
 namespace larflow {
 namespace reco {
@@ -74,6 +75,8 @@ namespace reco {
     std::cout << "[ShowerReco::process] end; elapsed = "
               << float(end_process-begin_process)/CLOCKS_PER_SEC << " secs"      
               << std::endl;
+
+    dump2json( shower_cluster_v, "showercluster.json" );
   }
 
   /*
@@ -102,6 +105,40 @@ namespace reco {
 
   void ShowerReco::dump2json( const std::vector<cluster_t>& shower_v, std::string outfile ) {
 
+    nlohmann::json j;
+
+    // fill a vector of json objects for each shower
+    std::vector< nlohmann::json > jcluster_v;    
+
+    for ( auto const& cluster : shower_v ) {
+      //std::cout << "cluster: nhits=" << cluster.points_v.size() << std::endl;
+      nlohmann::json jcluster;
+      jcluster["points"] = cluster.points_v;
+      jcluster["radius"] = cluster.pca_radius_v;
+      jcluster["s"]      = cluster.pca_proj_v;
+
+      // save start, center, end of pca to make line
+      std::vector< std::vector<float> > pca_points(3);
+      for (int i=0; i<3; i++ )
+        pca_points[i].resize(3,0);
+      for (int i=0; i<3; i++ ) {
+        pca_points[0][i] = cluster.pca_ends_v[0][i] - 5.0*cluster.pca_axis_v[0][i];
+        pca_points[1][i] = cluster.pca_center[i];
+        pca_points[2][i] = cluster.pca_ends_v[1][i] + 5.0*cluster.pca_axis_v[0][i];
+      }
+      jcluster["pca"] = pca_points;
+
+      jcluster_v.emplace_back( std::move(jcluster) );      
+      
+    }
+
+    j["shower"] = jcluster_v;    
+        
+    std::ofstream o(outfile.c_str());
+    j >> o;
+    o.close();       
+    
+    
   }
   
 }

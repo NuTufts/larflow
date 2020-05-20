@@ -33,6 +33,7 @@
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
 #pragma link C++ class larflow::reco::KPCluster+;
 #pragma link C++ class larflow::reco::SplitHitsBySSNet+;
+#pragma link C++ class larflow::reco::DBScanLArMatchHits+;
 #pragma link C++ class larflow::reco::KeypointReco+;
 #pragma link C++ class larflow::reco::TrackReco2KP+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;

@@ -86,9 +86,10 @@ namespace reco {
     
     // get triplets
     larlite::event_larflow3dhit* ev_larflowhits 
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _larflow_hit_treename );
 
-    std::cout << "Number of larflow spacepoints: " << ev_larflowhits->size() << std::endl;
+    std::cout << "Number of larflow spacepoints (from " << _larflow_hit_treename << "): "
+              << ev_larflowhits->size() << std::endl;
 
     // flag for keypoints we used up
     std::vector<int> kp_used_v( sorted_kp_v.size(), 0 ); //< track which variables have been used
