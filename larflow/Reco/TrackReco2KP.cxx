@@ -33,15 +33,6 @@ namespace reco {
 
     std::sort( sorted_kp_v.begin(), sorted_kp_v.end() );
 
-    // copy of keypoints considered
-    larlite::event_larflow3dhit* evout_kpcopy
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint");
-    for (auto const& kpc : kpcluster_v ) {
-      larlite::larflow3dhit hit;
-      hit.resize(3,0);
-      for (int i=0; i<3; i++ ) hit[i] = kpc.max_pt_v[i];
-      evout_kpcopy->emplace_back( std::move(hit) );
-    }
     
     // make pairs
     std::cout << "Make KPPair_t list" << std::endl;    
@@ -102,11 +93,19 @@ namespace reco {
 
     larlite::event_larflowcluster* evout_cluster
       = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "track2kp" );
+
+
+    std::set< std::pair<int,int> > completed_pairs;
     
     for ( int ipair=0; ipair<(int)sorted_pair_v.size(); ipair++ ) {
+
       auto const& apair = sorted_pair_v[ipair];
       if ( kp_used_v[ apair.start_idx ]!=0 || kp_used_v[ apair.end_idx ]!=0 ) continue;
 
+      std::pair<int,int> iipair(apair.start_idx,apair.end_idx);
+      if ( completed_pairs.find( iipair )!=completed_pairs.end() )
+        continue;
+           
       // attempt to reconstruct points
       std::cout << "-------------------------------------" << std::endl;
       std::cout << "[pair " << ipair << "] "
@@ -127,6 +126,8 @@ namespace reco {
       std::cout << "[pair " << ipair << "] returns track of " << trackpoints_v.size() << " spacepoints" << std::endl;
       if ( trackpoints_v.size()<=2 ) continue;
       std::cout << "[pair " << ipair << "] store track w/ " << lfcluster.size() << " hits" << std::endl;
+      // block reverse KP direction
+      completed_pairs.insert( iipair );
 
       evout_track->emplace_back( std::move(trackout) );
       evout_cluster->emplace_back( std::move(lfcluster) );
@@ -259,9 +260,12 @@ namespace reco {
     LARCV_DEBUG() << "RUN KPTrackFit w/ " << point_v.size() << " points in graph" << std::endl;
     KPTrackFit tracker;
     tracker.set_verbosity(larcv::msg::kINFO);
+    //tracker.set_verbosity(larcv::msg::kDEBUG);
     std::vector<int> trackpoints_v = tracker.fit( pos3d_v, badch_v, 0, (int)pos3d_v.size()-1 );
     LARCV_DEBUG() << "KPTrackFit return track with " << trackpoints_v.size() << std::endl;
 
+    //bool isgood = _isTrackGood( trackpoints_v, point_v );
+    
     _prepareTrack( trackpoints_v, point_v, lfhits,
                    startpt, endpt,
                    trackout, lfclusterout );
@@ -409,6 +413,22 @@ namespace reco {
     }//end of loop over points returned by the track fitter
 
   }
+
+  /**
+   * evaluate if track is good. 
+   * we look for large, sharp turns which is likely unphysical
+   *
+   * @param[in] track_idx_v Index of points that composes a track as made the KPTrackFit algo
+   * @param[in] point_v     Struct of points we tried to fit. Made by the `makeTrack` method.
+   * @return    bool        True if passes tests; False if does not.
+   */
+  // bool TrackReco2KP::isTrackGood( const std::vector<int>& track_idx_v,
+  //                                 const std::vector<Point_t>& point_v )
+  // {
+
+  //   // we step through and compare 
+    
+  // }
   
 }
 }

@@ -112,15 +112,12 @@ namespace reco {
     }
     
     LARCV_DEBUG() << "Ran dijkstra_shortest_path. Trace out path from end node to start node." << std::endl;    
-    int curr = point_v.size()-1;
-    int pred = G[curr].pred;
-
-
+    int curr = (int)point_v.size()-1;
     std::vector<int> path_idx;
-    path_idx.push_back( G[curr].index );    
-
+    int pred = G[curr].pred;
+    
     float totdist = 0.;
-    while ( pred!=0 && curr!=pred ) {
+    while ( curr!=0 && pred!=curr ) {
       //bool exists = boost::edge( curr, pred, G ).second;      
       //auto edge = boost::edge( curr, pred, G ).first;
       // if ( !exists ) {
@@ -130,6 +127,7 @@ namespace reco {
       //   throw std::runtime_error(msg.str());        
       //   break;
       // }
+
       std::pair<int,int> key(curr,pred);
       auto it_real = distmap.find(key);
       float realdist = -1;
@@ -140,12 +138,15 @@ namespace reco {
                     << std::endl;
       //<< " gapdist="  << get(&EdgeData::dist, G)[edge]
       //          << " realdist=" << get(&EdgeData::realdist,G)[edge] << std::endl;
-      totdist += realdist;
-      path_idx.push_back( G[pred].index );
-      curr = pred;
+      if ( realdist>0 ) {
+        totdist += realdist;
+        path_idx.push_back( G[curr].index );
+      }
+      curr = G[curr].pred;
       pred = G[curr].pred;
     }
     LARCV_DEBUG() << "end of path. npoints=" << path_idx.size() << " totlength=" << totdist << std::endl;
+    path_idx.push_back( 0 );
 
     if ( frac>=1.0 )
       return path_idx;
@@ -274,7 +275,7 @@ namespace reco {
 
         npairs++;
 
-        if ( npairs%10000==0 ) LARCV_INFO() << "neardead pair " << npairs << std::endl;
+        if ( npairs%10000==0 ) LARCV_DEBUG() << "neardead pair " << npairs << std::endl;
 
         int idx_i = neardead_idx_v[i].idx;
         int idx_j = neardead_idx_v[j].idx;

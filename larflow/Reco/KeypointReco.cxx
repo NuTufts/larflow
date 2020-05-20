@@ -5,6 +5,9 @@
 
 #include "nlohmann/json.hpp"
 
+#include "DataFormat/larflow3dhit.h"
+#include "DataFormat/pcaxis.h"
+
 #include "cluster_functions.h"
 
 namespace larflow {
@@ -30,7 +33,42 @@ namespace reco {
       = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
 
     process( *ev_larflow_hit );
-    
+
+    // save into larlite::storage_manager
+    // we need our own data product, but for now we use abuse the larflow3dhit
+    larlite::event_larflow3dhit* evout_keypoint =
+      (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "keypoint" );
+    larlite::event_pcaxis* evout_pcaxis =
+      (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, "keypoint" );
+
+    int cidx=0;
+    for ( auto const& kpc : output_pt_v ) {
+      larlite::larflow3dhit hit;
+      hit.resize( 3, 0 ); // [0-2]: hit pos
+      for (int i=0; i<3; i++)
+        hit[i] = kpc.max_pt_v[i];
+
+      // pca-axis
+      larlite::pcaxis::EigenVectors e_v;
+      // just std::vector< std::vector<double> >
+      // we store axes (3) and then the 1st axis end points. So five vectors.
+      for ( auto const& a_v : kpc.pca_axis_v ) {
+        std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
+        e_v.push_back( da_v );
+      }
+      // start and end points
+      for ( auto const& p_v : kpc.pca_ends_v ) {
+        std::vector<double> dp_v = { (double)p_v[0], (double)p_v[1], (double)p_v[2] };
+        e_v.push_back( dp_v );
+      }
+      double eigenval[3] = { kpc.pca_eigenvalues[0], kpc.pca_eigenvalues[1], kpc.pca_eigenvalues[2] };
+      double centroid[3] = { kpc.pca_center[0], kpc.pca_center[1], kpc.pca_center[2] };
+      larlite::pcaxis llpca( true, kpc.pt_pos_v.size(), eigenval, e_v, centroid, 0, cidx);
+
+      evout_keypoint->emplace_back( std::move(hit) );
+      evout_pcaxis->emplace_back( std::move(llpca) );
+      cidx++;
+    }
   }
   
   /**
