@@ -16,9 +16,10 @@ Note that step (3) has to be done each time you start a new shell.
 parser = argparse.ArgumentParser("test_3d lardly viewer")
 parser.add_argument("-ll","--larlite",required=True,type=str,help="larlite file with dltagger_allreco tracks")
 parser.add_argument("-dl","--dlmerged",type=str,default=None,help="DL merged file that contains truth")
-#parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
 parser.add_argument("-p","--minprob",type=float,default=0.0,help="score threshold on hits")
 parser.add_argument("-mc","--has-mc",action='store_true',default=False,help="If given, will try and plot MC tracks")
+parser.add_argument("--use-black-bg",action='store_true',default=False,help="If true, use black background, else use white background [default: false]")
+parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -68,8 +69,21 @@ def make_figures(entry):
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io_ll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True, origin=1 )
         traces_v += mcshower_v
+
+    if args.draw_flash:
+        ev_flash = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        nflashes = 0
+        for iflash in range(ev_flash.size()):
+            flash = ev_flash.at(iflash)
+            if flash.Time()>2.94 and flash.Time()<4.86:            
+                flash_trace_v = lardly.data.visualize_larlite_opflash_3d( flash )
+                traces_v += flash_trace_v
+                nflashes += 1
+                break
+        if nflashes==0:
+            traces_v += lardly.data.visualize_empty_opflash()
     
-    traces_v += detdata.getlines()
+    traces_v += detdata.getlines(color=(10,10,10))
         
     return traces_v
 
@@ -89,32 +103,60 @@ app = dash.Dash(
 server = app.server
 
 # AXIS TEMPLATE
-axis_template = {
-    "showbackground": True,
-    "backgroundcolor": "#141414",
-    "gridcolor": "rgb(255, 255, 255)",
-    "zerolinecolor": "rgb(255, 255, 255)",
-}
+if args.use_black_bg:
+    axis_template = {
+        "showbackground": True,
+        "backgroundcolor": "#141414",
+        "gridcolor": "rgb(255, 255, 255)",
+        "zerolinecolor": "rgb(255, 255, 255)",
+    }
 
-# 3D PLOTTING OPTIONS
-plot_layout = {
-    "title": "",
-    "height":800,
-    "margin": {"t": 0, "b": 0, "l": 0, "r": 0},
-    "font": {"size": 12, "color": "white"},
-    "showlegend": False,
-    "plot_bgcolor": "#141414",
-    "paper_bgcolor": "#141414",
-    "scene": {
-        "xaxis": axis_template,
-        "yaxis": axis_template,
-        "zaxis": axis_template,
-        #"aspectratio": {"x": 1, "y": 1, "z": 3},
-        "camera": {"eye": {"x": 1, "y": 1, "z": 1},
-                   "up":dict(x=0, y=1, z=0)},
-        "annotations": [],
-    },
-}
+    # 3D PLOTTING OPTIONS
+    plot_layout = {
+        "title": "",
+        "height":800,
+        "margin": {"t": 0, "b": 0, "l": 0, "r": 0},
+        "font": {"size": 12, "color": "white"},
+        "showlegend": False,
+        "plot_bgcolor": "#141414",
+        "paper_bgcolor": "#141414",
+        "scene": {
+            "xaxis": axis_template,
+            "yaxis": axis_template,
+            "zaxis": axis_template,
+            #"aspectratio": {"x": 1, "y": 1, "z": 3},
+            "camera": {"eye": {"x": 1, "y": 1, "z": 1},
+                       "up":dict(x=0, y=1, z=0)},
+            "annotations": [],
+        },
+    }
+else:
+    axis_template = {
+        "showbackground": True,
+        "backgroundcolor": "rgba(100, 100, 100,0.5)",    
+        "gridcolor": "rgb(50, 50, 50)",
+        "zerolinecolor": "rgb(0, 0, 0)",
+    }
+    
+    plot_layout = {
+        "title": "",
+        "height":800,
+        "margin": {"t": 0, "b": 0, "l": 0, "r": 0},
+        "font": {"size": 12, "color": "black"},
+        "showlegend": False,
+        "plot_bgcolor": "#ffffff",
+        "paper_bgcolor": "#ffffff",
+        "scene": {
+            "xaxis": axis_template,
+            "yaxis": axis_template,
+            "zaxis": axis_template,
+            "aspectratio": {"x": 1, "y": 1, "z": 3},
+            "camera": {"eye": {"x": 1.2, "y": 1.2, "z": 1.2},
+                       "up":dict(x=0, y=1, z=0)},
+            "annotations": [],
+        },
+    }
+    
 
 # LAYOUT OF VIEWER
 app.layout = html.Div( [
