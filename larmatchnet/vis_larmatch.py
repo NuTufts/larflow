@@ -60,13 +60,18 @@ def make_figures(entry):
     # LARFLOW HITS
     ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
     print("num larflow hits: ",ev_lfhits.size())
-    lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
-    lfhits_v += detdata.getlines()
+    traces_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
 
-    #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-    #traces3d += mctrack_v    
+    if args.has_mc:
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=None)
+        traces_v += mctrack_v
+
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io_ll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True, origin=1 )
+        traces_v += mcshower_v
     
-    return lfhits_v
+    traces_v += detdata.getlines()
+        
+    return traces_v
 
 # WIDGET FOR INPUT
 eventinput = dcc.Input(
@@ -104,7 +109,7 @@ plot_layout = {
         "xaxis": axis_template,
         "yaxis": axis_template,
         "zaxis": axis_template,
-        "aspectratio": {"x": 1, "y": 1, "z": 3},
+        #"aspectratio": {"x": 1, "y": 1, "z": 3},
         "camera": {"eye": {"x": 1, "y": 1, "z": 1},
                    "up":dict(x=0, y=1, z=0)},
         "annotations": [],

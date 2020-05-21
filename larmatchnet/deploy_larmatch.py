@@ -86,6 +86,7 @@ model = LArMatch(neval=NUM_PAIRS).to(DEVICE)
 model.load_state_dict(checkpoint["state_dict"])
 
 print("loaded MODEL")
+sys.exit(-1)
 
 # setup filename
 outfilestem = args.output
