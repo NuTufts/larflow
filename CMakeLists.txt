@@ -68,7 +68,7 @@ find_package(Eigen3 REQUIRED)
 set( CILANTRO_INC_DIR "$ENV{CILANTRO_INC_DIR}" )
 
 #--- glog
-find_package(glog)
+#find_package(glog)
 
 ## Setup
 

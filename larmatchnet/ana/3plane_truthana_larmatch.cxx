@@ -5,6 +5,7 @@
 #include <utility>
 #include <iterator>
 #include <algorithm>
+#include <vector>
 #include "TFile.h"
 #include "TH2D.h"
 
@@ -13,7 +14,50 @@
 #include "larlite/core/DataFormat/larflow3dhit.h"
 #include "larlite/core/DataFormat/mctrack.h"
 #include "larlite/core/DataFormat/mcshower.h"
+#include "larlite/core/DataFormat/mctruth.h"
 
+//#include "larflow/Reco/geofuncs.h"
+
+#include "larlite/core/LArUtil/TimeService.h"
+#include "larlite/core/LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/core/LArUtil/LArProperties.h"
+
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
+#include "ublarcvapp/UBWireTool/UBWireTool.h"
+#include "ublarcvapp/UBWireTool/WireData.h"
+
+
+TVector3 convert_point(const larlite::mcstep& mcstep, larutil::SpaceChargeMicroBooNE* sce, const larutil::TimeService* tsv  ){
+
+  TVector3 point;
+  float x,y,z,t;
+  float tick;
+
+  const float cm_per_tick = ::larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+  t = mcstep.T();
+  x = mcstep.X();
+  y = mcstep.Y();
+  z = mcstep.Z();
+
+  std::vector<double> pos_offset = sce->GetPosOffsets( x, y, z );
+  x = x - pos_offset[0]+ 0.6;
+  y = y + pos_offset[1];
+  z = z + pos_offset[2];
+  
+  tick = tsv->TPCG4Time2Tick(t) + x/cm_per_tick;
+  x  = (tick - 3200)*cm_per_tick;
+
+  point.SetXYZ(x,y,z);
+}
+
+float DistFromLine(TVector3 x0, TVector3 x1, TVector3 x2){
+
+  float num=((x0 - x1).Cross((x0-x2))).Mag();
+  float denom = (x2 - x1).Mag();
+
+  num /=denom;
+  return num;
+}
 
 int main( int nargs, char** argv ) {
 
@@ -34,38 +78,64 @@ int main( int nargs, char** argv ) {
 	score(0)
     {};
   } hit_t;
-  
 
+  typedef struct pixmeta_t{
+    int type; //trk or shwr
+    int vid; //index in mctrack/shower vector
+    int pdg;
+    TVector3 start;
+    TVector3 end;
+    
+    pixmeta_t()
+      : type(0),vid(0),pdg(0)
+    {};
+  } pixmeta_t;
+
+
+  //SERVICES
+  ::larutil::SpaceChargeMicroBooNE* sce = new ::larutil::SpaceChargeMicroBooNE;
+  const ::larutil::TimeService* tsv = ::larutil::TimeService::GetME();
+
+  
   std::cout << "larfow truth data" << std::endl;
   if ( nargs==1 ) {
     std::cout << "=== ARGUMENTS ===" << std::endl;
-    std::cout <<  "truthana_larmatch [larmatch] [start entry] [num entries]" << std::endl;
+    std::cout <<  "truthana_larmatch [larmatch] [larcv] [mcinfo] [start entry] [num entries]" << std::endl;
     return 0;
   }
 
   std::string input_larmatch = argv[1];
-  //std::string input_mcinfo   = argv[3];
+  std::string input_larcv    = argv[2];
+  std::string input_mcinfo   = argv[3];
   std::string adc_name = "wiremc";
   std::string chstatus_name = "wiremc";
-  int startentry = atoi(argv[2]);
-  int maxentries = atoi(argv[3]);
+  int startentry = atoi(argv[4]);
+  int maxentries = atoi(argv[5]);
 
+  larcv::IOManager io( larcv::IOManager::kREAD, "io", larcv::IOManager::kTickBackward );
+  io.add_in_file( input_larcv );
+  //io.set_out_file( "ana_temp.root" );
+  io.reverse_all_products();
+  io.initialize();
+  
   
   larlite::storage_manager llio( larlite::storage_manager::kREAD );
   llio.add_in_filename( input_larmatch );
-  //llio.add_in_filename( input_mcinfo );
+  llio.add_in_filename( input_mcinfo );
   llio.open();
 
   int nentries = llio.get_entries();
 
   // output
-  TFile* outfile = new TFile(Form("out_truthana_evt%d-%d.root",startentry,startentry+maxentries-1),"recreate");
+  TFile* outfile = new TFile(Form("out_test1_evt%d-%d.root",startentry,startentry+maxentries-1),"recreate");
 
   // DEFINE HISTOGRAMS
   const int nhists = 4;
   // strings for histo names
   std::string str1[4] = {"u","v","y","3d"};
   std::string str2[4] = {"dx","dy","dz","3d"};
+  std::string str3[3] = {"track","shower","all"};
+  
   // score output versus flow distance
   TH2D* hprob_v_coldist[ nhists ] = {nullptr};
   for (int n=0; n<=3; n++ ) {
@@ -73,7 +143,43 @@ int main( int nargs, char** argv ) {
     sprintf( name, "hprob_v_coldist_%s", str1[n].c_str() );
     hprob_v_coldist[n] = new TH2D( name,  ";distance from true target wire (cm); match probability", 3334, 0, 1000, 100, 0.0, 1.0 );
   }
-  
+  // score vs track/shower theta 
+  TH2D* hprob_v_theta[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hprob_v_theta_%s", str3[n].c_str() );
+    hprob_v_theta[n] = new TH2D( name,  ";Polar angle; distance to true triplet", 63, -3.14, 3.14, 900, 0.0, 300 );
+  }
+
+  TH1D* htheta[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "htheta_%s", str3[n].c_str() );
+    htheta[n] = new TH1D( name,  ";Polar angle;", 63, -3.14, 3.14 );
+  }
+  TH1D* hphi[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hphi_%s", str3[n].c_str() );
+    hphi[n] = new TH1D( name,  ";Azimuth angle;", 63, -3.14, 3.14 );
+  }
+
+  // score vs track/shower phi 
+  TH2D* hprob_v_phi[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hprob_v_phi_%s", str3[n].c_str() );
+    hprob_v_phi[n] = new TH2D( name,  ";Azimuth angle; distance ti true triplet", 63, -3.14, 3.14, 900, 0.0, 300 );
+  }
+
+  // score vs track/shower phi 
+  TH2D* hdist_v_radius[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hdist_v_radius_%s", str3[n].c_str() );
+    hdist_v_radius[n] = new TH2D( name,  ";distance from true triplet ;distance from track axis", 600, 0, 300, 600, 0, 300 );
+  }
+
   // error in flow (using max match)
   TH1D* herrflow[ nhists ] = { nullptr };
   for (int n=0; n<=3; n++ ) {
@@ -82,7 +188,20 @@ int main( int nargs, char** argv ) {
     herrflow[n] = new TH1D(name, ";distance from true triplet (cm)", 3334, 0, 1000 );
 
   }
+
+  TH1D* herrflow_radial[ 3 ] = { nullptr };
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "herrflow_radial_%s", str3[n].c_str() );
+    herrflow_radial[n] = new TH1D(name,";distance from track/shower axis (cm)",1000,0,1000);
+  }
+    
+  // MCPG
+  ublarcvapp::mctools::MCPixelPGraph mcpg;
+  mcpg.set_adc_treename( adc_name );
+
   
+  // LOOP OVER EVENTS 
   if(startentry+maxentries > nentries) maxentries = nentries - startentry;
   for (int ientry=startentry; ientry<startentry+maxentries; ientry++ ) {
 
@@ -90,19 +209,68 @@ int main( int nargs, char** argv ) {
     std::cout << "[ Entry " << ientry << " ]" << std::endl;
 
     llio.go_to(ientry);
+    io.read_entry(ientry);
 
-    larlite::event_larflow3dhit* lfhit_v =
-      (larlite::event_larflow3dhit*)llio.get_data(larlite::data::kLArFlow3DHit,"larmatch");
+    larlite::event_larflow3dhit* lfhit_v = (larlite::event_larflow3dhit*)llio.get_data(larlite::data::kLArFlow3DHit,"larmatch");
+    larlite::event_mctrack* evmctrack   = (larlite::event_mctrack*)llio.get_data(larlite::data::kMCTrack,"mcreco");
+    larlite::event_mcshower* evmcshower = (larlite::event_mcshower*)llio.get_data(larlite::data::kMCShower,"mcreco");
     
+    mcpg.buildgraph( io, llio);
+    //mcpg.printGraph();
 
     std::map<int, hit_t> map1;
     std::multimap<int,int> mmap1;
     std::multimap<std::pair<int,int>,int> mmap2;
     typedef std::multimap<int,int>::iterator Iterator1;
     typedef std::multimap<std::pair<int,int>,int>::iterator Iterator2;
+    
+    std::multimap<std::pair<int,int>,pixmeta_t> pixm;
+    typedef std::multimap<std::pair<int,int>,pixmeta_t>::iterator Iterator3;
+    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries = mcpg.getPrimaryParticles();
+    
+    for(int nid=0; nid<primaries.size(); nid++){
+      const ublarcvapp::mctools::MCPixelPGraph::Node_t node = *(primaries.at(nid));
+      TVector3 start;
+      TVector3 end;
+      //int tid = node.tid;
+      //std::vector<std::vector<int>> pix_vv = mcpg.getPixelsFromParticleAndDaughters(tid);
+      larlite::mctrack* trk = NULL;
+      larlite::mcshower* shwr = NULL;
+      if(node.origin !=1) continue;
+      if(node.type==0) trk = &evmctrack->at( node.vidx );
+      else if(node.type==1) shwr = &evmcshower->at( node.vidx );
+      else {};
 
+      if(trk){
+
+	start = convert_point(trk->Start(), sce, tsv);
+	end = convert_point(trk->End(), sce, tsv);
+	//start.SetXYZ(trk->Start().X(),trk->Start().Y(),trk->Start().Z());
+	//end.SetXYZ(trk->End().X(),trk->End().Y(),trk->End().Z());
+      }
+      else if(shwr){
+	start.SetXYZ(shwr->Start().X(),shwr->Start().Y(),shwr->Start().Z());
+	end.SetXYZ(shwr->End().X(),shwr->End().Y(),shwr->End().Z());
+      }
+      else{
+	start.SetXYZ(15000.,15000.,15000.);
+	end.SetXYZ(15000.,15000.,15000.);
+      }
+
+      // fill lookup map
+      for(int j=0; j<node.pix_vv[2].size()/2; j++){
+	pixmeta_t meta;
+	meta.type = node.type;
+	meta.vid = node.vidx;
+	meta.pdg = node.pid;
+	meta.start = start;
+	meta.end = end;
+	
+	pixm.insert(std::make_pair(std::make_pair(node.pix_vv[2][2*j],node.pix_vv[2][2*j+1]),meta));
+      }
+    }
+    
     // loop over hits
-
     for ( size_t ihit=0; ihit< lfhit_v->size(); ihit++ ) {
       const larlite::larflow3dhit& lfhit = lfhit_v->at(ihit);
       
@@ -120,52 +288,85 @@ int main( int nargs, char** argv ) {
       mmap2.insert(std::make_pair(std::make_pair(hit.tick,hit.Y),ihit));
 
     }
-    /*
-    //debug
-    std::cout << map1.size() <<" "<<mmap1.size() <<" "<< mmap2.size() << std::endl;
-    std::map<int,hit_t>::iterator it = map1.begin();
-    while(it != map1.end()){
-      std::cout << it->first <<" "<< it->second.istruth <<" "<< it->second.tick <<" "<< it->second.Y <<" "<< it->second.score << std::endl;
-      it++;
-    }    
-    Iterator1 it1 = mmap1.begin();
-    while(it1 != mmap1.end()){
-      std::cout << it1->first <<" "<< it1->second << std::endl;
-      it1++;
-    }
-    Iterator2 it2 = mmap2.begin();
-    while(it2 != mmap2.end()){
-      std::cout << it2->first.first <<" "<< it2->first.second <<" "<< it2->second << std::endl;
-      it2++;
-    }
-    */
     
     //grab true triplets : istruth==1
     std::pair<Iterator1,Iterator1> query1 = mmap1.equal_range(1);
     int nhits_wtrueflow = std::distance(query1.first, query1.second);
     for(Iterator1 it = query1.first; it!= query1.second; it++){
       std::pair<int,int> coord = std::make_pair(map1.at(it->second).tick, map1.at(it->second).Y);
+      hit_t truehit = map1.at(it->second);
 
-      //std::cout << it->first <<" "<< it->second <<" "<< coord.first <<" "<< coord.second << std::endl; 
+      // get mcinfo if available
+      Iterator3 query3 = pixm.find(coord);
+      pixmeta_t trackmeta;
+      float theta =-2; 
+      float phi =-2;
+      if(query3 == pixm.end()) continue;
+      trackmeta = query3->second;
+      theta = (trackmeta.end - trackmeta.start).Theta();
+      phi =  (trackmeta.end - trackmeta.start).Phi();
+
+      //loop to get best score
       float bestscore=0;
       int bestidx=0;
       std::pair<Iterator2,Iterator2> query2 = mmap2.equal_range(coord);
-      for(Iterator2 it = query2.first; it!= query2.second; it++){
+      for(Iterator2 it = query2.first; it!= query2.second; it++){	
 	if(map1.at(it->second).score > bestscore){
 	  bestscore = map1.at(it->second).score;
 	  bestidx = it->second;
-	}
+	}	
+      }
+      
+      float dx = sqrt(pow(map1.at(bestidx).xyz[0] - truehit.xyz[0],2));
+      float dy = sqrt(pow(map1.at(bestidx).xyz[1] - truehit.xyz[1],2));
+      float dz = sqrt(pow(map1.at(bestidx).xyz[2] - truehit.xyz[2],2));
+      float dist = sqrt(dx*dx + dy*dy + dz*dz);
+      
+      float dU = map1.at(bestidx).U - truehit.U;
+      float dV = map1.at(bestidx).V - truehit.V;
+      
+      TVector3 me(map1.at(bestidx).xyz[0], map1.at(bestidx).xyz[1], map1.at(bestidx).xyz[2]);
+      float dLine = DistFromLine(me, trackmeta.start, trackmeta.end);      
+
+      //debug
+      /*
+      std::vector<float> pt(3);
+      pt[0] = map1.at(bestidx).xyz[0];
+      pt[1] = map1.at(bestidx).xyz[1];
+      pt[2] = map1.at(bestidx).xyz[2];    
+      float dLine2 = pointLineDistance(trackmeta.st, trackmeta.et, pt);
+      std::cout << "tvector: " << dLine << " vector<float>: "<<dLine2 << std::endl;
+      */
+      if(trackmeta.type==0){
+	hprob_v_theta[0]->Fill(theta, dist);
+	hprob_v_phi[0]->Fill(phi, dist);
+
+	herrflow_radial[0]->Fill( dLine);
+	hdist_v_radius[0]->Fill( dist, dLine);
+
+	hphi[0]->Fill(phi);
+	htheta[0]->Fill(theta);
+      }
+      if(trackmeta.type==1){
+	hprob_v_theta[1]->Fill(theta, dist);
+	hprob_v_phi[1]->Fill(phi, dist);
+
+	herrflow_radial[1]->Fill( dLine);
+	hdist_v_radius[1]->Fill( dist, dLine);
+
+	hphi[1]->Fill(phi);
+	htheta[1]->Fill(theta);
 
       }
-      float dx = sqrt(pow(map1.at(bestidx).xyz[0] - map1.at(it->second).xyz[0],2));
-      float dy = sqrt(pow(map1.at(bestidx).xyz[1] - map1.at(it->second).xyz[1],2));
-      float dz = sqrt(pow(map1.at(bestidx).xyz[2] - map1.at(it->second).xyz[2],2));
-      float dist = sqrt(dx*dx + dy*dy + dz*dz);
+      hprob_v_theta[2]->Fill(theta, dist);
+      hprob_v_phi[2]->Fill(phi, dist);
 
-      float dU = map1.at(bestidx).U - map1.at(it->second).U;
-      float dV = map1.at(bestidx).V - map1.at(it->second).V;
+      herrflow_radial[2]->Fill( dLine );      
+      hdist_v_radius[2]->Fill( dist, dLine);
 
-            
+      hphi[2]->Fill(phi);
+      htheta[2]->Fill(theta);
+
       herrflow[0]->Fill( dx );
       herrflow[1]->Fill( dy );
       herrflow[2]->Fill( dz );
@@ -173,12 +374,12 @@ int main( int nargs, char** argv ) {
       hprob_v_coldist[0]->Fill(fabs(dU)*0.3, bestscore);
       hprob_v_coldist[1]->Fill(fabs(dV)*0.3, bestscore);
       hprob_v_coldist[3]->Fill(dist, bestscore);
-	
+      
     }// end of loop over points
-
+    std::cout << herrflow[3]->Integral() <<" "<<hprob_v_coldist[3]->Integral() << std::endl;
     std::cout << "hits with true flow: " << nhits_wtrueflow << std::endl;
     std::cout << "total hits: " << lfhit_v->size() <<" "<< map1.size() << std::endl;
-
+    
   }//event loop
 
   outfile->Write();
