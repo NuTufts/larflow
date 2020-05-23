@@ -4,6 +4,8 @@
 
 #include "ublarcvapp/ubdllee/dwall.h"
 #include "DataFormat/track.h"
+#include "DataFormat/larflow3dhit.h"
+#include "DataFormat/pcaxis.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "geofuncs.h"
@@ -17,6 +19,57 @@ namespace reco {
                               const std::vector<KPCluster>& kpcluster_v )
   {
 
+    std::vector< std::vector<float> > kppos_v;
+    std::vector< std::vector<float> > kpaxis_v;
+
+    for ( auto& kpc : kpcluster_v ) {
+      kppos_v.push_back( kpc.max_pt_v );
+      kpaxis_v.push_back( kpc.pca_axis_v[0] );
+    }
+    
+    process( iolcv, ioll, kppos_v, kpaxis_v );
+    
+  }
+
+  void TrackReco2KP::process( larcv::IOManager& iolcv,
+                              larlite::storage_manager& ioll )
+  {
+
+    larlite::event_larflow3dhit* ev_keypoint =
+      (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _keypoint_treename );
+    larlite::event_pcaxis* ev_pcaxis =
+      (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, _keypoint_treename );
+
+    LARCV_DEBUG() << "number of keypoints from " << _keypoint_treename << ": " << ev_keypoint->size() << std::endl;
+    LARCV_DEBUG() << "number of pca-axis from  " << _keypoint_treename << ": " << ev_pcaxis->size() << std::endl;    
+    
+    std::vector< std::vector<float> > kppos_v;
+    std::vector< std::vector<float> > kpaxis_v;
+
+    for ( size_t ipt=0; ipt<ev_keypoint->size(); ipt++ ) {
+      std::vector<float> pos(3,0);
+      std::vector<float> axis(3,0);
+
+      for (int v=0; v<3; v++ ) {
+        pos[v] = ev_keypoint->at(ipt)[v];
+        axis[v] = ev_pcaxis->at(ipt).getEigenVectors()[0][v];
+      }
+      
+      kppos_v.push_back( pos );
+      kpaxis_v.push_back( axis );
+    }
+    
+    process( iolcv, ioll, kppos_v, kpaxis_v );
+    
+  }
+  
+  
+  void TrackReco2KP::process( larcv::IOManager& iolcv,
+                              larlite::storage_manager& ioll,
+                              const std::vector< std::vector<float> >& kppos_v,
+                              const std::vector< std::vector<float> >& kpaxis_v )                              
+  {
+    
     // get bad channel image
     larcv::EventImage2D* ev_badch
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "badch" );
@@ -24,35 +77,47 @@ namespace reco {
     
     // rank KP by dwall
     std::cout << "Make KPInfo_t list" << std::endl;
-    std::vector< KPInfo_t > sorted_kp_v(kpcluster_v.size());
-    for (int idx=0; idx<(int)kpcluster_v.size(); idx++) {
+    std::vector< KPInfo_t > sorted_kp_v(kppos_v.size());
+    for (int idx=0; idx<(int)kppos_v.size(); idx++) {
       KPInfo_t& info = sorted_kp_v[idx];
       info.idx = idx;
-      info.dwall = ublarcvapp::dwall( kpcluster_v[idx].max_pt_v, info.boundary_type );
+      info.dwall = ublarcvapp::dwall( kppos_v[idx], info.boundary_type );
     }
 
     std::sort( sorted_kp_v.begin(), sorted_kp_v.end() );
-
     
     // make pairs
     std::cout << "Make KPPair_t list" << std::endl;    
     std::vector< KPPair_t > sorted_pair_v;
     for (int i=0; i<(int)sorted_kp_v.size(); i++) {
-      auto const& kp_i = kpcluster_v[i];
+      auto const& kp_i = kppos_v[i];
+      auto const& kp_i_pca = kpaxis_v[i];
       for (int j=0; j<(int)sorted_kp_v.size(); j++) {
         if ( i==j ) continue;
-        auto const& kp_j = kpcluster_v[j];
+        auto const& kp_j = kppos_v[j];
+        auto const& kp_j_pca = kpaxis_v[j];        
 
         // get distance of point-j onto pca-line
         std::vector<float> line_end(3);
         float dist = 0.;
+        float cospca = 0.;
+        float pca1 = 0.;
+        float pca2 = 0.;
         for (int v=0; v<3; v++) {
-          line_end[v] = kp_i.max_pt_v[v] + 10.0*kp_i.pca_axis_v[0][v];
-          dist += ( kp_i.max_pt_v[v] - kp_j.max_pt_v[v] )*( kp_i.max_pt_v[v] - kp_j.max_pt_v[v] );
+          line_end[v] = kp_i[v] + 10.0*kp_i_pca[v];
+          dist += ( kp_i[v] - kp_j[v] )*( kp_i[v] - kp_j[v] );
+          pca1 += (kp_i_pca[v]*kp_i_pca[v]);
+          pca2 += (kp_j_pca[v]*kp_j_pca[v]);
+          cospca += kp_i_pca[v]*kp_j_pca[v];
         }
         dist = sqrt(dist);
+        cospca /= (pca1*pca2);
 
-        float rad_dist = pointLineDistance( kp_i.max_pt_v, line_end, kp_j.max_pt_v );
+        cospca = fabs(cospca);
+
+        float rad_dist = pointLineDistance( kp_i, line_end, kp_j );
+
+        LARCV_DEBUG() << "pair proposed [" << i << "," << j << "] rad_dist" << rad_dist << " cosine=" << cospca << std::endl;
 
         // skip trying to connect points if larger than this distance
         if ( rad_dist>100.0 )
@@ -63,6 +128,7 @@ namespace reco {
         kpp.end_idx = j;
         kpp.dist2axis = rad_dist;
         kpp.dist2pts  = dist;
+        kpp.cospca    = cospca;
 
         sorted_pair_v.push_back( kpp );
         
@@ -114,10 +180,16 @@ namespace reco {
                 << " dist2pts=" << apair.dist2pts
                 << std::endl;
 
+      if ( (apair.start_idx==27 && apair.end_idx==22 )
+           || (apair.start_idx==22 && apair.end_idx==27 ) )
+        _tracker.set_verbosity(larcv::msg::kDEBUG);
+      else
+        _tracker.set_verbosity(larcv::msg::kINFO);
+      
       larlite::track trackout;
       larlite::larflowcluster lfcluster;
-      std::vector<int> trackpoints_v = makeTrack( kpcluster_v[apair.start_idx].max_pt_v,
-                                                  kpcluster_v[apair.end_idx].max_pt_v,
+      std::vector<int> trackpoints_v = makeTrack( kppos_v[apair.start_idx],
+                                                  kppos_v[apair.end_idx],
                                                   *ev_larflowhits, badch_v,
                                                   trackout,
                                                   lfcluster,
@@ -135,6 +207,13 @@ namespace reco {
       //break;
     }//end of pair loop
 
+    larlite::event_larflow3dhit* evout_unused
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "track2kpunused");
+    for ( size_t i=0; i<ev_larflowhits->size(); i++) {
+      if ( sp_used_v[i]==0 )
+        evout_unused->push_back( ev_larflowhits->at(i) );
+    }
+    LARCV_INFO() << "remaining track hits: " << evout_unused->size() << std::endl;
   }
   
 
@@ -167,6 +246,8 @@ namespace reco {
     for (int i=0; i<3; i++) {
       bounds[i][0] = (startpt[i]<endpt[i]) ? startpt[i] : endpt[i];
       bounds[i][1] = (startpt[i]<endpt[i]) ? endpt[i]   : startpt[i];
+      bounds[i][0] -= 30.0;
+      bounds[i][1] += 30.0;
     }
     
 
@@ -258,17 +339,40 @@ namespace reco {
     }
 
     LARCV_DEBUG() << "RUN KPTrackFit w/ " << point_v.size() << " points in graph" << std::endl;
-    KPTrackFit tracker;
-    tracker.set_verbosity(larcv::msg::kINFO);
+
     //tracker.set_verbosity(larcv::msg::kDEBUG);
-    std::vector<int> trackpoints_v = tracker.fit( pos3d_v, badch_v, 0, (int)pos3d_v.size()-1 );
+    std::vector<int> trackpoints_v = _tracker.fit( pos3d_v, badch_v, 0, (int)pos3d_v.size()-1 );
     LARCV_DEBUG() << "KPTrackFit return track with " << trackpoints_v.size() << std::endl;
 
-    //bool isgood = _isTrackGood( trackpoints_v, point_v );
-    
+    float tracklen = 0.;
+    bool isgood = _isTrackGood( trackpoints_v, point_v, tracklen );
+    if ( !isgood ) {
+      std::vector<int> empty;
+      return empty;
+    }
+
+    std::vector<int> sp_in_track_v( sp_used_v.size(),0);
     _prepareTrack( trackpoints_v, point_v, lfhits,
                    startpt, endpt,
-                   trackout, lfclusterout );
+                   trackout, lfclusterout,
+                   sp_in_track_v );
+
+    int npts = 0;
+    for (auto& inout : sp_in_track_v )
+      npts += inout;
+    // last check on density
+    LARCV_INFO() << "Track sp/len = " << float(npts)/tracklen << std::endl;
+
+    // last chance to ditch track
+    if ( float(npts)/tracklen < 10.0 ) {
+      LARCV_INFO() << "track is too sparse" << std::endl;
+      std::vector<int> empty;
+      return empty;
+    }
+
+    for ( size_t i=0; i<sp_in_track_v.size(); i++ )
+      if ( sp_in_track_v[i]==1 )
+        sp_used_v[i] = 1;
     
     std::vector<int> lfhit_index_v;
     for ( auto& idx : trackpoints_v ) {
@@ -306,14 +410,15 @@ namespace reco {
                                     const std::vector<float>& start,
                                     const std::vector<float>& end,
                                     larlite::track& track,
-                                    larlite::larflowcluster& lfcluster )
+                                    larlite::larflowcluster& lfcluster,
+                                    std::vector<int>& sp_used_v )
   {
 
     lfcluster.clear();
     lfcluster.reserve( trackpoints_v.size() );
     track.reserve(trackpoints_v.size());
 
-    const float boxsize = 5.0;
+    const float boxsize = 3.0;
     
     std::set<int> points_saved;
 
@@ -363,8 +468,8 @@ namespace reco {
         
           float bounds[3][2];
           for (int v=0; v<3; v++) {
-            bounds[v][0] = center[v]-5.0;
-            bounds[v][1] = center[v]+5.0;
+            bounds[v][0] = center[v]-boxsize/2.0;
+            bounds[v][1] = center[v]+boxsize/2.0;
           }
         
           for ( auto const& pt : subset_v ) {
@@ -380,7 +485,14 @@ namespace reco {
               if ( !inbox ) break;
             }
 
+            bool incylinder = false;
             if ( inbox ) {
+              float axis_dist = pointLineDistance( start, end, pt.pos );
+              if ( axis_dist<30 )
+                incylinder = true;
+            }
+
+            if ( inbox && incylinder ) {
               //LARCV_DEBUG() << "save points idx=" << pt.idx << std::endl;
               points_saved.insert(pt.idx);
               if ( pt.idx==-1 ) {
@@ -397,6 +509,7 @@ namespace reco {
               }
               else {
                 lfcluster.push_back( lfhit_v.at(pt.idx) );
+                sp_used_v[pt.idx] = 1;                
               }
             }
           }//end of subset point loop
@@ -422,13 +535,101 @@ namespace reco {
    * @param[in] point_v     Struct of points we tried to fit. Made by the `makeTrack` method.
    * @return    bool        True if passes tests; False if does not.
    */
-  // bool TrackReco2KP::isTrackGood( const std::vector<int>& track_idx_v,
-  //                                 const std::vector<Point_t>& point_v )
-  // {
+  bool TrackReco2KP::_isTrackGood( const std::vector<int>& track_idx_v,
+                                   const std::vector<Point_t>& point_v,
+                                   float& totaldist )
+  {
 
-  //   // we step through and compare 
+    // we step through and find large jumps
+    float maxdist = 0.;
+    totaldist = 0.;
+
+    std::vector<int> check_at_idx;
     
-  // }
+    for (int i=0; i<(int)track_idx_v.size()-1; i++) {
+
+      const std::vector<float>& pos  = point_v[ track_idx_v[i] ].pos;
+      const std::vector<float>& next = point_v[ track_idx_v[i+1] ].pos;
+
+      float dist = 0.;
+      for (int v=0; v<3; v++) dist += (pos[v]-next[v])*(pos[v]-next[v]);
+      dist = sqrt(dist);
+
+      if ( maxdist<dist ) maxdist = dist;
+      if ( dist>10.0 ) {
+        check_at_idx.push_back( i );
+      }
+
+      totaldist += dist;
+    }
+
+    float gapfrac = 1.;
+    if ( totaldist>0 )
+      gapfrac = maxdist/totaldist;
+    
+    // if we have a gap large enough, we try to check the angle between the track and the large step
+    float min_cosdir = 1.0;
+    for (int icheck=0; icheck<(int)check_at_idx.size(); icheck++) {
+      // we step from icheck+1 and go 5 cm. then we compute the angle
+      float distpast = 0.;
+      int itrack=check_at_idx[icheck]+1;
+      std::vector<float> current_pos(3,0);
+      while (distpast<10.0 && itrack+1<(int)track_idx_v.size()) {
+        int idx1 = track_idx_v[itrack];
+        int idx2 = track_idx_v[itrack+1];
+        float segdist = 0.;
+        for (int v=0; v<3; v++) {
+          segdist += ( point_v[idx2].pos[v]-point_v[idx1].pos[v] )*( point_v[idx2].pos[v]-point_v[idx1].pos[v] );
+        }
+        current_pos = point_v[idx2].pos;
+        segdist = sqrt(segdist);
+        itrack++;
+        distpast += segdist;
+      }
+
+      // hopefully we've gotten a new point, get the angle
+      std::vector<float> dir1(3,0);
+      std::vector<float> dir2(3,0);
+      float cosdir = 0.;
+      float len1 = 0;
+      float len2 = 0.;
+      int idx0 = track_idx_v[check_at_idx[icheck]];
+      int idx1 = track_idx_v[check_at_idx[icheck]+1];
+      for (int v=0; v<3; v++) {
+        dir1[v] = point_v[idx1].pos[v]-point_v[idx0].pos[v];
+        dir2[v] = current_pos[v] - point_v[idx1].pos[v];
+        len1 += dir1[v]*dir1[v];
+        len2 += dir2[v]*dir2[v];
+        cosdir += dir1[v]*dir2[v];
+      }
+      len1 = sqrt(len1);
+      len2 = sqrt(len2);
+      if ( len1>0 && len2>0 ) {
+        cosdir /= (len1*len2);
+        if ( min_cosdir>cosdir )
+          min_cosdir = cosdir;
+      }
+    }
+
+    float pts_per_len = 0;
+    if ( totaldist>0 )
+      pts_per_len = float(track_idx_v.size())/totaldist;
+
+    
+    LARCV_INFO() << " max-gap=" << maxdist << " cm,"
+                 << " totaldist=" << totaldist << " cm,"
+                 << " gapfrac=" << gapfrac
+                 << " npts/dist=" << pts_per_len
+                 << " and min-cos=" << min_cosdir << std::endl;
+    if ( min_cosdir<0.1 || maxdist>50.0 || gapfrac>0.5 ) {
+      LARCV_INFO() << "track is bad" << std::endl;
+      return false;
+    }
+    
+    LARCV_INFO() << "track is good" << std::endl;
+    return true;
+    
+  }
   
 }
 }

@@ -13,9 +13,11 @@
 
 // larflow
 #include "KeypointReco.h"
+#include "KeypointFilterByClusterSize.h"
 #include "SplitHitsBySSNet.h"
 #include "DBScanLArMatchHits.h"
 #include "TrackReco2KP.h"
+#include "PCACluster.h"
 
 namespace larflow {
 namespace reco {
@@ -34,14 +36,15 @@ namespace reco {
 
     // keypoint reconstruction
     KeypointReco     _kpreco;
+    KeypointFilterByClusterSize _kpfilter;
     SplitHitsBySSNet _splithits;
     TrackReco2KP     _tracker2kp;
     DBScanLArMatchHits _cluster_track;
-    DBScanLArMatchHits _cluster_shower;    
+    DBScanLArMatchHits _cluster_shower;
+    PCACluster         _pcacluster;
 
     // Algorithms
-    void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll,
-                        const std::vector<KPCluster>& kpcluster_v );
+    void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     
     
   };

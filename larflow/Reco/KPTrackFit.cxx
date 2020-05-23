@@ -16,6 +16,7 @@
 
 #include "TRandom3.h"
 #include "geofuncs.h"
+#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -52,9 +53,11 @@ namespace reco {
 
     // use kdtree to make edges between points
     std::map< std::pair<int,int>, float > distmap;
-    defineEdges( point_v, distmap, 10.0 );
+    defineEdges( point_v, distmap, 20.0 );
 
-    addBadChCrossingConnections( point_v, badch_v, 10.0, 30.0, distmap );
+    addConnectGapsViaClusterPCA( point_v, 5.0, 50.0, distmap );
+    
+    //addBadChCrossingConnections( point_v, badch_v, 10.0, 30.0, distmap );
 
     // Define Vertex and Edge objects
     struct VertexData {
@@ -342,6 +345,120 @@ namespace reco {
                  << std::endl;
 
     
-  }  
+  }
+
+  /**
+   * 
+   * @param[in] point_v  Points we are considering
+   */
+  void KPTrackFit::addConnectGapsViaClusterPCA( const std::vector< std::vector<float> >& point_v,
+                                                const float min_gap, const float max_gap,
+                                                std::map< std::pair<int,int>, float >& distmap )
+  {
+
+    std::vector<cluster_t> cluster_v;
+    cluster_spacepoint_v( point_v, cluster_v );
+
+    // get pca for clusters
+    for ( auto& c : cluster_v ) {
+      cluster_pca(c);
+    }
+
+    int nadded = 0;
+    
+    // we do a N^2 comparison, checking for gaps
+    for ( size_t i=0; i<cluster_v.size(); i++ ) {
+      auto& c_i = cluster_v[i];
+
+      // too small to bother
+      if (c_i.points_v.size()<10) continue;
+      
+      for ( size_t j=i+1; j<cluster_v.size(); j++) {
+        auto& c_j = cluster_v[j];
+        // too small to bother
+        if (c_i.points_v.size()<10) continue;
+
+        // check end point distance
+        std::vector< std::vector<float> > endpts;
+        float endptdist = cluster_closest_endpt_dist( c_i, c_j, endpts );
+
+        if ( endptdist>max_gap || endptdist<min_gap )
+          continue;
+        
+        float cospca = cluster_cospca( c_i, c_j );
+
+        if ( fabs(cospca) < 0.5 )
+          continue;
+
+        // ok looks like something we should connect
+        // we connect points near the endpts
+        // we use the project on the axis to define near the end
+
+        // cluster i
+        // ----------
+        std::vector<float> endpt_s_i;
+        for ( auto& endpt : endpts ) {
+          float s=0;
+          for (int v=0; v<3; v++ ) s += (endpt[v]-c_i.pca_center[v])*c_i.pca_axis_v[0][v];
+          endpt_s_i.push_back(s);
+        }
+
+        std::set<int> end_idx_i_v;
+        for ( size_t iidx=0; iidx<c_i.points_v.size(); iidx++ ) {
+          for ( auto& end_s : endpt_s_i ) {
+            float ds = fabs( end_s - c_i.pca_proj_v[ c_i.ordered_idx_v[iidx] ] );
+            if (ds<15.0)
+              end_idx_i_v.insert( c_i.hitidx_v[iidx] );
+          }
+        }
+
+        // cluster j
+        // ----------
+        std::vector<float> endpt_s_j;
+        for ( auto& endpt : endpts ) {
+          float s=0;
+          for (int v=0; v<3; v++ ) s += (endpt[v]-c_j.pca_center[v])*c_j.pca_axis_v[0][v];
+          endpt_s_j.push_back(s);
+        }
+
+        std::set<int> end_idx_j_v;
+        for ( size_t jidx=0; jidx<c_j.points_v.size(); jidx++ ) {
+          for ( auto& end_s : endpt_s_j ) {
+            float ds = fabs( end_s - c_j.pca_proj_v[ c_j.ordered_idx_v[jidx] ] );
+            if (ds<15.0)
+              end_idx_j_v.insert( c_j.hitidx_v[jidx] );
+          }
+        }
+        
+        for ( auto& iidx : end_idx_i_v ) {
+          for ( auto& jidx : end_idx_j_v ) {
+
+            std::pair<int,int> apair(iidx,jidx);
+            std::pair<int,int> bpair(jidx,iidx);
+
+            if ( distmap.find(apair)==distmap.end()
+                 || distmap.find(bpair)==distmap.end() ) {
+
+              float dist=0.;
+              for (int v=0; v<3; v++) {
+                dist += ( point_v[iidx][v]-point_v[jidx][v] )*( point_v[iidx][v]-point_v[jidx][v] );
+              }
+              dist = sqrt(dist);
+
+              distmap[apair] = dist;
+              distmap[bpair] = dist;
+              nadded++;
+            }
+            
+          }
+        }
+        
+        
+      }//end of loop over j cluster
+      
+    }//end of loop over i cluster
+
+    LARCV_INFO() << "number of gap connections created: " << nadded << std::endl;
+  }
 }
 }

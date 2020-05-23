@@ -38,6 +38,9 @@ namespace reco {
                                       const float min_gap, const float max_gap,                                      
                                       std::map< std::pair<int,int>, float >& distmap );
     
+    void addConnectGapsViaClusterPCA( const std::vector< std::vector<float> >& point_v,
+                                      const float min_gap, const float max_gap,
+                                      std::map< std::pair<int,int>, float >& distmap );
     
   };
 

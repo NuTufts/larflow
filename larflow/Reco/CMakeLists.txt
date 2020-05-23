@@ -11,7 +11,7 @@ set( HEADERS cluster_functions.h
   PCACluster.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
-  KPCluster.h KeypointReco.h
+  KPCluster.h KeypointReco.h KeypointFilterByClusterSize.h
   TrackReco2KP.h
   KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
@@ -27,6 +27,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   VertexReco.cxx
   KPCluster.cxx
   KeypointReco.cxx
+  KeypointFilterByClusterSize.cxx
   TrackReco2KP.cxx
   KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )

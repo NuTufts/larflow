@@ -49,12 +49,12 @@ namespace reco {
     }
 
     // PREP: form clusters for both track and shower
-    _cluster_track.set_input_larflowhit_tree_name(  "trackhit" );
-    _cluster_track.set_output_larflowhit_tree_name( "lmtrack" );    
-    _cluster_track.process( iolcv, ioll );
-    _cluster_shower.set_input_larflowhit_tree_name(  "showerhit" );
-    _cluster_shower.set_output_larflowhit_tree_name( "lmshower" );
-    _cluster_shower.process( iolcv, ioll );
+    // _cluster_track.set_input_larflowhit_tree_name(  "trackhit" );
+    // _cluster_track.set_output_larflowhit_tree_name( "lmtrack" );    
+    // _cluster_track.process( iolcv, ioll );
+    // _cluster_shower.set_input_larflowhit_tree_name(  "showerhit" );
+    // _cluster_shower.set_output_larflowhit_tree_name( "lmshower" );
+    // _cluster_shower.process( iolcv, ioll );
 
     // KEYPOINT RECO: make keypoint candidates
     //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
@@ -63,9 +63,11 @@ namespace reco {
     _kpreco.process( ioll );
 
     // FILTER KEYPOINTS: To be on clusters larger than X hits
-
+    _kpfilter.set_verbosity( larcv::msg::kDEBUG );    
+    _kpfilter.process( iolcv, ioll );
+  
     // PARTICLE RECO
-    recoParticles( iolcv, ioll, _kpreco.output_pt_v );
+    recoParticles( iolcv, ioll );
     
     // INTERACTION RECO
 
@@ -78,8 +80,7 @@ namespace reco {
   }
 
   void KPSRecoManager::recoParticles( larcv::IOManager& iolcv,
-                                      larlite::storage_manager& ioll,
-                                      const std::vector<KPCluster>& kpcluster_v )
+                                      larlite::storage_manager& ioll )
   {
 
     // TRACK 2-KP RECO: make tracks using pairs of keypoints
@@ -90,9 +91,12 @@ namespace reco {
     // * larflow3dhit_keypoint_tree: copy of hits passed into algorithm
     _tracker2kp.set_verbosity( larcv::msg::kDEBUG );
     _tracker2kp.set_larflow3dhit_tree_name( "trackhit" );
-    _tracker2kp.process( iolcv, ioll, kpcluster_v );
+    _tracker2kp.set_keypoint_tree_name( "keypoint_bigcluster" );
+    _tracker2kp.process( iolcv, ioll );
 
-    // TRACK 1-KP RECO: make tracks using clusters and single keypoint
+    // TRACK PCA-CLUSTER: act on remaining clusters
+    _pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
+    _pcacluster.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
 

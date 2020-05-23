@@ -2,7 +2,7 @@ from __future__ import print_function
 import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
-parser.add_argument("-dl","--input-larflow",required=True,type=str,help="larflow input")
+#parser.add_argument("-dl","--input-larflow",required=True,type=str,help="larflow input")
 parser.add_argument("-tr","--input-trackreco",required=True,type=str,help="trackreco2kp larlite output file")
 args = parser.parse_args()
 
@@ -28,7 +28,7 @@ for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
-io.add_in_filename( args.input_larflow )
+#io.add_in_filename( args.input_larflow )
 io.add_in_filename( args.input_trackreco )
 io.open()
 
@@ -61,7 +61,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         traces_v.append(track_points)
 
     # keypoints
-    ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )
+    ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_bigcluster" )
     for ikp in range(ev_kp.size()):
         kptrace = {
             "type":"scatter3d",
@@ -70,10 +70,79 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             "z": [ev_kp[ikp][2]],
             "mode":"markers",
 	    "name":"KP%d"%(ikp),
-            "marker":{"color":"rgb(255,0,0)","size":3,"opacity":0.5},
+            "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
         }
         traces_v.append(kptrace)
 
+    ev_kp2 = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_smallcluster" )
+    for ikp2 in range(ev_kp2.size()):
+        kptrace = {
+            "type":"scatter3d",
+	    "x": [ev_kp2[ikp2][0]],
+            "y": [ev_kp2[ikp2][1]],
+            "z": [ev_kp2[ikp2][2]],
+            "mode":"markers",
+	    "name":"KP%d"%(ikp2),
+            "marker":{"color":"rgb(0,0,255)","size":5,"opacity":0.5},
+        }
+        traces_v.append(kptrace)
+        
+    # unused points
+    ev_unused = io.get_data( larlite.data.kLArFlow3DHit, "track2kpunused" )
+    unused_trace = lardly.data.visualize_larlite_larflowhits( ev_unused, name="unused" )
+    unused_trace["marker"]["color"] = "rgb(125,125,125)"
+    unused_trace["marker"]["opacity"] = 0.1    
+    traces_v.append(unused_trace)
+
+    # PCA CLUSTER OUTPUT
+    treename="pcacluster"
+    ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
+    evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
+    evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
+    nclusters = evclusters.size()
+    
+    print("[tree %s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
+
+    for icluster in xrange(nclusters):
+
+        cluster = evclusters.at(icluster)
+        nhits = cluster.size()
+
+        pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
+        r3 = np.random.randint(255,size=3)
+        colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
+                
+        clusterplot = {
+            "type":"scatter3d",
+            "x":pts[:,0],
+            "y":pts[:,1],
+            "z":pts[:,2],
+            "mode":"markers",
+            "name":"%s[%d]"%(treename,icluster),
+            "marker":{"color":colors,"size":1,"colorscale":colorscale}
+        }
+        traces_v.append( clusterplot )
+
+        # PCA-axis
+        llpca = evpcaxis.at( icluster )
+
+        pca_pts = np.zeros( (3,3) )
+        for i in range(3):
+            pca_pts[0,i] = llpca.getEigenVectors()[3][i]
+            pca_pts[1,i] = llpca.getAvePosition()[i]
+            pca_pts[2,i] = llpca.getEigenVectors()[4][i]
+            
+        pca_plot = {
+            "type":"scatter3d",
+            "x":pca_pts[:,0],
+                "y":pca_pts[:,1],
+            "z":pca_pts[:,2],
+            "mode":"lines",
+            "name":"%s-pca[%d]"%(treename,icluster),
+            "line":{"color":"rgb(255,255,255)","size":2}
+        }
+        traces_v.append( pca_plot )
+    
 
     # add detector outline
     traces_v += detdata.getlines()

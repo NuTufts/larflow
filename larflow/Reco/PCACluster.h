@@ -2,6 +2,7 @@
 #define __LARFLOW_PCA_CLUSTER_H__
 
 #include <vector>
+#include <string>
 
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -17,7 +18,8 @@ namespace reco {
   public:
 
     PCACluster()
-      : _min_larmatch_score(0.0),
+      : _input_lfhit_tree_name("larmatch"),
+      _min_larmatch_score(0.0),
       _downsample_fraction(1.0),
       _maxdist(10.0),
       _minsize(5),
@@ -67,11 +69,16 @@ namespace reco {
                            std::vector<cluster_t>& output_cluster_v,
                            std::vector<int>& used_hits_v );
 
+    std::string _input_lfhit_tree_name;
     float _min_larmatch_score;
     float _downsample_fraction;
     float _maxdist;
     int   _minsize;
     int   _maxkd;
+
+  public:
+     
+    void set_input_larmatchhit_tree_name( std::string name ) { _input_lfhit_tree_name=name; };
     
   };
 

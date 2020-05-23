@@ -11,6 +11,7 @@
 #include "DataFormat/track.h"
 
 #include "KPCluster.h"
+#include "KPTrackFit.h"
 
 namespace larflow {
 namespace reco {
@@ -20,14 +21,23 @@ namespace reco {
 
     TrackReco2KP()
       : larcv::larcv_base("TrackReco2KP"),
-      _larflow_hit_treename("larmatch")
+      _larflow_hit_treename("larmatch"),
+      _keypoint_treename("keypoint")
       {};
     virtual ~TrackReco2KP() {};
 
     void process( larcv::IOManager& iolcv,
+                  larlite::storage_manager& ioll );
+    
+    void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
                   const std::vector<KPCluster>& kpcluster_v );
 
+    void process( larcv::IOManager& iolcv,
+                  larlite::storage_manager& ioll,
+                  const std::vector< std::vector<float> >& kppos_v,
+                  const std::vector< std::vector<float> >& kpaxis_v );
+                  
     struct KPInfo_t {
       int idx;
       int boundary_type;
@@ -43,8 +53,9 @@ namespace reco {
       int end_idx;
       float dist2axis;
       float dist2pts;
+      float cospca;
       bool operator<( const KPPair_t& rhs ) {
-        if ( dist2axis<rhs.dist2axis )
+        if ( cospca>rhs.cospca )
           return true;
         return false;
       };
@@ -61,10 +72,13 @@ namespace reco {
   protected:
 
     std::string _larflow_hit_treename;
-
+    std::string _keypoint_treename;    
+    KPTrackFit _tracker;
+    
   public:
 
     void set_larflow3dhit_tree_name( std::string name ) { _larflow_hit_treename=name; };
+    void set_keypoint_tree_name( std::string name )     { _keypoint_treename=name; };    
     
 
 
@@ -87,8 +101,12 @@ namespace reco {
                         const std::vector<float>& start,
                         const std::vector<float>& end,
                         larlite::track& track,
-                        larlite::larflowcluster& lfcluster );
+                        larlite::larflowcluster& lfcluster,
+                        std::vector<int>& sp_used_v );
     
+    bool _isTrackGood( const std::vector<int>& track_idx_v,
+                       const std::vector<Point_t>& point_v,
+                       float& tracklen );
     
     
   };
