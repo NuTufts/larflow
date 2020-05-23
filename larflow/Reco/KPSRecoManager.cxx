@@ -89,16 +89,19 @@ namespace reco {
     // output:
     // * track_track2kp_tree: output tracks
     // * larflow3dhit_keypoint_tree: copy of hits passed into algorithm
-    _tracker2kp.set_verbosity( larcv::msg::kDEBUG );
-    _tracker2kp.set_larflow3dhit_tree_name( "trackhit" );
-    _tracker2kp.set_keypoint_tree_name( "keypoint_bigcluster" );
-    _tracker2kp.process( iolcv, ioll );
+    // _tracker2kp.set_verbosity( larcv::msg::kDEBUG );
+    // _tracker2kp.set_larflow3dhit_tree_name( "trackhit" );
+    // _tracker2kp.set_keypoint_tree_name( "keypoint_bigcluster" );
+    // _tracker2kp.process( iolcv, ioll );
 
     // TRACK PCA-CLUSTER: act on remaining clusters
-    _pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
-    _pcacluster.process( iolcv, ioll );
+    // _pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
+    // _pcacluster.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
+    _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );
+    _showerkp.set_verbosity( larcv::msg::kDEBUG );
+    _showerkp.process( iolcv, ioll );
 
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
 

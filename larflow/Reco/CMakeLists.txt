@@ -13,6 +13,7 @@ set( HEADERS cluster_functions.h
   VertexReco.h
   KPCluster.h KeypointReco.h KeypointFilterByClusterSize.h
   TrackReco2KP.h
+  ShowerRecoKeypoint.h
   KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
@@ -28,6 +29,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KPCluster.cxx
   KeypointReco.cxx
   KeypointFilterByClusterSize.cxx
+  ShowerRecoKeypoint.cxx
   TrackReco2KP.cxx
   KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )

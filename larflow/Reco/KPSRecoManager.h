@@ -17,6 +17,7 @@
 #include "SplitHitsBySSNet.h"
 #include "DBScanLArMatchHits.h"
 #include "TrackReco2KP.h"
+#include "ShowerRecoKeypoint.h"
 #include "PCACluster.h"
 
 namespace larflow {
@@ -42,6 +43,7 @@ namespace reco {
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;
     PCACluster         _pcacluster;
+    ShowerRecoKeypoint _showerkp;
 
     // Algorithms
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

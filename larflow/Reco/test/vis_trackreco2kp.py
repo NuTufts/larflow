@@ -46,102 +46,129 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
     io.go_to(entry)
-    ev_tracks  = io.get_data( larlite.data.kTrack, "track2kp" )
-    ev_cluster = io.get_data( larlite.data.kLArFlowCluster, "track2kp" )
-    traces_v = []        
 
-    for itrack in range(ev_tracks.size()):
-        track = ev_tracks.at(itrack)
-        color = (np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256))
-        track_trace = lardly.data.visualize_larlite_track( track, track_id=itrack, color=color )
+    traces_v = []
+    
+    # TRACK FROM TrackReco2KP
+    if False:
+        ev_tracks  = io.get_data( larlite.data.kTrack, "track2kp" )
+        ev_cluster = io.get_data( larlite.data.kLArFlowCluster, "track2kp" )
 
-        track_points = lardly.data.visualize_larlite_larflowhits( ev_cluster.at(itrack), name="track%d"%(itrack) )
-        
-        traces_v.append(track_trace)
-        traces_v.append(track_points)
+        for itrack in range(ev_tracks.size()):
+            track = ev_tracks.at(itrack)
+            color = (np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256))
+            track_trace = lardly.data.visualize_larlite_track( track, track_id=itrack, color=color )
+            track_points = lardly.data.visualize_larlite_larflowhits( ev_cluster.at(itrack), name="track%d"%(itrack) )
+            traces_v.append(track_trace)
+            traces_v.append(track_points)
+
+        # unused points
+        ev_unused = io.get_data( larlite.data.kLArFlow3DHit, "track2kpunused" )
+        unused_trace = lardly.data.visualize_larlite_larflowhits( ev_unused, name="unused" )
+        unused_trace["marker"]["color"] = "rgb(125,125,125)"
+        unused_trace["marker"]["opacity"] = 0.1    
+        traces_v.append(unused_trace)
+            
 
     # keypoints
-    ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_bigcluster" )
-    for ikp in range(ev_kp.size()):
-        kptrace = {
-            "type":"scatter3d",
-	    "x": [ev_kp[ikp][0]],
-            "y": [ev_kp[ikp][1]],
-            "z": [ev_kp[ikp][2]],
-            "mode":"markers",
-	    "name":"KP%d"%(ikp),
-            "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
-        }
-        traces_v.append(kptrace)
+    if True:
+        ev_kp = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_bigcluster" )
+        for ikp in range(ev_kp.size()):
+            kptrace = {
+                "type":"scatter3d",
+	        "x": [ev_kp[ikp][0]],
+                "y": [ev_kp[ikp][1]],
+                "z": [ev_kp[ikp][2]],
+                "mode":"markers",
+	        "name":"KP%d"%(ikp),
+                "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
+            }
+            traces_v.append(kptrace)
 
-    ev_kp2 = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_smallcluster" )
-    for ikp2 in range(ev_kp2.size()):
-        kptrace = {
-            "type":"scatter3d",
-	    "x": [ev_kp2[ikp2][0]],
-            "y": [ev_kp2[ikp2][1]],
-            "z": [ev_kp2[ikp2][2]],
-            "mode":"markers",
-	    "name":"KP%d"%(ikp2),
-            "marker":{"color":"rgb(0,0,255)","size":5,"opacity":0.5},
-        }
-        traces_v.append(kptrace)
+        ev_kp2 = io.get_data( larlite.data.kLArFlow3DHit, "keypoint_smallcluster" )
+        for ikp2 in range(ev_kp2.size()):
+            kptrace = {
+                "type":"scatter3d",
+	        "x": [ev_kp2[ikp2][0]],
+                "y": [ev_kp2[ikp2][1]],
+                "z": [ev_kp2[ikp2][2]],
+                "mode":"markers",
+	        "name":"KP%d"%(ikp2),
+                "marker":{"color":"rgb(0,0,255)","size":5,"opacity":0.5},
+            }
+            traces_v.append(kptrace)
         
-    # unused points
-    ev_unused = io.get_data( larlite.data.kLArFlow3DHit, "track2kpunused" )
-    unused_trace = lardly.data.visualize_larlite_larflowhits( ev_unused, name="unused" )
-    unused_trace["marker"]["color"] = "rgb(125,125,125)"
-    unused_trace["marker"]["opacity"] = 0.1    
-    traces_v.append(unused_trace)
 
-    # PCA CLUSTER OUTPUT
-    treename="pcacluster"
-    ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
-    evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
-    evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
-    nclusters = evclusters.size()
+    # SHOWER-KP RECO
+    if True:
+        ev_showerkp     = io.get_data( larlite.data.kLArFlowCluster, "showerkp" )
+        ev_showerkp_pca = io.get_data( larlite.data.kPCAxis, "showerkp" )
+        print("Number of shower clusters: ",ev_showerkp.size())
+        for ishr in range(ev_showerkp.size()):
+            showercluster = ev_showerkp.at(ishr)
+            showertrace = lardly.data.visualize_larlite_larflowhits( showercluster,"shower[%d]"%(ishr) )
+            r3 = np.random.randint(255,size=3)
+            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
+            showertrace["marker"]["color"] = colors
+            showertrace["marker"]["opacity"] = 0.2
+            traces_v.append( showertrace )        
+        
+        shower_pcatrace_v = lardly.data.visualize_event_pcaxis( ev_showerkp_pca )
+        for tr in shower_pcatrace_v:
+            tr["line"]["color"] = "rgb(0,0,0)"
+            tr["line"]["width"] = 3
+            tr["line"]["opacity"] = 1.0            
+        traces_v += shower_pcatrace_v
+
+    # TRACK PCA CLUSTER OUTPUT
+    if False:
+        treename="pcacluster"
+        ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
+        evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
+        evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
+        nclusters = evclusters.size()
     
-    print("[tree %s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
+        print("[tree %s] num clusters=%d; num pcaxis=%d"%(treename,nclusters,evpcaxis.size()))
 
-    for icluster in xrange(nclusters):
-
-        cluster = evclusters.at(icluster)
-        nhits = cluster.size()
-
-        pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
-        r3 = np.random.randint(255,size=3)
-        colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
-                
-        clusterplot = {
-            "type":"scatter3d",
-            "x":pts[:,0],
-            "y":pts[:,1],
-            "z":pts[:,2],
-            "mode":"markers",
-            "name":"%s[%d]"%(treename,icluster),
-            "marker":{"color":colors,"size":1,"colorscale":colorscale}
-        }
-        traces_v.append( clusterplot )
-
-        # PCA-axis
-        llpca = evpcaxis.at( icluster )
-
-        pca_pts = np.zeros( (3,3) )
-        for i in range(3):
-            pca_pts[0,i] = llpca.getEigenVectors()[3][i]
-            pca_pts[1,i] = llpca.getAvePosition()[i]
-            pca_pts[2,i] = llpca.getEigenVectors()[4][i]
+        for icluster in xrange(nclusters):
             
-        pca_plot = {
-            "type":"scatter3d",
-            "x":pca_pts[:,0],
+            cluster = evclusters.at(icluster)
+            nhits = cluster.size()
+            
+            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
+            r3 = np.random.randint(255,size=3)
+            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
+                
+            clusterplot = {
+                "type":"scatter3d",
+                "x":pts[:,0],
+                "y":pts[:,1],
+                "z":pts[:,2],
+                "mode":"markers",
+                "name":"%s[%d]"%(treename,icluster),
+                "marker":{"color":colors,"size":1,"colorscale":colorscale}
+            }
+            traces_v.append( clusterplot )
+
+            # PCA-axis
+            llpca = evpcaxis.at( icluster )
+
+            pca_pts = np.zeros( (3,3) )
+            for i in range(3):
+                pca_pts[0,i] = llpca.getEigenVectors()[3][i]
+                pca_pts[1,i] = llpca.getAvePosition()[i]
+                pca_pts[2,i] = llpca.getEigenVectors()[4][i]
+            
+            pca_plot = {
+                "type":"scatter3d",
+                "x":pca_pts[:,0],
                 "y":pca_pts[:,1],
-            "z":pca_pts[:,2],
-            "mode":"lines",
-            "name":"%s-pca[%d]"%(treename,icluster),
-            "line":{"color":"rgb(255,255,255)","size":2}
-        }
-        traces_v.append( pca_plot )
+                "z":pca_pts[:,2],
+                "mode":"lines",
+                "name":"%s-pca[%d]"%(treename,icluster),
+                "line":{"color":"rgb(255,255,255)","size":2}
+            }
+            traces_v.append( pca_plot )
     
 
     # add detector outline
