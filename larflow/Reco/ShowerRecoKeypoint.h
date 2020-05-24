@@ -27,13 +27,37 @@ namespace reco {
 
   protected:
 
+    struct ShowerTrunk_t {
+      int idx_keypoint;
+      const larlite::larflow3dhit* keypoint;      
+      std::vector< float > pcaxis_v;
+      std::vector< float > center_v;      
+      float pca_eigenval_ratio;
+      int npts;
+      float gapdist;
+      float impact_par;
+      ShowerTrunk_t() {
+        idx_keypoint = -1;
+        keypoint = nullptr;        
+        pcaxis_v.resize(3,0);
+        center_v.resize(3,0);
+        pca_eigenval_ratio = -1;
+        npts = -1;
+        gapdist = -1;
+        impact_par = -1;
+      };
+    };
+    
+    struct ShowerCandidate_t {
+      int cluster_idx;
+      const cluster_t* cluster;
+      std::vector< ShowerTrunk_t > trunk_candidates_v;
+    };
+
+    std::vector< ShowerCandidate_t > _shower_cand_v;
     void _reconstructClusterTrunks( const std::vector<const cluster_t*>&    showercluster_v,
                                     const std::vector<const larlite::larflow3dhit*>& keypoint_v );
     
-    
-    /* std::vector<cluster_t> findTrunkCandidates( const cluster_t& showerclust, */
-    /*                                             const std::vector<larcv::Image2D>& adc_v ); */
-
 
   protected:
     
