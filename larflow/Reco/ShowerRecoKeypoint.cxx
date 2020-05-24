@@ -172,6 +172,8 @@ namespace reco {
    * use log likelihood function to pick best key-point trunk
    * output is shower cluster, keypoint, and trunk cluster
    * 
+   * note: might want to move keypoint based on pca end near keypoint.
+   * 
    */
   void ShowerRecoKeypoint::_reconstructClusterTrunks( const std::vector<const cluster_t*>& showercluster_v,
                                                       const std::vector<const larlite::larflow3dhit*>& keypoint_v )
@@ -264,6 +266,12 @@ namespace reco {
           float impact = pointLineDistance( center_v, e_v, kp );
           impact_par_v[irad] = impact;
 
+          // // closest cluster end
+          // int iend = 0;
+          // float enddist[2][3] = { 0 };
+          // for (int v=0; v<3; v++) {
+          //   enddist[0][v] = ( kp[v]-
+
           // LARCV_DEBUG() << "  radius["<< radii[irad] << " cm]: "
           //               << " pca ratio=" << pca_eigenval_ratio[irad]
           //               << " pca-0=(" << pcaxis_v[irad][0] << "," << pcaxis_v[irad][1] << "," << pcaxis_v[irad][2] << ")"
@@ -288,6 +296,19 @@ namespace reco {
           trunk.npts = (int)trunk_vv[best_trunk].size();
           trunk.gapdist = mindist;
           trunk.impact_par = impact_par_v[best_trunk];
+
+          // we make sure the pca-axis is pointing away from keypoint
+          // and towards the centroid of the trunk cluster
+          float coscenter = 0.;
+          for (size_t v=0; v<3; v++) {
+            coscenter += trunk.pcaxis_v[v]*( trunk.center_v[v]-trunk.keypoint->at(v) );
+          }
+          if ( coscenter<0 ) {
+            // flip the axis dir
+            for (size_t v=0; v<3; v++)              
+              trunk.pcaxis_v[v] *= -1.0;
+          }
+          
           shower_cand.trunk_candidates_v.emplace_back( std::move(trunk) );
 
           LARCV_DEBUG() << "define shower[" << ishower << "] keypoint[" << ikeypoint << "] trunk" << std::endl;
@@ -308,6 +329,15 @@ namespace reco {
       
     }//end of shower cluster loop
     
+  }
+
+  /**
+   * for each shower cluster with trunk candidate, 
+   * we absorb points clusters that are within some radius of the trunk axis
+   *
+   */
+  void ShowerRecoKeypoint::_buildShowers()
+  {
   }
   
 }

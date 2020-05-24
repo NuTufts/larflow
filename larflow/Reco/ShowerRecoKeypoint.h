@@ -56,9 +56,9 @@ namespace reco {
 
     std::vector< ShowerCandidate_t > _shower_cand_v;
     void _reconstructClusterTrunks( const std::vector<const cluster_t*>&    showercluster_v,
-                                    const std::vector<const larlite::larflow3dhit*>& keypoint_v );
+                                    const std::vector<const larlite::larflow3dhit*>& keypoint_v );    
+    void _buildShowers();
     
-
   protected:
     
     // PARAMETERS
