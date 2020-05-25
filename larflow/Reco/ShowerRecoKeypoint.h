@@ -2,6 +2,7 @@
 #define __LARFLOW_SHOWER_RECO_KEYPOINT_H__
 
 #include <vector>
+#include <set>
 
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -54,10 +55,26 @@ namespace reco {
       std::vector< ShowerTrunk_t > trunk_candidates_v;
     };
 
+    struct Shower_t  {
+      ShowerTrunk_t trunk; //< trunk info
+      std::vector< std::vector<float> > points_v; //< 3d points assigned to shower
+      std::vector< int > hitidx_v; // hit idx of 3d hits corresponding to input larflow3dhit vector
+    };
+
     std::vector< ShowerCandidate_t > _shower_cand_v;
+    std::vector< Shower_t >          _recod_shower_v;
     void _reconstructClusterTrunks( const std::vector<const cluster_t*>&    showercluster_v,
                                     const std::vector<const larlite::larflow3dhit*>& keypoint_v );    
-    void _buildShowers();
+    void _buildShowers( const std::vector<const cluster_t*>&  showerhit_cluster_v );
+    Shower_t _buildShowerCandidate( const ShowerCandidate_t& shower_cand,
+                                    const std::vector<const cluster_t*>& showerhit_cluster_v );
+    std::set<int> _buildoutShowerTrunkCandidate( const ShowerTrunk_t& trunk_cand,
+                                                 const std::vector<const cluster_t*>& showerhit_cluster_v );
+
+    Shower_t _fillShowerObject( const ShowerCandidate_t& shower_cand,
+                                const std::set<int>& cluster_idx_set,
+                                const int trunk_idx,
+                                const std::vector< const cluster_t* >& showerhit_cluster_v );    
     
   protected:
     
