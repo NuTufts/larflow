@@ -21,6 +21,15 @@ namespace reco {
     larlite::event_larflow3dhit* evout_track_hit
       = (larlite::event_larflow3dhit*)io_ll.get_data(larlite::data::kLArFlow3DHit, "trackhit" );
 
+
+    // filter hits by score
+    std::vector< const larlite::larflow3dhit* > goodhit_v;
+    for ( auto const& hit : *evout_track_hit ) {
+      if ( hit.track_score>0.7 ) {
+        goodhit_v.push_back( &hit );
+      }
+    }
+
     // make output containers
 
     // accept container
@@ -46,8 +55,10 @@ namespace reco {
       int keypoint_idx = -1; // mark which larflow hit is the same as the keypoint in question
       float mindist = 1e9;
       int idx = 0;
-      for ( auto const& hit : *evout_track_hit ) {
+      for ( auto const& phit : goodhit_v ) {
 
+        auto const& hit = *phit;
+        
         float dist=0;
         for (int v=0; v<3; v++) {
           dist += ( hit[v]-keypoint[v] )*( hit[v]-keypoint[v] );

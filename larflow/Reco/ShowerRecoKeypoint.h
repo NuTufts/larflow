@@ -75,6 +75,10 @@ namespace reco {
                                 const std::set<int>& cluster_idx_set,
                                 const int trunk_idx,
                                 const std::vector< const cluster_t* >& showerhit_cluster_v );    
+
+    int _chooseBestTrunk( const ShowerCandidate_t& shower_cand,
+                          const std::set<int>& cluster_idx_v,
+                          const std::vector< const cluster_t* >& showerhit_cluster_v );
     
   protected:
     

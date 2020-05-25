@@ -30,23 +30,35 @@ namespace reco {
     //      - shower envelope expands from start
     //      - trunk pca and assembly pca are aligned
     // (3) choose the best shower hypothesis that has been formed
+
+    // clear member containers
+    _shower_cand_v.clear();
+    _recod_shower_v.clear();
     
     // get shower larflow hits (use SplitHitsBySSNet)
     larlite::event_larflow3dhit* shower_lfhit_v
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _ssnet_lfhit_tree_name );
 
+    std::clock_t begin_process = std::clock();
+    LARCV_INFO() << "start" << std::endl;
+    LARCV_INFO() << "num larflow hits from [" << _ssnet_lfhit_tree_name << "]: " << shower_lfhit_v->size() << std::endl;
+    
+    // filter out shower pixels by larmatch score
+    larlite::event_larflow3dhit shower_goodhit_v;
+    for (auto const& hit : *shower_lfhit_v ) {
+      if ( hit.track_score>0.7 ) {
+        shower_goodhit_v.push_back(hit);
+      }
+    }
+    LARCV_INFO() << "number of above-threshold hits: " << shower_goodhit_v.size() << " of " << shower_lfhit_v->size() << std::endl;
+    
     // make shower clusters
     float maxdist = 2.0;
     int minsize = 20;
     int maxkd = 10;
     std::vector<cluster_t> cluster_v;
-    cluster_larflow3dhits( *shower_lfhit_v, cluster_v, maxdist, minsize, maxkd );
-    
-
-    std::clock_t begin_process = std::clock();
-    LARCV_INFO() << "start" << std::endl;
-    LARCV_INFO() << "num larflow hits from [" << _ssnet_lfhit_tree_name << "]: " << shower_lfhit_v->size() << std::endl;
-    LARCV_INFO() << "num shower clusters:  " << cluster_v.size() << std::endl;    
+    cluster_larflow3dhits( shower_goodhit_v, cluster_v, maxdist, minsize, maxkd );
+    LARCV_INFO() << "num shower clusters:  " << cluster_v.size() << std::endl;        
 
     // now for each shower cluster, we find some trunk candidates.
     // can have any number of such candidates per shower cluster
@@ -104,6 +116,7 @@ namespace reco {
     larlite::event_pcaxis* evout_shower_pca_v
       = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showerkp" );
 
+    std::vector<int> used_v( shower_goodhit_v.size(), 0 );
     for ( size_t ireco=0; ireco<_recod_shower_v.size(); ireco++ ) {
 
       auto const& recoshower = _recod_shower_v[ireco];
@@ -111,7 +124,8 @@ namespace reco {
       // make larflow3dhit cluster
       larlite::larflowcluster lfcluster;      
       for ( auto const& idx : recoshower.hitidx_v ) {
-        lfcluster.push_back( shower_lfhit_v->at(idx) );
+        lfcluster.push_back( shower_goodhit_v.at(idx) );
+        used_v[idx]++;
       }
       evout_shower_cluster_v->emplace_back( std::move(lfcluster) );
             
@@ -146,6 +160,17 @@ namespace reco {
       evout_shower_pca_v->emplace_back( std::move(pca) );                             
     }//end of reco'd shower loop
 
+    // save unused shower points
+    larlite::event_larflow3dhit* evout_unused_hit_v
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkpunused" );
+
+    for (size_t idx=0; idx<shower_goodhit_v.size(); idx++ ) {
+      if ( used_v[idx]==0 )
+        evout_unused_hit_v->push_back( shower_goodhit_v.at(idx) );
+    }
+
+    LARCV_INFO() << "Unused hits: " << evout_unused_hit_v->size() << std::endl;
+    
   }
 
   /**
@@ -390,9 +415,14 @@ namespace reco {
 
     // return least squares value for each shower over the entirety of the cluster set
     // lowest value is considered the "best" cluster.
+    int best_trunk_idx = _chooseBestTrunk( shower_cand,
+                                           union_cluster_idx,
+                                           showerhit_cluster_v );
     
     LARCV_DEBUG() << "returns best-fit trunk candidate" << std::endl;    
-    return Shower_t(); // empty for now
+    return _fillShowerObject( shower_cand, trunk_cluster_idxset_v[best_trunk_idx], best_trunk_idx,
+                              showerhit_cluster_v );
+
   }
 
   /**
@@ -469,7 +499,7 @@ namespace reco {
 
       // nothing close
       if ( !testcluster ) {
-        LARCV_DEBUG() << "No bounding box points are close" << std::endl;
+        //LARCV_DEBUG() << "No bounding box points are close" << std::endl;
         continue;
       }
 
@@ -549,6 +579,52 @@ namespace reco {
       
     }
     return recoshower;
+  }
+
+  int ShowerRecoKeypoint::_chooseBestTrunk( const ShowerCandidate_t& shower_cand,
+                                            const std::set<int>& cluster_idx_v,
+                                            const std::vector< const cluster_t* >& showerhit_cluster_v )
+  {
+
+    float min_least_sq = -1;
+    int best_trunk_idx = -1;
+
+    for ( int trunk_idx=0; trunk_idx<(int)shower_cand.trunk_candidates_v.size(); trunk_idx++ ) {
+      
+      auto const& trunk_cand = shower_cand.trunk_candidates_v[trunk_idx];
+      
+      float ls = 0.;
+
+      std::vector<float> alongpca(3,0);
+      for (int v=0; v<3; v++)
+        alongpca[v] = trunk_cand.center_v[v] + 10.0*trunk_cand.pcaxis_v[v];
+      
+
+      int npoints = 0;
+      for ( auto const& idx : cluster_idx_v ) {
+        for (auto const& hit : showerhit_cluster_v[idx]->points_v ) {
+          float dist = pointLineDistance( trunk_cand.center_v, alongpca, hit );
+          ls += dist*dist;
+          npoints++;
+        }
+      }
+      if ( npoints>0 )
+        ls /= float(npoints);
+
+      LARCV_DEBUG() << "trunk cand[" << trunk_idx << " of " << shower_cand.trunk_candidates_v.size() << "] "
+                    << " least-sq/npoints=" << ls << " for npoints=" << npoints
+                    << std::endl;
+      
+      if ( min_least_sq<0 || min_least_sq>ls ) {
+        min_least_sq = ls;
+        best_trunk_idx = trunk_idx;
+      }
+      
+    }
+
+    LARCV_DEBUG() << "Choosing trunk index=" << best_trunk_idx << std::endl;
+    
+    return best_trunk_idx;
   }
   
 }
