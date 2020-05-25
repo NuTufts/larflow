@@ -127,7 +127,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         traces_v.append( unusedtrace )
 
     # TRACK PCA CLUSTER OUTPUT
-    if False:
+    if True:
         treename="pcacluster"
         ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
         evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )

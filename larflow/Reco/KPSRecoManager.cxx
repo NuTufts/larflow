@@ -93,10 +93,11 @@ namespace reco {
     // _tracker2kp.set_larflow3dhit_tree_name( "trackhit" );
     // _tracker2kp.set_keypoint_tree_name( "keypoint_bigcluster" );
     // _tracker2kp.process( iolcv, ioll );
-
+    
     // TRACK PCA-CLUSTER: act on remaining clusters
-    // _pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
-    // _pcacluster.process( iolcv, ioll );
+    //_pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
+    _pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
+    _pcacluster.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
     _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );
