@@ -30,9 +30,10 @@ namespace reco {
 
     struct ShowerTrunk_t {
       int idx_keypoint;
-      const larlite::larflow3dhit* keypoint;      
+      const larlite::larflow3dhit* keypoint;
       std::vector< float > pcaxis_v;
-      std::vector< float > center_v;      
+      std::vector< float > center_v;
+      std::vector< float > start_v;      
       float pca_eigenval_ratio;
       int npts;
       float gapdist;
@@ -42,6 +43,7 @@ namespace reco {
         keypoint = nullptr;        
         pcaxis_v.resize(3,0);
         center_v.resize(3,0);
+        start_v.resize(3,0);
         pca_eigenval_ratio = -1;
         npts = -1;
         gapdist = -1;
@@ -57,6 +59,7 @@ namespace reco {
 
     struct Shower_t  {
       ShowerTrunk_t trunk; //< trunk info
+      std::set<int> cluster_idx; //< set of shower cluster idx
       std::vector< std::vector<float> > points_v; //< 3d points assigned to shower
       std::vector< int > hitidx_v; // hit idx of 3d hits corresponding to input larflow3dhit vector
     };
@@ -76,9 +79,18 @@ namespace reco {
                                 const int trunk_idx,
                                 const std::vector< const cluster_t* >& showerhit_cluster_v );    
 
+    void _fillShowerObject( Shower_t& shower,
+                            const std::vector< const cluster_t* >& showerhit_cluster_v );
+
     int _chooseBestTrunk( const ShowerCandidate_t& shower_cand,
                           const std::set<int>& cluster_idx_v,
                           const std::vector< const cluster_t* >& showerhit_cluster_v );
+
+    int _chooseBestShowerForCluster( const cluster_t& cluster,
+                                     const std::set<int>& shower_idx_v,
+                                     const std::vector< const cluster_t* >& showerhit_cluster_v );
+
+    
     
   protected:
     

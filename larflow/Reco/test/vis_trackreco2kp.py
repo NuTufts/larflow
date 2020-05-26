@@ -102,8 +102,9 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     # SHOWER-KP RECO
     if True:
         ev_showerkp        = io.get_data( larlite.data.kLArFlowCluster, "showerkp" )
-        ev_showerkp_pca    = io.get_data( larlite.data.kPCAxis, "showerkp" )        
+        ev_showerkp_pca    = io.get_data( larlite.data.kPCAxis, "showerkp" )
         ev_showerkp_unused = io.get_data( larlite.data.kLArFlow3DHit, "showerkpunused" )
+        ev_shower_goodhit_pca  = io.get_data( larlite.data.kPCAxis, "showergoodhit" )        
         print("Number of shower clusters: ",ev_showerkp.size())
         for ishr in range(ev_showerkp.size()):
             showercluster = ev_showerkp.at(ishr)
@@ -121,13 +122,20 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             tr["line"]["opacity"] = 1.0            
         traces_v += shower_pcatrace_v
 
+        goodhit_pcatrace_v = lardly.data.visualize_event_pcaxis( ev_shower_goodhit_pca )
+        for tr in goodhit_pcatrace_v:
+            tr["line"]["color"] = "rgb(255,255,255)"
+            tr["line"]["width"] = 3
+            tr["line"]["opacity"] = 1.0            
+        traces_v += goodhit_pcatrace_v
+        
         unusedtrace = lardly.data.visualize_larlite_larflowhits( ev_showerkp_unused,"notused" )
         unusedtrace["marker"]["color"] = "rgb(125,125,125)"
         unusedtrace["marker"]["opacity"] = 0.1
         traces_v.append( unusedtrace )
 
     # TRACK PCA CLUSTER OUTPUT
-    if True:
+    if False:
         treename="pcacluster"
         ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
         evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
