@@ -152,7 +152,7 @@ namespace reco {
       std::vector<double> endpt(3,0);
       for (int v=0; v<3; v++ ) {
         startpt[v] = recoshower.trunk.start_v[v];
-        endpt[v] = startpt[v] + 100.0*axis_v[v];
+        endpt[v] = startpt[v] + 50.0*axis_v[v];
       }
       e_v.push_back( startpt );
       e_v.push_back( endpt );
@@ -203,7 +203,7 @@ namespace reco {
                                                       const std::vector<const larlite::larflow3dhit*>& keypoint_v )
   {
 
-    const float radii[3] = { 5, 3, 1 };
+    const float radii[3] = { 10, 5, 3 };
     
     for ( size_t ishower=0; ishower<showercluster_v.size(); ishower++ ) {
 
@@ -232,7 +232,6 @@ namespace reco {
 
         if ( !inbbox )
           continue;
-
 
         std::vector< cluster_t > trunk_v(3);
         float mindist = 1e9;
@@ -266,10 +265,15 @@ namespace reco {
         LARCV_DEBUG() << "  keypoint pos: (" << keypoint[0] << "," << keypoint[1] << "," << keypoint[2] << ")" << std::endl;
         LARCV_DEBUG() << "  gap-dist: " << mindist << " cm" << std::endl;
 
-        int best_trunk = -1;
-        float best_trunk_impactpar = 1e9;
+        if ( mindist>1.0 ) continue;
 
-        std::vector<int> trunk_best_pca_end_v(3,-1);        
+        int best_trunk = -1;
+        float best_metric = -1;
+        float best_trunk_impactpar = 1e9;
+        float best_trunk_eratio    = 1e9;        
+
+        std::vector<int> trunk_best_pca_end_v(3,-1);
+        std::vector<int> trunk_best_shower_end_v(3,-1);        
         
         for (size_t irad=0; irad<3; irad++) {
 
@@ -288,20 +292,51 @@ namespace reco {
           pca_center_v[irad] = center_v;
           pca_eigenval_ratio[irad] = eratio;
 
-          // refined keypoint
-          float min_end_dist = 1e9;
+          // find which trunk end is furthest from cluster center
+          float max_end_dist = 0;
           int best_end = 0;
           for (int iend=0; iend<2; iend++ ) {
             float distend = 0.;
             for (int v=0; v<3; v++ ){
-              distend += ( cluster.pca_ends_v[iend][v]-keypoint[v] )*(  cluster.pca_ends_v[iend][v]-keypoint[v] );
+              distend += ( cluster.pca_ends_v[iend][v]-pshower->pca_center[v] )*(  cluster.pca_ends_v[iend][v]-pshower->pca_center[v] );
             }
-            if ( distend<min_end_dist ) {
+            if ( distend>max_end_dist ) {
               best_end = iend;
+              max_end_dist = distend;
             }
           }
           trunk_best_pca_end_v[irad] = best_end;
-          
+
+          // we check if the trunk-pca and the cluster pca vary a lot
+          // we default to the shower pca if they do, treating the trunk pca as a refinement
+          // we find this is necessary as the KPS network's larmatch predictions are pretty noisy right now
+          // maybe if we get this to larmatch v1 performance (which is good), then we can go
+          // back to using the trunk pca.
+          // this is just a law of large numbers effect i think, i.e.
+          //  since the shower cluster is more points, there are more right 3d point predictions
+          //  still, shower clusters can have very weird shapes ...
+          float cluster_trunk_cos = 0.;
+          for (int v=0; v<3; v++) {
+            cluster_trunk_cos += pcaxis_v[irad][v]*pshower->pca_axis_v[0][v];
+          }
+          cluster_trunk_cos = fabs(cluster_trunk_cos);
+
+          // find closest shower cluster end
+          float min_shower_end = 1e9;
+          int best_shower_end = 0;
+          for (int iend=0; iend<2; iend++) {
+            float distend=0;
+            for (int v=0; v<3; v++) {
+              distend += ( pshower->pca_ends_v[iend][v]-keypoint[v] )*( pshower->pca_ends_v[iend][v]-keypoint[v] );
+            }
+            if (distend<min_shower_end ) {
+              min_shower_end = distend;
+              best_shower_end = iend;
+            }
+          }
+          trunk_best_shower_end_v[irad] = best_shower_end;
+
+          // distance from trunk axis to keypoint
           std::vector<float> kp = { keypoint[0], keypoint[1], keypoint[2] };
           std::vector<float> pt2(3,0);
           for (int v=0; v<3; v++) pt2[v] = center_v[v] + e_v[v];
@@ -318,12 +353,15 @@ namespace reco {
                         << " pca ratio=" << pca_eigenval_ratio[irad]
                         << " pca-0=(" << pcaxis_v[irad][0] << "," << pcaxis_v[irad][1] << "," << pcaxis_v[irad][2] << ")"
                         << " impactpar=" << impact
+                        << " |trunk.shower|=" << cluster_trunk_cos
                         << std::endl;
 
           // [note] e-ratio an important parameter that needs configuration
-          if ( eratio<0.3 && impact<best_trunk_impactpar ) {
+          if ( eratio<0.3 && impact<5.0 && ( cluster_trunk_cos>best_metric || best_trunk==-1 ) ) {
             best_trunk = irad;
             best_trunk_impactpar = impact;
+            best_trunk_eratio = eratio;
+            best_metric = cluster_trunk_cos;
           }
           
         }// loop over radius size, calculating radius
@@ -335,7 +373,8 @@ namespace reco {
           trunk.keypoint = &keypoint;
           trunk.pcaxis_v = pcaxis_v[best_trunk];
           trunk.center_v = pca_center_v[best_trunk];
-          trunk.start_v  = trunk_v[best_trunk].pca_ends_v[ trunk_best_pca_end_v[best_trunk] ];          
+          trunk.start_v  = trunk_v[best_trunk].pca_ends_v[ trunk_best_pca_end_v[best_trunk] ];
+          //trunk.start_v  = pshower->pca_ends_v[ trunk_best_shower_end_v[best_trunk] ];
           trunk.pca_eigenval_ratio = pca_eigenval_ratio[best_trunk];
           trunk.npts = (int)trunk_v[best_trunk].points_v.size();
           trunk.gapdist = mindist;
@@ -345,7 +384,7 @@ namespace reco {
           // we use the distance of the trunk center to the whole shower cluster center
           float coscenter = 0.;
           for (size_t v=0; v<3; v++) {
-            coscenter += trunk.pcaxis_v[v]*( pshower->pca_center[v]-trunk.center_v[v] );
+            coscenter += trunk.pcaxis_v[v]*( pshower->pca_center[v]-trunk.start_v[v] );
           }
           if ( coscenter<0 ) {
             // flip the axis dir
@@ -353,13 +392,13 @@ namespace reco {
               trunk.pcaxis_v[v] *= -1.0;
           }
           
-          shower_cand.trunk_candidates_v.emplace_back( std::move(trunk) );
-
           LARCV_DEBUG() << "define shower[" << ishower << "] keypoint[" << ikeypoint << "] trunk" << std::endl;
           LARCV_DEBUG() << "  gap-dist: " << trunk.gapdist << " cm" << std::endl;
           LARCV_DEBUG() << "  eigenval ratio: " << trunk.pca_eigenval_ratio << std::endl;
           LARCV_DEBUG() << "  npts: " << trunk.npts << std::endl;
           LARCV_DEBUG() << "  impact-par: " << trunk.impact_par << " cm" << std::endl;
+
+          shower_cand.trunk_candidates_v.emplace_back( std::move(trunk) );          
 
         }
         
@@ -461,11 +500,14 @@ namespace reco {
 
     std::vector< std::set<int> > trunk_cluster_idxset_v;
 
-    LARCV_DEBUG() << "Begin" << std::endl;
+    LARCV_DEBUG() << "Build shower candidate. showercluster[" << shower_cand.cluster_idx << "]" << std::endl;
     
     // for each trunk candidate in the shower candidate, we let it absorb hits
     for (auto const& trunk : shower_cand.trunk_candidates_v ) {
-      std::set<int> clusters = _buildoutShowerTrunkCandidate( trunk, showerhit_cluster_v );      
+      //std::set<int> clusters = _buildoutShowerTrunkCandidate( trunk, showerhit_cluster_v );
+      // just
+      std::set<int> clusters;
+      clusters.insert( shower_cand.cluster_idx );
       if ( clusters.size()>0 )
         trunk_cluster_idxset_v.push_back(clusters);
     }
@@ -482,7 +524,7 @@ namespace reco {
 
       Shower_t shower;
       shower.trunk = shower_cand.trunk_candidates_v[0];
-      shower.cluster_idx = trunk_cluster_idxset_v[0];
+      shower.cluster_idx = _buildoutShowerTrunkCandidate( shower.trunk, showerhit_cluster_v ); 
       return shower;
     }
 
@@ -493,7 +535,8 @@ namespace reco {
         union_cluster_idx.insert(idx);
       }
     }
-    LARCV_DEBUG() << "union cluster list size=" << union_cluster_idx.size() << std::endl;
+    LARCV_DEBUG() << "showercluster[" << shower_cand.cluster_idx << "]"
+                  << "union cluster list size=" << union_cluster_idx.size() << std::endl;
 
     // return least squares value for each shower over the entirety of the cluster set
     // lowest value is considered the "best" cluster.
@@ -504,7 +547,9 @@ namespace reco {
     LARCV_DEBUG() << "returns best-fit trunk candidate" << std::endl;
     Shower_t shower;
     shower.trunk = shower_cand.trunk_candidates_v[best_trunk_idx];
-    shower.cluster_idx = trunk_cluster_idxset_v[best_trunk_idx];
+
+    // build out cluster after modifying direction to use pca-axis of cluster itself
+    shower.cluster_idx = _buildoutShowerTrunkCandidate( shower.trunk, showerhit_cluster_v ); 
     
     return shower;
 
@@ -564,7 +609,7 @@ namespace reco {
         proj /= pcalen;
 
         
-        if ( dist<1.0*ar_molier_rad_cm && fabs(proj)<100.0 ) {
+        if ( dist<1.0*ar_molier_rad_cm && fabs(proj)<50.0 ) {
           testcluster = true;
           break;
         }
@@ -605,7 +650,7 @@ namespace reco {
           proj += ( hit[v]-trunk_cand.keypoint->at(v) )*trunk_cand.pcaxis_v[v];
         proj /= pcalen;
         
-        if ( (proj>0.0 && dist<1.0*ar_molier_rad_cm && proj<100.0 )
+        if ( (proj>0.0 && dist<1.0*ar_molier_rad_cm && proj<50.0 )
              || (proj<=0.0 && proj>-3.0 && dist<3.0 ) ) {
           npts_inside++;
         }
@@ -687,43 +732,61 @@ namespace reco {
                                             const std::vector< const cluster_t* >& showerhit_cluster_v )
   {
 
-    float min_least_sq = -1;
+    float max_ll = -1e9;
     int best_trunk_idx = -1;
 
     for ( int trunk_idx=0; trunk_idx<(int)shower_cand.trunk_candidates_v.size(); trunk_idx++ ) {
       
       auto const& trunk_cand = shower_cand.trunk_candidates_v[trunk_idx];
-      
-      float ls = 0.;
+     
 
       std::vector<float> alongpca(3,0);
       for (int v=0; v<3; v++)
         alongpca[v] = trunk_cand.center_v[v] + 10.0*trunk_cand.pcaxis_v[v];
       
-
+      // we pick by maximizing log-likelihood
+      // we build a likelihood via
+      // P(s,r) = exp(-r/r_M)*exp(-s/X_0)
+      //  where r_M is the molier radius
+      //  where X_0 is the radiation length
+      float ll = 0.;      
       int npoints = 0;
+      float w_tot = 0.;
       for ( auto const& idx : cluster_idx_v ) {
         for (auto const& hit : showerhit_cluster_v[idx]->points_v ) {
           float dist = pointLineDistance( trunk_cand.center_v, alongpca, hit );
-          ls += dist*dist;
+          float proj = 0.;
+          for (int v=0; v<3; v++) {
+            proj += (hit[v]-trunk_cand.start_v[v])*trunk_cand.pcaxis_v[v];
+          }
+          if ( proj<0 )
+            proj = 0.;
+          ll += -sqrt(dist)/9.0;
+          if ( proj>0 )
+            ll += -proj/14.0;
+          else
+            ll += proj;
+          
           npoints++;
+          w_tot += 1.0;
         }
       }
       if ( npoints>0 )
-        ls /= float(npoints);
+        ll /= w_tot;
 
       LARCV_DEBUG() << "trunk cand[" << trunk_idx << " of " << shower_cand.trunk_candidates_v.size() << "] "
-                    << " least-sq/npoints=" << ls << " for npoints=" << npoints
+                    << " kp=(" << trunk_cand.keypoint->at(0) << "," << trunk_cand.keypoint->at(1) << "," << trunk_cand.keypoint->at(2)  << ") "
+                    << " log(L)=" << ll << " for npoints=" << npoints
                     << std::endl;
       
-      if ( min_least_sq<0 || min_least_sq>ls ) {
-        min_least_sq = ls;
+      if ( best_trunk_idx==-1 || ll>max_ll ) {
+        max_ll = ll;
         best_trunk_idx = trunk_idx;
       }
       
     }
 
-    LARCV_DEBUG() << "Choosing trunk index=" << best_trunk_idx << std::endl;
+    LARCV_DEBUG() << "Choosing trunk index=" << best_trunk_idx << " with max_ll=" << max_ll << std::endl;
     
     return best_trunk_idx;
   }
