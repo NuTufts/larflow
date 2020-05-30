@@ -9,17 +9,19 @@ namespace reco {
 
   void KeypointFilterByClusterSize::process( larcv::IOManager& iolcv, larlite::storage_manager& io_ll )
   {
+
+    LARCV_INFO() << "Start" << std::endl;
     
     // get keypoints
     larlite::event_larflow3dhit* ev_keypoint =
-      (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "keypoint" );
+      (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _input_keypoint_tree_name );
     larlite::event_pcaxis* ev_pcaxis =
-      (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, "keypoint" );
+      (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, _input_keypoint_tree_name );
     
 
     // get larflow hits
     larlite::event_larflow3dhit* evout_track_hit
-      = (larlite::event_larflow3dhit*)io_ll.get_data(larlite::data::kLArFlow3DHit, "trackhit" );
+      = (larlite::event_larflow3dhit*)io_ll.get_data(larlite::data::kLArFlow3DHit, _input_larflowhits_tree_name );
 
 
     // filter hits by score

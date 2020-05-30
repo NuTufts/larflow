@@ -40,10 +40,14 @@ namespace reco {
     float _larmatch_threshold;
     std::string _ssnet_stem_name;
     std::string _adc_name;
+    std::string _input_larmatch_hit_tree_name;
+
+  public:
     
     void set_ssnet_threshold( float thresh )    { _score_threshold=thresh; };
     void set_larmatch_threshold( float thresh ) { _larmatch_threshold=thresh; };
     void set_ssnet_tree_stem_name( std::string stem ) { _ssnet_stem_name=stem; };
+    void set_larmatch_tree_name( std::string hitname ) { _input_larmatch_hit_tree_name=hitname; };
     void set_adc_tree_name( std::string name ) { _adc_name=name; };
 
   protected:

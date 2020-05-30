@@ -15,11 +15,24 @@ namespace reco {
 
     KeypointFilterByClusterSize()
       : larcv::larcv_base("KeypointFilterByClusterSize")
-      {};
+      {
+        _input_keypoint_tree_name = "keypoint";
+        _input_larflowhits_tree_name = "larmatch";
+      };
     virtual ~KeypointFilterByClusterSize() {};
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     
+
+  protected:
+
+    std::string _input_keypoint_tree_name;
+    std::string _input_larflowhits_tree_name;
+
+  public:
+
+    void set_input_keypoint_tree_name( std::string keypoint ) { _input_keypoint_tree_name=keypoint; };
+    void set_input_larflowhits_tree_name( std::string hit ) { _input_larflowhits_tree_name=hit; };
     
   };
 

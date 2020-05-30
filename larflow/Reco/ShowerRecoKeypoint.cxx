@@ -128,6 +128,9 @@ namespace reco {
     larlite::event_pcaxis* evout_shower_pca_v
       = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showerkp" );
 
+    larlite::event_larflow3dhit* evout_shower_keypoint_v
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkp" );
+
     std::vector<int> used_v( shower_goodhit_v.size(), 0 );
     for ( size_t ireco=0; ireco<_recod_shower_v.size(); ireco++ ) {
 
@@ -169,7 +172,15 @@ namespace reco {
                            centroid,
                            0,
                            (int)ireco );
-      evout_shower_pca_v->emplace_back( std::move(pca) );                             
+      evout_shower_pca_v->emplace_back( std::move(pca) );
+
+      larlite::larflow3dhit shower_keypoint;
+      shower_keypoint.resize(3,0);
+      for (int v=0; v<3; v++) {
+        shower_keypoint[v] = recoshower.trunk.keypoint->at(v);
+      }
+      evout_shower_keypoint_v->push_back( shower_keypoint );
+      
     }//end of reco'd shower loop
 
     // save unused shower points

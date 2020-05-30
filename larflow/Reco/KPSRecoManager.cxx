@@ -20,14 +20,6 @@ namespace reco {
                                 larlite::storage_manager& ioll )
   {
 
-    // PREP: split hits into shower and track hits
-    // input:
-    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
-    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
-    // output:
-    //  * larflow3dhit_showerhit_tree
-    //  * larflow3dhit_trackhit_tree
-    _splithits.process( iolcv, ioll );
 
     // PREP: make bad channel image
     larcv::EventImage2D* ev_adc =
@@ -62,9 +54,28 @@ namespace reco {
     //  * _kpreco.output_pt_v: container of KPCluster objects
     _kpreco.process( ioll );
 
+    // FILTER USING TAGGER
+    _wcfilter.set_verbosity( larcv::msg::kINFO );
+    _wcfilter.set_input_larmatch_tree_name( "larmatch" );
+    _wcfilter.process( iolcv, ioll );
+    
+
     // FILTER KEYPOINTS: To be on clusters larger than X hits
-    _kpfilter.set_verbosity( larcv::msg::kDEBUG );    
+    _kpfilter.set_verbosity( larcv::msg::kDEBUG );
+    _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
+    _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
     _kpfilter.process( iolcv, ioll );
+
+    
+    // PREP: split hits into shower and track hits
+    // input:
+    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
+    // output:
+    //  * larflow3dhit_showerhit_tree
+    //  * larflow3dhit_trackhit_tree
+    _splithits.set_larmatch_tree_name( "taggerfilterhit" );
+    _splithits.process( iolcv, ioll );
   
     // PARTICLE RECO
     recoParticles( iolcv, ioll );
@@ -96,8 +107,8 @@ namespace reco {
     
     // TRACK PCA-CLUSTER: act on remaining clusters
     //_pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
-    // _pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
-    // _pcacluster.process( iolcv, ioll );
+    _pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
+     _pcacluster.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
     _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );

@@ -101,7 +101,7 @@ namespace reco {
 
     // larflow hits
     larlite::event_larflow3dhit* ev_lfhit
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "larmatch" );
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _input_larmatch_hit_tree_name );
 
     _shower_hit_v.clear();
     _track_hit_v.clear();
@@ -118,6 +118,8 @@ namespace reco {
 
     for ( auto& hit : _track_hit_v )
       evout_track_hit->push_back( hit );
+
+    LARCV_NORMAL() << "Split hits into " << _track_hit_v.size() << " trackhit and " << _shower_hit_v.size() << " showerhit" << std::endl;
     
   }
  

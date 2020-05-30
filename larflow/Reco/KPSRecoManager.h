@@ -14,6 +14,7 @@
 // larflow
 #include "KeypointReco.h"
 #include "KeypointFilterByClusterSize.h"
+#include "KeypointFilterByWCTagger.h"
 #include "SplitHitsBySSNet.h"
 #include "DBScanLArMatchHits.h"
 #include "TrackReco2KP.h"
@@ -38,6 +39,7 @@ namespace reco {
     // keypoint reconstruction
     KeypointReco     _kpreco;
     KeypointFilterByClusterSize _kpfilter;
+    KeypointFilterByWCTagger _wcfilter;
     SplitHitsBySSNet _splithits;
     TrackReco2KP     _tracker2kp;
     DBScanLArMatchHits _cluster_track;
