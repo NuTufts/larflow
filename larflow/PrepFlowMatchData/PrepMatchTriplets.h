@@ -89,6 +89,12 @@ namespace larflow {
                                          int& last_index,
                                          int& num_pairs_filled,
                                          bool with_truth );
+
+    PyObject* sample_hard_example_matches( const int& nsamples,
+                                           const int& nhard_samples,
+                                           PyObject* triplet_scores,                                                            
+                                           int& nfilled,
+                                           bool withtruth );    
     
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 

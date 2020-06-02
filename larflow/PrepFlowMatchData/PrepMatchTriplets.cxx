@@ -16,6 +16,8 @@
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
+#include "TRandom3.h"
+
 namespace larflow {
 
 
@@ -651,7 +653,6 @@ namespace larflow {
 
   }
   
-
   /**
    *
    * get sequential set of triplet indices
@@ -675,6 +676,78 @@ namespace larflow {
     return make_triplet_array( max_num_pairs, idx_v, 0, with_truth, num_pairs_filled );
 
   }
+
+  /**
+   *
+   * select sample biased towards triplets that score poorly in past iteration of network.
+   * 
+   * for hard-example training.
+   *
+   */
+  PyObject* PrepMatchTriplets::sample_hard_example_matches( const int& nsamples,
+                                                            const int& nhard_samples,
+                                                            PyObject* triplet_scores,                                                            
+                                                            int& nfilled,
+                                                            bool withtruth ) {
+
+    // if number of triplets less than the requested triplet sample, just pass the triplets back
+    if (nsamples<=(int)_triplet_v.size()) {
+      return sample_triplet_matches( nsamples, nfilled, withtruth );
+    }
+    
+    std::vector<int> idx_v( _triplet_v.size(), 0 );
+    for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
+    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
+    shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+
+
+    TRandom3 sampler( seed );
+    // now we sample for bad events
+    int nbad = 0;
+    int nsaved =  0;
+    std::set<int> saved_idx_set;
+    std::vector<int> saved_idx_v( _triplet_v.size(), 0 );
+    for (size_t i=0; i<_triplet_v.size(); i++) {
+      int idx = idx_v[i];
+      float past_score = *((float*)PyArray_GETPTR1( (PyArrayObject*)triplet_scores, (int)idx ));
+      float weight = fabs(past_score-(float)_truth_v[idx]);
+      if (nbad<nhard_samples) {
+        // first try to get a set number of bad examples
+        if ( sampler.Uniform()>weight ) {
+          saved_idx_v[nsaved] = idx;        
+          saved_idx_set.insert(idx);
+          nsaved++;
+          if ( weight>0.5 )
+            nbad++;
+        }
+      }
+      else {
+        saved_idx_v[nsaved] = idx;
+        saved_idx_set.insert(idx);
+        nsaved++;
+      }
+    }
+
+    if ( nsaved<nsamples ) {
+      // go back and grab triplets we haven't used
+      for (size_t i=0; i<_triplet_v.size(); i++) {
+        int idx = idx_v[i];        
+        if ( saved_idx_set.find(idx)!=saved_idx_set.end() ) {
+          continue;
+        }
+        saved_idx_v[nsaved] = idx;
+        saved_idx_set.insert(idx);
+        nsaved++;
+        if ( nsaved==nsamples )
+          break;
+      }
+    }
+    saved_idx_v.resize(nsaved);
+
+    return make_triplet_array( nsamples, saved_idx_v, 0, withtruth, nfilled );
+
+  }
+  
   
   
 }
