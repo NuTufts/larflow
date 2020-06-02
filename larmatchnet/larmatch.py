@@ -15,6 +15,7 @@ class LArMatch(nn.Module):
                  neval=20000,
                  ninput_planes=3,
                  use_unet=False,
+                 nresnet_blocks=10,
                  device=torch.device("cpu")):
         super(LArMatch,self).__init__()
 
@@ -48,7 +49,7 @@ class LArMatch(nn.Module):
 
         # RESNET BLOCK
         if not self.use_unet:
-            self.resnet_layers = create_resnet_layer(10, stem_nfeatures, features_per_layer, leakiness=leakiness )
+            self.resnet_layers = create_resnet_layer(nresnet_blocks, stem_nfeatures, features_per_layer, leakiness=leakiness )
         else:
             self.resnet_layers = create_resnet_layer(1,  stem_nfeatures, features_per_layer, leakiness=leakiness )
             self.resnet_layers.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
