@@ -56,7 +56,7 @@ def load_larmatch_kps(loader, current_entry, batchsize,
         batch_npts_per_plane.append(npts_per_plane)
         data["matchpairs"]     = matchdata["matchtriplet"][:,0:3].astype( dtype=np.long )
         data["larmatchlabels"] = matchdata["matchtriplet"][:,3].astype( dtype=np.long )
-        data["npairs"]     = nfilled.value
+        data["npairs"]         = nfilled.value
         nboundary = np.sum(data["ssnet_top_weight"][data["ssnet_top_weight"]==10.0])
         nvertex   = np.sum(data["ssnet_top_weight"][data["ssnet_top_weight"]==100.0])        
         data["ssnet_top_weight"][ data["ssnet_top_weight"]==10.0 ]  = 2.0
