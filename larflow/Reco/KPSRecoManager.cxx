@@ -52,7 +52,15 @@ namespace reco {
     //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
     // output:
     //  * _kpreco.output_pt_v: container of KPCluster objects
+    _kpreco.set_min_cluster_size(   50.0, 0 );
+    _kpreco.set_keypoint_threshold( 0.5, 0 );
+    _kpreco.set_min_cluster_size(   20.0, 1 );    
+    _kpreco.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco.set_larmatch_threshold( 0.5 );
     _kpreco.process( ioll );
+
+    if (true)
+      return;
 
     // FILTER USING TAGGER
     _wcfilter.set_verbosity( larcv::msg::kINFO );

@@ -5,6 +5,9 @@
 
 #include "TTree.h"
 
+// larcv
+#include "larcv/core/Base/larcv_base.h"
+
 // larlite
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/storage_manager.h"
@@ -15,12 +18,13 @@
 namespace larflow {
 namespace reco {
   
-  class KeypointReco  {
+  class KeypointReco : public larcv::larcv_base {
 
   public:
     
     KeypointReco()
-      : _output_tree(nullptr)
+      : larcv::larcv_base("KeypointReco"),
+      _output_tree(nullptr)
     { set_param_defaults(); };
     virtual ~KeypointReco()
       {
@@ -35,18 +39,26 @@ namespace reco {
   protected:
 
     float _sigma;            //< width of keypoint. used to supress neighbor keypoints
-    float _score_threshold;  //< ignore spacepoints with keypoint score below this values
+    float _larmatch_score_threshold;  //< ignore spacepoints with larmatch score below this values    
     int   _num_passes;       //< number of passes to perform
-    int   _min_cluster_size; //< minimum cluster size to be a vertex (cluster of hits above threshold)
+    std::vector<float> _keypoint_score_threshold_v;  //< ignore spacepoints with keypoint score below this values, threshold for each pass    
+    std::vector<int>   _min_cluster_size_v; //< minimum cluster size to be a vertex (cluster of hits above threshold)
     float _max_dbscan_dist;  //< max distance parameter in DBscan used
+    int   _max_clustering_points; //< maximum number of points to use when clustering. if have more, sampled randomly.
     
   public:
     void set_param_defaults();
-    void set_threshold( float threshold )    { _score_threshold=threshold; };
+    void set_keypoint_threshold( float threshold, int pass=0 )    { _keypoint_score_threshold_v[pass] = threshold; };
+    void set_larmatch_threshold( float threshold )    { _larmatch_score_threshold=threshold; };    
     void set_sigma( float sigma )            { _sigma=sigma; };
-    void set_min_cluster_size( int minsize ) { _min_cluster_size=minsize; };
-    void set_num_passes( int npasses )       { _num_passes = npasses; };
+    void set_min_cluster_size( int minsize, int pass=0 ) { _min_cluster_size_v[pass] = minsize;  };
+    void set_num_passes( int npasses )       {
+      _num_passes = npasses;
+      _keypoint_score_threshold_v.resize(npasses,0.5);
+      _min_cluster_size_v.resize(npasses,50);
+    };
     void set_max_dbscan_dist( float dist )   { _max_dbscan_dist = dist; };
+    void set_max_clustering_points( int maxpts ) { _max_clustering_points = maxpts; };
     
 
     void process( larlite::storage_manager& io_ll );
@@ -60,9 +72,10 @@ namespace reco {
     std::vector< std::vector<float> > _initial_pt_pos_v;  ///< initial points we are searching (x,y,z,score)
     std::vector< int >                _initial_pt_used_v; ///< flag indicating point is used
     void _make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
-                                float score_threshold );
+                                const float keypoint_score_threshold,
+                                const float larmatch_score_threshold );
 
-    void _make_kpclusters( float round_score_threshold );
+    void _make_kpclusters( float round_score_threshold, int min_cluster_size );
     
     // algorithm steps
     void _skim_remaining_points( float score_threshold,
