@@ -12,7 +12,10 @@
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
+
 #include "DataFormat/storage_manager.h"
+#include "DataFormat/larflow3dhit.h"
 
 namespace larflow {
 namespace reco {
@@ -22,7 +25,9 @@ namespace reco {
   public:
 
     ChooseMaxLArFlowHit()
-      : larcv::larcv_base("ChooseMaxLArFlowHit")
+      : larcv::larcv_base("ChooseMaxLArFlowHit"),
+      _input_larflow3dhit_treename("larmatch"),
+      _output_larflow3dhit_treename("maxlarmatch")
       {};
 
     virtual ~ChooseMaxLArFlowHit() {};
@@ -44,16 +49,19 @@ namespace reco {
 
   protected:
     
-    void _make_pixelmap() {};
-    std::map< Pixel_t, int > _srcpixel_to_spacepoint_m; ///< map source image pixel to space point triplet
+    void _make_pixelmap( const larlite::event_larflow3dhit& hit_v,
+                         const std::vector<larcv::Image2D>& img_v );    
+    std::map< Pixel_t, std::vector<int> > _srcpixel_to_spacepoint_m; ///< map source image pixel to space point triplet
 
   protected:
 
-    std::string _input_larflow3dhit_tree;
+    std::string _input_larflow3dhit_treename;
+    std::string _output_larflow3dhit_treename;
 
   public:
 
-    void set_input_larflow3dhit_treename( std::string name ) { _input_larflow3dhit_tree=name; };
+    void set_input_larflow3dhit_treename( std::string name )  { _input_larflow3dhit_treename=name; };
+    void set_output_larflow3dhit_treename( std::string name ) { _output_larflow3dhit_treename=name; };
 
   };
 

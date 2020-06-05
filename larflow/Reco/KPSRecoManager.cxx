@@ -114,8 +114,14 @@ namespace reco {
     //_pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
     //_pcacluster.process( iolcv, ioll );
 
+    // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
+    _choosemaxhit.set_input_larflow3dhit_treename( "showerhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
-    _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );
+    _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
     _showerkp.set_verbosity( larcv::msg::kDEBUG );
     _showerkp.process( iolcv, ioll );
 

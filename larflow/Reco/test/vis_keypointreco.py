@@ -30,17 +30,14 @@ for opt in color_by_options:
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
+io.add_in_filename( args.input_kpreco )
 io.open()
 
-kpio = rt.TFile( args.input_kpreco, "open" )
-ev_kpreco = kpio.Get("larflow_keypointreco")
-
 nentries = io.get_entries()
-nkpreco  = ev_kpreco.GetEntries()
 
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
+def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keypoint", minprob=0.3):
     from larcv import larcv
     larcv.load_pyutil()
     detdata = lardly.DetectorOutline()
@@ -50,8 +47,12 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
     io.go_to(entry)
+    
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, treename )
     npoints = ev_lfhits.size()
+
+    ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, keypoint_tree )
+    ev_kpaxis    = io.get_data( larlite.data.kPCAxis, keypoint_tree )    
     
     traces_v = []        
 
@@ -79,6 +80,8 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             #print(xyz[ptsused,3])
             ptsused += 1
 
+        np.clip( xyz[:,3], 0, 1.0, out=xyz[:,3]  )
+
         print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
         larflowhits = {
             "type":"scatter3d",
@@ -92,53 +95,24 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         traces_v.append( larflowhits )
         
 
-    nbytes = ev_kpreco.GetEntry(entry)
-    if nbytes>0:    
-        # KEYPOINT PLOT
-        print("Number of reco'd Keypoints in event: ",ev_kpreco.kpcluster_v.size())
-
-        nkp = ev_kpreco.kpcluster_v.size()
-        markers = {"colors":["rgb({},{},{})".format(np.random.randint(0,256), np.random.randint(0,256), np.random.randint(0,256)) for _ in range(nkp)],
-                   "size":5}
-        pos = np.zeros( (nkp,3) )
-        
-        for ipt in range(nkp):
-            kpdata = ev_kpreco.kpcluster_v.at(ipt)
-            print(" plot kp[",ipt,"]")
-            pos[ipt,0] = float(kpdata.max_pt_v[0])
-            pos[ipt,1] = float(kpdata.max_pt_v[1])
-            pos[ipt,2] = float(kpdata.max_pt_v[2]) 
-        kp_plot = {
+    # KEYPOINT PLOT
+    nkp = ev_keypoints.size()
+    print("Number of reco'd Keypoints in event: ",nkp)
+    for ikp in range(nkp):
+        kptrace = {
             "type":"scatter3d",
-            "x":pos[:,0],
-            "y":pos[:,1],
-            "z":pos[:,2],
+	    "x": [ev_keypoints[ikp][0]],
+            "y": [ev_keypoints[ikp][1]],
+            "z": [ev_keypoints[ikp][2]],
             "mode":"markers",
-            "name":"keypoints",
-            "marker":markers
+	    "name":"KP%d"%(ikp),
+            "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
         }
-        #print("centers: ",pos)
-        traces_v.append( kp_plot )
-    
-        # PCA-AXIS PLOTS
-        pca_traces_v = []
-        for ipt in range(nkp):
-            pcaxis = np.zeros( (3,3) )
-            for i in range(3):
-                pcaxis[0,i] = ev_kpreco.kpcluster_v.at(ipt).pca_ends_v[0][i]
-                pcaxis[1,i] = ev_kpreco.kpcluster_v.at(ipt).pca_center[i]
-                pcaxis[2,i] = ev_kpreco.kpcluster_v.at(ipt).pca_ends_v[1][i]                
-            pca_trace = {
-                "type":"scatter3d",
-                "x":pcaxis[:,0],
-                "y":pcaxis[:,1],
-                "z":pcaxis[:,2],
-                "mode":"lines",
-                "name":"pca%d"%(ipt),
-                "line":{"color":"rgb(255,255,255,)","width":4}
-            }
-            pca_traces_v.append( pca_trace )
-        traces_v += pca_traces_v
+        traces_v.append(kptrace)
+        
+    # PCA-AXIS PLOTS
+    pca_traces_v = lardly.data.visualize_event_pcaxis( ev_kpaxis, color="rgb(50,50,50)" )
+    traces_v += pca_traces_v
 
 
     # end of loop over treenames

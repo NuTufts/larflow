@@ -20,6 +20,7 @@
 #include "TrackReco2KP.h"
 #include "ShowerRecoKeypoint.h"
 #include "PCACluster.h"
+#include "ChooseMaxLArFlowHit.h"
 
 namespace larflow {
 namespace reco {
@@ -46,6 +47,7 @@ namespace reco {
     DBScanLArMatchHits _cluster_shower;
     PCACluster         _pcacluster;
     ShowerRecoKeypoint _showerkp;
+    ChooseMaxLArFlowHit _choosemaxhit;
 
     // Algorithms
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
