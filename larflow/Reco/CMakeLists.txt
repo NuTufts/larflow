@@ -7,6 +7,7 @@ set( HEADERS cluster_functions.h
   geofuncs.h
   KPTrackFit.h
   SplitHitsBySSNet.h
+  ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   PCACluster.h
   PyLArFlow.h ShowerReco.h
@@ -22,6 +23,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
   KPTrackFit.cxx
   SplitHitsBySSNet.cxx
+  ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   PCACluster.cxx
   PyLArFlow.cxx

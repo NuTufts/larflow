@@ -46,7 +46,7 @@ namespace reco {
     // filter out shower pixels by larmatch score
     larlite::event_larflow3dhit shower_goodhit_v;
     for (auto const& hit : *shower_lfhit_v ) {
-      if ( hit.track_score>0.7 ) {
+      if ( hit.track_score>_larmatch_score_threshold ) {
         shower_goodhit_v.push_back(hit);
       }
     }
@@ -55,7 +55,7 @@ namespace reco {
     // make shower clusters
     float maxdist = 2.0;
     int minsize = 20;
-    int maxkd = 10;
+    int maxkd = 20;
     std::vector<cluster_t> cluster_v;
     cluster_larflow3dhits( shower_goodhit_v, cluster_v, maxdist, minsize, maxkd );
     LARCV_INFO() << "num shower clusters:  " << cluster_v.size() << std::endl;

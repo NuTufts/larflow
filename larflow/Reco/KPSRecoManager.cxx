@@ -59,15 +59,11 @@ namespace reco {
     _kpreco.set_larmatch_threshold( 0.5 );
     _kpreco.process( ioll );
 
-    if (true)
-      return;
-
-    // FILTER USING TAGGER
+    // FILTER LARMATCH POINTS USING TAGGER
     _wcfilter.set_verbosity( larcv::msg::kINFO );
     _wcfilter.set_input_larmatch_tree_name( "larmatch" );
     _wcfilter.process( iolcv, ioll );
     
-
     // FILTER KEYPOINTS: To be on clusters larger than X hits
     _kpfilter.set_verbosity( larcv::msg::kDEBUG );
     _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
@@ -115,8 +111,8 @@ namespace reco {
     
     // TRACK PCA-CLUSTER: act on remaining clusters
     //_pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
-    _pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
-     _pcacluster.process( iolcv, ioll );
+    //_pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
+    //_pcacluster.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
     _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );
