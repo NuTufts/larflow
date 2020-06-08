@@ -9,6 +9,10 @@ namespace reco {
   float pointLineDistance( const std::vector<float>& linept1,
                            const std::vector<float>& linept2,
                            const std::vector<float>& testpt );
+
+  float pointRayProjection( const std::vector<float>& start,
+                            const std::vector<float>& dir,
+                            const std::vector<float>& testpt );
   
 }
 }

@@ -1,5 +1,6 @@
 #include "geofuncs.h"
 #include <cmath>
+#include <stdexcept>
 
 namespace larflow {
 namespace reco {
@@ -45,6 +46,27 @@ namespace reco {
     return r;
   }
 
+  float pointRayProjection( const std::vector<float>& start,
+                            const std::vector<float>& dir,
+                            const std::vector<float>& testpt )
+  {
+
+    float len = 0.;
+    float proj = 0.;
+    for ( size_t v=0; v<3; v++ ) {
+      len += dir[v]*dir[v];
+      proj += dir[v]*( testpt[v]-start[v] );
+    }
+    len = sqrt(len);
+    if (len>0)
+      proj /= len;
+    else {
+      throw std::runtime_error("geofuncs.cxx:pointRayProjection: zero-length direction vector given");
+    }
+
+    return proj;
+    
+  }
   
 }
 }

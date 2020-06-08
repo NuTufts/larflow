@@ -98,19 +98,20 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             }
             traces_v.append(kptrace)
 
-    # HITS BY SSNET
-    if True:
+    # HITS BY SSNET: SHOWER
+    if False:
         ev_showerhit = io.get_data( larlite.data.kLArFlow3DHit, "maxshowerhit" )
         shower_hit_trace = lardly.data.visualize_larlite_larflowhits( ev_showerhit, name="showerhit", score_threshold=0.5 )
         shower_hit_trace["marker"]["color"] = "rgb(255,125,255)"
-        shower_hit_trace["marker"]["opacity"] = 0.3
-
-        ev_trackhit  = io.get_data( larlite.data.kLArFlow3DHit, "trackhit" )        
-        track_hit_trace = lardly.data.visualize_larlite_larflowhits( ev_trackhit, name="trackhit", score_threshold=0.1 )
-        track_hit_trace["marker"]["color"] = "rgb(125,255,255)"
-        track_hit_trace["marker"]["opacity"] = 0.3
-
+        shower_hit_trace["marker"]["opacity"] = 0.5
         traces_v.append( shower_hit_trace )
+
+    # HITS BY SSNET: TRACK        
+    if False:
+        ev_trackhit  = io.get_data( larlite.data.kLArFlow3DHit, "maxtrackhit" )        
+        track_hit_trace = lardly.data.visualize_larlite_larflowhits( ev_trackhit, name="trackhit", score_threshold=0.1 )
+        track_hit_trace["marker"]["color"] = "rgb(0,0,255)"
+        track_hit_trace["marker"]["opacity"] = 0.5
         traces_v.append( track_hit_trace )
 
     # SHOWER-KP RECO
@@ -132,7 +133,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         
         shower_pcatrace_v = lardly.data.visualize_event_pcaxis( ev_showerkp_pca )
         for tr in shower_pcatrace_v:
-            tr["line"]["color"] = "rgb(0,0,0)"
+            tr["line"]["color"] = "rgb(255,0,0)"
             tr["line"]["width"] = 3
             tr["line"]["opacity"] = 1.0            
         traces_v += shower_pcatrace_v
@@ -163,10 +164,9 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
         #traces_v.append( unusedtrace )
 
     # TRACK/SHOWER PCA CLUSTER OUTPUT
-    if False:
+    if True:
         # TRACK
-        treename="pcacluster"
-        ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, treename )
+        treename="trackprojsplit"
         evclusters = io.get_data( larlite.data.kLArFlowCluster, treename )
         evpcaxis   = io.get_data( larlite.data.kPCAxis, treename )
         nclusters = evclusters.size()
@@ -177,20 +177,9 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             
             cluster = evclusters.at(icluster)
             nhits = cluster.size()
-            
-            pts = larflow.reco.PyLArFlow.as_ndarray_larflowcluster_wssnet( cluster )
-            r3 = np.random.randint(255,size=3)
-            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
-                
-            clusterplot = {
-                "type":"scatter3d",
-                "x":pts[:,0],
-                "y":pts[:,1],
-                "z":pts[:,2],
-                "mode":"markers",
-                "name":"%s[%d]"%(treename,icluster),
-                "marker":{"color":colors,"size":1,"colorscale":colorscale}
-            }
+            print("  [%d] track projection cluster, nhits=%d"%(icluster,nhits))
+            clusterplot = lardly.data.visualize_larlite_larflowhits( cluster )
+            clusterplot["name"] = "[%d]%s"%(icluster,treename)
             traces_v.append( clusterplot )
 
             # PCA-axis
@@ -208,11 +197,12 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
                 "y":pca_pts[:,1],
                 "z":pca_pts[:,2],
                 "mode":"lines",
-                "name":"%s-pca[%d]"%(treename,icluster),
-                "line":{"color":"rgb(255,255,255)","size":2}
+                "name":"[%d]pca-%s"%(icluster,treename),
+                "line":{"color":"rgb(0,0,255)","size":2}
             }
             traces_v.append( pca_plot )
 
+    if False:
         # SHOWER PCA
         ev_pcacluster = io.get_data( larlite.data.kLArFlowCluster, "lfshower" )
         evpcaxis   = io.get_data( larlite.data.kPCAxis, "lfshower" )
@@ -259,6 +249,12 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
                 "line":{"color":"rgb(255,255,255)","size":2}
             }
             traces_v.append( pca_plot )
+
+    if False:
+        ev_tracker = io.get_data(larlite.data.kTrack, "pcatracker" )
+        for itrack in range(ev_tracker.size()):
+            track_trace = lardly.data.visualize_larlite_track( ev_tracker.at(itrack), itrack, color="rgb(0,0,0)" )
+            traces_v.append(track_trace)
             
 
     # add detector outline

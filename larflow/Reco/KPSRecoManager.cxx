@@ -98,6 +98,12 @@ namespace reco {
                                       larlite::storage_manager& ioll )
   {
 
+    // TRACK HIT CLEANING
+    _choosemaxhit.set_input_larflow3dhit_treename( "trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+    
     // TRACK 2-KP RECO: make tracks using pairs of keypoints
     // input:
     // * larflow3dhit_trackhit_tree: track hits from  SplitLArMatchHitsBySSNet
@@ -113,6 +119,16 @@ namespace reco {
     //_pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
     //_pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
     //_pcacluster.process( iolcv, ioll );
+
+    // SPLIT TRACK CLUSTERS
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit" );
+    _projsplitter.set_output_tree_name("trackprojsplit");
+    _projsplitter.process( iolcv, ioll );
+
+    // PCA-TRACKER
+    // _pcatracker.set_verbosity( larcv::msg::kDEBUG );
+    // _pcatracker.process( iolcv, ioll );
 
     // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
     _choosemaxhit.set_input_larflow3dhit_treename( "showerhit" );

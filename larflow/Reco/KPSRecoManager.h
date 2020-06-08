@@ -20,6 +20,8 @@
 #include "TrackReco2KP.h"
 #include "ShowerRecoKeypoint.h"
 #include "PCACluster.h"
+#include "ProjectionDefectSplitter.h"
+#include "PCATracker.h"
 #include "ChooseMaxLArFlowHit.h"
 
 namespace larflow {
@@ -46,6 +48,8 @@ namespace reco {
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;
     PCACluster         _pcacluster;
+    PCATracker         _pcatracker;
+    ProjectionDefectSplitter _projsplitter;
     ShowerRecoKeypoint _showerkp;
     ChooseMaxLArFlowHit _choosemaxhit;
 

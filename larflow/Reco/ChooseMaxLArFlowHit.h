@@ -50,7 +50,10 @@ namespace reco {
   protected:
     
     void _make_pixelmap( const larlite::event_larflow3dhit& hit_v,
-                         const std::vector<larcv::Image2D>& img_v );    
+                         const std::vector<larcv::Image2D>& img_v,
+                         const int source_plane,
+                         std::vector<int>& idx_used_v );
+    
     std::map< Pixel_t, std::vector<int> > _srcpixel_to_spacepoint_m; ///< map source image pixel to space point triplet
 
   protected:

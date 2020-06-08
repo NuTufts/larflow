@@ -10,6 +10,8 @@ set( HEADERS cluster_functions.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   PCACluster.h
+  ProjectionDefectSplitter.h  
+  PCATracker.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
   KPCluster.h KeypointReco.h
@@ -26,6 +28,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   PCACluster.cxx
+  ProjectionDefectSplitter.cxx  
+  PCATracker.cxx  
   PyLArFlow.cxx
   ShowerReco.cxx
   VertexReco.cxx
