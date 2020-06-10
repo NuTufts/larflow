@@ -1,5 +1,9 @@
 #!/bin/env python
 
+"""
+TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
+"""
+
 ## IMPORT
 
 # python,numpy
@@ -54,6 +58,14 @@ TRAIN_KP=True
 TRAIN_KPSHIFT=False
 TRAIN_VERBOSE=True
 
+# Hard example training parameters (not yet implemented)
+# =======================================================
+HARD_EXAMPLE_TRAINING=False
+HARDEX_GPU="cuda:0"
+HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
+
+# TRAINING+VALIDATION DATA PATHS
+# ================================
 TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_data/"
 INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
                  "larmatch_kps_train_p07.root",
@@ -64,7 +76,7 @@ INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
                  "larmatch_kps_train_p03.root",
                  "larmatch_kps_train_p04.root"]
 INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
-TICKBACKWARD=False
+TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
@@ -87,12 +99,14 @@ validbatches_per_print = -1
 
 ITER_PER_VALID = 100
 
-# IMAGE/LOSS PARAMETERS
-# =====================
+# CHECKPOINT PARAMETERS
+# =======================
 DEVICE_IDS=[0]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
+HARDEX_MAP_LOCATIONS={"cuda:0":"cuda:0",
+                      "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
 ITER_PER_CHECKPOINT=1000
@@ -109,33 +123,42 @@ VALID_NENTRIES = 0
 
 def main():
 
+    # load global variables we plan to modify
     global best_prec1
     global writer
     global num_iters
     global TRAIN_NENTRIES
     global VALID_NENTRIES
 
+    # set device where we'll do the computations
     if GPUMODE:
         DEVICE = torch.device("cuda:%d"%(DEVICE_IDS[0]))
     else:
         DEVICE = torch.device("cpu")
     
-    # create model, mark it to run on the GPU
+    # create model, mark it to run on the device
     model = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to(DEVICE)
     ssnet_head = LArMatchSSNetClassifier().to(DEVICE)
     kplabel_head = LArMatchKeypointClassifier().to(DEVICE)
     kpshift_head = LArMatchKPShiftRegressor().to(DEVICE)
+    # the model is multi-tasked, so we group the different tasks into a map
     model_dict = {"larmatch":model,
                   "ssnet":ssnet_head,
                   "kplabel":kplabel_head,
                   "kpshift":kpshift_head}
 
     if True:
-        # DUMP MODEL
+        # DUMP MODEL (for debugging)
         print model
         print ssnet_head
         print kplabel_head
         print kpshift_head
+
+        # uncomment to dump model parameters
+        if False:
+            print model.module.parameters
+            return
+        
         if False: sys.exit(-1)
     
     # Resume training option
@@ -148,21 +171,27 @@ def main():
         for n,m in model_dict.items():
             m.load_state_dict(checkpoint["state_"+n])
 
+    # data parallel training -- does not work
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
         model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
 
-    # uncomment to dump model
-    if False:
-        print "Loaded model: ",model
-        #print model.module.source_encoder.variable
-        print model.module.parameters
-        return
+    # if hard example training, we load a copy of the network we will not modify
+    # that generates scores for each triplet in the event
+    # we will use those scores to sample the space points for training in a biased manner.
+    # we will bias towards examples the network gets incorrect
+    if HARD_EXAMPLE_TRAINING:
+        hardex_larmatch_model  = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to( torch.device(HARDEX_GPU) )
+        hardex_checkpoint = torch.load( HARDEX_CHECKPOINT_FILE, map_location=HARDEX_MAP_LOCATIONS )
+        hardex_model = {"larmatch":hardex_larmatch_model}
+        for n,m in hardex_model.items():
+            m.load_state_dict(hardex_checkpoint["state_"+n])
+
 
     # define loss function (criterion) and optimizer
     criterion = SparseLArMatchKPSLoss()
 
     # training parameters
-    lr = 1.0e-4
+    lr = 1.0e-4 # learning rate
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -182,7 +211,7 @@ def main():
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = False
 
-    # LOAD THE DATASET
+    # LOAD THE DATASET HELPERS
     traindata_v = std.vector("std::string")()
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
@@ -214,10 +243,13 @@ def main():
         print "passed setup successfully"
         sys.exit(0)
 
+    # TRAINING LOOP
     with torch.autograd.profiler.profile(enabled=RUNPROFILER) as prof:
 
+        # LOOP OVER FIXED NUMBER OF INTERATIONS
         for ii in range(START_ITER, NUM_ITERS):
 
+            # modify learning rate based on interation number (not used)
             adjust_learning_rate(optimizer, ii, lr)
             print "MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),
             for param_group in optimizer.param_groups:
@@ -229,7 +261,7 @@ def main():
                 _ = train(iotrain, DEVICE, BATCHSIZE_TRAIN,
                           model_dict, criterion, optimizer,
                           NBATCHES_per_itertrain, NBATCHES_per_step,
-                          ii, trainbatches_per_print)
+                          ii, trainbatches_per_print, hardex_model=hardex_model)
                 
             except Exception,e:
                 print "Error in training routine!"            
@@ -238,7 +270,7 @@ def main():
                 traceback.print_exc(e)
                 break
 
-            # evaluate on validation set
+            # evaluate on validation set at a given interval (every ITER_PER_VALID training iterations)
             if ii%ITER_PER_VALID==0 and ii>0:
                 try:
                     totloss, totacc = validate(iovalid, DEVICE, BATCHSIZE_VALID,
@@ -311,19 +343,22 @@ def main():
 def train(train_loader, device, batchsize,
           model, criterion, optimizer,
           nbatches, nbatches_per_step,
-          iiter, print_freq):
+          iiter, print_freq, hardex_model=None):
     """
-    train_loader: TChain with data
+    train_loader: helper module to load event data
     device: device we are training on
     batchsize: number of images per batch
     model: network are training
-    criterion: the loss we are using
+    criterion: the loss calculation module we are using
     optimizer: optimizer
     nbatches: number of batches to run in this iteraction
     nbatches_per_step: allows for gradient accumulation if >1
     iiter: current iteration
     print_freq: number of batches we run before printing out some statistics
+    hardex_model: if not None, the hardex_model we'll use to provide scores and bias sampling of events
+                  to spacepoints the network got incorrect.
     """
+    # global variables we will modify
     global writer
     global train_entry
     
@@ -358,6 +393,10 @@ def train(train_loader, device, batchsize,
     # clear gradients
     optimizer.zero_grad()
     nnone = 0
+
+    # run predictions over nbatches before calculating gradients
+    # if nbatches>1, this is so-called "gradient accumulation".
+    # not typically used
     for i in range(0,nbatches):
         #print "iiter ",iiter," batch ",i," of ",nbatches
         batchstart = time.time()
@@ -399,15 +438,56 @@ def train(train_loader, device, batchsize,
         if RUNPROFILER:
             torch.cuda.synchronize()
         end = time.time()
-            
+        
 
         # first get feature vectors
         feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
                                                                            coord_t[1], feat_t[1],
                                                                            coord_t[2], feat_t[2], 1,
                                                                            verbose=TRAIN_VERBOSE )
+        if HARD_EXAMPLE_TRAINING:
+            # we use the fixed network to calculate score for all triplets
+            fixednet_ntriplets = preplarmatch._triplet_v.size()
+            fixednet_startidx  = 0
+            fixednet_scores_np = np.zeros( ntriplets )
+            while startidx<ntriplets:
+                print("create matchpairs: startidx=",startidx," of ",ntriplets)
+                t_chunk = time.time()
+                matchpair_np = preplarmatch.get_chunk_triplet_matches( startidx,
+                                                                       NUM_PAIRS,
+                                                                       last_index,
+                                                                       npairs,
+                                                                       with_truth )
+        t_chunk = time.time()-t_chunk
+        print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
+        dt_chunk += t_chunk
+            
+        startidx = int(last_index.value)
 
+        # make torch tensor or array providing index of pixels in each plane we should group
+        # to form a 3D spacepoint proposal
+        matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
+                
+        if with_truth:
+            truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
 
+        # HARD EXAMPLE TRAINING: Get features
+        if HARD_EXAMPLE_TRAINING and hardex_model is not None:
+            with torch.no_grad():
+                feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
+                                                                          matchpair_t, npairs.value,
+                                                                          DEVICE, verbose=True )
+
+        # EVALUATE LARMATCH SCORES
+        tstart = time.time()
+        with torch.no_grad():
+            pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
+        dt_net_classify = time.time()-tstart
+        dt_net  += dt_net_classify
+        prob_t = sigmoid(pred_t) # should probably move inside classify_triplet method
+        print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
+            
+        
         # extract features according to sampled match indices
         feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                              match_t, flowdata['npairs'],
@@ -436,7 +516,7 @@ def train(train_loader, device, batchsize,
         else:
             kplabel_pred_t = None
         
-        # next evaluate ssnet classifier
+        # next evaluate keypoint shift predictor
         if TRAIN_KPSHIFT:
             kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
             kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
@@ -444,7 +524,8 @@ def train(train_loader, device, batchsize,
             print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
         else:
             kpshift_pred_t = None
-        
+
+        # Calculate the loss
         totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
                                                                            match_label_t,  ssnet_label_t, kp_label_t,     kpshift_t,
                                                                            truematch_idx_t,

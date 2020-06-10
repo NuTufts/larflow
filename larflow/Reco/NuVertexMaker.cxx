@@ -6,12 +6,41 @@ namespace larflow {
 namespace reco {
 
 
+  /**
+   * constructor. calls default parameter method.
+   *
+   */
   NuVertexMaker::NuVertexMaker()
     : larcv::larcv_base("NuVertexMaker")
   {
     _set_defaults();
   }
-  
+
+  /**
+   * process event data
+   *
+   * goal of module is to form vertex candidates.
+   * start by seeding possible vertices using
+   * - keypoints 
+   * - intersections of particle clusters (not yet implemented)
+   * - vertex activity near ends of partice clusters (not yet implemented)
+   *
+   * event data inputs expected by algorthm:
+   * - keypoint candidates, representd as larflow3dhit, used as vertex seeds. 
+   *   Use add_keypoint_producer(...) to provide tree name before calling.
+   * - particle cluster candidates, represented as larflowcluster, to associate to vertex seeds. 
+   *   Use add_cluster_producer(...) to provide tree name before calling.
+   * - particle cluster candidate containers need to be labeled with a certain ClusterType_t.
+   * - the cluster type affects how it is added to the vertex and how the vertex candidates are scored
+   *
+   * output:
+   * - vertex candidates stored in _vertex_v
+   * - need to figure out way to store in larcv or larlite iomanagers
+   *
+   * @param[in] iolcv Instance of LArCV IOManager with event data
+   * @param[in] ioll  Instance of larlite storage_manager containing event data
+   *
+   */
   void NuVertexMaker::process( larcv::IOManager& iolcv,
                                larlite::storage_manager& ioll )
   {
@@ -48,6 +77,17 @@ namespace reco {
     
   }
 
+  /**
+   * create vertex candidates by associating clusters to vertex seeds
+   *
+   * inputs
+   * - uses _keypoint_producers map to get vertex candidates
+   * - uses _cluster_producers map to get cluster candidates
+   *
+   * outputs
+   * - fills _vertex_v container
+   * 
+   */
   void NuVertexMaker::_createCandidates()
   {
 
@@ -169,6 +209,10 @@ namespace reco {
 
   }
 
+  /**
+   * clear all data containers
+   *
+   */
   void NuVertexMaker::clear()
   {
     _vertex_v.clear();
@@ -178,6 +222,13 @@ namespace reco {
     _cluster_pca_producers.clear();
   }
 
+  /** 
+   * set parameter defaults
+   *
+   * _cluster_type_max_impact_radius: per cluster type, maximum radius to accept candidate into vertex
+   * _cluster_type_max_gap: per cluster type, maximum gap to accept candidate into vertex
+   *
+   */
   void NuVertexMaker::_set_defaults()
   {
     // Track
@@ -194,6 +245,14 @@ namespace reco {
     
   }
 
+  /**
+   * provide score to vertex seeds in order to provide a way to rank them
+   * not used to cut or anything.
+   *
+   * attempting to rank by number of quality cluster associations
+   * cluster association quality based on how well cluster points back to vertex
+   *
+   */
   void NuVertexMaker::_score_vertex( Vertex_t& vtx )
   {
     vtx.score = 0.;
