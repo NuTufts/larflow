@@ -23,6 +23,7 @@
 #include "ProjectionDefectSplitter.h"
 #include "PCATracker.h"
 #include "ChooseMaxLArFlowHit.h"
+#include "NuVertexMaker.h"
 
 namespace larflow {
 namespace reco {
@@ -52,9 +53,12 @@ namespace reco {
     ProjectionDefectSplitter _projsplitter;
     ShowerRecoKeypoint _showerkp;
     ChooseMaxLArFlowHit _choosemaxhit;
+    NuVertexMaker       _nuvertexmaker;
 
     // Algorithms
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+                         
     
     
   };

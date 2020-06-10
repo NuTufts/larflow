@@ -89,7 +89,8 @@ namespace reco {
     // Cosmic reco: tracks at end points + deltas and michels
 
     // Multi-prong internal reco
-
+    multiProngReco( iolcv, ioll );
+    
     // Single particle interactions
     
   }
@@ -144,6 +145,21 @@ namespace reco {
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
 
     // SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints
+    
+  }
+
+  void KPSRecoManager::multiProngReco( larcv::IOManager& iolcv,
+                                       larlite::storage_manager& ioll )
+  {
+
+    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertexmaker.clear();
+    _nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
+    _nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexMaker::kTrack );
+    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexMaker::kShowerKP );
+    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexMaker::kShower );
+    _nuvertexmaker.process( iolcv, ioll );
     
   }
   

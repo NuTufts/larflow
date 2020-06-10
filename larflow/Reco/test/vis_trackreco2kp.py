@@ -118,13 +118,10 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
     if True:
         ev_showerkp        = io.get_data( larlite.data.kLArFlowCluster, "showerkp" )
         ev_showerkp_pca    = io.get_data( larlite.data.kPCAxis, "showerkp" )
-        ev_kpshower        = io.get_data( larlite.data.kLArFlow3DHit, "showerkp" ) 
-        ev_showerkp_unused = io.get_data( larlite.data.kLArFlow3DHit, "showerkpunused" )
-        ev_shower_goodhit_pca  = io.get_data( larlite.data.kPCAxis, "showergoodhit" )        
         print("Number of shower clusters: ",ev_showerkp.size())
         for ishr in range(ev_showerkp.size()):
             showercluster = ev_showerkp.at(ishr)
-            showertrace = lardly.data.visualize_larlite_larflowhits( showercluster,"shower[%d]"%(ishr) )
+            showertrace = lardly.data.visualize_larlite_larflowhits( showercluster,"[%d]shower"%(ishr) )
             r3 = np.random.randint(255,size=3)
             colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
             showertrace["marker"]["color"] = colors
@@ -138,12 +135,29 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",minprob=0.3):
             tr["line"]["opacity"] = 1.0            
         traces_v += shower_pcatrace_v
 
+    if True:
+        ev_shower_goodhit      = io.get_data( larlite.data.kLArFlowCluster, "showergoodhit" )                
+        ev_shower_goodhit_pca  = io.get_data( larlite.data.kPCAxis, "showergoodhit" )                
+        for ishr in range(ev_shower_goodhit.size()):
+            showercluster = ev_shower_goodhit.at(ishr)
+            showertrace = lardly.data.visualize_larlite_larflowhits( showercluster,"[%d]shrgood"%(ishr) )
+            r3 = np.random.randint(255,size=3)
+            colors = "rgb(%d,%d,%d)"%( r3[0], r3[1], r3[2] )
+            showertrace["marker"]["color"] = colors
+            showertrace["marker"]["opacity"] = 0.2
+            traces_v.append( showertrace )        
+        
         goodhit_pcatrace_v = lardly.data.visualize_event_pcaxis( ev_shower_goodhit_pca )
-        for tr in goodhit_pcatrace_v:
-            tr["line"]["color"] = "rgb(255,255,255)"
+        for itr,tr in enumerate(goodhit_pcatrace_v):
+            tr["line"]["color"] = "rgb(150,150,150)"
             tr["line"]["width"] = 3
-            tr["line"]["opacity"] = 1.0            
+            tr["line"]["opacity"] = 1.0
+            tr["name"] = "[%d]pca-shrgood"%(itr)
         traces_v += goodhit_pcatrace_v
+
+    if False:
+        ev_kpshower        = io.get_data( larlite.data.kLArFlow3DHit, "showerkp" ) 
+        ev_showerkp_unused = io.get_data( larlite.data.kLArFlow3DHit, "showerkpunused" )
         
         for ikp in range(ev_kpshower.size()):
             kptrace = {
