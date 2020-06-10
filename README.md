@@ -1,10 +1,35 @@
 # LArFlow: prediction pixel correspondence between LArTPC wireplane images
 
-This repository contains the code for developing the larflow network.
+This repository contains the code for developing a full 3D neutrino interaction
+reconstruction centered using outputs of a convolutional neural network.
+
+The convolutional neural network aims to provide information
+that seeds the reconstruction of particles and interactions.
+This includes:
+
+* good 3D space points representing the locations where charge particle tracks passed
+through the detector
+* associations between the 3D space points and the spatial patterns in
+the TPC images where the points project into.
+* scores indicating which 3D points are near important, key-points:
+  track ends, shower starts, and neutrino interaction vertices.
 
 ## Contents
 
-(not including submodule dependencies)
+* larmatchnet: definition of network, scripts to train and deploy network
+* larflow: c++ libraries providing methods to prepare data, perform downstream reconstruction
+
+Within the `larflow` folder, are the following c++ modules:
+* `PrepFlowMatchData`: classes/methods for preparing spacepoint data from TPC images
+* `KeyPoints`: classes/methods for preparing keypoint training info using spacepoint data from `PrepFlowMatchData`
+* `SpatialEmbed`: classes/methods for preparing spatial embedding training info using spacepoint data from `PrepFlowMatchData`
+* `Reco`: downstream reconstruction using output of networks to form candidate neutrino interactions
+* `CRTMatch`: tools to combine CRT data with spacepoints and TPC data in order to provide tagged cosmic muon tracks
+* `Voxelizer`: voxelize larmatch spacepoints, not finished. intended to help spacepoint output connect to 3D convolutional networks.
+* `LArFlowConstants`: constants, enumerations used in the other modules
+* `FlowContourMatch`:deprecated tools
+
+Other folders are considered deprecated and need to be cleaned up and archived.
 
 * models: different version of models
 * dataprep: scripts to make larflow input and truth images from larsoft files and then prepare crops for training
@@ -44,25 +69,28 @@ This repository contains the code for developing the larflow network.
 
 * ROOT (6.12/04 known to work)
 * opencv (3.2.0 known to work)
-* pytorch (0.4.1 known to work)
+* pytorch (1.3, 1.4 known to work)
 * numpy (1.14.03 known to work)
 * tensorboardX (from [here](https://github.com/lanpa/tensorboard-pytorch))
 * tensorboard
-* cuda (8.0,9.0,9.1 known to work)
+* cuda (currently using 10.1)
 * Eigen 3
-* GLEW (opengl library)
+
+UBDL dependencies
+* larlite: following X branch
+* Geo2D:
+* LArOpenCV:
+* larcv:
+* ublarcvapp:
+* cilantros:
+* nlohmann/json
 * (to do: add missing)
 
 ### Included as submodules
 
-* LArCV2 (tufts_ub branch): library for representing LArTPC data as images along with meta-data. Also, provides IO.
-* larlite: classes for meta-data. Also provides access to constants for the UB detector geometry and LAr physics
-* Geo2D: a library of 2D geometry tools to help calculate things like intersections of objects
-* LArOpenCV: a library of algorithms using the OpenCV library. built as libraries that are a part of larlite
-* larlitecv: a library to open larcv and larlite files in a coordinated fashion
-* larcvdataset: wrapper class providing interface to images stored in the larcv format. converts data into numpy arrays for use in pytorch
-* Cilantro: a library with various Clustering routines w/ C++ API
-* Pangolin: a OpenGL viewer package, used by Cilantro
+* larcvdataset: wrapper class providing interface to images stored in the larcv format. converts data into numpy arrays for use in pytorch (deprecated)
+* Cilantro: a library with various Clustering routines w/ C++ API (deprecated)
+* Pangolin: a OpenGL viewer package, used by Cilantro (deprecated)
 
 ## Setup
 
@@ -72,7 +100,7 @@ This repository contains the code for developing the larflow network.
 * setup the submodules, configure environment variables, and build: `source first_setup.sh`
 * if you plan to modify any of the submodules, you will need go to the head branch for each submodule. use: `source goto_head_of_submodules.sh`
 
-### Issues building Pangolin
+### Issues building Pangolin (deprecated)
 
 Pangolin depends on GLEW and X11. These can be provided by a package manager.
 However, especially for GLEW other versions can be on the system from other libraries like CUDA and/or ROOT.
