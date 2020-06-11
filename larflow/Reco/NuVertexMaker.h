@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 
+#include "TTree.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "DataFormat/storage_manager.h"
@@ -70,6 +71,22 @@ namespace reco {
     void _createCandidates();
     void _set_defaults();
     void _score_vertex( NuVertexCandidate& vtx ); 
+
+
+  protected:
+
+    bool   _own_tree;
+    int    _ana_run;
+    int    _ana_subrun;
+    int    _ana_event;
+    TTree* _ana_tree;
+    
+  public:
+    
+    void make_ana_tree();
+    void add_nuvertex_branch( TTree* tree );
+    void fill_ana_tree()  { if (_ana_tree) _ana_tree->Fill(); };
+    void write_ana_tree() { if (_ana_tree) _ana_tree->Write(); };
     
   };
   

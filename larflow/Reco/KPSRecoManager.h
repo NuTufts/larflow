@@ -1,6 +1,10 @@
 #ifndef __KPS_RECO_MANAGER_H__
 #define __KPS_RECO_MANAGER_H__
 
+// ROOT
+#include "TFile.h"
+#include "TTree.h"
+
 // larlite
 #include "DataFormat/storage_manager.h"
 
@@ -59,7 +63,18 @@ namespace reco {
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
                          
+
+  protected:
+
+    TFile* _ana_file;
+    TTree* _ana_tree;
+    int _ana_run;
+    int _ana_subrun;
+    int _ana_event;
+    void make_ana_file();
     
+  public:
+    void write_ana_file() { _ana_file->cd(); _ana_tree->Write(); };
     
   };
 

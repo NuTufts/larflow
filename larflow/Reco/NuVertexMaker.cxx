@@ -11,7 +11,8 @@ namespace reco {
    *
    */
   NuVertexMaker::NuVertexMaker()
-    : larcv::larcv_base("NuVertexMaker")
+    : larcv::larcv_base("NuVertexMaker"),
+    _ana_tree(nullptr)
   {
     _set_defaults();
   }
@@ -97,6 +98,7 @@ namespace reco {
     // limit pairings by gap distance (different for shower and track)
 
     // make vertex objects
+    std::vector<NuVertexCandidate> seed_v;
     for ( auto it=_keypoint_producers.begin(); it!=_keypoint_producers.end(); it++ ) {
       if ( it->second==nullptr ) continue;
 
@@ -111,14 +113,14 @@ namespace reco {
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];
         vertex.score = 0.0;
-        _vertex_v.emplace_back( std::move(vertex) );
+        seed_v.emplace_back( std::move(vertex) );
       }
     }
 
 
     // associate to cluster objects
-    for ( size_t vtxid=0; vtxid<_vertex_v.size(); vtxid++ ) {
-      auto& vertex = _vertex_v[vtxid];
+    for ( size_t vtxid=0; vtxid<seed_v.size(); vtxid++ ) {
+      auto& vertex = seed_v[vtxid];
       
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
         if ( it->second==nullptr ) continue;
@@ -178,17 +180,18 @@ namespace reco {
         }//end of cluster loop
       }//end of cluster container loop
 
-
       _score_vertex( vertex );
       
     }//end of vertex loop
 
 
-    std::sort( _vertex_v.begin(), _vertex_v.end() );
+    std::sort( seed_v.begin(), seed_v.end() );
     
-    if ( logger().debug() ) {
-      for ( auto const& vertex : _vertex_v ) {
-        if ( vertex.cluster_v.size()>=0 ) {
+    for ( auto& vertex : seed_v ) {
+      
+      if ( vertex.cluster_v.size()>0 ) {
+        _vertex_v.emplace_back( std::move(vertex) );
+        if ( logger().debug() ) {
           LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", " << vertex.keypoint_index << "] " << std::endl;
           LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
           LARCV_DEBUG() << "  producer: " << vertex.keypoint_producer << std::endl;
@@ -203,9 +206,10 @@ namespace reco {
                           << " npts=" << vertex.cluster_v[ic].npts
                           << std::endl;
           }
-        }        
-      }//end of vertex loop
-    }// if debug
+        }//end of if debug
+      }//end of if has clusters
+    }//end of vertex loop
+
 
   }
 
@@ -279,6 +283,40 @@ namespace reco {
       vtx.score += clust_score;
     }        
   }
+
+  /**
+   * add branch to tree that will save container of vertex candidates
+   *
+   */
+  void NuVertexMaker::add_nuvertex_branch( TTree* tree )
+  {
+    _ana_tree = tree;
+    _own_tree = false;
+    tree->Branch("nuvertex_v", &_vertex_v );
+  }
+
+
+  /**
+   * create a TTree into which we will save the vertex container
+   *
+   */
+  void NuVertexMaker::make_ana_tree()
+  {
+    if ( !_ana_tree ) {
+      _ana_tree = new TTree("NuVertexMakerTree","output of NuVertexMaker Class");
+
+      // since we own this tree, we will add the run,subrun,event to it
+      _ana_tree->Branch("run",&_ana_run,"run/I");
+      _ana_tree->Branch("subrun",&_ana_run,"subrun/I");
+      _ana_tree->Branch("event",&_ana_run,"event/I");      
+      // add the vertex container
+      add_nuvertex_branch( _ana_tree );
+      // mark that we own it, so we destroy it later
+      _own_tree = true;
+    }
+  }
+
+  
   
 }
 }

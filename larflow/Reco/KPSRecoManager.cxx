@@ -9,7 +9,9 @@ namespace reco {
 
   KPSRecoManager::KPSRecoManager()
     : larcv::larcv_base("KPSRecoManager")
-  {    
+  {
+    make_ana_file();
+    _nuvertexmaker.add_nuvertex_branch( _ana_tree );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -92,6 +94,12 @@ namespace reco {
     multiProngReco( iolcv, ioll );
     
     // Single particle interactions
+
+    // Fill Ana Tree
+    _ana_run = ev_adc->run();
+    _ana_subrun = ev_adc->subrun();
+    _ana_event  = ev_adc->event();
+    _ana_tree->Fill();
     
   }
 
@@ -161,6 +169,19 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     _nuvertexmaker.process( iolcv, ioll );
     
+  }
+
+  /**
+   * create ana file and define output tree
+   *
+   */
+  void KPSRecoManager::make_ana_file()
+  {
+    _ana_file = new TFile("outana_kpsrecomanager.root", "recreate");
+    _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
+    _ana_tree->Branch("run",&_ana_run,"run/I");
+    _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
+    _ana_tree->Branch("event",&_ana_event,"event/I");    
   }
   
 }
