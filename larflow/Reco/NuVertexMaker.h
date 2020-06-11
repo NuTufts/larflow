@@ -20,6 +20,8 @@
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 
+#include "NuVertexCandidate.h"
+
 namespace larflow {
 namespace reco {
 
@@ -32,37 +34,9 @@ namespace reco {
 
     void process( larcv::IOManager& ioman, larlite::storage_manager& ioll );
 
-    /**
-       structure representing particle cluster that is close enough to
-       vertex
-    */
-    typedef enum { kTrack=0, kShowerKP, kShower } ClusterType_t;
-    struct VtxCluster_t {
-      std::string producer;
-      int index;
-      std::vector<float> dir;
-      std::vector<float> pos;
-      float gap;
-      float impact;
-      int npts;
-      ClusterType_t type;
-    };
-
-    struct Vertex_t {
-      std::string keypoint_producer;      
-      int keypoint_index;
-      std::vector<float> pos;
-      std::vector< VtxCluster_t > cluster_v;
-      float score;
-      bool operator<(const Vertex_t& rhs) const {
-        if ( score>rhs.score ) return true;
-        return false;
-      };
-    };
-
   protected:
 
-    std::vector<Vertex_t> _vertex_v;
+    std::vector<NuVertexCandidate> _vertex_v;
 
   protected:
 
@@ -71,9 +45,9 @@ namespace reco {
 
     std::map<std::string, larlite::event_larflowcluster* > _cluster_producers;
     std::map<std::string, larlite::event_pcaxis* >         _cluster_pca_producers;
-    std::map<std::string, ClusterType_t >                  _cluster_type;
-    std::map<ClusterType_t, float>                         _cluster_type_max_impact_radius;
-    std::map<ClusterType_t, float>                         _cluster_type_max_gap;
+    std::map<std::string, NuVertexCandidate::ClusterType_t > _cluster_type;
+    std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_impact_radius;
+    std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_gap;
     
   public:
 
@@ -82,7 +56,8 @@ namespace reco {
       _keypoint_pca_producers[name] = nullptr;
     };
 
-    void add_cluster_producer( std::string name, NuVertexMaker::ClusterType_t ctype ) {
+    void add_cluster_producer( std::string name,
+                               NuVertexCandidate::ClusterType_t ctype ) {
       _cluster_producers[name] = nullptr;
       _cluster_pca_producers[name] = nullptr;
       _cluster_type[name] = ctype;
@@ -94,7 +69,7 @@ namespace reco {
 
     void _createCandidates();
     void _set_defaults();
-    void _score_vertex( Vertex_t& vtx ); 
+    void _score_vertex( NuVertexCandidate& vtx ); 
     
   };
   

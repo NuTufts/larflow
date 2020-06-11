@@ -104,7 +104,7 @@ namespace reco {
 
         auto const& lf_vertex = it->second->at(vtxid);
         
-        Vertex_t vertex;
+        NuVertexCandidate vertex;
         vertex.keypoint_producer = it->first;
         vertex.keypoint_index = vtxid;
         vertex.pos.resize(3,0);
@@ -127,7 +127,7 @@ namespace reco {
           
           auto const& lfcluster = it->second->at(icluster);
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
-          ClusterType_t ctype   = _cluster_type[it->first];
+          NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
         
           std::vector<float> pcadir(3,0);
           std::vector<float> start(3,0);
@@ -154,7 +154,7 @@ namespace reco {
             continue;
 
           // else attach
-          VtxCluster_t cluster;
+          NuVertexCandidate::VtxCluster_t cluster;
           cluster.producer = it->first;
           cluster.index = icluster;
           cluster.dir.resize(3,0);
@@ -232,16 +232,16 @@ namespace reco {
   void NuVertexMaker::_set_defaults()
   {
     // Track
-    _cluster_type_max_impact_radius[ kTrack ] = 5.0;
-    _cluster_type_max_gap[ kTrack ] = 5.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kTrack ] = 5.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 5.0;
 
     // ShowerKP
-    _cluster_type_max_impact_radius[ kShowerKP ] = 20.0;
-    _cluster_type_max_gap[ kShowerKP ]           = 50.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 20.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 50.0;
 
     // Shower
-    _cluster_type_max_impact_radius[ kShower ] = 20.0;
-    _cluster_type_max_gap[ kShower ]           = 50.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 20.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
     
   }
 
@@ -253,7 +253,7 @@ namespace reco {
    * cluster association quality based on how well cluster points back to vertex
    *
    */
-  void NuVertexMaker::_score_vertex( Vertex_t& vtx )
+  void NuVertexMaker::_score_vertex( NuVertexCandidate& vtx )
   {
     vtx.score = 0.;
     const float tau_gap_shower    = 20.0;
@@ -265,7 +265,7 @@ namespace reco {
     
     for ( auto& cluster : vtx.cluster_v ) {
       float clust_score = 1.0;
-      if ( cluster.type==kTrack ) {
+      if ( cluster.type==NuVertexCandidate::kTrack ) {
         if ( cluster.gap>3.0 )
           clust_score *= (1.0/tau_gap_track)*exp( -cluster.gap/tau_gap_track );
         if ( cluster.impact>3.0 )

@@ -33,6 +33,7 @@
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
 #pragma link C++ class larflow::reco::KPCluster+;
+#pragma link C++ class larflow::reco::NuVertexCandidate+;
 #pragma link C++ class larflow::reco::SplitHitsBySSNet+;
 #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
 #pragma link C++ class larflow::reco::DBScanLArMatchHits+;

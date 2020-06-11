@@ -156,9 +156,9 @@ namespace reco {
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
     _nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
-    _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexMaker::kTrack );
-    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexMaker::kShowerKP );
-    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexMaker::kShower );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     _nuvertexmaker.process( iolcv, ioll );
     
   }
