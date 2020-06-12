@@ -244,8 +244,8 @@ namespace reco {
     _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 50.0;
 
     // Shower
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 20.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 50.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 100.0;
     
   }
 

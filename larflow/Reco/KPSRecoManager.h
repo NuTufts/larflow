@@ -1,6 +1,8 @@
 #ifndef __KPS_RECO_MANAGER_H__
 #define __KPS_RECO_MANAGER_H__
 
+#include <string>
+
 // ROOT
 #include "TFile.h"
 #include "TTree.h"
@@ -35,7 +37,7 @@ namespace reco {
   class KPSRecoManager : public larcv::larcv_base {
   public:
 
-    KPSRecoManager();
+    KPSRecoManager( std::string inputfile="outana_kpsrecomanager.root" );
     virtual ~KPSRecoManager();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -68,6 +70,7 @@ namespace reco {
 
     TFile* _ana_file;
     TTree* _ana_tree;
+    std::string _ana_input_file;
     int _ana_run;
     int _ana_subrun;
     int _ana_event;

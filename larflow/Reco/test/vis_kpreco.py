@@ -2,7 +2,9 @@ from __future__ import print_function
 import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
-parser.add_argument("-tr","--input-larlite",required=True,type=str,help="trackreco2kp larlite output file")
+parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsrecomanager larlite output file")
+parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
+parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
 args = parser.parse_args()
 
 import numpy as np
@@ -29,10 +31,15 @@ for opt in color_by_options:
 # OPEN LARLITE FILE
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larlite )
+if args.input_mcinfo is not None:
+    io.add_in_filename( args.input_mcinfo )
+    HAS_MC = True
+else:
+    HAS_MC = False
 io.open()
 
 # OPEN VERTEX RECO FILE
-anafile = rt.TFile("outana_kpsrecomanager.root")
+anafile = rt.TFile( args.input_kpsana )
 kpsanatree = anafile.Get("KPSRecoManagerTree")
 nentries = kpsanatree.GetEntries()
 CURRENT_EVENT = None
@@ -126,7 +133,14 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     showerhit_trace["marker"]["color"] = "rgb(200,125,125)"
     showerhit_trace["marker"]["opacity"] = 0.05
     traces_v.append(showerhit_trace)
-    
+
+    if HAS_MC:
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        traces_v += mctrack_v
+
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        traces_v += mcshower_v
+        
     
     # add detector outline
     traces_v += detdata.getlines()

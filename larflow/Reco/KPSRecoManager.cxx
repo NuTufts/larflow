@@ -7,8 +7,9 @@
 namespace larflow {
 namespace reco {
 
-  KPSRecoManager::KPSRecoManager()
-    : larcv::larcv_base("KPSRecoManager")
+  KPSRecoManager::KPSRecoManager( std::string inputfile_name )
+    : larcv::larcv_base("KPSRecoManager"),
+    _ana_input_file(inputfile_name)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -177,7 +178,7 @@ namespace reco {
    */
   void KPSRecoManager::make_ana_file()
   {
-    _ana_file = new TFile("outana_kpsrecomanager.root", "recreate");
+    _ana_file = new TFile(_ana_input_file.c_str(), "recreate");
     _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
