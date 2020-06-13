@@ -7,7 +7,6 @@ parser.add_argument("-o","--output",required=True,type=str,help="output file nam
 parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree with Wire ADC values [default: wire]")
 parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,help="Input LArCV data is tick-backward [default: false]")
 parser.add_argument("-vis", "--visualize", action='store_true',default=False,help="Visualize Keypoints in TCanvas [default: false]")
-parser.add_argument("-bvh", "--use-bvh", action='store_true',default=False,help="Use BVH [default: false]")
 parser.add_argument("-tri", "--save-triplets",action='store_true',default=False,help="Save triplet data [default: false]")
 parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
 args = parser.parse_args()
@@ -48,10 +47,10 @@ tmp = rt.TFile(args.output,"recreate")
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
-kpana.useBVH( args.use_bvh )
+kpana.setADCimageTreeName( args.adc )
 kpana.defineAnaTree()
-ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
-ssnet.defineAnaTree()
+#ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
+#ssnet.defineAnaTree()
 
 if args.save_triplets:
     triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
@@ -85,53 +84,68 @@ for ientry in xrange( nentries ):
                                               1.0, 100, -1.0 );
     print("made badch_v, size=",badch_v.size())
 
-    #tripmaker = larflow.PrepMatchTriplets()
+
     tripmaker.process( adc_v, badch_v, 10.0, True )
     tripmaker.make_truth_vector( larflow_v )
     
     kpana.process( iolcv, ioll )
-
-    kpd = kpana.get_keypoint_array()
-    print "kpd: ",kpd.shape
-    for p in xrange(kpd.shape[0]):
-        print " [",p,"] imgcoord: ",kpd[p,0:4]
-
     kpana.make_proposal_labels( tripmaker )
     kpana.fillAnaTree()
 
-    ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    kplabels = kpana.get_triplet_score_array(10.0)
+
+    #ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
     
     if args.save_triplets:
         triptree.Fill()
     nrun += 1
     
     if args.visualize:
-        # visualize output
-        c = rt.TCanvas("c","c",1200,1800)
-        c.Divide(1,3)
+        # visualize output, we make a TH2D for each class
+        kpclasses = ["nuvertex","trackends","showerstart"]
+        canv = {}
+        for iclass,kpclass in enumerate(kpclasses):
+            c = rt.TCanvas("c%s"%(kpclass),"c%s"%(kpclass),1200,1800)
+            c.Divide(1,3)
+            canv[kpclass] = c
 
-        # make histogram and graphs
-        hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
-        for ih in xrange(adc_v.size()):
-            h = hist_v[ih]
-            h.GetZaxis().SetRangeUser(0,100)
+        # make graphs for the keypoints
+        graphs_v = {}
+        for iclass,kpclass in enumerate(kpclasses):
+            kpd = kpana.get_keypoint_array(iclass)
+            print "kpd[",kpclass,"]: ",kpd.shape
+            for p in xrange(kpd.shape[0]):
+                print " [",p,"] imgcoord: ",kpd[p,0:4]," pos=",kpd[p,4:7]
+        
+            g_v = [ rt.TGraph( int(kpd.shape[0]) ) for p in xrange(3) ]
+            for g in g_v:
+                g.SetMarkerStyle(20)
+            for ipt in xrange(kpd.shape[0]):
+                for p in xrange(3):
+                    row = kpd[ipt,0]
+                    if row==0:
+                        row+=1
+                    g_v[p].SetPoint(ipt,kpd[ipt,1+p],adc_v[p].meta().pos_y(long(row)))
+            graphs_v[kpclass] = g_v
 
-        g_v = [ rt.TGraph( int(kpd.shape[0]) ) for p in xrange(3) ]
-        for g in g_v:
-            g.SetMarkerStyle(20)
-        for ipt in xrange(kpd.shape[0]):
+        # make score maps for the classes
+        hists = {}
+        print "number of triplets: ",kplabels.shape        
+        for iclass,kpclass in enumerate(kpclasses):
+            canv[kpclass].Draw()
+            # make ADC image
+            h_v = kpana.makeScoreImage( iclass, 10.0, "hscore_%s"%(kpclass), tripmaker, adc_v )
+            for h in h_v:
+                h.GetZaxis().SetRangeUser(0,1)
+        
             for p in xrange(3):
-                row = kpd[ipt,0]
-                if row==0:
-                    row+=1
-                g_v[p].SetPoint(ipt,kpd[ipt,1+p],adc_v[p].meta().pos_y(long(row)))
-
-        for p in xrange(3):
-            c.cd(1+p)
-            hist_v[p].Draw("colz")
-            g_v[p].Draw("P")
+                canv[kpclass].cd(1+p)
+                h_v[p].Draw("colz")
+                graphs_v[kpclass][p].Draw("P")
+                
+            hists[kpclass] = h_v                
+            canv[kpclass].Update()            
     
-        c.Update()    
         print "[enter to continue]"
         raw_input()
 
@@ -149,11 +163,11 @@ print "Time: ",float(dtime)/float(nrun)," sec/event"
 tmp.cd()
 kpana.writeAnaTree()
 kpana.writeHists()
-ssnet.writeAnaTree()
+#ssnet.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
 
 del kpana
-del ssnet
+#del ssnet
 
 print "=== FIN =="

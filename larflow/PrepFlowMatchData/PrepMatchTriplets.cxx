@@ -11,6 +11,7 @@
 #include <chrono>       // std::chrono::system_clock
 
 #include "larlite/core/LArUtil/LArProperties.h"
+#include "larlite/core/LArUtil/Geometry.h"
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
@@ -228,15 +229,29 @@ namespace larflow {
         std::vector<float> intersection = {0,0,0};
         
         if ( check_wire_intersection ) {
-          std::vector<float> zy;
-          ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, zy, tri_area, crosses );
-          if ( crosses==0 ) {
+
+          UInt_t src_ch = larutil::Geometry::GetME()->PlaneWireToChannel( (UInt_t)srcplane, (UInt_t)trip[0]);
+          UInt_t tar_ch = larutil::Geometry::GetME()->PlaneWireToChannel( (UInt_t)tarplane, (UInt_t)trip[1] );
+          Double_t y,z;
+          bool crosses  = larutil::Geometry::GetME()->ChannelsIntersect( src_ch, tar_ch, y, z );
+
+          if ( !crosses ) {
             n_not_crosses++;
             continue;
-          }
-          intersection[1] = zy[1];
-          intersection[2] = zy[0];
+          }          
           intersection[0] = (adc_v[0].meta().pos_y( imgcoord_v[3] )-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+          intersection[1] = y;
+          intersection[2] = z;
+          
+          // std::vector<float> zy;
+          // ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, zy, tri_area, crosses );
+          // if ( crosses==0 ) {
+          //   n_not_crosses++;
+          //   continue;
+          // }
+          // intersection[1] = zy[1];
+          // intersection[2] = zy[0];
+          // intersection[0] = (adc_v[0].meta().pos_y( imgcoord_v[3] )-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
         }
         
         

@@ -18,6 +18,14 @@
  *
  * maybe, depending on quality of truth data
  * neutrino secondaries -- scattering secondaries
+ *
+ * The training output we are trying to get the network to make are:
+ *  1) for each space point (i.e. triplet) proposed, scores (one for each keypoint type)
+ *     which come from a gaussian between the 3D position of the space point
+ *     and the closest true keypoint of that class. 
+ *  2) If the closest true keypoint is greater than some distance, the score is set to 0.0
+ *  3) The classes are { neutrino vertex, shower start, track ends }
+ * 
  * 
  *
  */
@@ -28,12 +36,13 @@
 #include <vector>
 #include <string>
 
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
 #include "KPdata.h"
-#include "bvhnode_t.h"
 
 class TH1F;
+class TH2D;
 
 namespace larcv {
   class Image2D;
@@ -85,7 +94,8 @@ namespace keypoints {
 
     std::string _adc_image_treename;
     
-    // KPdata in KPdata.h    
+    // KPdata in KPdata.h
+    // This class represents the true keypoints
     std::vector<KPdata> _kpd_v; 
     
     std::vector<KPdata>    
@@ -102,6 +112,11 @@ namespace keypoints {
 
     std::string str( const KPdata& kpd );
 
+    void _label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
+                              const std::vector<larcv::Image2D>& adc_v,
+                              larutil::SpaceChargeMicroBooNE* psce,
+                              std::vector<KPdata>& kpdata_v  );
+    
     void filter_duplicates();
 
   public:
@@ -109,26 +124,11 @@ namespace keypoints {
     void setADCimageTreeName(std::string treename) { _adc_image_treename=treename; };
     const std::vector<KPdata>& getKPdata() const { return _kpd_v; };
     void printKeypoints() const;
-    
-    
-  protected:
-
-    // BVH data
-    std::vector< bvhnode_t* > _bvhnodes_v;
-    bvhnode_t* _bvhroot;
-    bool _use_bvh;
-    void clearBVH();
-    void makeBVH();
-
-  public:
-
-    // BVH public methods
-    void useBVH( bool use ) { _use_bvh = use; };    
-    void printBVH();
-    
+            
   public:
     
-    PyObject* get_keypoint_array() const;
+    PyObject* get_keypoint_array(int ikpclass ) const; //< get numpy array with true keypoint information
+    PyObject* get_triplet_score_array( float sig ) const; //< get numpy array with target scores
 
     
   protected:
@@ -138,16 +138,16 @@ namespace keypoints {
     
     // this provides the labels for each triplet proposal made by
     // larflow::PrepMatchTriplets
-    std::vector< std::vector<float> > _match_proposal_labels_v;
-    void findClosestKeypoint( const std::vector<float>& testpt,
-                              int& kpindex, float& dist );
+    std::vector< std::vector<float> > _match_proposal_labels_v[3]; 
 
     // Ana Tree
     int _run;
     int _subrun;
     int _event;
     TTree* _label_tree; ///< tree for storing labels
-    std::vector< std::vector<float> > _kppos_v;
+    std::vector< std::vector<float> > _kppos_v[3]; //< container for each of the 3 classes
+    //< we need to keep a list of primary pixels to limit the neutrino score field    
+    //std::vector< std::set<std::pair<int,int> > >  _primarypixels_v; 
     
   public:
     
@@ -163,6 +163,11 @@ namespace keypoints {
     int _nclose;
     int _nfar;
     void writeHists();
+
+    std::vector<TH2D> makeScoreImage( const int ikpclass, const float sigma,
+                                      const std::string histname,
+                                      const larflow::PrepMatchTriplets& tripmaker,
+                                      const std::vector<larcv::Image2D>& adc_v ) const;
     
   private:
     

@@ -5,7 +5,8 @@
 
 namespace larflow {
 
-  typedef enum { kU2V=0, kU2Y, kV2U, kV2Y, kY2U, kY2V, kNumFlows } FlowDir_t;
+  typedef enum { kU2V=0, kU2Y, kV2U, kV2Y, kY2U, kY2V, kNumFlows }   FlowDir_t;
+  typedef enum { kNuVertex=0, kTrackEnds, kShowerStart, kNumKeyPoints } KeyPoint_t;
     
   class LArFlowConstants {
 

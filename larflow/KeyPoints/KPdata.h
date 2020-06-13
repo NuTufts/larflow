@@ -1,6 +1,13 @@
 #ifndef __KPdata_h__
 #define __KPdata_h__
 
+/**
+ * Struct representing true keypoints in the images
+ *
+ */
+
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
+
 #include <vector>
 
 namespace larflow {
@@ -15,6 +22,7 @@ namespace keypoints {
     int vid;
     int is_shower;
     int origin;
+    KeyPoint_t kptype;
     KPdata() {
       crossingtype = -1;
       imgcoord.clear();
@@ -24,6 +32,7 @@ namespace keypoints {
       vid = 0;
       is_shower = 0;
       origin = -1;
+      kptype = larflow::kNumKeyPoints; // sentinal value
     };
     ~KPdata() {};
 
