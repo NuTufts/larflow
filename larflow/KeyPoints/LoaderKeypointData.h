@@ -1,6 +1,11 @@
 #ifndef __LOADER_KEYPOINT_DATA_H__
 #define __LOADER_KEYPOINT_DATA_H__
 
+/**
+ * class used to help load keypoint ground truth data for training
+ *
+ */
+
 #include <Python.h>
 #include "bytesobject.h"
 

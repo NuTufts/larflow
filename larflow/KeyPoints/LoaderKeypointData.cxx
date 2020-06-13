@@ -5,6 +5,12 @@
 namespace larflow {
 namespace keypoints {
 
+  /**
+   * constructor
+   *
+   * @param[in] input_v List of paths to input ROOT files containing ground truth data
+   *
+   */
   LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
     : ttriplet(nullptr),
       tkeypoint(nullptr),
@@ -23,6 +29,10 @@ namespace keypoints {
     if ( tssnet )   delete tssnet;
   }
 
+  /**
+   * load TTree class data members and define TBranch's
+   *
+   */
   void LoaderKeypointData::load_tree() {
     std::cout << "[LoaderKeypointData::load_tree()]" << std::endl;
     
@@ -47,6 +57,10 @@ namespace keypoints {
     tssnet->SetBranchAddress( "trackshower_weight_v", &ssnet_weight_v );
   }
 
+  /**
+   * load data for the different trees
+   *
+   */
   unsigned long LoaderKeypointData::load_entry( int entry )
   {
     unsigned long bytes = ttriplet->GetEntry(entry);
@@ -55,11 +69,37 @@ namespace keypoints {
     return bytes;
   }
 
+  /**
+   * get total entries
+   *
+   */
   unsigned long LoaderKeypointData::GetEntries()
   {
     return ttriplet->GetEntries();
   }
 
+  /**
+   * return a ground truth data, return a subsample of all truth matches
+   *
+   * returns a python dictionary. Contents include
+   * {"matchtriplet":numpy array with sparse image indices for each place, representing pixels
+   *                 a candidate space point project into,
+   *  "match_weight":weight of "matchtriplet" examples,
+   *  "positive_indices":indices of entries in "matchtriplet" array that correspond to good/true spacepoints,
+   *  "ssnet_label":class label for space point,
+   *  "ssnet_top_weight":weight based on topology (i.e. on boundary, near nu-vertex),
+   *  "ssnet_class_weight":weight based on class frequency,
+   *  "kplabel":keypoint score numpy array,
+   *  "kplabel_weight":weight for keypoint label,
+   *  "kpshift":shift in 3D from space point position to nearest keypoint}
+   *
+   *
+   * @param[in] maximum number of space points for which we return ground truth data
+   * @param[out] The number of space points, for which we actually return data
+   * @param[in] withtruth If true, return info on whether space point is true (i.e. good)
+   * @return Python dictionary object with various numpy arrays
+   *                        
+   */
   PyObject* LoaderKeypointData::sample_data( const int& num_max_samples,
                                              int& nfilled,
                                              bool withtruth )
@@ -178,6 +218,20 @@ namespace keypoints {
     return d;
   }
 
+  /**
+   * make the ssnet numpy arrays 
+   *
+   * @param[in] Max number of samples to return
+   * @param[out] number of samples actually returned
+   * @param[in]  if true, return flag indicating if true/good space point
+   * @param[out] vector index in return samples for space points which are true/good
+   * @param[in]  numpy array containing indices to sparse image for each spacepoint
+   * @param[out] numpy array containing ssnet class labels for each spacepoint
+   * @param[out] numpy array containing topological weight
+   * @param[out] numpy array containing class weights
+   * @return always returns 0
+   *
+   */
   int LoaderKeypointData::make_ssnet_arrays( const int& num_max_samples,
                                              int& nfilled,
                                              bool withtruth,
@@ -248,6 +302,18 @@ namespace keypoints {
     return 0;
   }
 
+  /**
+   * make keypoint ground truth numpy arrays
+   *
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[out] pos_match_index vector index in return samples for space points which are true/good
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] kplabel_label numpy array containing ssnet class labels for each spacepoint
+   * @param[out] kplabel_weight numpy array containing weight for each spacepoint
+   * @return always returns 0  
+   */
   int LoaderKeypointData::make_kplabel_arrays( const int& num_max_samples,
                                                 int& nfilled,
                                                 bool withtruth,
@@ -326,7 +392,17 @@ namespace keypoints {
 
     return 0;
   }
-  
+
+  /**
+   * make keypoint shift ground truth numpy arrays
+   *
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] kpshift_label numpy array containing ground truth position shifts
+   * @return always returns 0  
+   */  
   int LoaderKeypointData::make_kpshift_arrays( const int& num_max_samples,
                                                 int& nfilled,
                                                 bool withtruth,
