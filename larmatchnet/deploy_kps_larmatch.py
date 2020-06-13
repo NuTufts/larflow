@@ -55,7 +55,7 @@ BATCHSIZE = 1
 preplarmatch = larflow.PrepMatchTriplets()
 
 # MULTI-HEAD LARMATCH MODEL
-model_dict = {"larmatch":LArMatch(neval=NUM_PAIRS,use_unet=args.use_unet).to(DEVICE),
+model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
               "ssnet":LArMatchSSNetClassifier().to(DEVICE),
               "kplabel":LArMatchKeypointClassifier().to(DEVICE),
               "kpshift":LArMatchKPShiftRegressor().to(DEVICE)}

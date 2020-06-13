@@ -113,7 +113,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        traces_v += mcshower_v
+        traces_v += mcshower_v[1:]
         
     return traces_v
 

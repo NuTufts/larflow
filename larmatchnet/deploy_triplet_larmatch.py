@@ -59,7 +59,7 @@ BATCHSIZE = 1
 # we use a config file
 preplarmatch = larflow.PrepMatchTriplets()
 
-model = LArMatch(neval=NUM_PAIRS,use_unet=False,stem_nfeatures=32).to(DEVICE)
+model = LArMatch(use_unet=False,stem_nfeatures=32).to(DEVICE)
 model.load_state_dict(checkpoint["state_dict"])
 
 print("loaded MODEL")

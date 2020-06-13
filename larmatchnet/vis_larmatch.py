@@ -35,6 +35,7 @@ from larlite import larlite
 from larcv import larcv
 import lardly
 
+colorscale = "Jet"
 
 input_larlite = args.larlite
 
@@ -57,19 +58,8 @@ def make_figures(entry):
     io_ll.go_to(entry)
 
     detdata = lardly.DetectorOutline()
-    
-    # LARFLOW HITS
-    ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
-    print("num larflow hits: ",ev_lfhits.size())
-    traces_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob) ]
 
-    if args.has_mc:
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=None)
-        traces_v += mctrack_v
-
-        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io_ll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True, origin=1 )
-        traces_v += mcshower_v
-
+    traces_v = []
     if args.draw_flash:
         ev_flash = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
         nflashes = 0
@@ -84,6 +74,21 @@ def make_figures(entry):
             traces_v += lardly.data.visualize_empty_opflash()
     
     traces_v += detdata.getlines(color=(10,10,10))
+    
+    # LARFLOW HITS
+    ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    print("num larflow hits: ",ev_lfhits.size())
+    lfhit_trace = lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob)
+    lfhit_trace["marker"]["colorscale"] = colorscale
+    traces_v +=  [ lfhit_trace ]
+
+    if args.has_mc:
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io_ll.get_data(larlite.data.kMCTrack, "mcreco"), origin=None)
+        traces_v += mctrack_v
+
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io_ll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True, origin=1 )
+        traces_v += mcshower_v
+
         
     return traces_v
 
