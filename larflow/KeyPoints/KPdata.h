@@ -4,16 +4,22 @@
 /**
  * Struct representing true keypoints in the images
  *
+ * Produced by PrepKeypointData class
+ * 
  */
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 #include <vector>
+#include <string>
 
 namespace larflow {
 namespace keypoints {
 
-  struct KPdata {
+  class KPdata {
+
+  public:
+    
     int crossingtype;
     std::vector<int> imgcoord;
     std::vector<float> keypt;
@@ -36,6 +42,8 @@ namespace keypoints {
     };
     ~KPdata() {};
 
+    std::string str() const;
+    
   };
 
   bool kpdata_compare_x( const KPdata* lhs, const KPdata* rhs );

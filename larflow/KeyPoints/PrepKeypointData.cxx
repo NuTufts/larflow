@@ -69,6 +69,26 @@ namespace keypoints {
   /**
    * process one event, given io managers
    *
+   * expect the following inputs within the event data containers
+   * in IOManager:
+   * - charge image with tree name _adc_image_treename, specifiable using `setADCimageTreeName`
+   * - "segment" images indicating particle type at a given pixel
+   * - "instance" images indicating MC ID of particle making charge at pixel
+   * - "ancestor" images indicating ancestor track ID for particle making charge at pixel
+   *
+   * in larlite:
+   * - "mcreco" MCTrack tree, holding truth info for track-like particles
+   * - "mcreco" MCShower tree, holding truth info for shower-like particles
+   * - "generator" MCTruth tree, holding truth about neutrino interaction in image (if exists)
+   *
+   * important class data members produced by this method:
+   * - _kpd_v vector of KPdata class which holds info on ground truth keypoints
+   * - _match_proposal_labels_v[3] For each keypoint type (total 3), hold a vector of floats for every 3D spacepoint proposal
+   *                               There will be a vector<float> for each triplet in PrepMatchTriplet::_triplet_v
+   * - _kppos_v[3] For each keypoint type (total 3), store 3D position for each ground truth keypoint identified
+   *
+   * 
+   *
    * @param[in] iolcv LArCV IOManager containing event data
    * @param[in] ioll  LArLite storage_manager containing event data
    */
@@ -147,7 +167,7 @@ namespace keypoints {
 
     std::cout << "[Track Endpoint Results]" << std::endl;
     for ( auto const& kpd : track_kpd ) {
-      std::cout << "  " << str(kpd) << std::endl;
+      std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
@@ -156,7 +176,7 @@ namespace keypoints {
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
     std::cout << "[Shower Endpoint Results]" << std::endl;
     for ( auto const& kpd : shower_kpd ) {
-      std::cout << "  " << str(kpd) << std::endl;
+      std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
@@ -181,6 +201,17 @@ namespace keypoints {
 
   /**
    * make list of end-points for track-like particles
+   *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any)
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mctrack_v Event container (vector) of mctrack objects, containing truth
+   *                      information of track-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of KPdata instances, one for each ground truth track end
    *
    */
   std::vector<KPdata>
@@ -265,6 +296,19 @@ namespace keypoints {
   /**
    * make list of end-points for shower-like particles
    *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any).
+   *                 We get a list of showers using this graph, and only consider
+   *                 those who have at least 10 visible pixels in one of the planes.
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
+   *                       information of shower-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of KPdata instances, one for each ground truth shower start
+   * 
    */  
   std::vector<KPdata>
   PrepKeypointData::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
@@ -332,31 +376,6 @@ namespace keypoints {
     return kpd_v;
   }
   
-  /**
-   * make info string for KPdata
-   *
-   */    
-  std::string PrepKeypointData::str( const KPdata& kpd )
-  {
-    std::stringstream ss;
-    ss << "[type=" << kpd.crossingtype << " pid=" << kpd.pid
-       << " vid=" << kpd.vid
-       << " isshower=" << kpd.is_shower
-       << " origin=" << kpd.origin << "] "
-       << " kptype=" << kpd.kptype << " ";
-
-    if ( kpd.imgcoord.size()>0 )
-      ss << " imgstart=(" << kpd.imgcoord[0] << ","
-         << kpd.imgcoord[1] << ","
-         << kpd.imgcoord[2] << ","
-         << kpd.imgcoord[3] << ") ";
-
-    if ( kpd.keypt.size()>0 )
-      ss << " keypt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ") ";
-            
-    return ss.str();
-  }
-
   /**
    * loop through existing keypoints and change type to neutrino
    * if close to neutrino vertex.
@@ -460,8 +479,11 @@ namespace keypoints {
   }
   
   /**
-   * return an array with keypoints
-   * array columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
+   * 
+   * return a numpy array with keypoints for a given class
+   *
+   * @param[in] iclass larflow::KeyPoint_t value, indicating keypoint type
+   * @return Numpy array with columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
    *
    */
   PyObject* PrepKeypointData::get_keypoint_array( int iclass ) const
@@ -518,7 +540,16 @@ namespace keypoints {
   }
 
   /**
-   * return an array with keypoint class scores
+   * return a numpy array with keypoint class scores
+   *
+   * The score is calculated for each proposed spacepoint using a gaussian where the mean
+   *  is the 3d position of the closest ground truth keypoint for the given class.
+   * For any point 50*0.3 cm away from a ground truth keypoint, the score is set to zero.
+   *
+   * Assumes that `process` has already been run.
+   *
+   * @param[in] sig The sigma used in Gaussian to calculate keypoint class score
+   * @return Numpy array with shape [num space points, larflow::kNumKeyPoints classes ]
    *
    */
   PyObject* PrepKeypointData::get_triplet_score_array( float sig ) const
@@ -562,13 +593,13 @@ namespace keypoints {
   }
   
   /**
-   * given a set of match proposals, we make labels
+   * given a set of space point (i.e. triplet match) proposals, 
+   *  we define a vector<float> which we use to we make ground truth information
    *
-   * label columns:
-   *  [0]:   has true end-point with X cm
+   * vector elements:
+   *  [0]:   1.0 if has true end-point with 0.3*50 cm, 0.0 if not.
    *  [1-3]: shift in 3D points from point to closest end-point
    *  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
-   *
    * 
    */
   void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
@@ -589,7 +620,6 @@ namespace keypoints {
       // std::cout << "[match " << imatch << "] "
       //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
       //           << std::endl;
-
 
       // make a score for each class
       for (int ikpclass=0; ikpclass<(int)larflow::kNumKeyPoints; ikpclass++) {
@@ -678,6 +708,9 @@ namespace keypoints {
   /**
    * define ROOT tree where we save the labels
    *
+   * this TTree is intended to be used to save ground truth information
+   * we can load during  training
+   *
    */
   void PrepKeypointData::defineAnaTree()
   {
@@ -685,10 +718,18 @@ namespace keypoints {
     _label_tree->Branch("run",&_run,"run/I");
     _label_tree->Branch("subrun",&_subrun,"subrun/I");
     _label_tree->Branch("event",&_event,"event/I");
-    _label_tree->Branch("kplabel",&_match_proposal_labels_v);
-    _label_tree->Branch("kppos",&_kppos_v);
+    _label_tree->Branch("kplabel_nuvertex",    &_match_proposal_labels_v[0]);
+    _label_tree->Branch("kplabel_trackends",   &_match_proposal_labels_v[1]);
+    _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[2]);
+    _label_tree->Branch("kppos_nuvertex",    &_kppos_v[0]);
+    _label_tree->Branch("kppos_trackends",   &_kppos_v[1]);
+    _label_tree->Branch("kppos_showerstart", &_kppos_v[2]);
   }
 
+  /**
+   * call the ana tree's Write method
+   *
+   */
   void PrepKeypointData::writeAnaTree()
   {
     if (_label_tree)
@@ -714,8 +755,16 @@ namespace keypoints {
   }
 
   /**
-   * dump out th2d of scores
+   * 
+   * dump out th2d of scores, for visualization and debugging
    *
+   * @param[in] ikpclass   KeyPoint_t type
+   * @param[in] sigma      Width of score Gaussian in cm
+   * @param[in] histname   Stem of name to use for TH2D
+   * @param[in] tripmaker  Instance of PrepMatchTriplet with prepared triplets
+   * @param[in] adc_v      vector of Image2D images, for meta
+   * @return  vector of TH2D, one for each 
+   * 
    */
   std::vector<TH2D> PrepKeypointData::makeScoreImage( const int ikpclass, const float sigma,
                                                       const std::string histname,

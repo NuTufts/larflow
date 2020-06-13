@@ -1,5 +1,7 @@
 #include "KPdata.h"
 
+#include <sstream>
+
 namespace larflow {
 namespace keypoints {
 
@@ -20,7 +22,27 @@ namespace keypoints {
       return true;
     return false;
   }
-  
+
+  std::string KPdata::str() const
+  {
+    std::stringstream ss;
+    ss << "KPdata[type=" << crossingtype << " pid=" << pid
+       << " vid=" << vid
+       << " isshower=" << is_shower
+       << " origin=" << origin << "] "
+       << " kptype=" << kptype << " ";
+
+    if ( imgcoord.size()>0 )
+      ss << " imgstart=(" << imgcoord[0] << ","
+         << imgcoord[1] << ","
+         << imgcoord[2] << ","
+         << imgcoord[3] << ") ";
+    
+    if ( keypt.size()>0 )
+      ss << " keypt=(" << keypt[0] << "," << keypt[1] << "," << keypt[2] << ") ";
+    
+    return ss.str();
+  }
   
 }
 }

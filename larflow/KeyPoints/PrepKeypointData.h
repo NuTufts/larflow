@@ -92,7 +92,7 @@ namespace keypoints {
     
   protected:
 
-    std::string _adc_image_treename;
+    std::string _adc_image_treename; //< name of tree storing charge image2d
     
     // KPdata in KPdata.h
     // This class represents the true keypoints
@@ -109,8 +109,6 @@ namespace keypoints {
                        const std::vector<larcv::Image2D>& adc_v,
                        const larlite::event_mcshower& mcshower_v,
                        larutil::SpaceChargeMicroBooNE* psce );
-
-    std::string str( const KPdata& kpd );
 
     void _label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
                               const std::vector<larcv::Image2D>& adc_v,
