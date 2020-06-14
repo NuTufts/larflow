@@ -40,6 +40,7 @@ Other folders are considered deprecated and need to be cleaned up and archived.
 * testdata: default location for testdata used for development
 * utils: utility scripts
 * container: script to build Singularity container that will work on tufts grid
+* postprocessor: old code that used old larflow 3d points for reco
 
 ## To Do list:
 

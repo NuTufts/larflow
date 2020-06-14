@@ -49,8 +49,8 @@ ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
 kpana.setADCimageTreeName( args.adc )
 kpana.defineAnaTree()
-#ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
-#ssnet.defineAnaTree()
+ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
+ssnet.defineAnaTree()
 
 if args.save_triplets:
     triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
@@ -94,7 +94,7 @@ for ientry in xrange( nentries ):
 
     kplabels = kpana.get_triplet_score_array(10.0)
 
-    #ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
     
     if args.save_triplets:
         triptree.Fill()
@@ -163,11 +163,11 @@ print "Time: ",float(dtime)/float(nrun)," sec/event"
 tmp.cd()
 kpana.writeAnaTree()
 kpana.writeHists()
-#ssnet.writeAnaTree()
+ssnet.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
 
 del kpana
-#del ssnet
+del ssnet
 
 print "=== FIN =="
