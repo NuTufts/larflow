@@ -53,7 +53,7 @@ namespace reco {
     LARCV_INFO() << "number of above-threshold hits: " << shower_goodhit_v.size() << " of " << shower_lfhit_v->size() << std::endl;
     
     // make shower clusters
-    float maxdist = 2.0;
+    float maxdist = 5.0;
     int minsize = 20;
     int maxkd = 20;
     std::vector<cluster_t> cluster_v;
@@ -65,6 +65,7 @@ namespace reco {
     // can have any number of such candidates per shower cluster
     // we only analyze clusters with a first pc-axis length > 1.0 cm
     std::vector< const cluster_t* > showerhit_cluster_v;
+    std::vector<int>                cluster_used_v( cluster_v.size(), 0 );
 
     int idx = -1;
     for ( auto& showercluster : cluster_v ) {
@@ -87,17 +88,25 @@ namespace reco {
       if ( len<1.0 ) continue;
       //if ( eigenval_ratio<0.1 ) continue;
 
+      cluster_used_v[idx] = 1;
       showerhit_cluster_v.push_back( &showercluster );
     }
 
 
     // save shower cluster pca's
+    larlite::event_larflowcluster* evout_goodhit_cluster_v
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
     larlite::event_pcaxis* evout_goodhit_pca_v
       = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
     int pcidx = 0;
     for ( auto const& cluster : cluster_v ) {
+      larlite::larflowcluster lfc;
+      for (auto const& idx : cluster.hitidx_v ) {
+        lfc.push_back( shower_goodhit_v[idx] );
+      }
       larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
       pcidx++;
+      evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
       evout_goodhit_pca_v->emplace_back( std::move(pca) );
     }
     
@@ -661,7 +670,7 @@ namespace reco {
           proj += ( hit[v]-trunk_cand.keypoint->at(v) )*trunk_cand.pcaxis_v[v];
         proj /= pcalen;
         
-        if ( (proj>0.0 && dist<1.0*ar_molier_rad_cm && proj<50.0 )
+        if ( (proj>0.0 && dist<0.5*ar_molier_rad_cm && proj<50.0 )
              || (proj<=0.0 && proj>-3.0 && dist<3.0 ) ) {
           npts_inside++;
         }

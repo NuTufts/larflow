@@ -148,12 +148,20 @@ namespace reco {
           float gapdist = dist[closestend];
           float r = pointLineDistance( start, end, vertex.pos );
 
+          float projs = pointRayProjection( start, pcadir, vertex.pos );
+          float ends  = pointRayProjection( start, pcadir, end );
+
           // wide association for now
           if ( gapdist>_cluster_type_max_gap[ctype] )
             continue;
           
           if ( r>_cluster_type_max_impact_radius[ctype] )
             continue;
+
+          if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
+            if ( projs>2.0 && projs < (ends-2.0) )
+              continue;
+          }
 
           // else attach
           NuVertexCandidate::VtxCluster_t cluster;
@@ -277,7 +285,9 @@ namespace reco {
       }
       else {
         float ratio = cluster.impact/cluster.gap;
-        clust_score *= (1.0/tau_ratio_shower)*exp( -ratio/tau_ratio_shower );        
+        clust_score *= (1.0/tau_ratio_shower)*exp( -ratio/tau_ratio_shower );
+        if ( cluster.impact>3.0 )
+          clust_score *= (1.0/tau_impact_shower)*exp( -cluster.impact/tau_impact_shower );
       }
       std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
       vtx.score += clust_score;
