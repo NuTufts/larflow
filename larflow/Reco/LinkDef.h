@@ -12,6 +12,10 @@
 
 //#pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::reco;
+#pragma link C++ function larflow::reco::pointLineDistance3f+;
+#pragma link C++ function larflow::reco::pointLineDistance3d+;
+#pragma link C++ function larflow::reco::pointRayProjection3f+;
+#pragma link C++ function larflow::reco::pointLineDistance3d+;
 #pragma link C++ class larflow::reco::ClusterFunctions+;
 #pragma link C++ class larflow::reco::cluster_t+;
 #pragma link C++ function larflow::reco::cluster_larflow3dhits+;

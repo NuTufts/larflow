@@ -176,10 +176,10 @@ namespace reco {
       }
       if ( !inbox ) continue;
 
-      float s = pointRayProjection( seg.start_v, start_dir, hit );
+      float s = pointRayProjection<float>( seg.start_v, start_dir, hit );
       if ( s<0 || s>10.0 ) continue;
       
-      float r = pointLineDistance( seg.start_v, seg.end_v, hit );
+      float r = pointLineDistance<float>( seg.start_v, seg.end_v, hit );
       if ( r>5.0 ) continue;
       
       SegmentHit_t seghit( r, s, idx );

@@ -148,8 +148,8 @@ namespace reco {
           float gapdist = dist[closestend];
           float r = pointLineDistance( start, end, vertex.pos );
 
-          float projs = pointRayProjection( start, pcadir, vertex.pos );
-          float ends  = pointRayProjection( start, pcadir, end );
+          float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
+          float ends  = pointRayProjection<float>( start, pcadir, end );
 
           // wide association for now
           if ( gapdist>_cluster_type_max_gap[ctype] )
