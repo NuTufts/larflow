@@ -3,19 +3,47 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h PCACluster.h
+set( HEADERS cluster_functions.h
+  geofuncs.h
+  KPTrackFit.h
+  SplitHitsBySSNet.h
+  ChooseMaxLArFlowHit.h
+  DBScanLArMatchHits.h
+  PCACluster.h
+  ProjectionDefectSplitter.h  
+  PCATracker.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
   KPCluster.h KeypointReco.h
+  KeypointFilterByClusterSize.h KeypointFilterByWCTagger.h
+  TrackReco2KP.h
+  ShowerRecoKeypoint.h
+  NuVertexCandidate.h  
+  NuVertexMaker.h
+  KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
+  geofuncs.cxx
+  KPTrackFit.cxx
+  SplitHitsBySSNet.cxx
+  ChooseMaxLArFlowHit.cxx  
+  DBScanLArMatchHits.cxx
   PCACluster.cxx
+  ProjectionDefectSplitter.cxx  
+  PCATracker.cxx  
   PyLArFlow.cxx
   ShowerReco.cxx
   VertexReco.cxx
   KPCluster.cxx
   KeypointReco.cxx
+  KeypointFilterByClusterSize.cxx
+  KeypointFilterByWCTagger.cxx
+  ShowerRecoKeypoint.cxx
+  TrackReco2KP.cxx
+  NuVertexCandidate.cxx  
+  NuVertexMaker.cxx
+  KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )
 
 # create a property to hold our headers
@@ -26,6 +54,9 @@ message("python include: ${PYTHON_INCLUDE_PATH}")
 
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
+
+# ublarcvapp libs used
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
@@ -43,9 +74,9 @@ target_include_directories(${LIBNAME}
   ${CILANTRO_INC_DIR}
   ${OpenCV_INCLUDE_DIRS}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES})
+target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES})
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
+include_directories( ${PROJECT_SOURCE_DIR} ${UBLARCVAPP_INCLUDE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} ${HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 

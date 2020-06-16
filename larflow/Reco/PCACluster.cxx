@@ -22,7 +22,8 @@ namespace reco {
 
   void PCACluster::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
-    larlite::event_larflow3dhit* ev_lfhits = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+    larlite::event_larflow3dhit* ev_lfhits
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _input_lfhit_tree_name );
 
     larcv::EventImage2D* ev_ssnet_v[3] = {nullptr};
     for ( size_t p=0; p<3; p++ ) {

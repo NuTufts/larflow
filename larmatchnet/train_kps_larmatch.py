@@ -1,5 +1,9 @@
 #!/bin/env python
 
+"""
+TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
+"""
+
 ## IMPORT
 
 # python,numpy
@@ -47,10 +51,22 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="train_kps_part1/checkpoint.100000th.tar"
+CHECKPOINT_FILE="train_kps_nossnet/checkpoint.157000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
+TRAIN_SSNET=False
+TRAIN_KP=True
+TRAIN_KPSHIFT=False
+TRAIN_VERBOSE=True
 
-TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_training_data/"
+# Hard example training parameters (not yet implemented)
+# =======================================================
+HARD_EXAMPLE_TRAINING=False
+HARDEX_GPU="cuda:0"
+HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
+
+# TRAINING+VALIDATION DATA PATHS
+# ================================
+TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_data/"
 INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
                  "larmatch_kps_train_p07.root",
                  "larmatch_kps_train_p08.root",
@@ -60,13 +76,13 @@ INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
                  "larmatch_kps_train_p03.root",
                  "larmatch_kps_train_p04.root"]
 INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
-TICKBACKWARD=False
+TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 100001
-NUM_ITERS   = 500000
-TEST_NUM_MATCH_PAIRS = 10000
+START_ITER  = 158001
+NUM_ITERS   = 1000000
+TEST_NUM_MATCH_PAIRS = 30000
 ADC_MAX = 400.0
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -78,23 +94,19 @@ NBATCHES_per_itertrain = 1
 NBATCHES_per_step      = 1 # if >1 we use gradient accumulation
 trainbatches_per_print = -1
 
-NBATCHES_per_itervalid = 1
+NBATCHES_per_itervalid = 10
 validbatches_per_print = -1
 
-ITER_PER_VALID = 10
+ITER_PER_VALID = 100
 
-# IMAGE/LOSS PARAMETERS
-# =====================
-IMAGE_WIDTH=3456
-IMAGE_HEIGHT=1024
-ADC_THRESH=10.0
-VISI_WEIGHT=0.0
-CONSISTENCY_WEIGHT=0.1
-USE_VISI=False
+# CHECKPOINT PARAMETERS
+# =======================
 DEVICE_IDS=[0]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS={"cuda:0":"cuda:0",
                           "cuda:1":"cuda:1"}
+HARDEX_MAP_LOCATIONS={"cuda:0":"cuda:0",
+                      "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
 ITER_PER_CHECKPOINT=1000
@@ -104,40 +116,49 @@ PREDICT_CLASSVEC=True
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
 writer = SummaryWriter()
-train_entry = 0
-valid_entry = 0
+train_entry = 30001
+valid_entry = 3800
 TRAIN_NENTRIES = 0
 VALID_NENTRIES = 0
 
 def main():
 
+    # load global variables we plan to modify
     global best_prec1
     global writer
     global num_iters
     global TRAIN_NENTRIES
     global VALID_NENTRIES
 
+    # set device where we'll do the computations
     if GPUMODE:
         DEVICE = torch.device("cuda:%d"%(DEVICE_IDS[0]))
     else:
         DEVICE = torch.device("cpu")
     
-    # create model, mark it to run on the GPU
+    # create model, mark it to run on the device
     model = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to(DEVICE)
     ssnet_head = LArMatchSSNetClassifier().to(DEVICE)
     kplabel_head = LArMatchKeypointClassifier().to(DEVICE)
     kpshift_head = LArMatchKPShiftRegressor().to(DEVICE)
+    # the model is multi-tasked, so we group the different tasks into a map
     model_dict = {"larmatch":model,
                   "ssnet":ssnet_head,
                   "kplabel":kplabel_head,
                   "kpshift":kpshift_head}
 
     if True:
-        # DUMP MODEL
+        # DUMP MODEL (for debugging)
         print model
         print ssnet_head
         print kplabel_head
         print kpshift_head
+
+        # uncomment to dump model parameters
+        if False:
+            print model.module.parameters
+            return
+        
         if False: sys.exit(-1)
     
     # Resume training option
@@ -150,21 +171,27 @@ def main():
         for n,m in model_dict.items():
             m.load_state_dict(checkpoint["state_"+n])
 
+    # data parallel training -- does not work
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
         model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
 
-    # uncomment to dump model
-    if False:
-        print "Loaded model: ",model
-        #print model.module.source_encoder.variable
-        print model.module.parameters
-        return
+    # if hard example training, we load a copy of the network we will not modify
+    # that generates scores for each triplet in the event
+    # we will use those scores to sample the space points for training in a biased manner.
+    # we will bias towards examples the network gets incorrect
+    if HARD_EXAMPLE_TRAINING:
+        hardex_larmatch_model  = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to( torch.device(HARDEX_GPU) )
+        hardex_checkpoint = torch.load( HARDEX_CHECKPOINT_FILE, map_location=HARDEX_MAP_LOCATIONS )
+        hardex_model = {"larmatch":hardex_larmatch_model}
+        for n,m in hardex_model.items():
+            m.load_state_dict(hardex_checkpoint["state_"+n])
+
 
     # define loss function (criterion) and optimizer
     criterion = SparseLArMatchKPSLoss()
 
     # training parameters
-    lr = 1.0e-3
+    lr = 1.0e-4 # learning rate
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -184,7 +211,7 @@ def main():
     # optimize algorithms based on input size (good if input size is constant)
     cudnn.benchmark = False
 
-    # LOAD THE DATASET
+    # LOAD THE DATASET HELPERS
     traindata_v = std.vector("std::string")()
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
@@ -216,10 +243,13 @@ def main():
         print "passed setup successfully"
         sys.exit(0)
 
+    # TRAINING LOOP
     with torch.autograd.profiler.profile(enabled=RUNPROFILER) as prof:
 
+        # LOOP OVER FIXED NUMBER OF INTERATIONS
         for ii in range(START_ITER, NUM_ITERS):
 
+            # modify learning rate based on interation number (not used)
             adjust_learning_rate(optimizer, ii, lr)
             print "MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),
             for param_group in optimizer.param_groups:
@@ -231,7 +261,7 @@ def main():
                 _ = train(iotrain, DEVICE, BATCHSIZE_TRAIN,
                           model_dict, criterion, optimizer,
                           NBATCHES_per_itertrain, NBATCHES_per_step,
-                          ii, trainbatches_per_print)
+                          ii, trainbatches_per_print, hardex_model=hardex_model)
                 
             except Exception,e:
                 print "Error in training routine!"            
@@ -240,7 +270,7 @@ def main():
                 traceback.print_exc(e)
                 break
 
-            # evaluate on validation set
+            # evaluate on validation set at a given interval (every ITER_PER_VALID training iterations)
             if ii%ITER_PER_VALID==0 and ii>0:
                 try:
                     totloss, totacc = validate(iovalid, DEVICE, BATCHSIZE_VALID,
@@ -313,19 +343,22 @@ def main():
 def train(train_loader, device, batchsize,
           model, criterion, optimizer,
           nbatches, nbatches_per_step,
-          iiter, print_freq):
+          iiter, print_freq, hardex_model=None):
     """
-    train_loader: TChain with data
+    train_loader: helper module to load event data
     device: device we are training on
     batchsize: number of images per batch
     model: network are training
-    criterion: the loss we are using
+    criterion: the loss calculation module we are using
     optimizer: optimizer
     nbatches: number of batches to run in this iteraction
     nbatches_per_step: allows for gradient accumulation if >1
     iiter: current iteration
     print_freq: number of batches we run before printing out some statistics
+    hardex_model: if not None, the hardex_model we'll use to provide scores and bias sampling of events
+                  to spacepoints the network got incorrect.
     """
+    # global variables we will modify
     global writer
     global train_entry
     
@@ -360,6 +393,10 @@ def train(train_loader, device, batchsize,
     # clear gradients
     optimizer.zero_grad()
     nnone = 0
+
+    # run predictions over nbatches before calculating gradients
+    # if nbatches>1, this is so-called "gradient accumulation".
+    # not typically used
     for i in range(0,nbatches):
         #print "iiter ",iiter," batch ",i," of ",nbatches
         batchstart = time.time()
@@ -370,18 +407,15 @@ def train(train_loader, device, batchsize,
         flowdata = load_larmatch_kps( train_loader, train_entry, 1,
                                       npairs=TEST_NUM_MATCH_PAIRS,
                                       verbose=True, single_batch_mode=True )
-        if train_entry+1<TRAIN_NENTRIES:
-            train_entry += 1
-        else:
-            train_entry = 0
 
         coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
         feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
 
+        npairs          = flowdata['npairs']        
         match_t         = torch.from_numpy( flowdata['matchpairs'] ).to(device).requires_grad_(False)
         match_label_t   = torch.from_numpy( flowdata['larmatchlabels'] ).to(device).requires_grad_(False)
         match_weight_t  = torch.from_numpy( flowdata['match_weight'] ).to(device).requires_grad_(False)
-        truematch_idx_t = torch.from_numpy( flowdata['positive_indices'] ).to(device).requires_grad_(False)        
+        truematch_idx_t = torch.from_numpy( flowdata['positive_indices'] ).to(device).requires_grad_(False)
         
         ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'] ).to(device).requires_grad_(False)
         ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'] ).to(device).requires_grad_(False)
@@ -394,54 +428,109 @@ def train(train_loader, device, batchsize,
         for p in xrange(3):
             feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
 
-        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"]
+        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs
+        if train_entry+1<TRAIN_NENTRIES:
+            train_entry += 1
+        else:
+            train_entry = 0
         
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
         end = time.time()
-            
+        
 
         # first get feature vectors
         feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
                                                                            coord_t[1], feat_t[1],
                                                                            coord_t[2], feat_t[2], 1,
-                                                                           verbose=True )
+                                                                           verbose=TRAIN_VERBOSE )
+        if HARD_EXAMPLE_TRAINING:
+            # we use the fixed network to calculate score for all triplets
+            fixednet_ntriplets = preplarmatch._triplet_v.size()
+            fixednet_startidx  = 0
+            fixednet_scores_np = np.zeros( ntriplets )
+            while startidx<ntriplets:
+                print("create matchpairs: startidx=",startidx," of ",ntriplets)
+                t_chunk = time.time()
+                matchpair_np = preplarmatch.get_chunk_triplet_matches( startidx,
+                                                                       NUM_PAIRS,
+                                                                       last_index,
+                                                                       npairs,
+                                                                       with_truth )
+        t_chunk = time.time()-t_chunk
+        print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
+        dt_chunk += t_chunk
+            
+        startidx = int(last_index.value)
 
+        # make torch tensor or array providing index of pixels in each plane we should group
+        # to form a 3D spacepoint proposal
+        matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
+                
+        if with_truth:
+            truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
 
+        # HARD EXAMPLE TRAINING: Get features
+        if HARD_EXAMPLE_TRAINING and hardex_model is not None:
+            with torch.no_grad():
+                feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
+                                                                          matchpair_t, npairs.value,
+                                                                          DEVICE, verbose=True )
+
+        # EVALUATE LARMATCH SCORES
+        tstart = time.time()
+        with torch.no_grad():
+            pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
+        dt_net_classify = time.time()-tstart
+        dt_net  += dt_net_classify
+        prob_t = sigmoid(pred_t) # should probably move inside classify_triplet method
+        print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
+            
+        
         # extract features according to sampled match indices
         feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                              match_t, flowdata['npairs'],
-                                                             device, verbose=True )
+                                                             device, verbose=TRAIN_VERBOSE )
+        print "[larmatch train] feat_triplet_t=",feat_triplet_t.shape
 
-        # next evaluate larmatch match classifier
+        # evaluate larmatch match classifier
         match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
         match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
         print "[larmatch train] match-pred=",match_pred_t.shape
 
-        # next evaluate ssnet classifier
-        ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
-        ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
-        ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-        #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
-        print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
+        # evaluate ssnet classifier
+        if TRAIN_SSNET:
+            ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
+            ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+            ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
+            print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
+        else:
+            ssnet_pred_t = None
         
         # next evaluate ssnet classifier
-        kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-        kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
-        print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
+        if TRAIN_KP:
+            kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
+            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
+        else:
+            kplabel_pred_t = None
         
-        # next evaluate ssnet classifier
-        kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
-        kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
-        kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-        print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
-        
+        # next evaluate keypoint shift predictor
+        if TRAIN_KPSHIFT:
+            kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
+            kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
+            kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
+            print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
+        else:
+            kpshift_pred_t = None
+
+        # Calculate the loss
         totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
                                                                            match_label_t,  ssnet_label_t, kp_label_t,     kpshift_t,
                                                                            truematch_idx_t,
                                                                            match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, 
-                                                                           verbose=True )
+                                                                           verbose=TRAIN_VERBOSE )
 
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -596,42 +685,51 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
             feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
                                                                                coord_t[1], feat_t[1],
                                                                                coord_t[2], feat_t[2], 1,
-                                                                               verbose=True )
+                                                                               verbose=False )
 
 
             # extract features according to sampled match indices
             feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                                  match_t, flowdata['npairs'],
-                                                                 device, verbose=True )
+                                                                 device, verbose=False )
 
             # next evaluate larmatch match classifier
             match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
             match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
             print "[larmatch valid] match-pred=",match_pred_t.shape
 
-            # next evaluate ssnet classifier
-            ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
-            ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
-            ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-            #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
-            print "[larmatch valid] ssnet-pred=",ssnet_pred_t.shape
+            # evaluate ssnet classifier
+            if TRAIN_SSNET:
+                ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
+                ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+                ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
+                #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
+                print "[ssnet valid] ssnet-pred=",ssnet_pred_t.shape
+            else:
+                ssnet_pred_t = None
         
-            # next evaluate ssnet classifier
-            kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
-            print "[larmatch valid] kplabel-pred=",kplabel_pred_t.shape
+            # evaluate keypoint regression
+            if TRAIN_KP:
+                kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
+                kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+                print "[keypoint valid] kplabel-pred=",kplabel_pred_t.shape
+            else:
+                kplabel_pred_t = None
         
-            # next evaluate ssnet classifier
-            kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
-            kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
-            kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-            print "[larmatch valid] kpshift-pred=",kpshift_pred_t.shape
+            # next evaluate keypoint shift
+            if TRAIN_KPSHIFT:
+                kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
+                kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
+                kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
+                print "[keypoint shift valid] kpshift-pred=",kpshift_pred_t.shape
+            else:
+                kpshift_pred_t = None
 
             totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
                                                                                match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,
                                                                                truematch_idx_t,
                                                                                match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t,
-                                                                               verbose=True )
+                                                                               verbose=False )
         time_meters["forward"].update(time.time()-tforward)
 
         # update loss meters
@@ -712,43 +810,50 @@ def accuracy(match_pred_t, match_label_t,
 
     # LARMATCH METRICS
     match_pred = match_pred_t.detach()
+    npairs = match_pred.shape[0]
     
-    pos_correct = (match_pred.gt(0.0)*match_label_t.eq(1)).sum().to(torch.device("cpu")).item()
-    neg_correct = (match_pred.lt(0.0)*match_label_t.eq(0)).sum().to(torch.device("cpu")).item()
-    npos = float(match_label_t.eq(1).sum().to(torch.device("cpu")).item())
-    nneg = float(match_label_t.eq(0).sum().to(torch.device("cpu")).item())
+    pos_correct = (match_pred.gt(0.0)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
+    neg_correct = (match_pred.lt(0.0)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
+    npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
+    nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
 
     acc_meters["lm_pos"].update( float(pos_correct)/npos )
     acc_meters["lm_neg"].update( float(neg_correct)/nneg )
     acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
 
     # SSNET METRICS
-    if ssnet_pred_t.shape[0]!=ssnet_label_t.shape[0]:
-        ssnet_pred     = torch.index_select( ssnet_pred_t.detach(), 0, truematch_indices_t )
-    else:
-        ssnet_pred     = ssnet_pred_t.detach()
-    ssnet_class    = torch.argmax( ssnet_pred, 1 )
-    ssnet_correct  = ssnet_class.eq( ssnet_label_t )
-    ssbg_correct   = ssnet_correct[ ssnet_label_t==0 ].sum().item()    
-    track_correct  = ssnet_correct[ ssnet_label_t==1 ].sum().item()
-    shower_correct = ssnet_correct[ ssnet_label_t==2 ].sum().item()    
-    ssnet_tot_correct = ssnet_correct.sum().item()
-    if ssnet_label_t.eq(2).sum().item()>0:
-        acc_meters["shower"].update( float(shower_correct)/float(ssnet_label_t.eq(2).sum().item()) )
-    if ssnet_label_t.eq(1).sum().item()>0:
-        acc_meters["track"].update(  float(track_correct)/float(ssnet_label_t.eq(1).sum().item())  )
-    if ssnet_label_t.eq(0).sum().item()>0:
-        acc_meters["ss-bg"].update(  float(ssbg_correct)/float(ssnet_label_t.eq(0).sum().item())  )
-    acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
+    if ssnet_pred_t is not None:
+        if ssnet_pred_t.shape[0]!=ssnet_label_t.shape[0]:
+            ssnet_pred     = torch.index_select( ssnet_pred_t.detach(), 0, truematch_indices_t )
+        else:
+            ssnet_pred     = ssnet_pred_t.detach()
+        ssnet_class    = torch.argmax( ssnet_pred, 1 )
+        ssnet_correct  = ssnet_class.eq( ssnet_label_t )
+        ssbg_correct   = ssnet_correct[ ssnet_label_t==0 ].sum().item()    
+        track_correct  = ssnet_correct[ ssnet_label_t==1 ].sum().item()
+        shower_correct = ssnet_correct[ ssnet_label_t==2 ].sum().item()    
+        ssnet_tot_correct = ssnet_correct.sum().item()
+        if ssnet_label_t.eq(2).sum().item()>0:
+            acc_meters["shower"].update( float(shower_correct)/float(ssnet_label_t.eq(2).sum().item()) )
+        if ssnet_label_t.eq(1).sum().item()>0:
+            acc_meters["track"].update(  float(track_correct)/float(ssnet_label_t.eq(1).sum().item())  )
+        if ssnet_label_t.eq(0).sum().item()>0:
+            acc_meters["ss-bg"].update(  float(ssbg_correct)/float(ssnet_label_t.eq(0).sum().item())  )
+        acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
 
     # KP METRIC
-    if kp_pred_t.shape[0]!=kp_label_t.shape[0]:
-        kp_pred = torch.index_select( kp_pred_t.detach(), 0, truematch_indices_t )
-    else:
-        kp_pred = kp_pred_t.detach()
-    kp_n_pos = float(kp_label_t.gt(0.5).sum().item())
-    kp_pos   = float(kp_pred.gt(0.5)[ kp_label_t.gt(0.5) ].sum().item())
-    acc_meters["kp_pos"].update( kp_pos/kp_n_pos )
+    if kp_pred_t is not None:
+        if kp_pred_t.shape[0]!=kp_label_t.shape[0]:
+            kp_pred  = torch.index_select( kp_pred_t.detach(),  0, truematch_indices_t )
+            kp_label = torch.index_select( kp_label_t.detach(), 0, truematch_indices_t )
+        else:
+            kp_pred  = kp_pred_t.detach()
+            kp_label = kp_label_t.detach()[:npairs]
+        kp_n_pos = float(kp_label.gt(0.5).sum().item())
+        kp_pos   = float(kp_pred.gt(0.5)[ kp_label.gt(0.5) ].sum().item())
+        print "kp_n_pos[>0.5]: ",kp_n_pos," (sel_)kp_label: ",kp_label.shape," sum=",kp_label.gt(0.5).sum().item()," (orig_)kp_label[>0.5]: ",kp_label_t.detach()[:npairs].gt(0.5).sum().item()
+        print "kp_pos: ",kp_pos
+        acc_meters["kp_pos"].update( kp_pos/kp_n_pos )
     
     
     return True

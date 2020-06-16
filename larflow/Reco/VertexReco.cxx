@@ -16,7 +16,8 @@ namespace larflow {
 namespace reco {
 
   std::vector<VertexReco::Candidate_t> VertexReco::findVertices( larcv::IOManager& iolcv,
-                                                                 larlite::storage_manager& ioll ) {
+                                                                 larlite::storage_manager& ioll )
+  {
     
     larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     

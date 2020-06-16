@@ -253,22 +253,26 @@ namespace reco {
       };
     };
 
+    // normalize first axis (should be though)
+    for ( int ipca=0; ipca<3; ipca++) {
+      float lenpc = 0.;
+      for (int i=0; i<3; i++ ) {
+        lenpc += cluster.pca_axis_v[ipca][i]*cluster.pca_axis_v[ipca][i];
+      }
+      if ( lenpc>0 ) {
+        lenpc = sqrt(lenpc);
+        for ( int i=0; i<3; i++ )
+          cluster.pca_axis_v[ipca][i] /= lenpc;
+      }
+    }
+    
     std::vector< pca_coord > ordered_v;
     ordered_v.reserve( cluster.points_v.size() );
     for ( size_t idx=0; idx<cluster.points_v.size(); idx++ ) {
       float s = 0.;
-      float lenpc = 0.;
       for (int i=0; i<3; i++ ) {
         s += (cluster.points_v[idx][i]-cluster.pca_center[i])*cluster.pca_axis_v[0][i];
-        lenpc += cluster.pca_axis_v[0][i]*cluster.pca_axis_v[0][i];
       }
-      if ( lenpc>0 ) {
-        s /= sqrt(lenpc);
-        for ( int i=0; i<3; i++ )
-          cluster.pca_axis_v[0][i] /= sqrt(lenpc);
-      }
-      //std::cout << "idx[" << idx << "] s=" << s << " lenpc=" << sqrt(lenpc) << std::endl; 
-      
       pca_coord coord;
       coord.idx = idx;
       coord.s   = s;

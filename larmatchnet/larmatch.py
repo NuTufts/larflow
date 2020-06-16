@@ -7,15 +7,28 @@ from utils_sparselarflow import create_resnet_layer
 class LArMatch(nn.Module):
 
     def __init__(self,ndimensions=2,inputshape=(1024,3456),
-                 nlayers=8,features_per_layer=16,
                  input_nfeatures=1,
                  stem_nfeatures=16,
+                 features_per_layer=16,                 
                  classifier_nfeatures=[32,32],
                  leakiness=0.01,
-                 neval=20000,
                  ninput_planes=3,
                  use_unet=False,
-                 device=torch.device("cpu")):
+                 nresnet_blocks=10 ):
+        """
+        parameters
+        -----------
+        ndimensions [int]    number of spatial dimensions of input data, default=2
+        inputshape  [tuple of int]  size of input tensor/image in (num of tick pixels, num of wire pixels), default=(1024,3456)
+        input_nfeatures [int] number of features in the input tensor, default=1 (the image charge)
+        stem_nfeatures [int] number of features in the stem layers, also controls num of features in unet layers, default=16
+        features_per_layer [int] number of channels in the resnet layers that follow unet layers, default=16
+        classifier_nfeatures [tuple of int] number of channels per hidden layer of larmatch classification network, default=[32,32]
+        leakiness [float] leakiness of LeakyRelu activiation layers, default=0.01
+        ninput_planes [int] number of input image planes, default=3
+        use_unet [bool] if true, use UNet layers, default=True
+        nresnet_blocks [int] number of resnet blocks if not using unet, DEPRECATED, default=10
+        """
         super(LArMatch,self).__init__()
 
         self.use_unet = use_unet
@@ -48,7 +61,7 @@ class LArMatch(nn.Module):
 
         # RESNET BLOCK
         if not self.use_unet:
-            self.resnet_layers = create_resnet_layer(10, stem_nfeatures, features_per_layer, leakiness=leakiness )
+            self.resnet_layers = create_resnet_layer(nresnet_blocks, stem_nfeatures, features_per_layer, leakiness=leakiness )
         else:
             self.resnet_layers = create_resnet_layer(1,  stem_nfeatures, features_per_layer, leakiness=leakiness )
             self.resnet_layers.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
@@ -75,71 +88,107 @@ class LArMatch(nn.Module):
         #classifier_layers["sigmoid"]  = torch.nn.Sigmoid()
         self.classifier = torch.nn.Sequential( classifier_layers )
         
-        # POINTS TO EVAL PER IMAGE
-        self.neval = neval
 
-    def forward_features( self, coord_src_t, src_feat_t,
-                          coord_tar1_t, tar1_feat_t,
-                          coord_tar2_t, tar2_feat_t,
+    def forward_features( self, coord_plane0_t, plane0_feat_t,
+                          coord_plane1_t, plane1_feat_t,
+                          coord_plane2_t, plane2_feat_t,
                           batchsize, verbose=False ):
 
         """
-        run the feature generating portion of network only. get feature vector at each coordinate.
-        For deploy only. By saving feature layers, can reduce time run.
+        run the feature generating portion of network only. 
+        get feature vector at each pixel coordinate.
+        expects three planes
+
+        input
+        -----
+        coord_plane0_t [torch tensor (N_0,3)] list of N pixel coordinates (row,col,batch)
+        plane0_feat_t  [torch tensor (N_0,1)] list of pixel values for each N pixel coordinate
+        coord_plane1_t [torch tensor (N_1,3)] list of N pixel coordinates (row,col,batch)
+        plane1_feat_t  [torch tensor (N_1,1)] list of pixel values for each N pixel coordinate
+        coord_plane2_t [torch tensor (N_2,3)] list of N pixel coordinates (row,col,batch)
+        plane2_feat_t  [torch tensor (N_2,1)] list of pixel values for each N pixel coordinate        
+
+        output
+        ------
+        tuple containing 3 feature tensors [torch tensors with shapes ((N_0,C), (N_1,C), (N_2,C))]
         """
         if verbose:
-            print "[larmatch] "
-            print "  coord[src]=",coord_src_t.shape," feat[src]=",src_feat_t.shape
-            print "  coord dump: "
-            print coord_tar2_t
+            print "[larmatch::make feature vectors] "
+            print "  coord[plane0]=",coord_plane0_t.shape," feat[plane0]=",plane0_feat_t.shape
+            print "  coord[plane1]=",coord_plane1_t.shape," feat[plane1]=",plane1_feat_t.shape
+            print "  coord[plane2]=",coord_plane2_t.shape," feat[plane2]=",plane2_feat_t.shape            
+
+        # Form input tuples for input layers
+        # adds torch tensors to SparseConvTensor object
+        input_plane0 = ( coord_plane0_t, plane0_feat_t, batchsize )
+        input_plane1 = ( coord_plane1_t, plane1_feat_t, batchsize )
+        input_plane2 = ( coord_plane2_t, plane2_feat_t, batchsize )
+
+        # generate plane0 features
+        xplane0 = self.source_inputlayer(input_plane0)
+        xplane0 = self.stem( xplane0 )
+        if verbose: print "  stem[plane0]=",xplane0.features.shape            
+        if self.use_unet: xplane0 =self.unet_layers(xplane0)            
+        if verbose: print "  unet[plane0]=",xplane0.features.shape
+        xplane0 = self.resnet_layers( xplane0 )
+        if verbose: print "  resnet[plane0]=",xplane0.features.shape
+        xplane0 = self.feature_layer( xplane0 )
+        if verbose: print "  feature[plane0]=",xplane0.features.shape
         
-        srcx = ( coord_src_t,  src_feat_t,  batchsize )
-        tar1 = ( coord_tar1_t, tar1_feat_t, batchsize )
-        tar2 = ( coord_tar2_t, tar2_feat_t, batchsize )
+        xplane1 = self.target1_inputlayer(input_plane1)
+        xplane1 = self.stem( xplane1 )
+        if verbose: print "  stem[plane1]=",xplane1.features.shape                    
+        if self.use_unet: xplane1 =self.unet_layers(xplane1)
+        if verbose: print "  unet[plane1]=",xplane1.features.shape        
+        xplane1 = self.resnet_layers( xplane1 )
+        if verbose: print "  resnet[plane1]=",xplane1.features.shape        
+        xplane1 = self.feature_layer( xplane1 )
+        if verbose: print "  feature[plane1]=",xplane1.features.shape        
 
-        xsrc = self.source_inputlayer(srcx)
-        xsrc = self.stem( xsrc )
-        if verbose: print "  stem[src]=",xsrc.features.shape            
-        if self.use_unet: xsrc =self.unet_layers(xsrc)            
-        if verbose: print "  unet[src]=",xsrc.features.shape
-        xsrc = self.resnet_layers( xsrc )
-        if verbose: print "  resnet[src]=",xsrc.features.shape
-        xsrc = self.feature_layer( xsrc )
-        if verbose: print "  feature[src]=",xsrc.features.shape
-        
-        xtar1 = self.target1_inputlayer(tar1)
-        xtar1 = self.stem( xtar1 )
-        if verbose: print "  stem[tar1]=",xtar1.features.shape                    
-        if self.use_unet: xtar1 =self.unet_layers(xtar1)
-        if verbose: print "  unet[tar1]=",xtar1.features.shape        
-        xtar1 = self.resnet_layers( xtar1 )
-        if verbose: print "  resnet[tar1]=",xtar1.features.shape        
-        xtar1 = self.feature_layer( xtar1 )
-        if verbose: print "  feature[tar1]=",xtar1.features.shape        
+        xplane2 = self.target2_inputlayer(input_plane2)
+        xplane2 = self.stem( xplane2 )
+        if verbose: print "  stem[plane2]=",xplane2.features.shape                            
+        if self.use_unet: xplane2 =self.unet_layers(xplane2)
+        if verbose: print "  unet[plane2]=",xplane2.features.shape        
+        xplane2 = self.resnet_layers( xplane2 )
+        if verbose: print "  resnet[plane2]=",xplane2.features.shape                
+        xplane2 = self.feature_layer( xplane2 )
+        if verbose: print "  feature[plane2]=",xplane2.features.shape                
 
-        xtar2 = self.target2_inputlayer(tar2)
-        xtar2 = self.stem( xtar2 )
-        if verbose: print "  stem[tar2]=",xtar2.features.shape                            
-        if self.use_unet: xtar2 =self.unet_layers(xtar2)
-        if verbose: print "  unet[tar2]=",xtar2.features.shape        
-        xtar2 = self.resnet_layers( xtar2 )
-        if verbose: print "  resnet[tar2]=",xtar2.features.shape                
-        xtar2 = self.feature_layer( xtar2 )
-        if verbose: print "  feature[tar2]=",xtar2.features.shape                
+        # extracts torch tensors from SparseConvTensor object        
+        xplane0  = self.source_outlayer( xplane0 )
+        xplane1 = self.target1_outlayer( xplane1 )
+        xplane2 = self.target2_outlayer( xplane2 )
 
-        xsrc  = self.source_outlayer(  xsrc )
-        xtar1 = self.target1_outlayer( xtar1 )
-        xtar2 = self.target2_outlayer( xtar2 )
-
-        return xsrc,xtar1,xtar2
+        return xplane0,xplane1,xplane2
                                 
     def extract_features(self, feat_u_t, feat_v_t, feat_y_t, index_t, npts, DEVICE, verbose=False ):
         """ 
-        take in index list and concat the triplet feature vector
+        take in index list and concat the triplet feature vector.
+        the feature vectors are those produced by the forward_feature method.
+        The information of which feature vectors to combine are in index_t.
+        The information for index_t is made using the larflow::PrepMatchTriplets class.
+        
+        inputs
+        ------
+        feat_u_t [torch tensor shape (N_u,C)] u-plane feature tensor containing C-length feature vector for N_u pixel coordinates.
+        feat_v_t [torch tensor shape (N_v,C)] v-plane feature tensor containing C-length feature vector for N_v pixel coordinates.
+        feat_y_t [torch tensor shape (N_y,C)] y-plane feature tensor containing C-length feature vector for N_y pixel coordinates.
+        index_t  [torch tensor shape (N_m,3)] N_m triplets containing indices to feat_u_t, feat_v_t, feat_y_t that should be combined
+        npts [int] number of points in index_t to evaluate
+        DEVICE [torch device] device to put output tensors
+        verbose [bool] print tensor shape information, default=False
+
+        outputs
+        --------
+        feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
         """
         if verbose:
             print "[larmatch::extract_features]"
-            print "  index-shape=",index_t.shape," feat-u-shape=",feat_u_t.shape
+            print "  index-shape=",index_t.shape,
+            print " feat-u-shape=",feat_u_t.shape
+            print " feat-v-shape=",feat_v_t.shape
+            print " feat-y-shape=",feat_y_t.shape            
 
         feats   = [ feat_u_t, feat_v_t, feat_y_t ]
         for f in feats:
@@ -163,7 +212,7 @@ class LArMatch(nn.Module):
         use information from concat feature vectors.
 
         inputs:
-        feat_u_t 
+        triplet_feat_t [torch tensor (1,3C,N)] concat spacepoint feature tensor, output of extract_features
         """
         pred = self.classifier(triplet_feat_t)
         return pred

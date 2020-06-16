@@ -11,12 +11,9 @@ parser.add_argument('-i','--input-dlmerged',type=str,required=True,help="Input f
 parser.add_argument('-l','--input-larflow',type=str,required=True,help="Input file containing larlite::larflow3dhit objects")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 # optional
-parser.add_argument('-rw','--rewrite',action='store_true',default=False,help="Rewrite output file")
 parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of entries to run")
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
 parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,help="Input larcv images are tick-backward")
-parser.add_argument('-min','--min-score',type=float,default=0.2,help='Minimum larmatch score')
-parser.add_argument('-ds','--ds-fraction',type=float,default=0.10,help='Down-sampling fraction')
 
 args = parser.parse_args()
 
