@@ -1,12 +1,13 @@
 #!/bin/bash
 
-WORKDIR=/cluster/tufts/wongjiradlab/twongj01/dev/ubdl/larflow/larmatchnet/dataprep/workdir
-INPUTLIST=/cluster/tufts/wongjiradlab/twongj01/dev/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.txt
-UBDL_DIR=/cluster/tufts/wongjiradlab/twongj01/dev/ubdl
-OUTPUT_DIR=/cluster/tufts/wongjiradlab/twongj01/dev/ubdl/larflow/larmatchnet/dataprep/outdir/
-CONFIG=/cluster/tufts/wongjiradlab/twongj01/dev/ubdl/larflow/larflow/PrepFlowMatchData/test/prepflowmatchdata.cfg
+WORKDIR=/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larmatchnet/dataprep/workdir
+UBDL_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.txt
+OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir/
+CONFIG=${UBDL_DIR}/larflow/larmatchnet/dataprep/prepmatchtriplet.cfg
 
-#SLURM_ARRAY_TASK_ID=1
+#FOR DEBUG
+#SLURM_ARRAY_TASK_ID=5
 
 stride=10
 jobid=${SLURM_ARRAY_TASK_ID}
@@ -23,12 +24,13 @@ done
 echo "INPUTFILES:"
 echo $infiles | sed 's| |\n|g'
 
+mkdir -p $WORKDIR
 jobworkdir=`printf "%s/jobid_%03d" $WORKDIR $jobid`
 mkdir -p $jobworkdir
 mkdir -p $OUTPUT_DIR
 
-larcv_outputfile=`printf "${OUTPUT_DIR}/larmatch_larcv_trainingdata_%04d.root" ${jobid}`
-ana_outputfile=`printf "${OUTPUT_DIR}/larmatch_ana_trainingdata_%04d.root" ${jobid}`
+larcv_outputfile=`printf "${OUTPUT_DIR}/larmatchtriplet_larcv_trainingdata_%04d.root" ${jobid}`
+ana_outputfile=`printf "${OUTPUT_DIR}/larmatchtriplet_ana_trainingdata_%04d.root" ${jobid}`
 
 cd $UBDL_DIR
 source setenv.sh
@@ -36,8 +38,8 @@ source configure.sh
 
 cd $jobworkdir
 
-echo "python $UBDL_DIR/larflow/larflow/PrepFlowMatchData/test/run_prepflowmatchdata.py -olcv out.root -c $CONFIG $infiles"
-python $UBDL_DIR/larflow/larflow/PrepFlowMatchData/test/run_prepflowmatchdata.py -olcv out.root -c $CONFIG $infiles >& log_jobid${jobid}.txt
-cp out.root $larcv_outputfile
-cp ana_flowmatch_data.root $ana_outputfile
-
+COMMAND="python $UBDL_DIR/larflow/larflow/PrepFlowMatchData/test/process_matchtriplet_data.py --out out.root -mc -c $CONFIG $infiles"
+echo $COMMAND
+$COMMAND >& log_jobid${jobid}.txt
+cp out.root $ana_outputfile
+rm out.root
