@@ -3,11 +3,11 @@ import torch
 import torch.nn as nn
 
 class SparseLArMatchKPSLoss(nn.Module):
-    def __init__(self):
-        super(SparseLArMatchKPSLoss,self).__init__(eval_ssnet=False,
-                                                   eval_keypoint_label=True,
-                                                   eval_keypoint_shift=False,
-                                                   eval_affinity_field=True ):
+    def __init__(self, eval_ssnet=False,
+                 eval_keypoint_label=True,
+                 eval_keypoint_shift=False,
+                 eval_affinity_field=True):
+        super(SparseLArMatchKPSLoss,self).__init__( )
         self.eval_ssnet = eval_ssnet
         self.eval_keypoint_label = eval_keypoint_label
         self.eval_keypoint_shift = eval_keypoint_shift
@@ -45,22 +45,18 @@ class SparseLArMatchKPSLoss(nn.Module):
     def larmatch_loss( self, larmatch_pred,
                        larmatch_truth,
                        larmatch_weight,
-                       truematch_index,
                        verbose=False ):
 
         # number of spacepoint goodness predictions to evaluate
         npairs     = larmatch_pred.shape[0]
 
-        # number of entries indicating if the spacepoint proposal is good
-        ntruematch = truematch_index.shape[0]
         if verbose:
             print "[SparseLArMatchKPSLoss::larmatch_loss]"
             print "  pred num triplets: ",npairs
-            print "  truematch_index: ",truematch_index.shape," ",truematch_index.dtype
             print "  larmatch weight: ",larmatch_weight.shape
             
         # convert int to float for subsequent calculations
-        fmatchlabel = larmatch_label[:npairs].type(torch.float).requires_grad_(False)
+        fmatchlabel = larmatch_truth[:npairs].type(torch.float).requires_grad_(False)
         
         # calculate loss using binary cross entropy
         bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )
@@ -82,19 +78,22 @@ class SparseLArMatchKPSLoss(nn.Module):
             # when truth and prediction have different lengths,
             # the truth already has removed bad points
             raise RuntimeError("dont trust this mode of calculation right now")
-            sel_kplabel_pred = torch.index_select( keypoint_score_pred, 0, truematch_index[:npairs] )
-            sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index[:npairs] )
-            sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index[:npairs] )
+            sel_kplabel_pred = torch.index_select( keypoint_score_pred, 0, truematch_index )
+            sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index )
+            sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index )
         else:
-            sel_kplabel_pred = keypoint_score_pred
-            sel_kpweight     = keypoint_weight[:npairs]
-            sel_kplabel      = keypoint_score_truth[:npairs]
+            sel_kplabel_pred = keypoint_score_pred[:npairs,:]
+            sel_kpweight     = keypoint_weight[:npairs,:]
+            sel_kplabel      = keypoint_score_truth[:npairs,:]
         if verbose:
             print "  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred.requires_grad
             print "  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10]
-            print "  kp_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10]
+            print "  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10]
         fn_kp    = torch.nn.MSELoss( reduction='none' )
-        kp_loss  = (fn_kp( sel_kplabel_pred, sel_kplabel )*sel_kpweight).sum()
+        fnout = fn_kp( sel_kplabel_pred, sel_kplabel )
+        if verbose:
+            print "  fnout shape: ",fnout.shape
+        kp_loss  = (fnout*sel_kpweight).sum()
         kp_floss = kp_loss.detach().item()
         if verbose:
             print " loss-kplabel: ",kp_floss
@@ -164,9 +163,100 @@ class SparseLArMatchKPSLoss(nn.Module):
             sel_weight = affinity_field_weight
             sel_truth  = affinity_field_truth
 
+        if verbose:
+            print "  affinity pred: ",sel_pred.shape
+            print "  affinity truth: ",sel_truth.shape
+            print "  affinity weight: ",sel_weight.shape
+            
         fn_mse = torch.nn.MSELoss( reduction='none' )
-        af_loss = (torch.sum(fn_mse( sel_pred, sel_truth ),1)*sel_weight).sum()
+        fn_out = torch.sum(fn_mse( sel_pred, sel_truth ),1)
+        if verbose:
+            print "  affinity fn: ",fn_out.shape
+        af_loss = (fn_out*sel_weight).sum()
         if verbose:
             af_floss = af_loss.detach().item()
             print " loss-affinity-field: ",af_floss
         return af_loss
+
+
+if __name__ == "__main__":
+
+    # a quick unit test of the functions above
+
+    import ROOT
+    from ROOT import std
+    from larflow import larflow
+    from ctypes import c_int
+    import numpy as np
+    
+    # use the loader function for KPS data
+    from load_larmatch_kps import load_larmatch_kps
+
+    # test file
+    input_files = ["output_alldata.root"]
+    input_v = std.vector("string")()
+    for i in input_files:
+        input_v.push_back(i)
+
+    loaders = {"kps":larflow.keypoints.LoaderKeypointData( input_v ),
+               "affinity":larflow.keypoints.LoaderAffinityField( input_v )}
+    for name,loader in loaders.items():
+        loader.exclude_false_triplets( False )
+    nentries = loaders["kps"].GetEntries()
+    print "num entries: ",nentries
+
+    device  = torch.device("cpu")    
+    nmax    = c_int()
+    nfilled = c_int()
+    nmax.value = 50000
+    batchsize = 1
+    
+    lossfn = SparseLArMatchKPSLoss( eval_ssnet=False,
+                                    eval_keypoint_label=True,
+                                    eval_keypoint_shift=False,
+                                    eval_affinity_field=True )
+
+    for ientry in xrange(0,nentries,batchsize):
+        print "[LOAD ENTRY ",ientry,"]"
+        data = load_larmatch_kps( loaders, ientry, batchsize,
+                                  npairs=10000,
+                                  exclude_neg_examples=False,
+                                  verbose=True,
+                                  single_batch_mode=True )
+        if ientry==0:
+            print "data contents:"
+            for name in data:
+                print "  ",name
+
+        # we copy the truth to make the "predictions"
+        print "num positive examples: ",data["positive_indices"].shape[0]
+
+        # larmatch
+        larmatch_truth   = torch.from_numpy( data["larmatchlabels"] )
+        larmatch_predict = torch.from_numpy( np.copy( larmatch_truth ) ).type(torch.float)
+        lmloss = lossfn.larmatch_loss(  larmatch_predict,
+                                        larmatch_truth,
+                                        torch.from_numpy( data["match_weight"] ),
+                                        verbose=True )
+        
+        # keypoint
+        keypoint_truth   = torch.from_numpy( data["kplabel"] )
+        keypoint_predict = torch.from_numpy( np.copy( keypoint_truth ) )
+        kploss = lossfn.keypoint_loss(  keypoint_predict,
+                                        keypoint_truth,
+                                        torch.from_numpy( data["kplabel_weight"] ),
+                                        torch.from_numpy( data["positive_indices"]),
+                                        verbose=True )
+
+        # affinity
+        affinity_truth   = torch.from_numpy( data["paf_label"] )
+        affinity_predict = torch.from_numpy( np.copy( affinity_truth ) )
+        pafloss = lossfn.affinity_field_loss(  affinity_predict,
+                                               affinity_truth,
+                                               torch.from_numpy( data["paf_weight"] ),
+                                               torch.from_numpy( data["positive_indices"]),
+                                               verbose=True )
+
+        
+        break
+    
