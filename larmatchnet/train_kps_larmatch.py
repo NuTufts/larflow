@@ -188,7 +188,10 @@ def main():
 
 
     # define loss function (criterion) and optimizer
-    criterion = SparseLArMatchKPSLoss()
+    criterion = SparseLArMatchKPSLoss( eval_ssnet=False,
+                                       eval_keypoint_label=True,
+                                       eval_keypoint_shift=False,
+                                       eval_affinity_field=True )
 
     # training parameters
     lr = 1.0e-5
@@ -215,21 +218,25 @@ def main():
     traindata_v = std.vector("std::string")()
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iotrain = larflow.keypoints.LoaderKeypointData(traindata_v)
+    iotrain = {"kps":larflow.keypoints.LoaderKeypointData(traindata_v),
+               "affinity":larflow.keypoints.LoaderAffinityField(traindata_v)}
 
     validdata_v = std.vector("std::string")()
     for x in INPUTFILE_VALID:
         validdata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iovalid = larflow.keypoints.LoaderKeypointData(validdata_v)
+    iovalid = {"kps":larflow.keypoints.LoaderKeypointData(validdata_v),
+               "affinity":larflow.keypoints.LoaderAffinityField(validdata_v)}
 
     if not EXCLUDE_NEG_EXAMPLES:
-        iotrain.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
-        iovalid.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
+        for name,loader in iotrain.items():
+            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
+        for name,loader in iovalid.items():
+            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
 
-    TRAIN_NENTRIES = iotrain.GetEntries()
+    TRAIN_NENTRIES = iotrain["kps"].GetEntries()
     iter_per_epoch = TRAIN_NENTRIES/(itersize_train)
     epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
-    VALID_NENTRIES = iovalid.GetEntries()
+    VALID_NENTRIES = iovalid["kps"].GetEntries()
 
     print "Number of iterations to run: ",NUM_ITERS
     print "Entries in the training set: ",TRAIN_NENTRIES

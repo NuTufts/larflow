@@ -47,14 +47,18 @@ namespace keypoints {
     }
     
     triplet_v = 0;
-    kplabel_v = 0;
+    kplabel_v[0] = 0;
+    kplabel_v[1] = 0;
+    kplabel_v[2] = 0;    
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
     
-    ttriplet->SetBranchAddress(  "triplet_v", &triplet_v );
-    tkeypoint->SetBranchAddress( "kplabel",   &kplabel_v );
-    tssnet->SetBranchAddress( "trackshower_label_v",  &ssnet_label_v );
-    tssnet->SetBranchAddress( "trackshower_weight_v", &ssnet_weight_v );
+    ttriplet->SetBranchAddress(  "triplet_v",           &triplet_v );
+    tkeypoint->SetBranchAddress( "kplabel_nuvertex",    &kplabel_v[0] );
+    tkeypoint->SetBranchAddress( "kplabel_trackends",   &kplabel_v[1] );
+    tkeypoint->SetBranchAddress( "kplabel_showerstart", &kplabel_v[2] );    
+    tssnet->SetBranchAddress( "trackshower_label_v",    &ssnet_label_v );
+    tssnet->SetBranchAddress( "trackshower_weight_v",   &ssnet_weight_v );
   }
 
   /**
@@ -326,8 +330,9 @@ namespace keypoints {
     int index_col = (withtruth) ? 4 : 3;
     float sigma = 10.0; // cm
 
-    int kplabel_nd = 1;
-    npy_intp kplabel_dims[] = { (long)pos_match_index.size() };
+    int kplabel_nd = 2;
+    int nclasses = 3;
+    npy_intp kplabel_dims[] = { (long)pos_match_index.size(), (long)nclasses };
 
     if ( !_exclude_neg_examples ) {
       kplabel_dims[0] = num_max_samples;
@@ -336,59 +341,66 @@ namespace keypoints {
     //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
-    int npos = 0;
-    int nneg = 0;
+    std::vector<int> npos(nclasses,0);
+    std::vector<int> nneg(nclasses,0);
 
     for (int i=0; i<(int)kplabel_dims[0]; i++ ) {
       // sample array index
       int idx = (_exclude_neg_examples) ? pos_match_index[i] : (int)i;
+
       // triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-      // hard label
-      long label = kplabel_v->at( index )[0];
-      if (label==1) {
-        // make soft label
-        float dist = 0.;
-        for (int j=0; j<3; j++) {
-          float dx = kplabel_v->at( index )[1+j];
-          dist += dx*dx;
+      
+      for (int c=0; c<nclasses; c++) {
+        // hard label
+        long label = kplabel_v[c]->at( index )[0];
+        if (label==1) {
+          // make soft label
+          float dist = 0.;
+          for (int j=0; j<3; j++) {
+            float dx = kplabel_v[c]->at( index )[1+j];
+            dist += dx*dx;
+          }
+          *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = exp( -dist/(sigma*sigma) );
+          npos[c]++;
         }
-        *((float*)PyArray_GETPTR1(kplabel_label,i)) = exp( -dist/(sigma*sigma) );
-        npos++;
-      }
-      else {
-        *((float*)PyArray_GETPTR1(kplabel_label,i)) = 0.0;
-        nneg++;
+        else {
+          // zero label
+          *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = 0.0;
+          nneg[c]++;
+        }
       }
     }
 
-    // weights for positive and negative examples
-    int kpweight_nd = 1;
-    npy_intp kpweight_dims[] = { (long)pos_match_index.size() };
+    // weights to balance positive and negative examples
+    int kpweight_nd = 2;
+    npy_intp kpweight_dims[] = { (long)pos_match_index.size(), nclasses };
     if ( !_exclude_neg_examples )
       kpweight_dims[0] = num_max_samples;
     kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
-    float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.0;
-    float w_neg = (nneg) ? float(npos+nneg)/float(nneg) : 0.0;
-    float w_norm = w_pos*npos + w_neg*nneg;
+    for (int c=0; c<nclasses; c++ ) {
+      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+      float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
-    std::cout << "KPWEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+      std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
     
-    for (int i=0; i<kpweight_dims[0]; i++ ) {
-      // sample array index
-      int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
-      // triplet index
-      long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-      // hard label
-      long label = kplabel_v->at( index )[0];
-      if (label==1) {
-        *((float*)PyArray_GETPTR1(kplabel_weight,i)) = w_pos/w_norm;
+      for (int i=0; i<kpweight_dims[0]; i++ ) {
+        // sample array index
+        int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
+        // triplet index
+        long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
+        // hard label
+        long label = kplabel_v[c]->at( index )[0];
+        if (label==1) {
+          *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
+        }
+        else {
+          *((float*)PyArray_GETPTR2(kplabel_weight,i,c))  = w_neg/w_norm;
+        }
       }
-      else {
-        *((float*)PyArray_GETPTR1(kplabel_weight,i))  = w_neg/w_norm;
-      }
-    }
+    }//end of class loop
 
     return 0;
   }
@@ -413,20 +425,23 @@ namespace keypoints {
     int index_col = (withtruth) ? 4 : 3;
 
     // make keypoint shift array
-    int kpshift_nd = 2;
-    npy_intp kpshift_dims[] = { num_max_samples, 3 };
+    int kpshift_nd = 3;
+    int nclasses = 3;
+    npy_intp kpshift_dims[] = { num_max_samples, nclasses, 3 };
     //std::cout << "make kpshift: " << kpshift_dims[0] << "," << kpshift_dims[1] << std::endl;    
     kpshift_label = (PyArrayObject*)PyArray_SimpleNew( kpshift_nd, kpshift_dims, NPY_FLOAT );
 
     for (int i=0; i<num_max_samples; i++ ) {
       long index = *((long*)PyArray_GETPTR2(match_array,i,index_col));
-      if ( i<nfilled ) {
-        for (int j=0; j<3; j++ )
-          *((float*)PyArray_GETPTR2(kpshift_label,i,j)) = kplabel_v->at( index )[1+j];
-      }
-      else{
-        for (int j=0; j<3; j++ )
-          *((float*)PyArray_GETPTR2(kpshift_label,i,j)) = 0.;
+      for (int c=0; c<nclasses; c++ ) {
+        if ( i<nfilled ) {
+          for (int j=0; j<3; j++ )
+            *((float*)PyArray_GETPTR3(kpshift_label,i,c,j)) = kplabel_v[c]->at( index )[1+j];
+        }
+        else{
+          for (int j=0; j<3; j++ )
+            *((float*)PyArray_GETPTR3(kpshift_label,i,c,j)) = 0.;
+        }
       }
     }
     

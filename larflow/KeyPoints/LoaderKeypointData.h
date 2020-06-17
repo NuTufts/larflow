@@ -45,7 +45,7 @@ namespace keypoints {
     TChain* tssnet;
 
     std::vector<larflow::PrepMatchTriplets>* triplet_v;
-    std::vector< std::vector<float> >*       kplabel_v;
+    std::vector< std::vector<float> >*       kplabel_v[3];
     std::vector< std::vector<float> >*       kpshift_v;
     std::vector< int   >*                    ssnet_label_v;    
     std::vector< float >*                    ssnet_weight_v;
