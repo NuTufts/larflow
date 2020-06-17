@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <queue>
 
+#include "TH2D.h"
+
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -16,6 +18,7 @@
 // larlite
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "LArUtil/LArProperties.h"
+#include "LArUtil/Geometry.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
@@ -35,8 +38,6 @@ namespace keypoints {
    */
   PrepKeypointData::PrepKeypointData()
     : _adc_image_treename("wire"),
-      _bvhroot(nullptr),
-      _use_bvh(false),
       _label_tree(nullptr)
   {
     _nclose = 0;
@@ -67,6 +68,26 @@ namespace keypoints {
   
   /**
    * process one event, given io managers
+   *
+   * expect the following inputs within the event data containers
+   * in IOManager:
+   * - charge image with tree name _adc_image_treename, specifiable using `setADCimageTreeName`
+   * - "segment" images indicating particle type at a given pixel
+   * - "instance" images indicating MC ID of particle making charge at pixel
+   * - "ancestor" images indicating ancestor track ID for particle making charge at pixel
+   *
+   * in larlite:
+   * - "mcreco" MCTrack tree, holding truth info for track-like particles
+   * - "mcreco" MCShower tree, holding truth info for shower-like particles
+   * - "generator" MCTruth tree, holding truth about neutrino interaction in image (if exists)
+   *
+   * important class data members produced by this method:
+   * - _kpd_v vector of KPdata class which holds info on ground truth keypoints
+   * - _match_proposal_labels_v[3] For each keypoint type (total 3), hold a vector of floats for every 3D spacepoint proposal
+   *                               There will be a vector<float> for each triplet in PrepMatchTriplet::_triplet_v
+   * - _kppos_v[3] For each keypoint type (total 3), store 3D position for each ground truth keypoint identified
+   *
+   * 
    *
    * @param[in] iolcv LArCV IOManager containing event data
    * @param[in] ioll  LArLite storage_manager containing event data
@@ -133,11 +154,12 @@ namespace keypoints {
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v,
                      mcshower_v, mctrack_v, mctruth_v );
-
+    //mcpg.printGraph();
 
     // build key-points
     _kpd_v.clear();
-    _kppos_v.clear();
+    for (int i=0; i<(int)larflow::kNumKeyPoints; i++)
+      _kppos_v[i].clear();
     
     // build crossing points for muon track primaries
     std::vector<KPdata> track_kpd
@@ -145,7 +167,7 @@ namespace keypoints {
 
     std::cout << "[Track Endpoint Results]" << std::endl;
     for ( auto const& kpd : track_kpd ) {
-      std::cout << "  " << str(kpd) << std::endl;
+      std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
@@ -154,27 +176,42 @@ namespace keypoints {
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
     std::cout << "[Shower Endpoint Results]" << std::endl;
     for ( auto const& kpd : shower_kpd ) {
-      std::cout << "  " << str(kpd) << std::endl;
+      std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
+    // we change the kptype to neutrino vertex for those on it
+    _label_nu_keypoints( mctruth_v, adc_v, &sce, _kpd_v );
+    
     // filter duplicates
-    filter_duplicates();
+    //filter_duplicates();
 
     // copy positions of keypoints into flat vector for storage
     for ( auto const& kpd : _kpd_v ) {
-      _kppos_v.push_back( kpd.keypt );
+      if ( kpd.kptype>=0 && kpd.kptype<larflow::kNumKeyPoints ) {
+        _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
+      }
+      else {
+        throw std::runtime_error("unrecognized keypoint type");
+      }          
     }
 
-    // make BVH tree (to help truth point search speed)
-    // deprecated
-    //makeBVH();
-    //printBVH();
   }
 
 
   /**
    * make list of end-points for track-like particles
+   *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any)
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mctrack_v Event container (vector) of mctrack objects, containing truth
+   *                      information of track-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of KPdata instances, one for each ground truth track end
    *
    */
   std::vector<KPdata>
@@ -219,6 +256,7 @@ namespace keypoints {
           kpd.vid     = pnode->vidx;
           kpd.is_shower = 0;
           kpd.origin  = pnode->origin;
+          kpd.kptype  = larflow::kTrackEnds;
           kpd.imgcoord = 
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                        4050.0, true, 0.3, 0.1,
@@ -237,6 +275,7 @@ namespace keypoints {
           kpd.vid     = pnode->vidx;
           kpd.is_shower = 0;
           kpd.origin  = pnode->origin;
+          kpd.kptype  = larflow::kTrackEnds;          
           kpd.imgcoord = 
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                        4050.0, false, 0.3, 0.1,
@@ -257,6 +296,19 @@ namespace keypoints {
   /**
    * make list of end-points for shower-like particles
    *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any).
+   *                 We get a list of showers using this graph, and only consider
+   *                 those who have at least 10 visible pixels in one of the planes.
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
+   *                       information of shower-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of KPdata instances, one for each ground truth shower start
+   * 
    */  
   std::vector<KPdata>
   PrepKeypointData::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
@@ -265,81 +317,135 @@ namespace keypoints {
                                      larutil::SpaceChargeMicroBooNE* psce )
   {
 
-    // get list of primaries
-    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
-      = mcpg.getPrimaryParticles();
-
     // output vector of keypoint data
     std::vector<KPdata> kpd_v;
 
-    for ( auto const& pnode : primaries ) {
+    // loop over nodes, look for electron/gamma pixels
+    for ( auto const& pnode : mcpg.node_v ) {
 
-      if ( abs(pnode->pid)!=11
-           && abs(pnode->pid)!=22 )
+      if ( abs(pnode.pid)!=11
+           && abs(pnode.pid)!=22 )
         continue;
 
-      auto const& mcshr = mcshower_v.at( pnode->vidx );
 
-      //we convert shower to track trajectory
-      larlite::mctrack mct;
-      mct.push_back( mcshr.Start() );
-      mct.push_back( mcshr.End() );
-
-      int crossingtype =
-        ublarcvapp::mctools::CrossingPointsAnaMethods::
-        doesTrackCrossImageBoundary( mct,
-                                     adc_v.front().meta(),
-                                     4050.0,
-                                     psce );
-
-      if ( crossingtype>=0 ) {
-
-        KPdata kpd;
-        kpd.crossingtype = crossingtype;
-        kpd.trackid = pnode->tid;
-        kpd.pid     = pnode->pid;
-        kpd.vid     = pnode->vidx;
-        kpd.origin  = pnode->origin;
-        kpd.is_shower = 1;
-        
-        kpd.imgcoord = 
-          ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mct, adc_v.front().meta(),
-                                                                                     4050.0, true, 0.3, 0.1,
-                                                                                     kpd.keypt, psce, false );
-        if ( kpd.imgcoord.size()>0 ) {
-          kpd_v.emplace_back( std::move(kpd) );
-        }
+      int max_plane_pixels = 0;
+      for (auto const& pix_v : pnode.pix_vv ) {
+        if ( max_plane_pixels<pix_v.size() )
+          max_plane_pixels = pix_v.size();
       }
 
-    }//end of primary loop
+      if ( max_plane_pixels<10 )
+        continue;
+
+      
+      // start: pnode.start; //should be in apparent position already
+      KPdata kpd;
+      kpd.crossingtype = 2;
+      kpd.trackid = pnode.tid;
+      kpd.pid     = pnode.pid;
+      kpd.vid     = pnode.vidx;
+      kpd.origin  = pnode.origin;
+      kpd.is_shower = 1;
+      kpd.kptype  = larflow::kShowerStart;        
+      kpd.keypt.resize(3,0);
+      for (int i=0; i<3; i++)
+        kpd.keypt[i]   = pnode.imgpos4[i];
+
+      std::vector<double> dpos(3,0);
+      for (int i=0; i<3; i++ ) dpos[i] = pnode.imgpos4[i];
+
+      kpd.imgcoord.resize(4,0);      
+      try {
+        for (int p=0; p<3; p++)
+          kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
+      }
+      catch (...) {
+        continue;
+      }
+      float tick = pnode.imgpos4[3];
+      if ( tick>adc_v[0].meta().min_y() && tick<adc_v[0].meta().max_y() ) {
+        kpd.imgcoord[0] = adc_v[0].meta().row( tick );
+      }
+      else {
+        continue;
+      }
+      kpd_v.emplace_back( std::move(kpd) );
+
+    }//end of node loop
     
     return kpd_v;
   }
-
+  
   /**
-   * make info string for KPdata
+   * loop through existing keypoints and change type to neutrino
+   * if close to neutrino vertex.
    *
-   */    
-  std::string PrepKeypointData::str( const KPdata& kpd )
+   * @param[in]     mctruth_v Truth information about the neutrino interaction.
+   * @param[in]     img_v     Wire Images, just for the meta
+   * @param[in]     psce      Pointer to space-charge microboone instance
+   * @param[in/out] kpdata_v  Keypoint elements to potentially change
+   *
+   */
+  void PrepKeypointData::_label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
+                                              const std::vector<larcv::Image2D>& img_v,
+                                              larutil::SpaceChargeMicroBooNE* psce,
+                                              std::vector<KPdata>& kpdata_v  )
   {
-    std::stringstream ss;
-    ss << "[type=" << kpd.crossingtype << " pid=" << kpd.pid
-       << " vid=" << kpd.vid
-       << " isshower=" << kpd.is_shower
-       << " origin=" << kpd.origin << "] ";
 
-    if ( kpd.imgcoord.size()>0 )
-      ss << " imgstart=(" << kpd.imgcoord[0] << ","
-         << kpd.imgcoord[1] << ","
-         << kpd.imgcoord[2] << ","
-         << kpd.imgcoord[3] << ") ";
+    // loop over all interactions
+    int inu = -1;
+    for ( auto const& mct : mctruth_v ) {
+      inu++;
+      auto const& nu = mct.GetNeutrino();
 
-    if ( kpd.keypt.size()>0 )
-      ss << " keypt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ") ";
-            
-    return ss.str();
+      auto const& nutraj = nu.Nu().Trajectory();
+
+      if (nutraj.size()>0) {
+      
+        // get the space-charge corrected neutrino vertex
+        std::vector<double> nupos(3,0);
+        for (int i=0; i<3; i++ )
+          nupos[i] = nutraj.front().Position()[i];
+
+        std::vector<double> offsets = psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
+        nupos[0] = nupos[0] - offsets[0] + 0.7;
+        nupos[1] += offsets[1];
+        nupos[2] += offsets[2];
+
+        // make a neutrino keypoint
+        KPdata kpd;
+        kpd.crossingtype = 0;
+        kpd.trackid = 0;
+        kpd.pid     = 12;
+        kpd.vid     = inu;
+        kpd.is_shower = 0;
+        kpd.origin  = 1;
+        kpd.kptype  = larflow::kNuVertex;
+        kpd.keypt.resize(3,0);
+        for (int i=0; i<3; i++) kpd.keypt[i] = nupos[i];
+        kpd.imgcoord.resize(4,0);
+
+        try {
+          for (int p=0; p<3; p++)
+            kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( nupos, p );
+        }
+        catch (...) {
+          continue;
+        }
+        float tick = 3200 + nupos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+        if ( tick>img_v[0].meta().min_y() && tick<img_v[0].meta().max_y() ) {
+          kpd.imgcoord[0] = img_v[0].meta().row( tick );
+        }
+        else {
+          continue;
+        }
+
+        kpdata_v.push_back( kpd );
+        
+      }//end of if neutrino truth object has trajectory point for vertex
+    }//end of loop over mctruth elements
+    
   }
-
 
   /** 
    * filter out duplicates
@@ -373,11 +479,14 @@ namespace keypoints {
   }
   
   /**
-   * return an array with keypoints
-   * array columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
+   * 
+   * return a numpy array with keypoints for a given class
+   *
+   * @param[in] iclass larflow::KeyPoint_t value, indicating keypoint type
+   * @return Numpy array with columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
    *
    */
-  PyObject* PrepKeypointData::get_keypoint_array() const
+  PyObject* PrepKeypointData::get_keypoint_array( int iclass ) const
   {
 
     if ( !PrepKeypointData::_setup_numpy ) {
@@ -391,7 +500,7 @@ namespace keypoints {
     int npts = 0;
     for ( size_t ikpd=0; ikpd<_kpd_v.size(); ikpd++ ) {
       auto const& kpd = _kpd_v[ikpd];
-
+      if ( kpd.kptype!=(larflow::KeyPoint_t)iclass ) continue;
       if (kpd.imgcoord.size()>0) {
         if ( unique_coords.find( kpd.imgcoord )==unique_coords.end() ) {
           kpd_index.push_back( std::vector<int>{(int)ikpd,0} );
@@ -431,279 +540,153 @@ namespace keypoints {
   }
 
   /**
-   * we build a boundary volume hierarchy tree, using a top-down method
+   * return a numpy array with keypoint class scores
+   *
+   * The score is calculated for each proposed spacepoint using a gaussian where the mean
+   *  is the 3d position of the closest ground truth keypoint for the given class.
+   * For any point 50*0.3 cm away from a ground truth keypoint, the score is set to zero.
+   *
+   * Assumes that `process` has already been run.
+   *
+   * @param[in] sig The sigma used in Gaussian to calculate keypoint class score
+   * @return Numpy array with shape [num space points, larflow::kNumKeyPoints classes ]
    *
    */
-  void PrepKeypointData::makeBVH() {
+  PyObject* PrepKeypointData::get_triplet_score_array( float sig ) const
+  {
 
-    // std::cout << "=========================" << std::endl;
-    // std::cout << " makeBVH" << std::endl;
-    // std::cout << "=========================" << std::endl;    
-    
-    clearBVH();
-    
-    // xlimits derived from bound of image
-    float xmin_det = (2400-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-    float xmax_det = (2400+1008*6-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-
-    // make the root node    
-    _bvhroot = new bvhnode_t(xmin_det,xmax_det,-118,118,0,1036);
-
-    // make a node for all points
-    std::vector< bvhnode_t* > leafs;
-    int ikpd = 0;
-    for ( auto const& kpd : _kpd_v ) {
-      bvhnode_t* node = new bvhnode_t( kpd.keypt[0], kpd.keypt[0],
-                                       kpd.keypt[1], kpd.keypt[1],
-                                       kpd.keypt[2], kpd.keypt[2] );
-      node->kpdidx = ikpd;
-      ikpd++;
-      leafs.push_back( node );
-      _bvhnodes_v.push_back( node );
-      node->mother = _bvhroot;
-      _bvhroot->children.push_back( node );
+    if ( !PrepKeypointData::_setup_numpy ) {
+      import_array1(0);
+      PrepKeypointData::_setup_numpy = true;
     }
 
-    std::queue< bvhnode_t* > q;
-    q.push( _bvhroot );
-
-    while ( q.size()>0 ) {
-      //std::cout << "process node on the queue" << std::endl;
-      bvhnode_t* node = q.front();
-      q.pop();
-
-      // make copies of child pointers in order to sort by dimension
-      std::vector< bvhnode_t* > x_v[3];
-      for (int v=0; v<3; v++) {
-        x_v[v].resize(node->children.size(),nullptr);
-        for (size_t i=0; i<node->children.size(); i++)
-          x_v[v][i] = node->children[i];
+    // get label info for each triplet proposal
+    int npts = (int)_match_proposal_labels_v[0].size();
+    for (size_t iclass=0; iclass<larflow::kNumKeyPoints; iclass++) {
+      if ( _match_proposal_labels_v[iclass].size()!=npts ) {
+        throw std::runtime_error("number of triplet labels/scores for each class does not match!");
       }
-      std::sort( x_v[0].begin(), x_v[0].end(), compare_x );
-      std::sort( x_v[1].begin(), x_v[1].end(), compare_y );
-      std::sort( x_v[2].begin(), x_v[2].end(), compare_z );
-      int nchild = (int)x_v[0].size();
+    }
+    
+    int nd = 2;
+    npy_intp dims[] = { npts, larflow::kNumKeyPoints };
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
-      // we split by the largest gap
-      float dimlen = -1;
-      int longdim = 0;
-      float midpt = 0.0;
-      int lowidx  = 0;
-      int highidx = 0;
-      for (int i=0; i<3; i++ ) {
-
-        // get the center point to make a box
-        int _lowidx  = 0;
-        int _highidx = 0;
-        if ( nchild%2==0 ) {
-          // even
-          _highidx = nchild/2; // 4/2 = 2
-          _lowidx  = _highidx-1;                // 1
+    size_t ipt = 0;
+    for ( size_t ipt=0; ipt<npts; ipt++ ) {
+      for (size_t iclass=0; iclass<larflow::kNumKeyPoints; iclass++) {
+        
+        auto const& label_v = _match_proposal_labels_v[iclass][ipt];
+        
+        if ( label_v[0]==0.0 ) {
+          *((float*)PyArray_GETPTR2(array,ipt,iclass)) = 0.0;
         }
         else {
-          // odd
-          _lowidx  = nchild/2; // 3/2 = 1
-          _highidx = _lowidx + 1;             // 2
-        }
-
-        // calculate gap dist
-        float gapdim = 
-          fabs(x_v[i][_lowidx]->bounds[i][0] - x_v[i][_highidx]->bounds[i][0]);
-
-        if ( gapdim>=dimlen ) {
-          longdim = i;        
-          // calculate midpoint using leaf nodes
-          midpt   = 0.5*(x_v[i][_lowidx]->bounds[i][0] + x_v[i][_highidx]->bounds[i][0] );
-          lowidx  = _lowidx;
-          highidx = _highidx;
-          dimlen  = gapdim;
-        }
-      }// end of loop over dimensions
-      
-      // set this longest dim as the splitting dimension of this node
-      node->splitdim = longdim;
-
-      // we define two new boundary volume, using the midpoint of low and high
-      // to split the previous volume.
-      // we split the children into them.
-      // if the node only has one, then its a leaf node
-      float lo_bounds[3][2];
-      float hi_bounds[3][2];
-      for (int i=0; i<3; i++ ) {
-        for (int j=0; j<2; j++ ) {
-          lo_bounds[i][j] = node->bounds[i][j];
-          hi_bounds[i][j] = node->bounds[i][j];
+          float dist = 0.;
+          for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
+          *((float*)PyArray_GETPTR2(array,ipt,iclass)) = exp( -0.5*dist/(sig*sig) );
         }
       }
-      lo_bounds[longdim][1] = midpt;
-      hi_bounds[longdim][0] = midpt;
-      bvhnode_t* lo_node = new bvhnode_t( lo_bounds[0][0], lo_bounds[0][1],
-                                          lo_bounds[1][0], lo_bounds[1][1],
-                                          lo_bounds[2][0], lo_bounds[2][1] );
-      bvhnode_t* hi_node = new bvhnode_t( hi_bounds[0][0], hi_bounds[0][1],
-                                          hi_bounds[1][0], hi_bounds[1][1],
-                                          hi_bounds[2][0], hi_bounds[2][1] );
-      // add them into node list, so we know to destroy them
-      _bvhnodes_v.push_back( lo_node );
-      _bvhnodes_v.push_back( hi_node );
-
-      // now we divide the node's children into the new nodes
-      for (int i=0; i<=lowidx; i++ ) {
-        x_v[longdim][i]->mother = lo_node;
-        lo_node->children.push_back( x_v[longdim][i] );
-      }
-      for (int i=highidx; i<nchild; i++ ) {
-        x_v[longdim][i]->mother = hi_node;        
-        hi_node->children.push_back( x_v[longdim][i] );
-      }
-
-      // clear the node's children and replace it with the new nodes
-      node->children.clear();
-      node->children.push_back( lo_node );
-      node->children.push_back( hi_node );
-
-      // std::cout << "[split " << strnode(node) << " nchild=" << nchild << "]" << std::endl;
-      // std::cout << "  splitdim=" << longdim << " gapsize=" << dimlen << std::endl;
-      // std::cout << "  lo: " << strnode(lo_node) << " nchild=" << lo_node->children.size() << std::endl;
-      // std::cout << "  hi: " << strnode(hi_node) << " nchild=" << hi_node->children.size() << std::endl;      
-
-      //set them into the queue if they have more than one child
-      if (lo_node->children.size()>1 )
-        q.push( lo_node );
-      if (hi_node->children.size()>1 )
-        q.push( hi_node );
-
-      //std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
-      //std::cin.get();
-    }//end of loop over queue
+    }// end of loop over keypointdata structs
     
+    return (PyObject*)array;
   }
-
+  
   /**
-   * clear past BVH nodes
+   * given a set of space point (i.e. triplet match) proposals, 
+   *  we define a vector<float> which we use to we make ground truth information
    *
-   * clears _bvhnode_v container and _bvhroot node.
-   *
-   */
-  void PrepKeypointData::clearBVH() {
-    for ( auto& pnode : _bvhnodes_v )
-      delete pnode;
-    _bvhnodes_v.clear();
-    if ( _bvhroot )
-      delete _bvhroot;
-    _bvhroot = nullptr;
-  }
-
-  /**
-   * print current BVH tree
-   */
-  void PrepKeypointData::printBVH() {
-    print_graph( _bvhroot );
-  }
-
-  void PrepKeypointData::findClosestKeypoint( const std::vector<float>& testpt,
-                                              int& kpindex, float& dist ) {
-    
-  }
-
-  /**
-   * given a set of match proposals, we make labels
-   *
-   * label columns:
-   *  [0]:   has true end-point with X cm
+   * vector elements:
+   *  [0]:   1.0 if has true end-point with 0.3*50 cm, 0.0 if not.
    *  [1-3]: shift in 3D points from point to closest end-point
    *  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
-   *
    * 
    */
   void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
   {
 
-    _match_proposal_labels_v.clear();
-    _match_proposal_labels_v.reserve(match_proposals._triplet_v.size());
-
+    for (int i=0; i<larflow::kNumKeyPoints; i++) {
+      _match_proposal_labels_v[i].clear();
+      _match_proposal_labels_v[i].reserve(match_proposals._triplet_v.size());
+    }
 
     for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
-      const std::vector<int>& triplet = match_proposals._triplet_v[imatch]; 
+
+      // triplet index (index of the sparse matrix coordinates)
+      const std::vector<int>& triplet = match_proposals._triplet_v[imatch];
+
+      // 3D position formed by intersection of the wires
       const std::vector<float>& pos   = match_proposals._pos_v[imatch];
       // std::cout << "[match " << imatch << "] "
       //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
       //           << std::endl;
 
-      std::vector<float> label_v(10,0);
-      float dist = 1.0e9;
+      // make a score for each class
+      for (int ikpclass=0; ikpclass<(int)larflow::kNumKeyPoints; ikpclass++) {
+
+        // store label values
+        // [0]: has a match to a true keypoint
+        // [1,2,3]: (dx,dy,dz) to closest keypoint
+        // [4,5,6,7]: (dr,du,dv,dy) shift in row and columns
+        std::vector<float> label_v(10,0);
+        float dist = 1.0e9;
       
-      // dumb assignment, loops over all truth keypoints
-      // smarter one uses a BVH structure (does being in a leaf volume guarentee that point is the closest?)
-      // O(200k) proposals x 40 keypoints
-      // brute forces is O(8M) while BVH is O(737K), a factor of 10 speed-up
-      const bvhnode_t* leaf = nullptr;
-      const KPdata* kpd = nullptr;
-      std::vector<float> leafpos(3,0);
+        // dumb assignment, loops over all truth keypoints
+        // seems fast enough
+        const KPdata* kpd = nullptr;
+        std::vector<float> leafpos(3,0);
       
-      if ( _use_bvh ) {
-        throw std::runtime_error("BVH method should not be used");
-        leaf = recurse_findleaf( pos, _bvhroot );
-        // std::cout << "  leaf-node[kpdindex: " << leaf->kpdidx << "] keypt="
-        //           << "(" << leaf->bounds[0][0] << ","
-        //           << leaf->bounds[1][0] << ","
-        //           << leaf->bounds[2][0] << ")"
-        //           << std::endl;
-        kpd = &(_kpd_v[ leaf->kpdidx ]);
-     
-        for (int i=0; i<3; i++ ) {
-          leafpos[i] = leaf->bounds[i][0];
-          dist += (pos[i]-leafpos[i])*(pos[i]-leafpos[i]);
-        }
-        dist = sqrt(dist);
-      }
-      else {
-        // brute force
         for (auto const& testkpd : _kpd_v ) {
+          // ignore those not in class
+          if ( testkpd.kptype!=(larflow::KeyPoint_t)ikpclass )
+            continue;
+          
           float testdist = 0.;
           for ( int v=0; v<3; v++ )
             testdist += (testkpd.keypt[v]-pos[v])*(testkpd.keypt[v]-pos[v]);
           testdist = sqrt(testdist);
-
+        
           if ( dist>testdist ) {
+            // update the leadpos and kpd pointer
             dist = testdist;
             for (int v=0; v<3; v++ )
               leafpos[v] = testkpd.keypt[v];
             kpd = &testkpd;
           }
+        }//end of loop over true points
+
+        // make label vector
+
+        // within 50 pixels/15 cm
+        if ( dist<0.3*50 ) {
+          label_v[0] = 1.0;
+          _nclose++;
         }
-      }
+        else {
+          label_v[0] = 0.0;
+          _nfar++;
+        }
 
-      // make label vector
+        // make shift in 3D label
+        if ( dist<0.3*50 ) {
+          for (int i=0; i<3; i++ ) {
+            label_v[1+i] = leafpos[i]-pos[i];
+            hdist[i]->Fill(label_v[1+i]);
+          }
 
-      // within 50 pixels/15 cm
-      if ( dist<0.3*50 ) {
-        label_v[0] = 1.0;
-        _nclose++;
-      }
-      else {
-        label_v[0] = 0.0;
-        _nfar++;
-      }
-
-      // shift in 3D
-      for (int i=0; i<3; i++ ) {
-        label_v[1+i] = leafpos[i]-pos[i];
-        hdist[i]->Fill(label_v[1+i]);
-      }
-
-      // shift in imgcoords
-      std::vector<int> imgcoords(4,0);
-      imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
-      for (int p=0; p<3; p++ ) {
-        imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
-      }
-      for (int i=0; i<4; i++) {
-        label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
-        hdpix[i]->Fill( label_v[4+i] );
-      }
-
-      _match_proposal_labels_v.push_back(label_v);
+          // shift in imgcoords
+          std::vector<int> imgcoords(4,0);
+          imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
+          for (int p=0; p<3; p++ ) {
+            imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
+          }
+          for (int i=0; i<4; i++) {
+            label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
+            hdpix[i]->Fill( label_v[4+i] );
+          }
+        }
+        _match_proposal_labels_v[ikpclass].push_back(label_v);
+      }//end of keypoint class loop
     }//end of match proposal loop
       
   }
@@ -725,6 +708,9 @@ namespace keypoints {
   /**
    * define ROOT tree where we save the labels
    *
+   * this TTree is intended to be used to save ground truth information
+   * we can load during  training
+   *
    */
   void PrepKeypointData::defineAnaTree()
   {
@@ -732,10 +718,18 @@ namespace keypoints {
     _label_tree->Branch("run",&_run,"run/I");
     _label_tree->Branch("subrun",&_subrun,"subrun/I");
     _label_tree->Branch("event",&_event,"event/I");
-    _label_tree->Branch("kplabel",&_match_proposal_labels_v);
-    _label_tree->Branch("kppos",&_kppos_v);
+    _label_tree->Branch("kplabel_nuvertex",    &_match_proposal_labels_v[0]);
+    _label_tree->Branch("kplabel_trackends",   &_match_proposal_labels_v[1]);
+    _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[2]);
+    _label_tree->Branch("kppos_nuvertex",    &_kppos_v[0]);
+    _label_tree->Branch("kppos_trackends",   &_kppos_v[1]);
+    _label_tree->Branch("kppos_showerstart", &_kppos_v[2]);
   }
 
+  /**
+   * call the ana tree's Write method
+   *
+   */
   void PrepKeypointData::writeAnaTree()
   {
     if (_label_tree)
@@ -759,7 +753,55 @@ namespace keypoints {
     std::cout << "----------------------------------------------------" << std::endl;    
     
   }
-  
+
+  /**
+   * 
+   * dump out th2d of scores, for visualization and debugging
+   *
+   * @param[in] ikpclass   KeyPoint_t type
+   * @param[in] sigma      Width of score Gaussian in cm
+   * @param[in] histname   Stem of name to use for TH2D
+   * @param[in] tripmaker  Instance of PrepMatchTriplet with prepared triplets
+   * @param[in] adc_v      vector of Image2D images, for meta
+   * @return  vector of TH2D, one for each 
+   * 
+   */
+  std::vector<TH2D> PrepKeypointData::makeScoreImage( const int ikpclass, const float sigma,
+                                                      const std::string histname,
+                                                      const larflow::PrepMatchTriplets& tripmaker,
+                                                      const std::vector<larcv::Image2D>& adc_v ) const
+  {
+
+    std::vector<TH2D> hist_v;
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      std::stringstream ss;
+      ss << histname << "_p" << (int)p;
+      TH2D hist( ss.str().c_str(), ss.str().c_str(),
+                 adc_v[p].meta().cols(), adc_v[p].meta().min_x(), adc_v[p].meta().max_x(),
+                 adc_v[p].meta().rows(), adc_v[p].meta().min_y(), adc_v[p].meta().max_y() );
+
+      for (size_t ipt=0; ipt<tripmaker._triplet_v.size(); ipt++) {
+        int r = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].row;
+        int c = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].col;
+
+        auto const& label_v = _match_proposal_labels_v[ikpclass][ipt];
+        
+        if ( label_v[0]==0.0 && hist.GetBinContent(c+1,r+1)<0.01 ) {
+          hist.SetBinContent( c+1, r+1, 0.01 );
+        }
+        else if (label_v[0]>0.0) {
+          float dist = 0.;
+          for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
+          float score = exp( -0.5*dist/(sigma*sigma) );
+          if ( hist.GetBinContent(c+1,r+1)<score )
+            hist.SetBinContent( c+1, r+1, score );
+        }
+      }
+      hist_v.emplace_back( std::move(hist) );
+    }
+    
+    return hist_v;
+  }
   
 }
 }

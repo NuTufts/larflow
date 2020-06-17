@@ -55,8 +55,9 @@ for ientry in xrange(nentries):
         meta = adc_v[p].meta()
         for iid in xrange(id_v.size()):
             aid = id_v[iid]
+            a_node = mcpg.findTrackID( aid )
             pix_v = prepembed.get_instance_pixlist( p, aid )
-            print "ancestor id: ",aid," npixels=",pix_v.size()
+            print "ancestor id: ",aid," npixels=",pix_v.size()," pid=",a_node.pid," origin=",a_node.origin
             
             tg = rt.TGraph( pix_v.size() )
             for ipt in xrange(pix_v.size()):

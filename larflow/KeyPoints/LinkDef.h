@@ -11,9 +11,11 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::keypoints;
-#pragma link C++ struct larflow::keypoints::KPdata+;
+#pragma link C++ class larflow::keypoints::KPdata+;
 #pragma link C++ class larflow::keypoints::PrepKeypointData+;
+#pragma link C++ class larflow::keypoints::PrepAffinityField+;
 #pragma link C++ class larflow::keypoints::LoaderKeypointData+;
+#pragma link C++ class larflow::keypoints::LoaderAffinityField+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif

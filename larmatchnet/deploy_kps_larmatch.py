@@ -55,7 +55,7 @@ BATCHSIZE = 1
 preplarmatch = larflow.PrepMatchTriplets()
 
 # MULTI-HEAD LARMATCH MODEL
-model_dict = {"larmatch":LArMatch(neval=NUM_PAIRS,use_unet=args.use_unet).to(DEVICE),
+model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
               "ssnet":LArMatchSSNetClassifier().to(DEVICE),
               "kplabel":LArMatchKeypointClassifier().to(DEVICE),
               "kpshift":LArMatchKPShiftRegressor().to(DEVICE)}
@@ -65,6 +65,7 @@ for name,arr in checkpoint["state_larmatch"].items():
     #print(name,arr.shape)
     if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
          ("stem" in name and "weight" in name and len(arr.shape)==3) or
+         ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
          ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
         print("reshaping ",name)
         checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )

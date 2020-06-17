@@ -1,6 +1,12 @@
 #ifndef __KPS_RECO_MANAGER_H__
 #define __KPS_RECO_MANAGER_H__
 
+#include <string>
+
+// ROOT
+#include "TFile.h"
+#include "TTree.h"
+
 // larlite
 #include "DataFormat/storage_manager.h"
 
@@ -20,6 +26,10 @@
 #include "TrackReco2KP.h"
 #include "ShowerRecoKeypoint.h"
 #include "PCACluster.h"
+#include "ProjectionDefectSplitter.h"
+#include "PCATracker.h"
+#include "ChooseMaxLArFlowHit.h"
+#include "NuVertexMaker.h"
 
 namespace larflow {
 namespace reco {
@@ -27,7 +37,7 @@ namespace reco {
   class KPSRecoManager : public larcv::larcv_base {
   public:
 
-    KPSRecoManager();
+    KPSRecoManager( std::string inputfile="outana_kpsrecomanager.root" );
     virtual ~KPSRecoManager();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -45,11 +55,29 @@ namespace reco {
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;
     PCACluster         _pcacluster;
+    PCATracker         _pcatracker;
+    ProjectionDefectSplitter _projsplitter;
     ShowerRecoKeypoint _showerkp;
+    ChooseMaxLArFlowHit _choosemaxhit;
+    NuVertexMaker       _nuvertexmaker;
 
     // Algorithms
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+                         
+
+  protected:
+
+    TFile* _ana_file;
+    TTree* _ana_tree;
+    std::string _ana_input_file;
+    int _ana_run;
+    int _ana_subrun;
+    int _ana_event;
+    void make_ana_file();
     
+  public:
+    void write_ana_file() { _ana_file->cd(); _ana_tree->Write(); };
     
   };
 

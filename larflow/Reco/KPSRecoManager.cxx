@@ -7,9 +7,12 @@
 namespace larflow {
 namespace reco {
 
-  KPSRecoManager::KPSRecoManager()
-    : larcv::larcv_base("KPSRecoManager")
-  {    
+  KPSRecoManager::KPSRecoManager( std::string inputfile_name )
+    : larcv::larcv_base("KPSRecoManager"),
+    _ana_input_file(inputfile_name)
+  {
+    make_ana_file();
+    _nuvertexmaker.add_nuvertex_branch( _ana_tree );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -52,14 +55,18 @@ namespace reco {
     //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
     // output:
     //  * _kpreco.output_pt_v: container of KPCluster objects
+    _kpreco.set_min_cluster_size(   50.0, 0 );
+    _kpreco.set_keypoint_threshold( 0.5, 0 );
+    _kpreco.set_min_cluster_size(   20.0, 1 );    
+    _kpreco.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco.set_larmatch_threshold( 0.5 );
     _kpreco.process( ioll );
 
-    // FILTER USING TAGGER
+    // FILTER LARMATCH POINTS USING TAGGER
     _wcfilter.set_verbosity( larcv::msg::kINFO );
     _wcfilter.set_input_larmatch_tree_name( "larmatch" );
     _wcfilter.process( iolcv, ioll );
     
-
     // FILTER KEYPOINTS: To be on clusters larger than X hits
     _kpfilter.set_verbosity( larcv::msg::kDEBUG );
     _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
@@ -85,8 +92,15 @@ namespace reco {
     // Cosmic reco: tracks at end points + deltas and michels
 
     // Multi-prong internal reco
-
+    multiProngReco( iolcv, ioll );
+    
     // Single particle interactions
+
+    // Fill Ana Tree
+    _ana_run = ev_adc->run();
+    _ana_subrun = ev_adc->subrun();
+    _ana_event  = ev_adc->event();
+    _ana_tree->Fill();
     
   }
 
@@ -94,6 +108,12 @@ namespace reco {
                                       larlite::storage_manager& ioll )
   {
 
+    // TRACK HIT CLEANING
+    _choosemaxhit.set_input_larflow3dhit_treename( "trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+    
     // TRACK 2-KP RECO: make tracks using pairs of keypoints
     // input:
     // * larflow3dhit_trackhit_tree: track hits from  SplitLArMatchHitsBySSNet
@@ -107,11 +127,27 @@ namespace reco {
     
     // TRACK PCA-CLUSTER: act on remaining clusters
     //_pcacluster.set_input_larmatchhit_tree_name( "track2kpunused" );
-    _pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
-     _pcacluster.process( iolcv, ioll );
+    //_pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
+    //_pcacluster.process( iolcv, ioll );
+
+    // SPLIT TRACK CLUSTERS
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit" );
+    _projsplitter.set_output_tree_name("trackprojsplit");
+    _projsplitter.process( iolcv, ioll );
+
+    // PCA-TRACKER
+    // _pcatracker.set_verbosity( larcv::msg::kDEBUG );
+    // _pcatracker.process( iolcv, ioll );
+
+    // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
+    _choosemaxhit.set_input_larflow3dhit_treename( "showerhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
-    _showerkp.set_ssnet_lfhit_tree_name( "showerhit" );
+    _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
     _showerkp.set_verbosity( larcv::msg::kDEBUG );
     _showerkp.process( iolcv, ioll );
 
@@ -119,6 +155,34 @@ namespace reco {
 
     // SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints
     
+  }
+
+  void KPSRecoManager::multiProngReco( larcv::IOManager& iolcv,
+                                       larlite::storage_manager& ioll )
+  {
+
+    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertexmaker.clear();
+    _nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
+    _nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    _nuvertexmaker.process( iolcv, ioll );
+    
+  }
+
+  /**
+   * create ana file and define output tree
+   *
+   */
+  void KPSRecoManager::make_ana_file()
+  {
+    _ana_file = new TFile(_ana_input_file.c_str(), "recreate");
+    _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
+    _ana_tree->Branch("run",&_ana_run,"run/I");
+    _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
+    _ana_tree->Branch("event",&_ana_event,"event/I");    
   }
   
 }

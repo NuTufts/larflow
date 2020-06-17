@@ -20,7 +20,8 @@ namespace reco {
 
     ShowerRecoKeypoint()
       : larcv::larcv_base("ShowerRecoKeypoint"),
-      _ssnet_lfhit_tree_name("showerhit")
+      _ssnet_lfhit_tree_name("showerhit"),
+      _larmatch_score_threshold(0.5)
       {};    
     virtual ~ShowerRecoKeypoint() {};
     
@@ -96,11 +97,12 @@ namespace reco {
     
     // PARAMETERS
     std::string _ssnet_lfhit_tree_name;
-
+    float _larmatch_score_threshold;
+    
   public:
 
     void set_ssnet_lfhit_tree_name( std::string name ) { _ssnet_lfhit_tree_name=name; };
-    
+    void set_larmatch_score_threshold( float thresh ) { _larmatch_score_threshold = thresh; };
     
     
   };

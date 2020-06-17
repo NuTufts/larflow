@@ -7,14 +7,19 @@ set( HEADERS cluster_functions.h
   geofuncs.h
   KPTrackFit.h
   SplitHitsBySSNet.h
+  ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   PCACluster.h
+  ProjectionDefectSplitter.h  
+  PCATracker.h
   PyLArFlow.h ShowerReco.h
   VertexReco.h
   KPCluster.h KeypointReco.h
   KeypointFilterByClusterSize.h KeypointFilterByWCTagger.h
   TrackReco2KP.h
   ShowerRecoKeypoint.h
+  NuVertexCandidate.h  
+  NuVertexMaker.h
   KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
@@ -22,8 +27,11 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
   KPTrackFit.cxx
   SplitHitsBySSNet.cxx
+  ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   PCACluster.cxx
+  ProjectionDefectSplitter.cxx  
+  PCATracker.cxx  
   PyLArFlow.cxx
   ShowerReco.cxx
   VertexReco.cxx
@@ -33,6 +41,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KeypointFilterByWCTagger.cxx
   ShowerRecoKeypoint.cxx
   TrackReco2KP.cxx
+  NuVertexCandidate.cxx  
+  NuVertexMaker.cxx
   KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )
 

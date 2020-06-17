@@ -15,10 +15,11 @@ namespace reco {
 
   void KeypointReco::set_param_defaults()
   {
-    _sigma = 10.0; // cm
-    _score_threshold = 0.5;
+    _sigma = 5.0; // cm
+    _larmatch_score_threshold = 0.5;    
     _num_passes = 2;
-    _min_cluster_size = 10;
+    _keypoint_score_threshold_v = std::vector<float>( 2, 0.5 );
+    _min_cluster_size_v = std::vector<int>(2,50);
     _max_dbscan_dist = 2.0;
   }
   
@@ -80,15 +81,15 @@ namespace reco {
 
     output_pt_v.clear();
     
-    _make_initial_pt_data( input_lfhits, _score_threshold );
+    _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
     for (int i=0; i<_num_passes; i++ ) {
       std::cout << "[KeypointReco::process] Pass " << i+1 << std::endl;
-      _make_kpclusters( _score_threshold );
+      _make_kpclusters( _keypoint_score_threshold_v[i], _min_cluster_size_v[i] );
       std::cout << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
       int nabove=0;
       for (auto& posv : _initial_pt_pos_v ) {
-        if (posv[3]>_score_threshold) nabove++;
+        if (posv[3]>_keypoint_score_threshold_v[i]) nabove++;
       }
       std::cout << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
     }
@@ -98,7 +99,9 @@ namespace reco {
   }
   
   /**
-   * scan larflow3dhit input and assemble 3D keypoint data we will work on
+   * scan larflow3dhit input and assemble 3D keypoint data we will work on.
+   *
+   * we select points by filttering based on the score_threshold.
    *
    * clears and fills:
    *  _initial_pt_pos_v;
@@ -109,18 +112,22 @@ namespace reco {
    *
    */
   void KeypointReco::_make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
-                                            float score_threshold )
+                                            const float keypoint_score_threshold,
+                                            const float larmatch_score_threshold )
   {
 
     _initial_pt_pos_v.clear();
     _initial_pt_used_v.clear();
 
     for (auto const& lfhit : lfhits ) {
-      float score = lfhit[13];
-      if ( score>score_threshold ) {
-        std::vector<float> pos3d(4,0);
+      const float& kp_score = lfhit[13];
+      const float& lm_score = lfhit[9];
+      if ( kp_score>keypoint_score_threshold && lm_score>larmatch_score_threshold ) {
+        std::vector<float> pos3d(5,0);
         for (int i=0; i<3; i++) pos3d[i] = lfhit[i];
-        pos3d[3] = score;
+        //pos3d[3] = (kp_score<1.0) ? kp_score : 1.0;
+        pos3d[3] = kp_score;
+        pos3d[4] = lm_score;
         _initial_pt_pos_v.push_back( pos3d );
       }
     }
@@ -139,11 +146,14 @@ namespace reco {
    * Make clusters with remaining points
    *
    * fills member cluster container, output_pt_v.
+   * internal data members used:
+   *  _initial_pt_pos_v: the list of points (x,y,z,current score)
+   *  _initial_pt_used_v: ==1 if the point has been claimed
    * 
    * @param[in] round_score_threshold 
    *
    */
-  void KeypointReco::_make_kpclusters( float round_score_threshold )
+  void KeypointReco::_make_kpclusters( float round_score_threshold, int min_cluster_size )
   {
 
     std::vector< std::vector<float> > skimmed_pt_v;
@@ -153,12 +163,19 @@ namespace reco {
                             skimmed_pt_v,
                             skimmed_index_v );
 
+
     // cluster the points
     std::vector< cluster_t > cluster_v;
     float maxdist = _max_dbscan_dist;
-    int minsize   = _min_cluster_size;
-    int maxkd     = 5;
-    cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, minsize, maxkd );
+    int maxkd     = 20;
+
+    LARCV_INFO() << "finding keypoint clusters using " << skimmed_pt_v.size() << " points" << std::endl;
+    LARCV_DEBUG() << "  clustering pars: maxdist=" << _max_dbscan_dist
+                  << " minsize=" << min_cluster_size
+                  << " maxkd=" <<  maxkd
+                  << std::endl;
+    
+    cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );
 
     float sigma = _sigma; // bandwidth
 
@@ -202,13 +219,13 @@ namespace reco {
    * @param[out] skimmed_index_v   Index of point in the Original Point list.
    *
    */
-  void KeypointReco::_skim_remaining_points( float score_threshold,
+  void KeypointReco::_skim_remaining_points( float keypoint_score_threshold,
                                              std::vector<std::vector<float> >& skimmed_pt_v,
                                              std::vector<int>& skimmed_index_v )
   {
 
     for ( size_t i=0; i<_initial_pt_pos_v.size(); i++ ) {
-      if ( _initial_pt_pos_v[i][3]>score_threshold ) {
+      if ( _initial_pt_pos_v[i][3]>keypoint_score_threshold ) {
         skimmed_pt_v.push_back( _initial_pt_pos_v[i] );
         skimmed_index_v.push_back(i);
       }
@@ -240,8 +257,8 @@ namespace reco {
 
       int skimidx = cluster.hitidx_v[i];
       
-      float w = skimmed_pt_v[ skimidx ][3];
-      if ( w>1.0 ) w = 1.0;
+      float w = skimmed_pt_v[ skimidx ][3]*skimmed_pt_v[ skimidx ][4];
+      if ( w>10.0 ) w = 10.0;
       if ( w<0.0 ) w = 0.0;
       
       for (int v=0; v<3; v++ ) {
