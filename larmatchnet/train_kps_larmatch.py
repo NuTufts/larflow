@@ -47,7 +47,7 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="train_kps_nossnet/checkpoint.157000th.tar"
+CHECKPOINT_FILE="train_kps_nossnet/checkpoint.1000000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_SSNET=False
 TRAIN_KP=True
@@ -68,8 +68,8 @@ TICKBACKWARD=False
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 158001
-NUM_ITERS   = 1000000
+START_ITER  = 1000001
+NUM_ITERS   = 2000000
 TEST_NUM_MATCH_PAIRS = 30000
 ADC_MAX = 400.0
 
@@ -162,7 +162,7 @@ def main():
     criterion = SparseLArMatchKPSLoss()
 
     # training parameters
-    lr = 1.0e-4
+    lr = 1.0e-5
     momentum = 0.9
     weight_decay = 1.0e-4
 
