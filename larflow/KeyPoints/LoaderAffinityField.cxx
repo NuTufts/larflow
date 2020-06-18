@@ -204,6 +204,7 @@ namespace keypoints {
         pixtype[i] = 2;        
       }        
     }
+    nneg = 0;
 
     // weights for positive and negative examples
     float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.0;

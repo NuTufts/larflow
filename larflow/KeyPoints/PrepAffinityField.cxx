@@ -182,8 +182,10 @@ namespace keypoints {
 
     int nsteps = track.size();
 
-    if ( nsteps==0 )
+    if ( nsteps==0 ) {
+      label_v.clear();
       return false;
+    }
     
     std::vector<double> start(3,0);
     std::vector<double> end(3,0);
@@ -248,7 +250,8 @@ namespace keypoints {
     }
 
     if ( best_step==-1 ) {
-      // no label generated      
+      // no label generated
+      label_v.clear();
       return false;
     }
 
@@ -293,8 +296,10 @@ namespace keypoints {
     }
     len = sqrt(len);
 
-    if (len==0)
+    if (len==0) {
+      label_v.clear();
       return false;
+    }
 
     for (int i=0; i<3; i++) label_v[i] /= len;
 
