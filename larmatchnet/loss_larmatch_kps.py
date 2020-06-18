@@ -22,25 +22,42 @@ class SparseLArMatchKPSLoss(nn.Module):
         npairs     = larmatch_pred.shape[0]
         ntruematch = truematch_index.shape[0]
 
-        loss = self.larmatch_loss( larmatch_pred, larmatch_label, larmatch_weight, truematch_index, verbose )
+        loss = self.larmatch_loss( larmatch_pred, larmatch_label, larmatch_weight, verbose )
+        flmloss = loss.detach().item()
                 
         # SSNET
         if self.eval_ssnet:
-            loss += self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, truematch_index, verbose )
+            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, truematch_index, verbose )
+            loss += ssloss
+            fssloss = ssloss.detach().item()
+        else:
+            fssloss = 0.0
 
         # KPLABEL
         if self.eval_keypoint_label:
-            loss += self.keypoint_loss( kplabel_pred, kp_label, kplabel_weight, truematch_index, verbose )
+            kploss = self.keypoint_loss( kplabel_pred, kp_label, kplabel_weight, truematch_index, verbose )
+            loss += kploss
+            fkploss = kploss.detach().item()
+        else:
+            fkploss = 0.0
 
         # KPSHIFT
         if self.eval_keypoint_shift:
-            loss += self.keypoint_shift_loss( kpshift_pred, kpshift_label, kpshift_weight, truematch_index, verbose )
+            shiftloss = self.keypoint_shift_loss( kpshift_pred, kpshift_label, kpshift_weight, truematch_index, verbose )
+            loss += shiftloss
+            fshiftloss = shiftloss.detach().item()
+        else:
+            fshiftloss = 0.0
 
         # AFFINITY FIELD
         if self.eval_affinity_field:
-            loss += self.affinity_field_loss( affinity_pred, affinity_label, affinity_weight, truematch_index, verbose )
+            pafloss = self.affinity_field_loss( affinity_pred, affinity_label, affinity_weight, truematch_index, verbose )
+            loss += pafloss
+            fpafloss = pafloss.detach().item()
+        else:
+            fpafloss = 0.0
         
-        return loss
+        return loss, flmloss, fssloss, fkploss, fshiftloss, fpafloss
 
     def larmatch_loss( self, larmatch_pred,
                        larmatch_truth,
@@ -82,11 +99,11 @@ class SparseLArMatchKPSLoss(nn.Module):
             sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index )
             sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index )
         else:
-            sel_kplabel_pred = keypoint_score_pred[:npairs,:]
+            sel_kplabel_pred = keypoint_score_pred
             sel_kpweight     = keypoint_weight[:npairs,:]
             sel_kplabel      = keypoint_score_truth[:npairs,:]
         if verbose:
-            print "  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred.requires_grad
+            print "  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred[:10]
             print "  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10]
             print "  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10]
         fn_kp    = torch.nn.MSELoss( reduction='none' )
@@ -164,10 +181,10 @@ class SparseLArMatchKPSLoss(nn.Module):
             sel_truth  = affinity_field_truth
 
         if verbose:
-            print "  affinity pred: ",sel_pred.shape
-            print "  affinity truth: ",sel_truth.shape
-            print "  affinity weight: ",sel_weight.shape
-            
+            print "  affinity pred: ",sel_pred.shape," ",sel_pred[:20,:]#,torch.sum(sel_pred*sel_pred,1)[:20]
+            print "  affinity truth: ",sel_truth.shape," ",torch.sum(sel_truth*sel_truth,1)[:20]
+            print "  affinity weight: ",sel_weight.shape,"  ",sel_weight[:20]
+
         fn_mse = torch.nn.MSELoss( reduction='none' )
         fn_out = torch.sum(fn_mse( sel_pred, sel_truth ),1)
         if verbose:
