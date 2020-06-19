@@ -23,7 +23,9 @@ namespace larflow {
     FlowMatchHitMaker()
       : _match_score_threshold(0.5),
       has_ssnet_scores(false),
-      has_kplabel_scores(false) {};
+      has_kplabel_scores(false),
+      has_paf(false)
+        {};
     virtual ~FlowMatchHitMaker() {};
 
     typedef struct match_t {
@@ -41,13 +43,15 @@ namespace larflow {
 
       std::array<float,3> tyz;
       std::vector<float> ssnet_scores;
-      float keypoint_score;
+      std::vector<float> keypoint_scores;
+      std::vector<float> paf;
       int istruth; //true match flag
       
       match_t()
       : Y(0),U(0),V(0),
         YU(0),YV(0),UV(0),UY(0),VU(0),VY(0),
-        keypoint_score(0.0),
+        keypoint_scores( std::vector<float>(3,0) ),
+        paf( std::vector<float>(3,0) ),
         istruth(0)
       {};
       
@@ -101,8 +105,9 @@ namespace larflow {
     std::map< std::vector<int>, int > _match_map; // map of (Y,U,V) triple to positin in matches_v
     bool has_ssnet_scores;
     bool has_kplabel_scores;
+    bool has_paf;
 
-    void clear() { _matches_v.clear(); _match_map.clear(); has_ssnet_scores=false; has_kplabel_scores=false; };
+    void clear() { _matches_v.clear(); _match_map.clear(); has_ssnet_scores=false; has_kplabel_scores=false; has_paf=false; };
     int add_match_data( PyObject* pair_probs,
                         PyObject* source_sparseimg, PyObject* target_sparseimg,
                         PyObject* matchpairs,
@@ -133,6 +138,13 @@ namespace larflow {
                                      PyObject* sparseimg_y,
                                      const larcv::ImageMeta& meta,                                     
                                      PyObject* kplabel_scores );
+
+    int add_triplet_affinity_field( PyObject* triplet_indices,
+                                    PyObject* imgu_sparseimg,
+                                    PyObject* imgv_sparseimg,
+                                    PyObject* imgy_sparseimg,
+                                    const larcv::ImageMeta& meta,                                                      
+                                    PyObject* paf_pred );    
     
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;

@@ -233,13 +233,14 @@ namespace larflow {
    * [0-2]:   x,y,z
    * [3-9]:   6 flow direction scores + 1 max scire (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
    * [10-12]: 3 ssnet scores, (bg,track,shower)
-   * [13]:    1 keypoint label score
+   * [13-15]: 3 keypoint label score [nu,track,shower]
+   * [16-18]: 3D flow direction
    */
   void FlowMatchHitMaker::make_hits( const larcv::EventChStatus& ev_chstatus,
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
 
     const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
-    const int ncolumns = 14;
+    const int ncolumns = 19;
     
     int idx = 0;
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
@@ -291,7 +292,13 @@ namespace larflow {
       }
       
       if ( has_kplabel_scores ) {
-        hit[13] = m.keypoint_score;
+        for (int c=0; c<3; c++) 
+          hit[13+c] = m.keypoint_scores[c];
+      }
+
+      if ( has_paf ) {
+        for (int i=0; i<3; i++)
+          hit[16+i] = m.paf[i];
       }
       
       hit_v.emplace_back( std::move(hit) );
@@ -536,8 +543,81 @@ namespace larflow {
         int matchidx = it->second;
         auto& match = _matches_v[matchidx];
 
-        // store the kplabel scores
-        match.keypoint_score = (float)*((float*)PyArray_GETPTR1( (PyArrayObject*)kplabel_scores, ipair ));
+        // store the kplabel scores]
+        if ( pair_ndims>1 ) {
+          match.keypoint_scores.resize(pair_dims[1],0);
+          for (int iclass=0; iclass<(int)pair_dims[1]; iclass++)
+            match.keypoint_scores[iclass] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, iclass ));
+        }
+        else {
+          match.keypoint_scores.resize(1,0);
+          match.keypoint_scores[0] = (float)*((float*)PyArray_GETPTR1( (PyArrayObject*)kplabel_scores, ipair ) );
+        }
+      }
+      else {
+        std::cout << "could not find match for triplet: ("
+                  << triple[0] << ","
+                  << triple[1] << ","
+                  << triple[2] << ","
+                  << triple[3] << ","
+                  << triple[4] << ")"
+                  << std::endl;
+      }
+    }
+    
+    return 0;
+  }
+
+  /**
+   * store particle affinity field direction
+   *
+   * add_triplet_match_data needed to have been run first
+   *
+   */
+  int FlowMatchHitMaker::add_triplet_affinity_field( PyObject* triplet_indices,
+                                                     PyObject* imgu_sparseimg,
+                                                     PyObject* imgv_sparseimg,
+                                                     PyObject* imgy_sparseimg,
+                                                     const larcv::ImageMeta& meta,                                                      
+                                                     PyObject* paf_pred ) {
+
+    has_paf = true;
+    
+    // match triplets
+    int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
+
+    int paf_pair_ndims      = PyArray_NDIM( (PyArrayObject*)paf_pred );
+    npy_intp* paf_pair_dims = PyArray_DIMS( (PyArrayObject*)paf_pred );
+    std::cout << "[FlowMatchHitMaker::add_triplet_affinity_field] score dims=(" << paf_pair_dims[0] << ")" << std::endl;    
+
+    for (int ipair=0; ipair<(int)paf_pair_dims[0]; ipair++ ) {
+      // get the triplet indices
+      
+      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
+      
+      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
+      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (int)meta.pos_y( row );
+      triple[ 4 ] = (int)index[3];
+    
+      // look for the triplet in the map
+      auto it = _match_map.find( triple );
+      if ( it!=_match_map.end() ) {
+        int matchidx = it->second;
+        auto& match = _matches_v[matchidx];
+
+        // store the kplabel scores]
+        match.paf.resize(3,0);
+        for (int i=0;i<3; i++ ) {
+          match.paf[i] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)paf_pred, ipair, i ));
+        }
       }
       else {
         std::cout << "could not find match for triplet: ("
