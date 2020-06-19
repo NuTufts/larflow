@@ -17,16 +17,18 @@ from ublarcvapp import ublarcvapp
 from larflow import larflow
 larcv.SetPyUtil()
 
+import plotly.graph_objects as go
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+
 import lardly
 
 
-color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]
+color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -65,8 +67,12 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         hitindex = 11
     elif plotby=="ssn-shower":
         hitindex = 12
-    elif plotby=="keypoint":
+    elif plotby=="keypoint-nu":        
         hitindex = 13
+    elif plotby=="keypoint-track":
+        hitindex = 14
+    elif plotby=="keypoint-shower":
+        hitindex = 15
 
     detdata = lardly.DetectorOutline()
 
@@ -75,7 +81,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines()
-    elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint"]:
+    elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
         for ipt in xrange(npoints):
@@ -107,6 +113,48 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         }
         #print(xyz[:ptsused,3])
         traces_v += [larflowhits]+detdata.getlines()
+    elif plotby in ["flow-field"]:
+        # must sample, if trying to draw triangles
+        ptsused = 0
+        index = np.arange(npoints)
+        np.random.shuffle(index)     
+        xyz = np.zeros( (npoints,7) )
+
+        for ipt in index:
+
+            if ptsused>=30000:
+                break
+            
+            hit = ev_lfhits.at(ipt)
+            if hit.track_score<minprob:
+                continue
+
+            paflen = np.sqrt( hit[16]*hit[16]+hit[17]*hit[17] + hit[18]*hit[18] )
+            if paflen==0:
+                paflen = 1.0
+            
+            xyz[ptsused,0] = hit[0]
+            xyz[ptsused,1] = hit[1]
+            xyz[ptsused,2] = hit[2]
+            xyz[ptsused,3] = hit.track_score
+            xyz[ptsused,4] = hit[16]/paflen
+            xyz[ptsused,5] = hit[17]/paflen
+            xyz[ptsused,6] = hit[18]/paflen
+            ptsused += 1
+
+        print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
+
+        fig = go.Cone(
+            x=xyz[:ptsused,0],
+            y=xyz[:ptsused,1],
+            z=xyz[:ptsused,2],
+            u=xyz[:ptsused,4],
+            v=xyz[:ptsused,5],
+            w=xyz[:ptsused,6],
+            colorscale='Blues',
+            sizeref=10,
+            sizemode="absolute")
+        traces_v += [fig]+detdata.getlines()
 
     if args.has_mc:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
