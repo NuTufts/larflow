@@ -11,6 +11,8 @@
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/pcaxis.h"
 
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
+
 #include "PCACluster.h"
 #include "geofuncs.h"
 
@@ -117,8 +119,12 @@ namespace reco {
 
     larlite::event_larflow3dhit* evout_keypoint =
       (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint");
-    for ( auto const& kp : *evout_keypoint )
-      keypoint_v.push_back( &kp );
+    for ( auto const& kp : *evout_keypoint ) {
+      if (kp.at(3)==(int)larflow::kShowerStart ) {
+        keypoint_v.push_back( &kp );
+      }
+    }
+    LARCV_INFO() << "number of shower keypoints: " << keypoint_v.size() << " of " << evout_keypoint->size() << std::endl;
 
     // MAKE TRUNK CANDIDATES FOR EACH SHOWER
     _reconstructClusterTrunks( showerhit_cluster_v, keypoint_v );
