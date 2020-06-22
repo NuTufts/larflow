@@ -1,5 +1,8 @@
 #include "KPSRecoManager.h"
 
+// larlite
+#include "DataFormat/opflash.h"
+
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
@@ -98,6 +101,16 @@ namespace reco {
     multiProngReco( iolcv, ioll );
     
     // Single particle interactions
+
+    // Copy larlite contents
+    // in-time opflash
+    larlite::event_opflash* ev_input_opflash_beam =
+      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+    larlite::event_opflash* evout_opflash_beam =
+      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+    for ( auto const& flash : *ev_input_opflash_beam )
+      evout_opflash_beam->push_back( flash );
+    
 
     // Fill Ana Tree
     _ana_run = ev_adc->run();

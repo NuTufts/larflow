@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser("Plot Keypoint output")
 parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsrecomanager larlite output file")
 parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
+parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 args = parser.parse_args()
 
 import numpy as np
@@ -70,6 +71,19 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     else:
         vtxid = int(vtxid)
         plotall = False
+
+    if args.draw_flash:
+        ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        nflashes = 0
+        for iflash in range(ev_flash.size()):
+            flash = ev_flash.at(iflash)
+            if flash.Time()>2.94 and flash.Time()<4.86:            
+                flash_trace_v = lardly.data.visualize_larlite_opflash_3d( flash )
+                traces_v += flash_trace_v
+                nflashes += 1
+                break
+        if nflashes==0:
+            traces_v += lardly.data.visualize_empty_opflash()        
 
     vtxinfo = []
     for ivtx in range( kpsanatree.nuvertex_v.size() ):
@@ -143,7 +157,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         
     
     # add detector outline
-    traces_v += detdata.getlines()
+    traces_v += detdata.getlines(color=(10,10,10))
     
     return traces_v,vtxinfo
 

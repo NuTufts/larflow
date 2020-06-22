@@ -39,6 +39,7 @@ io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
+io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashBeam" )
 
 
 iolcv.add_in_file(   args.input_dlmerged )
