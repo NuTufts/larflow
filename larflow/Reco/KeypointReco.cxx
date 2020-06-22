@@ -21,6 +21,9 @@ namespace reco {
     _keypoint_score_threshold_v = std::vector<float>( 2, 0.5 );
     _min_cluster_size_v = std::vector<int>(2,50);
     _max_dbscan_dist = 2.0;
+    _input_larflowhit_tree_name = "larmatch";
+    _output_tree_name = "keypoint";
+    _keypoint_type = -1;
   }
   
   /**
@@ -31,23 +34,24 @@ namespace reco {
   void KeypointReco::process( larlite::storage_manager& io_ll )
   {
     larlite::event_larflow3dhit* ev_larflow_hit
-      = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+      = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _input_larflowhit_tree_name );
 
     process( *ev_larflow_hit );
 
     // save into larlite::storage_manager
     // we need our own data product, but for now we use abuse the larflow3dhit
     larlite::event_larflow3dhit* evout_keypoint =
-      (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, "keypoint" );
+      (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _output_tree_name );
     larlite::event_pcaxis* evout_pcaxis =
-      (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, "keypoint" );
+      (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, _output_tree_name );
 
     int cidx=0;
     for ( auto const& kpc : output_pt_v ) {
       larlite::larflow3dhit hit;
-      hit.resize( 3, 0 ); // [0-2]: hit pos
+      hit.resize( 4, 0 ); // [0-2]: hit pos, [3]: type
       for (int i=0; i<3; i++)
         hit[i] = kpc.max_pt_v[i];
+      hit[3] = kpc._cluster_type;
 
       // pca-axis
       larlite::pcaxis::EigenVectors e_v;
@@ -120,7 +124,7 @@ namespace reco {
     _initial_pt_used_v.clear();
 
     for (auto const& lfhit : lfhits ) {
-      const float& kp_score = lfhit[13];
+      const float& kp_score = lfhit[_lfhit_score_index];
       const float& lm_score = lfhit[9];
       if ( kp_score>keypoint_score_threshold && lm_score>larmatch_score_threshold ) {
         std::vector<float> pos3d(5,0);
@@ -182,6 +186,7 @@ namespace reco {
     for ( auto& cluster : cluster_v ) {
       // make kpcluster
       KPCluster kpc = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
+      kpc._cluster_type = _keypoint_type;
       auto& kpc_cluster = _cluster_v[ kpc._cluster_idx ];
 
       // We now subtract the point score from nearby points

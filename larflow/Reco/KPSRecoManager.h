@@ -47,7 +47,9 @@ namespace reco {
     ublarcvapp::EmptyChannelAlgo _badchmaker;
 
     // keypoint reconstruction
-    KeypointReco     _kpreco;
+    KeypointReco     _kpreco_nu;
+    KeypointReco     _kpreco_track;
+    KeypointReco     _kpreco_shower;
     KeypointFilterByClusterSize _kpfilter;
     KeypointFilterByWCTagger _wcfilter;
     SplitHitsBySSNet _splithits;
@@ -62,6 +64,7 @@ namespace reco {
     NuVertexMaker       _nuvertexmaker;
 
     // Algorithms
+    void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
                          

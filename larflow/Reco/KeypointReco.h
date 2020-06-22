@@ -45,6 +45,10 @@ namespace reco {
     std::vector<int>   _min_cluster_size_v; //< minimum cluster size to be a vertex (cluster of hits above threshold)
     float _max_dbscan_dist;  //< max distance parameter in DBscan used
     int   _max_clustering_points; //< maximum number of points to use when clustering. if have more, sampled randomly.
+    std::string _input_larflowhit_tree_name; //< name of the input container tree with larflow hits to use
+    std::string _output_tree_name; //< name of the output container tree to put keypoints in
+    int   _keypoint_type; //< label of keypoint type we're making
+    int   _lfhit_score_index; //< index of column in larflow3d hit info vector with keypoint score
     
   public:
     void set_param_defaults();
@@ -59,6 +63,10 @@ namespace reco {
     };
     void set_max_dbscan_dist( float dist )   { _max_dbscan_dist = dist; };
     void set_max_clustering_points( int maxpts ) { _max_clustering_points = maxpts; };
+    void set_keypoint_type (int kptype ) { _keypoint_type=kptype; };
+    void set_input_larmatch_tree_name( std::string name ) { _input_larflowhit_tree_name=name; };
+    void set_output_tree_name( std::string name ) { _output_tree_name=name; };
+    void set_lfhit_score_index( int idx ) { _lfhit_score_index=idx; };
     
 
     void process( larlite::storage_manager& io_ll );

@@ -3,6 +3,7 @@
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 namespace larflow {
 namespace reco {
@@ -51,27 +52,29 @@ namespace reco {
     // _cluster_shower.set_output_larflowhit_tree_name( "lmshower" );
     // _cluster_shower.process( iolcv, ioll );
 
-    // KEYPOINT RECO: make keypoint candidates
-    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
-    // output:
-    //  * _kpreco.output_pt_v: container of KPCluster objects
-    _kpreco.set_min_cluster_size(   50.0, 0 );
-    _kpreco.set_keypoint_threshold( 0.5, 0 );
-    _kpreco.set_min_cluster_size(   20.0, 1 );    
-    _kpreco.set_keypoint_threshold( 0.5, 1 );    
-    _kpreco.set_larmatch_threshold( 0.5 );
-    _kpreco.process( ioll );
 
     // FILTER LARMATCH POINTS USING TAGGER
     _wcfilter.set_verbosity( larcv::msg::kINFO );
     _wcfilter.set_input_larmatch_tree_name( "larmatch" );
     _wcfilter.process( iolcv, ioll );
+
+    // Make keypoints
+    recoKeypoints( iolcv, ioll );
+
+    if ( false ) {
+      // for debug
+      _ana_run = ev_adc->run();
+      _ana_subrun = ev_adc->subrun();
+      _ana_event  = ev_adc->event();
+      _ana_tree->Fill();
+      return;
+    }
     
     // FILTER KEYPOINTS: To be on clusters larger than X hits
-    _kpfilter.set_verbosity( larcv::msg::kDEBUG );
-    _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
-    _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
-    _kpfilter.process( iolcv, ioll );
+    // _kpfilter.set_verbosity( larcv::msg::kDEBUG );
+    // _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
+    // _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
+    // _kpfilter.process( iolcv, ioll );
 
     
     // PREP: split hits into shower and track hits
@@ -102,6 +105,55 @@ namespace reco {
     _ana_event  = ev_adc->event();
     _ana_tree->Fill();
     
+  }
+
+  /**
+   * make keypoints for use to help make particle track and nu interaction candidates
+   *
+   */
+  void KPSRecoManager::recoKeypoints( larcv::IOManager& iolcv,
+                                      larlite::storage_manager& ioll )
+  {
+
+    // KEYPOINT RECO: make keypoint candidates
+    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
+    // output:
+    //  * _kpreco.output_pt_v: container of KPCluster objects
+
+    // neutrino
+    _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
+    _kpreco_nu.set_sigma( 10.0 );
+    _kpreco_nu.set_min_cluster_size(   50.0, 0 );
+    _kpreco_nu.set_keypoint_threshold( 0.5, 0 );
+    _kpreco_nu.set_min_cluster_size(   20.0, 1 );    
+    _kpreco_nu.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco_nu.set_larmatch_threshold( 0.5 );
+    _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
+    _kpreco_nu.set_lfhit_score_index( 13 );
+    _kpreco_nu.process( ioll );
+
+    _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );    
+    _kpreco_track.set_sigma( 10.0 );    
+    _kpreco_track.set_min_cluster_size(   50.0, 0 );
+    _kpreco_track.set_keypoint_threshold( 0.5, 0 );
+    _kpreco_track.set_min_cluster_size(   20.0, 1 );    
+    _kpreco_track.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco_track.set_larmatch_threshold( 0.5 );
+    _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnds );
+    _kpreco_track.set_lfhit_score_index( 14 );
+    _kpreco_track.process( ioll );
+
+    _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
+    _kpreco_shower.set_sigma( 10.0 );    
+    _kpreco_shower.set_min_cluster_size(   50.0, 0 );
+    _kpreco_shower.set_keypoint_threshold( 0.5, 0 );
+    _kpreco_shower.set_min_cluster_size(   20.0, 1 );    
+    _kpreco_shower.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco_shower.set_larmatch_threshold( 0.5 );
+    _kpreco_shower.set_keypoint_type( (int)larflow::kShowerStart );
+    _kpreco_shower.set_lfhit_score_index( 15 );
+    _kpreco_shower.process( ioll );
+
   }
 
   void KPSRecoManager::recoParticles( larcv::IOManager& iolcv,
@@ -163,8 +215,9 @@ namespace reco {
 
     _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
     _nuvertexmaker.clear();
-    _nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
-    _nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
+    //_nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
+    //_nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
+    _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );

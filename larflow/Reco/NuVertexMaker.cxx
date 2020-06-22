@@ -130,24 +130,31 @@ namespace reco {
           auto const& lfcluster = it->second->at(icluster);
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
           NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
-        
+
           std::vector<float> pcadir(3,0);
           std::vector<float> start(3,0);
           std::vector<float> end(3,0);
           float dist[2] = {0,0};
+          float pcalen = 0.;
           for (int v=0; v<3; v++) {
             pcadir[v] = lfpca.getEigenVectors()[0][v];
             start[v]  = lfpca.getEigenVectors()[3][v];
             end[v]    = lfpca.getEigenVectors()[4][v];
             dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
             dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
+            pcalen += pcadir[v]*pcadir[v];
           }
+          pcalen = sqrt(pcalen);
+          if (pcalen<0.1 || std::isnan(pcalen) ) {
+            continue;
+          }          
           dist[0] = sqrt(dist[0]);
           dist[1] = sqrt(dist[1]);
           int closestend = (dist[0]<dist[1]) ? 0 : 1;
           float gapdist = dist[closestend];
           float r = pointLineDistance( start, end, vertex.pos );
 
+          LARCV_DEBUG() << "pcadir-len=" << pcalen << std::endl;
           float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
           float ends  = pointRayProjection<float>( start, pcadir, end );
 

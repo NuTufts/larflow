@@ -28,6 +28,12 @@ option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
+# colors for the keypoints
+keypoint_colors = { -1:"rgb(50,50,50)",
+                    0:"rgb(255,0,0)",
+                    1:"rgb(0,255,0)",
+                    2:"rgb(0,0,255)"}
+
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
 io.add_in_filename( args.input_kpreco )
@@ -99,6 +105,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     nkp = ev_keypoints.size()
     print("Number of reco'd Keypoints in event: ",nkp)
     for ikp in range(nkp):
+        kptype = int(ev_keypoints.at(ikp).at(3))
         kptrace = {
             "type":"scatter3d",
 	    "x": [ev_keypoints[ikp][0]],
@@ -106,7 +113,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
             "z": [ev_keypoints[ikp][2]],
             "mode":"markers",
 	    "name":"KP%d"%(ikp),
-            "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
+            "marker":{"color":keypoint_colors[kptype],"size":5,"opacity":0.5},
         }
         traces_v.append(kptrace)
         

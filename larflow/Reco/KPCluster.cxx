@@ -9,7 +9,7 @@ namespace reco {
    */  
   void KPCluster::printInfo() const
   {
-    std::cout << "[KPCluster]" << std::endl;
+    std::cout << "[KPCluster] type=" << _cluster_type << std::endl;
     std::cout << " center: (" << center_pt_v[0] << "," << center_pt_v[1] << "," << center_pt_v[2] << ")" << std::endl;
     std::cout << " num points: " << pt_pos_v.size() << std::endl;
     std::cout << " max score: " << max_score << std::endl;

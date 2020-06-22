@@ -18,7 +18,8 @@ namespace reco {
       max_idx(-1),
       max_score(-1.0),
       max_pt_v( {0,0,0} ),
-      _cluster_idx(-1)
+      _cluster_idx(-1),
+      _cluster_type(-1)
       {};
     virtual ~KPCluster() {};
     
@@ -43,6 +44,8 @@ namespace reco {
 
     int _cluster_idx;                             ///< associated cluster_t in KeypointReco::_cluster_v (internal use only)
     //cluster_t cluster;
+
+    int _cluster_type;
     
     void printInfo() const;
 
