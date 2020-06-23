@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
 parser.add_argument("-dl","--dlmerged",type=str,default=None,help="DL merged file that contains truth")
 parser.add_argument("-mc","--has-mc",action='store_true',default=False,help="If given, will try and plot MC tracks")
+parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 args = parser.parse_args()
 
 import numpy as np
@@ -78,6 +79,20 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     traces_v = []
 
+    if args.draw_flash:
+        ev_flash = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        nflashes = 0
+        for iflash in range(ev_flash.size()):
+            flash = ev_flash.at(iflash)
+            if flash.Time()>2.94 and flash.Time()<4.86:            
+                flash_trace_v = lardly.data.visualize_larlite_opflash_3d( flash )
+                traces_v += flash_trace_v
+                nflashes += 1
+                break
+        if nflashes==0:
+            traces_v += lardly.data.visualize_empty_opflash()
+    
+
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines()
@@ -122,7 +137,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
         for ipt in index:
 
-            if ptsused>=30000:
+            if ptsused>=10000:
                 break
             
             hit = ev_lfhits.at(ipt)

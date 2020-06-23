@@ -20,7 +20,9 @@ namespace reco {
       _score_threshold(0.5),
       _larmatch_threshold(0.1),
       _ssnet_stem_name("ubspurn_plane"),
-      _adc_name("wire")
+      _adc_name("wire"),
+      _input_larmatch_hit_tree_name("larmatch"),
+      _output_larmatch_hit_stem_name("ssnsetsplit")
       {};
     virtual ~SplitHitsBySSNet() {};
 
@@ -41,7 +43,8 @@ namespace reco {
     std::string _ssnet_stem_name;
     std::string _adc_name;
     std::string _input_larmatch_hit_tree_name;
-
+    std::string _output_larmatch_hit_stem_name;
+    
   public:
     
     void set_ssnet_threshold( float thresh )    { _score_threshold=thresh; };
@@ -49,6 +52,7 @@ namespace reco {
     void set_ssnet_tree_stem_name( std::string stem ) { _ssnet_stem_name=stem; };
     void set_larmatch_tree_name( std::string hitname ) { _input_larmatch_hit_tree_name=hitname; };
     void set_adc_tree_name( std::string name ) { _adc_name=name; };
+    void set_output_tree_stem_name( std::string stem ) { _output_larmatch_hit_stem_name=stem; };
 
   protected:
 

@@ -23,6 +23,8 @@ namespace reco {
 
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void process_hits( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void process_keypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );    
 
     void filter_larmatchhits_using_tagged_image( const std::vector<larcv::Image2D>& adc_v,
                                                  const std::vector<larcv::Image2D>& tagged_v,
@@ -47,6 +49,8 @@ namespace reco {
     std::string _ssnet_stem_name;
     std::string _output_keypoint_tree_name;
     std::string _output_filteredhits_tree_name;
+    std::string _output_rejectedhits_tree_name;
+    bool        _save_rejected_hits;
 
     void set_defaults() {
       _input_keypoint_tree_name = "keypoint";
@@ -56,6 +60,8 @@ namespace reco {
       _ssnet_stem_name = "ubspurn_plane";
       _output_keypoint_tree_name = "taggerfilterkeypoint";
       _output_filteredhits_tree_name = "taggerfilterhit";
+      _output_rejectedhits_tree_name = "taggerrejecthit";
+      _save_rejected_hits = false;
     };
 
 
@@ -67,6 +73,8 @@ namespace reco {
     void set_input_ssnet_stem_name( std::string stem )         { _ssnet_stem_name=stem; };
     void set_output_keypoint_tree_name( std::string keypoint ) { _output_keypoint_tree_name=keypoint; };
     void set_output_filteredhits_tree_name( std::string hits ) { _output_filteredhits_tree_name=hits; };
+    void set_output_rejectedhits_tree_name( std::string hits ) { _output_rejectedhits_tree_name=hits; };    
+    void set_save_rejected_hits( bool save )                   { _save_rejected_hits=save; };
     
   };
 

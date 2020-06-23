@@ -50,9 +50,11 @@ namespace reco {
     KeypointReco     _kpreco_nu;
     KeypointReco     _kpreco_track;
     KeypointReco     _kpreco_shower;
+    KeypointReco     _kpreco_track_cosmic;
     KeypointFilterByClusterSize _kpfilter;
     KeypointFilterByWCTagger _wcfilter;
-    SplitHitsBySSNet _splithits;
+    SplitHitsBySSNet _splithits_full;
+    SplitHitsBySSNet _splithits_wcfilter;    
     TrackReco2KP     _tracker2kp;
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;

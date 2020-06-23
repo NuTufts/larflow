@@ -47,24 +47,42 @@ namespace reco {
       evout_badch->Emplace( std::move(gap) );
     }
 
-    // PREP: form clusters for both track and shower
-    // _cluster_track.set_input_larflowhit_tree_name(  "trackhit" );
-    // _cluster_track.set_output_larflowhit_tree_name( "lmtrack" );    
-    // _cluster_track.process( iolcv, ioll );
-    // _cluster_shower.set_input_larflowhit_tree_name(  "showerhit" );
-    // _cluster_shower.set_output_larflowhit_tree_name( "lmshower" );
-    // _cluster_shower.process( iolcv, ioll );
-
-
-    // FILTER LARMATCH POINTS USING TAGGER
+    // PREP SETS OF HITS
+    // ------------------
+    
+    // PREP WC-FILTERED HITS
     _wcfilter.set_verbosity( larcv::msg::kINFO );
     _wcfilter.set_input_larmatch_tree_name( "larmatch" );
-    _wcfilter.process( iolcv, ioll );
+    _wcfilter.set_output_filteredhits_tree_name( "taggerfilterhit" );
+    _wcfilter.set_save_rejected_hits( true );
+    _wcfilter.process_hits( iolcv, ioll );
 
+    // PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER
+    // input:
+    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
+    // output:
+    //  * larflow3dhit_showerhit_tree
+    //  * larflow3dhit_trackhit_tree
+    _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
+    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
+    _splithits_wcfilter.process( iolcv, ioll );    
+
+    // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+
+    // PREP: SPLIT SHOWER/TRACK FOR FULL HIT SET
+    _splithits_full.set_larmatch_tree_name( "larmatch" );
+    _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
+    _splithits_full.process( iolcv, ioll );
+    
     // Make keypoints
     recoKeypoints( iolcv, ioll );
 
-    if ( false ) {
+    if ( true ) {
       // for debug
       _ana_run = ev_adc->run();
       _ana_subrun = ev_adc->subrun();
@@ -80,15 +98,6 @@ namespace reco {
     // _kpfilter.process( iolcv, ioll );
 
     
-    // PREP: split hits into shower and track hits
-    // input:
-    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
-    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
-    // output:
-    //  * larflow3dhit_showerhit_tree
-    //  * larflow3dhit_trackhit_tree
-    _splithits.set_larmatch_tree_name( "taggerfilterhit" );
-    _splithits.process( iolcv, ioll );
   
     // PARTICLE RECO
     recoParticles( iolcv, ioll );
@@ -167,17 +176,25 @@ namespace reco {
     _kpreco_shower.set_lfhit_score_index( 15 );
     _kpreco_shower.process( ioll );
 
+    _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
+    _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
+    _kpreco_track_cosmic.set_sigma( 50.0 );    
+    _kpreco_track_cosmic.set_min_cluster_size(   50.0, 0 );
+    _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
+    _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
+    _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
+    _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
+    _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
+    _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnds );
+    _kpreco_track_cosmic.set_lfhit_score_index( 14 );    
+    _kpreco_track_cosmic.process( ioll );
+
   }
 
   void KPSRecoManager::recoParticles( larcv::IOManager& iolcv,
                                       larlite::storage_manager& ioll )
   {
 
-    // TRACK HIT CLEANING
-    _choosemaxhit.set_input_larflow3dhit_treename( "trackhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    _choosemaxhit.process( iolcv, ioll );
     
     // TRACK 2-KP RECO: make tracks using pairs of keypoints
     // input:
