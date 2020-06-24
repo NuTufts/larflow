@@ -40,6 +40,7 @@ for ientry in xrange( start_entry, start_entry+nentries ):
     iolcv.read_entry(ientry)
 
     tracker.process( iolcv, io )
+    tracker.buildConnections()
 
     outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     outio.next_event()    

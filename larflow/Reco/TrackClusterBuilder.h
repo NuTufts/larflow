@@ -28,6 +28,8 @@ namespace reco {
     // this represents a connection between segments
     struct Connection_t {
       Segment_t* node; //< pointer to segment
+      int     from_seg_idx;
+      int     to_seg_idx;
       int     endidx;  //< end of the segment we are connected to
       float   dist;    //< distance between ends, i.e. length of connection
       float   cosine;  //< cosine between segment direction and endpt-connections
@@ -83,6 +85,8 @@ namespace reco {
     
     void loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                              const larlite::event_pcaxis& pcaxis_v );
+
+    void buildConnections();
     
   };
   
