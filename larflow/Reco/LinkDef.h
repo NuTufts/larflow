@@ -43,6 +43,7 @@
 #pragma link C++ class larflow::reco::DBScanLArMatchHits+;
 #pragma link C++ class larflow::reco::KeypointReco+;
 #pragma link C++ class larflow::reco::TrackReco2KP+;
+#pragma link C++ class larflow::reco::TrackClusterBuilder+;
 #pragma link C++ class larflow::reco::NuVertexMaker+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line
