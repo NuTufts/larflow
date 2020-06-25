@@ -74,15 +74,21 @@ namespace reco {
     _choosemaxhit.set_verbosity( larcv::msg::kINFO );
     _choosemaxhit.process( iolcv, ioll );
 
-    // PREP: SPLIT SHOWER/TRACK FOR FULL HIT SET
-    _splithits_full.set_larmatch_tree_name( "larmatch" );
+    // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+
+    // PREP: SPLIT SHOWER/TRACK FOR FULL
+    _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
     _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
     _splithits_full.process( iolcv, ioll );
     
     // Make keypoints
     recoKeypoints( iolcv, ioll );
 
-    if ( true ) {
+    if ( false ) {
       // for debug
       _ana_run = ev_adc->run();
       _ana_subrun = ev_adc->subrun();
@@ -96,10 +102,8 @@ namespace reco {
     // _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
     // _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
     // _kpfilter.process( iolcv, ioll );
-
-    
   
-    // PARTICLE RECO
+    // PARTICLE FRAGMENT RECO
     recoParticles( iolcv, ioll );
     
     // INTERACTION RECO
@@ -212,21 +216,17 @@ namespace reco {
     //_pcacluster.set_input_larmatchhit_tree_name( "trackhit" );
     //_pcacluster.process( iolcv, ioll );
 
-    // SPLIT TRACK CLUSTERS
-    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
-    _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit" );
-    _projsplitter.set_output_tree_name("trackprojsplit");
+    // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
+    _projsplitter.set_verbosity( larcv::msg::kINFO );
+    _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
+    _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
 
-    // PCA-TRACKER
-    // _pcatracker.set_verbosity( larcv::msg::kDEBUG );
-    // _pcatracker.process( iolcv, ioll );
-
-    // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
-    _choosemaxhit.set_input_larflow3dhit_treename( "showerhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    _choosemaxhit.process( iolcv, ioll );
+    // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "ssnetsplit_full_trackhit" );
+    _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
+    _projsplitter_cosmic.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
     _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
@@ -248,7 +248,7 @@ namespace reco {
     //_nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
     //_nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
-    _nuvertexmaker.add_cluster_producer("trackprojsplit", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     _nuvertexmaker.process( iolcv, ioll );

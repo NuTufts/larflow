@@ -61,6 +61,7 @@ namespace reco {
     PCACluster         _pcacluster;
     PCATracker         _pcatracker;
     ProjectionDefectSplitter _projsplitter;
+    ProjectionDefectSplitter _projsplitter_cosmic;
     ShowerRecoKeypoint _showerkp;
     ChooseMaxLArFlowHit _choosemaxhit;
     NuVertexMaker       _nuvertexmaker;
