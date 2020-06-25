@@ -135,15 +135,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( pcatrace )
 
     # show the clusters we didnt include
-    ev_maxtrackhit  = io.get_data( larlite.data.kLArFlow3DHit, "maxtrackhit" )
+    ev_maxtrackhit  = io.get_data( larlite.data.kLArFlow3DHit, "maxtrackhit_wcfilter" )
     ev_maxshowerhit = io.get_data( larlite.data.kLArFlow3DHit, "maxshowerhit" )
 
-    trackhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxtrackhit, name="trackhit" )
+    trackhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxtrackhit, name="maxtrackhit" )
     trackhit_trace["marker"]["color"] = "rgb(125,200,125)"
     trackhit_trace["marker"]["opacity"] = 0.05
     traces_v.append(trackhit_trace)
 
-    showerhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxshowerhit, name="showerhit" )
+    showerhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxshowerhit, name="maxshowerhit" )
     showerhit_trace["marker"]["color"] = "rgb(200,125,125)"
     showerhit_trace["marker"]["opacity"] = 0.05
     traces_v.append(showerhit_trace)

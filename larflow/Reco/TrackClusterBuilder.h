@@ -9,6 +9,7 @@
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/pcaxis.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/track.h"
 
 namespace larflow {
 namespace reco {
@@ -33,6 +34,7 @@ namespace reco {
       int     endidx;  //< end of the segment we are connected to
       float   dist;    //< distance between ends, i.e. length of connection
       float   cosine;  //< cosine between segment direction and endpt-connections
+      std::vector<float> dir;
     };
     
     // This represents a line segment
@@ -44,9 +46,15 @@ namespace reco {
       std::vector<float> dir;
       std::vector< Connection_t* > con_start;
       std::vector< Connection_t* > con_end;
+      float len;
       int idx;
+      bool inpath;
 
-      Segment_t() {};
+      Segment_t()
+      : len(0),
+        idx(-1),
+        inpath(false)
+      {};
       Segment_t( std::vector<float>& s, std::vector<float>& e ) {
         if ( s[1]<e[1] ) {
           start = s;
@@ -56,7 +64,7 @@ namespace reco {
           start = e;
           end = s;
         }
-        float len = 0.;
+        len = 0.;
         dir.resize(3,0);
         for (int i=0; i<3; i++ ) {
           dir[i] = end[i]-start[i];
@@ -70,8 +78,16 @@ namespace reco {
         cluster = nullptr;
         pca = nullptr;
         idx = -1;
+        inpath = false;
       };
     };
+
+    /* struct Path_t { */
+    /*   std::vector<Segment_t*> seg_v; */
+    /*   std::vector<float>      segdir_v; */
+    /*   float pathlen; */
+    /*   float seglen; */
+    /* }; */
 
   protected:
 
@@ -81,12 +97,33 @@ namespace reco {
     // connection library
     std::map< std::pair<int,int>, Connection_t > _connect_m; // index is directional, index1->index2
 
+    // track proposals
+    std::vector< std::vector<Segment_t*> > _track_proposal_v;
+
   public:
     
     void loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                              const larlite::event_pcaxis& pcaxis_v );
 
     void buildConnections();
+
+    void buildTracksFromPoint( const std::vector<float>& startpoint );
+
+    void clearProposals() { _track_proposal_v.clear(); };
+
+    void fillLarliteTrackContainer( larlite::event_track& ev_track );
+
+    std::string str( const Segment_t& seg );
+    
+  protected:
+
+    void _recursiveFollowPath( Segment_t& seg,
+                               std::vector<Segment_t*>& path,
+                               std::vector< float >& path_dir,                               
+                               std::vector< std::vector<Segment_t*> >& complete );
+    
+    void _choose_best_paths( std::vector< std::vector<Segment_t*> >& complete_v,
+                             std::vector< std::vector<Segment_t*> >& filtered_v );
     
   };
   

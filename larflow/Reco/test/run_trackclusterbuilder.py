@@ -41,6 +41,17 @@ for ientry in xrange( start_entry, start_entry+nentries ):
 
     tracker.process( iolcv, io )
     tracker.buildConnections()
+    startpt = std.vector("float")(3,0)
+    #startpt[0] = 88.49
+    #startpt[1] = 113.6
+    #startpt[2] = 183.6
+    startpt[0] = 272.96
+    startpt[1] = 112.25
+    startpt[2] = 244.75
+    tracker.buildTracksFromPoint( startpt )
+
+    evout_track = outio.get_data(larlite.data.kTrack,"trackbuilder")
+    tracker.fillLarliteTrackContainer(evout_track)
 
     outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     outio.next_event()    
