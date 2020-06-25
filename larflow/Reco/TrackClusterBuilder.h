@@ -18,7 +18,8 @@ namespace reco {
 
   public:
 
-    TrackClusterBuilder() {};
+    TrackClusterBuilder()
+      : larcv::larcv_base("TrackClusterBuilder") {};
     virtual ~TrackClusterBuilder() {};
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -34,6 +35,7 @@ namespace reco {
       int     endidx;  //< end of the segment we are connected to
       float   dist;    //< distance between ends, i.e. length of connection
       float   cosine;  //< cosine between segment direction and endpt-connections
+      float   cosine_seg; //< cosine between two segment directions
       std::vector<float> dir;
     };
     
@@ -49,11 +51,13 @@ namespace reco {
       float len;
       int idx;
       bool inpath;
+      bool visited;
 
       Segment_t()
       : len(0),
         idx(-1),
-        inpath(false)
+        inpath(false),
+        visited(false)
       {};
       Segment_t( std::vector<float>& s, std::vector<float>& e ) {
         if ( s[1]<e[1] ) {
@@ -109,6 +113,8 @@ namespace reco {
 
     void buildTracksFromPoint( const std::vector<float>& startpoint );
 
+    void clear();
+    
     void clearProposals() { _track_proposal_v.clear(); };
 
     void fillLarliteTrackContainer( larlite::event_track& ev_track );

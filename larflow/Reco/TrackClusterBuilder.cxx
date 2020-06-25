@@ -21,6 +21,13 @@ namespace reco {
 
   }
 
+  void TrackClusterBuilder::clear()
+  {
+    _segment_v.clear();
+    _connect_m.clear();
+    _track_proposal_v.clear();
+  }
+
   void TrackClusterBuilder::loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                                                 const larlite::event_pcaxis& pcaxis_v )
   {
@@ -61,7 +68,7 @@ namespace reco {
 
         // define a connection in both directions
         Segment_t& seg_j = _segment_v[jseg];
-
+        
 
         // first we find the closest ends between them
         std::vector<float>* ends[2][2] = { {&seg_i.start,&seg_i.end},
@@ -98,11 +105,14 @@ namespace reco {
         con_ij.dist = min_dist;
         con_ij.endidx = idx_small%2;
         con_ij.cosine = 0.;
+        con_ij.cosine_seg = 0.;        
         con_ij.dir.resize(3,0);
         for (int v=0; v<3; v++) {
           con_ij.dir[v] = (end_j->at(v)-end_i->at(v))/min_dist;
           con_ij.cosine += (end_j->at(v)-end_i->at(v))*seg_i.dir[v]/min_dist;
+          con_ij.cosine_seg += seg_i.dir[v]*seg_j.dir[v];
         }
+        con_ij.cosine_seg = fabs(con_ij.cosine_seg);
         
         Connection_t con_ji;
         con_ji.node = &seg_i;
@@ -111,6 +121,7 @@ namespace reco {
         con_ji.dist = min_dist;
         con_ij.endidx = idx_small/2;
         con_ji.cosine = 0.;
+        con_ji.cosine_seg = con_ij.cosine_seg;
         con_ji.dir.resize(3,0);
         for (int v=0; v<3; v++) {
           con_ji.dir[v] = (end_i->at(v)-end_j->at(v))/min_dist;          
@@ -147,11 +158,16 @@ namespace reco {
       }
     }
     if ( min_segidx<0 ) {
-      LARCV_DEBUG() << "No acceptable segment found for startpoint" << std::endl;
+      LARCV_INFO() << "No acceptable segment found for startpoint" << std::endl;
       return;
     }
 
-    LARCV_DEBUG() << "Segment found idx=[" << min_segidx << "]: " << str(_segment_v[min_segidx]) << std::endl;
+    if ( mindist>3.0 ) {
+      LARCV_INFO() << "No segment is close enough to keypoint" << std::endl;
+      return;
+    }
+
+    LARCV_DEBUG() << "Segment found idx=[" << min_segidx << "] to build from " << str(_segment_v[min_segidx]) << std::endl;
 
     std::vector< Segment_t* > path;
     std::vector< float > path_dir;
@@ -205,6 +221,9 @@ namespace reco {
     float mindist = 1e9;
     float maxcos = 0;
     for (int iseg=0; iseg<_segment_v.size(); iseg++) {
+
+      
+      
       if ( iseg==seg.idx ) continue; // don't connect to yourself
       auto it = _connect_m.find( std::pair<int,int>(seg.idx,iseg) );
       if ( it==_connect_m.end() ) continue; // no connection
@@ -216,6 +235,7 @@ namespace reco {
       if ( nextseg.inpath ) continue; // can't create a recursive loop
 
       float segcos = it->second.cosine;
+      float concos = it->second.cosine_seg;
       if (path.size()<=1) segcos = fabs(segcos);
       else {
         segcos *= path_dir.back();
@@ -226,14 +246,27 @@ namespace reco {
       
       // criteria for accepting connection
       // ugh, the heuristics ...
-      if ( (segcos>-0.5 && it->second.dist<5.0 ) || (segcos>0.6 && it->second.dist<20.0 )) {
-        //std::cout << "  connect to segment[" << iseg << "] dist=" << it->second.dist << " segment-cos=" << segcos << std::endl;
+      if ( (it->second.dist<2.0 && segcos>0 && concos>0.3 ) // close
+           || (it->second.dist<20.0 && segcos>0.8 && concos>0.8 )  // far
+           || (it->second.dist<50.0 && segcos>0.9 && concos>0.9 )
+           ) {
+        std::cout << "  connect segment[" << seg.idx << "] to segment[" << iseg << "] "
+                  << "dist=" << it->second.dist << " "
+                  << "connect-cos=" << segcos
+                  << "segment-cos=" << it->second.cosine_seg
+                  << std::endl;
         nconnections++;
         _recursiveFollowPath( nextseg, path, path_dir, complete );
+
+        if ( complete.size()>=10000 ) {
+          //cut this off!
+          std::cout << "  cut off search. track limit reached: " << complete.size() << std::endl;
+          break;
+        }
       }
     }
     
-    if ( nconnections==0 ) {
+    if ( nconnections==0 && complete.size()<10000 ) {
       // was a leaf, so make a complete track.
       // else was a link
       complete.push_back( path );

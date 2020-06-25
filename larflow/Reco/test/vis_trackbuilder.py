@@ -92,14 +92,14 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             lfcluster = ev_cosmic_trackcluster.at( icluster )
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
             cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = 0.3
+            cluster_trace["marker"]["opacity"] = 0.1
             traces_v.append(cluster_trace)            
 
             pcaxis = ev_cosmic_pcacluster.at( icluster )
             pcatrace = lardly.data.visualize_pcaxis( pcaxis )
             pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
             pcatrace["line"]["color"] = "rgb(0,0,0)"
-            pcatrace["line"]["width"] = 3
+            pcatrace["line"]["width"] = 1
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
 
@@ -153,12 +153,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     traces_v += pca_traces_v
 
     # Tracks
-    ev_track = io.get_data(larlite.data.kTrack,"trackbuilder")
+    ev_track = io.get_data(larlite.data.kTrack,"cosmictrack")
     for itrack in xrange(ev_track.size()):
         trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
         trktrace["name"] = "TRK[%d]"%(itrack)
         trktrace["line"]["color"] = "rgb(50,0,100)"
         trktrace["line"]["width"] = 5
+        trktrace["line"]["opacity"] = 1.0
         traces_v.append( trktrace )
     
 

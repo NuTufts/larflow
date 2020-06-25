@@ -18,6 +18,7 @@ set( HEADERS cluster_functions.h
   KeypointFilterByClusterSize.h KeypointFilterByWCTagger.h
   TrackReco2KP.h
   TrackClusterBuilder.h
+  CosmicTrackBuilder.h
   ShowerRecoKeypoint.h
   NuVertexCandidate.h  
   NuVertexMaker.h  
@@ -43,6 +44,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ShowerRecoKeypoint.cxx
   TrackReco2KP.cxx
   TrackClusterBuilder.cxx
+  CosmicTrackBuilder.cxx  
   NuVertexCandidate.cxx  
   NuVertexMaker.cxx
   KPSRecoManager.cxx  
