@@ -28,7 +28,7 @@ cosmictracker.set_verbosity(0)
 
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-#nentries = 
+nentries = 10
 start_entry = 0
 
 print "Start loop."

@@ -45,6 +45,8 @@ namespace reco {
       }
 
       Segment_t seg( start, end );
+      seg.cluster = &cluster;
+      seg.pca     = &pca;
       _segment_v.push_back(seg);
       _segment_v.back().idx = (int)_segment_v.size()-1;
     }

@@ -134,19 +134,40 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
 
-    # show the clusters we didnt include
-    ev_maxtrackhit  = io.get_data( larlite.data.kLArFlow3DHit, "maxtrackhit_wcfilter" )
-    ev_maxshowerhit = io.get_data( larlite.data.kLArFlow3DHit, "maxshowerhit" )
+    #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
+    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.05),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.05)]
+    for (name,producer,rgbcolor,opa) in clusters:
+        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
+        ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
+        print("plot pca clusters: ",producer,ev_trackcluster)
+        for icluster in range(ev_trackcluster.size()):
+            lfcluster = ev_trackcluster.at( icluster )
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
+            cluster_trace["marker"]["color"] = rgbcolor
+            cluster_trace["marker"]["opacity"] = opa
+            traces_v.append(cluster_trace)            
 
-    trackhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxtrackhit, name="maxtrackhit" )
-    trackhit_trace["marker"]["color"] = "rgb(125,200,125)"
-    trackhit_trace["marker"]["opacity"] = 0.05
-    traces_v.append(trackhit_trace)
-
-    showerhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxshowerhit, name="maxshowerhit" )
-    showerhit_trace["marker"]["color"] = "rgb(200,125,125)"
-    showerhit_trace["marker"]["opacity"] = 0.05
-    traces_v.append(showerhit_trace)
+            pcaxis = ev_pcacluster.at( icluster )
+            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
+            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
+            pcatrace["line"]["color"] = "rgb(0,0,0)"
+            pcatrace["line"]["width"] = 1
+            pcatrace["line"]["opacity"] = 1.0            
+            traces_v.append( pcatrace )
+            
+    # TRACK RECO
+    for name,track_producer in [("CTRK","cosmictrack"),("NUTRK","nutrack")]:
+        ev_track = io.get_data(larlite.data.kTrack,track_producer)
+        for itrack in xrange(ev_track.size()):
+            trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
+            trktrace["name"] = "%s[%d]"%(name,itrack)
+            trktrace["line"]["color"] = "rgb(50,0,100)"
+            trktrace["line"]["width"] = 5
+            trktrace["line"]["opacity"] = 1.0
+            traces_v.append( trktrace )
+    
 
     if HAS_MC:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)

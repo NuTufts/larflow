@@ -64,6 +64,8 @@ namespace reco {
       _cluster_type[name] = ctype;
     };
 
+    const std::vector<NuVertexCandidate>& get_nu_candidates() const { return _vertex_v; };
+    
     void clear();
     
   protected:

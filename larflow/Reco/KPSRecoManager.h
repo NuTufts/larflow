@@ -30,6 +30,8 @@
 #include "PCATracker.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
+#include "CosmicTrackBuilder.h"
+#include "NuTrackBuilder.h"
 
 namespace larflow {
 namespace reco {
@@ -65,6 +67,9 @@ namespace reco {
     ShowerRecoKeypoint _showerkp;
     ChooseMaxLArFlowHit _choosemaxhit;
     NuVertexMaker       _nuvertexmaker;
+
+    CosmicTrackBuilder  _cosmic_track_builder;
+    NuTrackBuilder      _nu_track_builder;
 
     // Algorithms
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

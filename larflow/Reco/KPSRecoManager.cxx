@@ -80,10 +80,15 @@ namespace reco {
     _choosemaxhit.set_verbosity( larcv::msg::kINFO );
     _choosemaxhit.process( iolcv, ioll );
 
-    // PREP: SPLIT SHOWER/TRACK FOR FULL
+    // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
     _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
     _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
     _splithits_full.process( iolcv, ioll );
+
+    // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
+    _choosemaxhit.process( iolcv, ioll );
     
     // Make keypoints
     recoKeypoints( iolcv, ioll );
@@ -106,12 +111,16 @@ namespace reco {
     // PARTICLE FRAGMENT RECO
     recoParticles( iolcv, ioll );
     
-    // INTERACTION RECO
-
-    // Cosmic reco: tracks at end points + deltas and michels
-
     // Multi-prong internal reco
     multiProngReco( iolcv, ioll );
+
+    // INTERACTION RECO
+    _cosmic_track_builder.clear();
+    _cosmic_track_builder.process( iolcv, ioll );
+    
+    // Cosmic reco: tracks at end points + deltas and michels
+
+    
     
     // Single particle interactions
 
@@ -224,7 +233,7 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
-    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "ssnetsplit_full_trackhit" );
+    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
     _projsplitter_cosmic.process( iolcv, ioll );
 
@@ -245,13 +254,14 @@ namespace reco {
 
     _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
     _nuvertexmaker.clear();
-    //_nuvertexmaker.add_keypoint_producer( "keypoint_bigcluster" );
-    //_nuvertexmaker.add_keypoint_producer( "keypoint_smallcluster" );
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     _nuvertexmaker.process( iolcv, ioll );
+
+    _nu_track_builder.clear();
+    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
     
   }
 

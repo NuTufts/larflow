@@ -19,7 +19,9 @@ namespace reco {
   public:
 
     TrackClusterBuilder()
-      : larcv::larcv_base("TrackClusterBuilder") {};
+      : larcv::larcv_base("TrackClusterBuilder"),
+      _one_track_per_startpoint(true)
+        {};
     virtual ~TrackClusterBuilder() {};
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -95,6 +97,9 @@ namespace reco {
 
   protected:
 
+    // DATA CONTAINERS
+    // ----------------
+    
     // library of all segments created
     std::vector< Segment_t > _segment_v;
 
@@ -103,6 +108,10 @@ namespace reco {
 
     // track proposals
     std::vector< std::vector<Segment_t*> > _track_proposal_v;
+
+    // PARAMETERS
+    // -----------
+    bool _one_track_per_startpoint;
 
   public:
     
@@ -118,6 +127,8 @@ namespace reco {
     void clearProposals() { _track_proposal_v.clear(); };
 
     void fillLarliteTrackContainer( larlite::event_track& ev_track );
+
+    void set_output_one_track_per_startpoint( bool output_only_one ) { _one_track_per_startpoint=output_only_one; };
 
     std::string str( const Segment_t& seg );
     
