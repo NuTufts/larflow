@@ -29,7 +29,7 @@ from larflow import larflow
 larcv.SetPyUtil()    
 
 scb = larflow.scb.SCBoundary()
-x = np.random.random_sample( (args.num_samples,) )*256.0
+x = np.random.random_sample( (args.num_samples,) )*400.0 - 50.0;
 y = np.random.random_sample( (args.num_samples,) )*2.0*116.0 - 116.0
 z = np.random.random_sample( (args.num_samples,) )*1037.0
 
