@@ -15,6 +15,8 @@ namespace scb {
   template double SCBoundary::pointLineDistance( const std::vector<double>& linept1,
                                                  const std::vector<double>& linept2,
                                                  const std::vector<double>& testpt ) const;
+  template float  SCBoundary::XatBoundary<float>( const std::vector<float>& pos ) const;
+  template double SCBoundary::XatBoundary<double>( const std::vector<double>& pos ) const;
   
   double SCBoundary::YX_TOP_x1_array[10] = {150.00, 132.56, 122.86, 119.46, 114.22, 110.90, 115.85, 113.48, 126.36, 144.21};
   double SCBoundary::YX_TOP_y2_array[10] = {110.00, 108.14, 106.77, 105.30, 103.40, 102.18, 101.76, 102.27, 102.75, 105.10};
@@ -86,7 +88,7 @@ namespace scb {
     if ( dbot>0 ) botxy *= -1.0; // outside boundary
     
     // evlaute xy-view and xz-view boundary dist
-    if ( pos[2]>1025 ) {
+    if ( pos[2]>1024 ) {
       int ybox = (int)(pos[1]-(-116.0))/24.0;
       if ( ybox>9 ) ybox = 9;
       std::vector<double> xz_proj = { (double)pos[0], 0.0, (double)pos[2] };
@@ -217,6 +219,64 @@ namespace scb {
     return dist2boundary<double>(pos);
   }
 
+
+  template<class T>
+  T SCBoundary::XatBoundary( const std::vector<T>& pos ) const
+  {
+
+    T z = pos[2];
+    if ( z<0 ) z = 0.0;
+    else if ( z>1036.0 ) z = 1036.;
+
+    T y = pos[1];
+    if ( y<-116 ) y = -116.0;
+    else if ( y>116.0 ) y = 116.0;
     
+    int zbox = z/100.0;
+    if ( zbox>9 ) zbox = 9;
+
+    T x_y = (T)YX_TOP_x2_array;
+    if ( y > YX_TOP_y2_array[zbox] ) {
+      x_y = (T)( (y-YX_TOP_y1_array)*(YX_TOP_x2_array-YX_TOP_x1_array[zbox])/(YX_TOP_y2_array[zbox]-YX_TOP_y1_array) + YX_TOP_x1_array[zbox] );
+    }
+    else if ( y < YX_BOT_y2_array[zbox] ) {
+      x_y = (T)( (y-YX_BOT_y1_array)*(YX_BOT_x2_array-YX_BOT_x1_array[zbox])/(YX_BOT_y2_array[zbox]-YX_BOT_y1_array) + YX_BOT_x1_array[zbox] );      
+    }
+
+    int ybox = (int)(pos[1]-(-116.0))/24.0;
+    if ( ybox>9 ) ybox = 9;
+    
+    T x_z = (T)ZX_Dw_x2_array;    
+    if ( z>1024.0 ) {
+      x_z = (T)( (z-ZX_Dw_z1_array)*( ZX_Dw_x2_array-ZX_Dw_x1_array[ybox] )/(ZX_Dw_z2_array[ybox]-ZX_Dw_z1_array) + ZX_Dw_x1_array[ybox] );
+    }
+    else if ( z<11.0 ) {
+      x_z = (T)( (z-ZX_Up_z1_array)*( ZX_Up_x2_array-ZX_Up_x1_array )/(ZX_Up_z2_array-ZX_Up_z1_array) + ZX_Up_x1_array );      
+    }
+
+    if ( x_z>(T)ZX_Dw_x2_array ) x_z = (T)ZX_Dw_x2_array;
+
+    if ( x_y<x_z )
+      return x_y;
+    else
+      return x_z;
+
+    // should not reach here
+    return pos[0];
+    
+  }
+
+  float SCBoundary::XatBoundary( float x, float y, float z ) const
+  {
+    std::vector<float> pos = {x,y,z};
+    return XatBoundary<float>(pos);
+  }
+
+  double SCBoundary::XatBoundary( double x, double y, double z ) const
+  {
+    std::vector<double> pos = {x,y,z};
+    return XatBoundary<double>(pos);
+  }
+  
 }
 }

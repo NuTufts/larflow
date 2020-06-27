@@ -14,10 +14,15 @@ namespace scb {
     virtual ~SCBoundary() {};
 
     template <class T>
-      T dist2boundary( const std::vector<T>& pos ) const;
+      T dist2boundary( const std::vector<T>& pos ) const; //< if inside tpc, return distance to space charge boundary
 
     float  dist2boundary( float  x, float y, float z ) const;
     double dist2boundary( double x, double y, double z ) const;
+
+    template <class T>
+      T XatBoundary( const std::vector<T>& pos ) const;     ///< value of x if we shift point along-x to boundary near cathode
+    float  XatBoundary( float x,  float y,  float z ) const;
+    double XatBoundary( double x, double y, double z ) const;
 
   protected:
     
