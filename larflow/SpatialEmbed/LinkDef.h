@@ -1,6 +1,6 @@
 //
 // cint script to generate libraries
-// Declaire namespace & classes you defined
+// Declare namespace & classes you defined
 // #pragma statement: order matters! Google it ;)
 //
 
@@ -13,6 +13,8 @@
 #pragma link C++ namespace larflow::spatialembed;
 #pragma link C++ struct larflow::spatialembed::AncestorIDPix_t+;
 #pragma link C++ class larflow::spatialembed::PrepMatchEmbed+;
+#pragma link C++ class larflow::spatialembed::PrepSpatialEmbed+;
+#pragma link C++ class larflow::spatialembed::SpatialEmbedData+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif

@@ -3,10 +3,11 @@ set(MODULE_NAME SpatialEmbed )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS PrepMatchEmbed.h )
+set( HEADERS PrepMatchEmbed.h PrepSpatialEmbed.h SpatialEmbedData.h)
 
 add_library( ${LIBNAME} SHARED
-  PrepMatchEmbed.cxx )
+  PrepMatchEmbed.cxx PrepSpatialEmbed.cxx SpatialEmbedData.cxx)
+
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

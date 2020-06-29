@@ -12,13 +12,15 @@ from larflow import larflow
 rt.gStyle.SetOptStat(0)
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD )
-iolcv.add_in_file( "../../../../testdata/mcc9_v13_bnbnue_corsika/larcvtruth-Run000001-SubRun000001.root" )
+# iolcv.add_in_file( "../../../../testdata/mcc9_v13_bnbnue_corsika/larcvtruth-Run000001-SubRun000001.root" )
+iolcv.add_in_file( "/home/taritree/larcvtruth-Run000001-SubRun000001.root" )
 iolcv.initialize()
 iolcv.set_verbosity(1)
 
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
-ioll.add_in_filename( "../../../../testdata/mcc9_v13_bnbnue_corsika/mcinfo-Run000001-SubRun000001.root" )
+# ioll.add_in_filename( "../../../../testdata/mcc9_v13_bnbnue_corsika/mcinfo-Run000001-SubRun000001.root" )
+ioll.add_in_filename( "/home/taritree/mcinfo-Run000001-SubRun000001.root" )
 ioll.set_verbosity(1)
 ioll.open()
 
