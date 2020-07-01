@@ -80,7 +80,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     traces_v = []
 
     if args.draw_flash:
-        ev_flash = io_ll.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
         nflashes = 0
         for iflash in range(ev_flash.size()):
             flash = ev_flash.at(iflash)
