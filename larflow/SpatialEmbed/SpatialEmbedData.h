@@ -48,13 +48,25 @@ private:
     std::vector<int> coord_plane2_t;
     std::vector<int> feat_plane3_t;
     
-    std::vector<int> types;
-    std::vector<std::vector<InstancePix>> instances;
+    std::vector<int> types_plane0;
+    std::vector<std::vector<InstancePix>> instances_plane0;
+
+    std::vector<int> types_plane1;
+    std::vector<std::vector<InstancePix>> instances_plane1;
+
+    std::vector<int> types_plane2;
+    std::vector<std::vector<InstancePix>> instances_plane2;
+
+    larcv::IOManager& iolcv;
+    larlite::storage_manager& ioll;
 
 public:
-    SpatialEmbedData();
+    SpatialEmbedData( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     ~SpatialEmbedData();
 
+    void processImageData();
+    void processLabelData();
+    
 };
 
 }

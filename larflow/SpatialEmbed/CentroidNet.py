@@ -38,6 +38,8 @@ for ientry in xrange(nentries):
 
     prepembed.process( iolcv, ioll, preptriplet )
 
+    test = larflow.spatialembed.PrepSpatialEmbed()
+
     print "============================================="
     print prepembed.get_id_list(0)
     print "============================================="
@@ -57,11 +59,11 @@ for ientry in xrange(nentries):
         for instance_node in tids_from_neutrino:
             print "tid: ", instance_node.tid, ", pid: ", instance_node.pid
             pixels = prepembed.get_instance_pixlist(plane, instance_node.tid)
-            rows.append(map(lambda node: instance_node.row, pixels))
-            cols.append(map(lambda anode: instance_node.col, pixels))          
+            rows.append(map(lambda node: node.row, pixels))
+            cols.append(map(lambda node: node.col, pixels))          
 
-    print rows
-    print cols
+    # print rows
+    # print cols
 
     if ientry == 0:
         break

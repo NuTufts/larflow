@@ -14,9 +14,22 @@
 namespace larflow {
 namespace spatialembed {
 
-SpatialEmbedData::SpatialEmbedData() { }
+SpatialEmbedData::SpatialEmbedData( larcv::IOManager& iolcv_in, larlite::storage_manager& ioll_in ) 
+{
+    // iolcv = iolcv_in;
+    // ioll  = ioll_in;
+}
 
 SpatialEmbedData::~SpatialEmbedData() { }
 
+void SpatialEmbedData::processImageData()
+{
+    std::cout << "processImageData" << endl;
+}
+
+void SpatialEmbedData::processLabelData()
+{
+    std::count << "processLabelData()" << endl;
+}
 }
 }

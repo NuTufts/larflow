@@ -23,6 +23,8 @@ from ublarcvapp import ublarcvapp
 test script for the PrepKeypointData class
 """
 
+larcv.SetPyUtil()
+
 rt.gStyle.SetOptStat(0)
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
@@ -58,29 +60,14 @@ for ientry in xrange( nentries ):
     adc_v = ev_adc.Image2DArray()
     for p in xrange(adc_v.size()):
         print " image[",p,"] ",adc_v[p].meta().dump()
+        arr_numpy = larcv.as_ndarray(adc_v[p])
+    
 
-    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
-    ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
-    larflow_v  = ev_larflow.Image2DArray()
+    # ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
+    # ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
+    # larflow_v  = ev_larflow.Image2DArray()
         
     #sys.exit(0)
     #break
-
-# print "NCLOSE: ",kpana._nclose
-# print "NFAR: ",kpana._nfar
-# print "FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar)
-
-# dtime = time.time()-start
-# print "Time: ",float(dtime)/float(nrun)," sec/event"
-
-tmp.cd()
-# kpana.writeAnaTree()
-# kpana.writeHists()
-# ssnet.writeAnaTree()
-if args.save_triplets:
-    triptree.Write()
-
-# del kpana
-# del ssnet
 
 print "=== FIN =="

@@ -15,6 +15,7 @@
 #pragma link C++ class larflow::spatialembed::PrepMatchEmbed+;
 #pragma link C++ class larflow::spatialembed::PrepSpatialEmbed+;
 #pragma link C++ class larflow::spatialembed::SpatialEmbedData+;
+#pragma link C++ class larflow::spatialembed::testclass+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif
