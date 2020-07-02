@@ -73,9 +73,10 @@ namespace reco {
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
     }
-    
+
     _createCandidates();
-    
+    _merge_candidates();
+    LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size() << "  after-merging=" << _merged_v.size() << std::endl;
   }
 
   /**
@@ -131,66 +132,9 @@ namespace reco {
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
           NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
 
-          std::vector<float> pcadir(3,0);
-          std::vector<float> start(3,0);
-          std::vector<float> end(3,0);
-          float dist[2] = {0,0};
-          float pcalen = 0.;
-          for (int v=0; v<3; v++) {
-            pcadir[v] = lfpca.getEigenVectors()[0][v];
-            start[v]  = lfpca.getEigenVectors()[3][v];
-            end[v]    = lfpca.getEigenVectors()[4][v];
-            dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
-            dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
-            pcalen += pcadir[v]*pcadir[v];
-          }
-          pcalen = sqrt(pcalen);
-          if (pcalen<0.1 || std::isnan(pcalen) ) {
-            continue;
-          }          
-          dist[0] = sqrt(dist[0]);
-          dist[1] = sqrt(dist[1]);
-          int closestend = (dist[0]<dist[1]) ? 0 : 1;
-          float gapdist = dist[closestend];
-          float r = pointLineDistance( start, end, vertex.pos );
+          bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
+                                                     ctype, it->first, icluster, true );
 
-          LARCV_DEBUG() << "pcadir-len=" << pcalen << std::endl;
-          float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
-          float ends  = pointRayProjection<float>( start, pcadir, end );
-
-          // wide association for now
-          if ( gapdist>_cluster_type_max_gap[ctype] )
-            continue;
-          
-          if ( r>_cluster_type_max_impact_radius[ctype] )
-            continue;
-
-          if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
-            if ( projs>2.0 && projs < (ends-2.0) )
-              continue;
-          }
-
-          // else attach
-          NuVertexCandidate::VtxCluster_t cluster;
-          cluster.producer = it->first;
-          cluster.index = icluster;
-          cluster.dir.resize(3,0);
-          cluster.pos.resize(3,0);
-          for ( int i=0; i<3; i++) {
-            if ( closestend==0 ) {
-              cluster.dir[i] = pcadir[i];
-              cluster.pos[i] = start[i];
-            }
-            else {
-              cluster.dir[i] = -pcadir[i];
-              cluster.pos[i] = end[i];
-            }
-          }
-          cluster.gap = gapdist;
-          cluster.impact = r;
-          cluster.type = ctype;
-          cluster.npts = (int)lfcluster.size();
-          vertex.cluster_v.emplace_back( std::move(cluster) );
           
         }//end of cluster loop
       }//end of cluster container loop
@@ -235,6 +179,7 @@ namespace reco {
   void NuVertexMaker::clear()
   {
     _vertex_v.clear();
+    _merged_v.clear();
     _keypoint_producers.clear();
     _keypoint_pca_producers.clear();
     _cluster_producers.clear();
@@ -310,6 +255,7 @@ namespace reco {
     _ana_tree = tree;
     _own_tree = false;
     tree->Branch("nuvertex_v", &_vertex_v );
+    tree->Branch("numerged_v", &_merged_v );
   }
 
 
@@ -333,6 +279,213 @@ namespace reco {
     }
   }
 
+  /**
+   * merge nearby vertices
+   *
+   * merge if close. the "winning vertex" has the best score when we take the union of prongs.
+   * the winning vertex also gets the union of prongs assigned to it.
+   *
+   * we fill the _merged_v vector using _vertex_v candidates.
+   *
+   */
+  void NuVertexMaker::_merge_candidates()
+  {
+
+    // sort by score
+    // start with best score, absorb others, (so N^2 algorithm)
+
+    // clear existing merged
+    _merged_v.clear();
+
+    if ( _vertex_v.size()==0 )
+      return;
+    
+    _merged_v.reserve( _vertex_v.size() );
+    
+    // struct for us to sort by score
+    struct NuScore_t {
+      const NuVertexCandidate* nu;
+      float score;
+      NuScore_t( const NuVertexCandidate* the_nu, float s )
+        : nu(the_nu),
+          score(s)
+      {};
+      bool operator<( const NuScore_t& rhs ) const
+      {
+        if ( score>rhs.score ) return true;
+        return false;
+      }      
+    };
+
+    std::vector< NuScore_t > nu_v;
+    nu_v.reserve( _vertex_v.size() );
+    for ( auto const& nucand : _vertex_v ) {
+      nu_v.push_back( NuScore_t(&nucand, nucand.score) );
+    }
+    std::sort( nu_v.begin(), nu_v.end() );
+
+    std::vector<int> used_v( nu_v.size(), 0 );
+
+    // seed first merger candidate
+    _merged_v.push_back( *(nu_v[0].nu) );
+    used_v[0] = 1;
+
+    if ( _vertex_v.size()==1 )
+      return;
+    
+    int nused = 0;
+    int current_cand_index = 0; // index of candidate in _merged_v, for whom we are currently looking for mergers
+    while ( nused<(int)nu_v.size() && current_cand_index<_merged_v.size() ) {
+
+      auto& cand = _merged_v.at(current_cand_index);
+
+      for (int i=0; i<(int)nu_v.size(); i++) {
+        if ( used_v[i]==1 ) continue;
+
+        // test vertex
+        auto const& test_vtx = *nu_v[i].nu;
+        
+        // test vertex distance
+        float dist = 0.;
+        for (int v=0; v<3; v++)
+          dist += (test_vtx.pos[v]-cand.pos[v])*(test_vtx.pos[v]-cand.pos[v]);
+        dist = sqrt(dist);
+
+        if ( dist>5.0 )
+          continue; // too far to merge (or the same)
+
+        // if within distance, absorb clusters to make union
+        // set the pos, keypoint producer based on best score
+        used_v[i] = 1;
+
+        // loop over clusters inside test vertex we are merging with
+        int nclust_before = cand.cluster_v.size();
+        for ( auto const& test_clust : test_vtx.cluster_v ) {
+
+          // check the clusters against the current candidate's clusters
+          bool is_found = false;
+          for (auto const& curr_clust : cand.cluster_v ) {
+            if ( curr_clust.index==test_clust.index && curr_clust.producer==test_clust.producer ) {
+              is_found = true;
+              break;
+            }
+          }
+          
+          if ( !is_found ) {
+            // if not found, add it to the current candidate vertex
+            auto it_clust = _cluster_producers.find( test_clust.producer );
+            auto it_pca   = _cluster_pca_producers.find( test_clust.producer );
+            auto it_ctype = _cluster_type.find( test_clust.producer );
+            if ( it_clust==_cluster_producers.end() || it_pca==_cluster_pca_producers.end() ) {
+              throw std::runtime_error("ERROR NuVertexMaker. could not find cluster/pca producer in dict");
+            }
+            auto const& lfcluster = it_clust->second->at(test_clust.index);
+            auto const& lfpca     = it_pca->second->at(test_clust.index);
+            auto const& clust_t   = it_ctype->second;
+            _attachClusterToCandidate( cand, lfcluster, lfpca, clust_t,
+                                       test_clust.producer, test_clust.index, false );
+          }
+              
+        }//after test cluster loop
+
+        // score the current candidate
+        _score_vertex( cand );
+
+        // here we create a duplicate,
+        // but with the vertex moved to the pos of the test_vtx
+        // then we decide which one to keep based on highest score
+        
+      }//end of loop to absorb vertices
+
+      // get the next unused absorbed vertex, to seed as merger
+      for (int i=0; i<(int)nu_v.size(); i++) {
+        if ( used_v[i]==1 ) continue;
+        _merged_v.push_back( *nu_v[i].nu );
+        used_v[i] = 1;
+        break;
+      }
+      
+      current_cand_index++;
+    }
+    
+    
+  }
+
+
+  bool NuVertexMaker::_attachClusterToCandidate( NuVertexCandidate& vertex,
+                                                 const larlite::larflowcluster& lfcluster,
+                                                 const larlite::pcaxis& lfpca,
+                                                 NuVertexCandidate::ClusterType_t ctype,
+                                                 std::string producer,
+                                                 int icluster,
+                                                 bool apply_cut )
+  {
+
+    std::vector<float> pcadir(3,0);
+    std::vector<float> start(3,0);
+    std::vector<float> end(3,0);
+    float dist[2] = {0,0};
+    float pcalen = 0.;
+    for (int v=0; v<3; v++) {
+      pcadir[v] = lfpca.getEigenVectors()[0][v];
+      start[v]  = lfpca.getEigenVectors()[3][v];
+      end[v]    = lfpca.getEigenVectors()[4][v];
+      dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
+      dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
+      pcalen += pcadir[v]*pcadir[v];
+    }
+    pcalen = sqrt(pcalen);
+    if (pcalen<0.1 || std::isnan(pcalen) ) {
+      return false;
+    }          
+    dist[0] = sqrt(dist[0]);
+    dist[1] = sqrt(dist[1]);
+    int closestend = (dist[0]<dist[1]) ? 0 : 1;
+    float gapdist = dist[closestend];
+    float r = pointLineDistance( start, end, vertex.pos );
+
+    LARCV_DEBUG() << "pcadir-len=" << pcalen << std::endl;
+    float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
+    float ends  = pointRayProjection<float>( start, pcadir, end );
+
+    if ( apply_cut ) {
+      // wide association for now
+      if ( gapdist>_cluster_type_max_gap[ctype] )
+        return false;
+          
+      if ( r>_cluster_type_max_impact_radius[ctype] )
+        return false;
+
+      if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
+        if ( projs>2.0 && projs < (ends-2.0) )
+          return false;
+      }
+    }
+
+    // else attach
+    NuVertexCandidate::VtxCluster_t cluster;
+    cluster.producer = producer;
+    cluster.index = icluster;
+    cluster.dir.resize(3,0);
+    cluster.pos.resize(3,0);
+    for ( int i=0; i<3; i++) {
+      if ( closestend==0 ) {
+        cluster.dir[i] = pcadir[i];
+        cluster.pos[i] = start[i];
+      }
+      else {
+        cluster.dir[i] = -pcadir[i];
+        cluster.pos[i] = end[i];
+      }
+    }
+    cluster.gap = gapdist;
+    cluster.impact = r;
+    cluster.type = ctype;
+    cluster.npts = (int)lfcluster.size();
+    vertex.cluster_v.emplace_back( std::move(cluster) );
+    
+    return true;
+  }
   
   
 }

@@ -37,7 +37,8 @@ namespace reco {
 
   protected:
 
-    std::vector<NuVertexCandidate> _vertex_v;
+    std::vector<NuVertexCandidate> _vertex_v; ///< initial vertex candidates
+    std::vector<NuVertexCandidate> _merged_v; ///< after merging nearby vertices
 
   protected:
 
@@ -73,8 +74,15 @@ namespace reco {
     void _createCandidates();
     void _set_defaults();
     void _score_vertex( NuVertexCandidate& vtx ); 
-
-
+    void _merge_candidates();
+    bool _attachClusterToCandidate( NuVertexCandidate& vertex,
+                                    const larlite::larflowcluster& lfcluster,
+                                    const larlite::pcaxis& lfpca,
+                                    NuVertexCandidate::ClusterType_t ctype,
+                                    std::string producer,
+                                    int icluster,                                    
+                                    bool apply_cut );
+    
   protected:
 
     bool   _own_tree;

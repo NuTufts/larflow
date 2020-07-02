@@ -86,13 +86,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     vtxinfo = []
-    for ivtx in range( kpsanatree.nuvertex_v.size() ):
-        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvertex_v.at(ivtx).score ), "value":ivtx} )
+    for ivtx in range( kpsanatree.numerged_v.size() ):
+        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.numerged_v.at(ivtx).score ), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
 
-        vertexcand = kpsanatree.nuvertex_v.at(ivtx)
+        vertexcand = kpsanatree.numerged_v.at(ivtx)
         # Get the keypoint data
         kpvertex = io.get_data( larlite.data.kLArFlow3DHit, vertexcand.keypoint_producer ).at( vertexcand.keypoint_index )
         

@@ -9,7 +9,6 @@ parser = argparse.ArgumentParser("Run larflow3dhit clustering algorith")
 # required
 parser.add_argument('-i','--input-dlmerged',type=str,required=True,help="Input file containing ADC, ssnet, badch images/info")
 parser.add_argument('-l','--input-larflow',type=str,required=True,help="Input file containing larlite::larflow3dhit objects")
-parser.add_argument('-k','--input-keypoint',type=str,required=True,help="Input file containing keypoint reco objects")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 # optional
 parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of entries to run")
