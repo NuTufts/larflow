@@ -12,12 +12,19 @@ namespace reco {
   public:
 
     CosmicTrackBuilder()
+      : _do_boundary_analysis(false)
       {};
     virtual ~CosmicTrackBuilder() {};
 
     // override the process command
     // we use cosmic keypoint seeds to build tracks
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void do_boundary_analysis( bool doit ) { _do_boundary_analysis = doit; };
+    
+  protected:
+
+    bool _do_boundary_analysis;
+    void _boundary_analysis( larlite::storage_manager& ioll );
     
   };
   

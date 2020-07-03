@@ -116,6 +116,8 @@ namespace reco {
 
     // INTERACTION RECO
     _cosmic_track_builder.clear();
+    _cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
     
     // Cosmic reco: tracks at end points + deltas and michels

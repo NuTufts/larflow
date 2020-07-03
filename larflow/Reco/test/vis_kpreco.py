@@ -159,6 +159,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             
     # TRACK RECO
     for name,track_producer in [("CTRK","cosmictrack"),("NUTRK","nutrack")]:
+        if name in ["NUTRK"]:
+            continue
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
         for itrack in xrange(ev_track.size()):
             trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
