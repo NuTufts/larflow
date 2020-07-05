@@ -110,17 +110,21 @@ namespace reco {
     struct BoundaryMatch_t {
       int track_idx;
       int flash_idx;
+      float x_offset;
+      float x_min;
+      float x_max;
       float minpt_dist2scb;
       float maxpt_dist2scb;
       float dist2scb; // min of the two above, for sorting
+      int num_ends_on_boundary;
       bool operator<( const BoundaryMatch_t& rhs ) const {
         if ( dist2scb<rhs.dist2scb ) return true;
         return false;
       };
     };
 
-    // save boundary matches
-    std::vector<BoundaryMatch_t> track_boundary_v;
+    // save boundary matches, one set per track
+    std::vector< std::vector<BoundaryMatch_t> > track_boundary_vv(ev_cosmic->size());
       
     for ( int itrack=0; itrack<(int)ev_cosmic->size(); itrack++ ) {
 
@@ -192,22 +196,31 @@ namespace reco {
         float dist2scb_max = scb.dist2boundary( real_x_max, pt_max[1], pt_max[2] );
 
         // ok, is anything close to the bound!
-        if ( dist2scb_min<20.0 || dist2scb_max<20.0 ) {
+        if ( dist2scb_min<10.0 || dist2scb_max<10.0 ) {
 
           LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
           LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
                         << " " << dist2scb_min << std::endl;
           LARCV_DEBUG() << "   dist2scb@max extremum pt (" << real_x_max << "," << pt_max[1] << "," << pt_max[2] << "): "
                         << " " << dist2scb_max << std::endl;
-          
+
+
           // record a boundary match!
           BoundaryMatch_t match;
           match.track_idx = itrack;
           match.flash_idx = iflash;
+          match.x_offset = -info.anode_x+x_offset;
+          match.x_min = real_x_min;
+          match.x_max = real_x_max;
           match.minpt_dist2scb = dist2scb_min;
           match.maxpt_dist2scb = dist2scb_max;
-          match.dist2scb = ( dist2scb_min<dist2scb_max ) ? dist2scb_min : dist2scb_max;
-          track_boundary_v.push_back(match);
+          match.dist2scb = fabs(dist2scb_min)+fabs(dist2scb_max);
+
+          match.num_ends_on_boundary = 0;
+          if ( dist2scb_min<3.0 ) match.num_ends_on_boundary++;
+          if ( dist2scb_max<3.0 ) match.num_ends_on_boundary++;
+          
+          track_boundary_vv[itrack].push_back(match);
           nmatches++;
         }
         
@@ -216,6 +229,136 @@ namespace reco {
       LARCV_DEBUG() << "track[" << itrack << "] at bounds for " << nmatches << " flashes,"
                     << " of " << npossible << " flash-track matches" << std::endl;
     }//end of track loop
+
+
+    // now we make boundary tag + flash assignments
+
+    // first we go through tracks where one end x-position is > 100 cm. this is range where being
+    //  on the boundary and matching to a flash is valuable info!
+    // we first make assignment to tracks with only one 2-boundary matches
+    // we then go through others and veto matches to previously matched flashes
+    //   of the non-veto'd matches, we pick the ones closest to the boundary
+
+    std::vector< BoundaryMatch_t > final_match_v;
+    std::vector<int> flash_used_v( flash_v.size(), 0 );
+    std::vector<int> tracks_matched_v( track_boundary_vv.size(), 0 );
+
+    // first pass: accept matches where there is only one solution
+    //             one end must be > 100 cm in position
+    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {
+
+      // first, count number of qualifying matches
+      int nmatches = 0;
+      const BoundaryMatch_t* qualifying_match = nullptr;
+      for ( auto const& bm : track_boundary_vv[itrack] ) {
+
+        if ( (bm.x_min>100.0 || bm.x_max>100.0) && bm.dist2scb<3.0 && bm.num_ends_on_boundary==2 ) {
+          qualifying_match = &bm;
+          nmatches++;
+        }
+        
+      }
+
+      if ( nmatches==1 ) {
+        // accept this match
+        final_match_v.push_back( *qualifying_match );
+        flash_used_v[ qualifying_match->flash_idx ] = 1;
+        tracks_matched_v[ itrack ] = 1;
+      }
+      
+    }//end of track loop
+
+    LARCV_DEBUG() << "Number of first pass matches: "
+                  << final_match_v.size() << " tracks of " << track_boundary_vv.size() << std::endl;
+
+    // second pass, 2 ends matched, best match viz smallest dist2scb, do not reuse first pass flashes.
+    int n2ndpass = 0;
+    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
+      if ( tracks_matched_v[itrack]==1 ) continue;
+
+      // loop through matches, accept only 2-end, exclude previous flash matches
+      const BoundaryMatch_t* min_match = nullptr;
+      float min_match_dist = 1e9;
+      for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
+        auto const& bm = track_boundary_vv[itrack].at(ibm);
+        if( flash_used_v[ bm.flash_idx ]==1 ) continue;
+        
+        if ( bm.dist2scb<5.0 && bm.num_ends_on_boundary==2 && min_match_dist>bm.dist2scb) {
+          min_match_dist = bm.dist2scb;
+          min_match = &bm;
+        }        
+      }
+
+      if ( min_match ) {
+        final_match_v.push_back( *min_match );
+        flash_used_v[ min_match->flash_idx ] = 2;
+        tracks_matched_v[itrack] = 2;
+        n2ndpass++;
+      }
+
+    }
+
+    LARCV_DEBUG() << "Number of second pass matches: "
+                  << n2ndpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
+                  << std::endl;
+
+    // third pass: 1 end matched, best match viz smallest dist2scb of matched end, do not reuse first+second pass flashes.
+    int n3rdpass = 0;
+    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
+      if ( tracks_matched_v[itrack]>0 ) continue;
+
+      // loop through matches, accept only 2-end, exclude previous flash matches
+      const BoundaryMatch_t* min_match = nullptr;
+      float min_match_dist = 1e9;
+      for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
+        auto const& bm = track_boundary_vv[itrack].at(ibm);
+        if( flash_used_v[ bm.flash_idx ]>0 ) continue;
+        
+        if ( bm.num_ends_on_boundary==1 ) {
+
+          float minend_dist = (bm.minpt_dist2scb<bm.maxpt_dist2scb) ? bm.minpt_dist2scb : bm.maxpt_dist2scb;
+          if( minend_dist<5.0 && minend_dist<min_match_dist) {
+            min_match_dist = minend_dist;
+            min_match = &bm;
+          }
+        }        
+      }
+
+      if ( min_match ) {
+        final_match_v.push_back( *min_match );
+        flash_used_v[ min_match->flash_idx ] = 3;
+        tracks_matched_v[itrack] = 3;
+        n3rdpass++;
+      }
+
+    }//end of third pass track loop
+    LARCV_DEBUG() << "Number of third pass matches: "
+                  << n3rdpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
+                  << std::endl;
+
+    // save track with matches along with flash as a pair
+    larlite::event_track* evout_match_track =
+      (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"matchedcosmictrack");
+    larlite::event_opflash* evout_match_opflash =
+      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"matchedcosmictrack");
+
+    for ( auto const& bm : final_match_v ) {
+      auto const& track = ev_cosmic->at(bm.track_idx);
+      larlite::track cptrack;
+      cptrack.reserve( track.NumberTrajectoryPoints() );
+      for ( int ipt=0; ipt<(int)track.NumberTrajectoryPoints(); ipt++ ) {
+        const TVector3& pos = track.LocationAtPoint(ipt);
+        cptrack.add_vertex( TVector3(pos(0)+bm.x_offset,pos(1),pos(2)) );
+        cptrack.add_direction( track.DirectionAtPoint(ipt) );
+      }
+      
+      evout_match_track->emplace_back( std::move(cptrack) );
+
+      larlite::event_opflash* ev_flash
+        = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, flash_v[bm.flash_idx].producer );
+      evout_match_opflash->push_back( ev_flash->at(flash_v[bm.flash_idx].index) );
+
+    }
     
   }
   
