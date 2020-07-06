@@ -10,14 +10,18 @@ namespace scb {
 
   public:
 
+    typedef enum { kTop=0, kBottom, kUpstream, kDownstream, kAnode, kCathode, kNumBoundaries } Boundary_t;
+    
     SCBoundary() {};
     virtual ~SCBoundary() {};
 
     template <class T>
-      T dist2boundary( const std::vector<T>& pos ) const; //< if inside tpc, return distance to space charge boundary
+      T dist2boundary( const std::vector<T>& pos, Boundary_t& btype ) const; //< if inside tpc, return distance to space charge boundary
 
     float  dist2boundary( float  x, float y, float z ) const;
     double dist2boundary( double x, double y, double z ) const;
+    float  dist2boundary(  float x,  float y,  float z, int& ibtype ) const;
+    double dist2boundary( double x, double y, double z, int& ibtype ) const;        
 
     template <class T>
       T XatBoundary( const std::vector<T>& pos ) const;     ///< value of x if we shift point along-x to boundary near cathode

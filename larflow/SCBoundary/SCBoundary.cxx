@@ -7,8 +7,8 @@ namespace scb {
 
   
   
-  template float  SCBoundary::dist2boundary<float>( const std::vector<float>& pos ) const;
-  template double SCBoundary::dist2boundary<double>( const std::vector<double>& pos ) const;
+  template float  SCBoundary::dist2boundary<float>( const std::vector<float>& pos, Boundary_t& boundary_type ) const;
+  template double SCBoundary::dist2boundary<double>( const std::vector<double>& pos, Boundary_t& boundary_type ) const;
   template float  SCBoundary::pointLineDistance( const std::vector<float>& linept1,
                                                  const std::vector<float>& linept2,
                                                  const std::vector<float>& testpt ) const;
@@ -26,7 +26,7 @@ namespace scb {
   double SCBoundary::ZX_Dw_z2_array[10]  = {1029.00, 1029.12, 1027.21, 1026.01, 1024.91, 1025.27, 1025.32, 1027.61, 1026.00, 1026.00};
   
   template <class T>
-  T SCBoundary::dist2boundary( const std::vector<T>& pos ) const
+  T SCBoundary::dist2boundary( const std::vector<T>& pos, Boundary_t& boundary_type ) const
   {
 
     // first calculate the dist to the TPC boundaries
@@ -38,31 +38,31 @@ namespace scb {
     T dz2 = 1037.0-pos[2];
 
     T dwall = 1.0e9;
-    int boundary_type = -1;
+    boundary_type = kNumBoundaries;
 
     if ( fabs(dy1)<fabs(dwall) ) {
       dwall = dy1;
-      boundary_type = 0; // top
+      boundary_type = kTop; // top
     }
     if ( fabs(dy2)<fabs(dwall) ) {
       dwall = dy2;
-      boundary_type = 1; // bottom
+      boundary_type = kBottom; // bottom
     }
     if ( fabs(dz1)<fabs(dwall) ) {
       dwall = dz1;
-      boundary_type = 2; // upstream
+      boundary_type = kUpstream; // upstream
     }
     if ( fabs(dz2)<fabs(dwall) ) {
       dwall = dz2;
-      boundary_type = 3; // downstream
+      boundary_type = kDownstream; // downstream
     }
     if ( fabs(dx1)<fabs(dwall) ) {
       dwall = dx1;
-      boundary_type = 4; // anode
+      boundary_type = kAnode; // anode
     }
     if ( fabs(dx2)<fabs(dwall) ) {
       dwall = dx2;
-      boundary_type = 5; // cathode
+      boundary_type = kCathode; // cathode
     }
 
     // if outside the box, we just return the distance from the TPC wall
@@ -99,9 +99,18 @@ namespace scb {
         - (pos[2]-ZX_Dw_z1_array)*(ZX_Dw_x2_array-ZX_Dw_x1_array[ybox]);
       if ( dtopxz<0.0 ) topxz *= -1.0;
 
-      if ( topxz<0 ) return topxz;
-      if ( botxy<0 ) return botxy;
-      if ( topxy<0 ) return topxy;
+      if ( topxz<0 ) {
+        boundary_type = kDownstream;
+        return topxz;
+      }
+      if ( botxy<0 ) {
+        boundary_type = kBottom;
+        return botxy;
+      }
+      if ( topxy<0 ) {
+        boundary_type = kTop;
+        return topxy;
+      }
       
       // put it all together
       T dists[4] = { (T)dwall, (T)topxy, (T)botxy, (T)topxz };
@@ -113,6 +122,21 @@ namespace scb {
           minidx = i;
         }
       }
+
+      switch ( minidx ) {
+      case 1:
+        boundary_type = kTop;
+        break;
+      case 2:
+        boundary_type = kBottom;
+        break;
+      case 3:
+        boundary_type = kDownstream;
+        break;
+      default:
+        break;
+      }
+      
       return dists[minidx];
     }
     else if ( pos[2]<11.0 ) {
@@ -127,9 +151,18 @@ namespace scb {
         - ( pos[2]-ZX_Up_z1_array )*( ZX_Up_x2_array-ZX_Up_x1_array );
       if ( dtopxz>0.0 ) topxz *= -1.0;
 
-      if ( topxz<0 ) return topxz;
-      if ( botxy<0 ) return botxy;
-      if ( topxy<0 ) return topxy;
+      if ( topxz<0 ) {
+        boundary_type = kUpstream;
+        return topxz;
+      }
+      if ( botxy<0 ) {
+        boundary_type = kBottom;
+        return botxy;
+      }
+      if ( topxy<0 ) {
+        boundary_type = kTop;
+        return topxy;
+      }
       
       // put it all together
       T dists[4] = { (T)dwall, (T)topxy, (T)botxy, (T)topxz };
@@ -141,6 +174,21 @@ namespace scb {
           minidx = i;
         }
       }
+
+      switch ( minidx ) {
+      case 1:
+        boundary_type = kTop;
+        break;
+      case 2:
+        boundary_type = kBottom;
+        break;
+      case 3:
+        boundary_type = kUpstream;
+        break;
+      default:
+        break;
+      }
+      
       return dists[minidx];
       
     }
@@ -148,10 +196,14 @@ namespace scb {
     // return the right dwall distance
 
     // if outside the SCboundary, return distance to that line
-    if ( topxy<0 )
+    if ( topxy<0 ) {
+      boundary_type = kTop;
       return topxy;
-    if ( botxy<0 )
+    }
+    if ( botxy<0 ) {
+      boundary_type = kBottom;
       return botxy;
+    }
     
     // else we are inside the boundary, so chose closest distance
     T dists[3] = { (T)dwall, (T)topxy, (T)botxy };
@@ -163,6 +215,18 @@ namespace scb {
         minidx = i;
       }
     }
+
+    switch ( minidx ) {
+    case 1:
+      boundary_type = kTop;
+      break;
+    case 2:
+      boundary_type = kBottom;
+        break;
+    default:
+      break;
+    }
+    
     return dists[minidx];
     
   }
@@ -211,14 +275,32 @@ namespace scb {
 
   float SCBoundary::dist2boundary( float x, float y, float z ) const {
     std::vector<float> pos = { x, y, z };
-    return dist2boundary<float>(pos);
+    Boundary_t btype;
+    return dist2boundary<float>(pos, btype);
   }
 
   double SCBoundary::dist2boundary( double x, double y, double z ) const {
     std::vector<double> pos = { x, y, z };
-    return dist2boundary<double>(pos);
+    Boundary_t btype;    
+    return dist2boundary<double>(pos, btype);
   }
 
+  float SCBoundary::dist2boundary( float x, float y, float z, int& ibtype ) const {
+    std::vector<float> pos = { x, y, z };
+    Boundary_t btype;
+    float dist = dist2boundary<float>(pos, btype);
+    ibtype = (int)btype;
+    return dist;
+  }
+
+  double SCBoundary::dist2boundary( double x, double y, double z, int& ibtype ) const {
+    std::vector<double> pos = { x, y, z };
+    Boundary_t btype;    
+    float dist = dist2boundary<double>(pos, btype);
+    ibtype = (int)btype;
+    return dist;
+  }
+  
 
   template<class T>
   T SCBoundary::XatBoundary( const std::vector<T>& pos ) const

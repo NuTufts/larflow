@@ -115,6 +115,8 @@ namespace reco {
       float x_max;
       float minpt_dist2scb;
       float maxpt_dist2scb;
+      int minpt_btype;
+      int maxpt_btype;
       float dist2scb; // min of the two above, for sorting
       int num_ends_on_boundary;
       bool operator<( const BoundaryMatch_t& rhs ) const {
@@ -190,13 +192,15 @@ namespace reco {
         // check distance to boundary of ends
         
         // min bound
-        float dist2scb_min = scb.dist2boundary( real_x_min, pt_min[1], pt_min[2] );
+        int btype_min = -1;
+        float dist2scb_min = scb.dist2boundary( real_x_min, pt_min[1], pt_min[2], btype_min );
 
         // max bound
-        float dist2scb_max = scb.dist2boundary( real_x_max, pt_max[1], pt_max[2] );
+        int btype_max = -1;
+        float dist2scb_max = scb.dist2boundary( real_x_max, pt_max[1], pt_max[2], btype_max );
 
         // ok, is anything close to the bound!
-        if ( dist2scb_min<10.0 || dist2scb_max<10.0 ) {
+        if ( (dist2scb_min<10.0 || dist2scb_max<10.0 ) && btype_min!=btype_max ) {
 
           LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
           LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
@@ -214,6 +218,8 @@ namespace reco {
           match.x_max = real_x_max;
           match.minpt_dist2scb = dist2scb_min;
           match.maxpt_dist2scb = dist2scb_max;
+          match.minpt_btype = btype_min;
+          match.maxpt_btype = btype_max;
           match.dist2scb = fabs(dist2scb_min)+fabs(dist2scb_max);
 
           match.num_ends_on_boundary = 0;
