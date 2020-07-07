@@ -206,6 +206,8 @@ namespace reco {
     // save track with matches along with flash as a pair
     larlite::event_track* evout_boundary_track =
       (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"boundarycosmic");
+    larlite::event_track* evout_boundary_noshift_track =
+      (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"boundarycosmicnoshift");
     larlite::event_track* evout_contained_track =
       (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"containedcosmic");
 
@@ -219,10 +221,13 @@ namespace reco {
         cptrack.add_direction( track.DirectionAtPoint(ipt) );
       }
 
-      if ( bm.num_ends_on_boundary==1 ) 
+      if ( bm.num_ends_on_boundary==1 ) {
         evout_boundary_track->emplace_back( std::move(cptrack) );
-      else
+        evout_boundary_noshift_track->push_back( track );
+      }
+      else {
         evout_contained_track->emplace_back( std::move(cptrack) );
+      }
     }
     
   }
