@@ -270,6 +270,7 @@ namespace reco {
         final_match_v.push_back( *qualifying_match );
         flash_used_v[ qualifying_match->flash_idx ] = 1;
         tracks_matched_v[ itrack ] = 1;
+        LARCV_DEBUG() << "FIRST PASS MATCH: track[" << itrack << "] <--> flash[" << qualifying_match->flash_idx << "]" << std::endl;
       }
       
     }//end of track loop
@@ -300,6 +301,7 @@ namespace reco {
         flash_used_v[ min_match->flash_idx ] = 2;
         tracks_matched_v[itrack] = 2;
         n2ndpass++;
+        LARCV_DEBUG() << "SECOND PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;        
       }
 
     }
@@ -335,6 +337,7 @@ namespace reco {
         flash_used_v[ min_match->flash_idx ] = 3;
         tracks_matched_v[itrack] = 3;
         n3rdpass++;
+        LARCV_DEBUG() << "THIRD PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;                
       }
 
     }//end of third pass track loop

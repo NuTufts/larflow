@@ -33,7 +33,7 @@ namespace scb {
     T dx1 = pos[0];
     T dx2 = 256-pos[0];
     T dy1 = 116.0-pos[1];
-    T dy2 = pos[1]+116.0;
+    T dy2 = pos[1]+115.0;
     T dz1 = pos[2];
     T dz2 = 1037.0-pos[2];
 
@@ -66,152 +66,84 @@ namespace scb {
     }
 
     // if outside the box, we just return the distance from the TPC wall
-    if ( dwall<0 )
-      return dwall;
-    
-    // find the box to evaluate the XY view
+    // if ( dwall<0 )
+    //   return dwall;
+
     int zbox = pos[2]/100.0;
     if ( zbox>9 ) zbox = 9;
-    std::vector<double> xyproj = { (double)pos[0], (double)pos[1], 0.0 };
-    std::vector<double> xy_topline1 = { YX_TOP_x1_array[zbox], YX_TOP_y1_array, 0.0 };
-    std::vector<double> xy_topline2 = { YX_TOP_x2_array, YX_TOP_y2_array[zbox], 0.0 };
-    double topxy = pointLineDistance<double>( xy_topline1, xy_topline2, xyproj );
-    float dtop = (pos[0]-YX_TOP_x1_array[zbox])*(YX_TOP_y2_array[zbox]-YX_TOP_y1_array)
-      - (pos[1]-YX_TOP_y1_array)*(YX_TOP_x2_array-YX_TOP_x1_array[zbox]);
-    if ( dtop<0 ) topxy *= -1.0; // outside boundary
     
-    std::vector<double> xy_botline1 = { YX_BOT_x1_array[zbox], YX_BOT_y1_array, 0.0 };
-    std::vector<double> xy_botline2 = { YX_BOT_x2_array, YX_BOT_y2_array[zbox], 0.0 };
-    double botxy = pointLineDistance<double>( xy_botline1, xy_botline2, xyproj );
-    float dbot = (pos[0]-YX_BOT_x1_array[zbox])*(YX_BOT_y2_array[zbox]-YX_BOT_y1_array)
-      - (pos[1]-YX_BOT_y1_array)*(YX_BOT_x2_array-YX_BOT_x1_array[zbox]);
-    if ( dbot>0 ) botxy *= -1.0; // outside boundary
+    // top SCE boundary in the XY-view
+    float topxy = 1e3;
+    if ( pos[0]>YX_TOP_x1_array[zbox] && pos[1]>0.0 )  {
+      std::vector<double> xyproj = { (double)pos[0], (double)pos[1], 0.0 };
+      std::vector<double> xy_topline1 = { YX_TOP_x1_array[zbox], YX_TOP_y1_array, 0.0 };
+      std::vector<double> xy_topline2 = { YX_TOP_x2_array, YX_TOP_y2_array[zbox], 0.0 };
+      //double topxy = pointLineDistance<double>( xy_topline1, xy_topline2, xyproj ); //< perpendicular distance to line
+      //float dtop = (pos[0]-YX_TOP_x1_array[zbox])*(YX_TOP_y2_array[zbox]-YX_TOP_y1_array)
+      //- (pos[1]-YX_TOP_y1_array)*(YX_TOP_x2_array-YX_TOP_x1_array[zbox]);
+
+      float topline_y = (xy_topline2[1]-xy_topline1[1])/(xy_topline2[0]-xy_topline1[0])*(xyproj[0]-xy_topline1[0]) + xy_topline1[1]; //< y-pos, given x of test point
+      topxy = topline_y-pos[1];
+    }
+
+    // bot SCE boundary in the XY-view
+    float botxy = 1e3;
+    if ( pos[0]>YX_BOT_x1_array[zbox] && pos[1]<0.0 ) {
+      std::vector<double> xy_botline1 = { YX_BOT_x1_array[zbox], YX_BOT_y1_array, 0.0 };
+      std::vector<double> xy_botline2 = { YX_BOT_x2_array, YX_BOT_y2_array[zbox], 0.0 };
+      // double botxy = pointLineDistance<double>( xy_botline1, xy_botline2, xyproj );
+      // float dbot = (pos[0]-YX_BOT_x1_array[zbox])*(YX_BOT_y2_array[zbox]-YX_BOT_y1_array)
+      //   - (pos[1]-YX_BOT_y1_array)*(YX_BOT_x2_array-YX_BOT_x1_array[zbox]);
+      // if ( dbot>0 ) botxy *= -1.0; // outside boundary
+      float botline_y = (xy_botline2[1]-xy_botline1[1])/(xy_botline2[0]-xy_botline1[0])*(pos[0]-xy_botline1[0]) + xy_botline1[1]; //< y-pos, given x of test point
+      botxy = pos[1] - botline_y;
+    }
+
+    // xz-view boundary dist
+    int ybox = (int)(pos[1]-(-116.0))/24.0;
+    if ( ybox>9 ) ybox = 9;
     
-    // evlaute xy-view and xz-view boundary dist
-    if ( pos[2]>1024 ) {
-      int ybox = (int)(pos[1]-(-116.0))/24.0;
-      if ( ybox>9 ) ybox = 9;
+    float dwnxz = 1e3;
+    if ( pos[2]>1024 && pos[0]>ZX_Dw_x1_array[ybox] && pos[0]<ZX_Dw_x2_array) {
       std::vector<double> xz_proj = { (double)pos[0], 0.0, (double)pos[2] };
       std::vector<double> xz_line1 = { ZX_Dw_x1_array[ybox], 0.0, ZX_Dw_z1_array };
       std::vector<double> xz_line2 = { ZX_Dw_x2_array, 0.0, ZX_Dw_z2_array[ybox] };
-      double topxz = pointLineDistance<double>( xz_line1, xz_line2, xz_proj );
-      double dtopxz = (pos[0]-ZX_Dw_x1_array[ybox])*(ZX_Dw_z2_array[ybox]-ZX_Dw_z1_array)
-        - (pos[2]-ZX_Dw_z1_array)*(ZX_Dw_x2_array-ZX_Dw_x1_array[ybox]);
-      if ( dtopxz<0.0 ) topxz *= -1.0;
 
-      if ( topxz<0 ) {
-        boundary_type = kDownstream;
-        return topxz;
-      }
-      if ( botxy<0 ) {
-        boundary_type = kBottom;
-        return botxy;
-      }
-      if ( topxy<0 ) {
-        boundary_type = kTop;
-        return topxy;
-      }
-      
-      // put it all together
-      T dists[4] = { (T)dwall, (T)topxy, (T)botxy, (T)topxz };
-      T mindist = 1.0e9;
-      int minidx = 0;
-      for (int i=0; i<4; i++) {
-        if ( fabs(dists[i])<mindist ) {
-          mindist = fabs(dists[i]);
-          minidx = i;
-        }
-      }
+      // double topxz = pointLineDistance<double>( xz_line1, xz_line2, xz_proj );
+      // double dtopxz = (pos[0]-ZX_Dw_x1_array[ybox])*(ZX_Dw_z2_array[ybox]-ZX_Dw_z1_array)
+      //   - (pos[2]-ZX_Dw_z1_array)*(ZX_Dw_x2_array-ZX_Dw_x1_array[ybox]);
+      // if ( dtopxz<0.0 ) topxz *= -1.0;
+      float dwnline_z = (xz_line2[2]-xz_line1[2])/(xz_line2[0]-xz_line1[0])*(pos[0]-xz_line1[0]) + xz_line1[2]; //< y-pos, given x of test point
+      float dwnxz = dwnline_z-pos[2];
 
-      switch ( minidx ) {
-      case 1:
-        boundary_type = kTop;
-        break;
-      case 2:
-        boundary_type = kBottom;
-        break;
-      case 3:
-        boundary_type = kDownstream;
-        break;
-      default:
-        break;
-      }
+      // location of x, makes sce boundary irrelevant
+      if ( pos[0]<ZX_Dw_x1_array[ybox] || pos[0]>ZX_Dw_x2_array )
+        dwnxz = 1.0e3;
       
-      return dists[minidx];
     }
-    else if ( pos[2]<11.0 ) {
 
-      int ybox = (int)(pos[1]-(-116.0))/24.0;
-      if ( ybox>9 ) ybox = 9;
+    float upxz = 1e3;
+    if ( pos[2]<11.0 && pos[0]>ZX_Up_x1_array && pos[0]<ZX_Up_x2_array ) {
+
       std::vector<double> xz_proj = { (double)pos[0], 0.0, (double)pos[2] };
       std::vector<double> xz_line1 = { ZX_Up_x1_array, 0.0, ZX_Up_z1_array };
       std::vector<double> xz_line2 = { ZX_Up_x2_array, 0.0, ZX_Up_z2_array };
-      double topxz = pointLineDistance<double>( xz_line1, xz_line2, xz_proj );
-      double dtopxz = ( pos[0]-ZX_Up_x1_array )*( ZX_Up_z2_array-ZX_Up_z1_array )
-        - ( pos[2]-ZX_Up_z1_array )*( ZX_Up_x2_array-ZX_Up_x1_array );
-      if ( dtopxz>0.0 ) topxz *= -1.0;
-
-      if ( topxz<0 ) {
-        boundary_type = kUpstream;
-        return topxz;
-      }
-      if ( botxy<0 ) {
-        boundary_type = kBottom;
-        return botxy;
-      }
-      if ( topxy<0 ) {
-        boundary_type = kTop;
-        return topxy;
-      }
-      
-      // put it all together
-      T dists[4] = { (T)dwall, (T)topxy, (T)botxy, (T)topxz };
-      T mindist = 1.0e9;
-      int minidx = 0;
-      for (int i=0; i<4; i++) {
-        if ( fabs(dists[i])<mindist ) {
-          mindist = fabs(dists[i]);
-          minidx = i;
-        }
-      }
-
-      switch ( minidx ) {
-      case 1:
-        boundary_type = kTop;
-        break;
-      case 2:
-        boundary_type = kBottom;
-        break;
-      case 3:
-        boundary_type = kUpstream;
-        break;
-      default:
-        break;
-      }
-      
-      return dists[minidx];
-      
+      // double topxz = pointLineDistance<double>( xz_line1, xz_line2, xz_proj );
+      // double dtopxz = ( pos[0]-ZX_Up_x1_array )*( ZX_Up_z2_array-ZX_Up_z1_array )
+      //   - ( pos[2]-ZX_Up_z1_array )*( ZX_Up_x2_array-ZX_Up_x1_array );
+      // if ( dtopxz>0.0 ) topxz *= -1.0;
+      float upline_z = (xz_line2[2]-xz_line1[2])/(xz_line2[0]-xz_line1[0])*(xz_proj[0]-xz_line1[0]) + xz_line1[2]; //< y-pos, given x of test point
+      upxz = pos[2]-upline_z;
     }
 
-    // return the right dwall distance
 
-    // if outside the SCboundary, return distance to that line
-    if ( topxy<0 ) {
-      boundary_type = kTop;
-      return topxy;
-    }
-    if ( botxy<0 ) {
-      boundary_type = kBottom;
-      return botxy;
-    }
-    
-    // else we are inside the boundary, so chose closest distance
-    T dists[3] = { (T)dwall, (T)topxy, (T)botxy };
+    // put it all together
+    T dists[5] = { (T)dwall, (T)topxy, (T)botxy, (T)upxz, (T)dwnxz };
     T mindist = 1.0e9;
     int minidx = 0;
-    for (int i=0; i<3; i++) {
-      if ( fabs(dists[i])<mindist ) {
-        mindist = fabs(dists[i]);
+    for (int i=0; i<5; i++) {
+      if ( dists[i]<mindist ) {
+        mindist = dists[i];
         minidx = i;
       }
     }
@@ -222,13 +154,18 @@ namespace scb {
       break;
     case 2:
       boundary_type = kBottom;
-        break;
+      break;
+    case 3:
+      boundary_type = kUpstream;
+      break;
+    case 4:
+      boundary_type = kDownstream;
+      break;
     default:
       break;
     }
-    
-    return dists[minidx];
-    
+      
+    return dists[minidx];       
   }
 
   template <class T>
