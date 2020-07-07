@@ -24,7 +24,8 @@ namespace reco {
   protected:
 
     bool _do_boundary_analysis;
-    void _boundary_analysis( larlite::storage_manager& ioll );
+    void _boundary_analysis_wflash( larlite::storage_manager& ioll );
+    void _boundary_analysis_noflash( larlite::storage_manager& ioll );    
     
   };
   

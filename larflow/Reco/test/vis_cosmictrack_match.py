@@ -40,24 +40,25 @@ def load_event_data( ioll, ientry ):
     print("entry[",ientry,"]")    
     entrydata = []
     
-    for treename in ["matchedcosmictrack"]:
+    for treename,zcolor in [("boundarycosmic","rgb(50,0,1000)"),
+                            ("containedcosmic","rgb(100,0,50)")]:
         ev_track    = io.get_data(larlite.data.kTrack, treename )
-        ev_opflash  = io.get_data(larlite.data.kOpFlash,  treename )
-
+        #ev_opflash  = io.get_data(larlite.data.kOpFlash,  treename )
         ntracks = ev_track.size()
 
         print(" tree set: ",treename)
         print("   ntrack=",ev_track.size(),")")
-        print("   nopflash=",ev_opflash.size(),")")
+        #print("   nopflash=",ev_opflash.size(),")")
 
         for n in xrange(ntracks):
             trktrace = lardly.data.visualize_larlite_track( ev_track[n] )
             trktrace["name"] = "%s[%d]"%("cosmic",n)
-            trktrace["line"]["color"] = "rgb(50,0,100)"
+            trktrace["line"]["color"] = zcolor
             trktrace["line"]["width"] = 5
             trktrace["line"]["opacity"] = 1.0
-            vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
-            entrydata.append( [trktrace] + vis_opflash )
+            #vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
+            #entrydata.append( [trktrace] + vis_opflash )
+            entrydata.append( [trktrace] )
 
     return entrydata
     

@@ -4,6 +4,7 @@
 #include "DataFormat/track.h"
 #include "DataFormat/opflash.h"
 #include "LArUtil/LArProperties.h"
+#include "LArUtil/Geometry.h"
 
 #include "larflow/SCBoundary/SCBoundary.h"
 
@@ -43,12 +44,190 @@ namespace reco {
     fillLarliteTrackContainer( *evout_track );
 
     if ( _do_boundary_analysis ) {
-      _boundary_analysis( ioll );
+      _boundary_analysis_noflash( ioll );
     }
     
   }
 
-  void CosmicTrackBuilder::_boundary_analysis( larlite::storage_manager& ioll )
+  void CosmicTrackBuilder::_boundary_analysis_noflash( larlite::storage_manager& ioll )
+  {
+    // boundary analysis of tracks found.
+    // we try 3 types of shifts to the boundary in order to estimate a t0 of the track
+    // we use the boundary shifts to:
+    //  (1) proposed t0 is compared to the flash times of opflashes, to look for possible matches
+    //  (2) tag track as boundary muon, if both ends are near a boundary (through-going muon)
+
+    const float drift_v = larutil::LArProperties::GetME()->DriftVelocity();
+    
+    // loop over reconstructed tracks
+    larlite::event_track* ev_cosmic
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"cosmictrack");
+
+    // class to calculate distance to space charge boundary
+    larflow::scb::SCBoundary scb;
+
+    struct BoundaryAna_t {
+      int track_idx;
+      int num_ends_on_boundary;
+      float x_offset;
+    };
+
+    // save boundary matches, one set per track
+    std::vector<BoundaryAna_t> track_boundary_v(ev_cosmic->size());
+      
+    for ( int itrack=0; itrack<(int)ev_cosmic->size(); itrack++ ) {
+
+      auto const& track = ev_cosmic->at(itrack);
+
+      LARCV_DEBUG() << "==== TRACK[" << itrack << "] ==========" << std::endl;
+      LARCV_DEBUG() << "start(" << track.Vertex()(0) << "," << track.Vertex()(1) << "," << track.Vertex()(2) << ") "
+                    << "--> end(" << track.End()(0) << "," << track.End()(1) << "," << track.End()(2) << ") "
+                    << std::endl;
+      
+      BoundaryAna_t& ba = track_boundary_v.at(itrack);
+      ba.track_idx = itrack;
+      ba.num_ends_on_boundary = 0;
+      ba.x_offset = 0.;
+      
+      // mark out-of-time track
+      if ( track.Vertex()(0)<0.0 || track.Vertex()(0)>256.0
+           || track.End()(0)<0.0 || track.End()(0)>256.0 ) {
+        ba.num_ends_on_boundary = 1;
+        LARCV_DEBUG() << "track is out-of-time" << std::endl;
+        continue;
+      }
+
+      // check non anode/cathode boundaries
+      if ( 116.0-fabs(track.Vertex()(1))<5.0
+           || track.Vertex()(2)<5.0
+           || track.Vertex()(2)>1031.0
+           || 116.0-fabs(track.End()(1))<5.0
+           || track.End()(2)<5.0
+           || track.End()(2)>1031.0 )  {
+        ba.num_ends_on_boundary = 1;
+        LARCV_DEBUG() << "track is already near TPC boundary" << std::endl;
+        continue;
+      }
+
+      // calculate x-position if we shift point to the cathode SCE
+      float xboundary_min = scb.XatBoundary( track.Vertex()(0), track.Vertex()(1), track.Vertex()(2) );
+      float xboundary_max = scb.XatBoundary( track.End()(0), track.End()(1), track.End()(2) );
+
+      float xshift_min = xboundary_min-track.Vertex()(0);
+      float xshift_max = xboundary_max-track.End()(0);
+
+      // if we move the min point, check the max-point
+      int btype_min = -1;
+      float dwall_min_at_scb = scb.dist2boundary( track.End()(0)+xshift_min, track.End()(1), track.End()(2), btype_min );
+      bool min_at_scb_valid  = (track.End()(0)+xshift_min)>=0 && (track.End()(0)+xshift_min)<=256.0;
+
+      // if we move the max point, check the min-point is on the space charge boundary
+      int btype_max = -1;
+      float dwall_max_at_scb = scb.dist2boundary( track.Vertex()(0)+xshift_max, track.Vertex()(1), track.Vertex()(2), btype_max );
+      bool max_at_scb_valid  = (track.Vertex()(0)+xshift_max)>=0 && (track.Vertex()(0)+xshift_max)<=256.0;
+      
+      LARCV_DEBUG() << " if is shifted to cathode SCB: " << std::endl;
+      LARCV_DEBUG() << "    move min: (" << track.Vertex()(0)+xshift_min << "," <<  track.Vertex()(1) << "," << track.Vertex()(2) << ") <--> "
+                    << "(" << track.End()(0)+xshift_min << "," <<  track.End()(1) << "," <<  track.End()(2) << ")"
+                    << " dist=" << dwall_min_at_scb << " b=" << btype_min
+                    << std::endl;
+      LARCV_DEBUG() << "    move max: (" << track.Vertex()(0)+xshift_max << "," <<  track.Vertex()(1) << "," << track.Vertex()(2) << ") <--> "
+                    << "(" << track.End()(0)+xshift_max << "," <<  track.End()(1) << "," <<  track.End()(2) << ")"
+                    << " dist=" << dwall_max_at_scb << " b=" << btype_max
+                    << std::endl;
+      
+      // does one of them work
+      if ( (fabs(dwall_min_at_scb)<2.0 && min_at_scb_valid )
+           || (fabs(dwall_max_at_scb)<2.0 && max_at_scb_valid ) ) {
+        ba.num_ends_on_boundary = 1;
+
+        if ( min_at_scb_valid && max_at_scb_valid ) {
+          if ( fabs(dwall_min_at_scb)<fabs(dwall_max_at_scb) )
+            ba.x_offset = xshift_min;
+          if ( fabs(dwall_min_at_scb)<fabs(dwall_max_at_scb) )
+            ba.x_offset = xshift_max;
+        }
+        else if ( min_at_scb_valid && !max_at_scb_valid ) {
+          ba.x_offset = xshift_max;
+        }
+        else if ( !min_at_scb_valid && max_at_scb_valid ) {
+          ba.x_offset = xshift_min;
+        }
+        
+        LARCV_DEBUG() << "is thrumu if moved to SCB" << std::endl;
+        continue;
+      }
+
+      // move min to anode
+      int btype_anode_min = -1;
+      float dwall_min_at_anode = scb.dist2boundary( track.End()(0)-track.Vertex()(0), track.End()(1), track.End()(2), btype_anode_min );
+      bool min_at_anode_valid  = (track.End()(0)-track.Vertex()(0))>=0.0 && (track.End()(0)-track.Vertex()(0))<=256;
+      
+      // move max to anode
+      int btype_anode_max = -1;
+      float dwall_max_at_anode = scb.dist2boundary( track.Vertex()(0)-track.End()(0), track.Vertex()(1), track.Vertex()(2), btype_anode_max );
+      bool max_at_anode_valid  = (track.Vertex()(0)-track.End()(0))>=0.0 && (track.Vertex()(0)-track.End()(0))<=256;
+
+      LARCV_DEBUG() << "  track if shifted to anode: " << std::endl;
+      LARCV_DEBUG() << "    move min: (" << 0 << "," <<  track.Vertex()(1) << "," << track.Vertex()(2) << ") <--> "
+                    << "(" << track.End()(0)-track.Vertex()(0) << "," <<  track.End()(1) << "," <<  track.End()(2) << ")"
+                    << " dist2_scb=" << dwall_min_at_anode << " btype=" << btype_anode_min
+                    << std::endl;
+      LARCV_DEBUG() << "    move max: (" << track.Vertex()(0)-track.End()(0) << "," <<  track.Vertex()(1) << "," << track.Vertex()(2) << ") <--> "
+                    << "(" << 0.0 << "," <<  track.End()(1) << "," <<  track.End()(2) << ")"
+                    << " dist2_scb=" << dwall_max_at_anode << " btype=" << btype_anode_max
+                    << std::endl;
+      
+      if ( (fabs(dwall_min_at_anode)<2.0 && min_at_anode_valid )
+           || (fabs(dwall_max_at_anode)<2.0 && max_at_anode_valid ) ) {
+        ba.num_ends_on_boundary = 1;
+
+        if ( min_at_anode_valid && max_at_anode_valid ) {
+          if ( fabs(dwall_min_at_anode)<fabs(dwall_max_at_anode) )
+            ba.x_offset = xshift_min;
+          if ( fabs(dwall_min_at_anode)<fabs(dwall_max_at_anode) )
+            ba.x_offset = xshift_max;
+        }
+        else if ( min_at_anode_valid && !max_at_anode_valid ) {
+          ba.x_offset = xshift_max;
+        }
+        else if ( !min_at_anode_valid && max_at_anode_valid ) {
+          ba.x_offset = xshift_min;
+        }        
+        
+        LARCV_DEBUG() << "is thrumu if moved to anode" << std::endl;
+        continue;
+      }
+
+      LARCV_DEBUG() << "track is contained" << std::endl;
+      
+    }//end of loop over track
+
+    // save track with matches along with flash as a pair
+    larlite::event_track* evout_boundary_track =
+      (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"boundarycosmic");
+    larlite::event_track* evout_contained_track =
+      (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"containedcosmic");
+
+    for ( auto const& bm : track_boundary_v ) {
+      auto const& track = ev_cosmic->at(bm.track_idx);
+      larlite::track cptrack;
+      cptrack.reserve( track.NumberTrajectoryPoints() );
+      for ( int ipt=0; ipt<(int)track.NumberTrajectoryPoints(); ipt++ ) {
+        const TVector3& pos = track.LocationAtPoint(ipt);
+        cptrack.add_vertex( TVector3(pos(0)+bm.x_offset,pos(1),pos(2)) );
+        cptrack.add_direction( track.DirectionAtPoint(ipt) );
+      }
+
+      if ( bm.num_ends_on_boundary==1 ) 
+        evout_boundary_track->emplace_back( std::move(cptrack) );
+      else
+        evout_contained_track->emplace_back( std::move(cptrack) );
+    }
+    
+  }
+
+  void CosmicTrackBuilder::_boundary_analysis_wflash( larlite::storage_manager& ioll )
   {
     // boundary analysis of tracks found.
     // we try 3 types of shifts to the boundary in order to estimate a t0 of the track
@@ -69,6 +248,8 @@ namespace reco {
       float anode_x;
       float cathode_x;
       float centroid_z;
+      float centroid_y;
+      float totpe;
     };
 
     std::vector< FlashInfo_t > flash_v;
@@ -93,7 +274,33 @@ namespace reco {
         info.anode_x   = info.usec*drift_v;
         info.cathode_x = info.anode_x + 256.0;
         info.centroid_z = 0.;
-
+        info.centroid_y = 0.;
+        info.totpe = 0.;
+        std::vector<float> pe_v(32,0);
+        for (int iopdet=0; iopdet<(int)flash.nOpDets(); iopdet++) {
+          float pe = flash.PE(iopdet);
+          if ( pe<=0 ) {
+            continue;
+          }
+          int ch = iopdet%32;
+          if ( pe>pe_v[ch] && ch<32)
+            pe_v[ch] = pe;
+        }
+        for (int ch=0; ch<32; ch++) {
+          float pe = pe_v[ch];
+          std::vector<double> xyz;
+          //larutil::Geometry::GetME()->GetOpDetPosition( ch, xyz );
+          larutil::Geometry::GetME()->GetOpChannelPosition( ch, xyz );
+          info.totpe += pe;
+          info.centroid_z += pe*xyz[2];
+          info.centroid_y += pe*xyz[1];
+        }
+        if ( info.totpe>0 ) {
+          info.centroid_z /= info.totpe;
+          info.centroid_y /= info.totpe;
+        }
+        LARCV_DEBUG() << "FLASH[" << flash_v.size() << "] pe=" << info.totpe << " centroid-z=" << info.centroid_z << std::endl;
+        
         flash_v.push_back( info );
       }
     }
@@ -119,6 +326,7 @@ namespace reco {
       int maxpt_btype;
       float dist2scb; // min of the two above, for sorting
       int num_ends_on_boundary;
+      float pmt_dz;
       bool operator<( const BoundaryMatch_t& rhs ) const {
         if ( dist2scb<rhs.dist2scb ) return true;
         return false;
@@ -157,6 +365,17 @@ namespace reco {
           pt_min[v] = track.End()(v);
         }        
       }
+
+      float z_min;
+      float z_max;
+      if ( track.Vertex()(2)<track.End()(2) ) {
+        z_min = track.Vertex()(2);
+        z_max = track.End()(2);
+      }
+      else {
+        z_max = track.Vertex()(2);
+        z_min = track.End()(2);
+      }
       
       // we now pair with every flash, along with a null flash match where we shift
       // to the space-charge boundary in x
@@ -165,6 +384,7 @@ namespace reco {
       for (int iflash=0; iflash<(int)flash_v.size(); iflash++) {
 
         auto const& info = flash_v[iflash];
+
 
         float real_x_min = x_min-info.anode_x;
         float real_x_max = x_max-info.anode_x;
@@ -202,12 +422,6 @@ namespace reco {
         // ok, is anything close to the bound!
         if ( (dist2scb_min<10.0 || dist2scb_max<10.0 ) && btype_min!=btype_max ) {
 
-          LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
-          LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
-                        << " " << dist2scb_min << std::endl;
-          LARCV_DEBUG() << "   dist2scb@max extremum pt (" << real_x_max << "," << pt_max[1] << "," << pt_max[2] << "): "
-                        << " " << dist2scb_max << std::endl;
-
 
           // record a boundary match!
           BoundaryMatch_t match;
@@ -222,9 +436,25 @@ namespace reco {
           match.maxpt_btype = btype_max;
           match.dist2scb = fabs(dist2scb_min)+fabs(dist2scb_max);
 
+          if ( info.centroid_z<z_min )
+            match.pmt_dz = info.centroid_z-z_min;
+          else if ( info.centroid_z>z_max )
+            match.pmt_dz = z_max - info.centroid_z;
+          else {
+            match.pmt_dz = fabs(0.5*(z_min+z_max) - info.centroid_z);
+          }
+         
           match.num_ends_on_boundary = 0;
           if ( dist2scb_min<3.0 ) match.num_ends_on_boundary++;
           if ( dist2scb_max<3.0 ) match.num_ends_on_boundary++;
+
+          LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
+          LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
+                        << " " << dist2scb_min << std::endl;
+          LARCV_DEBUG() << "   dist2scb@max extremum pt (" << real_x_max << "," << pt_max[1] << "," << pt_max[2] << "): "
+                        << " " << dist2scb_max << std::endl;
+          LARCV_DEBUG() << "  pmt_dz: " << match.pmt_dz << std::endl;
+          
           
           track_boundary_vv[itrack].push_back(match);
           nmatches++;
@@ -284,14 +514,15 @@ namespace reco {
       if ( tracks_matched_v[itrack]==1 ) continue;
 
       // loop through matches, accept only 2-end, exclude previous flash matches
+      // rank match by pmt_dz for qualifying matches only
       const BoundaryMatch_t* min_match = nullptr;
-      float min_match_dist = 1e9;
+      float min_match_dist = -1e9;
       for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
         auto const& bm = track_boundary_vv[itrack].at(ibm);
         if( flash_used_v[ bm.flash_idx ]==1 ) continue;
         
-        if ( bm.dist2scb<5.0 && bm.num_ends_on_boundary==2 && min_match_dist>bm.dist2scb) {
-          min_match_dist = bm.dist2scb;
+        if ( bm.dist2scb<5.0 && bm.num_ends_on_boundary==2 && min_match_dist<bm.pmt_dz) {
+          min_match_dist = bm.pmt_dz;
           min_match = &bm;
         }        
       }
@@ -301,7 +532,7 @@ namespace reco {
         flash_used_v[ min_match->flash_idx ] = 2;
         tracks_matched_v[itrack] = 2;
         n2ndpass++;
-        LARCV_DEBUG() << "SECOND PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;        
+        LARCV_DEBUG() << "SECOND PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;
       }
 
     }
