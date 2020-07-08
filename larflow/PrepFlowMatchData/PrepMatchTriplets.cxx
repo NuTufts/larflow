@@ -135,7 +135,7 @@ namespace larflow {
       }
     }
     
-    std::cout << "sparse pixel totals before deadch additions: "
+    std::cout << "sparse pixel totals after deadch additions: "
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
     
@@ -243,15 +243,6 @@ namespace larflow {
           intersection[1] = y;
           intersection[2] = z;
           
-          // std::vector<float> zy;
-          // ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, zy, tri_area, crosses );
-          // if ( crosses==0 ) {
-          //   n_not_crosses++;
-          //   continue;
-          // }
-          // intersection[1] = zy[1];
-          // intersection[2] = zy[0];
-          // intersection[0] = (adc_v[0].meta().pos_y( imgcoord_v[3] )-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
         }
         
         
