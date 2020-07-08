@@ -111,18 +111,14 @@ namespace reco {
     // PARTICLE FRAGMENT RECO
     recoParticles( iolcv, ioll );
     
-    // Multi-prong internal reco
-    multiProngReco( iolcv, ioll );
-
-    // INTERACTION RECO
+    // COSMIC RECO
     _cosmic_track_builder.clear();
     _cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
     
-    // Cosmic reco: tracks at end points + deltas and michels
-
-    
+    // MULTI-PRONG INTERNAL RECO
+    multiProngReco( iolcv, ioll );
     
     // Single particle interactions
 
@@ -260,6 +256,7 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.process( iolcv, ioll );
 
     _nu_track_builder.clear();

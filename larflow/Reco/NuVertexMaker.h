@@ -39,6 +39,7 @@ namespace reco {
 
     std::vector<NuVertexCandidate> _vertex_v; ///< initial vertex candidates
     std::vector<NuVertexCandidate> _merged_v; ///< after merging nearby vertices
+    std::vector<NuVertexCandidate> _vetoed_v; ///< after filtering out candidates based on proximity to uncontained cosmic tracks
 
   protected:
 
@@ -82,6 +83,7 @@ namespace reco {
                                     std::string producer,
                                     int icluster,                                    
                                     bool apply_cut );
+    void _cosmic_veto_candidates( larlite::storage_manager& ioll );
     
   protected:
 
@@ -90,6 +92,7 @@ namespace reco {
     int    _ana_subrun;
     int    _ana_event;
     TTree* _ana_tree;
+    bool   _apply_cosmic_veto;
     
   public:
     
@@ -97,7 +100,7 @@ namespace reco {
     void add_nuvertex_branch( TTree* tree );
     void fill_ana_tree()  { if (_ana_tree) _ana_tree->Fill(); };
     void write_ana_tree() { if (_ana_tree) _ana_tree->Write(); };
-    
+    void apply_cosmic_veto( bool applyveto ) { _apply_cosmic_veto=applyveto; };
   };
   
 }

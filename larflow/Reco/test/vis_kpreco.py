@@ -86,13 +86,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     vtxinfo = []
-    for ivtx in range( kpsanatree.numerged_v.size() ):
-        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.numerged_v.at(ivtx).score ), "value":ivtx} )
+    for ivtx in range( kpsanatree.nuvetoed_v.size() ):
+        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvetoed_v.at(ivtx).score ), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
 
-        vertexcand = kpsanatree.numerged_v.at(ivtx)
+        vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
         # Get the keypoint data
         kpvertex = io.get_data( larlite.data.kLArFlow3DHit, vertexcand.keypoint_producer ).at( vertexcand.keypoint_index )
         
@@ -158,14 +158,16 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( pcatrace )
             
     # TRACK RECO
-    for name,track_producer in [("CTRK","cosmictrack"),("NUTRK","nutrack")]:
+    for name,track_producer,zrgb in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)"),
+                                ("CTRK","containedcosmic","rgb(100,0,50)"),
+                                ("NUTRK","nutrack","rgb(0,100,50)")]:
         if name in ["NUTRK"]:
             continue
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
         for itrack in xrange(ev_track.size()):
             trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
             trktrace["name"] = "%s[%d]"%(name,itrack)
-            trktrace["line"]["color"] = "rgb(50,0,100)"
+            trktrace["line"]["color"] = zrgb
             trktrace["line"]["width"] = 5
             trktrace["line"]["opacity"] = 1.0
             traces_v.append( trktrace )

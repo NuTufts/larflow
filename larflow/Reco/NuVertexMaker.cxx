@@ -1,6 +1,7 @@
 #include "NuVertexMaker.h"
 
 #include "geofuncs.h"
+#include "DataFormat/track.h"
 
 namespace larflow {
 namespace reco {
@@ -76,6 +77,9 @@ namespace reco {
 
     _createCandidates();
     _merge_candidates();
+    if ( _apply_cosmic_veto ) {
+      _cosmic_veto_candidates( ioll );
+    }
     LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size() << "  after-merging=" << _merged_v.size() << std::endl;
   }
 
@@ -206,6 +210,8 @@ namespace reco {
     // Shower
     _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 50.0;
     _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 100.0;
+
+    _apply_cosmic_veto = false;
     
   }
 
@@ -256,6 +262,7 @@ namespace reco {
     _own_tree = false;
     tree->Branch("nuvertex_v", &_vertex_v );
     tree->Branch("numerged_v", &_merged_v );
+    tree->Branch("nuvetoed_v", &_vetoed_v );
   }
 
 
@@ -487,6 +494,100 @@ namespace reco {
     return true;
   }
   
+  /**
+   * apply cosmic track veto to candidate vertices
+   *
+   */
+  void NuVertexMaker::_cosmic_veto_candidates( larlite::storage_manager& ioll )
+  {
+
+    // get cosmic tracks
+    larlite::event_track* ev_cosmic
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, "boundarycosmicnoshift" );
+
+    // loop over vertices
+    _vetoed_v.clear();
+    for ( auto& vtx : _merged_v ) {
+
+      bool close2cosmic = false;
+      
+      for (int itrack=0; itrack<(int)ev_cosmic->size(); itrack++) {
+        const larlite::track& cosmictrack = ev_cosmic->at(itrack);
+
+        float mindist_segment = 1.0e9;
+        float mindist_point   = 1.0e9;
+        for (int ipt=0; ipt<(int)cosmictrack.NumberTrajectoryPoints()-1; ipt++) {
+
+          const TVector3& pos  = cosmictrack.LocationAtPoint(ipt);
+          const TVector3& next = cosmictrack.LocationAtPoint(ipt+1);
+
+          std::vector<float> fpos  = { (float)pos(0),  (float)pos(1),  (float)pos(2) };
+          std::vector<float> fnext = { (float)next(0), (float)next(1), (float)next(2) };
+
+          std::vector<float> fdir(3,0);
+          float flen = 0.;
+          for (int i=0; i<3; i++) {
+            fdir[i] = fnext[i]-fpos[i];
+            flen += fdir[i]*fdir[i];
+          }          
+          if ( flen>0 ) {
+            flen = sqrt(flen);
+            for (int i=0; i<3; i++)
+              fdir[i] /= flen;
+          }
+          else {
+            continue;
+          }
+            
+
+          float r = larflow::reco::pointLineDistance3f( fpos, fnext, vtx.pos );
+          float s = larflow::reco::pointRayProjection3f( fpos, fdir, vtx.pos );
+
+          if ( s>=0 && s<=flen && mindist_segment>r) {
+            mindist_segment = r;
+          }
+
+          float pt1dist = 0.;
+          for (int i=0; i<3; i++) {
+            pt1dist += (fpos[i]-vtx.pos[i])*(fpos[i]-vtx.pos[i]);
+          }
+          pt1dist = sqrt(pt1dist);
+          if ( pt1dist<mindist_point ) {
+            mindist_point = pt1dist;
+          }
+
+          if ( ipt+1==(int)cosmictrack.NumberTrajectoryPoints() ) {
+            pt1dist = 0;
+            for (int i=0; i<3; i++) {
+              pt1dist += (fnext[i]-vtx.pos[i])*(fnext[i]-vtx.pos[i]);
+            }
+            pt1dist = sqrt(pt1dist);
+            if ( pt1dist<mindist_point ) {
+              mindist_point = pt1dist;
+            }            
+          }
+        }//end of loop over cosmic points
+
+
+        if ( mindist_segment<10.0 || mindist_point<10.0 ) {
+          close2cosmic = true;
+        }
+
+
+        if ( close2cosmic )
+          break;
+      }//end of loop over tracks
+
+
+      if ( !close2cosmic ) {
+        _vetoed_v.push_back( vtx );
+      }
+      
+    }//end of vertex loop
+
+    LARCV_INFO() << "Vertices after cosmic veto: " << _vetoed_v.size() << " (from " << _merged_v.size() << ")" << std::endl;
+    
+  }
   
 }
 }
