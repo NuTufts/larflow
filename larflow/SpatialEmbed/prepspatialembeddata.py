@@ -47,7 +47,18 @@ if args.nentries>=0 and args.nentries<nentries:
 start = time.time()
 
 nrun = 0
-for ientry in xrange( nentries ):
+
+
+tmp = rt.TFile(args.output, "recreate")
+data = larflow.spatialembed.SpatialEmbedData()
+data.num_instances_0 = 1
+
+output_tree = rt.TTree("trainingdata", "Spatial Embed Training Data")
+# output_tree.Branch('DataBranch', 'larflow::spatialembed::SpatialEmbedData', data)
+output_tree.Branch('DataBranch', data)
+
+
+for ientry in xrange( 3 ):
 
     print 
     print "=========================="
@@ -55,19 +66,31 @@ for ientry in xrange( nentries ):
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
-    ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
-    print "number of images: ",ev_adc.Image2DArray().size()
-    adc_v = ev_adc.Image2DArray()
-    for p in xrange(adc_v.size()):
-        print " image[",p,"] ",adc_v[p].meta().dump()
-        arr_numpy = larcv.as_ndarray(adc_v[p])
-    
 
-    # ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
-    # ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
-    # larflow_v  = ev_larflow.Image2DArray()
-        
-    #sys.exit(0)
-    #break
+    # Process Image data    
+    ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
+    data.processImageData(ev_adc, 10)
+
+    # Process Instance Data
+    # mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    # mcpg.set_adc_treename( "wiremc" )
+    # mcpg.buildgraph( iolcv, ioll )
+
+
+    # preptriplet = larflow.PrepMatchTriplets()
+    # prepembed = larflow.spatialembed.PrepMatchEmbed()
+
+    # prepembed.process( iolcv, ioll, preptriplet )
+
+    data.processLabelData(iolcv, ioll)
+    # data.processLabelData( mcpg, prepembed )
+
+    # for plan in xrange(3):
+    #     print data.num_instances_plane(plan)
+    
+    output_tree.Fill()
+
+
+output_tree.Write()
 
 print "=== FIN =="

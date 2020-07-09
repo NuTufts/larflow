@@ -12,11 +12,10 @@ testclass::~testclass()
 {
 }
 
-int gethello()
+int testclass::gethello()
 {
     return hello;
 }
 
-}
 }
 }

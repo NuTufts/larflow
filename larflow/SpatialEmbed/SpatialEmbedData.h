@@ -1,10 +1,11 @@
-#ifndef __SpatialEmbedData__
-#define __SpatialEmbedData__
+#ifndef __SPATIALEMBEDDATA_H__
+#define __SPATIALEMBEDDATA_H__
 
 #include <Python.h>
 #include "bytesobject.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/SpatialEmbed/PrepMatchEmbed.h"
 
 #include <map>
 #include <vector>
@@ -34,38 +35,67 @@ namespace larflow {
   
 namespace spatialembed {
 
-struct InstancePix{
-    int row;
-    int col;
-};
-
 class SpatialEmbedData{
-private:
-    std::vector<int> coord_plane0_t;
-    std::vector<int> feat_plane0_t;
-    std::vector<int> coord_plane1_t;
-    std::vector<int> feat_plane1_t;
-    std::vector<int> coord_plane2_t;
-    std::vector<int> feat_plane3_t;
-    
-    std::vector<int> types_plane0;
-    std::vector<std::vector<InstancePix>> instances_plane0;
-
-    std::vector<int> types_plane1;
-    std::vector<std::vector<InstancePix>> instances_plane1;
-
-    std::vector<int> types_plane2;
-    std::vector<std::vector<InstancePix>> instances_plane2;
-
-    larcv::IOManager& iolcv;
-    larlite::storage_manager& ioll;
 
 public:
-    SpatialEmbedData( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+
+    SpatialEmbedData();
     ~SpatialEmbedData();
 
-    void processImageData();
-    void processLabelData();
+    struct CoordPix{
+        int row;
+        int col;
+        int batch;
+    };
+
+    struct InstancePix{
+        int row;
+        int col;
+    };
+
+    int num_instances_0;
+    int num_instances_1;
+    int num_instances_2;  
+
+    void num_instances_change(int num);
+
+    void processImageData( larcv::EventImage2D* ev_adc, double threshold );
+
+
+    void processLabelData(larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+
+
+    void processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcpg,
+                           larflow::spatialembed::PrepMatchEmbed* prepembed );
+
+    int num_instances_plane(int plane);
+
+
+    std::vector<std::vector<int>> getTypes();
+    std::vector<std::vector<CoordPix>> getCoord_t(); 
+    std::vector<std::vector<double>> getFeat_t(); 
+    std::vector<std::vector<std::vector<InstancePix>>> getInstances_t(); 
+
+    PyObject* coord_t_pyarray(int plane);
+    PyObject* feat_t_pyarray(int plane);
+    PyObject* instance(int plane, int instance);
+    int type(int plane, int instance);
+
+
+private:
+
+    std::vector<std::vector<CoordPix>> coord_t; // vector length 3: coord_plane0, coord_plane1, coord_plane2. each coord_plane contains list of pixels
+    std::vector<std::vector<double>> feat_t;  // vector length 3: feat_plane0, feat_plane1, feat_plane2. each feat_plane contains list of pixel values
+    
+    std::vector<std::vector<int>> types_t; // vector length 3, one for each plane
+                                           // list of instance types
+                                    
+    std::vector<std::vector<std::vector<InstancePix>>> instances_t; // vector length 3, one for each plane
+                                                                    // For each plane, 1d is instances
+                                                                    // 2nd dimension is pixels per instance
+
+    bool _setup_numpy;
+
     
 };
 

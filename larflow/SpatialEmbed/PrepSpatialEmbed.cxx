@@ -21,7 +21,7 @@ PrepSpatialEmbed::PrepSpatialEmbed()
 
 PrepSpatialEmbed::~PrepSpatialEmbed() 
 {
-    if (img_tree) delete img_tree;
+    // if (img_tree) delete img_tree;
 }
 
 

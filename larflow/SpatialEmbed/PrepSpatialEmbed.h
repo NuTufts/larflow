@@ -37,6 +37,7 @@ namespace spatialembed {
 class PrepSpatialEmbed{
 private:
     TTree* img_tree;
+    
 
 public:
     PrepSpatialEmbed();
