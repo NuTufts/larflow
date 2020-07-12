@@ -49,9 +49,48 @@ namespace reco {
       seg.pca     = &pca;
       _segment_v.push_back(seg);
       _segment_v.back().idx = (int)_segment_v.size()-1;
+      
+      NodePos_t node1;
+      node1.segidx  = _segment_v.back().idx;
+      node1.nodeidx = (int)_nodepos_v.size();
+      node1.pos     = start;
+
+      NodePos_t node2;
+      node2.segidx  = _segment_v.back().idx;
+      node2.nodeidx = (int)_nodepos_v.size()+1;
+      node2.pos     = end;
+
+      _nodepos_v.push_back( node1 );
+      _nodepos_v.push_back( node2 );
+
+      // make segment edges
+      Connection_t segedge1to2;
+      segedge1to2.node = &_segment_v.back();
+      segedge1to2.from_seg_idx = node1.nodeidx;
+      segedge1to2.to_seg_idx   = node2.nodeidx;
+      segedge1to2.dist         = seg.len;
+      segedge1to2.cosine = 0.;
+      segedge1to2.cosine_seg = 0.;
+      segedge1to2.dir = seg.dir;
+
+      Connection_t segedge2to1;
+      segedge2to1.node = &_segment_v.back();
+      segedge2to1.from_seg_idx = node2.nodeidx;
+      segedge2to1.to_seg_idx   = node1.nodeidx;
+      segedge2to1.dist         = seg.len;
+      segedge2to1.cosine = 0.;
+      segedge2to1.cosine_seg = 0.;
+      segedge2to1.dir = seg.dir;
+      for (int v=0; v<3; v++) segedge2to1.dir[v] *= -1.0;
+
+      _segedge_m[ std::pair<int,int>( node1.nodeidx, node2.nodeidx ) ] = segedge1to2;
+      _segedge_m[ std::pair<int,int>( node2.nodeidx, node1.nodeidx ) ] = segedge2to1;
+      
+      
     }
 
     LARCV_INFO() << "Stored " << _segment_v.size() << " track segments" << std::endl;
+    LARCV_INFO() << "Stored " << _nodepos_v.size() << " segment endpoints as nodes" << std::endl;
   }
 
   /**
@@ -60,85 +99,87 @@ namespace reco {
    * we use this to develop the code. also, can use it for smallish N.
    *
    */
-  void TrackClusterBuilder::buildConnections()
+  void TrackClusterBuilder::buildNodeConnections()
   {
 
-    for (int iseg=0; iseg<(int)_segment_v.size(); iseg++ ) {
-      Segment_t& seg_i = _segment_v[iseg];
-      
-      for (int jseg=iseg+1; jseg<(int)_segment_v.size(); jseg++) {
+    for (int inode=0; inode<(int)_nodepos_v.size(); inode++ ) {
+      NodePos_t& node_i = _nodepos_v[inode];
 
+      for (int jnode=inode+1; jnode<(int)_nodepos_v.size(); jnode++) {
+
+        // do not connect nodes on the same segment
+        auto it_segedge = _segedge_m.find( std::pair<int,int>(inode,jnode) );
+        if ( it_segedge!=_segedge_m.end() )
+          continue;
+                
         // define a connection in both directions
-        Segment_t& seg_j = _segment_v[jseg];
-        
+        NodePos_t& node_j = _nodepos_v[jnode];
 
-        // first we find the closest ends between them
-        std::vector<float>* ends[2][2] = { {&seg_i.start,&seg_i.end},
-                                           {&seg_j.start,&seg_j.end} };
-
-        std::vector<float> dist(4,0);
-        for (int i=0; i<2; i++) {
-          for(int j=0; j<2; j++) {
-            for (int v=0; v<3; v++) {
-              dist[ 2*i + j ] += (ends[0][i]->at(v)-ends[1][j]->at(v))*( ends[0][i]->at(v)-ends[1][j]->at(v) );
-            }
-            dist[ 2*i + j ] = sqrt( dist[2*i+j] );
-          }
+        float dist = 0.;
+        std::vector<float> dir_ij(3,0);
+        for (int v=0; v<3; v++) {
+          dir_ij[v] = node_j.pos[v]-node_i.pos[v];
+          dist += dir_ij[v]*dir_ij[v];
         }
+        dist = sqrt(dist);
+        if ( dist>0 ) for (int v=0; v<3; v++) dir_ij[v] /= dist;
 
-        // find the smallest dist
-        int idx_small = 0;
-        float min_dist = 1.0e9;
-        for (int i=0; i<4; i++) {
-          if ( min_dist>dist[i] ) {
-            idx_small = i;
-            min_dist = dist[i];
-          }
+        if ( dist>100.0 ) continue;
+
+        // make sure this is the shortest distance
+        // between the segments
+        int jnode_pair = -1;
+        if ( jnode%2==0 ) {
+          jnode_pair = jnode+1;
         }
+        else
+          jnode_pair = jnode-1;
 
-        std::vector<float>* end_i = ends[0][ idx_small/2 ];
-        std::vector<float>* end_j = ends[1][ idx_small%2 ];
+        NodePos_t& node_j_pair = _nodepos_v[jnode_pair];
+        float pairdist = 0.;
+        for (int v=0; v<3; v++ ) {
+          pairdist += ( node_j_pair.pos[v]-node_i.pos[v] )*( node_j_pair.pos[v]-node_i.pos[v] );
+        }
+        pairdist = sqrt(pairdist);
 
+        if ( pairdist<dist ) {
+          // the node's segment pair is closer to node_i, so we do not make this connection
+          continue;
+        }
+          
         // i->j
         Connection_t con_ij;
-        con_ij.node = &seg_j;
-        con_ij.from_seg_idx = iseg;
-        con_ij.to_seg_idx = jseg;
-        con_ij.dist = min_dist;
-        con_ij.endidx = idx_small%2;
+        con_ij.node = nullptr;
+        con_ij.from_seg_idx = inode;
+        con_ij.to_seg_idx   = jnode;
+        con_ij.dist = dist;
+        con_ij.endidx = 0;
         con_ij.cosine = 0.;
         con_ij.cosine_seg = 0.;        
-        con_ij.dir.resize(3,0);
-        for (int v=0; v<3; v++) {
-          con_ij.dir[v] = (end_j->at(v)-end_i->at(v))/min_dist;
-          con_ij.cosine += (end_j->at(v)-end_i->at(v))*seg_i.dir[v]/min_dist;
-          con_ij.cosine_seg += seg_i.dir[v]*seg_j.dir[v];
-        }
-        con_ij.cosine_seg = fabs(con_ij.cosine_seg);
+        con_ij.dir = dir_ij;
         
         Connection_t con_ji;
-        con_ji.node = &seg_i;
-        con_ji.from_seg_idx = jseg;
-        con_ji.to_seg_idx = iseg;
-        con_ji.dist = min_dist;
-        con_ij.endidx = idx_small/2;
+        con_ji.node = nullptr;
+        con_ji.from_seg_idx = jnode;
+        con_ji.to_seg_idx   = inode;
+        con_ji.dist   = dist;
+        con_ij.endidx = 0;
         con_ji.cosine = 0.;
-        con_ji.cosine_seg = con_ij.cosine_seg;
-        con_ji.dir.resize(3,0);
+        con_ji.cosine_seg = 0.;
+        con_ji.dir = dir_ij;
         for (int v=0; v<3; v++) {
-          con_ji.dir[v] = (end_i->at(v)-end_j->at(v))/min_dist;          
-          con_ji.cosine += (end_i->at(v)-end_j->at(v))*seg_j.dir[v]/min_dist;
+          con_ji.dir[v] *= -1.0;
         }
 
-        _connect_m[ std::pair<int,int>(iseg,jseg) ] = con_ij;
-        _connect_m[ std::pair<int,int>(jseg,iseg) ] = con_ji;
+        _connect_m[ std::pair<int,int>(inode,jnode) ] = con_ij;
+        _connect_m[ std::pair<int,int>(jnode,inode) ] = con_ji;
         
       }      
     }
 
-    LARCV_INFO() << "Made " << _connect_m.size() << " connections" << std::endl;
+    LARCV_INFO() << "Made " << _connect_m.size() << " nodepos connections" << std::endl;
   }
-
+  
 
   void TrackClusterBuilder::buildTracksFromPoint( const std::vector<float>& startpoint )
   {
@@ -169,15 +210,46 @@ namespace reco {
       return;
     }
 
-    LARCV_DEBUG() << "Segment found idx=[" << min_segidx << "] to build from " << str(_segment_v[min_segidx]) << std::endl;
+    LARCV_DEBUG() << "=== Seed track with point (" << startpoint[0] << "," << startpoint[1] << "," << startpoint[2] << ") ======" << std::endl;
+    LARCV_DEBUG() << " segment found idx=[" << min_segidx << "] to build from " << str(_segment_v[min_segidx]) << std::endl;
 
-    std::vector< Segment_t* > path;
-    std::vector< float > path_dir;
-    std::vector< std::vector<Segment_t*> > complete_v;
-    _recursiveFollowPath( _segment_v[min_segidx], path, path_dir, complete_v );
+    // reset the nodes
+    for ( auto& node : _nodepos_v )
+      node.inpath = false;
+
+    // Nodes from the segment
+    NodePos_t& node1 = _nodepos_v[2*min_segidx];
+    NodePos_t& node2 = _nodepos_v[2*min_segidx+1];
+    node1.inpath = true;
+    node2.inpath = true;
+
+    NodePos_t* startnode = nullptr;
+    NodePos_t* nextnode  = nullptr;
+    float dist1 = 0.;
+    float dist2 = 0.;
+    for (int v=0; v<3; v++) {
+      dist1 += (node1.pos[v]-startpoint[v])*(node1.pos[v]-startpoint[v]);
+      dist2 += (node2.pos[v]-startpoint[v])*(node2.pos[v]-startpoint[v]);
+    }
+    startnode = (dist1<dist2) ? &node1 : &node2;
+    nextnode  = (dist1>dist2) ? &node1 : &node2;
+
+    LARCV_DEBUG() << " starting track from: (" << startnode->pos[0] << "," << startnode->pos[1] << "," << startnode->pos[2] << ")" << std::endl;
+
+    auto it_segedge12 = _segedge_m.find( std::pair<int,int>(startnode->nodeidx,nextnode->nodeidx) );
+    std::vector<float>& path_dir = it_segedge12->second.dir;
+
+    std::vector< NodePos_t* > path;
+    std::vector< const std::vector<float>* > path_dir_v;    
+    std::vector< std::vector<NodePos_t*> > complete_v;
+    path.push_back( startnode );
+    path_dir_v.push_back( &path_dir );
+    
+    _recursiveFollowPath( *nextnode, path_dir, path, path_dir_v, complete_v );
+    LARCV_DEBUG() << "point generated " << complete_v.size() << " possible tracks" << std::endl;
 
     // this will generate proposals. we must choose among them
-    std::vector< std::vector<Segment_t*> > filtered_v;    
+    std::vector< std::vector<NodePos_t*> > filtered_v;    
     _choose_best_paths( complete_v, filtered_v );
 
     for ( auto& path : filtered_v ) 
@@ -187,80 +259,89 @@ namespace reco {
     
   }  
 
-  void TrackClusterBuilder::_recursiveFollowPath( Segment_t& seg,
-                                                  std::vector<Segment_t*>& path,
-                                                  std::vector< float >& path_dir,
-                                                  std::vector< std::vector<Segment_t*> >& complete )
+  void TrackClusterBuilder::_recursiveFollowPath( NodePos_t& node,
+                                                  std::vector<float>& path_dir,
+                                                  std::vector<NodePos_t*>& path,
+                                                  std::vector< const std::vector<float>* > path_dir_v,
+                                                  std::vector< std::vector<NodePos_t*> >& complete )
   {
 
     // we add ourselves to the current path
-    seg.inpath = true;
-    path.push_back( &seg );
-    // add determine the path direction (aligned or anti-aligned with the current segdir)
-    if ( path.size()==1 ) {
-      path_dir.push_back( 0.0 ); // undefined for first segment
-    }
-    else if (path.size()>1) {
-      float prev_cos = 0.;
-      std::vector<float> prev_center(3,0);
-      std::vector<float> curr_center(3,0);
-      auto& prev_seg = path[path.size()-2];
-      for ( size_t v=0; v<3; v++ ) {
-        prev_center[v] = 0.5*( prev_seg->start[v]+prev_seg->end[v] );
-        curr_center[v] = 0.5*( seg.start[v]+seg.end[v] );
-        prev_cos += ( curr_center[v]-prev_center[v] )*seg.dir[v];
-      }
-      if ( prev_cos>=0 )
-        path_dir.push_back(1.0);
-      else
-        path_dir.push_back(-1.0);
-    }
-    //std::cout << "append new segment to stack. depth=" << path.size() << std::endl;
-    //std::cin.get();
+    node.inpath = true;
+    path.push_back( &node );
+    path_dir_v.push_back( &path_dir );
     
     // oh wow. we loop through possible connections, and descend.
     int nconnections = 0;
     float mindist = 1e9;
     float maxcos = 0;
-    for (int iseg=0; iseg<_segment_v.size(); iseg++) {
+    for (int inode=0; inode<_nodepos_v.size(); inode++) {
 
-      
-      
-      if ( iseg==seg.idx ) continue; // don't connect to yourself
-      auto it = _connect_m.find( std::pair<int,int>(seg.idx,iseg) );
+      NodePos_t& nextnode = _nodepos_v[inode];
+      if ( nextnode.inpath ) continue;
+
+      auto it = _connect_m.find( std::pair<int,int>(node.nodeidx,inode) );
       if ( it==_connect_m.end() ) continue; // no connection
 
       //std::cout << "  (connect " << seg.idx << "->" << iseg << ") dist=" << it->second.dist << " cos="  << it->second.cosine << std::endl;
-      
-      // get next segment
-      Segment_t& nextseg = _segment_v[iseg];
-      if ( nextseg.inpath ) continue; // can't create a recursive loop
 
-      float segcos = it->second.cosine;
-      float concos = it->second.cosine_seg;
-      if (path.size()<=1) segcos = fabs(segcos);
-      else {
-        segcos *= path_dir.back();
+      // we connect based on:
+
+      // distance between node (edge length)
+      // direction between nodes (edge direction)
+      // direction between nextnode and its pair (segment direction)
+      int inode_pair = -1;
+      if ( inode%2==0 )
+        inode_pair = inode+1;
+      else
+        inode_pair = inode-1;
+
+      auto it_segedge = _segedge_m.find( std::pair<int,int>(inode,inode_pair) );
+      float& gaplen = it->second.dist;
+      std::vector<float>&  gapdir = it->second.dir; // should have worked ...
+      // std::vector<float>  gapdir(3,0);// = it->second.dir;
+      // for (int v=0; v<3; v++) {
+      //   gapdir[v] = (nextnode.pos[v]-node.pos[v])/gaplen;
+      // }
+      std::vector<float>& segdir = it_segedge->second.dir;
+
+      float segcos = 0.;  // cosine between last segment and proposed segment
+      float concos1 = 0.; // cosine between last segment and gap edge
+      float concos2 = 0.; // cosine between gap edge and proposed segment dir
+      for ( int v=0; v<3; v++ ) {
+        segcos  += path_dir[v]*segdir[v];
+        concos1 += path_dir[v]*gapdir[v];
+        concos2 += gapdir[v]*segdir[v];
       }
-      
-      if ( mindist>it->second.dist ) mindist = it->second.dist;
-      if ( maxcos<segcos ) maxcos = segcos;
+
+      // add this segment
+      std::cout << "  consider node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
+                << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+                << "dist=" << gaplen << " "
+                << " seg1-seg2=" << segcos
+                << " seg1-edge=" << concos1
+                << " edge-seg2=" << concos2
+                << std::endl;
       
       // criteria for accepting connection
       // ugh, the heuristics ...
-      if ( (it->second.dist<2.0 && segcos>0 && concos>0.3 ) // close
-           || (it->second.dist<20.0 && segcos>0.8 && concos>0.8 )  // far
-           || (it->second.dist<50.0 && segcos>0.9 && concos>0.9 )
-           ) {
-        std::cout << "  connect segment[" << seg.idx << "] to segment[" << iseg << "] "
-                  << "dist=" << it->second.dist << " "
-                  << "connect-cos=" << segcos
-                  << "segment-cos=" << it->second.cosine_seg
-                  << std::endl;
-        nconnections++;
-        _recursiveFollowPath( nextseg, path, path_dir, complete );
+      if ( (gaplen<2.0 && segcos>0 ) // close: only check direction between segments
+           || (gaplen>=2.0 && segcos>0.5 && concos1>0.5 && concos2>0.5 ) ) {  // far: everything in the same direction
 
-        if ( complete.size()>=10000 ) {
+        // add this segment
+        std::cout << "  ==> connect node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
+                  << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+                  << std::endl;
+        //std::cin.get();
+        
+        NodePos_t& node_pair = _nodepos_v[inode_pair];
+        nextnode.inpath = true;
+        path_dir_v.push_back( &segdir );
+        path.push_back( &nextnode );
+        nconnections++;
+        _recursiveFollowPath( node_pair, segdir, path, path_dir_v, complete );
+
+        if ( complete.size()>=1000 ) {
           //cut this off!
           std::cout << "  cut off search. track limit reached: " << complete.size() << std::endl;
           break;
@@ -268,16 +349,23 @@ namespace reco {
       }
     }
     
-    if ( nconnections==0 && complete.size()<10000 ) {
+    if ( nconnections==0 && complete.size()<10000 && path.size()>1 ) {
       // was a leaf, so make a complete track.
       // else was a link
       complete.push_back( path );
       LARCV_DEBUG() << "reached a leaf, copy track len=" << path.size() << " to completed list. num of completed tracks: " << complete.size() << std::endl;      
     }
     //std::cout << "  mindist=" << mindist << " maxcos=" << maxcos << std::endl;
-    seg.inpath = false;
+    // pop  off the last two nodes
+    int nnodes = (int)path.size();
+    if ( path.size()<2 )
+      return;
+    path[nnodes-2]->inpath = false;
+    path[nnodes-1]->inpath = false;
+    path.pop_back();
     path.pop_back();
     path_dir.pop_back();
+    path_dir.pop_back();    
 
     return;
   }
@@ -296,8 +384,8 @@ namespace reco {
     return ss.str();
   }
 
-  void TrackClusterBuilder::_choose_best_paths( std::vector< std::vector<Segment_t*> >& complete_v,
-                                                std::vector< std::vector<Segment_t*> >& filtered_v )
+  void TrackClusterBuilder::_choose_best_paths( std::vector< std::vector<NodePos_t*> >& complete_v,
+                                                std::vector< std::vector<NodePos_t*> >& filtered_v )
   {
 
     // we narrow down in phases
@@ -305,18 +393,17 @@ namespace reco {
     // phase 2: we choose among the leaf group the highest fraction of the path length is segment lengths
     // phase 3: we choose path with smallest kick (bad to use heuristic, need more sophisticated selection)
 
-    typedef std::vector<Segment_t*> Path_t;
+    typedef std::vector<NodePos_t*> Path_t;
     
-    // phase 1, group paths by lead index
+    // phase 1, group paths by leaf index (the index of the last node)
     std::map<int, std::vector< Path_t* > > leaf_groups;
     for ( auto& path : complete_v ) {
-      int leafidx = path.back()->idx;
+      int leafidx = path.back()->nodeidx;
       auto it = leaf_groups.find(leafidx);
       if ( it==leaf_groups.end() ) {
         leaf_groups[leafidx] = std::vector< Path_t* >();
         it = leaf_groups.find(leafidx);
       }
-
       it->second.push_back( &path );
     }
 
@@ -342,20 +429,19 @@ namespace reco {
         Path_t* ppath = it->second.at(ipath);
         float pathdist = 0.;
         float totseglen = 0.;
-        for ( size_t iseg=0; iseg<ppath->size(); iseg++ ) {
+        for ( size_t inode=1; inode<ppath->size(); inode++ ) {
 
-          Segment_t* pseg = ppath->at(iseg);
+          NodePos_t* pnode = ppath->at(inode);
+          NodePos_t* pnode_prev = ppath->at(inode-1);
 
-          pathdist += pseg->len;
-          totseglen += pseg->len;
+          float dist = 0.;
+          for (int v=0; v<3; v++)
+            dist += ( pnode->pos[v]-pnode_prev->pos[v] )*( pnode->pos[v]-pnode_prev->pos[v] );
+          dist = sqrt(dist);
 
-          if ( iseg+1<ppath->size() ) {
-            Segment_t* pnextseg = ppath->at(iseg+1);
-            auto it_con = _connect_m.find( std::pair<int,int>(pseg->idx,pnextseg->idx) );
-            if ( it_con!=_connect_m.end() ) {
-              pathdist += it_con->second.dist;
-            }
-          }
+          if ( inode%2==1 )
+            totseglen += dist;
+          pathdist += dist;
           
         }//end of loop over path segments
         std::cout << "  Leaf-group[" << it->first << "] path[" << ipath << "] pathlen=" << pathdist << " seglen=" << totseglen << std::endl;
@@ -388,28 +474,16 @@ namespace reco {
       Path_t* leafpath = it->second.at(max_segfrac_idx);
       
 
-      std::vector<float>* segends[2][2] = { { &leafpath->front()->start, &leafpath->front()->end },
-                                            { &leafpath->back()->start,  &leafpath->back()->end  } };
-      int front_end = 0;
-      int back_end = 0;
-      float maxdist = 0;
-      for (int i=0; i<2; i++) {
-        for ( int j=0; j<2; j++ ) {
-          float end_dist = 0.;
-          for (int v=0; v<3; v++)
-            end_dist += ( segends[0][i]->at(v) - segends[1][j]->at(v) )*( segends[0][i]->at(v) - segends[1][j]->at(v) );
-          end_dist = sqrt(end_dist);
-          if ( maxdist<end_dist ) {
-            maxdist = end_dist;
-            front_end = i;
-            back_end  = j;
-          }
-        }
+      float end_dist = 0.;
+      for (int v=0; v<3; v++) {
+        float dx = leafpath->front()->pos[v] - leafpath->back()->pos[v];
+        end_dist += dx*dx;
       }
-
+      end_dist = sqrt(end_dist);
+      
       float pathdist_ratio = 0.;
-      if ( maxdist>0 ) {
-        pathdist_ratio = pathlen_v[max_segfrac_idx]/maxdist;
+      if ( end_dist>0 ) {
+        pathdist_ratio = pathlen_v[max_segfrac_idx]/end_dist;
       }
       path_dist_ratio_v.push_back( pathdist_ratio );
 
@@ -417,26 +491,31 @@ namespace reco {
         min_pathdist_ratio = pathdist_ratio;
       }
       
-      std::cout << "  Leafgroup["  << it->first << "] best path dist between ends: " << maxdist << std::endl;
+      std::cout << "  Leafgroup["  << it->first << "] best path dist between ends: " << end_dist << std::endl;
       
       std::cout << "=== End of Leafgroup[" << it->first << "] selection path/dist ratio: " << pathdist_ratio << " len=" << pathlen_v[max_segfrac_idx] << " ===" << std::endl;
     }//end of group loop
 
-
+    // so far we've chosen best path from seed point to leaf point,
+    // now choose among leaf points
+    
+    
     // choose among the best of the best?
     // the minimum ratio of path-length to 
-    float min_max_len = 0.;
-    int min_max_len_idx = 0;
+    float min_track_path_dist_ratio = 1e9;
+    int min_max_len_idx = -1;
     for ( size_t i=0; i<selected_v.size(); i++ ) {
       if ( path_dist_ratio_v[i]>=1.0 && path_dist_ratio_v[i]<min_pathdist_ratio+0.2 ) {
-        if ( min_max_len<selected_pathlen_v[i] ) {
+        if ( min_track_path_dist_ratio>path_dist_ratio_v[i] ) {
           min_max_len_idx = i;
-          min_max_len = selected_pathlen_v[i];
+          min_track_path_dist_ratio = path_dist_ratio_v[i];
         }
       }
     }
 
-    filtered_v.push_back( *selected_v[min_max_len_idx] );
+    if ( min_max_len_idx>=0 ) {
+      filtered_v.push_back( *selected_v[min_max_len_idx] );
+    }
     std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;    
   }
 
@@ -446,60 +525,38 @@ namespace reco {
     for ( size_t itrack=0; itrack<_track_proposal_v.size(); itrack++ ) {
 
       auto const& path = _track_proposal_v[itrack];
+
+      if ( path.size()<=1 )
+        continue;
       
       larlite::track lltrack;
-      lltrack.reserve(2*path.size()); // npts = 2*num seg;
+      lltrack.reserve(path.size()); // npts = 2*num seg;
 
       std::vector<float> last_seg_dir(3,0);
-      for (size_t iseg=0; iseg<path.size(); iseg++ ) {
+      for (int inode=1; inode<path.size(); inode++ ) {
 
-        const Segment_t* seg = path[iseg];
-
-        if ( iseg+1<path.size() ) {
-          const Segment_t* nextseg = path[iseg+1];
-          auto it = _connect_m.find( std::pair<int,int>( seg->idx, nextseg->idx ) );
-          Connection_t& con = it->second;
-          std::vector<float> center(3,0);
-          for (int v=0; v<3; v++) center[v] = 0.5*(nextseg->start[v]+nextseg->end[v]);
-          float proj = pointRayProjection<float>( seg->start, seg->dir, center );
-          if ( proj<0 ) {
-            // go end to start
-            lltrack.add_vertex( TVector3(seg->end[0],seg->end[1],seg->end[2]) );
-            lltrack.add_vertex( TVector3(seg->start[0],seg->start[1],seg->start[2]) );
-            lltrack.add_direction( TVector3(-seg->dir[0],-seg->dir[1],-seg->dir[2]) );
-            lltrack.add_direction( TVector3(con.dir[0], con.dir[1], con.dir[2] ) );
-          }
-          else {
-            // go start to end
-            lltrack.add_vertex( TVector3(seg->start[0],seg->start[1],seg->start[2]) );
-            lltrack.add_vertex( TVector3(seg->end[0],seg->end[1],seg->end[2]) );            
-            lltrack.add_direction( TVector3(seg->dir[0],seg->dir[1],seg->dir[2]) );
-            lltrack.add_direction( TVector3(con.dir[0], con.dir[1], con.dir[2] ) );            
-          }
-          last_seg_dir = con.dir;
-        }//all but last segment
-        else {
-          float segcos = 0.;
-          for (int i=0; i<3; i++ )
-            segcos += last_seg_dir[i]*seg->dir[i];
-
-          if ( segcos<0 ) {
-            // go end to start
-            lltrack.add_vertex( TVector3(seg->end[0],seg->end[1],seg->end[2]) );
-            lltrack.add_vertex( TVector3(seg->start[0],seg->start[1],seg->start[2]) );
-            lltrack.add_direction( TVector3(-seg->dir[0],-seg->dir[1],-seg->dir[2]) );
-            lltrack.add_direction( TVector3(-seg->dir[0],-seg->dir[1],-seg->dir[2]) );
-          }
-          else {
-            // go start to end
-            lltrack.add_vertex( TVector3(seg->start[0],seg->start[1],seg->start[2]) );
-            lltrack.add_vertex( TVector3(seg->end[0],seg->end[1],seg->end[2]) );            
-            lltrack.add_direction( TVector3(seg->dir[0],seg->dir[1],seg->dir[2]) );
-            lltrack.add_direction( TVector3(seg->dir[0],seg->dir[1],seg->dir[2]) );            
-          }
+        const NodePos_t* node     = path[inode];
+        const NodePos_t* nodeprev = path[inode-1];
+        float d = 0.;
+        for (int v=0; v<3; v++) {
+          last_seg_dir[v] = node->pos[v]-nodeprev->pos[v];
+          d += last_seg_dir[v]*last_seg_dir[v];
+        }
+        d = sqrt(d);
+        if ( d>0 ) {
+          for (int v=0; v<3; v++)
+            last_seg_dir[v] /= d;
         }
         
-      }//end of loop over segments
+        lltrack.add_vertex( TVector3(nodeprev->pos[0],nodeprev->pos[1], nodeprev->pos[2]) );
+        lltrack.add_direction( TVector3(last_seg_dir[0],last_seg_dir[1], last_seg_dir[2]) );
+        
+        if ( inode+1==(int)path.size() ) {
+          lltrack.add_vertex( TVector3(node->pos[0],node->pos[1], node->pos[2]) );
+          lltrack.add_direction( TVector3(last_seg_dir[0],last_seg_dir[1], last_seg_dir[2]) );
+        }
+        
+      }//end of loop over nodes
 
       evout_track.emplace_back( std::move(lltrack) );
     }//end of loop over tracks

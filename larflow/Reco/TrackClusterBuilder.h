@@ -40,6 +40,13 @@ namespace reco {
       float   cosine_seg; //< cosine between two segment directions
       std::vector<float> dir;
     };
+
+    struct NodePos_t {
+      int nodeidx;
+      int segidx;
+      bool inpath;
+      std::vector<float> pos;
+    };
     
     // This represents a line segment
     struct Segment_t {
@@ -62,14 +69,14 @@ namespace reco {
         visited(false)
       {};
       Segment_t( std::vector<float>& s, std::vector<float>& e ) {
-        if ( s[1]<e[1] ) {
-          start = s;
-          end = e;
-        }
-        else  {
-          start = e;
-          end = s;
-        }
+        //if ( s[1]<e[1] ) {
+        start = s;
+        end = e;
+        /* } */
+        /* else  { */
+        /*   start = e; */
+        /*   end = s; */
+        /* } */
         len = 0.;
         dir.resize(3,0);
         for (int i=0; i<3; i++ ) {
@@ -102,12 +109,17 @@ namespace reco {
     
     // library of all segments created
     std::vector< Segment_t > _segment_v;
+    std::vector< NodePos_t > _nodepos_v;
 
-    // connection library
+    // connection libraries
+    // two types:
+    //  (1) connection between ends of the same segment
+    //  (2) connection between ends of different segments
     std::map< std::pair<int,int>, Connection_t > _connect_m; // index is directional, index1->index2
+    std::map< std::pair<int,int>, Connection_t > _segedge_m; // index is directional, index1->index2    
 
     // track proposals
-    std::vector< std::vector<Segment_t*> > _track_proposal_v;
+    std::vector< std::vector<NodePos_t*> > _track_proposal_v;
 
     // PARAMETERS
     // -----------
@@ -119,6 +131,7 @@ namespace reco {
                              const larlite::event_pcaxis& pcaxis_v );
 
     void buildConnections();
+    void buildNodeConnections();
 
     void buildTracksFromPoint( const std::vector<float>& startpoint );
 
@@ -134,13 +147,15 @@ namespace reco {
     
   protected:
 
-    void _recursiveFollowPath( Segment_t& seg,
-                               std::vector<Segment_t*>& path,
-                               std::vector< float >& path_dir,                               
-                               std::vector< std::vector<Segment_t*> >& complete );
+    void _recursiveFollowPath( NodePos_t& node,
+                               std::vector<float>& path_dir,
+                               std::vector<NodePos_t*>& path,
+                               std::vector< const std::vector<float>* > path_dir_v,
+                               std::vector< std::vector<NodePos_t*> >& complete );
     
-    void _choose_best_paths( std::vector< std::vector<Segment_t*> >& complete_v,
-                             std::vector< std::vector<Segment_t*> >& filtered_v );
+    
+    void _choose_best_paths( std::vector< std::vector<NodePos_t*> >& complete_v, 
+                             std::vector< std::vector<NodePos_t*> >& filtered_v );
     
   };
   

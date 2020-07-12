@@ -26,7 +26,7 @@ namespace reco {
       
     }
     
-    buildConnections();
+    buildNodeConnections();
 
     
     set_output_one_track_per_startpoint( true );    

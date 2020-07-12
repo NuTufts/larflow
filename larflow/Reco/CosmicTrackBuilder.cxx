@@ -24,7 +24,7 @@ namespace reco {
       = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
 
     loadClusterLibrary( *ev_cluster, *ev_pcaxis );
-    buildConnections();
+    buildNodeConnections();
 
     // get keypoints
     std::string producer_keypoint = "keypointcosmic";

@@ -43,7 +43,7 @@ nentries = io.get_entries()
 
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keypoint", minprob=0.3):
+def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keypoint", minprob=0.1):
     from larcv import larcv
     larcv.load_pyutil()
     detdata = lardly.DetectorOutline()

@@ -116,9 +116,9 @@ namespace reco {
     _cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
-    
+
     // MULTI-PRONG INTERNAL RECO
-    multiProngReco( iolcv, ioll );
+    //multiProngReco( iolcv, ioll );
     
     // Single particle interactions
 
