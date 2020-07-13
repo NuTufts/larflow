@@ -224,7 +224,11 @@ namespace reco {
     //_pcacluster.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
-    _projsplitter.set_verbosity( larcv::msg::kINFO );
+    const float _maxdist = 2.0;
+    const float _minsize = 20;
+    const float _maxkd   = 100;
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );

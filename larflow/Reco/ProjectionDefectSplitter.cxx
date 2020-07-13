@@ -315,7 +315,7 @@ namespace reco {
       else {
         // we re-cluster
         std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v
-          = ublarcvapp::dbscan::DBScan::makeCluster3f( 5.0, 5, 5, cluster.points_v );
+          = ublarcvapp::dbscan::DBScan::makeCluster3f( _maxdist, _minsize, _maxkd, cluster.points_v );
 
         if ( dbcluster_v.size()==1 ) {
           // didnt find any clusters
@@ -453,21 +453,31 @@ namespace reco {
     larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
     larflow::reco::cluster_runpca( cluster_pass_v );
 
-    // we then absorb the hits around these clusters
-    std::vector<larflow::reco::cluster_t> dense_cluster_v;
-    for ( auto const& ds_cluster : cluster_pass_v ) {
-      cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
-                                                     inputhits,
-                                                     used_hits_v,
-                                                     10.0 );
-      if ( dense_cluster.points_v.size()>0 ) 
-        dense_cluster_v.emplace_back( std::move(dense_cluster) );
+    int nused_final = 0;
+    std::vector<larflow::reco::cluster_t> dense_cluster_v;    
+    if ( sample ) {
+      // we then absorb the hits around these clusters
+      for ( auto const& ds_cluster : cluster_pass_v ) {
+        cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
+                                                       inputhits,
+                                                       used_hits_v,
+                                                       10.0 );
+        if ( dense_cluster.points_v.size()>0 ) 
+          dense_cluster_v.emplace_back( std::move(dense_cluster) );
+      }
+      
+      int nused_tot = 0;
+      for ( auto& used : used_hits_v ) {
+        nused_tot += used;
+      }
+      LARCV_DEBUG() << "After absorbing hits to sparse clusters: " << nused_tot << " of " << total_pts << " all hits" << std::endl;
     }
-    int nused_tot = 0;
-    for ( auto& used : used_hits_v ) {
-      nused_tot += used;
+    else {
+      for ( auto& cluster : cluster_pass_v ) {
+        dense_cluster_v.emplace_back( std::move(cluster) );
+      }
+      nused_final = (int)inputhits.size();      
     }
-    LARCV_DEBUG() << "After absorbing hits to sparse clusters: " << nused_tot << " of " << total_pts << " all hits" << std::endl;
       
     // we perform split functions on the clusters
     int nsplit = 0;
@@ -476,7 +486,7 @@ namespace reco {
       LARCV_DEBUG() << "Splitting, pass" << isplit << ": num split=" << nsplit << std::endl;      
       if (nsplit==0 ) break;
     }
-
+      
     LARCV_DEBUG() << "Defrag clusters" << std::endl;
     _defragment_clusters( dense_cluster_v, 10.0 );
     
@@ -485,7 +495,6 @@ namespace reco {
       output_cluster_v.emplace_back( std::move(dense) );
     }
       
-    int nused_final = 0;
     for ( auto& used : used_hits_v )
       nused_final += used;
     

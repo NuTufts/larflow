@@ -88,10 +88,12 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     # PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)"),
-                ("wctrack","trackprojsplit_wcfilter","rgb(0,255,0)"),
-                ("wcshower","showergoodhit","rgb(255,0,0)")]
-    for (name,producer,rgbcolor) in clusters:
+    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",False),
+                ("wctrack","trackprojsplit_wcfilter","rgb(0,255,0)",True),
+                ("wcshower","showergoodhit","rgb(255,0,0)",False)]
+    for (name,producer,rgbcolor,plotme) in clusters:
+        if not plotme:
+            continue
         ev_cosmic_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
         ev_cosmic_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
         for icluster in range(ev_cosmic_trackcluster.size()):

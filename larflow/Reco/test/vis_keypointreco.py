@@ -54,16 +54,22 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     global io
     io.go_to(entry)
     
-    ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, treename )
+    #lfname = "taggerfilterhit" # output of WC filter
+    #lfname = "ssnetsplit_wcfilter_trackhit" # SSNet split
+    lfname = "maxtrackhit_wcfilter"
+        
+    ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, lfname )
     npoints = ev_lfhits.size()
 
     ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, keypoint_tree )
     ev_kpaxis    = io.get_data( larlite.data.kPCAxis, keypoint_tree )    
     
-    traces_v = []        
+    traces_v = []
+
 
     if plotby=="larmatch":
-        lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
+        print("Plotting Hits: produername=",lfname)
+        lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, lfname, score_threshold=minprob) ]
         traces_v += lfhit_v
     elif plotby in ["keypoint"]:
         hitindex=13
