@@ -45,7 +45,15 @@ namespace reco {
       int nodeidx;
       int segidx;
       bool inpath;
+      bool veto;
       std::vector<float> pos;
+      NodePos_t()
+      : nodeidx(-1),
+        segidx(-1),
+        inpath(false),
+        veto(false),
+        pos( {0,0,0} )
+      {};
     };
     
     // This represents a line segment
@@ -156,6 +164,8 @@ namespace reco {
     
     void _choose_best_paths( std::vector< std::vector<NodePos_t*> >& complete_v, 
                              std::vector< std::vector<NodePos_t*> >& filtered_v );
+
+    void _buildTracksFromSegments();
     
   };
   

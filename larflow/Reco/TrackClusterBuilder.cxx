@@ -3,6 +3,8 @@
 #include "TVector3.h"
 #include "larflow/Reco/geofuncs.h"
 
+#include "ublarcvapp/ubdllee/dwall.h"
+
 namespace larflow {
 namespace reco {
 
@@ -24,7 +26,9 @@ namespace reco {
   void TrackClusterBuilder::clear()
   {
     _segment_v.clear();
+    _segedge_m.clear();
     _connect_m.clear();
+    _nodepos_v.clear();
     _track_proposal_v.clear();
   }
 
@@ -235,25 +239,42 @@ namespace reco {
     nextnode  = (dist1>dist2) ? &node1 : &node2;
 
     LARCV_DEBUG() << " starting track from: (" << startnode->pos[0] << "," << startnode->pos[1] << "," << startnode->pos[2] << ")" << std::endl;
+    LARCV_DEBUG() << " first gap edge from: (" << nextnode->pos[0] << "," << nextnode->pos[1] << "," << nextnode->pos[2] << ")" << std::endl;
 
     auto it_segedge12 = _segedge_m.find( std::pair<int,int>(startnode->nodeidx,nextnode->nodeidx) );
+    auto it_segedge21 = _segedge_m.find( std::pair<int,int>(nextnode->nodeidx,startnode->nodeidx) );    
     std::vector<float>& path_dir = it_segedge12->second.dir;
 
     std::vector< NodePos_t* > path;
     std::vector< const std::vector<float>* > path_dir_v;    
     std::vector< std::vector<NodePos_t*> > complete_v;
+
+    // start to nextnode
     path.push_back( startnode );
-    path_dir_v.push_back( &path_dir );
-    
+    path_dir_v.push_back( &path_dir );    
     _recursiveFollowPath( *nextnode, path_dir, path, path_dir_v, complete_v );
-    LARCV_DEBUG() << "point generated " << complete_v.size() << " possible tracks" << std::endl;
+    LARCV_DEBUG() << "[after start->next] point generated " << complete_v.size() << " possible tracks" << std::endl;
+
+    // flip things
+    path.clear();
+    path_dir_v.clear();
+    path.push_back( nextnode );
+    path_dir_v.push_back( &it_segedge21->second.dir );
+    _recursiveFollowPath( *startnode, path_dir, path, path_dir_v, complete_v );
+    LARCV_DEBUG() << "[after next->start] point generated " << complete_v.size() << " possible tracks" << std::endl;
+    
 
     // this will generate proposals. we must choose among them
     std::vector< std::vector<NodePos_t*> > filtered_v;    
     _choose_best_paths( complete_v, filtered_v );
 
-    for ( auto& path : filtered_v ) 
+    for ( auto& path : filtered_v )  {
+      LARCV_DEBUG() << "storing path nnodes=" << path.size()
+                    << " node[" << path.front()->nodeidx << "]->node[" << path.back()->nodeidx << "]"
+                    << " seg[" << path.front()->segidx << "]->seg[" << path.back()->segidx << "]"
+                    << std::endl;
       _track_proposal_v.push_back( path );
+    }
 
     LARCV_INFO() << "Number of paths now stored: " << _track_proposal_v.size() << std::endl;
     
@@ -278,7 +299,7 @@ namespace reco {
     for (int inode=0; inode<_nodepos_v.size(); inode++) {
 
       NodePos_t& nextnode = _nodepos_v[inode];
-      if ( nextnode.inpath ) continue;
+      if ( nextnode.inpath || nextnode.veto ) continue;      
 
       auto it = _connect_m.find( std::pair<int,int>(node.nodeidx,inode) );
       if ( it==_connect_m.end() ) continue; // no connection
@@ -315,7 +336,7 @@ namespace reco {
       }
 
       // add this segment
-      std::cout << "  consider node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
+      std::cout << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
                 << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
                 << "dist=" << gaplen << " "
                 << " seg1-seg2=" << segcos
@@ -326,7 +347,8 @@ namespace reco {
       // criteria for accepting connection
       // ugh, the heuristics ...
       if ( (gaplen<2.0 && segcos>0 ) // close: only check direction between segments
-           || (gaplen>=2.0 && segcos>0.5 && concos1>0.5 && concos2>0.5 ) ) {  // far: everything in the same direction
+           || (gaplen>=2.0 && gaplen<10.0 && segcos>0.8 && concos1>0.8 && concos2>0.8 )  // far: everything in the same direction           
+           || (gaplen>=10.0 && segcos>0.9 && concos1>0.9 && concos2>0.9 ) ) {  // far: everything in the same direction
 
         // add this segment
         std::cout << "  ==> connect node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
@@ -412,6 +434,7 @@ namespace reco {
     std::vector< Path_t* > selected_v;
     std::vector<float> path_dist_ratio_v;
     std::vector<float> selected_pathlen_v;
+    std::vector<float> selected_enddist_v;
     float min_pathdist_ratio = 1.0e9;
     path_dist_ratio_v.reserve( leaf_groups.size() );
     for ( auto it=leaf_groups.begin(); it!=leaf_groups.end(); it++ ) {
@@ -422,6 +445,7 @@ namespace reco {
       std::vector< float > seglen_v;
       pathlen_v.reserve(it->second.size());
       seglen_v.reserve(it->second.size());
+
       int minpath_idx = -1;
       float minpathlen = 1e9;
       
@@ -480,12 +504,14 @@ namespace reco {
         end_dist += dx*dx;
       }
       end_dist = sqrt(end_dist);
+      selected_enddist_v.push_back( end_dist );      
       
       float pathdist_ratio = 0.;
       if ( end_dist>0 ) {
         pathdist_ratio = pathlen_v[max_segfrac_idx]/end_dist;
       }
       path_dist_ratio_v.push_back( pathdist_ratio );
+
 
       if ( pathdist_ratio>0 && pathdist_ratio<min_pathdist_ratio ) {
         min_pathdist_ratio = pathdist_ratio;
@@ -503,12 +529,17 @@ namespace reco {
     // choose among the best of the best?
     // the minimum ratio of path-length to 
     float min_track_path_dist_ratio = 1e9;
+    float max_track_dist = 0.;
     int min_max_len_idx = -1;
     for ( size_t i=0; i<selected_v.size(); i++ ) {
       if ( path_dist_ratio_v[i]>=1.0 && path_dist_ratio_v[i]<min_pathdist_ratio+0.2 ) {
-        if ( min_track_path_dist_ratio>path_dist_ratio_v[i] ) {
+        // if ( min_track_path_dist_ratio>path_dist_ratio_v[i] ) {
+        //   min_max_len_idx = i;
+        //   min_track_path_dist_ratio = path_dist_ratio_v[i];
+        // }
+        if ( max_track_dist<selected_enddist_v[i] ) {
+          max_track_dist = selected_enddist_v[i];
           min_max_len_idx = i;
-          min_track_path_dist_ratio = path_dist_ratio_v[i];
         }
       }
     }
@@ -560,6 +591,111 @@ namespace reco {
 
       evout_track.emplace_back( std::move(lltrack) );
     }//end of loop over tracks
+    
+  }
+
+  /**
+   *
+   * intended to be used after making tracks from keypoints.
+   * mark existing segments in paths as "used"
+   * 
+   */
+  void TrackClusterBuilder::_buildTracksFromSegments()
+  {
+
+    // mark segments used
+    int unused = 0;
+    std::vector<int> used_v( _segment_v.size(), 0 );
+    for ( auto const& path : _track_proposal_v ) {
+      for ( auto const& pnode : path ) {
+        used_v[ pnode->segidx ] = 1;
+      }
+    }
+
+    // make seginfo
+    struct UnusedSeg_t {
+      int segidx;
+      float dwall;
+      std::vector<float> pos;
+      bool operator<( const UnusedSeg_t& rhs ) const {
+        if ( dwall<rhs.dwall ) return true;
+        return false;
+      };
+    };
+
+    std::vector< UnusedSeg_t > seglist_v;
+    seglist_v.reserve( _segment_v.size() );
+
+    for ( int iseg=0; iseg<(int)used_v.size(); iseg++ ) {
+      if ( used_v[iseg]==1 ) continue;
+      UnusedSeg_t seginfo;
+      seginfo.segidx = iseg;
+
+      int btype1 = 0;
+      int btype2 = 0;
+      float dwall1 = ublarcvapp::dwall_noAC( _segment_v[iseg].start, btype1 );
+      float dwall2 = ublarcvapp::dwall_noAC( _segment_v[iseg].end,   btype2 );
+
+      seginfo.dwall =  ( dwall1<dwall2 ) ? dwall1: dwall2;
+      if ( dwall1<dwall2 ) {
+        seginfo.pos = _segment_v[iseg].start;
+      }
+      else {
+        seginfo.pos = _segment_v[iseg].end;
+      }
+      seglist_v.push_back( seginfo );
+    }
+
+    std::sort( seglist_v.begin(), seglist_v.end() );
+    LARCV_DEBUG() << "number of (sorted) unused segments: " << seglist_v.size() << std::endl;
+
+    bool something2run = true;
+    int nsegtracks_made = 0;
+    while (something2run) {
+
+      // choose which segment to run
+      something2run = false;
+      UnusedSeg_t* seg2run = nullptr;
+      
+      for ( auto& seginfo : seglist_v ) {
+        if ( seginfo.dwall < 30.0 && used_v[seginfo.segidx]==0 ) {
+          // unused
+          seg2run = &seginfo;
+          something2run = true;
+          break;
+        }
+      }
+
+      // nothing to run
+      if ( something2run ) {
+        // number of tracks already made
+        LARCV_DEBUG() << "Make track from segment[" << seg2run->segidx << "] dwall=" << seg2run->dwall
+                      << " pos=(" << seg2run->pos[0] << "," << seg2run->pos[1] << "," << seg2run->pos[2] << ")"
+                      << std::endl;
+        
+                         
+        int ntracksmade = _track_proposal_v.size();              
+        buildTracksFromPoint( seg2run->pos );
+        used_v[seg2run->segidx] = 1;
+
+        // number of tracks made
+        int nmade = (int)_track_proposal_v.size()-ntracksmade;
+        nsegtracks_made += nmade;
+        for ( int itrack=ntracksmade; itrack<(int)_track_proposal_v.size(); itrack++ ) {
+          auto& path = _track_proposal_v.at(itrack);
+          for ( auto &pnode : path ) {
+            used_v[pnode->segidx] = 1;
+          }
+        }
+      }
+      else {
+        LARCV_DEBUG() << "No segment to run" << std::endl;
+      }
+      LARCV_DEBUG() << "[entry to continue]" << std::endl;
+      //std::cin.get();
+    }
+
+    LARCV_DEBUG() << "number of tracks made via segment seeds: " << nsegtracks_made << std::endl;
     
   }
   

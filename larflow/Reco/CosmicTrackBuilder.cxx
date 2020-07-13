@@ -15,18 +15,27 @@ namespace reco {
                                     larlite::storage_manager& ioll )
   {
 
-    // get clusters, pca-axis
-    std::string producer = "trackprojsplit_full";
+    clear();
     
-    larlite::event_larflowcluster* ev_cluster
-      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
-    larlite::event_pcaxis* ev_pcaxis
-      = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
+    // get clusters, pca-axis
+    // std::vector<std::string> producer_v
+    //   = { "trackprojsplit_full",
+    //       "trackprojsplit_wcfilter" };
+    std::vector<std::string> producer_v
+      = { "trackprojsplit_full" };
 
-    loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+
+    for ( auto const& producer : producer_v ) {
+      larlite::event_larflowcluster* ev_cluster
+        = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
+      larlite::event_pcaxis* ev_pcaxis
+        = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
+      loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+    }
+    
     buildNodeConnections();
 
-    // get keypoints
+    // make tracks using keypoints
     std::string producer_keypoint = "keypointcosmic";
     larlite::event_larflow3dhit* ev_keypoint
       = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
@@ -38,6 +47,11 @@ namespace reco {
       buildTracksFromPoint( startpt );
     }
 
+    // make tracks using unused segments
+    _buildTracksFromSegments();
+
+    
+    
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
 
@@ -74,6 +88,8 @@ namespace reco {
 
     // save boundary matches, one set per track
     std::vector<BoundaryAna_t> track_boundary_v(ev_cosmic->size());
+
+    const float contained_dist = 10;
       
     for ( int itrack=0; itrack<(int)ev_cosmic->size(); itrack++ ) {
 
@@ -98,12 +114,12 @@ namespace reco {
       }
 
       // check non anode/cathode boundaries
-      if ( 116.0-fabs(track.Vertex()(1))<5.0
-           || track.Vertex()(2)<5.0
-           || track.Vertex()(2)>1031.0
-           || 116.0-fabs(track.End()(1))<5.0
-           || track.End()(2)<5.0
-           || track.End()(2)>1031.0 )  {
+      if ( 116.0-fabs(track.Vertex()(1))<contained_dist
+           || track.Vertex()(2)<contained_dist
+           || track.Vertex()(2)>1036-contained_dist
+           || 116.0-fabs(track.End()(1))<contained_dist
+           || track.End()(2)<contained_dist
+           || track.End()(2)>1036.0-contained_dist )  {
         ba.num_ends_on_boundary = 1;
         LARCV_DEBUG() << "track is already near TPC boundary" << std::endl;
         continue;
@@ -137,8 +153,8 @@ namespace reco {
                     << std::endl;
       
       // does one of them work
-      if ( (fabs(dwall_min_at_scb)<2.0 && min_at_scb_valid )
-           || (fabs(dwall_max_at_scb)<2.0 && max_at_scb_valid ) ) {
+      if ( (fabs(dwall_min_at_scb)<contained_dist && min_at_scb_valid )
+           || (fabs(dwall_max_at_scb)<contained_dist && max_at_scb_valid ) ) {
         ba.num_ends_on_boundary = 1;
 
         if ( min_at_scb_valid && max_at_scb_valid ) {
@@ -229,6 +245,11 @@ namespace reco {
         evout_contained_track->emplace_back( std::move(cptrack) );
       }
     }
+
+    LARCV_DEBUG() << "input cosmics=" << ev_cosmic->size() << "; "
+                  << "boundary=" << evout_boundary_track->size() << "; "
+                  << "contained=" << evout_contained_track->size()
+                  << std::endl;
     
   }
 

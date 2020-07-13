@@ -159,8 +159,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             
     # TRACK RECO
     for name,track_producer,zrgb in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)"),
-                                ("CTRK","containedcosmic","rgb(100,0,50)"),
-                                ("NUTRK","nutrack","rgb(0,100,50)")]:
+                                     ("CTRK","containedcosmic","rgb(100,0,50)"),
+                                     ("NUTRK","nutrack","rgb(0,100,50)")]:
         if name in ["NUTRK"]:
             continue
         ev_track = io.get_data(larlite.data.kTrack,track_producer)

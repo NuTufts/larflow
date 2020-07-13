@@ -118,7 +118,7 @@ namespace reco {
     _cosmic_track_builder.process( iolcv, ioll );
 
     // MULTI-PRONG INTERNAL RECO
-    //multiProngReco( iolcv, ioll );
+    multiProngReco( iolcv, ioll );
     
     // Single particle interactions
 
