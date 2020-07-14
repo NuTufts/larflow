@@ -33,22 +33,19 @@ particle_names = {
     111: "pi_0",
     211: "pi_+/-"
 }
-colors = {
-    11: 1,   # electron
-    13: 2,   # muon
-    2212: 3, # proton
-    22: 4,   # photon
-    111: 5,  # pi_0
-    211: 6,  # pi_+/- 
-}
+colors = {}
 
 if (args.visualize != None) or args.vis_uneven:
     colormap = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
     '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
     '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
 
-    for key in colors:
-        colors[key] = colormap[colors[key]%len(colormap)]
+    keys = particle_names.keys()
+    keys.sort()
+    idx = 0
+    for key in keys:
+        colors[key] = colormap[idx%len(colormap)]
+        idx += 1
 
 IMG_WIDTH  = 3456
 IMG_HEIGHT = 1008
