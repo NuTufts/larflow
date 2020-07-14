@@ -21,7 +21,25 @@
 
 namespace larflow {
 
+  /**
+   * clear the containers we fill when we run process
+   *
+   */
+  void PrepMatchTriplets::clear()
+  {
 
+    _imgmeta_v.clear();
+    _sparseimg_vv.clear();
+    _triplet_v.clear();
+    _truth_v.clear();
+    _truth_2plane_v.clear();
+    _weight_v.clear();
+    _flowdir_v.clear();
+    _triarea_v.clear();
+    _pos_v.clear();
+    
+  }
+  
   /**
    * convenience function that gets the data needed from an larcv::IOManager instance
    * and runs the process method.

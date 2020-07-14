@@ -47,42 +47,31 @@ namespace voxelizer {
   }
   
   /**
-   * takes in precomputed triplet data and outputs voxel data in the form of a python dict
-   * contents of the dictionary:
-   *  dict["voxcoord"] = (Nv,3) numpy int array; Nv (x,y,z) voxel coordinate
-   *  dict["voxlabel"]  = (Nv) numpy int array; 1 if truth voxel, 0 otherwise. 
-   *  dict["trip2vidx"] = (Nt) numpy int array; Nt voxel indices referencing the "coord" array
-   *  dict["vox2trips_list"] = List of length Nv with (Mi) numpy int arrays. Each array contains triplet index list to combine into the voxel.
-   * 
+   * takes in precomputed triplet data and saves filled voxels and maps between voxels and triplets
+   *
    * inputs:
    * @param[in] triplet_data Instance of triplet data, assumed to be filled already
-   * @return Python dictionary as described above. Ownership is transferred to calling namespace.
    *
    */
-  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::PrepMatchTriplets& triplet_data )
+  void VoxelizeTriplets::make_voxeldata( const larflow::PrepMatchTriplets& triplet_data )
   {
-
-    if ( !_setup_numpy ) {
-      import_array1(0);
-      _setup_numpy = true;
-    }
     
     // first we need to define the voxels that are filled    
-    std::set< std::array<int,3> > voxel_set;
+    _voxel_set.clear();
     
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
       const std::vector<float>& pos = triplet_data._pos_v[itriplet];
       std::array<int,3> coord;
       for (int i=0; i<3; i++)
         coord[i] = get_axis_voxel(i,pos[i]);
-      voxel_set.insert( coord );        
+      _voxel_set.insert( coord );        
     }
 
     // now we assign voxel to an index
-    std::map< std::array<int,3>, int > voxel_list; /// map from voxel coordinate to voxel index
+    _voxel_list.clear();
     int idx=0;
-    for ( auto& coord : voxel_set ) {
-      voxel_list[coord] = idx;
+    for ( auto& coord : _voxel_set ) {
+      _voxel_list[coord] = idx;
       idx++;
     }
     int nvidx = idx;    
@@ -90,33 +79,59 @@ namespace voxelizer {
     LARCV_INFO() << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets" << std::endl;
 
     // assign triplets to voxels and vice versa
-    std::vector< std::vector<int> > voxelidx_to_tripidxlist( nvidx ); // voxel to triplet vector
-    std::vector<int> trip2voxelidx( triplet_data._triplet_v.size(), 0); // triplet to voxel
+    _voxelidx_to_tripidxlist.clear();
+    _voxelidx_to_tripidxlist.resize(nvidx);
+    _trip2voxelidx.clear();
+    _trip2voxelidx.resize( triplet_data._triplet_v.size(), 0 );
     
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
       const std::vector<float>& pos = triplet_data._pos_v[itriplet];
       std::array<int,3> coord;
       for (int i=0; i<3; i++)
         coord[i] = get_axis_voxel(i,pos[i]);
-      auto it=voxel_list.find(coord);
-      if ( it==voxel_list.end() ) {
+      auto it=_voxel_list.find(coord);
+      if ( it==_voxel_list.end() ) {
         throw std::runtime_error("could not find a voxel we defined!!");
       }
       
       int voxelidx = it->second;
-      trip2voxelidx[itriplet] = voxelidx;
-      voxelidx_to_tripidxlist[voxelidx].push_back( itriplet );
+      _trip2voxelidx[itriplet] = voxelidx;
+      _voxelidx_to_tripidxlist[voxelidx].push_back( itriplet );
     }
+    
+  }
 
+  /**
+   * takes in precomputed triplet data and outputs voxel data in the form of a python dict
+   * contents of the dictionary:
+   *  dict["voxcoord"] = (Nv,3) numpy int array; Nv (x,y,z) voxel coordinate
+   *  dict["voxlabel"]  = (Nv) numpy int array; 1 if truth voxel, 0 otherwise. 
+   *  dict["trip2vidx"] = (Nt) numpy int array; Nt voxel indices referencing the "coord" array
+   *  dict["vox2trips_list"] = List of length Nv with (Mi) numpy int arrays. Each array contains triplet index list to combine into the voxel.
+   * 
+   * uses member containers filled in make_voxeldata()
+   *
+   * inputs:
+   * @return Python dictionary as described above. Ownership is transferred to calling namespace.
+   *
+   */
+  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::PrepMatchTriplets& triplet_data )
+  {
+    
     // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }       
 
-
+    int nvidx = (int)_voxel_set.size();
+    
     // first the voxel coordinate array
     npy_intp* coord_dims = new npy_intp[2];
     coord_dims[0] = (int)nvidx;
     coord_dims[1] = (int)_ndims;
     PyArrayObject* coord_array = (PyArrayObject*)PyArray_SimpleNew( 2, coord_dims, NPY_LONG );
-    for ( auto it=voxel_list.begin(); it!=voxel_list.end(); it++ ) {
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
       int vidx = it->second;
       const std::array<int,3>& coord = it->first;
       for (int j=0; j<_ndims; j++)
@@ -129,13 +144,13 @@ namespace voxelizer {
     vlabel_dims[0] = (int)nvidx;
     PyArrayObject* vlabel_array = (PyArrayObject*)PyArray_SimpleNew( 1, vlabel_dims, NPY_LONG );
     int num_true_voxels = 0;
-    for ( auto it=voxel_list.begin(); it!=voxel_list.end(); it++ ) {
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
       int vidx = it->second;
       int truthlabel = 0.;
 
       if ( has_truth ) {
         // is there a true pixel?
-        std::vector<int>& tripidx_v = voxelidx_to_tripidxlist[vidx];
+        std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx];
         for ( auto const& tidx : tripidx_v ) {
           if ( triplet_data._truth_v[tidx]==1 ) {
             truthlabel = 1;
@@ -149,10 +164,10 @@ namespace voxelizer {
 
     // the triplet to voxel index array
     npy_intp* trip2vidx_dims = new npy_intp[1];
-    trip2vidx_dims[0] = (int)trip2voxelidx.size();
+    trip2vidx_dims[0] = (int)_trip2voxelidx.size();
     PyArrayObject* trip2vidx_array = (PyArrayObject*)PyArray_SimpleNew( 1, trip2vidx_dims, NPY_LONG );
-    for (int itriplet=0; itriplet<(int)trip2voxelidx.size(); itriplet++ ) {
-      *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)trip2voxelidx[itriplet];
+    for (int itriplet=0; itriplet<(int)_trip2voxelidx.size(); itriplet++ ) {
+      *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)_trip2voxelidx[itriplet];
     }
 
     // finally the list of triplet indices for each voxel
@@ -161,7 +176,7 @@ namespace voxelizer {
 
       // make the array
       npy_intp* tidx_dims = new npy_intp[1];
-      std::vector<int>& tripidx_v = voxelidx_to_tripidxlist[vidx];
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx];
       tidx_dims[0] = (int)tripidx_v.size();
       PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 1, tidx_dims, NPY_LONG );
       for ( int i=0; i<tidx_dims[0]; i++ ) {
@@ -199,6 +214,33 @@ namespace voxelizer {
     return d;
   }
 
+  /**
+   * calls make_voxeldata_dict with internal triplet maker data
+   * 
+   * @return Python dictionary as described above. Ownership is transferred to calling namespace.
+   *
+   */
+  PyObject* VoxelizeTriplets::make_voxeldata_dict()
+  {
+    return make_voxeldata_dict( _triplet_maker );
+  }
+  
+  /**
+   * process data from image to make triplet and voxel data
+   *
+   */
+  void VoxelizeTriplets::process_fullchain( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+
+    _triplet_maker.clear();
+
+    const float adc_threshold = 10.;
+    const bool calc_triplet_pos3d = true;
+    _triplet_maker.process( iolcv, "wire", "wire", adc_threshold, calc_triplet_pos3d );
+
+    make_voxeldata( _triplet_maker );
+    
+  }
 
 }
 }
