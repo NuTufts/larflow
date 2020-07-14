@@ -16,18 +16,9 @@ namespace spatialembed {
 
 SpatialEmbedData::SpatialEmbedData( ) { 
     _setup_numpy = false;
-
-    num_instances_0 = 15;
-    num_instances_1 = 0;
-    num_instances_2 = 0;  
-
 }
 
 SpatialEmbedData::~SpatialEmbedData() { }
-
-void SpatialEmbedData::num_instances_change(int num){
-    num_instances_0 = num;
-}
 
 
 void SpatialEmbedData::processImageData( larcv::EventImage2D* ev_adc, double threshold)
@@ -72,56 +63,7 @@ void SpatialEmbedData::processLabelData(larcv::IOManager& iolcv, larlite::storag
     larflow::spatialembed::PrepMatchEmbed prepembed = larflow::spatialembed::PrepMatchEmbed();
     prepembed.process(iolcv, ioll, preptriplet);
 
-    types_t.clear();
-    instances_t.clear();
-
-    _setup_numpy = false; // reset
-
-    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> tids_from_neutrino 
-        = mcpg.getNeutrinoPrimaryParticles();
-
-
-    // for (int plane = 0; plane < 3; plane++){
-    //     std::vector<int> types;
-    //     std::vector<std::vector<larflow::spatialembed::SpatialEmbedData::InstancePix>> instance_pixels;
-
-    //     types_t.push_back(types);
-    //     instances_t.push_back(instance_pixels);
-    // }
-    // return;
-
-
-    int num_instances = tids_from_neutrino.size();
-    for (int plane = 0; plane < 3; plane++){
-
-        std::vector<int> types;
-        std::vector<std::vector<larflow::spatialembed::SpatialEmbedData::InstancePix>> instance_pixels;
-
-        for (int node = 0; node < num_instances; node++){ // loop over instances
-
-            try{ 
-                std::vector<larflow::spatialembed::AncestorIDPix_t> pixlist 
-                    = prepembed.get_instance_pixlist(plane, tids_from_neutrino[node]->tid);
-                
-                types.push_back(tids_from_neutrino[node]->pid);  
-                
-                std::vector<larflow::spatialembed::SpatialEmbedData::InstancePix> pixels;
-                int num_pixels = pixlist.size();
-                for (int pixel = 0; pixel < num_pixels; pixel++ ){
-                    larflow::spatialembed::SpatialEmbedData::InstancePix pix {pixlist[pixel].row, pixlist[pixel].col};
-                    pixels.push_back(pix);
-                }
-
-                instance_pixels.push_back(pixels);
-            } catch (const std::runtime_error& e){
-                std::cout << "ID " << tids_from_neutrino[node]->tid << 
-                          " does not exist in plane " << plane << " ";
-                std::cout << "(" << e.what() << ")" << std::endl;
-            }
-        }
-        types_t.push_back(types);
-        instances_t.push_back(instance_pixels);
-    }
+    processLabelData(&mcpg, &prepembed);
 }
 
 void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcpg,
@@ -180,13 +122,14 @@ PyObject* SpatialEmbedData::coord_t_pyarray(int plane){
 
     npy_intp* dims = new npy_intp[2];
     dims[0] = coord_t[plane].size();
-    dims[1] = 2;
+    dims[1] = 3;
 
     PyArrayObject* array = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_FLOAT);
 
     for (int idx=0; idx < dims[0]; idx++){
         *((float*)PyArray_GETPTR2(array, idx, 0)) = coord_t[plane][idx].row;
         *((float*)PyArray_GETPTR2(array, idx, 1)) = coord_t[plane][idx].col;
+        *((int*)PyArray_GETPTR2(array, idx, 2)) = coord_t[plane][idx].batch;
     }
 
     return (PyObject*) array;
@@ -223,7 +166,7 @@ int SpatialEmbedData::num_instances_plane(int plane){
     return instances_t[plane].size();
 }
 
-int SpatialEmbedData::type(int plane, int instance){
+int SpatialEmbedData::typeof_instance(int plane, int instance){
     if ( !_setup_numpy ){
         import_array1(0);
         _setup_numpy = true;

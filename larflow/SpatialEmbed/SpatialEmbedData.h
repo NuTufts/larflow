@@ -53,12 +53,6 @@ public:
         int col;
     };
 
-    int num_instances_0;
-    int num_instances_1;
-    int num_instances_2;  
-
-    void num_instances_change(int num);
-
     void processImageData( larcv::EventImage2D* ev_adc, double threshold );
 
 
@@ -79,13 +73,14 @@ public:
     PyObject* coord_t_pyarray(int plane);
     PyObject* feat_t_pyarray(int plane);
     PyObject* instance(int plane, int instance);
-    int type(int plane, int instance);
+    int typeof_instance(int plane, int instance);
 
 
 private:
 
     std::vector<std::vector<CoordPix>> coord_t; // vector length 3: coord_plane0, coord_plane1, coord_plane2. each coord_plane contains list of pixels
     std::vector<std::vector<double>> feat_t;  // vector length 3: feat_plane0, feat_plane1, feat_plane2. each feat_plane contains list of pixel values
+    
     
     std::vector<std::vector<int>> types_t; // vector length 3, one for each plane
                                            // list of instance types

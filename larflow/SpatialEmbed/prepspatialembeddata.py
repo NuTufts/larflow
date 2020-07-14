@@ -49,16 +49,15 @@ start = time.time()
 nrun = 0
 
 
-tmp = rt.TFile(args.output, "recreate")
-data = larflow.spatialembed.SpatialEmbedData()
-data.num_instances_0 = 1
-
+root_file = rt.TFile(args.output, "RECREATE")
 output_tree = rt.TTree("trainingdata", "Spatial Embed Training Data")
-# output_tree.Branch('DataBranch', 'larflow::spatialembed::SpatialEmbedData', data)
+
+data = larflow.spatialembed.SpatialEmbedData()
 output_tree.Branch('DataBranch', data)
+# output_tree.Branch('DataBranch', 'larflow::spatialembed::SpatialEmbedData', data)
 
 
-for ientry in xrange( 3 ):
+for ientry in xrange( nentries ):
 
     print 
     print "=========================="
@@ -68,29 +67,29 @@ for ientry in xrange( 3 ):
 
 
     # Process Image data    
+
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
     data.processImageData(ev_adc, 10)
 
     # Process Instance Data
-    # mcpg = ublarcvapp.mctools.MCPixelPGraph()
-    # mcpg.set_adc_treename( "wiremc" )
-    # mcpg.buildgraph( iolcv, ioll )
+    mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    mcpg.set_adc_treename( "wiremc" )
+    mcpg.buildgraph( iolcv, ioll )
 
+    preptriplet = larflow.PrepMatchTriplets()
+    prepembed = larflow.spatialembed.PrepMatchEmbed()
+    prepembed.process( iolcv, ioll, preptriplet )
 
-    # preptriplet = larflow.PrepMatchTriplets()
-    # prepembed = larflow.spatialembed.PrepMatchEmbed()
+    data.processLabelData( mcpg, prepembed )
 
-    # prepembed.process( iolcv, ioll, preptriplet )
+    # data.processLabelData(iolcv, ioll)
 
-    data.processLabelData(iolcv, ioll)
-    # data.processLabelData( mcpg, prepembed )
-
-    # for plan in xrange(3):
-    #     print data.num_instances_plane(plan)
+    for plan in xrange(3):
+        print data.num_instances_plane(plan)
     
     output_tree.Fill()
 
-
+root_file.cd()
 output_tree.Write()
 
 print "=== FIN =="

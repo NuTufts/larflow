@@ -59,6 +59,7 @@ for ientry in xrange(nentries):
         for instance_node in tids_from_neutrino:
             print "tid: ", instance_node.tid, ", pid: ", instance_node.pid
             pixels = prepembed.get_instance_pixlist(plane, instance_node.tid)
+            
             rows.append(map(lambda node: node.row, pixels))
             cols.append(map(lambda node: node.col, pixels))          
 
