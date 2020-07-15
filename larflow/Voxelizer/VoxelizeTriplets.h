@@ -18,20 +18,20 @@
 namespace larflow {
 namespace voxelizer {
 
-  class VoxelizeTriplets : public larcv::larcv_base {
+  class VoxelizeTriplets {
 
   public:
 
-    VoxelizeTriplets()
-      : larcv::larcv_base("VoxelizeTriplets")
-      {};
-    
+    VoxelizeTriplets();
     VoxelizeTriplets( std::vector<float> origin,
                       std::vector<float> dim_len,
                       float voxel_size );
     ~VoxelizeTriplets() {};
 
-    void process_fullchain( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void process_fullchain( larcv::IOManager& iolcv,
+                            std::string adc_producer,
+                            std::string chstatus_producer,
+                            bool has_mc=false );
 
   protected:
 
@@ -40,6 +40,7 @@ namespace voxelizer {
     std::vector<float> _len;
     float _voxel_size;
     std::vector<int>   _nvoxels;
+    void _define_voxels();
 
     std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
     std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
@@ -63,7 +64,10 @@ namespace voxelizer {
     const std::vector<float>& get_dim_len() const { return _len; };
     float get_voxel_size() const { return _voxel_size; };
 
-
+    
+  protected:
+    
+    
   private:
 
     static bool _setup_numpy;

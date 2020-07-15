@@ -3,27 +3,58 @@
 #include <iostream>
 #include <sstream>
 
+#include "LArUtil/LArProperties.h"
+
 namespace larflow {
 namespace voxelizer {
 
   bool VoxelizeTriplets::_setup_numpy = false;
+
+  // constructor using microboone as defaults
+  VoxelizeTriplets::VoxelizeTriplets()
+  {
+
+    _origin.clear();
+    _len.clear();
+    
+    const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
+    
+    _origin.resize(3,0);
+    _origin[0] = (2399-3200)*0.5*driftv;    
+    _origin[1] = -120.0;
+    _origin[2] = 0;
+ 
+    _len.resize(3,0);
+    _len[0] = 1010*6*0.5*driftv;    
+    _len[1] = 2.0*120.0;
+    _len[2] = 1037.0;
+
+    _voxel_size = 0.3;
+    
+    _define_voxels();
+  }
   
   VoxelizeTriplets::VoxelizeTriplets( std::vector<float> origin,
                                       std::vector<float> dim_len,
                                       float voxel_size ) 
-    : larcv::larcv_base("VoxelizeTriplets"),
-    _origin(origin),
+    : _origin(origin),
     _len(dim_len),
     _voxel_size(voxel_size)
   {
-    _ndims = (int)origin.size();
+    _define_voxels();
+  }
+
+
+  void VoxelizeTriplets::_define_voxels()
+  {
+    _ndims = (int)_origin.size();
     _nvoxels.resize(_ndims,0);
 
     std::stringstream ss;
     ss << "(";
     for (int v=0; v<_ndims; v++) {
-      int nv = (_origin[v] + _len[v])/voxel_size;
-      if ( fabs(nv*_voxel_size-dim_len[v])>0.001 )
+      int nv = (_len[v])/_voxel_size;
+      if ( fabs(nv*_voxel_size-_len[v])>0.001 )
         nv++;
       _nvoxels[v] = nv;
       ss << nv;
@@ -31,17 +62,34 @@ namespace voxelizer {
     }
     ss << ")";
 
-    LARCV_NORMAL() << "Number of voxels defined: " << ss.str() << std::endl;
+    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "
+              << "Number of voxels defined: " << ss.str() << ", ndims=" << _ndims
+              << std::endl;
+    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
+              << "BOUNDS: [" << _origin[0] << "," << _origin[0]+_len[0] << "] "
+              << "[" << _origin[1] << "," << _origin[1]+_len[1] << "] "
+              << "[" << _origin[2] << "," << _origin[2]+_len[2] << "] "
+              << std::endl;    
   }
-
+  
   int VoxelizeTriplets::get_axis_voxel( int axis, float coord ) const {
 
-    if ( axis<0 || axis>=_ndims )
-      throw std::runtime_error("[VoxelizeTriplets::get_axis_voxel] invalid dim");
+    if ( axis<0 || axis>=_ndims ) {
+      std::stringstream ss;
+      ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] invalid dim given: " << axis << " (_ndims=" << _ndims << ")" << std::endl;
+      throw std::runtime_error(ss.str());
+    }
     
     int vidx = (coord-_origin[axis])/_voxel_size;
-    if (vidx<0 || vidx>=_nvoxels[axis] )
-      throw std::runtime_error("[VoxelizeTriplets::get_axis_voxel] coordinate given is out of bounds");
+    if (vidx<0 || vidx>=_nvoxels[axis] ) {
+      std::stringstream ss;
+      ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "]";
+      ss << " dim[" << axis << "] coordinate[" << coord << "] "
+         << "given is out of bounds [" << _origin[axis] << "," << _origin[axis]+_len[axis] << "]"
+         << " vidx=" << vidx << " bounds[0," << _nvoxels[axis] << ")"
+         << std::endl;
+      throw std::runtime_error(ss.str());
+    }
 
     return vidx;
   }
@@ -76,7 +124,10 @@ namespace voxelizer {
     }
     int nvidx = idx;    
 
-    LARCV_INFO() << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets" << std::endl;
+    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
+              << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
+              << " fillfrac=" << float(nvidx)/((float)_nvoxels[0]*(float)_nvoxels[1]*(float)_nvoxels[2])*100.0 << "%"
+              << std::endl;
 
     // assign triplets to voxels and vice versa
     _voxelidx_to_tripidxlist.clear();
@@ -120,6 +171,7 @@ namespace voxelizer {
     
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
@@ -137,6 +189,7 @@ namespace voxelizer {
       for (int j=0; j<_ndims; j++)
         *((long*)PyArray_GETPTR2( coord_array, (int)vidx, j)) = (long)coord[j];
     }
+    std::cout << "  made coord array" << std::endl;
 
     // the voxel truth label
     bool has_truth = triplet_data._truth_v.size()==triplet_data._triplet_v.size();
@@ -161,6 +214,7 @@ namespace voxelizer {
       }
       *((long*)PyArray_GETPTR1( vlabel_array, vidx )) = truthlabel;
     }
+    std::cout << "  made truth array" << std::endl;    
 
     // the triplet to voxel index array
     npy_intp* trip2vidx_dims = new npy_intp[1];
@@ -169,6 +223,7 @@ namespace voxelizer {
     for (int itriplet=0; itriplet<(int)_trip2voxelidx.size(); itriplet++ ) {
       *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)_trip2voxelidx[itriplet];
     }
+    std::cout << "  made triplet-to-voxelindex array" << std::endl;    
 
     // finally the list of triplet indices for each voxel
     PyObject* tripidx_pylist = PyList_New( nvidx );
@@ -189,6 +244,7 @@ namespace voxelizer {
       }
       Py_DECREF( array );
     }
+    std::cout << "  made voxel-index to triplet-list list" << std::endl;        
 
     // the dictionary
     PyObject *d = PyDict_New();
@@ -202,14 +258,15 @@ namespace voxelizer {
     PyDict_SetItem( d, key_trip2vidx, (PyObject*)trip2vidx_array );
     PyDict_SetItem( d, key_vox2trips, (PyObject*)tripidx_pylist );
 
+    std::cout << "  dereference" << std::endl;
     Py_DECREF( key_coord );
     Py_DECREF( key_label );
     Py_DECREF( key_trip2vidx );
     Py_DECREF( key_vox2trips );
-    Py_DECREF( coord_array );
-    Py_DECREF( vlabel_array );
-    Py_DECREF( trip2vidx_array );
-    Py_DECREF( tripidx_pylist );
+    // Py_DECREF( coord_array );
+    // Py_DECREF( vlabel_array );
+    // Py_DECREF( trip2vidx_array );
+    // Py_DECREF( tripidx_pylist );
     
     return d;
   }
@@ -229,16 +286,30 @@ namespace voxelizer {
    * process data from image to make triplet and voxel data
    *
    */
-  void VoxelizeTriplets::process_fullchain( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  void VoxelizeTriplets::process_fullchain( larcv::IOManager& iolcv,
+                                            std::string adc_producer,
+                                            std::string chstatus_producer,
+                                            bool has_mc )
   {
 
     _triplet_maker.clear();
 
     const float adc_threshold = 10.;
     const bool calc_triplet_pos3d = true;
-    _triplet_maker.process( iolcv, "wire", "wire", adc_threshold, calc_triplet_pos3d );
+    _triplet_maker.process( iolcv, adc_producer, chstatus_producer, adc_threshold, calc_triplet_pos3d );
+
+    if ( has_mc ) {
+      larcv::EventImage2D* ev_larflow =    
+        (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
+      _triplet_maker.make_truth_vector( ev_larflow->Image2DArray() );
+    }
 
     make_voxeldata( _triplet_maker );
+
+    // persistancy:
+
+    // save larflow3dhits for visualization
+    // save class in ttree data for training
     
   }
 
