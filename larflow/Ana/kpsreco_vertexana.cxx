@@ -102,8 +102,9 @@ int main( int nargs, char** argv )
   ev_ana->Branch("n_near_true_vtx_dl",&n_near_true_vtx_dl,"n_near_true_vtx_dl/I");
   ev_ana->Branch("n_false_dl",&n_false_dl,"n_false_dl/I");
   
-  ev_ana->Branch("min_dist_to_vtx", &min_dist_to_vtx, "min_dist_to_vtx/F" );
-  ev_ana->Branch("min_dist_to_vtx_dl", &min_dist_to_vtx_dl, "min_dist_to_vtx_dl/F" );
+  ev_ana->Branch("min_dist_to_vtx",     &min_dist_to_vtx,     "min_dist_to_vtx/F" );
+  ev_ana->Branch("min_dist_to_vtx_dl",  &min_dist_to_vtx_dl,  "min_dist_to_vtx_dl/F" );
+  ev_ana->Branch("min_dist_to_vtx_wct", &min_dist_to_vtx_wct, "min_dist_to_vtx_wct/F" );  
   ev_ana->Branch("true_vtx_qsum",truth_vtx_qsum, "true_vtx_qsum[3]/F" );
 
   // per reco vertex analysis tree
