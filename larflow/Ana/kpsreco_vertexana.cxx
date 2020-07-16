@@ -40,6 +40,8 @@ int main( int nargs, char** argv )
   // outputs
   // 1) ana tfile with ana ttree
   std::string outfilename   = argv[3];
+
+  int ismc                  = std::atoi(argv[4]);
   
   // Load inputs
   larcv::IOManager iocv( larcv::IOManager::kREAD, "larcv", larcv::IOManager::kTickBackward );
@@ -142,8 +144,15 @@ int main( int nargs, char** argv )
     kpreco_ttree->GetEntry(ientry);
 
     // Get neutrino interaction truth
-    lmc.process( ioll );
-    float true_vtx[3] = { lmc._vtx_sce_x, lmc._vtx_sce_y, lmc._vtx_sce_z }; // after space charge correction
+    float true_vtx[3] = { 0 };
+    if ( ismc ) {
+      lmc.process( ioll );
+
+      // true vertex after space charge correction      
+      true_vtx[0] = lmc._vtx_sce_x;
+      true_vtx[1] = lmc._vtx_sce_y;
+      true_vtx[2] = lmc._vtx_sce_z;
+    }
 
     // truth keypoints
     //kpdata.process( iocv, ioll );
@@ -166,11 +175,14 @@ int main( int nargs, char** argv )
     //std::cout << "  number of truth keypoints: " << kpdata.getKPdata().size() << std::endl;
     std::cout << "  number of reco keypoints: " << ev_kpreco->size() << std::endl;
     std::cout << "  number of Wirecell images: " << thrumu_v.size() << std::endl;
-    std::cout << "  true neutrino vertex: (" << true_vtx[0] << "," << true_vtx[1] << "," << true_vtx[2] << ")" << std::endl;
     std::cout << "  number of DL reco vertices: " << ev_pgraph->PGraphArray().size() << std::endl;
-    lmc.printInteractionInfo();
-    //kpdata.printKeypoints();
-    
+    std::cout << "  true neutrino vertex: (" << true_vtx[0] << "," << true_vtx[1] << "," << true_vtx[2] << ")" << std::endl;
+    if ( ismc ) {
+      lmc.printInteractionInfo();
+      //kpdata.printKeypoints();
+    }
+
+    // number of reco vertices
     n_reco = (int)ev_kpreco->size();
     
     // KP Reco loop
@@ -192,46 +204,50 @@ int main( int nargs, char** argv )
 
     // get vertex activity
     // sum charge on the three planes
-    for (int p=0; p<3; p++) truth_vtx_qsum[p] = 0.0;
-    if ( lmc._vtx_tick>adc_v[0].meta().min_y() && lmc._vtx_tick<adc_v[0].meta().max_y() ) {
-      int row = adc_v[0].meta().row( lmc._vtx_tick );
-
-      for (int p=0; p<3; p++ ) {
-
-        if ( lmc._vtx_wire[p]>=adc_v[p].meta().min_x() && lmc._vtx_wire[p]<(int)adc_v[p].meta().max_x() ) {
-          int col = adc_v[p].meta().col( lmc._vtx_wire[p] );
-
-          for (int dr=-3; dr<=3; dr++ ) {
-            int r=row+dr;
-            if ( r<0 || r>=(int)adc_v[p].meta().rows() ) continue;
-            for (int dc=-3; dc<=3; dc++) {
-              int c = col+dc;
-              if (c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
-              if ( adc_v[p].pixel(r,c)>10.0 )
-                truth_vtx_qsum[p] += adc_v[p].pixel(r,c);
-            }//end of col loop
-          }//end of row loop
-        }//end of if valid wire
-      }//end of plane loop
-    }//end of if valid tick
-
-    // get dl vertex info
-    for ( auto const& pgraph : ev_pgraph->PGraphArray() ) {
-      for ( auto const& roi : pgraph.ParticleArray() ) {
-        float dist = 0.;
-        dist += ( roi.X()-true_vtx[0] )*( roi.X()-true_vtx[0] );
-        dist += ( roi.Y()-true_vtx[1] )*( roi.Y()-true_vtx[1] );
-        dist += ( roi.Z()-true_vtx[2] )*( roi.Z()-true_vtx[2] );
-        dist = sqrt(dist);
-        std::cout << "dl vtx: (" << roi.X() << "," << roi.Y() << "," << roi.Z() << ") dist2vtx=" << dist << " cm" << std::endl;
-        if ( min_dist_to_vtx_dl>dist ) {
-          min_dist_to_vtx_dl = dist;
-        }
-        if ( dist<5.0 )
-          n_near_true_vtx_dl++;
-      }
+    if ( ismc ) {
+      for (int p=0; p<3; p++) truth_vtx_qsum[p] = 0.0;
+      if ( lmc._vtx_tick>adc_v[0].meta().min_y() && lmc._vtx_tick<adc_v[0].meta().max_y() ) {
+        int row = adc_v[0].meta().row( lmc._vtx_tick );
+        
+        for (int p=0; p<3; p++ ) {
+          
+          if ( lmc._vtx_wire[p]>=adc_v[p].meta().min_x() && lmc._vtx_wire[p]<(int)adc_v[p].meta().max_x() ) {
+            int col = adc_v[p].meta().col( lmc._vtx_wire[p] );
+            
+            for (int dr=-3; dr<=3; dr++ ) {
+              int r=row+dr;
+              if ( r<0 || r>=(int)adc_v[p].meta().rows() ) continue;
+              for (int dc=-3; dc<=3; dc++) {
+                int c = col+dc;
+                if (c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
+                if ( adc_v[p].pixel(r,c)>10.0 )
+                  truth_vtx_qsum[p] += adc_v[p].pixel(r,c);
+              }//end of col loop
+            }//end of row loop
+          }//end of if valid wire
+        }//end of plane loop
+      }//end of if valid tick
     }
 
+    if ( ismc ) {
+      // get dl vertex info
+      for ( auto const& pgraph : ev_pgraph->PGraphArray() ) {
+        for ( auto const& roi : pgraph.ParticleArray() ) {
+          float dist = 0.;
+          dist += ( roi.X()-true_vtx[0] )*( roi.X()-true_vtx[0] );
+          dist += ( roi.Y()-true_vtx[1] )*( roi.Y()-true_vtx[1] );
+          dist += ( roi.Z()-true_vtx[2] )*( roi.Z()-true_vtx[2] );
+          dist = sqrt(dist);
+          std::cout << "dl vtx: (" << roi.X() << "," << roi.Y() << "," << roi.Z() << ") dist2vtx=" << dist << " cm" << std::endl;
+          if ( min_dist_to_vtx_dl>dist ) {
+            min_dist_to_vtx_dl = dist;
+          }
+          if ( dist<5.0 )
+            n_near_true_vtx_dl++;
+        }
+      }
+    }
+    
     // analysis for reco keypoints
     int ivtx = 0;
     for ( auto const& kpc : *ev_kpreco ) {
@@ -281,31 +297,36 @@ int main( int nargs, char** argv )
 
       // dist to vtx
       dist_to_vertex = 0;
-      for (int i=0; i<3; i++) {
-        dist_to_vertex += (kpc.pos[i]-true_vtx[i])*(kpc.pos[i]-true_vtx[i]);
-      }
-      dist_to_vertex = sqrt(dist_to_vertex);
+      if ( ismc ) {
+        for (int i=0; i<3; i++) {
+          dist_to_vertex += (kpc.pos[i]-true_vtx[i])*(kpc.pos[i]-true_vtx[i]);
+        }
+        dist_to_vertex = sqrt(dist_to_vertex);
 
-      if ( dist_to_vertex < min_dist_to_vtx )
-        min_dist_to_vtx = dist_to_vertex;
+        if ( dist_to_vertex < min_dist_to_vtx )
+          min_dist_to_vtx = dist_to_vertex;
 
-      if ( !iscosmic && dist_to_vertex<min_dist_to_vtx_wct ) {
-        min_dist_to_vtx_wct = dist_to_vertex;
-      }
+        if ( !iscosmic && dist_to_vertex<min_dist_to_vtx_wct ) {
+          min_dist_to_vtx_wct = dist_to_vertex;
+        }
 
-      if ( dist_to_vertex>5.0 )
-        n_false++;
-      else
-        n_near_true_vtx++;
-
-      if ( !iscosmic ) {
         if ( dist_to_vertex>5.0 )
-          n_false_wct++;
+          n_false++;
         else
-          n_near_true_vtx_wct++;
-      }
+          n_near_true_vtx++;
 
+        if ( !iscosmic ) {
+          if ( dist_to_vertex>5.0 )
+            n_false_wct++;
+          else
+            n_near_true_vtx_wct++;
+        }
+      }
+      else {
+        dist_to_vertex = 0;
+      }
       std::cout << "RecoVtx[" << ivtx << "] score=" << score << " dist-to-vertex=" << dist_to_vertex  << std::endl;
+      
       kp_ana->Fill();
       
     }//end of reco vertex loop
