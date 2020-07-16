@@ -113,7 +113,8 @@ namespace reco {
     
     // COSMIC RECO
     _cosmic_track_builder.clear();
-    _cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
 
@@ -227,7 +228,8 @@ namespace reco {
     const float _maxdist = 2.0;
     const float _minsize = 20;
     const float _maxkd   = 100;
-    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
@@ -241,7 +243,8 @@ namespace reco {
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
     _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
-    _showerkp.set_verbosity( larcv::msg::kDEBUG );
+    //_showerkp.set_verbosity( larcv::msg::kDEBUG );
+    _showerkp.set_verbosity( larcv::msg::kINFO );    
     _showerkp.process( iolcv, ioll );
 
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
@@ -254,7 +257,8 @@ namespace reco {
                                        larlite::storage_manager& ioll )
   {
 
-    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );

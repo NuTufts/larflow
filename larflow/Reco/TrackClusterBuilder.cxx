@@ -340,13 +340,13 @@ namespace reco {
       }
 
       // add this segment
-      std::cout << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
-                << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
-                << "dist=" << gaplen << " "
-                << " seg1-seg2=" << segcos
-                << " seg1-edge=" << concos1
-                << " edge-seg2=" << concos2
-                << std::endl;
+      // std::cout << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
+      //           << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+      //           << "dist=" << gaplen << " "
+      //           << " seg1-seg2=" << segcos
+      //           << " seg1-edge=" << concos1
+      //           << " edge-seg2=" << concos2
+      //           << std::endl;
       
       // criteria for accepting connection
       // ugh, the heuristics ...
@@ -355,9 +355,9 @@ namespace reco {
            || (gaplen>=10.0 && segcos>0.9 && concos1>0.9 && concos2>0.9 ) ) {  // far: everything in the same direction
 
         // add this segment
-        std::cout << "  ==> connect node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
-                  << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
-                  << std::endl;
+        // std::cout << "  ==> connect node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
+        //           << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+        //           << std::endl;
         //std::cin.get();
         
         NodePos_t& node_pair = _nodepos_v[inode_pair];
@@ -443,7 +443,7 @@ namespace reco {
     path_dist_ratio_v.reserve( leaf_groups.size() );
     for ( auto it=leaf_groups.begin(); it!=leaf_groups.end(); it++ ) {
 
-      std::cout << "=== Find mindist subgroup in Leaf Group[" << it->first << "] ===" << std::endl;
+      //std::cout << "=== Find mindist subgroup in Leaf Group[" << it->first << "] ===" << std::endl;
 
       std::vector< float > pathlen_v;
       std::vector< float > seglen_v;
@@ -472,7 +472,7 @@ namespace reco {
           pathdist += dist;
           
         }//end of loop over path segments
-        std::cout << "  Leaf-group[" << it->first << "] path[" << ipath << "] pathlen=" << pathdist << " seglen=" << totseglen << std::endl;
+        //std::cout << "  Leaf-group[" << it->first << "] path[" << ipath << "] pathlen=" << pathdist << " seglen=" << totseglen << std::endl;
         pathlen_v.push_back(pathdist);
         seglen_v.push_back(totseglen);
         if ( pathdist<minpathlen ) {
@@ -480,7 +480,7 @@ namespace reco {
           minpathlen = pathdist;
         }
       }//end of path loop
-      std::cout << " Leaf group minpathlen=" << minpathlen << std::endl;
+      //std::cout << " Leaf group minpathlen=" << minpathlen << std::endl;
       
       // get max seg/path frac out of paths within minimum dist
       int max_segfrac_idx = -1;
@@ -494,7 +494,7 @@ namespace reco {
           }
         }
       }
-      std::cout << " Leaf sub-group maxsegfrac=" << max_segfrac <<" pathidx=" << max_segfrac_idx << std::endl;
+      //std::cout << " Leaf sub-group maxsegfrac=" << max_segfrac <<" pathidx=" << max_segfrac_idx << std::endl;
       selected_v.push_back( it->second.at(max_segfrac_idx) );
       selected_pathlen_v.push_back( pathlen_v[max_segfrac_idx] );
       
@@ -521,9 +521,9 @@ namespace reco {
         min_pathdist_ratio = pathdist_ratio;
       }
       
-      std::cout << "  Leafgroup["  << it->first << "] best path dist between ends: " << end_dist << std::endl;
+      //std::cout << "  Leafgroup["  << it->first << "] best path dist between ends: " << end_dist << std::endl;
       
-      std::cout << "=== End of Leafgroup[" << it->first << "] selection path/dist ratio: " << pathdist_ratio << " len=" << pathlen_v[max_segfrac_idx] << " ===" << std::endl;
+      //std::cout << "=== End of Leafgroup[" << it->first << "] selection path/dist ratio: " << pathdist_ratio << " len=" << pathlen_v[max_segfrac_idx] << " ===" << std::endl;
     }//end of group loop
 
     // so far we've chosen best path from seed point to leaf point,
@@ -551,7 +551,7 @@ namespace reco {
     if ( min_max_len_idx>=0 ) {
       filtered_v.push_back( *selected_v[min_max_len_idx] );
     }
-    std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;    
+    //std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;    
   }
 
   void TrackClusterBuilder::fillLarliteTrackContainer( larlite::event_track& evout_track )
