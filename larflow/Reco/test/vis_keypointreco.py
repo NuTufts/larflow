@@ -53,10 +53,11 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
     io.go_to(entry)
-    
+
+    lfname = treename
     #lfname = "taggerfilterhit" # output of WC filter
     #lfname = "ssnetsplit_wcfilter_trackhit" # SSNet split
-    lfname = "maxtrackhit_wcfilter"
+    #lfname = "maxtrackhit_wcfilter"
         
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, lfname )
     npoints = ev_lfhits.size()
