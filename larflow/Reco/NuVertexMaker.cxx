@@ -3,6 +3,8 @@
 #include "geofuncs.h"
 #include "DataFormat/track.h"
 
+#include "NuVertexFitter.h"
+
 namespace larflow {
 namespace reco {
 
@@ -84,6 +86,9 @@ namespace reco {
                  << "  after-merging=" << _merged_v.size()
                  << "  after-veto=" << _vetoed_v.size()
                  << std::endl;
+
+    _refine_position( iolcv, ioll );
+    
   }
 
   /**
@@ -266,6 +271,7 @@ namespace reco {
     tree->Branch("nuvertex_v", &_vertex_v );
     tree->Branch("numerged_v", &_merged_v );
     tree->Branch("nuvetoed_v", &_vetoed_v );
+    tree->Branch("nufitted_v", &_fitted_v );    
   }
 
 
@@ -591,6 +597,40 @@ namespace reco {
     LARCV_INFO() << "Vertices after cosmic veto: " << _vetoed_v.size() << " (from " << _merged_v.size() << ")" << std::endl;
     
   }
+
+  /**
+   * Use NuVertexFitter to refine vertex position
+   * Also, provide refined prong direction and dQ/dx measure
+   *
+   */
+  void NuVertexMaker::_refine_position( larcv::IOManager& iolcv,
+                                        larlite::storage_manager& ioll )                                        
+  {
+
+    larflow::reco::NuVertexFitter fitter;
+    if ( _apply_cosmic_veto )
+      fitter.process( iolcv, ioll, get_vetoed_candidates() );
+    else
+      fitter.process( iolcv, ioll, get_merged_candidates() );
+
+    const std::vector< std::vector<float> >& fitted_pos_v
+      = fitter.get_fitted_pos();
+
+    _fitted_v.clear();
+    if ( _apply_cosmic_veto ) {
+
+      int ivtx=0;
+      for ( auto const& vtx : _vetoed_v ) {
+        NuVertexCandidate fitcand = vtx;
+        fitcand.pos = fitted_pos_v[ivtx];
+        ivtx++;
+        _fitted_v.emplace_back( std::move(fitcand) );
+      }
+      
+    }
+    
+  }
+  
   
 }
 }

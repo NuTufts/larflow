@@ -12,11 +12,9 @@ namespace reco {
 
   void NuVertexFitter::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
-                                larflow::reco::NuVertexMaker& vtxmaker )
+                                const std::vector< larflow::reco::NuVertexCandidate >& vertex_v )
   {
 
-    //  load data
-    auto const& vertex_v = vtxmaker.get_vetoed_candidates();
 
     // load adc images
     larcv::EventImage2D* ev_adc
@@ -25,6 +23,9 @@ namespace reco {
 
 
     const float _prong_radius_ = 10.0;
+
+    _fitted_pos_v.clear();
+    _fitted_pos_v.reserve( vertex_v.size() );    
 
     for ( int ivtx=0; ivtx<(int)vertex_v.size(); ivtx++ )  {
 
@@ -144,25 +145,50 @@ namespace reco {
 
       std::cout << "Fitting Vertex: number of prongs " << prong_v.size() << std::endl;
 
-      _fit_vertex( cand.pos, prong_v );
+      if ( prong_v.size()<1 ) {
+        // can't do anything
+        _fitted_pos_v.push_back( cand.pos );
+        continue;
+      }
+
+      std::vector<float> fitted_pos;
+      float delta_loss;
+      try {
+        _fit_vertex( cand.pos, prong_v, fitted_pos, delta_loss );
+        std::cout << "[fit returned.] deltaL=" << delta_loss << std::endl;        
+      }
+      catch (...) {
+        std::cout << "[fit failed. using old pos]" << std::endl;
+        fitted_pos = cand.pos;
+      }
       
+      if ( delta_loss<0 ) {
+        _fitted_pos_v.push_back( fitted_pos );
+      }
+      else {
+        _fitted_pos_v.push_back( cand.pos );
+      }
     }//end of vertex loops
     
   }
 
 
   void NuVertexFitter::_fit_vertex( const std::vector<float>& initial_vertex_pos,
-                                    std::vector<NuVertexFitter::Prong_t>& prong_v )
+                                    const std::vector<NuVertexFitter::Prong_t>& prong_v,
+                                    std::vector<float>& fitted_pos,
+                                    float& delta_loss )
   {
 
     // each prong defines a segment from the endpt (made by the pca) to the vertex
     // we calculate the gradient for the vertex from each prong, and update!
 
     int iter=0;
-    const int _maxiters_ = 100;
+    const int _maxiters_ = 1000;
     float lr = 0.1;
 
     std::vector<float> current_vertex = initial_vertex_pos;
+    float first_loss = -1;
+    float current_loss = -1;
     
     while ( iter<_maxiters_ ) {
 
@@ -182,16 +208,39 @@ namespace reco {
         tot_loss += prong_loss;
       }
 
+      if ( first_loss<0 )
+        first_loss = tot_loss;
+      
       // update
-      for (int i=0; i<3; i++ )
+      float gradlen = 0.;
+      for (int i=0; i<3; i++ ) {
         current_vertex[i] += -lr*grad[i];
+        gradlen += grad[i]*grad[i];
+      }
+      current_loss = tot_loss;
 
       std::cout << "[NuVertexFitter::_fit_vertex] iter[" << iter << "] "
                 << " grad=(" << grad[0] << "," << grad[1] << "," << grad[2] << ")"
+                << " len=" << sqrt(gradlen)
                 << " currentvtx=(" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")"
+                << " loss=" << current_loss
                 << std::endl;
+
+      if ( sqrt(gradlen)<1.0e-2 )
+        break;
       iter++;
     }
+
+    std::cout << "[NuVertexFitter::_fit_vertex] FIT RESULTS -----------------" << std::endl;
+    std::cout << "  num iterations: " << iter << std::endl;
+    std::cout << "  original vertex: (" << initial_vertex_pos[0] << "," << initial_vertex_pos[1] << "," << initial_vertex_pos[2] << ")" << std::endl;
+    std::cout << "  final vertex: (" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")" << std::endl;
+    std::cout << "  original loss: " << first_loss << std::endl;
+    std::cout << "  current loss: " << current_loss << std::endl;    
+    std::cout << "-----------------------------------------------------------" << std::endl;
+
+    fitted_pos = current_vertex;
+    delta_loss = current_loss-first_loss;
     
   }
   

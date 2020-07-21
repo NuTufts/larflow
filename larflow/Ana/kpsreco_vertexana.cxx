@@ -59,7 +59,9 @@ int main( int nargs, char** argv )
   TFile kpreco_tfile(kpreco_file.c_str(),"open");
   TTree* kpreco_ttree = (TTree*)kpreco_tfile.Get("KPSRecoManagerTree");
   std::vector<larflow::reco::NuVertexCandidate>* ev_kpreco = 0;
+  std::vector<larflow::reco::NuVertexCandidate>* ev_kpreco_fitted = 0;  
   kpreco_ttree->SetBranchAddress( "nuvetoed_v", &ev_kpreco );
+  kpreco_ttree->SetBranchAddress( "nufitted_v", &ev_kpreco_fitted );  
 
   // load outputs
   TFile* out = new TFile(outfilename.c_str(),"new");
@@ -87,6 +89,10 @@ int main( int nargs, char** argv )
   float min_dist_to_vtx     = 0.;            // min distance to closest reco vtx
   float min_dist_to_vtx_wct = 0.;            // min distance to closest reco vtx not on tagged pixel
   float min_dist_to_vtx_dl  = 0.;            // min distance to closest reco DL vtx
+  float min_dist_to_vtx_fit = 0.;            // min distance to closest reco vtx after fitting prongs
+
+  float difftrue_after_fit_cm   = 0.;        // relative distance to true vtx before and after fit
+  float diffreco_after_fit_cm   = 0.;        // diff of vertex pos before and after fit
   
   ev_ana->Branch("run",&run,"run/I");
   ev_ana->Branch("subrun",&subrun,"subrun/I");
@@ -106,8 +112,12 @@ int main( int nargs, char** argv )
   
   ev_ana->Branch("min_dist_to_vtx",     &min_dist_to_vtx,     "min_dist_to_vtx/F" );
   ev_ana->Branch("min_dist_to_vtx_dl",  &min_dist_to_vtx_dl,  "min_dist_to_vtx_dl/F" );
-  ev_ana->Branch("min_dist_to_vtx_wct", &min_dist_to_vtx_wct, "min_dist_to_vtx_wct/F" );  
+  ev_ana->Branch("min_dist_to_vtx_wct", &min_dist_to_vtx_wct, "min_dist_to_vtx_wct/F" );
+  ev_ana->Branch("min_dist_to_vtx_fit", &min_dist_to_vtx_fit, "min_dist_to_vtx_fit/F" );    
   ev_ana->Branch("true_vtx_qsum",truth_vtx_qsum, "true_vtx_qsum[3]/F" );
+
+  ev_ana->Branch("difftrue_after_fit_cm", &difftrue_after_fit_cm, "difftrue_after_fit_cm/F" );
+  ev_ana->Branch("diffreco_after_fit_cm", &diffreco_after_fit_cm, "diffreco_after_fit_cm/F" );  
 
   // per reco vertex analysis tree
   TTree* kp_ana = new TTree("vertexana_recovertex","Ana per reco vertex");
@@ -143,6 +153,10 @@ int main( int nargs, char** argv )
     ioll.go_to(ientry);
     kpreco_ttree->GetEntry(ientry);
 
+    if ( ev_kpreco->size()!=ev_kpreco_fitted->size() ) {
+      throw std::runtime_error("Differnet number of prefit and postfit vertices!");
+    }
+    
     // Get neutrino interaction truth
     float true_vtx[3] = { 0 };
     if ( ismc ) {
@@ -201,6 +215,7 @@ int main( int nargs, char** argv )
     min_dist_to_vtx     = 1110;
     min_dist_to_vtx_wct = 1110;    
     min_dist_to_vtx_dl  = 1110;
+    min_dist_to_vtx_fit = 1110;    
 
     // get vertex activity
     // sum charge on the three planes
@@ -249,13 +264,16 @@ int main( int nargs, char** argv )
     }
     
     // analysis for reco keypoints
-    int ivtx = 0;
+    int ivtx = -1;
     for ( auto const& kpc : *ev_kpreco ) {
+      ivtx++;
 
       for (int i=0; i<3; i++)
         pos[i] = kpc.pos[i];
 
       score = kpc.score;
+
+      auto const& kpc_fit = ev_kpreco_fitted->at(ivtx);
       
       
       // determine if on Wirecell-tagged cosmic
@@ -297,15 +315,22 @@ int main( int nargs, char** argv )
 
       // dist to vtx
       dist_to_vertex = 0;
+      float dist_to_fitvtx = 0.;
       if ( ismc ) {
         for (int i=0; i<3; i++) {
           dist_to_vertex += (kpc.pos[i]-true_vtx[i])*(kpc.pos[i]-true_vtx[i]);
+          dist_to_fitvtx += (kpc_fit.pos[i]-true_vtx[i])*(kpc_fit.pos[i]-true_vtx[i]);
         }
         dist_to_vertex = sqrt(dist_to_vertex);
+        dist_to_fitvtx = sqrt(dist_to_fitvtx);
+
 
         if ( dist_to_vertex < min_dist_to_vtx )
           min_dist_to_vtx = dist_to_vertex;
 
+        if ( dist_to_fitvtx < min_dist_to_vtx_fit )
+          min_dist_to_vtx_fit = dist_to_fitvtx;
+        
         if ( !iscosmic && dist_to_vertex<min_dist_to_vtx_wct ) {
           min_dist_to_vtx_wct = dist_to_vertex;
         }
@@ -326,6 +351,9 @@ int main( int nargs, char** argv )
         dist_to_vertex = 0;
       }
       std::cout << "RecoVtx[" << ivtx << "] score=" << score << " dist-to-vertex=" << dist_to_vertex  << std::endl;
+
+      // compare pre and post fit
+      
       
       kp_ana->Fill();
       

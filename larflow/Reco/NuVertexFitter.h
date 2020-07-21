@@ -48,12 +48,18 @@ namespace reco {
     };
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll,
-                  larflow::reco::NuVertexMaker& vtxmaker );
-
+                  const std::vector< larflow::reco::NuVertexCandidate >& vertex_v );
+    const std::vector< std::vector<float> >& get_fitted_pos() { return _fitted_pos_v; };
+    
   protected:
 
     void _fit_vertex( const std::vector<float>& initial_vertex_pos,
-                      std::vector<Prong_t>& prong_v ) ;
+                      const std::vector<Prong_t>& prong_v,
+                      std::vector<float>& fitted_pos,
+                      float& delta_loss );
+
+
+    std::vector< std::vector<float> > _fitted_pos_v;
 
   };
   

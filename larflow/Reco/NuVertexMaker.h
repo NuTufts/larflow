@@ -40,6 +40,7 @@ namespace reco {
     std::vector<NuVertexCandidate> _vertex_v; ///< initial vertex candidates
     std::vector<NuVertexCandidate> _merged_v; ///< after merging nearby vertices
     std::vector<NuVertexCandidate> _vetoed_v; ///< after filtering out candidates based on proximity to uncontained cosmic tracks
+    std::vector<NuVertexCandidate> _fitted_v; ///< after prong fitting
 
   protected:
 
@@ -68,7 +69,8 @@ namespace reco {
 
     const std::vector<NuVertexCandidate>& get_nu_candidates() const { return _vertex_v; };
     const std::vector<NuVertexCandidate>& get_vetoed_candidates() const { return _vetoed_v; };
-    const std::vector<NuVertexCandidate>& get_merged_candidates() const { return _merged_v; };        
+    const std::vector<NuVertexCandidate>& get_merged_candidates() const { return _merged_v; };
+    const std::vector<NuVertexCandidate>& get_fitted_candidates() const { return _fitted_v; };            
     
     void clear();
     
@@ -86,6 +88,8 @@ namespace reco {
                                     int icluster,                                    
                                     bool apply_cut );
     void _cosmic_veto_candidates( larlite::storage_manager& ioll );
+    void _refine_position( larcv::IOManager& iolcv,
+                           larlite::storage_manager& ioll );
     
   protected:
 
