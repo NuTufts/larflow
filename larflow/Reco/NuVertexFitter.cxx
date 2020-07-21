@@ -5,6 +5,7 @@
 #include "DataFormat/pcaxis.h"
 #include "NuVertexCandidate.h"
 #include "cluster_functions.h"
+#include "TrackOTFit.h"
 
 namespace larflow {
 namespace reco {
@@ -154,7 +155,43 @@ namespace reco {
                                     std::vector<NuVertexFitter::Prong_t>& prong_v )
   {
 
+    // each prong defines a segment from the endpt (made by the pca) to the vertex
+    // we calculate the gradient for the vertex from each prong, and update!
+
+    int iter=0;
+    const int _maxiters_ = 100;
+    float lr = 0.1;
+
+    std::vector<float> current_vertex = initial_vertex_pos;
     
+    while ( iter<_maxiters_ ) {
+
+      std::vector<float> grad(3,0);
+      float tot_loss = 0.;
+      
+      for (int iprong=0; iprong<(int)prong_v.size(); iprong++ ) {
+        float prong_loss = 0;
+        std::vector<float> prong_grad(3,0);
+        std::vector< std::vector<float> > prong_seg(2);
+        prong_seg[0] = prong_v[iprong].endpt;
+        prong_seg[1] = current_vertex;
+        larflow::reco::TrackOTFit::getLossAndGradient( prong_seg, prong_v[iprong].feat_v, prong_loss, prong_grad );
+        
+        for (int i=0; i<3; i++ )
+          grad[i] += prong_grad[i];
+        tot_loss += prong_loss;
+      }
+
+      // update
+      for (int i=0; i<3; i++ )
+        current_vertex[i] += -lr*grad[i];
+
+      std::cout << "[NuVertexFitter::_fit_vertex] iter[" << iter << "] "
+                << " grad=(" << grad[0] << "," << grad[1] << "," << grad[2] << ")"
+                << " currentvtx=(" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")"
+                << std::endl;
+      iter++;
+    }
     
   }
   
