@@ -82,12 +82,15 @@ namespace reco {
 
             npts_in_radius += 1;
 
-            std::vector<float> ptpos(7,0); /// (x,y,z,lm,qu,qv,qy)
+            //std::vector<float> ptpos(7,0); /// (x,y,z,lm,qu,qv,qy)
+            std::vector<float> ptpos(5,0); /// (x,y,z,lm,q)
             for (int i=0; i<3; i++)
               ptpos[i] = lfhit[i];
             ptpos[3] = lfhit[9];
 
-            int row = adc_v[0].meta().row( lfhit.tick, __FILE__, __LINE__ );            
+            
+            int row = adc_v[0].meta().row( lfhit.tick, __FILE__, __LINE__ );
+            std::vector< float > planeq_v(3,0);
             for (size_t p=0; p<3; p++) {
 
               auto const& img = adc_v[p];
@@ -103,15 +106,19 @@ namespace reco {
                   planeq += img.pixel(r,c);
                 }
               }
-              ptpos[4+p] =  planeq;
+              planeq_v[p] =  planeq;
             }
+            std::sort( planeq_v.begin(), planeq_v.end() );
+            ptpos[4] = planeq_v[1];
+            
             std::cout << " pronghit[" << hitidx << "]"
                       << " pos=(" << lfhit[0] << "," << lfhit[1] << "," << lfhit[2] << ")"
                       << " row=" << row << " tick=" << lfhit.tick
                       << " wire=(" << lfhit.targetwire[0] << "," << lfhit.targetwire[1] << "," << lfhit.targetwire[2] << ")"              
                       << " lmscore=" << lfhit[9]
-                      << " q=(" << ptpos[4] << "," << ptpos[5] << "," << ptpos[6] << ")"
+                      << " sorted-q=(" << planeq_v[0] << "," << planeq_v[1] << "," << planeq_v[2] << ")"
                       << std::endl;
+            
             prong.feat_v.push_back( ptpos );
             clust.points_v.push_back( ptpos );
             clust.imgcoord_v.push_back( lfhit.targetwire );
@@ -162,12 +169,15 @@ namespace reco {
         fitted_pos = cand.pos;
       }
       
-      if ( delta_loss<0 ) {
-        _fitted_pos_v.push_back( fitted_pos );
-      }
-      else {
-        _fitted_pos_v.push_back( cand.pos );
-      }
+      // if ( delta_loss<0 ) {
+      //   _fitted_pos_v.push_back( fitted_pos );
+      // }
+      // else {
+      //   _fitted_pos_v.push_back( cand.pos );
+      // }
+
+      _fitted_pos_v.push_back( fitted_pos );
+      
     }//end of vertex loops
     
   }
@@ -194,18 +204,28 @@ namespace reco {
 
       std::vector<float> grad(3,0);
       float tot_loss = 0.;
-      
+      float tot_weight = 0.;
+      std::vector<float> prong_weight_v;
       for (int iprong=0; iprong<(int)prong_v.size(); iprong++ ) {
         float prong_loss = 0;
+        float prong_weight = 0.;        
         std::vector<float> prong_grad(3,0);
         std::vector< std::vector<float> > prong_seg(2);
         prong_seg[0] = prong_v[iprong].endpt;
         prong_seg[1] = current_vertex;
-        larflow::reco::TrackOTFit::getLossAndGradient( prong_seg, prong_v[iprong].feat_v, prong_loss, prong_grad );
+        larflow::reco::TrackOTFit::getWeightedLossAndGradient( prong_seg, prong_v[iprong].feat_v,
+                                                               prong_loss, prong_weight, prong_grad );
         
         for (int i=0; i<3; i++ )
-          grad[i] += prong_grad[i];
-        tot_loss += prong_loss;
+          grad[i] += prong_weight*prong_grad[i];
+        tot_loss += prong_loss*prong_weight;
+        tot_weight += prong_weight;
+      }
+
+      if ( tot_weight>0 ) {
+        for (int i=0; i<3; i++ )
+          grad[i] /= tot_weight;
+        tot_loss /= tot_weight;
       }
 
       if ( first_loss<0 )

@@ -118,10 +118,22 @@ namespace reco {
                                         float& loss,
                                         std::vector<float>& grad )
   {
+    float weight = 0;
+    getWeightedLossAndGradient( initial_track, track_pts_w_feat_v, loss, weight, grad );
+  }
+
+  void TrackOTFit::getWeightedLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
+                                                const std::vector< std::vector<float> >& track_pts_w_feat_v,
+                                                float& loss,
+                                                float& tot_weight,
+                                                std::vector<float>& grad )
+  {
     grad.resize(3,0);
     for (int i=0; i<3; i++)
       grad[i] = 0.;
     loss = 0.;
+
+    tot_weight = 0.;
 
     const std::vector<float>& start = initial_track[0];
     const std::vector<float>& end   = initial_track[1];
@@ -129,16 +141,25 @@ namespace reco {
     int ndatapts = track_pts_w_feat_v.size();
     for ( int ipt=0; ipt<ndatapts; ipt++ ) {
       const std::vector<float>& testpt = track_pts_w_feat_v[ipt];
-      loss += d2_segment_point( start, end, testpt );
+      float w = 1.0;
+      for (int i=3;i<(int)testpt.size(); i++)
+        w *= testpt[i];
+      w = fabs(w);
+      
+      loss += w*d2_segment_point( start, end, testpt );
       std::vector<float> ptgrad = grad_d2_wrt_segend( start, end, testpt );
 
       for (int i=0; i<3; i++) {
-        grad[i] += ptgrad[i]/float(ndatapts);
+        grad[i] += ptgrad[i]*w;
       }
-      
+      tot_weight += w;
     }
-    
-    loss /= float(ndatapts);
+
+    if ( tot_weight>0 ) {
+      loss /= tot_weight;
+      for (int i=0; i<3; i++)
+        grad[i] /= tot_weight;
+    }
 
   }
   

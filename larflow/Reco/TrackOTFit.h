@@ -31,14 +31,11 @@ namespace reco {
                                      float& loss,
                                      std::vector<float>& grad );
 
-    /* static void geWeightedLossAndGradient(  const std::vector< std::vector<float> >& initial_track, */
-    /*                                         const std::vector< std::vector<float> >& track_pts_w_feat_v, */
-    /*                                         float& loss, */
-    /*                                         float& totweight, */
-    /*                                         std::vector<float>& grad ); */
-    
-
-    
+    static void getWeightedLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
+                                             const std::vector< std::vector<float> >& track_pts_w_feat_v,
+                                             float& loss,
+                                             float& totweight,
+                                             std::vector<float>& grad );
     
   };
   

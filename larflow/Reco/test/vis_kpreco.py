@@ -93,18 +93,18 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             continue
 
         vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
+        vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
         # Get the keypoint data
-        kpvertex = io.get_data( larlite.data.kLArFlow3DHit, vertexcand.keypoint_producer ).at( vertexcand.keypoint_index )
         
         # make vertex traces
         kptrace = {
             "type":"scatter3d",
-	    "x": [kpvertex[0]],
-            "y": [kpvertex[1]],
-            "z": [kpvertex[2]],
+	    "x": [vertexcand.pos[0],vertexcand_fit.pos[0]],
+            "y": [vertexcand.pos[1],vertexcand_fit.pos[1]],
+            "z": [vertexcand.pos[2],vertexcand_fit.pos[2]],
             "mode":"markers",
 	    "name":"KP%d"%(ivtx),
-            "marker":{"color":[vertexcand.score],"size":5,"opacity":0.5},
+            "marker":{"color":[0.0,1.0],"size":5,"opacity":0.9,"colorscale":"Viridis"},
         }
         traces_v.append( kptrace )
         
