@@ -39,9 +39,21 @@ namespace reco {
 
     virtual ~NuVertexFitter() {};
 
+    struct Prong_t {
+      std::vector< std::vector<float> > feat_v;
+      const larlite::larflowcluster* orig_cluster;
+      const larlite::pcaxis* orig_pcaxis;
+      std::vector<float> endpt;
+      std::vector<float> startpt;
+    };
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll,
                   larflow::reco::NuVertexMaker& vtxmaker );
+
+  protected:
+
+    void _fit_vertex( const std::vector<float>& initial_vertex_pos,
+                      std::vector<Prong_t>& prong_v ) ;
 
   };
   

@@ -1,5 +1,8 @@
 #include "TrackOTFit.h"
 
+#include <cmath>
+#include <stdexcept>
+
 namespace larflow {
 namespace reco {
 
@@ -24,6 +27,7 @@ namespace reco {
     std::vector<float> b(3,0);
     float a2 = 0.;
     float b2 = 0.;
+    float c2 = 0.;
     float ab = 0.;
     for (int i=0; i<3; i++) {
       a[i] = seg_start[i]-testpt[i];
@@ -31,9 +35,23 @@ namespace reco {
       a2 += a[i]*a[i];
       b2 += b[i]*b[i];
       ab += a[i]*b[i];
+      c2 += ( seg_end[i]-testpt[i] )*( seg_end[i]-testpt[i] );
     }
 
-    float d2 = (a2*b2-ab*ab)*b2;
+    if (b2<1e-9) {
+      throw std::runtime_error( "[TrackOTFit::d2_segment_point] segment too short" );
+    }
+
+    float lenb = sqrt(b2);
+    float s  = -ab/lenb;  // projection onto segment
+
+    if ( s>lenb+0.5 || s<-0.5 ) {
+      // past the segment end, return distance to end
+      return c2;
+    }
+
+    float d2 = (a2*b2-ab*ab)*b2; // distance from point to line
+
 
     return d2;
     
@@ -49,14 +67,36 @@ namespace reco {
     float a2 = 0.;
     float b2 = 0.;
     float ab = 0.;
+    float c2 = 0.;    
     for (int i=0; i<3; i++) {
       a[i] = seg_start[i]-testpt[i];
       b[i] = seg_end[i]-seg_start[i];
       a2 += a[i]*a[i];
       b2 += b[i]*b[i];
       ab += a[i]*b[i];
+      c2 += ( seg_end[i]-testpt[i] )*( seg_end[i]-testpt[i] );      
     }
 
+    if (b2<1e-9) {
+      throw std::runtime_error( "[TrackOTFit::grad_d2_wrt_segend] segment too short" );
+    }
+
+
+    std::vector<float> grad_d2(3,0);
+
+    
+    float lenb = sqrt(b2);
+    float s  = -ab/lenb;  // projection onto segment
+
+    if ( s>lenb+0.5 || s<-0.5 ) {
+      // past the segment end, return distance to end, so we return grad
+      for (int i=0; i<3; i++ ) {
+        grad_d2[i] = 2.0*( seg_end[i] - testpt[i] );
+      }
+      return grad_d2;
+    }
+
+    
     std::vector<float> db2(3,0); // partials of |b|^2
     std::vector<float> dab(3,0); // partials of a.b
     for (int i=0; i<3; i++ ) {
@@ -65,7 +105,6 @@ namespace reco {
     }
 
     float c = a2*b2-ab*ab; // numerator of d2 formula
-    std::vector<float> grad_d2(3,0);
     for (int i=0; i<3; i++) {
       grad_d2[i] = (b2*(a2*db2[i]-2*ab*dab[i]) - c*db2[i])/(b2*b2);
     }

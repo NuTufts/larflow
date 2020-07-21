@@ -18,18 +18,24 @@ namespace reco {
               std::vector< std::vector<float> >& track_pts_w_feat_v );
 
     
-    float d2_segment_point( const std::vector<float>& seg_start,
+    static float d2_segment_point( const std::vector<float>& seg_start,
                             const std::vector<float>& seg_end,
                             const std::vector<float>& testpt );
     
-    std::vector<float> grad_d2_wrt_segend( const std::vector<float>& seg_start,
-                                           const std::vector<float>& seg_end,
-                                           const std::vector<float>& testpt );
+    static std::vector<float> grad_d2_wrt_segend( const std::vector<float>& seg_start,
+                                                  const std::vector<float>& seg_end,
+                                                  const std::vector<float>& testpt );
 
-    void getLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
-                              const std::vector< std::vector<float> >& track_pts_w_feat_v,
-                              float& loss,
-                              std::vector<float>& grad );
+    static void getLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
+                                     const std::vector< std::vector<float> >& track_pts_w_feat_v,
+                                     float& loss,
+                                     std::vector<float>& grad );
+
+    /* static void geWeightedLossAndGradient(  const std::vector< std::vector<float> >& initial_track, */
+    /*                                         const std::vector< std::vector<float> >& track_pts_w_feat_v, */
+    /*                                         float& loss, */
+    /*                                         float& totweight, */
+    /*                                         std::vector<float>& grad ); */
     
 
     
