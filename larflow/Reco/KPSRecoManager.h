@@ -30,6 +30,7 @@
 #include "PCATracker.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
+#include "NuVertexFitter.h"
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
 
@@ -67,6 +68,7 @@ namespace reco {
     ShowerRecoKeypoint _showerkp;
     ChooseMaxLArFlowHit _choosemaxhit;
     NuVertexMaker       _nuvertexmaker;
+    NuVertexFitter      _nu_vertex_fitter;
 
     CosmicTrackBuilder  _cosmic_track_builder;
     NuTrackBuilder      _nu_track_builder;

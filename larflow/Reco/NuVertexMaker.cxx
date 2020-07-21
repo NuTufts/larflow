@@ -80,7 +80,10 @@ namespace reco {
     if ( _apply_cosmic_veto ) {
       _cosmic_veto_candidates( ioll );
     }
-    LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size() << "  after-merging=" << _merged_v.size() << std::endl;
+    LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size()
+                 << "  after-merging=" << _merged_v.size()
+                 << "  after-veto=" << _vetoed_v.size()
+                 << std::endl;
   }
 
   /**

@@ -9,6 +9,12 @@ namespace reco {
     
   }
 
+  // void TrackOTFit::fitByStepper( std::vector< std::vector<float> >& initial_track,
+  //                                std::vector< std::vector<float> >& track_pts_w_feat_v )
+  // {
+  //   // go segment by segment, set max distance
+  // }
+  
   float TrackOTFit::d2_segment_point( const std::vector<float>& seg_start,
                                       const std::vector<float>& seg_end,
                                       const std::vector<float>& testpt )

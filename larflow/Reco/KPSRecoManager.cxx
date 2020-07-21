@@ -269,6 +269,8 @@ namespace reco {
 
     _nu_track_builder.clear();
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
+
+    _nu_vertex_fitter.process( iolcv, ioll, _nuvertexmaker );
     
   }
 

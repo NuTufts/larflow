@@ -67,6 +67,8 @@ namespace reco {
     };
 
     const std::vector<NuVertexCandidate>& get_nu_candidates() const { return _vertex_v; };
+    const std::vector<NuVertexCandidate>& get_vetoed_candidates() const { return _vetoed_v; };
+    const std::vector<NuVertexCandidate>& get_merged_candidates() const { return _merged_v; };        
     
     void clear();
     
