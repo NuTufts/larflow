@@ -1,6 +1,20 @@
 #ifndef __FLOW_TRIPLES_H__
 #define __FLOW_TRIPLES_H__
 
+/**
+ * @ingroup PrepFlowMatchData 
+ * @class FlowTriples
+ * @brief Generate and store (U,V,Y) wire combintations extracted from examining coincident ionization between two planes
+ *
+ * @author Taritree Wongjirad (taritree.wongjirad@tufts.edu)
+ * @date $Data 2020/07/22 17:00$
+ *
+ * Revision history
+ * 2020/07/22: Added doxygen documentation. 
+ * 
+ *
+ */
+
 #include <map>
 #include <vector>
 
@@ -9,18 +23,16 @@
 #include "TH2D.h"
 
 namespace larflow {
+namespace prep {
 
-
-  /**
-   * Class for generating and storing possible (U,V,Y) combintations extracted from wire plane images
-   *
-   */
   class FlowTriples {
 
   public:
 
     /** 
-     * struct to represent a pixel
+     * @struct PixData_t
+     *
+     * @brief internal struct to represent to a pixel and provide sorting method
      *
      */
     struct PixData_t {
@@ -112,7 +124,8 @@ namespace larflow {
     
       
   };
-    
+
+}
 }
 
 #endif

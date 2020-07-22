@@ -7,17 +7,23 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 namespace larflow {
+namespace prep {
 
   bool WireOverlap::_isbuilt = false;
   std::vector< std::vector<int> >   WireOverlap::_wire_targetoverlap[6];
   std::vector< std::vector<int> >   WireOverlap::_wire_otheroverlap[6];
   std::map< std::pair<int,int>, int > WireOverlap::_planeflow2mapindex;
 
+  /*
+   * constructor
+   */
   WireOverlap::WireOverlap() {};
 
   /**
    * 
-   * build what wires can overlap with each other
+   * \brief determine which wires overlap with one another
+   *
+   * Is never called directly. Run once `getOverlappingWires` is called.
    *
    */
   void WireOverlap::_build() {
@@ -116,7 +122,7 @@ namespace larflow {
 
   /** 
    * given a wire on the a defined source plane, 
-   * what wires in the target plane, and other planes are intersected
+   * return set of wires over lapping in the two other planes
    *
    * @param[in] sourceplane The index of the source plane. {0:U,1:V,2:Y}
    * @param[in] targetplane The index of the target plane. {0:U,1:V,2:Y}
@@ -140,5 +146,5 @@ namespace larflow {
   }
 
   
-
+}
 }

@@ -10,11 +10,21 @@
 #include <stdexcept>
 
 namespace larflow {
+namespace prep {
 
   /**
-   * compile network output into hit candidate information
+   * @brief compile network output into hit candidate information
    *
-   * 
+   * @param[in] pair_probs Pointer to (1,Np) numpy array containing larmatch scores for Np space points
+   * @param[in] source_sparseimg Pointer to (Ns,2) numpy array containing indicies (row,col) of Ns non-zero pixels
+   * @param[in] target_sparseimg Pointer to (Nt,2) numpy array containing indicies (row,col) of Nt non-zero pixels
+   * @param[in] matchpairs Point to (Np,2) numpy array containing index to (source_sparseimg,target_sparseimg) arrays for Np space points
+   * @param[in] source_plane Index of source plane
+   * @param[in] target_plane Index of target plane
+   * @param[in] source_meta  ImageMeta describing parameters for soruce image
+   * @param[in] img_v vector of Image2D instances containing ionization information (i.e. the wireplane images)
+   * @param[in] ev_chstatus Class containing status of channels, i.e. if good or dead
+   *
    */
   int FlowMatchHitMaker::add_match_data( PyObject* pair_probs,
                                          PyObject* source_sparseimg, PyObject* target_sparseimg,
@@ -22,7 +32,8 @@ namespace larflow {
                                          const int source_plane, const int target_plane,
                                          const larcv::ImageMeta& source_meta,
                                          const std::vector<larcv::Image2D>& img_v,
-                                         const larcv::EventChStatus& ev_chstatus ) {
+                                         const larcv::EventChStatus& ev_chstatus )
+  {
 
     // enable numpy environment (if not already set)
     std::cout << "setting pyutils ... ";
@@ -223,18 +234,25 @@ namespace larflow {
     std::cout << "-------------------------------------------------" << std::endl;
   }
 
-  /*
-   * uses the match data in _matches_v to make hits
+  /**
    *
-   * make larlite::larflow3dhit objects based on stored match data
-   * the object is a wrapper around a vector<float>
+   * \brief uses the match data in _matches_v to make hits
    *
-   * columns:
+   * makes larlite::larflow3dhit objects based on stored match data
+   * the object is a wrapper around a vector<float>.
+   *
+   * spacepoint proposals below _match_score_threshold will be skipped.
+   *
+   * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
    * [0-2]:   x,y,z
    * [3-9]:   6 flow direction scores + 1 max scire (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
    * [10-12]: 3 ssnet scores, (bg,track,shower)
    * [13-15]: 3 keypoint label score [nu,track,shower]
    * [16-18]: 3D flow direction
+   * 
+   * @param[in] ev_chstatus Class containing channel status, indicating if good or dead wire
+   * @param[out] hit_v vector of space points whose larmatch score was above threshold
+   *
    */
   void FlowMatchHitMaker::make_hits( const larcv::EventChStatus& ev_chstatus,
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
@@ -633,6 +651,6 @@ namespace larflow {
     return 0;
   }
   
-  
-};
+}  
+}
 

@@ -1,6 +1,20 @@
 #ifndef __LARFLOW_PREP_PREPLARMATCHDATA_H__
 #define __LARFLOW_PREP_PREPLARMATCHDATA_H__
 
+/**
+ * @ingroup PrepFlowMatchData 
+ * @class PrepMatchTriplets
+ * @brief Prepares potential spacepoints deriving from intersection of three wires.
+ *
+ * @author Taritree Wongjirad (taritree.wongjirad@tuts.edu)
+ * @date $Data 2020/07/22 17:00$
+ *
+ * Revision history
+ * 2020/07/22: Added doxygen documentation. 
+ * 
+ *
+ */
+
 #include <Python.h>
 #include "bytesobject.h"
 
@@ -15,12 +29,13 @@
 #include "TH2D.h"
 
 namespace larflow {
+namespace prep {
 
   class PrepMatchTriplets  {
+
   public:
 
     PrepMatchTriplets()
-      : _setup_numpy(false)
     {};
     virtual ~PrepMatchTriplets() {};
 
@@ -42,7 +57,7 @@ namespace larflow {
                                           
     std::vector<TH2D> plot_truth_images( std::string hist_stem_name );
 
-    std::vector< larcv::ImageMeta >                       _imgmeta_v;
+    std::vector< larcv::ImageMeta >                       _imgmeta_v;      ///< image metas for the most recently processed event
     std::vector< std::vector< FlowTriples::PixData_t > >  _sparseimg_vv;   ///< sparse representation of image
     std::vector< std::vector<int> >                       _triplet_v;      ///< set of sparseimage indices indicating candidate 3-plane match (U-index,V-index,Y-index,tick)
     std::vector< int >                                    _truth_v;        ///< indicates if index set in _triple_v is true match (1) or not (0)
@@ -99,10 +114,13 @@ namespace larflow {
     
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 
-    bool _setup_numpy;
+  private:
+    
+    static bool _setup_numpy; ///< true if numpy has been setup
     
   };
 
+}
 }
 
 #endif

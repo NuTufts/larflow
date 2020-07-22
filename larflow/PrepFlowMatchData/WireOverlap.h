@@ -2,7 +2,18 @@
 #define __LARFLOW_WIREOVERLAP_H__
 
 /**
- * class to store what wires intersect one another
+ *
+ * @class WireOverlap
+ *
+ * @ingroup PrepFlowMatchData
+ *
+ * @brief calculates and stores possible wire intersections
+ *
+ * @author Taritree Wongjirad
+ *
+ * @date $Date: 2020/07/22 16:53 $
+ * 
+ * contact: taritree.wongjirad@tufts.edu
  *
  */
 
@@ -10,10 +21,12 @@
 #include <map>
 
 namespace larflow {
+namespace prep { 
   
   class WireOverlap {
 
   protected:
+    
     WireOverlap();
     virtual ~WireOverlap() {};
 
@@ -31,6 +44,7 @@ namespace larflow {
     
   };
 
+}
 }
 
 #endif

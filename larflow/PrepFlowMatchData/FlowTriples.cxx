@@ -5,6 +5,7 @@
 #include <sstream>
 
 namespace larflow {
+namespace prep {
 
   /**
    * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
@@ -111,7 +112,7 @@ namespace larflow {
       //   for_debug = false;
       
       // we get all the 'target' and 'other' plane wires this pixel overlaps with
-      std::vector< std::vector<int> > overlap = larflow::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
+      std::vector< std::vector<int> > overlap = larflow::prep::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
 
       if ( for_debug ) {
         std::cout << "FlowTriples[" << _source_plane << "," << _target_plane << "," << _other_plane << "] "
@@ -401,5 +402,6 @@ namespace larflow {
 
     return sparseimg_vv;
   }
-  
+
+}
 }

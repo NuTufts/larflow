@@ -20,7 +20,10 @@
 #include "TRandom3.h"
 
 namespace larflow {
+namespace prep {
 
+  bool PrepMatchTriplets::_setup_numpy = false;
+  
   /**
    * clear the containers we fill when we run process
    *
@@ -100,7 +103,7 @@ namespace larflow {
     std::clock_t start = std::clock();
     
     // first we make a common sparse image
-    _sparseimg_vv = larflow::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
+    _sparseimg_vv = larflow::prep::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
     _imgmeta_v.clear();
     for ( auto const& img : adc_v )
       _imgmeta_v.push_back( img.meta() );
@@ -111,7 +114,7 @@ namespace larflow {
     
     FlowDir_t flow_order[] = { kY2V, kY2U, kV2Y, kU2Y, kU2V, kV2U };
     
-    std::vector< larflow::FlowTriples > triplet_v( larflow::kNumFlows );
+    std::vector< larflow::prep::FlowTriples > triplet_v( larflow::kNumFlows );
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
 
       // if ( flowindex!=kV2Y )
@@ -772,6 +775,6 @@ namespace larflow {
 
   }
   
-  
-  
+ 
+}  
 }
