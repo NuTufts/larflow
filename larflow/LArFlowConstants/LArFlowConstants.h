@@ -4,7 +4,7 @@
 /**
  * \ingroup LArFlowConstants
  *
- * \brief Definitions and constants
+ * \brief Constants and utility functions
  *
  * \author Taritree Wongjirad
  *
