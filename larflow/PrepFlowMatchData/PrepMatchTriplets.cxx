@@ -44,8 +44,7 @@ namespace prep {
   }
   
   /**
-   * convenience function that gets the data needed from an larcv::IOManager instance
-   * and runs the process method.
+   * @brief convenience function that gets the data needed from an larcv::IOManager instance and runs the process method.
    *
    *
    * @param[in] iolcv   larcv::IOManager instance containing needed data objects
@@ -80,7 +79,7 @@ namespace prep {
   } 
   
   /**
-   * make the possible hit triplets from all the wire plane images
+   * @brief make the possible hit triplets from all the wire plane images
    *
    * this function is expected to populate the following data members:
    *  _sparseimg_vv
@@ -298,7 +297,7 @@ namespace prep {
   }//end of process method
 
   /**
-   * plot the sparse image pixels in a th2d
+   * @brief plot the sparse image pixels in a th2d
    *
    * @param[in] hist_stem_name Stem of name given to generated histograms.
    * @return    vector of TH2D that visualize the sparse images.
@@ -325,7 +324,7 @@ namespace prep {
   }
 
   /**
-   * use larflow truth images to assign good versus bad match for triplets
+   * @brief use larflow truth images to assign good versus bad match for triplets
    *
    * this method populates the values for:
    * _truth_v: 1 or 0 if triplet is a correct match
@@ -403,7 +402,7 @@ namespace prep {
   }
 
   /**
-   * plot truth image for debug
+   * @brief plot truth image for debug
    *
    * @param[in] hist_stem_name Stem of name given to histograms made.
    * @return Vector of TH2D that plots the information.
@@ -440,7 +439,7 @@ namespace prep {
   }
 
   /**
-   * return a numpy array containing the sparse image information
+   * @brief return a numpy array containing the sparse image information
    *
    * @param[in] plane Plane index for sparse image requested.
    * @return numpy array with shape (N,3) containing info from sparse matrix. each row contains (row,col,pixel value).
@@ -472,7 +471,7 @@ namespace prep {
   }
 
   /**
-   * return a numpy array with indices to the sparse matrix object.
+   * @brief return a numpy array with indices to the sparse matrix object.
    *
    * use a vector with index of match pair to choose matches.   
    *
@@ -543,7 +542,7 @@ namespace prep {
 
   /**
    *
-   * randomly select a set of 2 plane indices
+   * @brief randomly select a set of 2 plane indices
    *
    */
   PyObject* PrepMatchTriplets::sample_2plane_matches( larflow::FlowDir_t kdir,
@@ -562,7 +561,7 @@ namespace prep {
 
   /**
    *
-   * get sequential set of matches
+   * @brief get sequential set of matches
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
@@ -585,7 +584,7 @@ namespace prep {
   }
 
   /**
-   * return a numpy array with indices to the sparse matrix ADC array
+   * @brief return a numpy array with indices to the sparse matrix ADC array
    *
    * @param[in] max_num_samples Maximum number of samples to return. Dim[0] of returned array.
    * @param[in] idx_v List of triplet_v indices to use
@@ -664,7 +663,7 @@ namespace prep {
 
   /**
    *
-   * randomly select a set of triplet matches
+   * @brief randomly select a set of triplet matches
    *
    */
   PyObject* PrepMatchTriplets::sample_triplet_matches( const int& nsamples,
@@ -682,7 +681,7 @@ namespace prep {
   
   /**
    *
-   * get sequential set of triplet indices
+   * @brief get sequential set of triplet indices
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_triplet_matches( const int& start_index,
@@ -706,9 +705,9 @@ namespace prep {
 
   /**
    *
-   * select sample biased towards triplets that score poorly in past iteration of network.
+   * @brief select sample biased towards triplets that score poorly in past iteration of network.
    * 
-   * for hard-example training.
+   * For hard-example training.
    *
    */
   PyObject* PrepMatchTriplets::sample_hard_example_matches( const int& nsamples,

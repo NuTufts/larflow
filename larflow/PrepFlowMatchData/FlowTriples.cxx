@@ -8,14 +8,14 @@ namespace larflow {
 namespace prep {
 
   /**
-   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   * @brief generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
    *
    * this version takes image2d as input
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
    *                       If false, we save the image col posiiton.
@@ -34,14 +34,14 @@ namespace prep {
   }
 
   /**
-   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   * @brief generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
    *
    * this version takes the sparse matrix representation of the image, skipping its generation
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
@@ -61,13 +61,13 @@ namespace prep {
   }
 
   /**
-   * using the list of pixels in the sparse matrix representation, build the list of possible
+   * @brief using the list of pixels in the sparse matrix representation, build the list of possible
    *  three-plane triplets
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
@@ -296,7 +296,9 @@ namespace prep {
 
 
   /**
-   * use a th2d to plot the projected locations of the triplets in each of the planes
+   * @brief use a th2d to plot the projected locations of the triplets in each of the planes
+   *
+   * utility function to help with visual debugging
    *
    * @param[in] adc_v  Vector of image pixel values
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
@@ -331,7 +333,9 @@ namespace prep {
   }
 
   /**
-   * make a TH2D in order to visualize the sparse matrix data
+   * @brief make a TH2D in order to visualize the sparse matrix data
+   *
+   * utility function to help with visual debugging
    *
    * @param[in] adc_v  Vector of image pixel values
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
@@ -366,10 +370,12 @@ namespace prep {
 
   
   /**
-   * convert the wire image data into a sparse represntation
+   * @brief convert the wire image data into a sparse represntation
+   *
+   * we convert the image into a vector of PixData_t objects.
    *
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] hist_stem_name  Stem of histogram name generated.
+   * @param[in] threshold Keep only pixels with value above this threshold
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
   std::vector< std::vector<FlowTriples::PixData_t> >

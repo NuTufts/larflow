@@ -1,20 +1,6 @@
 #ifndef __FLOW_MATCH_HIT_MAKER_H__
 #define __FLOW_MATCH_HIT_MAKER_H__
 
-/**
- * @ingroup PrepFlowMatchData 
- * @class FlowMatchHitMaker
- * @brief Processes output of LArMatch network and makes space point objects
- *
- * @author Taritree Wongjirad (taritree.wongjirad@tuts.edu)
- * @date $Data 2020/07/22 17:00$
- *
- *
- * Revision history
- * 2020/07/22: Added doxygen documentation. 
- * 
- *
- */
 
 #include <Python.h>
 #include "bytesobject.h"
@@ -30,6 +16,20 @@
 namespace larflow {
 namespace prep {
 
+  /**
+   * @ingroup PrepFlowMatchData 
+   * @class FlowMatchHitMaker
+   * @brief Processes output of LArMatch network and makes space point objects
+   *
+   * @author Taritree Wongjirad (taritree.wongjirad@tuts.edu)
+   * @date $Data 2020/07/22 17:00$
+   *
+   *
+   * Revision history
+   * 2020/07/22: Added doxygen documentation. 
+   * 
+   *
+   */  
   class FlowMatchHitMaker {
   public:
     

@@ -1,22 +1,6 @@
 #ifndef __LARFLOW_BASE_LARFLOW_CONSTANTS_H__
 #define __LARFLOW_BASE_LARFLOW_CONSTANTS_H__
 
-/**
- * \ingroup LArFlowConstants
- *
- * \brief Constants and utility functions
- *
- * \author Taritree Wongjirad
- *
- * \date $Date: 2020/07/2 16:35 $
- * 
- * Contact: taritree.wongjirad@tufts.edu
- *
- * Revision History
- * - writing documentation
- * 
- */
-
 
 #include <string>
 
@@ -31,7 +15,21 @@ namespace larflow {
    * Type of Keypoint Labels
    */
   typedef enum { kNuVertex=0, kTrackEnds, kShowerStart, kNumKeyPoints } KeyPoint_t;
-    
+
+  /**
+   * @ingroup LArFlowConstants
+   * @class LArFlowConstants
+   * @brief Constants and utility functions
+   *
+   * @author Taritree Wongjirad (taritree.wongjirad@tufts.edu)
+   * @date $Date: 2020/07/2 16:35 $
+   * 
+   * Contact: taritree.wongjirad@tufts.edu
+   *
+   * Revision History:
+   * 2020/07/22: writing documentation
+   * 
+   */  
   class LArFlowConstants {
 
   protected:

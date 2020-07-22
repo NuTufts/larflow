@@ -1,19 +1,6 @@
 #ifndef __LARFLOW_PREP_PREPLARMATCHDATA_H__
 #define __LARFLOW_PREP_PREPLARMATCHDATA_H__
 
-/**
- * @ingroup PrepFlowMatchData 
- * @class PrepMatchTriplets
- * @brief Prepares potential spacepoints deriving from intersection of three wires.
- *
- * @author Taritree Wongjirad (taritree.wongjirad@tuts.edu)
- * @date $Data 2020/07/22 17:00$
- *
- * Revision history
- * 2020/07/22: Added doxygen documentation. 
- * 
- *
- */
 
 #include <Python.h>
 #include "bytesobject.h"
@@ -31,6 +18,21 @@
 namespace larflow {
 namespace prep {
 
+  /**
+   * @ingroup PrepFlowMatchData 
+   *
+   * @class PrepMatchTriplets
+   *
+   * @brief Prepares potential spacepoints deriving from intersection of three wires.
+   *
+   * @author Taritree Wongjirad (taritree.wongjirad@tuts.edu)
+   * @date $Data 2020/07/22 17:00$
+   *
+   * Revision history
+   * 2020/07/22: Added doxygen documentation. 
+   * 
+   *
+   */  
   class PrepMatchTriplets  {
 
   public:

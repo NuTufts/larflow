@@ -121,15 +121,14 @@ namespace prep {
   }
 
   /** 
-   * given a wire on the a defined source plane, 
-   * return set of wires over lapping in the two other planes
+   * @brief given a wire on source plane, return set of wires overlapping in the two other planes
    *
    * @param[in] sourceplane The index of the source plane. {0:U,1:V,2:Y}
    * @param[in] targetplane The index of the target plane. {0:U,1:V,2:Y}
    * @param[in] source_wire The index of the wire in the source plane.
    *
-   * @param[out] double vector with outer index being the plane {target,other}, 
-   *             the inner vector is a list of wire IDs from each plane
+   * @return nested vector with outer index being the plane {target,other}, 
+   *         the inner vector is a list of wire IDs from each plane
    *
    */
   std::vector< std::vector<int> > WireOverlap::getOverlappingWires( int sourceplane, int targetplane, int source_wire ) {
