@@ -23,9 +23,9 @@ namespace voxelizer {
    *
    * The length is set to:
    * \verbatim embed:rst:leading-asterisks
-   *  x: (1010 pixel rows)*(6 ticks/pixel)*(0.5 usec/tick)*(drift velocity cm/usec) cm
-   *  y: 240.0 cm
-   *  z: 1037.0 cm
+   *  * x: (1010 pixel rows)*(6 ticks/pixel)*(0.5 usec/tick)*(drift velocity cm/usec) cm
+   *  * y: 240.0 cm
+   *  * z: 1037.0 cm
    * \endverbatim
    *
    * The voxel size is set to 0.3 cm. This is the wire pitch in MicroBoone.
