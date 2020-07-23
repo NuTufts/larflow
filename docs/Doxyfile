@@ -792,7 +792,8 @@ WARN_LOGFILE           =
 
 INPUT                  = ../larflow/LArFlowConstants \
                          ../larflow/PrepFlowMatchData \
-                         ../larflow/SCBoundary
+                         ../larflow/SCBoundary \
+                         ../larflow/CRTMatch
 
 
 # This tag can be used to specify the character encoding of the source files
