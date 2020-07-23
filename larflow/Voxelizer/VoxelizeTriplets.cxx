@@ -10,7 +10,27 @@ namespace voxelizer {
 
   bool VoxelizeTriplets::_setup_numpy = false;
 
-  // constructor using microboone as defaults
+  /** @brief construct where default dimensions are used to define voxel grid
+   *
+   * Origin is set to:
+   * \verbatim embed:rst:leading-asterisks
+   *  * x: (-801 ticks)*(0.5 usec/tick)*(drift velocity cm/usec) cm
+   *  * y: -120.0 cm
+   *  * z: 0.0 cm
+   * \endverbatim
+   *
+   * The drift velocity is retrieved from larlite::LArProperties.
+   *
+   * The length is set to:
+   * \verbatim embed:rst:leading-asterisks
+   *  x: (1010 pixel rows)*(6 ticks/pixel)*(0.5 usec/tick)*(drift velocity cm/usec) cm
+   *  y: 240.0 cm
+   *  z: 1037.0 cm
+   * \endverbatim
+   *
+   * The voxel size is set to 0.3 cm. This is the wire pitch in MicroBoone.
+   * 
+   */
   VoxelizeTriplets::VoxelizeTriplets()
   {
 
@@ -33,7 +53,15 @@ namespace voxelizer {
     
     _define_voxels();
   }
-  
+
+  /**
+   * @brief constructor where voxel grid can be specified
+   *
+   * @param[in] origin  Position in 3D where origin of the voxel grid is located (in cm).
+   * @param[in] dim_len Total length of each dimension (should be 3) in cm.
+   * @param[in] voxel_size Length of height, width, and depth of an individual voxel in cm.
+   *
+   */  
   VoxelizeTriplets::VoxelizeTriplets( std::vector<float> origin,
                                       std::vector<float> dim_len,
                                       float voxel_size ) 
@@ -45,6 +73,10 @@ namespace voxelizer {
   }
 
 
+  /**
+   * @brief using the origin, grid length, and voxel size define the voxel grid
+   *
+   */
   void VoxelizeTriplets::_define_voxels()
   {
     _ndims = (int)_origin.size();
@@ -71,7 +103,14 @@ namespace voxelizer {
               << "[" << _origin[2] << "," << _origin[2]+_len[2] << "] "
               << std::endl;    
   }
-  
+
+  /**
+   * @brief get the voxel bin along one of the dimensions
+   *
+   * @param[in] axis Dimension we want
+   * @param[in] coord Coordinate in the dimension we want
+   * @return voxel bin index along the given dimension
+   */
   int VoxelizeTriplets::get_axis_voxel( int axis, float coord ) const {
 
     if ( axis<0 || axis>=_ndims ) {
@@ -95,13 +134,21 @@ namespace voxelizer {
   }
   
   /**
-   * takes in precomputed triplet data and saves filled voxels and maps between voxels and triplets
    *
-   * inputs:
+   * @brief takes in precomputed triplet data and saves filled voxels and maps between voxels and triplets
+   *
+   * populates the following data members:
+   * \verbatim embed:rst:leading-astericks
+   *  * _voxel_set
+   *  * _voxel_list
+   *  * _voxelidx_to_tripidxlist
+   *  * _trip2voxelidx
+   * \endverbatim
+   *
    * @param[in] triplet_data Instance of triplet data, assumed to be filled already
    *
    */
-  void VoxelizeTriplets::make_voxeldata( const larflow::PrepMatchTriplets& triplet_data )
+  void VoxelizeTriplets::make_voxeldata( const larflow::prep::PrepMatchTriplets& triplet_data )
   {
     
     // first we need to define the voxels that are filled    
@@ -153,20 +200,23 @@ namespace voxelizer {
   }
 
   /**
-   * takes in precomputed triplet data and outputs voxel data in the form of a python dict
-   * contents of the dictionary:
-   *  dict["voxcoord"] = (Nv,3) numpy int array; Nv (x,y,z) voxel coordinate
-   *  dict["voxlabel"]  = (Nv) numpy int array; 1 if truth voxel, 0 otherwise. 
-   *  dict["trip2vidx"] = (Nt) numpy int array; Nt voxel indices referencing the "coord" array
-   *  dict["vox2trips_list"] = List of length Nv with (Mi) numpy int arrays. Each array contains triplet index list to combine into the voxel.
+   * @brief takes in precomputed triplet data and outputs voxel data in the form of a python dict
    * 
-   * uses member containers filled in make_voxeldata()
+   * Contents of the dictionary:
+   * \verbatim embed:rst:leading-asterisks
+   *  * dict["voxcoord"] = (Nv,3) numpy int array; Nv (x,y,z) voxel coordinate
+   *  * dict["voxlabel"]  = (Nv) numpy int array; 1 if truth voxel, 0 otherwise. 
+   *  * dict["trip2vidx"] = (Nt) numpy int array; Nt voxel indices referencing the "coord" array
+   *  * dict["vox2trips_list"] = List of length Nv with (Mi) numpy int arrays. Each array contains triplet index list to combine into the voxel.
+   * \endverbatim
+   * 
+   * Uses member containers filled in make_voxeldata().
    *
-   * inputs:
+   * @param[in] triplet_data larlite::prep::PrepMatchTriplets class containing spacepoint proposals
    * @return Python dictionary as described above. Ownership is transferred to calling namespace.
    *
    */
-  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::PrepMatchTriplets& triplet_data )
+  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::prep::PrepMatchTriplets& triplet_data )
   {
     
     // ok now we can make the arrays
@@ -272,7 +322,7 @@ namespace voxelizer {
   }
 
   /**
-   * calls make_voxeldata_dict with internal triplet maker data
+   * @brief calls make_voxeldata_dict with internal triplet maker data
    * 
    * @return Python dictionary as described above. Ownership is transferred to calling namespace.
    *
@@ -283,7 +333,16 @@ namespace voxelizer {
   }
   
   /**
-   * process data from image to make triplet and voxel data
+   * @brief process data from image to make triplet and voxel data
+   *
+   * This method uses an internal instance of larflow::prep::PrepMatchTriplets, _triplet_maker.
+   * The internal instance is used to extract spacepoint proposals from the wire plane images
+   * and then pass that info to make_voxeldata().
+   *
+   * @param[in]  iolcv LArCV IOManager containing event data
+   * @param[in]  adc_producer Root tree name containing wire images for event
+   * @param[in]  chstatus_producer Root tree name containing channel status info for event
+   * @param[in]  has_mc The IOManager is expected to contain truth information from Monte Carlo simulations
    *
    */
   void VoxelizeTriplets::process_fullchain( larcv::IOManager& iolcv,
