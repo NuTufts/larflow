@@ -37,7 +37,7 @@ namespace keypoints {
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
-                  const larflow::PrepMatchTriplets& match_proposals );
+                  const larflow::prep::PrepMatchTriplets& match_proposals );
 
 
   protected:

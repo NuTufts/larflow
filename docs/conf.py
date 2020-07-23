@@ -59,7 +59,9 @@ exhale_args = {
         INPUT    = ../larflow/LArFlowConstants \
                    ../larflow/PrepFlowMatchData \
                    ../larflow/SCBoundary \
-                   ../larflow/CRTMatch 
+                   ../larflow/CRTMatch \
+                   ../larflow/Voxelizer \
+                   ../larflow/KeyPoints 
         # Using `=` instead of `+=` overrides
         EXCLUDE  = ../larflow/SCBoundary/SCBs_values.cxx \
                    ../larflow/SCBoundary/SCBs_values.h
