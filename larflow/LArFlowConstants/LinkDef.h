@@ -5,7 +5,7 @@
  *
  * cint script to generate libraries and python bindings.
  * Declare namespace & classes you defined
- * #pragma statement: order matters! Google it ;)
+ * pragma statement: order matters! Google it ;)
  *
  */
 
