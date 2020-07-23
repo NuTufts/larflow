@@ -1,8 +1,13 @@
-//
-// cint script to generate libraries
-// Declaire namespace & classes you defined
-// #pragma statement: order matters! Google it ;)
-//
+/** \defgroup SCBoundary SCBoundary
+ *
+ * \brief Tools to calculate distance from space charge boundary
+ *
+ *
+ * cint script to generate libraries and python bindings.
+ * Declare namespace & classes you defined
+ * #pragma statement: order matters! Google it ;)
+ *
+ */
 
 #ifdef __CINT__
 #pragma link off all globals;

@@ -24,9 +24,28 @@ namespace scb {
   double SCBoundary::YX_BOT_y2_array[10] = {-101.72, -99.46, -99.51, -100.43, -99.55, -98.56, -98.00, -98.30, -99.32, -104.20};
   double SCBoundary::ZX_Dw_x1_array[10]  = {120.00, 115.24, 108.50, 110.67, 120.90, 126.43, 140.51, 157.15, 120.00, 120.00};
   double SCBoundary::ZX_Dw_z2_array[10]  = {1029.00, 1029.12, 1027.21, 1026.01, 1024.91, 1025.27, 1025.32, 1027.61, 1026.00, 1026.00};
-  
-  template <class T>
-  T SCBoundary::dist2boundary( const std::vector<T>& pos, Boundary_t& boundary_type ) const
+
+  /**
+   * @brief calculate distance to boundary
+   *
+   * This function assumes the query point is inside the TPC.
+   * If a query point is given outside the TPC, the distance returned
+   * will be from the active volume TPC boundary.
+   *
+   * The active TPC boundary is assumed to be:
+   * \verbatim embed:rst:leading-asterisk
+   *   * x: [0,256]
+   *   * y: [116,-115]
+   *   * z: [0.0,1037.0]
+   * \endverbatim
+   *
+   * @param[in] pos 3D test position in cm (assumed inside the TPC)
+   * @param[out] boundary_type Returns Boundary_t label indicated boundary 
+   *             the test point was closest to and for which the calculation is made.
+   * @return distance in cm
+   */
+  template <class T>  T SCBoundary::dist2boundary( const std::vector<T>& pos,
+                                                   Boundary_t& boundary_type ) const
   {
 
     // first calculate the dist to the TPC boundaries
@@ -168,14 +187,23 @@ namespace scb {
     return dists[minidx];       
   }
 
-  template <class T>
-  T SCBoundary::pointLineDistance( const std::vector<T>& linept1,
-                                   const std::vector<T>& linept2,
-                                   const std::vector<T>& pt ) const
+  /**
+   * @brief distance from line defined by two points
+   *
+   * formula from: http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+   *
+   * This will return the distance the line defined by two points.
+   *
+   * @param[in] linept1 3D position on one end of segment
+   * @param[in] linept2 3D position on the other end of the segment
+   * @param[in] pt      3D position of test point
+   *
+   * @return The distance from the line
+   */
+  template <class T> T SCBoundary::pointLineDistance( const std::vector<T>& linept1,
+                                                      const std::vector<T>& linept2,
+                                                      const std::vector<T>& pt ) const
   {
-    
-    // get distance of point from pca-axis
-    // http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
     
     std::vector<T> d1(3);
     std::vector<T> d2(3);
@@ -210,18 +238,50 @@ namespace scb {
     return r;
   }
 
+  /**
+   * @brief explicit float implementation of dist2boundary without boundary type return
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @return x-position in cm 
+   */    
   float SCBoundary::dist2boundary( float x, float y, float z ) const {
     std::vector<float> pos = { x, y, z };
     Boundary_t btype;
     return dist2boundary<float>(pos, btype);
   }
 
+  /**
+   * @brief explicit double implementation of dist2boundary without boundary type return
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @return x-position in cm 
+   */      
   double SCBoundary::dist2boundary( double x, double y, double z ) const {
     std::vector<double> pos = { x, y, z };
     Boundary_t btype;    
     return dist2boundary<double>(pos, btype);
   }
 
+  /**
+   * @brief explicit float implementation of dist2boundary with boundary type return
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @param[out] ibtype boundary type as integer corresponding to Boundary_t
+   * @return x-position in cm 
+   *
+   */      
   float SCBoundary::dist2boundary( float x, float y, float z, int& ibtype ) const {
     std::vector<float> pos = { x, y, z };
     Boundary_t btype;
@@ -230,6 +290,18 @@ namespace scb {
     return dist;
   }
 
+  /**
+   * @brief explicit double implementation of dist2boundary with boundary type return
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @param[out] ibtype boundary type as integer corresponding to Boundary_t
+   * @return x-position in cm 
+   *
+   */      
   double SCBoundary::dist2boundary( double x, double y, double z, int& ibtype ) const {
     std::vector<double> pos = { x, y, z };
     Boundary_t btype;    
@@ -239,6 +311,24 @@ namespace scb {
   }
   
 
+  /**
+   * @brief The x position if one pushes test point to space charge boundary.
+   *
+   * Given a test point (x,y,z) what is the x-position if we
+   * pushed the point to the space charge boundary along the x-direction only.
+   * In otherwords, given the (y,z) coordinages, 
+   * what is the x position on the space charge boundary?
+   * 
+   * This method will work as long as (y,z) are within bounds.
+   * \verbatim embed:rst:leading-asterick
+   *  * y: [-115,116]
+   *  * z: [0,1036]
+   * \endverbatim
+   *
+   * @param[in] pos 3D test point in cm
+   * @return x-position at space charge boundary in cm
+   *
+   */ 
   template<class T>
   T SCBoundary::XatBoundary( const std::vector<T>& pos ) const
   {
@@ -285,12 +375,34 @@ namespace scb {
     
   }
 
+  /**
+   * @brief explicit float implementation of XatBoundary
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @return x-position in cm 
+   *
+   */
   float SCBoundary::XatBoundary( float x, float y, float z ) const
   {
     std::vector<float> pos = {x,y,z};
     return XatBoundary<float>(pos);
   }
 
+  /**
+   * @brief explicit double implementation of XatBoundary
+   *
+   * used for python bindings
+   *
+   * @param[in] x x-position in cm of test point
+   * @param[in] y y-position in cm of test point
+   * @param[in] z z-position in cm of test point
+   * @return x-position in cm 
+   *
+   */  
   double SCBoundary::XatBoundary( double x, double y, double z ) const
   {
     std::vector<double> pos = {x,y,z};
