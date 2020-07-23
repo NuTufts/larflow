@@ -43,18 +43,29 @@ namespace crtmatch {
     virtual ~CRTTrackMatch();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    void set_max_iters( int tries ) { _max_iters = tries; };
-    void set_col_neighborhood( int cols )   { _col_neighborhood = cols; };
-    void set_max_fit_step_size( float cm )  { _max_fit_step_size = cm; };
-    void set_max_last_step_size( float cm ) { _max_last_step_size = cm; };
-    void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
 
+
+    /** @brief set the number of iterations to adjust CRT track to better match ionization in image */
+    void set_max_iters( int tries ) { _max_iters = tries; };
+
+    /** @brief set pixel distance from projected track to search for nearest pixel with charge */
+    void set_col_neighborhood( int cols )   { _col_neighborhood = cols; };
+
+    /** @brief set maximum step length along CRT-track path while projecting path into image */
+    void set_max_fit_step_size( float cm )  { _max_fit_step_size = cm; };
+
+    /** @brief set final pass maximum step length along CRT-track path while projecting path into image */
+    void set_max_last_step_size( float cm ) { _max_last_step_size = cm; };
+
+    /** @brief set flag that determines if pngs are made for debugging purposes */
+    void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
+    
     void save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
     void clear_output_containers();
 
     /**
-     * @brief internal struct to assemble info for CRT Track
-     *
+     * @struct crttrack_t
+     * @brief internal struct to contaning info extracted by projecting CRT track into the wire plane images
      */
     struct crttrack_t {
 
@@ -62,12 +73,12 @@ namespace crtmatch {
       const larlite::crttrack* pcrttrack;  ///< pointer to original CRT track object
 
       std::vector< std::vector<double> >   hit_pos_vv;      ///< modified CRT hit positions (after fit)
-      std::vector< std::vector< int > >    pixellist_vv[3]; ///< (row,col) of pixels near line for each plane (3 planes total)
-      std::vector< float >                 pixelrad_vv[3];  ///< pixel radius from crt-track line for each plane (3 planes total)
-      std::vector< std::vector< double > > pixelpos_vv;     ///< list of pixel positions near the crt-track line
-      std::vector< std::vector<int> >      pixelcoord_vv;   ///< list of pixel coordinates (row,col)
-      std::vector< float >                 totalq_v;        ///< total charge along path
-      std::vector< float >                 toterr_v;        ///< total error
+      std::vector< std::vector< int > >    pixellist_vv[3]; ///< (row,col) of pixel nearest SC-corrected path for each plane (3 planes total)
+      std::vector< float >                 pixelrad_vv[3];  ///< pixel dist from nearest charge pixel to projected pixel along crt-track line for each plane (3 planes total)
+      std::vector< std::vector< double > > pixelpos_vv;     ///< list of 3D SC-corrected positions along the crt-track line
+      std::vector< std::vector<int> >      pixelcoord_vv;   ///< list of pixel coordinates (U col, V col, Y col, tick)
+      std::vector< float >                 totalq_v;        ///< total charge of closest pixels around crt-track line per plane
+      std::vector< float >                 toterr_v;        ///< total pixel dist to closest pixels along crt-track line per plane
       float                                len_intpc_sce;   ///< path length of the reconstructed path inside the TPC
       float                                t0_usec;         ///< time relative to beam window start in microsecond of CRT track
 
@@ -81,6 +92,11 @@ namespace crtmatch {
         toterr_v( {0,0,0} ),
         len_intpc_sce(0.0)
       {};
+      /** @brief constructor
+       *
+       * @param[in] idx Index of CRT track object in event container used 
+       * @param[in] ptrack Pointer to CRT track object
+       */
       crttrack_t( int idx, const larlite::crttrack* ptrack )
       : crt_track_index(idx),
         pcrttrack( ptrack ),
@@ -131,7 +147,7 @@ namespace crtmatch {
     int _col_neighborhood;     ///< window to search for charge around track
     float _max_fit_step_size;  ///< max step size when fittering
     float _max_last_step_size; ///< max step size for final fit
-    float _max_dt_flash_crt;   /// < maximum time difference (usec) between opflash and crttrack
+    float _max_dt_flash_crt;   ///< maximum time difference (usec) between opflash and crttrack
     std::string _adc_producer; ///< name of ADC image tree
     std::string _crttrack_producer; ///< name of CRT track producer
     std::vector<std::string> _opflash_producer_v;  ///< names of opflash producers to search for matching flashes
@@ -139,6 +155,9 @@ namespace crtmatch {
 
   public:
 
+    /** @brief set image2d tree to get wire iages from 
+        @param[in] treename Name of ROOT tree
+     */
     void setADCtreename( std::string treename ) { _adc_producer=treename; }; ///< Set Image2D tree to get wire images from.
 
   protected:
@@ -152,6 +171,7 @@ namespace crtmatch {
 
   public:
 
+    /** @brief get container of matched track clusters */
     const std::vector< larlite::larflowcluster >& getClusters() { return _cluster_v; }; ///< get matched track clusters
 
   };

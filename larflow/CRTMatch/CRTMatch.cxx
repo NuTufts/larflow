@@ -7,25 +7,37 @@ namespace larflow {
 namespace crtmatch {
 
   /**
+   * @brief Process data for one event
    *
    * iomanager inputs:
-   *   adc images (typicall 'wire')
+   * \verbatim embed:rst:leading-asterisks
+   *   * adc images (typicall 'wire')
+   * \endverbatim
    * 
    * larlite inputs:
-   *   opflash: typically 'simpleflashbeam' and 'simpleflashcosmic'
-   *   crttrack: typically 'crttrack'
-   *   crthit: typically 'crthit'
-   *   larflowcluster (typically) pcacluster
-   *   pcaxis for larflow cluster: typically 'pcacluster'
+   * \verbatim embed:rst:leading-asterisks
+   *   * opflash: typically 'simpleflashbeam' and 'simpleflashcosmic'
+   *   * crttrack: typically 'crttrack'
+   *   * crthit: typically 'crthit'
+   *   * larflowcluster (typically) pcacluster
+   *   * pcaxis for larflow cluster: typically 'pcacluster'
+   * \endverbatim
    *
-   * larlite output: correllated among the following
-   *   crttrack: records crt info, including crttrack matches AND crthit. For crt hit, only first hit information listed.
-   *   larflowcluster: list of larflow3dhits that relate space point to image coordinates
-   *   opflash: matching opflash to crt track (empty flash with totpe=0.0 if no flash matched)
+   * larlite output: correlated among the following
+   * \verbatim embed:rst:leading-asterisks
+   *   * crttrack: records crt info, including crttrack matches AND crthit. For crt hit, only first hit information listed.
+   *   * larflowcluster: list of larflow3dhits that relate space point to image coordinates
+   *   * opflash: matching opflash to crt track (empty flash with totpe=0.0 if no flash matched)
+   * \endverbatim
    * 
    * larcv output: 
-   *   image2d: with matched CRT pixels masked out
+   * \verbatim embed:rst:leading-asterisks
+   *   * image2d: with matched CRT pixels masked out
+   * \endverbatim
    * 
+   * @param[in] iocv larcv::IOManager from which data will be retrieved and output to
+   * @param[in] ioll larlite::storage_manager from which data will be retrieved and output to
+   *
    */
   void CRTMatch::process( larcv::IOManager& iocv, larlite::storage_manager& ioll ) {
 
@@ -128,7 +140,30 @@ namespace crtmatch {
     
   }
 
-  void CRTMatch::store_output( larcv::IOManager& outlcv, larlite::storage_manager& outll, bool remove_if_no_flash ) {
+  /**
+   * @brief Copy output in algo containers to larcv and larlite IO managers
+   *
+   * larlite output: correlated among the following
+   * \verbatim embed:rst:leading-asterisks
+   *   * crttrack: records crt info, including crttrack matches AND crthit. For crt hit, only first hit information listed.
+   *   * larflowcluster: list of larflow3dhits that relate space point to image coordinates
+   *   * opflash: matching opflash to crt track (empty flash with totpe=0.0 if no flash matched)
+   * \endverbatim
+   * 
+   * larcv output: 
+   * \verbatim embed:rst:leading-asterisks
+   *   * image2d: with matched CRT pixels masked out
+   * \endverbatim
+   *
+   * @param[in] outlcv Output larcv::IOManager
+   * @param[in] outll  Output larlite::storage_manager
+   * @param[in] remove_if_no_flash If true, for both CRT hit and CRT track matcher,
+   *                               TPC track to CRT object matches are skipped when no
+   *                               optical flash could be associated to the pair.
+   */
+  void CRTMatch::store_output( larcv::IOManager& outlcv,
+                               larlite::storage_manager& outll,
+                               bool remove_if_no_flash ) {
 
     
     _track_matcher.save_to_file( outll, remove_if_no_flash );

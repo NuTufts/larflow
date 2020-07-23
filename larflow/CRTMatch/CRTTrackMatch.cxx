@@ -330,8 +330,10 @@ namespace crtmatch {
                                                   const float max_step_size,
                                                   const int col_neighborhood ) {
 
+    // create struct for this path
     crttrack_t data( -1, nullptr );
 
+    // determine direction from one crt hit position to the other
     std::vector<float> dir(3,0);
     float len = 0.;
     for (int i=0; i<3; i++ ) {
@@ -347,6 +349,7 @@ namespace crtmatch {
     int nsteps = len/max_step_size+1;
     float stepsize = len/float(nsteps);
 
+    // create image to maker where we have stepped in the image
     std::vector< larcv::Image2D > pix_visited_v;
     for ( auto const& img : adc_v ) {
       larcv::Image2D visited(img.meta());
@@ -354,28 +357,31 @@ namespace crtmatch {
       pix_visited_v.emplace_back( std::move(visited) );
     }
 
+    // step through the path
     std::vector<double> last_pos;
 
     for (int istep=0; istep<nsteps; istep++) {
 
-      // step position
+      // 3D step position
       std::vector<double> pos(3,0.0);
       for (int i=0; i<3; i++ )
         pos[i] = hit1_pos[i] + istep*stepsize*dir[i];
-      
+
+      // do not evaluate outside TPC
       if ( pos[0]<1.0 || pos[0]>255.0 ) continue;
       if ( pos[1]<-116.0 || pos[1]>116.0  ) continue;
       if ( pos[2]<0.5 || pos[2]>1035.0 ) continue;
 
       //std::cout << " [" << istep << "] pos=(" << pos[0] << "," << pos[1] << "," << pos[2] << ")" << std::endl;      
-      
+
+      // space charge correct the straight-line path position
       std::vector<double> offset = _sce->GetPosOffsets( pos[0], pos[1], pos[2] );
       std::vector<double> pos_sce(3,0);
       pos_sce[0] = pos[0] - offset[0] + 0.6;
       pos_sce[1] = pos[1] + offset[1];
       pos_sce[2] = pos[2] + offset[2];
       
-      // space-charge correction
+      // get image coordinates
       bool inimage = true;
       std::vector<int> imgcoord_v(4);
       for (size_t p=0; p<adc_v.size(); p++ ) {
@@ -617,13 +623,21 @@ namespace crtmatch {
   /**
    * @brief calculate where a track intersects the CRT if continued to the CRT
    * 
-   * @param[in] track_cluster Cluster for which we project ends to CRT
+   * The track used in this calculation is a result of 3d points 
+   * generated in _propose_corrected_track based off the set of closest pixels
+   * to a crt-track path in each plane found in _collect_chargepixels_for_track.
+   * 
+   * The first principle component of the cluster is used to define a new line
+   * which we intersect with the CRT.
+   *
+   * @param[in] track_cluster cluster of 3d points whose pca axis we use to intersect with CRT
    * @param[in] orig_crttrack Original crt track instance used for each
-   * @param[in] panel_pos_v I don't remember what this is for.
-   * @param[in] dist2_original_hits Don't remember
-   * @return True if good hit; else False if bad (I don't really remember)
+   * @param[in] panel_pos_v Two intersection points with the CRT
+   * @param[in] dist2_original_hits Distance of the new intersection points to the original CRT hits
+   * @return True if good hit; else False because track was parallel to CRT
    */
-  bool CRTTrackMatch::_crt_intersections( larflow::reco::cluster_t& track_cluster, const larlite::crttrack& orig_crttrack,
+  bool CRTTrackMatch::_crt_intersections( larflow::reco::cluster_t& track_cluster,
+                                          const larlite::crttrack& orig_crttrack,
                                           std::vector< std::vector<double> >& panel_pos_v,
                                           std::vector< double >& dist2_original_hits ) {
     
