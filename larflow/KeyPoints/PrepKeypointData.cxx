@@ -383,7 +383,7 @@ namespace keypoints {
    * @param[in]     mctruth_v Truth information about the neutrino interaction.
    * @param[in]     img_v     Wire Images, just for the meta
    * @param[in]     psce      Pointer to space-charge microboone instance
-   * @param[in/out] kpdata_v  Keypoint elements to potentially change
+   * @param[out]    kpdata_v  Keypoint elements to potentially change
    *
    */
   void PrepKeypointData::_label_nu_keypoints( const larlite::event_mctruth& mctruth_v,

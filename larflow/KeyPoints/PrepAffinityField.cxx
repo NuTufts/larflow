@@ -7,19 +7,21 @@
 namespace larflow {
 namespace keypoints {
 
+  /** @brief default constructor */
   PrepAffinityField::PrepAffinityField()
     : larcv::larcv_base("PrepAffinityField")
   {
     psce = new larutil::SpaceChargeMicroBooNE;
   }
 
+  /** @brief default destructor */  
   PrepAffinityField::~PrepAffinityField()
   {
     delete psce;
   }
   
   /**
-   * goal is to define a direction vector for every triplet proposal
+   * @brief goal is to define a direction vector for every triplet proposal
    *
    * for each triplet spacepoint, if good, then we project into
    * image, get instance ID. Then if track, we find the truth mcstep segment the point
@@ -30,6 +32,10 @@ namespace keypoints {
    * value. we weight the contribution of these to the loss function
    * as zero and prepare a weight in addition to the ground truth label.
    *
+   * @param[in] iolcv LArCV IOManager containing the event data
+   * @param[in] ioll  larlite storage_manager containing the event data
+   * @param[in] match_proposals copy of larflow::prep::PrepMatchTriplets containing the proposed space points for the event, 
+                                along with labels for which points are true or are ghosts.
    */
   void PrepAffinityField::process( larcv::IOManager& iolcv,
                                    larlite::storage_manager& ioll,
@@ -83,6 +89,25 @@ namespace keypoints {
   }
 
 
+  /**
+   * @brief make truth direction vector for all space points
+   *
+   * For each space point we create a vector<float> with the following contents
+   * \verbatim embed:rst:leading-asterisk
+   *  * `[0-2]`: 3D direction
+   *  * `[3-8]`: 3 planes x 2D direction (projected direction in the wire planes)
+   *  * `[9]`: instance id
+   * \endverbatim
+   *
+   * @param[in] pixlist_v list of pixel coordinates (row,col) for each image (outer vector) for pixels with values above threshold
+   * @param[in] spacepoint_v given 3D space point we are making the direction label for
+   * @param[in] instance_v vector of larcv::Image2D, one for each plane, where each pixel stores the MC ID of the particle that made the most charge within that pixel.
+   * @param[in] ev_mctrack_v container holding larlite::mctrack objects, which store the trajectory of the simulated track-like particles
+   * @param[in] ev_mcshower_v container holding larlite::mcshower objects, which store the true start direction of simulated shower-like particles
+   * @param[out] label_v the 3D direction for the space point
+   * @param[out] weight the weight calculated for this point. [unused]
+   *
+   */
   void PrepAffinityField::_determine_triplet_labels( const std::vector< std::vector<int> >& pixlist_v,
                                                      const std::vector<float>& spacepoint_v,
                                                      const std::vector< larcv::Image2D >& instance_v,
@@ -173,6 +198,16 @@ namespace keypoints {
     
   }
 
+  /**
+   * @brief use truth trajectory information from the simulation to get the direction label for a space point
+   *
+   * @param[in] track larlite::mctrack instance with the true trajectory of the track particle
+   * @param[in] pt the space point for which we want to know the assign a ground truth direction
+   * @param[in] img_v vector of wire plane images
+   * @param[out] label_v Assigned 3D direction
+   * @param[out] weight  Assigned weight for this space point. [unused]
+   * 
+   */
   bool PrepAffinityField::_get_track_direction( const larlite::mctrack& track,
                                                 const std::vector<double>& pt,
                                                 const std::vector<larcv::Image2D>& img_v,
@@ -281,6 +316,16 @@ namespace keypoints {
     return true;
   }
 
+  /**
+   * @brief use truth information from the simulation to get the direction label for a showering particle space point
+   *
+   * @param[in] shower larlite::mcshower instance with the truth information about the shower
+   * @param[in] pt the space point for which we want to know the assign a ground truth direction
+   * @param[in] img_v vector of wire plane images
+   * @param[out] label_v Assigned 3D direction
+   * @param[out] weight  Assigned weight for this space point. [unused]
+   * 
+   */
   bool PrepAffinityField::_get_shower_direction( const larlite::mcshower& shower,
                                                  const std::vector<double>& pt,
                                                  const std::vector<larcv::Image2D>& img_v,
@@ -356,6 +401,9 @@ namespace keypoints {
     return true;
   }
 
+  /**
+   * @brief make the output tree where will store the labels
+   */
   void PrepAffinityField::defineAnaTree()
   {
     _label_tree = new TTree("AffinityFieldTree", "Affinity Field Label Tree");
@@ -365,11 +413,13 @@ namespace keypoints {
     _label_tree->Branch( "label_v", &_match_labels_v );
   }
 
+  /** @brief fill the output tree with the values for the current entry */
   void PrepAffinityField::fillAnaTree()
   {
     if (_label_tree) _label_tree->Fill();
   }
 
+  /** @brief write output tree to the output file */
   void PrepAffinityField::writeAnaTree()
   {
     if ( _label_tree ) _label_tree->Write();

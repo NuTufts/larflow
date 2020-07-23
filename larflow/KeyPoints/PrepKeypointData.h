@@ -120,14 +120,24 @@ namespace keypoints {
 
   public:
 
+    /**
+     * @brief set the tree name used to get wire plane images
+     * @param[in] treename Name of tree in ROOT file following `image2d_[treename]_tree`
+     */
     void setADCimageTreeName(std::string treename) { _adc_image_treename=treename; };
+
+    /**
+     * @brief get the vector of true keypoints labeled in the image
+     * @return vector of keypoints represented by KPdata class
+     */    
     const std::vector<KPdata>& getKPdata() const { return _kpd_v; };
+
     void printKeypoints() const;
             
   public:
-    
-    PyObject* get_keypoint_array(int ikpclass ) const; ///< get numpy array with true keypoint information
-    PyObject* get_triplet_score_array( float sig ) const; ///< get numpy array with target scores
+
+    PyObject* get_keypoint_array(int ikpclass ) const;
+    PyObject* get_triplet_score_array( float sig ) const;
 
     
   protected:

@@ -5,15 +5,16 @@
 namespace larflow {
 namespace keypoints {
 
+  bool LoaderAffinityField::_setup_numpy = false;
+  
   /**
-   * constructor
+   * @brief constructor with list of input ROOT files
    *
    * @param[in] input_v List of paths to input ROOT files containing ground truth data
    *
    */
   LoaderAffinityField::LoaderAffinityField( std::vector<std::string>& input_v )
-    : tpaf(nullptr),
-      _setup_numpy(false)
+    : tpaf(nullptr)
   {
     input_files.clear();
     input_files = input_v;
@@ -26,7 +27,7 @@ namespace keypoints {
   }
 
   /**
-   * load TTree class data members and define TBranch's
+   * @brief load TTree class data members and define TBranches
    *
    */
   void LoaderAffinityField::load_tree() {
@@ -43,8 +44,10 @@ namespace keypoints {
   }
 
   /**
-   * load data for the different trees
+   * @brief load data for a given entry
    *
+   * @param[in] entry entry number in TChain
+   * @return number of bytes loaded from the file. zero is no more entries or there was an error.
    */
   unsigned long LoaderAffinityField::load_entry( int entry )
   {
@@ -53,8 +56,9 @@ namespace keypoints {
   }
 
   /**
-   * get total entries
+   * @brief get total entries
    *
+   * @return number of entries in the TChain _paf
    */
   unsigned long LoaderAffinityField::GetEntries()
   {
@@ -62,15 +66,17 @@ namespace keypoints {
   }
 
   /**
-   * return a ground truth data, return a subsample of all truth matches
+   * @brief return a ground truth data, return a subsample of all truth matches
    *
-   * returns a python dictionary. Contents include
-   * {"paf_label":affinity field ground truth (direction of particle at spacepoint)
-   *  "paf_weight":weight for affinity field labels}
+   * returns a python dictionary. Contents include (list starts with key of entry)
+   * \verbatim embed:rst:loading-asterisk
+   *  * `paf_label`:affinity field ground truth (direction of particle at spacepoint)
+   *  * `paf_weight`:weight for affinity field labels}
+   * \endverbatim
    *
    * @param[in] triplet_matches_pyobj The sampled larmatch triplets. Expected shape: (N,4).
    * @param[in] exclude_neg_examples  Exclude negative examples
-   * @return Python dictionary object with numpy arrays
+   * @return Python dictionary with numpy arrays
    *                        
    */
   PyObject* LoaderAffinityField::get_match_data( PyObject* triplet_matches_pyobj,
@@ -131,7 +137,7 @@ namespace keypoints {
   }
 
   /**
-   * make particle affinity field ground truth numpy arrays
+   * @brief make particle affinity field ground truth numpy arrays
    *
    * @param[in]  nfilled number of samples actually returned
    * @param[in]  pos_match_index vector index in return samples for space points which are true/good
