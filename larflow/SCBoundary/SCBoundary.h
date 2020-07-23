@@ -53,7 +53,6 @@ namespace scb {
     // index from 1 to 10 for position dependece. See the talk
     /* https://microboone-docdb.fnal.gov/cgi-bin/private/ShowDocument?docid=26423 */
     
-    /// YX view has Z dependence: Z sub-range from 0 to 10m per 1m
     static constexpr double YX_TOP_y1_array     = 116; ///< y-position defining start of top space charge boundary
     static double YX_TOP_x1_array[10]; ///< x-position defining start of top space charge boundary for 10 subsections
     static double YX_TOP_y2_array[10]; ///< y-position defining end of top space charge boundary for 10 subsections

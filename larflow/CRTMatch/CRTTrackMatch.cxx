@@ -36,8 +36,29 @@ namespace crtmatch {
   }
 
   /**
-   * process the event data found in the larcv and larlite event data containers
+   * @brief process the event data found in the larcv and larlite event data containers
    *
+   * What is expected in the LArCV IOManager:
+   * \verbatim embed:rst:leading-asterisk
+   *   * wire images. set tree name using `setADCtreename`. default: 'wire'.
+   * \endverbatim
+   *
+   * What is expected in the larlite storage_manager:
+   * \verbatim embed:rst:leading-asterisk
+   *   * `larlite::crttrack` objects. default tree name: `crttrack`.
+   *   * `larlite::opflash objects`. default trees: `simpleFlashBeam`, `simpleFlashCosmic`.
+   * \endverbatim
+   *
+   * The function will fill the following member variables.
+   * \verbatim embed:rst:leading-asterisk
+   *   * `_fitted_crttrack_v`: result of crt track finder
+   *   * `_matched_opflash_v`: opflashes matched to tracks in `_fitted_crttrack_v`
+   *   * `_modified_crttrack_v`: the crt track after a fit has optimized the end points to better fit line of charge in TPC.
+   *   * `_cluster_v`: 3D pixels
+   * \endverbatim
+   * 
+   * @param[in] iolcv LArCV IOManager from which we get event data containers
+   * @param[in] ioll larlite storage_manaer from which we get event data containers
    */
   void CRTTrackMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
@@ -173,7 +194,12 @@ namespace crtmatch {
   }
 
   /**
-   * we step around the hit, optimizing charge/
+   * @brief vary CRT hit position and optimizing path in TPC to be close to charge pixels
+   *
+   * @param[in] crt CRT track object giving two coincident (x,y,z) positions on CRT
+   * @param[in] adc_v vector of wire plane images in which we look for matching lines of charge
+   * @return CRT track object that is a modified copy of input CRT track, where the end points
+   *             are those found from the fit.
    * 
    */
   CRTTrackMatch::crttrack_t CRTTrackMatch::_find_optimal_track( const larlite::crttrack& crt,
@@ -281,14 +307,28 @@ namespace crtmatch {
     return bestfit_data;
     
   }
-  
+
+  /**
+   * @brief collect pixels with above threshold values along path between crt hits
+   *
+   * @param[in] hit1_pos 3D position of the first CRT hit
+   * @param[in] hit2_pos 3D position of the secoond CRT hit
+   * @param[in] t0_usec  time relative to the event trigger when CRT track occurred
+   * @param[in] adc_v    wire plane images wthin which we search for line of charge between
+   *                     CRT hits
+   * @param[in] max_step_size Maximum step size when stepping in 3D. 
+   * @param[in] col_neighborhood Number of neighboring pixels around projected 3D position
+   *                             of track into the image which should be used to sum up charge
+   * @return instance of internal struct `crttrack_t`, which stores info about pixels along path
+   *
+   */
   CRTTrackMatch::crttrack_t
-    CRTTrackMatch::_collect_chargepixels_for_track( const std::vector<double>& hit1_pos,
-                                                    const std::vector<double>& hit2_pos,
-                                                    const float t0_usec,
-                                                    const std::vector<larcv::Image2D>& adc_v,
-                                                    const float max_step_size,
-                                                    const int col_neighborhood ) {
+  CRTTrackMatch::_collect_chargepixels_for_track( const std::vector<double>& hit1_pos,
+                                                  const std::vector<double>& hit2_pos,
+                                                  const float t0_usec,
+                                                  const std::vector<larcv::Image2D>& adc_v,
+                                                  const float max_step_size,
+                                                  const int col_neighborhood ) {
 
     crttrack_t data( -1, nullptr );
 
@@ -434,6 +474,10 @@ namespace crtmatch {
     return data;
   }
 
+  /**
+   * @brief propose path through image of track defined by CRT track
+   *
+   */
   bool CRTTrackMatch::_propose_corrected_track( const CRTTrackMatch::crttrack_t& old,
                                                 std::vector< double >& hit1_new,
                                                 std::vector< double >& hit2_new ) {
@@ -542,6 +586,13 @@ namespace crtmatch {
     
   }
 
+  /**
+   * @brief get string containing info about a `crttrack_t` instance
+   *
+   * @param[in] data `crttrack_t` instance for which we dump out info
+   * @return string containing info about instance
+   *
+   */
   std::string CRTTrackMatch::_str( const CRTTrackMatch::crttrack_t& data ) {
     std::stringstream ss;
     ss << "[crttrack_t] ";
@@ -563,6 +614,15 @@ namespace crtmatch {
   }
 
 
+  /**
+   * @brief calculate where a track intersects the CRT if continued to the CRT
+   * 
+   * @param[in] track_cluster Cluster for which we project ends to CRT
+   * @param[in] orig_crttrack Original crt track instance used for each
+   * @param[in] panel_pos_v I don't remember what this is for.
+   * @param[in] dist2_original_hits Don't remember
+   * @return True if good hit; else False if bad (I don't really remember)
+   */
   bool CRTTrackMatch::_crt_intersections( larflow::reco::cluster_t& track_cluster, const larlite::crttrack& orig_crttrack,
                                           std::vector< std::vector<double> >& panel_pos_v,
                                           std::vector< double >& dist2_original_hits ) {
@@ -619,7 +679,7 @@ namespace crtmatch {
   }
 
   /**
-   * match opflashes to crttrack_t using closest time
+   * @brief match opflashes to crttrack_t using closest time
    *
    * ties are broken based on closest centroids based 
    *   on pca-center of tracks and charge-weighted mean of flashes
@@ -748,7 +808,10 @@ namespace crtmatch {
 
   
   /**
-   * store crttrack_t data in a cluster of larflow3dhits
+   * @brief store spacepoint infofrom crttrack_t data in a larlite::larflowcluster object
+   *
+   * @param[in] fitdata `crttrack_t` instance produced from the fit
+   * @return `larlite::larflowcluster` instance containing `larlite::larflow3dhit` objects
    *
    */
   larlite::larflowcluster CRTTrackMatch::_crttrack2larflowcluster( const CRTTrackMatch::crttrack_t& fitdata ) {
@@ -816,6 +879,18 @@ namespace crtmatch {
 
   }
 
+  /**
+   * @brief clear the output data containers
+   * 
+   * clears
+   * \verbatim embed:rst:leading-asterisks
+   *   * `_fitted_crttrack_v`
+   *   * `_matched_opflash_v`
+   *   * `_modified_crttrack_v`
+   *   * `_cluster_v`
+   * \endverbatim
+   *
+   */
   void CRTTrackMatch::clear_output_containers() {
     _fitted_crttrack_v.clear();   //< result of crt track fitter
     _matched_opflash_v.clear();   //< opflashes matched to tracks in _fitted_crttrack_v

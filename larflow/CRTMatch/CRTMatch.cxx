@@ -72,7 +72,7 @@ namespace crtmatch {
     
     // loop over constructed CRT tracks
     float cidx = 0;
-    for ( auto const& cluster : _track_matcher._cluster_v ) {
+    for ( auto const& cluster : _track_matcher.getClusters() ) {
       for ( auto const& lfhit : cluster ) {
         int row = adc_v[0].meta().row( lfhit.tick );
         for ( size_t p=0; p<3; p++ ) {
@@ -88,7 +88,7 @@ namespace crtmatch {
     for ( size_t idx=0; idx<ev_lfcluster->size(); idx++ ) {
       if ( used_clusters_v[idx] ) continue;
 
-      std::vector<int> index_counter( _track_matcher._cluster_v.size(), 0 );
+      std::vector<int> index_counter( _track_matcher.getClusters().size(), 0 );
       for ( auto const& lfhit : ev_lfcluster->at(idx) ) {
         int row = track_index_v[0].meta().row( lfhit.tick );
         for ( size_t p=0; p<3; p++ ) {

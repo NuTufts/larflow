@@ -58,7 +58,8 @@ exhale_args = {
     "exhaleDoxygenStdin":textwrap.dedent('''
         INPUT    = ../larflow/LArFlowConstants \
                    ../larflow/PrepFlowMatchData \
-                   ../larflow/SCBoundary 
+                   ../larflow/SCBoundary \
+                   ../larflow/CRTMatch 
         # Using `=` instead of `+=` overrides
         EXCLUDE  = ../larflow/SCBoundary/SCBs_values.cxx \
                    ../larflow/SCBoundary/SCBs_values.h
