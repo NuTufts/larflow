@@ -1,8 +1,13 @@
-//
-// cint script to generate libraries
-// Declaire namespace & classes you defined
-// #pragma statement: order matters! Google it ;)
-//
+/** \defgroup Reco Reco
+ *
+ * \brief Algorithms that use Network outputs to reconstruct the interactions in the TPC
+ *
+ *
+ * cint script to generate libraries and python bindings.
+ * Declare namespace & classes you defined
+ * pragma statement: order matters! Google it ;)
+ *
+ */
 
 #ifdef __CINT__
 #pragma link off all globals;
@@ -21,6 +26,7 @@
 #pragma link C++ function larflow::reco::cluster_larflow3dhits+;
 #pragma link C++ function larflow::reco::cluster_spacepoint_v+;
 #pragma link C++ function larflow::reco::cluster_sdbscan_larflow3dhits+;
+#pragma link C++ function larflow::reco::cluster_sdbscan_spacepoints+;
 #pragma link C++ function larflow::reco::cluster_dbscan_vp_larflow3dhits+;
 #pragma link C++ function larflow::reco::cluster_dump2jsonfile+;
 #pragma link C++ function larflow::reco::cluster_splitbytrackshower+;
