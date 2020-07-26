@@ -1,13 +1,6 @@
 #ifndef __LARFLOW_RECO_KPTRACKFIT_H__
 #define __LARFLOW_RECO_KPTRACKFIT_H__
 
-/**
- *
- * class that implements dijkstra's algorithm using space points
- * the start and end node are determined by KeyPoint candidates
- *
- */
-
 #include <vector>
 #include <map>
 #include "larcv/core/Base/larcv_base.h"
@@ -16,6 +9,16 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   *
+   * @ingroup Reco
+   * @class KPTrackFit
+   * @brief track reconstruction using dijkstra's algorithm to navigate between two spacepoints
+   *
+   * Class that implements dijkstra's algorithm using space points.
+   * The start and end node are determined by KeyPoint candidates.
+   *
+   */  
   class KPTrackFit : public larcv::larcv_base {
 
   public:

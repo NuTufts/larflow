@@ -11,6 +11,28 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief Process the event data in the IO managers
+   *
+   * The data expected in the IO managers are:
+   * @verbatim embed:rst:lead-asterisk
+   *  * larflowcluster of track clusters
+   *  * corresponding principle components for the track clusters
+   *  * keypoints stored in the form of larflow3dhit(s)
+   * @endverbatim
+   *
+   * The output will be a container of larlite::track instances.
+   * @verbatim embed:rst:lead-asterisk
+   *  * larlite::tracks of muons that touch the space charge boundary 
+   *    and are shifted in 'x' to be on the boudnary. [default tree name: boundarycosmic]
+   *  * larlite::tracks of muons that tourch the space charge boundary [defaul: boundarycosmicnoshift ]
+   *  * larlite::tracks of contained muons [ default: containedcosmic ]
+   * @endverbatim
+   *
+   * @param[in] iolcv LArCV IO manager where we get event data
+   * @param[in] ioll  larlite IO manager where we get data and store outputs
+   *
+   */
   void CosmicTrackBuilder::process( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll )
   {
@@ -63,13 +85,22 @@ namespace reco {
     
   }
 
+  /**
+   * @brief  boundary analysis of reconstructed tracks 
+   * 
+   * we try 3 types of shifts to the boundary in order to estimate a t0 of the track
+   * we use the boundary shifts to:
+   * @verbatim embed:rst:leading-asterisk
+   *  1. proposed t0 is compared to the flash times of opflashes, to look for possible matches
+   *  2. tag track as boundary muon, if both ends are near a boundary (through-going muon)
+   * @endverbatim
+   *
+   *
+   * @param[in] ioll IO manager to store output tracks
+   *
+   */
   void CosmicTrackBuilder::_boundary_analysis_noflash( larlite::storage_manager& ioll )
   {
-    // boundary analysis of tracks found.
-    // we try 3 types of shifts to the boundary in order to estimate a t0 of the track
-    // we use the boundary shifts to:
-    //  (1) proposed t0 is compared to the flash times of opflashes, to look for possible matches
-    //  (2) tag track as boundary muon, if both ends are near a boundary (through-going muon)
 
     const float drift_v = larutil::LArProperties::GetME()->DriftVelocity();
     
@@ -253,13 +284,17 @@ namespace reco {
     
   }
 
+  /**
+   * @brief boundary analysis of tracks found, using flash
+   *
+   * [deprecated]
+   *
+   * @param[in] ioll larlite IO manager
+   * 
+   */
   void CosmicTrackBuilder::_boundary_analysis_wflash( larlite::storage_manager& ioll )
   {
-    // boundary analysis of tracks found.
-    // we try 3 types of shifts to the boundary in order to estimate a t0 of the track
-    // we use the boundary shifts to:
-    //  (1) proposed t0 is compared to the flash times of opflashes, to look for possible matches
-    //  (2) tag track as boundary muon, if both ends are near a boundary (through-going muon)
+    // 
 
     const float drift_v = larutil::LArProperties::GetME()->DriftVelocity();
     

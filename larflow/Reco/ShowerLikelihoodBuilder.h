@@ -39,7 +39,7 @@ namespace reco {
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
-    larflow::PrepMatchTriplets tripletalgo;
+    larflow::prep::PrepMatchTriplets tripletalgo;
 
     void _fillProfileHist( const std::vector<larlite::larflow3dhit>& truehit_v,
                            std::vector<float>& shower_dir,

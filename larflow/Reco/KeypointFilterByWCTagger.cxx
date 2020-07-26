@@ -7,6 +7,7 @@
 namespace larflow {
 namespace reco {
 
+  /** @brief default constructor */
   KeypointFilterByWCTagger::KeypointFilterByWCTagger()
     : larcv::larcv_base("KeypointFilterByWCTagger")
   {
@@ -14,6 +15,13 @@ namespace reco {
   }
 
 
+  /**
+   * @brief Filter hits and keypoints from the event containers
+   *
+   * @param[in] iolcv LArCV IO manager with the data we need
+   * @param[in] ioll  larlite storage_manager with the data we need
+   *
+   */
   void KeypointFilterByWCTagger::process( larcv::IOManager& iolcv,
                                           larlite::storage_manager& ioll )
   {
@@ -24,8 +32,10 @@ namespace reco {
   }
 
   /**
-   * filter larmatch hits using wc tagged image
+   * @brief filter larmatch hits using wc tagged image
    *
+   * @param[in] iolcv LArCV event data container
+   * @param[in] ioll storage_manager event data container
    */
   void KeypointFilterByWCTagger::process_hits( larcv::IOManager& iolcv,
                                                larlite::storage_manager& ioll )
@@ -90,8 +100,10 @@ namespace reco {
   }
 
   /**
-   * filter keypoints
+   * @brief filter keypoints hits using wc tagged image
    *
+   * @param[in] iolcv LArCV event data container
+   * @param[in] ioll storage_manager event data container
    */
   void KeypointFilterByWCTagger::process_keypoints( larcv::IOManager& iolcv,
                                                     larlite::storage_manager& ioll )
@@ -152,7 +164,28 @@ namespace reco {
   
 
   /**
+   * @brief filter larmatch hits using wirecell cosmic-tagged image
+   *
+   * The goal is to only remove cosmic muon pixels. 
+   * This means we are trying to let cosmic-tagged shower pixels
+   * pass. Effectively passing all shower pixels is done in order to
+   * maintain electron neutrino efficiency.
    * 
+   * Check the wirecell cosmic tag and SSNet (2D) score to determine
+   * if the keep the hit.
+   * Each hit already contains the row and column in each plane that it corresponds to.
+   * For each pixel, we see if the pixel has a tag >5 (is cosmic) in the wirecell image.
+   * If it is tagged as cosmic, we check the ssnet shower score.
+   * If the score is below 0.5, we decide it must be a cosmic muon and tag the pixel.
+   * We check a larmatch space point 3 times, one for each plane. 
+   * If the space point is tagged in at least 2 out of 3 planes, the
+   * larmatch point is rejected.
+   * 
+   * @param[in] adc_v Wire plane images
+   * @param[in] tagged_v Wirecell cosmic-tagged pixels (tree usually named thrumu)
+   * @param[in] shower_ssnet_v Shower SSNet score images
+   * @param[in] larmatch_v LArMatch larflow3d hits containing larmatch score
+   * @param[in] kept_v Vector set to be the same size as larmatch_v. If 1, it has been kept.
    *
    */
   void KeypointFilterByWCTagger::filter_larmatchhits_using_tagged_image( const std::vector<larcv::Image2D>& adc_v,
@@ -201,7 +234,28 @@ namespace reco {
 
 
   /**
+   * @brief filter keypoints using wirecell cosmic-tagged image
+   *
+   * The goal is to only remove vertices laying on cosmic muon pixels. 
+   * This means we are trying to let keypoints on cosmic-tagged shower pixels
+   * pass. Effectively passing all shower pixels is done in order to
+   * maintain electron neutrino efficiency.
    * 
+   * First the 3d keypoint position is projected into the image and a (row,col)
+   * is found for each plane.
+   *
+   * Next, a 11x11 window is searched on each plane around the projected point.
+   * For each pixel in this window, we check to see if the pixel is tagged
+   * as cosmic and has an ssnet shower score below 0.25. 
+   * if at least one pixel is cosmic-tagged and no more than 2 pixels are 
+   * shower pixels, the keypoint is considered tagged on that plane.
+   * The keypoint must be tagged at a max of one plane to pass. Else it is filtered.
+   * 
+   * @param[in] adc_v Wire plane images
+   * @param[in] tagged_v Wirecell cosmic-tagged pixels (tree usually named thrumu)
+   * @param[in] shower_ssnet_v Shower SSNet score images
+   * @param[in] keypoint_v LArMatch larflow3d hits containing larmatch score
+   * @param[in] kept_v Vector set to be the same size as larmatch_v. If 1, it has been kept.
    *
    */
   void KeypointFilterByWCTagger::filter_keypoint_using_tagged_image( const std::vector<larcv::Image2D>& adc_v,
@@ -245,6 +299,7 @@ namespace reco {
 
             int tagged = tagged_v[p].pixel( r, c );
             if ( tagged>5 ) {
+              ntagged++;
               // check if shower
               float shower_score = shower_ssnet_v[p]->pixel(r,c);
 
