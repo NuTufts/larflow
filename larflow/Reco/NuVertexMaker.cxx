@@ -10,7 +10,9 @@ namespace reco {
 
 
   /**
-   * constructor. calls default parameter method.
+   * @brief default constructor
+   *
+   * calls default parameter method.
    *
    */
   NuVertexMaker::NuVertexMaker()
@@ -21,25 +23,31 @@ namespace reco {
   }
 
   /**
-   * process event data
+   * @brief process event data
    *
    * goal of module is to form vertex candidates.
    * start by seeding possible vertices using
-   * - keypoints 
-   * - intersections of particle clusters (not yet implemented)
-   * - vertex activity near ends of partice clusters (not yet implemented)
+   * @verbatim embed:rst:leading-asterisk
+   *  * keypoints 
+   *  * intersections of particle clusters (not yet implemented)
+   *  * vertex activity near ends of partice clusters (not yet implemented)
+   * @endverbatim
    *
    * event data inputs expected by algorthm:
-   * - keypoint candidates, representd as larflow3dhit, used as vertex seeds. 
+   * @verbatim embed:rst:leading-asterisk
+   * * keypoint candidates, representd as larflow3dhit, used as vertex seeds. 
    *   Use add_keypoint_producer(...) to provide tree name before calling.
-   * - particle cluster candidates, represented as larflowcluster, to associate to vertex seeds. 
+   * * particle cluster candidates, represented as larflowcluster, to associate to vertex seeds. 
    *   Use add_cluster_producer(...) to provide tree name before calling.
-   * - particle cluster candidate containers need to be labeled with a certain ClusterType_t.
-   * - the cluster type affects how it is added to the vertex and how the vertex candidates are scored
+   * * particle cluster candidate containers need to be labeled with a certain ClusterType_t.
+   * * the cluster type affects how it is added to the vertex and how the vertex candidates are scored
+   * @endverbatim
    *
    * output:
-   * - vertex candidates stored in _vertex_v
-   * - need to figure out way to store in larcv or larlite iomanagers
+   * @verbatim embed:rst:leading-asterisk
+   *  * vertex candidates stored in _vertex_v
+   *  * need to figure out way to store in larcv or larlite iomanagers
+   * @endverbatim
    *
    * @param[in] iolcv Instance of LArCV IOManager with event data
    * @param[in] ioll  Instance of larlite storage_manager containing event data
@@ -92,14 +100,18 @@ namespace reco {
   }
 
   /**
-   * create vertex candidates by associating clusters to vertex seeds
+   * @brief create vertex candidates by associating clusters to vertex seeds
    *
    * inputs
-   * - uses _keypoint_producers map to get vertex candidates
-   * - uses _cluster_producers map to get cluster candidates
+   * @verbatim embed:rst:leading-asterisk
+   *  * uses _keypoint_producers map to get vertex candidates
+   *  * uses _cluster_producers map to get cluster candidates
+   * @endverbatim
    *
    * outputs
-   * - fills _vertex_v container
+   * @verbatim embed:rst:leading-asterisk
+   *  * fills _vertex_v container
+   * @endverbatim
    * 
    */
   void NuVertexMaker::_createCandidates()
@@ -185,8 +197,7 @@ namespace reco {
   }
 
   /**
-   * clear all data containers
-   *
+   * @brief clear all data containers
    */
   void NuVertexMaker::clear()
   {
@@ -199,10 +210,12 @@ namespace reco {
   }
 
   /** 
-   * set parameter defaults
+   * @brief set parameter defaults
    *
-   * _cluster_type_max_impact_radius: per cluster type, maximum radius to accept candidate into vertex
-   * _cluster_type_max_gap: per cluster type, maximum gap to accept candidate into vertex
+   * @verbatim embed:rst:leading-asterisk
+   * * _cluster_type_max_impact_radius: per cluster type, maximum radius to accept candidate into vertex
+   * * _cluster_type_max_gap: per cluster type, maximum gap to accept candidate into vertex
+   * @endverbatim
    *
    */
   void NuVertexMaker::_set_defaults()
@@ -224,11 +237,15 @@ namespace reco {
   }
 
   /**
-   * provide score to vertex seeds in order to provide a way to rank them
-   * not used to cut or anything.
+   * @brief provide score to vertex seeds 
+
+   * Scores used to rank vertex candidates.
+   * Scores not used to cut at this stage.
    *
    * attempting to rank by number of quality cluster associations
    * cluster association quality based on how well cluster points back to vertex
+   *
+   * @param[in] vtx A candidate neutrino vertex
    *
    */
   void NuVertexMaker::_score_vertex( NuVertexCandidate& vtx )
@@ -261,8 +278,9 @@ namespace reco {
   }
 
   /**
-   * add branch to tree that will save container of vertex candidates
+   * @brief add branch to tree that will save container of vertex candidates
    *
+   * @param[in] tree ROOT tree to add branches to
    */
   void NuVertexMaker::add_nuvertex_branch( TTree* tree )
   {
@@ -276,8 +294,7 @@ namespace reco {
 
 
   /**
-   * create a TTree into which we will save the vertex container
-   *
+   * @brief create a TTree into which we will save the vertex container
    */
   void NuVertexMaker::make_ana_tree()
   {
@@ -296,7 +313,7 @@ namespace reco {
   }
 
   /**
-   * merge nearby vertices
+   * @brief merge nearby vertices
    *
    * merge if close. the "winning vertex" has the best score when we take the union of prongs.
    * the winning vertex also gets the union of prongs assigned to it.
@@ -427,7 +444,17 @@ namespace reco {
     
   }
 
-
+  /**
+   * @brief add cluster to a neutrino vertex candidate
+   *
+   * @param[in] vertex NuVertexCandidate instance to add to
+   * @param[in] lfcluster cluster in the form of a larflowcluster instance
+   * @param[in] lfpca cluster pca info for lfcluster
+   * @param[in] ctype type of cluster
+   * @param[in] producer tree name that held the cluster being passed in
+   * @param[in] icluster cluster index
+   * @param[in] apply_cut if true, clusters only attached if satisfies limits on impact parameter and gap distance
+   */
   bool NuVertexMaker::_attachClusterToCandidate( NuVertexCandidate& vertex,
                                                  const larlite::larflowcluster& lfcluster,
                                                  const larlite::pcaxis& lfpca,
@@ -504,7 +531,12 @@ namespace reco {
   }
   
   /**
-   * apply cosmic track veto to candidate vertices
+   * @brief apply cosmic track veto to candidate vertices
+   *
+   * Get tracks from tree, `boudarycosmicnoshift`.
+   * Vertices close to these are removed from consideration.
+   *
+   * @param[in] ioll larlite storage_manager containing event data.
    *
    */
   void NuVertexMaker::_cosmic_veto_candidates( larlite::storage_manager& ioll )
@@ -599,8 +631,12 @@ namespace reco {
   }
 
   /**
-   * Use NuVertexFitter to refine vertex position
+   * @brief Use NuVertexFitter to refine vertex position
+   * 
    * Also, provide refined prong direction and dQ/dx measure
+   * 
+   * @param[in] iolcv LArCV IO manager with current event data
+   * @param[in] ioll  larlite storage_manager with current event data
    *
    */
   void NuVertexMaker::_refine_position( larcv::IOManager& iolcv,

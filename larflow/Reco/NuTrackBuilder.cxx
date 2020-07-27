@@ -3,6 +3,16 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief Run track builder on neutrino candidate tracks
+   *
+   * Using NuVertexCandidate instances as a seed, 
+   * build out tracks by connecting cluster ends.
+   *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   * @param[in] nu_candidate_v Neutrino proto-vertices produced by NuVertexMaker.
+   */
   void NuTrackBuilder::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
                                 const std::vector<NuVertexCandidate>& nu_candidate_v )

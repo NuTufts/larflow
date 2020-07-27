@@ -7,6 +7,15 @@
 namespace larflow {
 namespace reco {
 
+  /** 
+   * @ingroup NuTrackBuilder
+   * @class NuTrackBuilder
+   * @brief Build tracks by assembling clusters, starting from neutrino vertices
+   *
+   * Inherits from TrackClusterBuilder. The base class provides the track buiding algorithms.
+   * This class provides interface to the NuVertexCandidate inputs.
+   *
+   */
   class NuTrackBuilder : public TrackClusterBuilder {
 
   public:

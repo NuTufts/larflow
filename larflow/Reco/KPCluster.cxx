@@ -5,7 +5,7 @@ namespace larflow {
 namespace reco {
 
   /**
-   * Print cluster info to standard out
+   * @brief Print cluster info to standard out
    */  
   void KPCluster::printInfo() const
   {
