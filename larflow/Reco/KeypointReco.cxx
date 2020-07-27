@@ -13,6 +13,10 @@
 namespace larflow {
 namespace reco {
 
+  /** 
+   * @brief set default parameter values
+   *
+   */
   void KeypointReco::set_param_defaults()
   {
     _sigma = 5.0; // cm
@@ -27,8 +31,8 @@ namespace reco {
   }
   
   /**
-   * take in storage manager, get larflow3dhits, which stores keypoint scores, 
-   * make candidate KPCluster, and store them as larflow3dhit for now. (tech-debt!)
+   * @brief take in storage manager, get larflow3dhits, which stores keypoint scores, 
+   * make candidate KPCluster, and store them as larflow3dhit 
    *
    */  
   void KeypointReco::process( larlite::storage_manager& io_ll )
@@ -77,7 +81,9 @@ namespace reco {
   }
   
   /**
-   * take in larflow3dhits, which stores keypoint scores, and make candidate KPCluster
+   * @brief take in larflow3dhits, which stores keypoint scores, and make candidate KPCluster
+   *
+   * @param[in] input_lfhits Vector of larflow3dhit with larmatch and keypoint scores
    *
    */
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
@@ -103,16 +109,18 @@ namespace reco {
   }
   
   /**
-   * scan larflow3dhit input and assemble 3D keypoint data we will work on.
+   * @brief scan larflow3dhit input and assemble 3D keypoint data we will work on.
    *
    * we select points by filttering based on the score_threshold.
-   *
    * clears and fills:
-   *  _initial_pt_pos_v;
-   *  _initial_pt_used_v;
+   * @verbatim embed:rst:leading-asterisk
+   *  * _initial_pt_pos_v;
+   *  * _initial_pt_used_v;
+   * @endverbatim
    *
    * @param[in] lfhits          LArFlow hits with keypoint network info
-   * @param[in] score_threshold Keep hits above these thresholds
+   * @param[in] keypoint_score_threshold Only cluster hits with keypoint score above this threshold
+   * @param[in] larmatch_score_threshold Only cluster hits with larmatch score above this threshold
    *
    */
   void KeypointReco::_make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
@@ -147,23 +155,26 @@ namespace reco {
   }
 
   /**
-   * Make clusters with remaining points
+   * @brief Make clusters with remaining points
    *
    * fills member cluster container, output_pt_v.
    * internal data members used:
-   *  _initial_pt_pos_v: the list of points (x,y,z,current score)
-   *  _initial_pt_used_v: ==1 if the point has been claimed
+   * @verbatim embed:rst:leading-asterisk
+   *  * _initial_pt_pos_v: the list of points (x,y,z,current score)
+   *  * _initial_pt_used_v: ==1 if the point has been claimed
+   * @endverbatim
    * 
-   * @param[in] round_score_threshold 
+   * @param[in] keypoint_score_threshold Keypoint score threshold
+   * @param[in] min_cluster_size Minimum size of keypoint hit cluster
    *
    */
-  void KeypointReco::_make_kpclusters( float round_score_threshold, int min_cluster_size )
+  void KeypointReco::_make_kpclusters( float keypoint_score_threshold, int min_cluster_size )
   {
 
     std::vector< std::vector<float> > skimmed_pt_v;
     std::vector< int > skimmed_index_v;
 
-    _skim_remaining_points( round_score_threshold,
+    _skim_remaining_points( keypoint_score_threshold,
                             skimmed_pt_v,
                             skimmed_index_v );
 
@@ -217,11 +228,11 @@ namespace reco {
   }
 
   /**
-   * get list of points to cluster above threshold
+   * @brief get list of points to cluster above threshold
    *
-   * @param[in]  score_threshold   Keep points above threshold.
-   * @param[out] skimmed_pt_v      Return 3D points.
-   * @param[out] skimmed_index_v   Index of point in the Original Point list.
+   * @param[in]  keypoint_score_threshold   Keep points above threshold.
+   * @param[out] skimmed_pt_v      Returned 3D points.
+   * @param[out] skimmed_index_v   Index of point in the Original Point list, _initial_pt_pos_v.
    *
    */
   void KeypointReco::_skim_remaining_points( float keypoint_score_threshold,
@@ -238,14 +249,20 @@ namespace reco {
   }
 
   /**
+   * @brief Characterize the keypoint cluster
+   *
    * we take the cluster we've made using dbscan and make a KPCluster object
    * we define the centroid using a weighted score
    * we define the pca as well, to help us absorb points
    *
+   * @param[in] cluster Cluster to characterize
+   * @param[in] skimmed_pt_v     Points used to cluster
+   * @param[in] skimmed_index_v  Index of point in the Original Point list, _initial_pt_pos_v.
+   * @return Keypoint cluster represented as KPCluster object
    */
   KPCluster KeypointReco::_characterize_cluster( cluster_t& cluster,
-                                                   std::vector< std::vector<float> >& skimmed_pt_v,
-                                                   std::vector< int >& skimmed_index_v )
+                                                 std::vector< std::vector<float> >& skimmed_pt_v,
+                                                 std::vector< int >& skimmed_index_v )
   {
 
     // run pca
@@ -319,7 +336,10 @@ namespace reco {
   }
 
   /**
-   * we absorb points to clusters, using pca-line, proximity, and confidence score
+   * @brief we absorb points to clusters, using pca-line, proximity, and confidence score
+   *
+   * unwritten
+   * @param[in] kp KPCluster object to expand
    *
    */
   void KeypointReco::_expand_kpcluster( KPCluster& kp )
@@ -328,8 +348,9 @@ namespace reco {
   }
   
   /**
-   * dump output to json for development
+   * @brief dump output to json for development
    *
+   * @param[in] outfilename Path of json file to write output to
    */
   void KeypointReco::dump2json( std::string outfilename )
   {
@@ -355,9 +376,9 @@ namespace reco {
   }
 
   /**
-   * Dump all cluster info to standard out
+   * @brief Dump all cluster info to standard out
    *
-   * prints info for clusters in output_pt_v.
+   * prints info for clusters in output_pt_v. calls KPCluster::printInfo()
    *
    */
   void KeypointReco::printAllKPClusterInfo()
@@ -367,8 +388,13 @@ namespace reco {
   }
 
   /**
-   * make branch with pointer to output cluster container
+   * @brief make branch with pointer to output cluster container
    *
+   * Adds a single branch, `kpcluster_v`, to the given ROOT TTree.
+   * The branch will hold a vector of KPCluster objects.
+   * The branch is given a pointer to the member container output_pt_v.
+   * 
+   * @param[in] out ROOT TTree to add branch to
    */
   void KeypointReco::bindKPClusterContainerToTree( TTree* out )
   {
@@ -377,8 +403,11 @@ namespace reco {
 
 
   /** 
-   * create TTree instance in class and use it to store output container contents
+   * @brief create TTree instance in class and use it to store output container contents
    *
+   * Creates tree named `larflow_keypointreco` and adds branch with
+   * KPCluster objects via bindKPClusterContainerToTree().
+   * 
    */
   void KeypointReco::setupOwnTree()
   {
