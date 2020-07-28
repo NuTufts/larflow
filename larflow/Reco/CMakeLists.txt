@@ -5,14 +5,12 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 
 set( HEADERS cluster_functions.h
   geofuncs.h
-  KPTrackFit.h
   SplitHitsBySSNet.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   ProjectionDefectSplitter.h  
   PyLArFlow.h
   ShowerReco.h
-  VertexReco.h
   KPCluster.h KeypointReco.h
   KeypointFilterByClusterSize.h
   KeypointFilterByWCTagger.h
@@ -29,14 +27,12 @@ set( HEADERS cluster_functions.h
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
-  KPTrackFit.cxx
   SplitHitsBySSNet.cxx
   ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   ProjectionDefectSplitter.cxx  
   PyLArFlow.cxx
   ShowerReco.cxx
-  VertexReco.cxx
   KPCluster.cxx
   KeypointReco.cxx
   KeypointFilterByClusterSize.cxx

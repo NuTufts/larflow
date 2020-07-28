@@ -35,8 +35,6 @@
 #pragma link C++ class larflow::reco::ProjectionDefectSplitter+;
 #pragma link C++ class larflow::reco::PyLArFlow+;
 #pragma link C++ class larflow::reco::ShowerReco+;
-#pragma link C++ class larflow::reco::VertexReco+;
-#pragma link C++ class std::vector<larflow::reco::VertexReco::Candidate_t>+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
@@ -47,7 +45,6 @@
 #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
 #pragma link C++ class larflow::reco::DBScanLArMatchHits+;
 #pragma link C++ class larflow::reco::KeypointReco+;
-#pragma link C++ class larflow::reco::TrackReco2KP+;
 #pragma link C++ class larflow::reco::TrackClusterBuilder+;
 #pragma link C++ class larflow::reco::CosmicTrackBuilder+;
 #pragma link C++ class larflow::reco::TrackOTFit+;
