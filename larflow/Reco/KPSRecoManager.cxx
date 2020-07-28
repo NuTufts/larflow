@@ -11,9 +11,14 @@
 namespace larflow {
 namespace reco {
 
+  /** 
+   * @brief constructor where an output file is made 
+   *
+   * @param[in] inputfile_name Name of output file for non-larcv and non-larlite reco products
+   */
   KPSRecoManager::KPSRecoManager( std::string inputfile_name )
     : larcv::larcv_base("KPSRecoManager"),
-    _ana_input_file(inputfile_name)
+    _ana_output_file(inputfile_name)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -22,7 +27,13 @@ namespace reco {
   KPSRecoManager::~KPSRecoManager()
   {
   }
-  
+
+  /**
+   * @brief process event data in larcv and larlite IO managers 
+   * 
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void KPSRecoManager::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll )
   {
@@ -142,8 +153,10 @@ namespace reco {
   }
 
   /**
-   * make keypoints for use to help make particle track and nu interaction candidates
+   * @brief make keypoints for use to help make particle track and nu interaction candidates
    *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
    */
   void KPSRecoManager::recoKeypoints( larcv::IOManager& iolcv,
                                       larlite::storage_manager& ioll )
@@ -203,6 +216,12 @@ namespace reco {
 
   }
 
+  /**
+   * @brief reconstruct tracks and showers
+   * 
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void KPSRecoManager::recoParticles( larcv::IOManager& iolcv,
                                       larlite::storage_manager& ioll )
   {
@@ -253,6 +272,12 @@ namespace reco {
     
   }
 
+  /**
+   * @brief reconstruct tracks and showers attached to vertices
+   * 
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */  
   void KPSRecoManager::multiProngReco( larcv::IOManager& iolcv,
                                        larlite::storage_manager& ioll )
   {
@@ -269,18 +294,18 @@ namespace reco {
 
     _nu_track_builder.clear();
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
-
-    //_nu_vertex_fitter.process( iolcv, ioll, _nuvertexmaker );
     
   }
 
   /**
-   * create ana file and define output tree
+   * @brief create ana file and define output tree
+   *
+   * The tree created is `KPSRecoManagerTree`.
    *
    */
   void KPSRecoManager::make_ana_file()
   {
-    _ana_file = new TFile(_ana_input_file.c_str(), "recreate");
+    _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
     _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
