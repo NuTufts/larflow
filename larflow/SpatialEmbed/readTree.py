@@ -11,6 +11,7 @@ import os,sys,argparse,time
 import random
 
 import matplotlib.pyplot as plt
+from SpatialEmbed import SpatialEmbed
 
 parser = argparse.ArgumentParser("Read TTree")
 
@@ -42,10 +43,8 @@ if (args.visualize != None) or args.vis_uneven:
 
     keys = particle_names.keys()
     keys.sort()
-    idx = 0
-    for key in keys:
+    for idx, key in enumerate(keys):
         colors[key] = colormap[idx%len(colormap)]
-        idx += 1
 
 IMG_WIDTH  = 3456
 IMG_HEIGHT = 1008
@@ -57,6 +56,10 @@ if args.input_tree_file:
     directory_files = [args.input_tree_file]
 else:
     directory_files = [os.path.join(args.input_directory, file) for file in os.listdir(args.input_directory)]
+
+
+model = SpatialEmbed()
+
 
 
 for filename in directory_files:
@@ -103,16 +106,20 @@ for filename in directory_files:
                         inst_xs, inst_ys = zip(*entry.DataBranch.instance(plane, inst_idx))
                         type_inst = abs(entry.DataBranch.typeof_instance(plane, inst_idx))
                         plt.plot(inst_xs, inst_ys, '.', markersize=7, color=colors[type_inst], label=particle_names[type_inst])
-            
                     plt.legend()
                     plt.show()
 
 
+        f1, f2, f3 = model.forward_features(coord_dict[0], feat_dict[0],
+                                            coord_dict[1], feat_dict[1],
+                                            coord_dict[2], feat_dict[2], 1)
         # Train
-        for plane, coord_t in coord_dict.items():
-            print plane
+        # for plane, coord_t in coord_dict.items():
+        #     print plane
 
         events += 1
+        if events == 1:
+            exit()
 
 
 print 'End'
