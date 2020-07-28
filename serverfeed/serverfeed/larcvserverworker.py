@@ -15,11 +15,22 @@ os.environ["GLOG_minloglevel"] = "1"
 class LArCVServerWorker( WorkerService ):
     """ This worker uses a user function to prepare data. """
 
-    def __init__( self,identity,inputfile,ipaddress,load_func,batchsize=None,verbosity=0):
+    def __init__( self,identity,inputfile,ipaddress,load_func,
+                  batchsize=None,verbosity=0,io_tickbackward=True,func_params={}):
         super( LArCVServerWorker, self ).__init__(identity,ipaddress,verbosity=verbosity)
-        self.inputfile = inputfile
-        self.io = larcv.IOManager(larcv.IOManager.kREAD)
-        self.io.add_in_file(self.inputfile)
+        if type(inputfile)==str:
+            self.inputfile = [inputfile]
+        elif type(inputfile)!=list:
+            raise ValueError("input variable 'inputfile' must be type 'str' or 'list' of 'str'")
+        else:
+            self.inputfile = inputfile
+        print "inputfile: ",self.inputfile," type=",type(self.inputfile)
+        tickorder = larcv.IOManager.kTickForward
+        if io_tickbackward:
+            tickorder = larcv.IOManager.kTickBackward
+        self.io = larcv.IOManager(larcv.IOManager.kREAD,"",tickorder)
+        for f in self.inputfile:
+            self.io.add_in_file(f)
         self.io.initialize()
         self.nentries = self.io.get_n_entries()
         self.batchsize = batchsize
@@ -28,6 +39,7 @@ class LArCVServerWorker( WorkerService ):
         self.print_msg_size = False
         self.num_reads = 0
         self.load_func = load_func
+        self.func_params = func_params
         if not callable(self.load_func):
             raise ValueError("'load_func' argument needs to be a function returning a dict of numpy arrays")
         print "LArCVServerWorker[{}] is loaded.".format(self._identity)
@@ -47,7 +59,7 @@ class LArCVServerWorker( WorkerService ):
         keylist = None
         for ib,idx in enumerate(indices):
             self.io.read_entry(idx)
-            batch.append( self.load_func( self.io ) )
+            batch.append( self.load_func( self.io, **self.func_params ) )
             if keylist is None:
                 keylist = batch[-1].keys()
 
