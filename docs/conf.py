@@ -61,7 +61,8 @@ exhale_args = {
                    ../larflow/SCBoundary \
                    ../larflow/CRTMatch \
                    ../larflow/Voxelizer \
-                   ../larflow/KeyPoints 
+                   ../larflow/KeyPoints  \
+                   ../larflow/Reco 
         # Using `=` instead of `+=` overrides
         EXCLUDE  = ../larflow/SCBoundary/SCBs_values.cxx \
                    ../larflow/SCBoundary/SCBs_values.h

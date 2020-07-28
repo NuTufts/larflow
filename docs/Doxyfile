@@ -795,7 +795,8 @@ INPUT                  = ../larflow/LArFlowConstants \
                          ../larflow/SCBoundary \
                          ../larflow/CRTMatch \
                          ../larflow/Voxelizer \
-                         ../larflow/KeyPoints
+                         ../larflow/KeyPoints \
+                         ../larflow/Reco                         
 
 
 # This tag can be used to specify the character encoding of the source files
