@@ -10,7 +10,6 @@ set( HEADERS cluster_functions.h
   DBScanLArMatchHits.h
   ProjectionDefectSplitter.h  
   PyLArFlow.h
-  ShowerReco.h
   KPCluster.h KeypointReco.h
   KeypointFilterByClusterSize.h
   KeypointFilterByWCTagger.h
@@ -32,7 +31,6 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   DBScanLArMatchHits.cxx
   ProjectionDefectSplitter.cxx  
   PyLArFlow.cxx
-  ShowerReco.cxx
   KPCluster.cxx
   KeypointReco.cxx
   KeypointFilterByClusterSize.cxx

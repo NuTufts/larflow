@@ -88,9 +88,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     # PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",False),
+    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",True),
                 ("wctrack","trackprojsplit_wcfilter","rgb(0,255,0)",True),
-                ("wcshower","showergoodhit","rgb(255,0,0)",False)]
+                ("wcshower","showergoodhit","rgb(255,0,0)",True)]
     for (name,producer,rgbcolor,plotme) in clusters:
         if not plotme:
             continue
@@ -115,8 +115,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     # ============
     ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )
     ev_kpaxis    = io.get_data( larlite.data.kPCAxis, "keypoint" )
-    
-    
+        
     # KEYPOINT PLOT: WCFILTER KEYPOINTS
     nkp = ev_keypoints.size()
     print("Number of reco'd WC-FILTERED Keypoints in event: ",nkp)

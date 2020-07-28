@@ -48,7 +48,7 @@ namespace prep {
      * indexed by (U,V,Y) wire ids
      *
      */
-    typedef struct match_t {
+    struct match_t {
       
       int Y; ///< Y-wire
       int U; ///< U-wire
