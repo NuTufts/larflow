@@ -6,6 +6,12 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class TrackOTFit
+   * @brief Least squares fit of vertex location to prong clusters
+   *
+   */
   class TrackOTFit {
 
   public:

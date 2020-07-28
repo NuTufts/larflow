@@ -6,18 +6,28 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief fit points [unfinished function right now]
+   * 
+   * @param[in] initial_track Initial track points, consisting of a start and end point
+   * @param[in] track_pts_w_feat_v vector of space points (vector<float>) to fit to
+   */
   void TrackOTFit::fit( std::vector< std::vector<float> >& initial_track,
                         std::vector< std::vector<float> >& track_pts_w_feat_v )
   {
     
   }
 
-  // void TrackOTFit::fitByStepper( std::vector< std::vector<float> >& initial_track,
-  //                                std::vector< std::vector<float> >& track_pts_w_feat_v )
-  // {
-  //   // go segment by segment, set max distance
-  // }
-  
+  /**
+   * @brief calculate the squared-distance from a line segment
+   *
+   * Use line-distance formala if test point projects onto the segment.
+   * Use point-point distance if projects outside the segment
+   *
+   * @param[in] seg_start Start spacepoint defining segment
+   * @param[in] seg_end   End spacepoint defining segment
+   * @param[in] testpt    Test spacepoint
+   */
   float TrackOTFit::d2_segment_point( const std::vector<float>& seg_start,
                                       const std::vector<float>& seg_end,
                                       const std::vector<float>& testpt )
@@ -57,6 +67,14 @@ namespace reco {
     
   }
 
+  /**
+   * @brief calculate gradient of squared distance with respect to end-point position
+   *
+   * @param[in] seg_start Segment start point
+   * @param[in] seg_end   Segment end point
+   * @param[in] testpt    Test point
+   *
+   */
   std::vector<float> TrackOTFit::grad_d2_wrt_segend( const std::vector<float>& seg_start,
                                                      const std::vector<float>& seg_end,
                                                      const std::vector<float>& testpt )
@@ -113,6 +131,14 @@ namespace reco {
     
   }
 
+  /**
+   * @brief calculate loss and gradient without weighting points
+   *
+   * @param[in] initial_track Initial track points, consisting of a start and end point
+   * @param[in] track_pts_w_feat_v vector of space points (vector<float>) to fit to
+   * @param[out] loss The final total loss which is the average squared-distance
+   * @param[out] grad The average gradient for all points
+   */  
   void TrackOTFit::getLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
                                         const std::vector< std::vector<float> >& track_pts_w_feat_v,
                                         float& loss,
@@ -122,6 +148,19 @@ namespace reco {
     getWeightedLossAndGradient( initial_track, track_pts_w_feat_v, loss, weight, grad );
   }
 
+  /**
+   * @brief calculate loss and gradient with weights
+   *
+   * For the vectors in track_pts_w_feat_v, the first 3 entries are (x,y,z).
+   * The weight for a given spacepoint is calculated by multiplying
+   * all vector values for entries [3:] and above.
+   *
+   * @param[in] initial_track Initial track points, consisting of a start and end point
+   * @param[in] track_pts_w_feat_v vector of space points (vector<float>) to fit to
+   * @param[out] loss The final total loss which is the average squared-distance
+   * @param[out] tot_weight The total weight
+   * @param[out] grad The weighted average gradient for all points
+   */  
   void TrackOTFit::getWeightedLossAndGradient(  const std::vector< std::vector<float> >& initial_track,
                                                 const std::vector< std::vector<float> >& track_pts_w_feat_v,
                                                 float& loss,
@@ -141,6 +180,8 @@ namespace reco {
     int ndatapts = track_pts_w_feat_v.size();
     for ( int ipt=0; ipt<ndatapts; ipt++ ) {
       const std::vector<float>& testpt = track_pts_w_feat_v[ipt];
+
+      // calculate the weight
       float w = 1.0;
       for (int i=3;i<(int)testpt.size(); i++)
         w *= testpt[i];

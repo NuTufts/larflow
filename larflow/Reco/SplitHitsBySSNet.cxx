@@ -6,7 +6,17 @@
 
 namespace larflow {
 namespace reco {
-  
+
+  /**
+   * @brief split-up container of larflow3dhit using ssnet output images
+   *
+   * @param[in] ssnet_score_v            SSNet shower score images for each plane
+   * @param[in] larmatch_hit_v           LArMatch hits
+   * @param[in] ssnet_score_threshold    Threshold shower score
+   * @param[in] larmatch_score_threshold Threshold larmatch score
+   * @param[out] accept_v                Hits above threshold
+   * @param[out] reject_v                Hits below threshold
+   */
   void SplitHitsBySSNet::split( const std::vector<larcv::Image2D>& ssnet_score_v,
                                 const larlite::event_larflow3dhit& larmatch_hit_v,
                                 const float ssnet_score_threshold,
@@ -75,6 +85,12 @@ namespace reco {
     
   }
 
+  /**
+   * @brief Process event data in the larcv and larlite IO managers
+   *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void SplitHitsBySSNet::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 

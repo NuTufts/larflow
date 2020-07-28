@@ -23,7 +23,6 @@
 #include "KeypointFilterByWCTagger.h"
 #include "SplitHitsBySSNet.h"
 #include "DBScanLArMatchHits.h"
-#include "TrackReco2KP.h"
 #include "ShowerRecoKeypoint.h"
 #include "ProjectionDefectSplitter.h"
 #include "ChooseMaxLArFlowHit.h"
@@ -60,7 +59,6 @@ namespace reco {
     KeypointFilterByWCTagger _wcfilter;
     SplitHitsBySSNet _splithits_full;
     SplitHitsBySSNet _splithits_wcfilter;    
-    TrackReco2KP     _tracker2kp;
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;
     ProjectionDefectSplitter _projsplitter;

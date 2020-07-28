@@ -16,6 +16,12 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class TrackReco2P
+   * @brief Reconstruction of a track using two track points
+   *
+   */
   class TrackReco2KP : public larcv::larcv_base {
   public:
 

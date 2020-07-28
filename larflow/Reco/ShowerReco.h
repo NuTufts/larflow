@@ -13,6 +13,12 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class ShowerReco
+   * @brief Shower reconstruction
+   *
+   */
   class ShowerReco {
   public:
 

@@ -10,11 +10,12 @@ set( HEADERS cluster_functions.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   ProjectionDefectSplitter.h  
-  PyLArFlow.h ShowerReco.h
+  PyLArFlow.h
+  ShowerReco.h
   VertexReco.h
   KPCluster.h KeypointReco.h
-  KeypointFilterByClusterSize.h KeypointFilterByWCTagger.h
-  TrackReco2KP.h
+  KeypointFilterByClusterSize.h
+  KeypointFilterByWCTagger.h
   TrackClusterBuilder.h
   CosmicTrackBuilder.h
   ShowerRecoKeypoint.h
@@ -41,7 +42,6 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KeypointFilterByClusterSize.cxx
   KeypointFilterByWCTagger.cxx
   ShowerRecoKeypoint.cxx
-  TrackReco2KP.cxx
   TrackClusterBuilder.cxx
   CosmicTrackBuilder.cxx
   NuTrackBuilder.cxx

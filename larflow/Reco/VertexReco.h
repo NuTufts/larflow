@@ -16,28 +16,45 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class VertexReco
+   * @brief Make Vertex space points from keypoint network scores
+   */
   class VertexReco {
 
   public:
 
-    typedef enum { kUndefined=0,
-                   kConnectedTrackShower,
-                   kUnconnectedTrackShower,
-                   kConnectedTrackTrack,
-                   kUnconnectedTrackTrack,
-                   kShowerWithVertexActivity } Type_t ;
+    /**
+     * labels for types of vertices
+     */
+    typedef enum { kUndefined=0,  ///< undefined type
+                   kConnectedTrackShower, ///< vertex with track and shower cluster attached to vertex
+                   kUnconnectedTrackShower, ///< vertex with track and shower unconnected to vertex
+                   kConnectedTrackTrack,  ///< vertex with two connected tracks
+                   kUnconnectedTrackTrack, ///< vertex with two unconnected tracks
+                   kShowerWithVertexActivity ///< vertex on a shower with vertex activity at the start of the shower
+    } Type_t ;
 
-    typedef enum { kTrackProng=0,
-                   kShowerProng,
-                   kActivityProng } Prong_t;
-    
+    /**
+     * Prong types
+     */
+    typedef enum { kTrackProng=0, ///< track-like prong cluster
+                   kShowerProng,  ///< shower-like prong cluster
+                   kActivityProng ///< vertex activity prong cluster
+    } Prong_t;
+
+    /**
+     * @struct Candidate_t
+     * @brief internal class to store info for a vertex candidate
+     */
     struct Candidate_t {
 
-      Type_t type;
-      std::vector<float> pos;
-      std::vector<int>   imgcoord;
-      std::vector<cluster_t> cluster_v;
-      std::vector<Prong_t> prong_v;
+      Type_t type; ///< vertex type
+      std::vector<float> pos; ///< 3d position of vertex
+      std::vector<int>   imgcoord; ///< position of vertex in the images (u col,v col,y col, tick)
+      std::vector<cluster_t> cluster_v; ///< clusters assigned to the vertex
+      std::vector<Prong_t> prong_v;  ///< prongs assigned to the vertex
       
     };
     
