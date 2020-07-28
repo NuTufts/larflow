@@ -1,23 +1,6 @@
 #ifndef __LARFLOW_NUVERTEX_FITTER_H__
 #define __LARFLOW_NUVERTEX_FITTER_H__
 
-/**
- * The purpose of this class is to optimize the position of 
- * the proposed vertex based on surrounding prongs.
- *
- * Inputs:
- * 1) vertex candidate locations (from NuVertexMaker)
- * 2) clusters associated to the cluster (clusters from various algorithms, but associated clusters from NuVertexMaker)
- *
- * Outputs:
- * 1) optimized vertex location
- * 2) prongs
- *
- * Optimization performed using a least squares fit
- * weighted by charge and larmatch confidence.
- * And a weak prior based on the original vertex location.
- *
- */
 
 #include "larcv/core/Base/larcv_base.h"
 
@@ -29,6 +12,29 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class NuVertexFitter
+   * @brief optimize the position of the proposed vertex based on surrounding prongs
+   *
+   *
+   * Inputs:
+   * @verbatim embed:rst:leading-asterisk
+   *  * vertex candidate locations (from NuVertexMaker)
+   *  * clusters associated to the cluster (clusters from various algorithms, but associated clusters from NuVertexMaker)
+   * @endverbatim
+   *
+   * Outputs:
+   * @verbatim embed:rst:leading-asterisk
+   *  * optimized vertex location
+   *  * prongs
+   * @endverbatim
+   *
+   * Optimization performed using a least squares fit
+   * weighted by charge and larmatch confidence.
+   * And a weak prior based on the original vertex location.
+   *
+   */  
   class NuVertexFitter : public larcv::larcv_base {
 
   public:
@@ -39,16 +45,22 @@ namespace reco {
 
     virtual ~NuVertexFitter() {};
 
+    /**
+     * @struct Prong_t
+     * @brief Internal struct representing prongs coming from vertex
+     */
     struct Prong_t {
-      std::vector< std::vector<float> > feat_v;
-      const larlite::larflowcluster* orig_cluster;
-      const larlite::pcaxis* orig_pcaxis;
-      std::vector<float> endpt;
-      std::vector<float> startpt;
+      std::vector< std::vector<float> > feat_v;    ///< stores vectors with (x,y,z,lm,q)
+      const larlite::larflowcluster* orig_cluster; ///< pointer to larflowcluster feat_v derives from
+      const larlite::pcaxis* orig_pcaxis;          ///< pointer to principle component analysis of orig_cluster
+      std::vector<float> endpt;                    ///< end position
+      std::vector<float> startpt;                  ///< start position
     };
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll,
                   const std::vector< larflow::reco::NuVertexCandidate >& vertex_v );
+
+    /** @brief get fitted positions for all vertices provided */
     const std::vector< std::vector<float> >& get_fitted_pos() { return _fitted_pos_v; };
     
   protected:
@@ -59,7 +71,7 @@ namespace reco {
                       float& delta_loss );
 
 
-    std::vector< std::vector<float> > _fitted_pos_v;
+    std::vector< std::vector<float> > _fitted_pos_v; ///< container of fitted positions for each vertex
 
   };
   

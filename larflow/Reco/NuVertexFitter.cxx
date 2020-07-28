@@ -10,6 +10,13 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief process event vertices 
+   *
+   * @param[in] iolcv LArCV IOManager containing event data
+   * @param[in] ioll  larlite storage_manager containing event data
+   * @param[in] vertex_v Neutrino vertex candidates to fit
+   */  
   void NuVertexFitter::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
                                 const std::vector< larflow::reco::NuVertexCandidate >& vertex_v )
@@ -183,6 +190,14 @@ namespace reco {
   }
 
 
+  /**
+   * @brief Fit one vertex
+   *
+   * @param[in]  initial_vertex_pos Vertex position before the fit
+   * @param[in]  prong_v    List of prongs assigned to this vertex
+   * @param[out] fitted_pos Vertex position after the fit
+   * @param[out] delta_loss Change in the loss from initial point to final vere
+   */
   void NuVertexFitter::_fit_vertex( const std::vector<float>& initial_vertex_pos,
                                     const std::vector<NuVertexFitter::Prong_t>& prong_v,
                                     std::vector<float>& fitted_pos,

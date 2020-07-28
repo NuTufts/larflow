@@ -8,6 +8,12 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief Build tracks using clusters in the event data managers 
+   *   
+   * @param[in] iolcv LArCV IOManager containing event data
+   * @param[in] ioll  larlite storage_manager containing event data
+   */
   void TrackClusterBuilder::process( larcv::IOManager& iolcv,
                                      larlite::storage_manager& ioll )
   {
@@ -23,6 +29,7 @@ namespace reco {
 
   }
 
+  /** @brief Clears internal event data containers */
   void TrackClusterBuilder::clear()
   {
     _segment_v.clear();
@@ -32,6 +39,12 @@ namespace reco {
     _track_proposal_v.clear();
   }
 
+  /**
+   * @brief store given clusters and associated principle component info as Segment_t and NodePos_t
+   * 
+   * @param[in] cluster_v Vector of clusters in the form of larflowcluster 
+   * @param[in] pcaxis_v  Principle component analysis info for the clusters in cluster_v
+   */
   void TrackClusterBuilder::loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                                                 const larlite::event_pcaxis& pcaxis_v )
   {
@@ -102,9 +115,11 @@ namespace reco {
   }
 
   /**
-   * we go ahead and build all possible connections
-   * this is going to be an N^2 algorithm, so use wisely.
-   * we use this to develop the code. also, can use it for smallish N.
+   * @brief build possible connections between end points of different segments
+   *
+   * nodes are connected as long as they are less than 100 cm from one another.
+   * we also only allow a node (i.e. segment end point) to connect to only
+   * one of the end points of another segment.
    *
    */
   void TrackClusterBuilder::buildNodeConnections()
@@ -188,7 +203,21 @@ namespace reco {
     LARCV_INFO() << "Made " << _connect_m.size() << " nodepos connections" << std::endl;
   }
   
-
+  /**
+   * @brief Seed the tracking algorithm with a startig point
+   *
+   * The initial point will be used to find the closest line segment.
+   * The keypoint must be within 3 cm of the line segment, else no track(s)
+   * will be made.
+   * 
+   * From there, the depth-first traversal is run twice, once for each
+   * end point of the segment (unless one of the end points are veto'd).
+   *
+   * Resulting track(s) are stored in _track_proposal_v.
+   *
+   * @param[in] startpoint Position in 3D to find segment that will seed track(s).
+   *
+   */
   void TrackClusterBuilder::buildTracksFromPoint( const std::vector<float>& startpoint )
   {
 
@@ -254,18 +283,24 @@ namespace reco {
     std::vector< std::vector<NodePos_t*> > complete_v;
 
     // start to nextnode
-    path.push_back( startnode );
-    path_dir_v.push_back( &path_dir );    
-    _recursiveFollowPath( *nextnode, path_dir, path, path_dir_v, complete_v );
-    LARCV_DEBUG() << "[after start->next] point generated " << complete_v.size() << " possible tracks" << std::endl;
+    if ( !startnode->veto ) {
+      path.clear();
+      path_dir_v.clear();      
+      path.push_back( startnode );
+      path_dir_v.push_back( &path_dir );    
+      _recursiveFollowPath( *nextnode, path_dir, path, path_dir_v, complete_v );
+      LARCV_DEBUG() << "[after start->next] point generated " << complete_v.size() << " possible tracks" << std::endl;
+    }
 
     // flip things
-    path.clear();
-    path_dir_v.clear();
-    path.push_back( nextnode );
-    path_dir_v.push_back( &it_segedge21->second.dir );
-    _recursiveFollowPath( *startnode, path_dir, path, path_dir_v, complete_v );
-    LARCV_DEBUG() << "[after next->start] point generated " << complete_v.size() << " possible tracks" << std::endl;
+    if ( !nextnode->veto ) {
+      path.clear();
+      path_dir_v.clear();
+      path.push_back( nextnode );
+      path_dir_v.push_back( &it_segedge21->second.dir );
+      _recursiveFollowPath( *startnode, path_dir, path, path_dir_v, complete_v );
+      LARCV_DEBUG() << "[after next->start] point generated " << complete_v.size() << " possible tracks" << std::endl;
+    }
     
 
     // this will generate proposals. we must choose among them
@@ -284,6 +319,34 @@ namespace reco {
     
   }  
 
+  /**
+   * @brief recursive function the implements depth-first graph traversal
+   *
+   * For given node, we check possible nodes (not on the same segment) to connect to.
+   * Nodes are connected based on 
+   * @verbatim embed:rst:leading-asterisk
+   *  * distance between nodes
+   *  * direction between the nodes
+   *  * direction between the segments the two nodes sit on
+   * @endverbatim
+   *
+   * If two nodes on different segments are connected, 
+   * we automatically make an additional traversal to the other end of the new segment.
+   *
+   * Descent stops on leaf nodes, defined as nodes (i.e. end points on line segments)
+   * with no valid connections.
+   * 
+   * When a leaf node is reached, we save the path of nodes to the leaf node
+   * and go up one level in the graph.
+   *
+   * We enforce a maximum of 1000 possible completed paths to leaf nodes.
+   * 
+   * @param[in] node Current Node of path
+   * @param[in] path_dir Current direction of path
+   * @param[in] path  Sequence of node pointers along path
+   * @param[in] path_dir_v  Sequence of directions along all nodes on path
+   * @param[in] complete Collection of paths that have reached leaf nodes
+   */
   void TrackClusterBuilder::_recursiveFollowPath( NodePos_t& node,
                                                   std::vector<float>& path_dir,
                                                   std::vector<NodePos_t*>& path,
@@ -396,6 +459,11 @@ namespace reco {
     return;
   }
 
+  /**
+   * @brief print segment info to standatd out
+   *
+   * @param[in] seg Segment whose info. will be printed
+   */
   std::string TrackClusterBuilder::str( const TrackClusterBuilder::Segment_t& seg )
   {
     std::stringstream ss;
@@ -410,14 +478,27 @@ namespace reco {
     return ss.str();
   }
 
+  /**
+   * @brief choose the best path among the several created after the recursive graph traversal is finished
+   *
+   * from a given start point, several completed paths to various leaf nodes are possible and returned.
+   * from these we want to pick the "best" path from the start point to one or more of the leaf nodes.
+   *
+   * we narrow down in phases
+   * @verbatim embed:rst:leading-asterisk
+   *   * phase 1: we group completed paths by leaf segment, choosing min-dist path + paths within 20 cm of min dist
+   *   * phase 2: we choose one path among the leaf group, by the highest fraction of the path length is from cluster segment lengths
+   *              in other words the path with the least amount of gap connections.
+   *   * phase 3: we choose the path with the longest length if _one_track_per_startpoint is true.
+   * @endverbatim
+   *
+   * @param[in] complete_v A vector containing all paths to leaf nodes from a single start point
+   * @param[out] filtered_v A vector where we store all selected paths, based on several criteria
+   */
   void TrackClusterBuilder::_choose_best_paths( std::vector< std::vector<NodePos_t*> >& complete_v,
                                                 std::vector< std::vector<NodePos_t*> >& filtered_v )
   {
 
-    // we narrow down in phases
-    // phase 1: we group by leaf segment, choosing min-dist path + paths within 20 cm of min dist
-    // phase 2: we choose among the leaf group the highest fraction of the path length is segment lengths
-    // phase 3: we choose path with smallest kick (bad to use heuristic, need more sophisticated selection)
 
     typedef std::vector<NodePos_t*> Path_t;
     
@@ -527,33 +608,48 @@ namespace reco {
     }//end of group loop
 
     // so far we've chosen best path from seed point to leaf point,
-    // now choose among leaf points
+    // now choose among leaf points, if _one_track_per_startpoint is true.
     
-    
-    // choose among the best of the best?
-    // the minimum ratio of path-length to 
-    float min_track_path_dist_ratio = 1e9;
-    float max_track_dist = 0.;
-    int min_max_len_idx = -1;
-    for ( size_t i=0; i<selected_v.size(); i++ ) {
-      if ( path_dist_ratio_v[i]>=1.0 && path_dist_ratio_v[i]<min_pathdist_ratio+0.2 ) {
-        // if ( min_track_path_dist_ratio>path_dist_ratio_v[i] ) {
-        //   min_max_len_idx = i;
-        //   min_track_path_dist_ratio = path_dist_ratio_v[i];
-        // }
-        if ( max_track_dist<selected_enddist_v[i] ) {
-          max_track_dist = selected_enddist_v[i];
-          min_max_len_idx = i;
+    if ( _one_track_per_startpoint ) {
+      // choose among the best of the best?
+      // the minimum ratio of path-length to 
+      float min_track_path_dist_ratio = 1e9;
+      float max_track_dist = 0.;
+      int min_max_len_idx = -1;
+      for ( size_t i=0; i<selected_v.size(); i++ ) {
+        if ( path_dist_ratio_v[i]>=1.0 && path_dist_ratio_v[i]<min_pathdist_ratio+0.2 ) {
+          // if ( min_track_path_dist_ratio>path_dist_ratio_v[i] ) {
+          //   min_max_len_idx = i;
+          //   min_track_path_dist_ratio = path_dist_ratio_v[i];
+          // }
+          if ( max_track_dist<selected_enddist_v[i] ) {
+            max_track_dist = selected_enddist_v[i];
+            min_max_len_idx = i;
+        }
         }
       }
+      
+      if ( min_max_len_idx>=0 ) {
+        filtered_v.push_back( *selected_v[min_max_len_idx] );
+      }
+    }
+    else {
+      // allow us to return a collection of paths from the same start point to many different leaves
+      for ( auto& ppath : selected_v )
+        filtered_v.push_back ( *ppath );
+      std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;          
     }
 
-    if ( min_max_len_idx>=0 ) {
-      filtered_v.push_back( *selected_v[min_max_len_idx] );
-    }
-    //std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;    
   }
 
+  /**
+   * @brief store paths we've found as larlite::track objects in the provided event container
+   *
+   * We must convert a track defined as a sequence of NodePos_t instances into
+   * a larlite track for storage into the output larlite ROOT file.
+   *
+   * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
+   */
   void TrackClusterBuilder::fillLarliteTrackContainer( larlite::event_track& evout_track )
   {
 
@@ -600,9 +696,20 @@ namespace reco {
 
   /**
    *
-   * intended to be used after making tracks from keypoints.
-   * mark existing segments in paths as "used"
+   * @brief Make tracks from the stored collection of cluster line segments
+   *
+   * Intended to be used after making tracks from keypoints.
+   * Mark existing segments in paths as "used".
+   *
+   * Tracks are seeded with segments based on their distance to the edge of the TPC walls.
+   * The walls tested are the upstream, downstream, top and bottom.
+   * The distance to the anode and cathode are not used.
+   *
+   * The algorithm is greedy in that, once a segment is include in a path, the
+   * segment is not allowed to a part of any other path.
    * 
+   * Possible segments to seed the tracks are from _segment_v.
+   *
    */
   void TrackClusterBuilder::_buildTracksFromSegments()
   {
