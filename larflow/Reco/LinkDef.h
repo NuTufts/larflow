@@ -32,7 +32,6 @@
 #pragma link C++ function larflow::reco::cluster_splitbytrackshower+;
 #pragma link C++ function larflow::reco::cluster_imageprojection+;
 #pragma link C++ function larflow::reco::cluster_getcontours+;
-#pragma link C++ class larflow::reco::PCACluster+;
 #pragma link C++ class larflow::reco::ProjectionDefectSplitter+;
 #pragma link C++ class larflow::reco::PyLArFlow+;
 #pragma link C++ class larflow::reco::ShowerReco+;

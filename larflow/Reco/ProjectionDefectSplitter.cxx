@@ -21,8 +21,23 @@ namespace larflow {
 namespace reco {
 
   /**
-   * run algorithm on LArCV/larlite products.
+   * @brief run algorithm on LArCV/larlite data products for current event
    *
+   * Expects the following input data products:
+   * @verbatim embed:rst:leading-asterisk
+   *  * larflow3dhits in ioll from tree name stored in _input_lfhit_tree_name: These are the hits we will cluster
+   *  * wire images from larcv tree named "wire": will use these images to do 2D contour analysis
+   * @endverbatim
+   *
+   * Produces the following output products:
+   * @verbatim embed:rst:leading-asterisk
+   *  * larflowcluster stored in tree _output_cluster_tree_name: the clusters formed by dbscan and split with contour defect analysis
+   *  * pcaxis stored in tree named _output_cluster_tree_name: the principle components of the clusters made
+   *  * larflow3dhit container named "projsplitnoise": all the hits that were not clustered.
+   * @endverbatim
+
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
    */
   void ProjectionDefectSplitter::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
@@ -65,12 +80,15 @@ namespace reco {
     
   }
 
-  /* 
-   * split clusters using 2D contours.
+  /**
+   * @brief split clusters using 2D contours.
    * 
    * Is a static function, allowing other routines to use this algorithm.
    *
+   * @param[in] cluster_v Vector of space point clusters
+   * @param[in] adc_v Wire plane images we will project space points into. Will do defect analysis on these 2D images.
    * @param[in] min_second_pca_len Minimum second PC axis eigenvalue to perform split. Else returns cluster as is.
+   * @return The number of times a cluster was split
    *
    */
   int ProjectionDefectSplitter::split_clusters( std::vector<cluster_t>& cluster_v,
@@ -294,11 +312,13 @@ namespace reco {
   }
     
   /**
-   * recluster clusters with large 2nd pca eigenvalues
+   * @brief recluster clusters with large 2nd pca eigenvalues
    *
    * this is meant to clean up clusters that have been split into many pieces which sometimes leaves 
    *  weird clusters behind.
    * 
+   * @param[in] cluster_v All the current clusters
+   * @param[in] max_2nd_pca_eigenvalue The maximum length of the second largest principle component
    */
   void ProjectionDefectSplitter::_defragment_clusters( std::vector<cluster_t>& cluster_v,
                                                        const float max_2nd_pca_eigenvalue ) {
@@ -352,6 +372,15 @@ namespace reco {
 
   }
 
+  /**
+   * @brief convert cluster_t instance into a larflowcluster instance
+   *
+   * @param[in] cluster A cluster_t cluster of spacepoints
+   * @param[in] source_lfhit_v The original set of hits used to make the given cluster. 
+   *                           The info form the hits are copied into the larflowcluster.
+   * @return A larflowcluster instance made from the input cluster_t instance
+   *
+   */
   larlite::larflowcluster
   ProjectionDefectSplitter::_makeLArFlowCluster( cluster_t& cluster,
                                                  const larlite::event_larflow3dhit& source_lfhit_v ) {
@@ -369,6 +398,18 @@ namespace reco {
     return lfcluster;
   }
 
+  /**
+   * @brief Because cluster is down on downsampled points at times, we absorb hits close to the
+   *        cluster from the original set of hits
+   *
+   * @param[in] cluster Cluster made with downsampled hits
+   * @param[in] hit_v   The original (not-downsaampled) set of hits used to make the given cluster
+   * @param[in] used_hits_v Vector same size as hit_v where value is 1 if hit is already assigned to cluster.
+   *                        Hits assigned by this call of the function to the cluster will have their flags set to 1.
+   * @param[in] max_dist2line Maximum distance from a point to the first principle component axis
+   *                          of the given cluster.
+   * @return A new cluster with additional hits added to the given cluster
+   */
   cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( const cluster_t& cluster,
                                                            const std::vector<larlite::larflow3dhit>& hit_v,
                                                            std::vector<int>& used_hits_v,
@@ -422,6 +463,26 @@ namespace reco {
     return newcluster;
   }
 
+  /**
+   * @brief run 2d contour defect analysis
+   * 
+   * Our aim is to produce straight clusters that we can later piece
+   * together into tracks.
+   *
+   * Given a set of hits, we first downsample (if needed).
+   * The downsampled hits are clustered.
+   * Hits for the clusters are projected into the 2D images.
+   * Those 2D pixels are used to make 2d contours.
+   * The 2D contours are split using defect analysis.
+   * Based on which space points are in which contours, the
+   * 3D cluster is split if the first second principle component is smaller.
+   * 
+   * @param[in] inputhits The input spacepoints in the form or larflow3dhit instances
+   * @param[in] adc_v The wire plane images
+   * @param[in] used_hits_v Vector same length as inputs which indicates if the hit
+   *                        has been assigned to a cluster. This function updates this vector.
+   * @param[in] output_cluster_v Vector of output clusters
+   */
   void ProjectionDefectSplitter::_runSplitter( const larlite::event_larflow3dhit& inputhits,
                                                const std::vector<larcv::Image2D>& adc_v,
                                                std::vector<int>& used_hits_v,

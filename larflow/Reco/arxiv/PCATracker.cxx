@@ -10,6 +10,14 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief reconstruct tracks using event data in IO Managers
+   *
+   * 
+   *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void PCATracker::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 

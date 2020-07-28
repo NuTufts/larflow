@@ -25,9 +25,7 @@
 #include "DBScanLArMatchHits.h"
 #include "TrackReco2KP.h"
 #include "ShowerRecoKeypoint.h"
-#include "PCACluster.h"
 #include "ProjectionDefectSplitter.h"
-#include "PCATracker.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
 #include "NuVertexFitter.h"
@@ -36,7 +34,11 @@
 
 namespace larflow {
 namespace reco {
-    
+
+  /**
+   * @ingroup Reco
+   * @class KPSRecoManager
+   */
   class KPSRecoManager : public larcv::larcv_base {
   public:
 
@@ -61,8 +63,6 @@ namespace reco {
     TrackReco2KP     _tracker2kp;
     DBScanLArMatchHits _cluster_track;
     DBScanLArMatchHits _cluster_shower;
-    PCACluster         _pcacluster;
-    PCATracker         _pcatracker;
     ProjectionDefectSplitter _projsplitter;
     ProjectionDefectSplitter _projsplitter_cosmic;
     ShowerRecoKeypoint _showerkp;

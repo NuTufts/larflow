@@ -13,6 +13,9 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   *
+   */
   class PCATracker : public larcv::larcv_base {
 
   public:

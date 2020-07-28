@@ -13,7 +13,6 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
-#include "PCACluster.h"
 #include "geofuncs.h"
 
 namespace larflow {

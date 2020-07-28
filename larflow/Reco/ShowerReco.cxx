@@ -1,7 +1,6 @@
 #include "ShowerReco.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "PCACluster.h"
 #include "nlohmann/json.hpp"
 
 #include <ctime>
