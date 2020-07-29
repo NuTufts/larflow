@@ -1,0 +1,64 @@
+
+.. _file_larflow_Reco_VertexReco.cxx:
+
+File VertexReco.cxx
+===================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/VertexReco.cxx``)
+--------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_VertexReco.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflowcluster.h``
+
+- ``LArUtil/Geometry.h``
+
+- ``LArUtil/LArProperties.h``
+
+- ``TVector3.h``
+
+- ``VertexReco.h`` (:ref:`file_larflow_Reco_VertexReco.h`)
+
+- ``ctime``
+
+- ``fstream``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``set``
+
+- ``ublarcvapp/UBWireTool/UBWireTool.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

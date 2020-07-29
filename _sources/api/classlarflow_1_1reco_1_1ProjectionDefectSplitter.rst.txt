@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1ProjectionDefectSplitter:
+
+Class ProjectionDefectSplitter
+==============================
+
+- Defined in :ref:`file_larflow_Reco_ProjectionDefectSplitter.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::ProjectionDefectSplitter
+   :members:
+   :protected-members:
+   :undoc-members:

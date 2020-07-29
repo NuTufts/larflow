@@ -1,0 +1,22 @@
+.. _exhale_struct_structublarcvapp_1_1dltagger_1_1GenGraphPoints_1_1MaskExtrema__t:
+
+Struct GenGraphPoints::MaskExtrema_t
+====================================
+
+- Defined in :ref:`file_larflow_Reco_GenGraphPoints.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classublarcvapp_1_1dltagger_1_1GenGraphPoints`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: ublarcvapp::dltagger::GenGraphPoints::MaskExtrema_t
+   :members:
+   :protected-members:
+   :undoc-members:

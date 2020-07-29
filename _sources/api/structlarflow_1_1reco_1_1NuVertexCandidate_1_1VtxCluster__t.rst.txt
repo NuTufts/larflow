@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t:
+
+Struct NuVertexCandidate::VtxCluster_t
+======================================
+
+- Defined in :ref:`file_larflow_Reco_NuVertexCandidate.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1NuVertexCandidate`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::NuVertexCandidate::VtxCluster_t
+   :members:
+   :protected-members:
+   :undoc-members:

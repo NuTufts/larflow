@@ -1,0 +1,878 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepMatchTriplets.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepMatchTriplets.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_PrepMatchTriplets.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepmatchtriplets-cxx">
+<span id="program-listing-file-larflow-prepflowmatchdata-prepmatchtriplets-cxx"></span><h1>Program Listing for File PrepMatchTriplets.cxx<a class="headerlink" href="#program-listing-for-file-prepmatchtriplets-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_PrepMatchTriplets.cxx.html#file-larflow-prepflowmatchdata-prepmatchtriplets-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/PrepMatchTriplets.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepMatchTriplets.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;FlowTriples.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION</span>
+<span class="cp">#include</span> <span class="cpf">&lt;numpy/ndarrayobject.h&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;sstream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;algorithm&gt;    // std::shuffle</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;random&gt;       // std::default_random_engine</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;chrono&gt;       // std::chrono::system_clock</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larlite/core/LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larlite/core/LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/PyUtil/PyUtils.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/LArFlowConstants/LArFlowConstants.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/UBWireTool/UBWireTool.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/UBImageMod/EmptyChannelAlgo.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TRandom3.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">prep</span> <span class="p">{</span>
+
+  <span class="kt">bool</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">clear</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_sparseimg_vv</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_triplet_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_truth_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_truth_2plane_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_weight_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_flowdir_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_triarea_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_pos_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">wire_producer</span><span class="p">,</span>
+                                   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">chstatus_producer</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="kt">float</span> <span class="n">adc_threshold</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="kt">bool</span> <span class="n">check_wire_intersection</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// create bad channel maker algo</span>
+    <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">EmptyChannelAlgo</span> <span class="n">badchmaker</span><span class="p">;</span>
+
+    <span class="c1">// get images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="n">wire_producer</span><span class="p">);</span>
+
+    <span class="c1">// get chstatus</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span> <span class="n">ev_badch</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductChStatus</span><span class="p">,</span><span class="n">chstatus_producer</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">badch_v</span> <span class="o">=</span> <span class="n">badchmaker</span><span class="p">.</span><span class="n">makeBadChImage</span><span class="p">(</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2400</span><span class="p">,</span> <span class="mi">6</span><span class="o">*</span><span class="mi">1008</span><span class="p">,</span> <span class="mi">3456</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_badch</span> <span class="p">);</span>
+
+    <span class="n">process</span><span class="p">(</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span> <span class="n">badch_v</span><span class="p">,</span> <span class="n">adc_threshold</span><span class="p">,</span> <span class="n">check_wire_intersection</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">badch_v</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="kt">float</span> <span class="n">adc_threshold</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="kt">bool</span> <span class="n">check_wire_intersection</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+    <span class="c1">// first we make a common sparse image</span>
+    <span class="n">_sparseimg_vv</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">FlowTriples</span><span class="o">::</span><span class="n">make_initial_sparse_image</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">adc_threshold</span> <span class="p">);</span>
+    <span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">adc_v</span> <span class="p">)</span>
+      <span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">()</span> <span class="p">);</span>
+
+
+    <span class="c1">// then we make the flow triples for each of the six flows</span>
+    <span class="c1">// we order the flows based on the quality of the planes, with the Y plane being better</span>
+
+    <span class="n">FlowDir_t</span> <span class="n">flow_order</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">kY2V</span><span class="p">,</span> <span class="n">kY2U</span><span class="p">,</span> <span class="n">kV2Y</span><span class="p">,</span> <span class="n">kU2Y</span><span class="p">,</span> <span class="n">kU2V</span><span class="p">,</span> <span class="n">kV2U</span> <span class="p">};</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">FlowTriples</span> <span class="o">&gt;</span> <span class="n">triplet_v</span><span class="p">(</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">flowindex</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">flowindex</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span><span class="p">;</span> <span class="n">flowindex</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// if ( flowindex!=kV2Y )</span>
+      <span class="c1">//   continue;</span>
+
+      <span class="kt">int</span> <span class="n">sourceplane</span><span class="p">,</span> <span class="n">targetplane</span><span class="p">;</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getFlowPlanes</span><span class="p">(</span> <span class="p">(</span><span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span><span class="p">)</span><span class="n">flowindex</span><span class="p">,</span> <span class="n">sourceplane</span><span class="p">,</span> <span class="n">targetplane</span> <span class="p">);</span>
+
+      <span class="c1">// save pixel position, rather than index: we will reindex after adding dead channels</span>
+      <span class="n">triplet_v</span><span class="p">[</span><span class="n">flowindex</span><span class="p">]</span>  <span class="o">=</span> <span class="n">FlowTriples</span><span class="p">(</span> <span class="n">sourceplane</span><span class="p">,</span> <span class="n">targetplane</span><span class="p">,</span>
+                                           <span class="n">adc_v</span><span class="p">,</span> <span class="n">badch_v</span><span class="p">,</span>
+                                           <span class="n">_sparseimg_vv</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="nb">false</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// collect the unique dead channel additions to each plane</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">deadpixels_to_add</span><span class="p">[</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">];</span>
+
+    <span class="c1">// add the unique dead channel additions</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;sparse pixel totals before deadch additions: &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">flowindex</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">flowindex</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span><span class="p">;</span> <span class="n">flowindex</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// if ( flowindex!=kV2Y )</span>
+      <span class="c1">//   continue;</span>
+
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">triplet</span> <span class="o">=</span> <span class="n">triplet_v</span><span class="p">[</span><span class="n">flowindex</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">otherplane</span> <span class="o">=</span> <span class="n">triplet</span><span class="p">.</span><span class="n">get_other_plane_index</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">&gt;&amp;</span> <span class="n">pix_v</span> <span class="o">=</span> <span class="n">triplet</span><span class="p">.</span><span class="n">getDeadChToAdd</span><span class="p">()[</span> <span class="n">otherplane</span> <span class="p">];</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">pix</span> <span class="p">:</span> <span class="n">pix_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">deadpixels_to_add</span><span class="p">[</span> <span class="n">otherplane</span> <span class="p">].</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">pix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">col</span> <span class="p">)</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">deadpixels_to_add</span><span class="p">[</span> <span class="n">otherplane</span> <span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// unique, add to sparse image</span>
+          <span class="n">pix</span><span class="p">.</span><span class="n">val</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+          <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">otherplane</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pix</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;sparse pixel totals after deadch additions: &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// sort all pixels</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">pix_v</span> <span class="p">:</span> <span class="n">_sparseimg_vv</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">pix_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">pix_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// condense and reindex matches</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">triplet_set</span><span class="p">;</span>
+    <span class="n">_triplet_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_flowdir_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_triarea_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_pos_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_triplet_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">200000</span> <span class="p">);</span>
+    <span class="n">_flowdir_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">200000</span> <span class="p">);</span>
+    <span class="n">_triarea_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">200000</span> <span class="p">);</span>
+    <span class="n">_pos_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">200000</span> <span class="p">);</span>
+
+    <span class="kt">int</span>   <span class="n">n_not_crosses</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">n_bad_triarea</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iflow</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iflow</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span><span class="p">;</span> <span class="n">iflow</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span> <span class="n">flowdir</span><span class="o">=</span><span class="n">flow_order</span><span class="p">[</span><span class="n">iflow</span><span class="p">];</span>
+
+      <span class="c1">// for debug</span>
+      <span class="c1">// if ( flowdir!=kY2V )</span>
+      <span class="c1">//   continue;</span>
+
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">triplet_data</span> <span class="o">=</span> <span class="n">triplet_v</span><span class="p">[</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flowdir</span> <span class="p">];</span>
+
+      <span class="kt">int</span> <span class="n">srcplane</span> <span class="o">=</span> <span class="n">triplet_data</span><span class="p">.</span><span class="n">get_source_plane_index</span><span class="p">();</span>
+      <span class="kt">int</span> <span class="n">tarplane</span> <span class="o">=</span> <span class="n">triplet_data</span><span class="p">.</span><span class="n">get_target_plane_index</span><span class="p">();</span>
+      <span class="kt">int</span> <span class="n">othplane</span> <span class="o">=</span> <span class="n">triplet_data</span><span class="p">.</span><span class="n">get_other_plane_index</span><span class="p">();</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets] combine matches from flow &quot;</span>
+                <span class="o">&lt;&lt;</span> <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getFlowName</span><span class="p">(</span><span class="n">flowdir</span><span class="p">)</span>
+                <span class="o">&lt;&lt;</span> <span class="s">&quot; planes={&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcplane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; -&gt; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tarplane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">othplane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;}&quot;</span>
+                <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">trip</span> <span class="p">:</span> <span class="n">triplet_data</span><span class="p">.</span><span class="n">getTriples</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="n">pix_v</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+        <span class="n">pix_v</span><span class="p">[</span> <span class="n">srcplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="p">(</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">);</span>
+        <span class="n">pix_v</span><span class="p">[</span> <span class="n">tarplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="p">(</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">);</span>
+        <span class="n">pix_v</span><span class="p">[</span> <span class="n">othplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="p">(</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">trip</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">);</span>
+
+        <span class="k">auto</span> <span class="n">it_src</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">pix_v</span><span class="p">[</span> <span class="n">srcplane</span> <span class="p">]</span> <span class="p">);</span>
+        <span class="k">auto</span> <span class="n">it_tar</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">pix_v</span><span class="p">[</span> <span class="n">tarplane</span> <span class="p">]</span> <span class="p">);</span>
+        <span class="k">auto</span> <span class="n">it_oth</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">pix_v</span><span class="p">[</span> <span class="n">othplane</span> <span class="p">]</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_src</span><span class="o">==</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span>
+             <span class="o">||</span> <span class="n">it_tar</span><span class="o">==</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span>
+             <span class="o">||</span> <span class="n">it_oth</span><span class="o">==</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+          <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Did not find one of sparse image pixels for col triplet=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span><span class="p">;</span>
+          <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; found-index=(&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="n">it_src</span><span class="o">-</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">].</span><span class="n">begin</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="n">it_tar</span> <span class="o">-</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">].</span><span class="n">begin</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="n">it_oth</span> <span class="o">-</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">].</span><span class="n">begin</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="o">*</span><span class="n">it_src</span><span class="p">).</span><span class="n">row</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+             <span class="o">||</span> <span class="p">(</span><span class="o">*</span><span class="n">it_tar</span><span class="p">).</span><span class="n">row</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+             <span class="o">||</span> <span class="p">(</span><span class="o">*</span><span class="n">it_oth</span><span class="p">).</span><span class="n">row</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+             <span class="o">||</span> <span class="p">(</span><span class="o">*</span><span class="n">it_src</span><span class="p">).</span><span class="n">col</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+             <span class="o">||</span> <span class="p">(</span><span class="o">*</span><span class="n">it_tar</span><span class="p">).</span><span class="n">col</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+             <span class="o">||</span> <span class="p">(</span><span class="o">*</span><span class="n">it_oth</span><span class="p">).</span><span class="n">col</span><span class="o">!=</span><span class="n">trip</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+          <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;found the wrong pixel. searching for triplet=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) and got&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="s">&quot; src(c,r)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_src</span><span class="p">).</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_src</span><span class="p">).</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="s">&quot; tar(c,r)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_tar</span><span class="p">).</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_tar</span><span class="p">).</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="s">&quot; oth(c,r)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_oth</span><span class="p">).</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it_oth</span><span class="p">).</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+             <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">imgcoord_v</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+        <span class="n">imgcoord_v</span><span class="p">[</span> <span class="n">srcplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+        <span class="n">imgcoord_v</span><span class="p">[</span> <span class="n">tarplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+        <span class="n">imgcoord_v</span><span class="p">[</span> <span class="n">othplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">trip</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+        <span class="n">imgcoord_v</span><span class="p">[</span> <span class="mi">3</span> <span class="p">]</span>        <span class="o">=</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+        <span class="c1">// check triplet 3d consistency, using ublarcvapp tool</span>
+        <span class="kt">int</span> <span class="n">crosses</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="kt">double</span> <span class="n">tri_area</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">intersection</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">};</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">check_wire_intersection</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="n">UInt_t</span> <span class="n">src_ch</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">PlaneWireToChannel</span><span class="p">(</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">srcplane</span><span class="p">,</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">trip</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+          <span class="n">UInt_t</span> <span class="n">tar_ch</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">PlaneWireToChannel</span><span class="p">(</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">tarplane</span><span class="p">,</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">trip</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">Double_t</span> <span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">;</span>
+          <span class="kt">bool</span> <span class="n">crosses</span>  <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ChannelsIntersect</span><span class="p">(</span> <span class="n">src_ch</span><span class="p">,</span> <span class="n">tar_ch</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">crosses</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">n_not_crosses</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">continue</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">pos_y</span><span class="p">(</span> <span class="n">imgcoord_v</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">)</span><span class="o">-</span><span class="mf">3200.0</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+          <span class="n">intersection</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">;</span>
+          <span class="n">intersection</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span><span class="p">;</span>
+
+        <span class="p">}</span>
+
+
+        <span class="k">auto</span> <span class="n">it_trip</span> <span class="o">=</span> <span class="n">triplet_set</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">imgcoord_v</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_trip</span><span class="o">==</span><span class="n">triplet_set</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">triplet_set</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">imgcoord_v</span> <span class="p">);</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">imgindex_v</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+          <span class="n">imgindex_v</span><span class="p">[</span> <span class="n">srcplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">it_src</span> <span class="o">-</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">].</span><span class="n">begin</span><span class="p">();</span>
+          <span class="n">imgindex_v</span><span class="p">[</span> <span class="n">tarplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">it_tar</span> <span class="o">-</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">].</span><span class="n">begin</span><span class="p">();</span>
+          <span class="n">imgindex_v</span><span class="p">[</span> <span class="n">othplane</span> <span class="p">]</span> <span class="o">=</span> <span class="n">it_oth</span> <span class="o">-</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">].</span><span class="n">begin</span><span class="p">();</span>
+          <span class="n">imgindex_v</span><span class="p">[</span> <span class="mi">3</span> <span class="p">]</span>        <span class="o">=</span> <span class="n">trip</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+          <span class="n">_triplet_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">imgindex_v</span> <span class="p">);</span>
+          <span class="n">_flowdir_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">flowdir</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">check_wire_intersection</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">_triarea_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">tri_area</span> <span class="p">);</span>
+            <span class="n">_pos_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">intersection</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets] made total of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; unique index triplets. time elapsed=&quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">)</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets] number removed for not intersecting: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">n_not_crosses</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span><span class="c1">//end of process method</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">plot_sparse_images</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hist_stem_name</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">out_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;htriples_plane&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;_&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hist_stem_name</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">_imgmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+      <span class="n">TH2D</span> <span class="nf">hist</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">cols</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_x</span><span class="p">(),</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">rows</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_y</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pix</span> <span class="p">:</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">hist</span><span class="p">.</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">pix</span><span class="p">.</span><span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">val</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="n">out_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hist</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">out_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">make_truth_vector</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">larflow_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">_truth_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_truth_2plane_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_truth_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_truth_2plane_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">true_match_span</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">min_required_connections</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">ntriplet_truth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">ndoublet_truth</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrip</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrip</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrip</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// for each triplet, we look for truth flows that connect the planes</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">triplet</span> <span class="o">=</span> <span class="n">_triplet_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">];</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span> <span class="n">flow_dir_origin</span> <span class="o">=</span> <span class="n">_flowdir_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">];</span>
+      <span class="n">_truth_2plane_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumFlows</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+
+      <span class="c1">// for debug</span>
+      <span class="c1">//if ( flow_dir_origin!=kY2V ) continue;</span>
+
+      <span class="kt">int</span> <span class="n">srcplane</span><span class="p">,</span> <span class="n">tarplane</span><span class="p">;</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getFlowPlanes</span><span class="p">(</span> <span class="n">flow_dir_origin</span><span class="p">,</span> <span class="n">srcplane</span><span class="p">,</span> <span class="n">tarplane</span> <span class="p">);</span>
+      <span class="kt">int</span> <span class="n">othplane</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getOtherPlane</span><span class="p">(</span> <span class="n">srcplane</span><span class="p">,</span> <span class="n">tarplane</span> <span class="p">);</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">pix_v</span><span class="p">(</span> <span class="n">_sparseimg_vv</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">pix_v</span><span class="p">[</span><span class="n">srcplane</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">srcplane</span><span class="p">][</span> <span class="n">triplet</span><span class="p">[</span><span class="n">srcplane</span><span class="p">]</span> <span class="p">];</span>
+      <span class="n">pix_v</span><span class="p">[</span><span class="n">tarplane</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">tarplane</span><span class="p">][</span> <span class="n">triplet</span><span class="p">[</span><span class="n">tarplane</span><span class="p">]</span> <span class="p">];</span>
+      <span class="n">pix_v</span><span class="p">[</span><span class="n">othplane</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">othplane</span><span class="p">][</span> <span class="n">triplet</span><span class="p">[</span><span class="n">othplane</span><span class="p">]</span> <span class="p">];</span>
+
+      <span class="kt">int</span> <span class="n">ngood_connections</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">pixflow</span>  <span class="o">=</span> <span class="n">larflow_v</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span><span class="n">flow_dir_origin</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">pix_v</span><span class="p">[</span><span class="n">srcplane</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">,</span> <span class="n">pix_v</span><span class="p">[</span><span class="n">srcplane</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">col</span> <span class="p">);</span>
+      <span class="kt">int</span> <span class="n">target_col</span> <span class="o">=</span> <span class="n">pix_v</span><span class="p">[</span><span class="n">srcplane</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">+</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">pixflow</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">pixflow</span><span class="p">)</span><span class="o">!=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">pixflow</span><span class="o">&gt;-</span><span class="mi">3999</span> <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">target_col</span><span class="o">-</span><span class="n">pix_v</span><span class="p">[</span><span class="n">tarplane</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">col</span><span class="p">)</span><span class="o">&lt;</span><span class="n">true_match_span</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">ngood_connections</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">_truth_2plane_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">][(</span><span class="kt">int</span><span class="p">)</span><span class="n">flow_dir_origin</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">ndoublet_truth</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span><span class="n">flow_dir_origin</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ngood_connections</span><span class="o">&gt;=</span><span class="n">min_required_connections</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_truth_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">ntriplet_truth</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">_truth_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of trips loop</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets::make_truth_vector] &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of triplets: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of sparse pixels: [ &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ]&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of true-match triplets: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ntriplet_truth</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  doublet truth: [&quot;</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="nl">n</span> <span class="p">:</span> <span class="n">ndoublet_truth</span> <span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">n</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">plot_truth_images</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hist_stem_name</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">out_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;htriples_truth_plane&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;_&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hist_stem_name</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">_imgmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+      <span class="n">TH2D</span> <span class="nf">hist</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">cols</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_x</span><span class="p">(),</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">rows</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_y</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+
+      <span class="n">out_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">trip</span>  <span class="o">=</span> <span class="n">_triplet_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">truth</span> <span class="o">=</span> <span class="n">_truth_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">pix_v</span><span class="p">(</span> <span class="n">trip</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">pix_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span> <span class="n">trip</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">];</span>
+        <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">pix_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">pix_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">out_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">GetBinContent</span><span class="p">(</span> <span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">+</span><span class="mi">1</span> <span class="p">)</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span>
+          <span class="n">out_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="n">truth</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">out_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">make_sparse_image</span><span class="p">(</span> <span class="kt">int</span> <span class="n">plane</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">npy_intp</span><span class="o">*</span> <span class="n">dims</span> <span class="o">=</span> <span class="k">new</span> <span class="n">npy_intp</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">plane</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+
+    <span class="c1">// if we want truth, we include additional value with 1=correct match, 0=false</span>
+    <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+
+    <span class="c1">// output array</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_FLOAT</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">plane</span><span class="p">].</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">plane</span><span class="p">][</span><span class="n">idx</span><span class="p">].</span><span class="n">row</span><span class="p">;</span>
+      <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">plane</span><span class="p">][</span><span class="n">idx</span><span class="p">].</span><span class="n">col</span><span class="p">;</span>
+      <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">plane</span><span class="p">][</span><span class="n">idx</span><span class="p">].</span><span class="n">val</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">make_2plane_match_array</span><span class="p">(</span> <span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span> <span class="n">kdir</span><span class="p">,</span>
+                                                        <span class="k">const</span> <span class="kt">int</span> <span class="n">max_num_samples</span><span class="p">,</span>
+                                                        <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">idx_v</span><span class="p">,</span>
+                                                        <span class="k">const</span> <span class="kt">int</span> <span class="n">start_idx</span><span class="p">,</span>
+                                                        <span class="k">const</span> <span class="kt">bool</span> <span class="n">withtruth</span><span class="p">,</span>
+                                                        <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">nd</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ndims2</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">max_num_samples</span><span class="p">,</span> <span class="n">ndims2</span> <span class="p">};</span>
+
+    <span class="c1">// output array</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_LONG</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">srcplane</span><span class="p">,</span><span class="n">tarplane</span><span class="p">;</span>
+    <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getFlowPlanes</span><span class="p">(</span> <span class="n">kdir</span><span class="p">,</span> <span class="n">srcplane</span><span class="p">,</span> <span class="n">tarplane</span> <span class="p">);</span>
+
+    <span class="c1">// number of pairs we&#39;ve stored</span>
+    <span class="n">nsamples</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">end_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">max_num_samples</span><span class="p">;</span>
+    <span class="n">end_idx</span> <span class="o">=</span> <span class="p">(</span> <span class="n">end_idx</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>   <span class="o">?</span>  <span class="n">idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">:</span> <span class="n">end_idx</span><span class="p">;</span> <span class="c1">// cap to number of indices</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets::make_2plane_match_array] src=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcplane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; tar=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tarplane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; withtruth=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">withtruth</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;make numpy array with indices from triplets[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">start_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;:&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">end_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">idx</span><span class="o">=</span><span class="n">start_idx</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">end_idx</span><span class="p">;</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">tripidx</span> <span class="o">=</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+      <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">tripidx</span><span class="p">][</span><span class="n">srcplane</span><span class="p">];</span>
+      <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">tripidx</span><span class="p">][</span><span class="n">tarplane</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">_truth_2plane_v</span><span class="p">[</span><span class="n">tripidx</span><span class="p">][(</span><span class="kt">int</span><span class="p">)</span><span class="n">kdir</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">nsamples</span><span class="o">++</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nsamples</span><span class="o">==</span><span class="n">max_num_samples</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
+
+    <span class="p">}</span><span class="c1">//end of indices loop</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets::make_2plane_match_array] nsamples=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nsamples</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// zero rest of array</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nsamples</span><span class="o">&lt;</span><span class="n">max_num_samples</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="n">nsamples</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">max_num_samples</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// return the array</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">sample_2plane_matches</span><span class="p">(</span> <span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span> <span class="n">kdir</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span><span class="p">,</span>
+                                                      <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nfilled</span><span class="p">,</span>
+                                                      <span class="kt">bool</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="n">seed</span> <span class="o">=</span>  <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">().</span><span class="n">time_since_epoch</span><span class="p">().</span><span class="n">count</span><span class="p">();</span>
+    <span class="n">shuffle</span> <span class="p">(</span><span class="n">idx_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">idx_v</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">default_random_engine</span><span class="p">(</span><span class="n">seed</span><span class="p">));</span>
+
+    <span class="k">return</span> <span class="nf">make_2plane_match_array</span><span class="p">(</span> <span class="n">kdir</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">withtruth</span><span class="p">,</span> <span class="n">nfilled</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">get_chunk_2plane_matches</span><span class="p">(</span> <span class="n">larflow</span><span class="o">::</span><span class="n">FlowDir_t</span> <span class="n">kdir</span><span class="p">,</span>
+                                                         <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">start_index</span><span class="p">,</span>
+                                                         <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">max_num_pairs</span><span class="p">,</span>
+                                                         <span class="kt">int</span><span class="o">&amp;</span> <span class="n">last_index</span><span class="p">,</span>
+                                                         <span class="kt">int</span><span class="o">&amp;</span> <span class="n">num_pairs_filled</span><span class="p">,</span>
+                                                         <span class="kt">bool</span> <span class="n">with_truth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">max_num_pairs</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">last_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="n">max_num_pairs</span><span class="p">;</span>
+    <span class="n">last_index</span> <span class="o">=</span> <span class="p">(</span> <span class="n">last_index</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">:</span> <span class="n">last_index</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">start_index</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">last_index</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">start_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">make_2plane_match_array</span><span class="p">(</span> <span class="n">kdir</span><span class="p">,</span> <span class="n">max_num_pairs</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">with_truth</span><span class="p">,</span> <span class="n">num_pairs_filled</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">make_triplet_array</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">max_num_samples</span><span class="p">,</span>
+                                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">idx_v</span><span class="p">,</span>
+                                                   <span class="k">const</span> <span class="kt">int</span> <span class="n">start_idx</span><span class="p">,</span>
+                                                   <span class="k">const</span> <span class="kt">bool</span> <span class="n">withtruth</span><span class="p">,</span>
+                                                   <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">nd</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ndims2</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">max_num_samples</span><span class="p">,</span> <span class="n">ndims2</span> <span class="p">};</span>
+
+    <span class="c1">// output array</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_LONG</span> <span class="p">);</span>
+
+    <span class="c1">// number of pairs we&#39;ve stored</span>
+    <span class="n">nsamples</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">end_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">max_num_samples</span><span class="p">;</span>
+    <span class="n">end_idx</span> <span class="o">=</span> <span class="p">(</span> <span class="n">end_idx</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>   <span class="o">?</span>  <span class="n">idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">:</span> <span class="n">end_idx</span><span class="p">;</span> <span class="c1">// cap to number of indices</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets::make_triplet_array] withtruth=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">withtruth</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;make numpy array with indices from triplets[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">start_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;:&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">end_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">idx</span><span class="o">=</span><span class="n">start_idx</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">end_idx</span><span class="p">;</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">tripidx</span> <span class="o">=</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">tripidx</span><span class="p">][</span><span class="n">p</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">_truth_v</span><span class="p">[</span><span class="n">tripidx</span><span class="p">];</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">tripidx</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">tripidx</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">nsamples</span><span class="o">++</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nsamples</span><span class="o">==</span><span class="n">max_num_samples</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span><span class="c1">//end of indices loop</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepMatchTriplets::make_triplet_array] nsamples=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nsamples</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// zero rest of array</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nsamples</span><span class="o">&lt;</span><span class="n">max_num_samples</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="n">nsamples</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">max_num_samples</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+
+
+    <span class="c1">// return the array</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">sample_triplet_matches</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span><span class="p">,</span>
+                                                       <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nfilled</span><span class="p">,</span>
+                                                       <span class="kt">bool</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="n">seed</span> <span class="o">=</span>  <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">().</span><span class="n">time_since_epoch</span><span class="p">().</span><span class="n">count</span><span class="p">();</span>
+    <span class="n">shuffle</span> <span class="p">(</span><span class="n">idx_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">idx_v</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">default_random_engine</span><span class="p">(</span><span class="n">seed</span><span class="p">));</span>
+
+    <span class="k">return</span> <span class="nf">make_triplet_array</span><span class="p">(</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">withtruth</span><span class="p">,</span> <span class="n">nfilled</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">get_chunk_triplet_matches</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">start_index</span><span class="p">,</span>
+                                                          <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">max_num_pairs</span><span class="p">,</span>
+                                                          <span class="kt">int</span><span class="o">&amp;</span> <span class="n">last_index</span><span class="p">,</span>
+                                                          <span class="kt">int</span><span class="o">&amp;</span> <span class="n">num_pairs_filled</span><span class="p">,</span>
+                                                          <span class="kt">bool</span> <span class="n">with_truth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">last_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="n">max_num_pairs</span><span class="p">;</span>
+    <span class="n">last_index</span> <span class="o">=</span> <span class="p">(</span> <span class="n">last_index</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">:</span> <span class="n">last_index</span><span class="p">;</span>
+    <span class="n">num_pairs_filled</span> <span class="o">=</span> <span class="n">last_index</span><span class="o">-</span><span class="n">start_index</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">num_pairs_filled</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">start_index</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">last_index</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">start_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">make_triplet_array</span><span class="p">(</span> <span class="n">max_num_pairs</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">with_truth</span><span class="p">,</span> <span class="n">num_pairs_filled</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepMatchTriplets</span><span class="o">::</span><span class="n">sample_hard_example_matches</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span><span class="p">,</span>
+                                                            <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nhard_samples</span><span class="p">,</span>
+                                                            <span class="n">PyObject</span><span class="o">*</span> <span class="n">triplet_scores</span><span class="p">,</span>
+                                                            <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nfilled</span><span class="p">,</span>
+                                                            <span class="kt">bool</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// if number of triplets less than the requested triplet sample, just pass the triplets back</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">nsamples</span><span class="o">&lt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">())</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="n">sample_triplet_matches</span><span class="p">(</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">nfilled</span><span class="p">,</span> <span class="n">withtruth</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="n">seed</span> <span class="o">=</span>  <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">().</span><span class="n">time_since_epoch</span><span class="p">().</span><span class="n">count</span><span class="p">();</span>
+    <span class="n">shuffle</span> <span class="p">(</span><span class="n">idx_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">idx_v</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">default_random_engine</span><span class="p">(</span><span class="n">seed</span><span class="p">));</span>
+
+
+    <span class="n">TRandom3</span> <span class="nf">sampler</span><span class="p">(</span> <span class="n">seed</span> <span class="p">);</span>
+    <span class="c1">// now we sample for bad events</span>
+    <span class="kt">int</span> <span class="n">nbad</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nsaved</span> <span class="o">=</span>  <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">saved_idx_set</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">saved_idx_v</span><span class="p">(</span> <span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="kt">float</span> <span class="n">past_score</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR1</span><span class="p">(</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">triplet_scores</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">idx</span> <span class="p">));</span>
+      <span class="kt">float</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">past_score</span><span class="o">-</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">_truth_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nbad</span><span class="o">&lt;</span><span class="n">nhard_samples</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// first try to get a set number of bad examples</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">sampler</span><span class="p">.</span><span class="n">Uniform</span><span class="p">()</span><span class="o">&gt;</span><span class="n">weight</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">saved_idx_v</span><span class="p">[</span><span class="n">nsaved</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+          <span class="n">saved_idx_set</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+          <span class="n">nsaved</span><span class="o">++</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">weight</span><span class="o">&gt;</span><span class="mf">0.5</span> <span class="p">)</span>
+            <span class="n">nbad</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">saved_idx_v</span><span class="p">[</span><span class="n">nsaved</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+        <span class="n">saved_idx_set</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+        <span class="n">nsaved</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nsaved</span><span class="o">&lt;</span><span class="n">nsamples</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// go back and grab triplets we haven&#39;t used</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">saved_idx_set</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">!=</span><span class="n">saved_idx_set</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">saved_idx_v</span><span class="p">[</span><span class="n">nsaved</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+        <span class="n">saved_idx_set</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+        <span class="n">nsaved</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">nsaved</span><span class="o">==</span><span class="n">nsamples</span> <span class="p">)</span>
+          <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">saved_idx_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">nsaved</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nf">make_triplet_array</span><span class="p">(</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">saved_idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">withtruth</span><span class="p">,</span> <span class="n">nfilled</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

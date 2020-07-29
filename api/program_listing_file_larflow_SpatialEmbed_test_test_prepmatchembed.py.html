@@ -1,0 +1,277 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File test_prepmatchembed.py &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File test_prepmatchembed.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_SpatialEmbed_test_test_prepmatchembed.py.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-test-prepmatchembed-py">
+<span id="program-listing-file-larflow-spatialembed-test-test-prepmatchembed-py"></span><h1>Program Listing for File test_prepmatchembed.py<a class="headerlink" href="#program-listing-for-file-test-prepmatchembed-py" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_SpatialEmbed_test_test_prepmatchembed.py.html#file-larflow-spatialembed-test-test-prepmatchembed-py"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/SpatialEmbed/test/test_prepmatchembed.py</span></code>)</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">ROOT</span> <span class="k">as</span> <span class="nn">rt</span>
+<span class="kn">from</span> <span class="nn">ROOT</span> <span class="kn">import</span> <span class="n">std</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">larlite</span> <span class="kn">import</span> <span class="n">larlite</span>
+<span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+<span class="kn">from</span> <span class="nn">ublarcvapp</span> <span class="kn">import</span> <span class="n">ublarcvapp</span>
+<span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+
+
+<span class="n">rt</span><span class="o">.</span><span class="n">gStyle</span><span class="o">.</span><span class="n">SetOptStat</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">iolcv</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="o">.</span><span class="n">kREAD</span> <span class="p">)</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="s2">&quot;../../../../testdata/mcc9_v13_bnbnue_corsika/larcvtruth-Run000001-SubRun000001.root&quot;</span> <span class="p">)</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">ioll</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="o">.</span><span class="n">kREAD</span> <span class="p">)</span>
+<span class="n">ioll</span><span class="o">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="s2">&quot;../../../../testdata/mcc9_v13_bnbnue_corsika/mcinfo-Run000001-SubRun000001.root&quot;</span> <span class="p">)</span>
+<span class="n">ioll</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ioll</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+
+<span class="n">nentries</span> <span class="o">=</span> <span class="n">iolcv</span><span class="o">.</span><span class="n">get_n_entries</span><span class="p">()</span>
+
+<span class="n">c</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TCanvas</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span><span class="s2">&quot;c&quot;</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">600</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">Draw</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">ientry</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">nentries</span><span class="p">):</span>
+
+    <span class="n">iolcv</span><span class="o">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span>
+    <span class="n">ioll</span><span class="o">.</span><span class="n">go_to</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span>
+
+    <span class="n">mcpg</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">.</span><span class="n">mctools</span><span class="o">.</span><span class="n">MCPixelPGraph</span><span class="p">()</span>
+    <span class="n">mcpg</span><span class="o">.</span><span class="n">set_adc_treename</span><span class="p">(</span> <span class="s2">&quot;wiremc&quot;</span> <span class="p">)</span>
+    <span class="n">mcpg</span><span class="o">.</span><span class="n">buildgraph</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">)</span>
+    <span class="n">mcpg</span><span class="o">.</span><span class="n">printGraph</span><span class="p">()</span>
+
+    <span class="n">preptriplet</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">.</span><span class="n">PrepMatchTriplets</span><span class="p">()</span>
+    <span class="n">prepembed</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">.</span><span class="n">spatialembed</span><span class="o">.</span><span class="n">PrepMatchEmbed</span><span class="p">()</span>
+
+    <span class="n">prepembed</span><span class="o">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span><span class="p">,</span> <span class="n">preptriplet</span> <span class="p">)</span>
+
+    <span class="n">ev_adc</span> <span class="o">=</span> <span class="n">iolcv</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s2">&quot;wiremc&quot;</span> <span class="p">)</span>
+    <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">.</span><span class="n">Image2DArray</span><span class="p">()</span>
+
+    <span class="n">hadc_v</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">.</span><span class="n">rootutils</span><span class="o">.</span><span class="n">as_th2d_v</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="s2">&quot;ev_adc_</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span> <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s2">&quot;plane: &quot;</span><span class="p">,</span><span class="n">p</span>
+        <span class="n">hadc_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="s2">&quot;colz&quot;</span><span class="p">)</span>
+        <span class="n">id_v</span> <span class="o">=</span> <span class="n">prepembed</span><span class="o">.</span><span class="n">get_id_list</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s2">&quot; num instances: &quot;</span><span class="p">,</span><span class="n">id_v</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">iid</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">id_v</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+            <span class="n">aid</span> <span class="o">=</span> <span class="n">id_v</span><span class="p">[</span><span class="n">iid</span><span class="p">]</span>
+            <span class="n">a_node</span> <span class="o">=</span> <span class="n">mcpg</span><span class="o">.</span><span class="n">findTrackID</span><span class="p">(</span> <span class="n">aid</span> <span class="p">)</span>
+            <span class="n">pix_v</span> <span class="o">=</span> <span class="n">prepembed</span><span class="o">.</span><span class="n">get_instance_pixlist</span><span class="p">(</span> <span class="n">p</span><span class="p">,</span> <span class="n">aid</span> <span class="p">)</span>
+            <span class="nb">print</span> <span class="s2">&quot;ancestor id: &quot;</span><span class="p">,</span><span class="n">aid</span><span class="p">,</span><span class="s2">&quot; npixels=&quot;</span><span class="p">,</span><span class="n">pix_v</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span><span class="s2">&quot; pid=&quot;</span><span class="p">,</span><span class="n">a_node</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span><span class="s2">&quot; origin=&quot;</span><span class="p">,</span><span class="n">a_node</span><span class="o">.</span><span class="n">origin</span>
+
+            <span class="n">tg</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TGraph</span><span class="p">(</span> <span class="n">pix_v</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>
+            <span class="k">for</span> <span class="n">ipt</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">pix_v</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+                <span class="n">tg</span><span class="o">.</span><span class="n">SetPoint</span><span class="p">(</span> <span class="n">ipt</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">pix_v</span><span class="p">[</span><span class="n">ipt</span><span class="p">]</span><span class="o">.</span><span class="n">col</span><span class="p">),</span> <span class="n">meta</span><span class="o">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">pix_v</span><span class="p">[</span><span class="n">ipt</span><span class="p">]</span><span class="o">.</span><span class="n">row</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">tg</span><span class="o">.</span><span class="n">SetMarkerStyle</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+            <span class="n">tg</span><span class="o">.</span><span class="n">SetMarkerColor</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">kRed</span><span class="p">)</span>
+            <span class="n">tg</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="s2">&quot;P&quot;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">Update</span><span class="p">()</span>
+            <span class="n">raw_input</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

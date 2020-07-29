@@ -1,0 +1,13 @@
+.. _exhale_function_geofuncs_8cxx_1a165747e0e3fde0ecc4fad5ccf3f9aa23:
+
+Function larflow::reco::pointLineDistance3f
+===========================================
+
+- Defined in :ref:`file_larflow_Reco_geofuncs.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::reco::pointLineDistance3f(const std::vector<float>&, const std::vector<float>&, const std::vector<float>&)

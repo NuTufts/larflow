@@ -1,0 +1,724 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File VertexReco.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File VertexReco.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_VertexReco.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-vertexreco-cxx">
+<span id="program-listing-file-larflow-reco-vertexreco-cxx"></span><h1>Program Listing for File VertexReco.cxx<a class="headerlink" href="#program-listing-for-file-vertexreco-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_VertexReco.cxx.html#file-larflow-reco-vertexreco-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/VertexReco.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;VertexReco.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TVector3.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;set&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflowcluster.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/UBWireTool/UBWireTool.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">findVertices</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                                                 <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_lftrack</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;pcacluster&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_lfshower</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;lfshower&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// convert track and shower back to cluster_t</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">shower_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">track_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfc</span> <span class="p">:</span> <span class="o">*</span><span class="n">ev_lftrack</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_t</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfc</span> <span class="p">);</span>
+      <span class="n">track_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfc</span> <span class="p">:</span> <span class="o">*</span><span class="n">ev_lfshower</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_t</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfc</span> <span class="p">);</span>
+      <span class="n">shower_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">trackshower_vtx_v</span>
+      <span class="o">=</span> <span class="n">trackShowerIntersections</span><span class="p">(</span> <span class="n">track_v</span><span class="p">,</span> <span class="n">shower_v</span><span class="p">,</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">showerActivity_vtx_v</span>
+      <span class="o">=</span> <span class="n">showerEndActivity</span><span class="p">(</span> <span class="n">track_v</span><span class="p">,</span> <span class="n">shower_v</span><span class="p">,</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// transfer info one vector</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">cand</span> <span class="p">:</span> <span class="n">showerActivity_vtx_v</span> <span class="p">)</span>
+      <span class="n">trackshower_vtx_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cand</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="n">dumpCandidates2json</span><span class="p">(</span> <span class="n">trackshower_vtx_v</span><span class="p">,</span> <span class="s">&quot;out_prototype_vertex.json&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// return</span>
+    <span class="k">return</span> <span class="n">trackshower_vtx_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">trackShowerIntersections</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">&amp;</span> <span class="n">lftrack_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">&amp;</span> <span class="n">lfshower_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="kt">float</span> <span class="n">max_end_dist</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="kt">float</span> <span class="n">max_inter_dist</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// convert track and shower back to cluster_t</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">shower_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">track_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfc</span> <span class="p">:</span> <span class="n">lftrack_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_t</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfc</span> <span class="p">);</span>
+      <span class="n">track_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfc</span> <span class="p">:</span> <span class="n">lfshower_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_t</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfc</span> <span class="p">);</span>
+      <span class="n">shower_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">trackShowerIntersections</span><span class="p">(</span> <span class="n">track_v</span><span class="p">,</span> <span class="n">shower_v</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">max_end_dist</span><span class="p">,</span> <span class="n">max_inter_dist</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">trackShowerIntersections</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">track_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">shower_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="kt">float</span> <span class="n">max_end_dist</span><span class="p">,</span>
+                                                                             <span class="k">const</span> <span class="kt">float</span> <span class="n">max_inter_dist</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">candidate_v</span><span class="p">;</span>
+
+
+    <span class="c1">// ok, look at each shower, test against each track cluster</span>
+    <span class="c1">// shitty N^2. Maybe we enforce hit size</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">track_used_v</span><span class="p">(</span> <span class="n">track_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">shower</span> <span class="p">:</span> <span class="n">shower_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// enforce min size</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="c1">// create a candidate</span>
+      <span class="n">Candidate_t</span> <span class="n">vtx</span><span class="p">;</span>
+      <span class="n">vtx</span><span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">kUnconnectedTrackShower</span><span class="p">;</span>
+      <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower</span> <span class="p">);</span>
+      <span class="n">vtx</span><span class="p">.</span><span class="n">prong_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">kShowerProng</span> <span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">track</span> <span class="p">:</span> <span class="n">track_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">10</span> <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">pca_len</span><span class="o">&lt;</span><span class="mf">3.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// test for closest ends</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">endpts</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">endptdist</span> <span class="o">=</span> <span class="n">cluster_closest_endpt_dist</span><span class="p">(</span> <span class="n">shower</span><span class="p">,</span> <span class="n">track</span><span class="p">,</span> <span class="n">endpts</span> <span class="p">);</span>
+
+        <span class="c1">// get shortest line between skew points</span>
+        <span class="c1">// http://mathworld.wolfram.com/Line-LineDistance.html</span>
+        <span class="c1">// Using TVector3 because I am lazy!</span>
+        <span class="n">TVector3</span> <span class="nf">a</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span> <span class="c1">// x2-x1 (ends of shower pca line segment)</span>
+        <span class="n">TVector3</span> <span class="nf">b</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>   <span class="c1">// x4-x3 (ends of track pca line segment)</span>
+        <span class="n">TVector3</span> <span class="nf">c</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">track</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span> <span class="c1">// x2-x1 (ends of shower pca)</span>
+
+        <span class="n">TVector3</span> <span class="n">axb</span> <span class="o">=</span> <span class="n">a</span><span class="p">.</span><span class="n">Cross</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">linelinedist</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">Dot</span><span class="p">(</span><span class="n">axb</span><span class="p">))</span><span class="o">/</span><span class="n">axb</span><span class="p">.</span><span class="n">Mag</span><span class="p">();</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">endptdist</span> <span class="o">&lt;</span> <span class="mf">5.0</span> <span class="o">&amp;&amp;</span> <span class="n">linelinedist</span> <span class="o">&lt;</span> <span class="mf">5.0</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="c1">// add prong to candidate</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">endptdist</span><span class="o">&lt;</span><span class="mf">1.0</span> <span class="p">)</span>
+            <span class="n">vtx</span><span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">kConnectedTrackShower</span><span class="p">;</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// set for first time</span>
+            <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span> <span class="n">endpts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">endpts</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span> <span class="c1">// mid point of closest line for now.</span>
+          <span class="p">}</span>
+          <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">track</span> <span class="p">);</span>
+
+          <span class="n">vtx</span><span class="p">.</span><span class="n">prong_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">kTrackProng</span> <span class="p">);</span>
+
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of track loop</span>
+
+      <span class="c1">// save if we have more than the shower in the cluster</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">candidate_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">vtx</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">candidate_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span> <span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">showerEndActivity</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">track_v</span><span class="p">,</span>
+                                                                        <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">shower_v</span><span class="p">,</span>
+                                                                        <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Candidate_t</span><span class="o">&gt;</span> <span class="n">candidate_v</span><span class="p">;</span>
+
+    <span class="c1">// project both pca-line ends into all planes</span>
+    <span class="c1">// in each plane, find maximum pixel</span>
+    <span class="c1">// sum pixel values in box in each plane</span>
+    <span class="c1">// are any of these really the end point?</span>
+    <span class="c1">// can make (3*2)/2=3 3d points. is it certain distance to pca-ends?</span>
+    <span class="c1">// finally, need to argue that points around vertex end, is empty, excluding attached cluster</span>
+    <span class="c1">//   - each point, find cluster 3d vertex point is in.</span>
+    <span class="c1">//   - excluding this cluster + shower cluster, no more than X other-cluster points can be near activity point</span>
+    <span class="c1">//     though dont count points with Y cm from 3D point (so its a 3D shell of points must be empty)</span>
+    <span class="c1">// finish this, then can try to see what efficiency is.</span>
+
+    <span class="c1">// first, merge showers</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">merged_shower_v</span> <span class="o">=</span> <span class="n">_mergeShowerClusters</span><span class="p">(</span> <span class="n">shower_v</span><span class="p">,</span> <span class="mf">50.0</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[VertexReco] num of shower clusters after merger: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merged_shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">merged_shower_track_v</span> <span class="o">=</span> <span class="n">_mergeShowerAndTrackClusters</span><span class="p">(</span> <span class="n">merged_shower_v</span><span class="p">,</span> <span class="n">track_v</span> <span class="p">);</span>
+
+    <span class="c1">// loop over each shower, find candidate vertex activity points</span>
+    <span class="kt">int</span> <span class="n">showeridx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">past_coord</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">shower</span> <span class="p">:</span> <span class="n">merged_shower_track_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">//for ( auto const&amp; shower : shower_v ) {</span>
+
+      <span class="n">showeridx</span><span class="o">++</span><span class="p">;</span>
+
+      <span class="c1">// get meta for first image -- assume its the same for all</span>
+      <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">();</span>
+
+      <span class="c1">// find max pts in region around ends</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">maxpts_v</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// get the maximum within the window, must be above threshold given. if nothing found, returns empty vector.</span>
+        <span class="n">maxpts_v</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="p">]</span>   <span class="o">=</span> <span class="n">_findMaxChargePixel</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">100</span> <span class="p">);</span>
+        <span class="n">maxpts_v</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">_findMaxChargePixel</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">100</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="c1">// can we make a 3d consistent point with the maxima?</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">vertex_pts</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ise</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ise</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">ise</span><span class="o">++</span> <span class="p">)</span>  <span class="p">{</span>
+        <span class="c1">// we loop over the start and end point check</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="c1">// top points</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">coord_i</span> <span class="o">=</span> <span class="n">maxpts_v</span><span class="p">[</span> <span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="n">ise</span> <span class="p">];</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">coord_i</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// nothing was found</span>
+
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">j</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">coord_j</span> <span class="o">=</span> <span class="n">maxpts_v</span><span class="p">[</span> <span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">+</span><span class="n">ise</span> <span class="p">];</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">coord_j</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// nothing was found</span>
+
+            <span class="c1">// compare tick</span>
+            <span class="kt">float</span> <span class="n">tick_diff</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">coord_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">coord_j</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">tick_diff</span><span class="o">&lt;</span><span class="n">meta</span><span class="p">.</span><span class="n">pixel_height</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+
+              <span class="c1">// close enough. get 3D position from wire intersection</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">poszy</span><span class="p">;</span>
+              <span class="kt">int</span> <span class="n">crosses</span><span class="p">;</span>
+              <span class="kt">int</span> <span class="n">otherplane</span><span class="p">;</span>
+              <span class="kt">int</span> <span class="n">otherwire</span><span class="p">;</span>
+              <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">UBWireTool</span><span class="o">::</span><span class="n">getMissingWireAndPlane</span><span class="p">(</span> <span class="n">i</span><span class="p">,</span> <span class="n">meta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span><span class="n">coord_i</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">__FILE__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">),</span>
+                                                              <span class="n">j</span><span class="p">,</span> <span class="n">meta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span><span class="n">coord_j</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">__FILE__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">),</span>
+                                                              <span class="n">otherplane</span><span class="p">,</span> <span class="n">otherwire</span><span class="p">,</span> <span class="n">poszy</span><span class="p">,</span> <span class="n">crosses</span> <span class="p">);</span>
+
+
+              <span class="c1">// pick the tick, we&#39;re going to use</span>
+              <span class="kt">int</span> <span class="n">pixradius</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+              <span class="kt">int</span> <span class="n">use_tick</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">i</span><span class="o">==</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="n">use_tick</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">coord_i</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+                <span class="n">pixradius</span> <span class="o">=</span> <span class="n">coord_i</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+              <span class="p">}</span>
+              <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">j</span><span class="o">==</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="n">use_tick</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">coord_j</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+                <span class="n">pixradius</span> <span class="o">=</span> <span class="n">coord_j</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+              <span class="p">}</span>
+              <span class="k">else</span> <span class="p">{</span>
+                <span class="c1">// use the max</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">coord_i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">&gt;</span><span class="n">coord_j</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+                  <span class="n">use_tick</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">coord_i</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+                  <span class="n">pixradius</span> <span class="o">=</span> <span class="n">coord_i</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+                <span class="p">}</span>
+                <span class="k">else</span> <span class="p">{</span>
+                  <span class="n">use_tick</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">coord_j</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+                  <span class="n">pixradius</span> <span class="o">=</span> <span class="n">coord_j</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+                <span class="p">}</span>
+              <span class="p">}</span>
+
+              <span class="c1">// store info for this vertex: (wire1,wire2,wire3,tick,posx,poy,posz)</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+              <span class="n">result</span><span class="p">[</span> <span class="n">i</span> <span class="p">]</span> <span class="o">=</span> <span class="n">coord_i</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+              <span class="n">result</span><span class="p">[</span> <span class="n">j</span> <span class="p">]</span> <span class="o">=</span> <span class="n">coord_j</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+              <span class="n">result</span><span class="p">[</span> <span class="n">otherplane</span> <span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">otherwire</span><span class="p">;</span>
+              <span class="n">result</span><span class="p">[</span> <span class="mi">3</span> <span class="p">]</span> <span class="o">=</span> <span class="n">use_tick</span><span class="p">;</span>
+              <span class="n">result</span><span class="p">[</span> <span class="mi">4</span> <span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="kt">float</span><span class="p">)</span><span class="n">use_tick</span><span class="o">-</span><span class="mf">3200.0</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+              <span class="n">result</span><span class="p">[</span> <span class="mi">5</span> <span class="p">]</span> <span class="o">=</span> <span class="n">poszy</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+              <span class="n">result</span><span class="p">[</span> <span class="mi">6</span> <span class="p">]</span> <span class="o">=</span> <span class="n">poszy</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+              <span class="n">result</span><span class="p">[</span> <span class="mi">7</span> <span class="p">]</span> <span class="o">=</span> <span class="n">showeridx</span><span class="p">;</span>
+
+              <span class="c1">// check for duplicate</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">icoord</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">icoord</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">past_coord</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">icoord</span><span class="p">)</span><span class="o">!=</span><span class="n">past_coord</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span>
+                <span class="k">continue</span><span class="p">;</span>
+
+              <span class="n">past_coord</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">icoord</span> <span class="p">);</span>
+
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">adc_vals</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+                <span class="n">adc_vals</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta</span><span class="p">.</span><span class="n">row</span><span class="p">(</span> <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span>
+                                              <span class="n">meta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span> <span class="n">result</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">)</span> <span class="p">);</span>
+
+
+              <span class="n">vertex_pts</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">result</span> <span class="p">);</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[Candidate Vertex Activity: showeridx=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">showeridx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; end=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ise</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  shower size: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  imgcoord: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  tick: &quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">use_tick</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  pos: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">result</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">result</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  tick diff: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tick_diff</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ticks&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  pixel radius: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pixradius</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  adc: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">adc_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">adc_vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">adc_vals</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+              <span class="n">Candidate_t</span> <span class="n">vtx</span><span class="p">;</span>
+              <span class="n">vtx</span><span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">kShowerWithVertexActivity</span><span class="p">;</span>
+              <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+              <span class="n">vtx</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span> <span class="mi">4</span><span class="o">+</span><span class="n">i</span> <span class="p">];</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">vtx</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span> <span class="n">i</span> <span class="p">];</span>
+              <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower</span> <span class="p">);</span>
+              <span class="n">vtx</span><span class="p">.</span><span class="n">prong_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">kShowerProng</span> <span class="p">);</span>
+              <span class="n">candidate_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">vtx</span><span class="p">)</span> <span class="p">);</span>
+
+
+            <span class="p">}</span>
+          <span class="p">}</span><span class="c1">//end of j plane loop</span>
+        <span class="p">}</span><span class="c1">//end of i plane loop</span>
+      <span class="p">}</span><span class="c1">//end of loop over ends</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over shower</span>
+
+
+    <span class="k">return</span> <span class="n">candidate_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">_findMaxChargePixel</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pt3d</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">adc</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="kt">int</span> <span class="n">boxradius</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="kt">float</span> <span class="n">pixel_threshold</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// project into plane</span>
+    <span class="kt">double</span> <span class="n">dpos</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">pt3d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pt3d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pt3d</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+    <span class="kt">int</span> <span class="n">tick</span> <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">pt3d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">wire</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">dpos</span><span class="p">,</span> <span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">()</span> <span class="p">)</span><span class="o">+</span><span class="mf">0.5</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">tick</span><span class="o">&lt;=</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">||</span> <span class="n">tick</span><span class="o">&gt;=</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span>
+         <span class="o">||</span> <span class="n">wire</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">wire</span><span class="o">&gt;=</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_x</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">empty</span><span class="p">;</span>
+      <span class="k">return</span> <span class="n">empty</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+    <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">wire</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span>  <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">max_r</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">max_c</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">max_pixval</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">r</span><span class="o">=</span><span class="n">row</span><span class="o">-</span><span class="n">boxradius</span><span class="p">;</span> <span class="n">r</span><span class="o">&lt;=</span><span class="n">row</span><span class="o">+</span><span class="n">boxradius</span><span class="p">;</span> <span class="n">r</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">r</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">r</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">c</span><span class="o">=</span><span class="n">col</span><span class="o">-</span><span class="n">boxradius</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;=</span><span class="n">col</span><span class="o">+</span><span class="n">boxradius</span><span class="p">;</span> <span class="n">c</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">c</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">c</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="kt">float</span> <span class="n">pixval</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">pixval</span><span class="o">&gt;</span><span class="n">max_pixval</span> <span class="o">&amp;&amp;</span> <span class="n">pixval</span><span class="o">&gt;</span><span class="n">pixel_threshold</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">max_pixval</span> <span class="o">=</span> <span class="n">pixval</span><span class="p">;</span>
+          <span class="n">max_r</span> <span class="o">=</span> <span class="n">r</span><span class="p">;</span>
+          <span class="n">max_c</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">max_r</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">max_c</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">result</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+      <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">pos_y</span><span class="p">(</span><span class="n">max_r</span><span class="p">);</span>
+      <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">pos_x</span><span class="p">(</span><span class="n">max_c</span><span class="p">);</span>
+      <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_pixval</span><span class="p">;</span>
+      <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span> <span class="kt">float</span><span class="p">(</span><span class="n">max_r</span><span class="o">-</span><span class="n">row</span><span class="p">)</span><span class="o">*</span><span class="kt">float</span><span class="p">(</span><span class="n">max_r</span><span class="o">-</span><span class="n">row</span><span class="p">)</span> <span class="o">+</span> <span class="kt">float</span><span class="p">(</span><span class="n">max_c</span><span class="o">-</span><span class="n">col</span><span class="p">)</span><span class="o">*</span><span class="kt">float</span><span class="p">(</span><span class="n">max_c</span><span class="o">-</span><span class="n">col</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// empty if no maximum found</span>
+    <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">_mergeShowerClusters</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">shower_v</span><span class="p">,</span>
+                                                             <span class="k">const</span> <span class="kt">float</span> <span class="n">max_endpt_dist</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">merged_v</span><span class="p">;</span>
+
+    <span class="c1">// sort by size</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">index_size_v</span><span class="p">;</span>
+    <span class="n">index_size_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">index_size_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">shower_v</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">idx</span> <span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">index_size_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">index_size_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">nmerged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_v</span><span class="p">(</span> <span class="n">shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">ordinal1</span> <span class="p">:</span> <span class="n">index_size_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">idx</span>  <span class="o">=</span> <span class="n">ordinal1</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npts</span> <span class="o">=</span> <span class="n">ordinal1</span><span class="p">.</span><span class="n">first</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">npts</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">cluster_t</span> <span class="n">shower1</span> <span class="o">=</span> <span class="n">shower_v</span><span class="p">[</span> <span class="n">idx</span> <span class="p">];</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[VertexReco::_mergeShowerClusters] merge into shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] size=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npts</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">ordinal2</span> <span class="p">:</span> <span class="n">index_size_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">//if ( ordinal2.first&lt;10 ) continue;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_v</span><span class="p">[</span><span class="n">ordinal2</span><span class="p">.</span><span class="n">second</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">ordinal2</span><span class="p">.</span><span class="n">second</span><span class="o">==</span><span class="n">idx</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="k">auto</span><span class="o">&amp;</span> <span class="n">shower2</span> <span class="o">=</span> <span class="n">shower_v</span><span class="p">[</span><span class="n">ordinal2</span><span class="p">.</span><span class="n">second</span><span class="p">];</span>
+
+        <span class="c1">// // bbox test first</span>
+        <span class="c1">// if ( !cluster_endpt_in_bbox( shower1, shower2 ) ) {</span>
+        <span class="c1">//   continue;</span>
+        <span class="c1">// }</span>
+
+        <span class="c1">// test end point dist</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">endpts</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">endptdist</span> <span class="o">=</span> <span class="n">cluster_closest_endpt_dist</span><span class="p">(</span> <span class="n">shower1</span><span class="p">,</span> <span class="n">shower2</span><span class="p">,</span> <span class="n">endpts</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">endptdist</span><span class="o">&gt;</span><span class="n">max_endpt_dist</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[VertexReco::_mergeShowerClusters]   merge shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ordinal2</span><span class="p">.</span><span class="n">second</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] size=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ordinal1</span><span class="p">.</span><span class="n">second</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; endptdist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">endptdist</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+        <span class="c1">// merge</span>
+        <span class="n">cluster_t</span> <span class="n">merge</span> <span class="o">=</span> <span class="n">cluster_merge</span><span class="p">(</span> <span class="n">shower1</span><span class="p">,</span> <span class="n">shower2</span> <span class="p">);</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">ordinal2</span><span class="p">.</span><span class="n">second</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">nmerged</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">shower1</span><span class="p">,</span><span class="n">merge</span><span class="p">);</span>
+
+      <span class="p">}</span>
+
+      <span class="n">merged_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">shower1</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+    <span class="kt">float</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">float</span><span class="p">(</span> <span class="n">end</span><span class="o">-</span><span class="n">begin</span> <span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[VertexReco::_mergeShowerClusters] in=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; nout=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; nmerged=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nmerged</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; elapsed=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+    <span class="k">return</span> <span class="n">merged_v</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">_mergeShowerAndTrackClusters</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">shower_v</span><span class="p">,</span>
+                                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">track_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">merged_v</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">shower</span><span class="p">:</span> <span class="n">shower_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">idx</span><span class="o">++</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;=</span><span class="mi">10</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">cluster_t</span> <span class="n">xshower</span> <span class="o">=</span> <span class="n">shower</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">track</span> <span class="p">:</span> <span class="n">track_v</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">pca_len</span><span class="o">&gt;</span><span class="mf">20.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// bbox test first</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">cluster_endpt_in_bbox</span><span class="p">(</span> <span class="n">xshower</span><span class="p">,</span> <span class="n">track</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// test direction</span>
+        <span class="kt">float</span> <span class="n">cospca</span> <span class="o">=</span> <span class="n">cluster_cospca</span><span class="p">(</span> <span class="n">xshower</span><span class="p">,</span> <span class="n">track</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">cospca</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.5</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// merge</span>
+        <span class="n">cluster_t</span> <span class="n">merge</span> <span class="o">=</span> <span class="n">cluster_merge</span><span class="p">(</span> <span class="n">xshower</span><span class="p">,</span> <span class="n">track</span> <span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[VertexReco] merging track into shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  original ends: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot;--&gt; (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">xshower</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  merged ends: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot;--&gt; (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merge</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">merge</span><span class="p">,</span><span class="n">xshower</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  adding merged shower; mergedidx[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">merged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">merged_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">xshower</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">merged_v</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">dumpCandidates2json</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span> <span class="o">&gt;&amp;</span> <span class="n">vtx_v</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfile</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">j</span> <span class="o">=</span> <span class="n">dump2json</span><span class="p">(</span> <span class="n">vtx_v</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">o</span><span class="p">(</span><span class="n">outfile</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+    <span class="n">j</span><span class="o">&gt;&gt;</span><span class="n">o</span><span class="p">;</span>
+    <span class="n">o</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">dump2json</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">VertexReco</span><span class="o">::</span><span class="n">Candidate_t</span> <span class="o">&gt;&amp;</span> <span class="n">vtx_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">j</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span><span class="o">&gt;</span> <span class="n">jvtx_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">vtx</span> <span class="p">:</span> <span class="n">vtx_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">jvtx</span><span class="p">;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="o">&gt;</span> <span class="n">jcluster_v</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>              <span class="n">ctype_v</span><span class="p">(</span><span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="kt">int</span> <span class="n">ii</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span><span class="p">:</span> <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">jcluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster_json</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">vtx</span><span class="p">.</span><span class="n">prong_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">==</span><span class="n">kTrackProng</span> <span class="p">)</span> <span class="n">ctype_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">vtx</span><span class="p">.</span><span class="n">prong_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">==</span><span class="n">kShowerProng</span> <span class="p">)</span> <span class="n">ctype_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">else</span> <span class="n">ctype_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+        <span class="n">ii</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">jvtx</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span>     <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">vtx</span><span class="p">.</span><span class="n">type</span><span class="p">;</span>
+      <span class="n">jvtx</span><span class="p">[</span><span class="s">&quot;clusters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jcluster_v</span><span class="p">;</span>
+      <span class="n">jvtx</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span>      <span class="o">=</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">;</span>
+      <span class="n">jvtx</span><span class="p">[</span><span class="s">&quot;cluster_types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctype_v</span><span class="p">;</span>
+
+      <span class="n">jvtx_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">jvtx</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">j</span><span class="p">[</span><span class="s">&quot;vertices&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jvtx_v</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">j</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,231 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Function larflow::prepdata::calculate_weight_from_mc &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Function larflow::reco::cluster_closest_endpt_dist" href="function_cluster__functions_8cxx_1a2af2adbf3256e22e8da39389813518f5.html" />
+    <link rel="prev" title="Function larflow::keypoints::kpdata_compare_z" href="function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Function larflow::prepdata::calculate_weight_from_mc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/function_TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="function-larflow-prepdata-calculate-weight-from-mc">
+<span id="exhale-function-tripletweights-8h-1a89ddd0ac57b6363365e004201d5c902d"></span><h1>Function larflow::prepdata::calculate_weight_from_mc<a class="headerlink" href="#function-larflow-prepdata-calculate-weight-from-mc" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_PrepFlowMatchData_TripletWeights.h.html#file-larflow-prepflowmatchdata-tripletweights-h"><span class="std std-ref">File TripletWeights.h</span></a></li>
+</ul>
+<div class="section" id="function-documentation">
+<h2>Function Documentation<a class="headerlink" href="#function-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="_CPPv4N7larflow8prepdata24calculate_weight_from_mcERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEER17PrepMatchTriplets">
+<span id="_CPPv3N7larflow8prepdata24calculate_weight_from_mcERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEER17PrepMatchTriplets"></span><span id="_CPPv2N7larflow8prepdata24calculate_weight_from_mcERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEER17PrepMatchTriplets"></span><span id="larflow::prepdata::calculate_weight_from_mc__larlite::event_mctrackCR.larlite::event_mcshowerCR.std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.PrepMatchTripletsR"></span><span class="target" id="TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d"></span>void <code class="descclassname">larflow::prepdata<code class="descclassname">::</code></code><code class="descname">calculate_weight_from_mc</code><span class="sig-paren">(</span><em class="property">const</em> larlite::event_mctrack&amp;, <em class="property">const</em> larlite::event_mcshower&amp;, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>instance_img</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>ancestor_img</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>segment_img</em>, PrepMatchTriplets &amp;<em>triplet_data</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow8prepdata24calculate_weight_from_mcERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEER17PrepMatchTriplets" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>assign loss weight using mc info</p>
+<p>upweight (1) showers, (2) isochronous cosmic tracks, (3) neutrinos </p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="function_cluster__functions_8cxx_1a2af2adbf3256e22e8da39389813518f5.html" class="btn btn-neutral float-right" title="Function larflow::reco::cluster_closest_endpt_dist" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a.html" class="btn btn-neutral float-left" title="Function larflow::keypoints::kpdata_compare_z" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

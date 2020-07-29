@@ -1,0 +1,67 @@
+
+.. _file_larflow_Reco_geofuncs.cxx:
+
+File geofuncs.cxx
+=================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/geofuncs.cxx``)
+------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_geofuncs.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``cmath``
+
+- ``geofuncs.h`` (:ref:`file_larflow_Reco_geofuncs.h`)
+
+- ``stdexcept``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_geofuncs_8cxx_1ac3981d124dea17b5ec5710dfe33fedd3`
+
+- :ref:`exhale_function_geofuncs_8cxx_1a3ef958134816174cc7013bfd7cf99c34`
+
+- :ref:`exhale_function_geofuncs_8cxx_1a165747e0e3fde0ecc4fad5ccf3f9aa23`
+
+- :ref:`exhale_function_geofuncs_8cxx_1ae97dd9a80b534d842eaf44e2fc6ad49e`
+
+- :ref:`exhale_function_geofuncs_8cxx_1a3357a462ab11c6269260fbcce3187e2d`
+
+- :ref:`exhale_function_geofuncs_8cxx_1af11a0681ddbe1ea883eba4696376aeec`
+

@@ -1,0 +1,13 @@
+.. _exhale_function_geofuncs_8cxx_1a3357a462ab11c6269260fbcce3187e2d:
+
+Function larflow::reco::pointRayProjection3d
+============================================
+
+- Defined in :ref:`file_larflow_Reco_geofuncs.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::reco::pointRayProjection3d(const std::vector<double>&, const std::vector<double>&, const std::vector<double>&)

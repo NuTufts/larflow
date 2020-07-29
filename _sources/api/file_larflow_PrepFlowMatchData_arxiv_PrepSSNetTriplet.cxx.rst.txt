@@ -1,0 +1,52 @@
+
+.. _file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.cxx:
+
+File PrepSSNetTriplet.cxx
+=========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_PrepFlowMatchData_arxiv>` (``larflow/PrepFlowMatchData/arxiv``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/PrepFlowMatchData/arxiv/PrepSSNetTriplet.cxx``)
+---------------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``PrepSSNetTriplet.h`` (:ref:`file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.h`)
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``ublarcvapp/MCTools/NeutrinoVertex.h``
+
+- ``ublarcvapp/MCTools/crossingPointsAnaMethods.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__prepflowmatchdata`
+

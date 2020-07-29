@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1TrackOTFit:
+
+Class TrackOTFit
+================
+
+- Defined in :ref:`file_larflow_Reco_TrackOTFit.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::TrackOTFit
+   :members:
+   :protected-members:
+   :undoc-members:

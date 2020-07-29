@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1keypoints_1_1PrepKeypointData:
+
+Class PrepKeypointData
+======================
+
+- Defined in :ref:`file_larflow_KeyPoints_PrepKeypointData.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::keypoints::PrepKeypointData
+   :members:
+   :protected-members:
+   :undoc-members:

@@ -1,0 +1,77 @@
+
+.. _file_larflow_KeyPoints_PrepAffinityField.h:
+
+File PrepAffinityField.h
+========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_KeyPoints>` (``larflow/KeyPoints``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/KeyPoints/PrepAffinityField.h``)
+------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_KeyPoints_PrepAffinityField.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/mcshower.h``
+
+- ``DataFormat/mctrack.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``LArUtil/SpaceChargeMicroBooNE.h``
+
+- ``TTree.h``
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``larflow/PrepFlowMatchData/PrepMatchTriplets.h`` (:ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`)
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_KeyPoints_PrepAffinityField.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__keypoints`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1PrepAffinityField`
+

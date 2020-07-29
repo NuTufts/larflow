@@ -1,0 +1,87 @@
+
+.. _namespace_vis_kpreco:
+
+Namespace vis_kpreco
+====================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_vis__kpreco_8py_1a5e03d54fb2f69911c654c005d279d02a`
+
+- :ref:`exhale_function_vis__kpreco_8py_1a26d799c6ded1d7a3d1e23d73fd93ed41`
+
+- :ref:`exhale_function_vis__kpreco_8py_1a11c05027fb7b2375384b16f1506996ac`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_vis__kpreco_8py_1af95395c96db79b76fa9a81b3001f2653`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a6cd1320eb592cd685447e8a583b1dde7`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a09ecaa76220751c1ce89cbd756208328`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a3773c9ca38b1f9da384cee402510c15a`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ac0d33273564ddc6801b85ea55b947372`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1adbddf91596c6f0009157d0c7e6615183`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1af93798549ba503642069f9931c226e2d`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ad199fd3b2af618972bef6f2a9983627d`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1aaa1cb4c783911660928d54ca53e56896`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a53f7fc98522fcb570926052d3640d8aa`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a7a962eb837f8b7edc681d7889fd3116c`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1acd3e0c64afe02a9a428ce0df20db0ad1`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a21b5f216da191c145feaa5eff635153a`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a941c79bc140ae1d32451a9acd6970684`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ab44167e586ca117f6365ea68b2550259`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a843da3b8f4c288e67e0eb55ec5b65892`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a3c22894cd7a988c2e1b9ada078f8e688`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a6262bd20790d942c496762ba12d08100`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1adc5178d891a14c2b89b459c9242be466`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ac1b9da22bf3633589112dd1725263232`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a68c836de60dc979c6448fdac8f7c9984`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a2feaa643389d8f08d58e613c78d4d3c3`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a808bb64cb6bd423549d9a4eabd46819c`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ac7f00b4728e723cdaa8ed9c1bfe766a6`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a6a4504bccb123fda667a91c4dc9f6a01`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1ac691ffbf1f80d8277406d3b1a25935cf`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1addf9cbddc99a0334e13088a626b85c95`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a5bc15abb752c9d1104780f7dc8cc5ce0`
+
+- :ref:`exhale_variable_vis__kpreco_8py_1a81d93ff4e189bf762756a2356a549be6`

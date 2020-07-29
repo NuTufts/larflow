@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1scb_1_1SCBoundary:
+
+Class SCBoundary
+================
+
+- Defined in :ref:`file_larflow_SCBoundary_SCBoundary.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::scb::SCBoundary
+   :members:
+   :protected-members:
+   :undoc-members:

@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1KeypointFilterByWCTagger:
+
+Class KeypointFilterByWCTagger
+==============================
+
+- Defined in :ref:`file_larflow_Reco_KeypointFilterByWCTagger.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::KeypointFilterByWCTagger
+   :members:
+   :protected-members:
+   :undoc-members:

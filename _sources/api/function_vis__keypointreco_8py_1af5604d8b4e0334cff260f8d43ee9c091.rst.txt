@@ -1,0 +1,13 @@
+.. _exhale_function_vis__keypointreco_8py_1af5604d8b4e0334cff260f8d43ee9c091:
+
+Function vis_keypointreco::cb_render
+====================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_keypointreco.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_keypointreco::cb_render(vals)

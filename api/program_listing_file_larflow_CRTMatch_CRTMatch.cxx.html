@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File CRTMatch.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File CRTMatch.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_CRTMatch_CRTMatch.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-crtmatch-cxx">
+<span id="program-listing-file-larflow-crtmatch-crtmatch-cxx"></span><h1>Program Listing for File CRTMatch.cxx<a class="headerlink" href="#program-listing-for-file-crtmatch-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_CRTMatch_CRTMatch.cxx.html#file-larflow-crtmatch-crtmatch-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/CRTMatch/CRTMatch.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;CRTMatch.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larlite/core/DataFormat/larflowcluster.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">crtmatch</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">CRTMatch</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iocv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">_hit_matcher</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">);</span>
+
+    <span class="n">_hit_matcher</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iocv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+    <span class="n">_track_matcher</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iocv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_lfcluster</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span> <span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;pcacluster&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// we now tag image, and match lfcluster to crttrack cluster, finally labeling untagged</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iocv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="n">untagged_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span> <span class="c1">// image where matched pixels are removed</span>
+    <span class="n">track_index_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span> <span class="c1">// image where crt track index labels image, so we can match larflow clusters to it.</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">adc_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// make a copy to mask</span>
+      <span class="n">untagged_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">img</span> <span class="p">);</span>
+
+      <span class="c1">// make a blank to tag with index</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span> <span class="n">hempty</span><span class="p">(</span> <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">hempty</span><span class="p">.</span><span class="n">paint</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">);</span>
+      <span class="n">track_index_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hempty</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="p">}</span>
+
+    <span class="c1">// mark used clusters</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_clusters_v</span><span class="p">(</span> <span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_hit_matcher</span><span class="p">.</span><span class="n">was_cluster_used</span><span class="p">(</span> <span class="n">i</span> <span class="p">)</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">used_clusters_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">untagged_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">set_pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// loop over constructed CRT tracks</span>
+    <span class="kt">float</span> <span class="n">cidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">_track_matcher</span><span class="p">.</span><span class="n">getClusters</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">track_index_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">set_pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">cidx</span> <span class="p">);</span>
+          <span class="n">untagged_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">set_pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="mi">0</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="n">cidx</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// now match to clusters</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_clusters_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">index_counter</span><span class="p">(</span> <span class="n">_track_matcher</span><span class="p">.</span><span class="n">getClusters</span><span class="p">().</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">track_index_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">track_index_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">index</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">index</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">index_counter</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>
+            <span class="n">index_counter</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="c1">// if we match 50% we absorb the cluster</span>
+      <span class="kt">int</span> <span class="n">nmatched</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">index_counter</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">nmatched</span> <span class="o">+=</span> <span class="n">index_counter</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+
+      <span class="kt">float</span> <span class="n">frac_matched</span> <span class="o">=</span> <span class="kt">float</span><span class="p">(</span><span class="n">nmatched</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">).</span><span class="n">size</span><span class="p">());</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">frac_matched</span><span class="o">&gt;</span><span class="mf">0.3</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">used_clusters_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="c1">// more complete mask</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="p">);</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+            <span class="n">untagged_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">set_pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="mi">0</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">_unmatched_clusters_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_clusters_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">_unmatched_clusters_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_lfcluster</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTMatch</span><span class="o">::</span><span class="n">store_output</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">outlcv</span><span class="p">,</span>
+                               <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">outll</span><span class="p">,</span>
+                               <span class="kt">bool</span> <span class="n">remove_if_no_flash</span> <span class="p">)</span> <span class="p">{</span>
+
+
+    <span class="n">_track_matcher</span><span class="p">.</span><span class="n">save_to_file</span><span class="p">(</span> <span class="n">outll</span><span class="p">,</span> <span class="n">remove_if_no_flash</span> <span class="p">);</span>
+    <span class="n">_hit_matcher</span><span class="p">.</span><span class="n">save_to_file</span><span class="p">(</span> <span class="n">outll</span><span class="p">,</span> <span class="n">remove_if_no_flash</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_unused</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">outll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;crtunmatched&quot;</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">_unmatched_clusters_v</span> <span class="p">)</span>
+      <span class="n">ev_unused</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span> <span class="p">);</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_untagged</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">outlcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;crtmasked&quot;</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">untagged_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">ev_untagged</span><span class="o">-&gt;</span><span class="n">Append</span><span class="p">(</span><span class="n">img</span><span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

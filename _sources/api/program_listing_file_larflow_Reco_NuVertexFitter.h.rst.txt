@@ -1,0 +1,66 @@
+
+.. _program_listing_file_larflow_Reco_NuVertexFitter.h:
+
+Program Listing for File NuVertexFitter.h
+=========================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_NuVertexFitter.h>` (``larflow/Reco/NuVertexFitter.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __LARFLOW_NUVERTEX_FITTER_H__
+   #define __LARFLOW_NUVERTEX_FITTER_H__
+   
+   
+   #include "larcv/core/Base/larcv_base.h"
+   
+   #include "larcv/core/DataFormat/IOManager.h"
+   #include "DataFormat/storage_manager.h"
+   
+   #include "NuVertexMaker.h"
+   
+   namespace larflow {
+   namespace reco {
+   
+     class NuVertexFitter : public larcv::larcv_base {
+   
+     public:
+   
+       NuVertexFitter()
+         : larcv::larcv_base("NuVertexFitter")
+         {};
+   
+       virtual ~NuVertexFitter() {};
+   
+       struct Prong_t {
+         std::vector< std::vector<float> > feat_v;    
+         const larlite::larflowcluster* orig_cluster; 
+         const larlite::pcaxis* orig_pcaxis;          
+         std::vector<float> endpt;                    
+         std::vector<float> startpt;                  
+       };
+   
+       void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll,
+                     const std::vector< larflow::reco::NuVertexCandidate >& vertex_v );
+   
+       const std::vector< std::vector<float> >& get_fitted_pos() { return _fitted_pos_v; };
+       
+     protected:
+   
+       void _fit_vertex( const std::vector<float>& initial_vertex_pos,
+                         const std::vector<Prong_t>& prong_v,
+                         std::vector<float>& fitted_pos,
+                         float& delta_loss );
+   
+   
+       std::vector< std::vector<float> > _fitted_pos_v; 
+   
+     };
+     
+   
+   }
+   }
+   
+   #endif

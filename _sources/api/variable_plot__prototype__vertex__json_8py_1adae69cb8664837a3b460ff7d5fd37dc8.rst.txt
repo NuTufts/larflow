@@ -1,0 +1,13 @@
+.. _exhale_variable_plot__prototype__vertex__json_8py_1adae69cb8664837a3b460ff7d5fd37dc8:
+
+Variable plot_prototype_vertex_json::server
+===========================================
+
+- Defined in :ref:`file_larflow_Reco_test_plot_prototype_vertex_json.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: plot_prototype_vertex_json::server

@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1a8c0cdceefd9deb449007ca3f0ad3e576:
+
+Variable vis_primitives::app
+============================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::app

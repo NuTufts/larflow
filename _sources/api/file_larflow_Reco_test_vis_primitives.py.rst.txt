@@ -1,0 +1,116 @@
+
+.. _file_larflow_Reco_test_vis_primitives.py:
+
+File vis_primitives.py
+======================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco_test>` (``larflow/Reco/test``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/test/vis_primitives.py``)
+----------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_test_vis_primitives.py.rst
+
+
+
+
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_vis_primitives`
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_vis__primitives_8py_1a9fe8c2ee3da7a949462b3d143b3dc3a1`
+
+- :ref:`exhale_function_vis__primitives_8py_1a055e7a4a6277723c17c42e5a30f6fe1d`
+
+- :ref:`exhale_function_vis__primitives_8py_1adee5df52e5beedfd7ad9b4445db63a08`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_vis__primitives_8py_1abee8489de5351e79eabb7a5d28dfc156`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a531b1ce87d84f05f01b3f409f57c7ba3`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a8c0cdceefd9deb449007ca3f0ad3e576`
+
+- :ref:`exhale_variable_vis__primitives_8py_1afb003f9d4c76dd084acd9b48f987fcb9`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a211e76204a06ba7ae092c9429382a8d3`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a62434ace39a9551cecea761d381dd4d1`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a7709a011578f66e029d641a6c8409a26`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a3d7d98c0273261e0cff35a7d1c4a7703`
+
+- :ref:`exhale_variable_vis__primitives_8py_1abbaef9fb3cf8372ac2e122368eea07b5`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a49bd2ccac038d329a187f7ceaa60d68a`
+
+- :ref:`exhale_variable_vis__primitives_8py_1ab26ed4206cd77a99b6527b0378eec8db`
+
+- :ref:`exhale_variable_vis__primitives_8py_1af3c3671d5eed5004454bdfaa7fd8ead2`
+
+- :ref:`exhale_variable_vis__primitives_8py_1ab81f240c78f891c7d876deac3debf884`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a3d77cbd4d0317707fec971e916fdca8a`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a39925486d22887f3e4abb247bc03c0cb`
+
+- :ref:`exhale_variable_vis__primitives_8py_1abb1da2badcd79e9d372e004f78894f75`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a8fb5032506df4f7fe958bfacda895de6`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a41d0ee1ef9da452472f325268d8a1547`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a6617fc3a688d26a78cd2771615ecfd31`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a2e54792a18f4e40021a02f20a4728472`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a29385b6e5c3bd0493235107a25950f44`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a277e3f0cc294aea0e61bf2d2930e3097`
+
+- :ref:`exhale_variable_vis__primitives_8py_1af76b7b718cfa632743201b94183c506c`
+
+- :ref:`exhale_variable_vis__primitives_8py_1adce7282620800dd6f1acf6a5e8829a27`
+
+- :ref:`exhale_variable_vis__primitives_8py_1ab86aff268dfe68c409cc6810ddf35081`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a3287aa3c3d5e1fc0d33ac64b5c48f427`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a45b1eb4d3cb20e87f825f6df2c88b75f`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a4f7dac858a0d0c2dc9e1e16168c9b56d`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a3d829389f9384035488ee9f076027949`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a011ae373ce6d1b2a7022481b1ae343f3`
+
+- :ref:`exhale_variable_vis__primitives_8py_1a534c578efbc329de3d3e9117e03d57b7`
+

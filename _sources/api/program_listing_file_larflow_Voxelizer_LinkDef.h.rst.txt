@@ -1,0 +1,26 @@
+
+.. _program_listing_file_larflow_Voxelizer_LinkDef.h:
+
+Program Listing for File LinkDef.h
+==================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Voxelizer_LinkDef.h>` (``larflow/Voxelizer/LinkDef.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   
+   #ifdef __CINT__
+   #pragma link off all globals;
+   #pragma link off all classes;
+   #pragma link off all functions;
+   
+   #pragma link C++ namespace std;
+   #pragma link C++ namespace larflow;
+   #pragma link C++ namespace larflow::voxelizer;
+   #pragma link C++ class larflow::voxelizer::VoxelizeTriplets+;
+   #pragma link C++ class std::vector<larflow::voxelizer::VoxelizeTriplets>+;
+   
+   //ADD_NEW_CLASS ... do not change this line
+   #endif

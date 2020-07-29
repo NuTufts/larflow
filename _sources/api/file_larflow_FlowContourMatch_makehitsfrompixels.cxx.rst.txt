@@ -1,0 +1,53 @@
+
+.. _file_larflow_FlowContourMatch_makehitsfrompixels.cxx:
+
+File makehitsfrompixels.cxx
+===========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_FlowContourMatch>` (``larflow/FlowContourMatch``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/FlowContourMatch/makehitsfrompixels.cxx``)
+----------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_FlowContourMatch_makehitsfrompixels.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``LArUtil/Geometry.h``
+
+- ``makehitsfrompixels.h`` (:ref:`file_larflow_FlowContourMatch_makehitsfrompixels.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_namespacelarflow_1a2df6360088445daf2d13a9d9b216bff7`
+

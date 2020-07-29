@@ -1,0 +1,336 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File SplitHitsBySSNet.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File SplitHitsBySSNet.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_SplitHitsBySSNet.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-splithitsbyssnet-cxx">
+<span id="program-listing-file-larflow-reco-splithitsbyssnet-cxx"></span><h1>Program Listing for File SplitHitsBySSNet.cxx<a class="headerlink" href="#program-listing-for-file-splithitsbyssnet-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_SplitHitsBySSNet.cxx.html#file-larflow-reco-splithitsbyssnet-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/SplitHitsBySSNet.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;SplitHitsBySSNet.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">SplitHitsBySSNet</span><span class="o">::</span><span class="n">split</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">ssnet_score_v</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">&amp;</span> <span class="n">larmatch_hit_v</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="kt">float</span> <span class="n">ssnet_score_threshold</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="kt">float</span> <span class="n">larmatch_score_threshold</span><span class="p">,</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">accept_v</span><span class="p">,</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">reject_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">clock_t</span> <span class="n">begin</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+    <span class="n">accept_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">reject_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">accept_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">larmatch_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">reject_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">larmatch_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">meta_v</span><span class="p">(</span> <span class="n">ssnet_score_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">ssnet_score_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">meta_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="p">(</span><span class="n">ssnet_score_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">());</span>
+
+    <span class="kt">int</span> <span class="n">below_threshold</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span> <span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">larmatch_hit_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;hit[9]=&quot; &lt;&lt; hit[9] &lt;&lt; std::endl;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">larmatch_score_threshold</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">hit</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;=</span><span class="mi">10</span> <span class="o">&amp;&amp;</span> <span class="n">hit</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span><span class="o">&lt;</span><span class="n">larmatch_score_threshold</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">below_threshold</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">scores</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnet_score_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnet_score_v</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnet_score_v</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">srcwire</span><span class="p">,</span>       <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+
+      <span class="c1">// condition ... gather metrics</span>
+      <span class="kt">int</span> <span class="n">n_w_score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">tot_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">max_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">min_non_zero</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="nl">s</span> <span class="p">:</span> <span class="n">scores</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="n">n_w_score</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">tot_score</span> <span class="o">+=</span> <span class="n">s</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">max_score</span><span class="o">&lt;</span><span class="n">s</span> <span class="p">)</span>
+          <span class="n">max_score</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&gt;</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">s</span><span class="o">&lt;</span><span class="n">min_non_zero</span> <span class="p">)</span>
+          <span class="n">min_non_zero</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="c1">// we form a weighted average of the score</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">n_w_score</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">tot_score</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">n_w_score</span><span class="p">)</span><span class="o">&gt;</span><span class="n">ssnet_score_threshold</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">accept_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span>
+        <span class="n">reject_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">begin</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;original=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">larmatch_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot; accepted=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">accept_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot; and rejected=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">reject_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot; below-threshold=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">below_threshold</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot; elasped=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span>
+                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">SplitHitsBySSNet</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="k">nullptr</span><span class="p">};</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">char</span> <span class="n">prodname</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span>
+      <span class="n">sprintf</span><span class="p">(</span> <span class="n">prodname</span><span class="p">,</span> <span class="s">&quot;%s%d&quot;</span><span class="p">,</span> <span class="n">_ssnet_stem_name</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span> <span class="p">);</span>
+      <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">prodname</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc_v</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">_adc_name</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc_v</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// collect track images</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">ssnet_trackimg_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">ssnet_trackimg_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="mi">1</span><span class="p">]);</span>
+
+    <span class="c1">// collect shower images</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">ssnet_showerimg_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">ssnet_showerimg_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="mi">0</span><span class="p">]);</span>
+
+
+    <span class="c1">// larflow hits</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_lfhit</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_input_larmatch_hit_tree_name</span> <span class="p">);</span>
+
+    <span class="n">_shower_hit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_track_hit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">split</span><span class="p">(</span> <span class="n">ssnet_showerimg_v</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_lfhit</span><span class="p">,</span> <span class="n">_score_threshold</span><span class="p">,</span> <span class="n">_larmatch_threshold</span><span class="p">,</span> <span class="n">_shower_hit_v</span><span class="p">,</span> <span class="n">_track_hit_v</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_shower_hit</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_larmatch_hit_stem_name</span><span class="o">+</span><span class="s">&quot;_showerhit&quot;</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_track_hit</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_larmatch_hit_stem_name</span><span class="o">+</span><span class="s">&quot;_trackhit&quot;</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">_shower_hit_v</span> <span class="p">)</span>
+      <span class="n">evout_shower_hit</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">_track_hit_v</span> <span class="p">)</span>
+      <span class="n">evout_track_hit</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Split hits into &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_track_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; trackhit and &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_shower_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; showerhit&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

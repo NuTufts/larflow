@@ -1,0 +1,81 @@
+
+.. _file_larflow_PrepFlowMatchData_PrepMatchTriplets.cxx:
+
+File PrepMatchTriplets.cxx
+==========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_PrepFlowMatchData>` (``larflow/PrepFlowMatchData``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/PrepFlowMatchData/PrepMatchTriplets.cxx``)
+----------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_PrepFlowMatchData_PrepMatchTriplets.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``FlowTriples.h`` (:ref:`file_larflow_PrepFlowMatchData_FlowTriples.h`)
+
+- ``PrepMatchTriplets.h`` (:ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`)
+
+- ``TRandom3.h``
+
+- ``algorithm``
+
+- ``chrono``
+
+- ``ctime``
+
+- ``larcv/core/PyUtil/PyUtils.h``
+
+- ``larflow/LArFlowConstants/LArFlowConstants.h`` (:ref:`file_larflow_LArFlowConstants_LArFlowConstants.h`)
+
+- ``larlite/core/LArUtil/Geometry.h``
+
+- ``larlite/core/LArUtil/LArProperties.h``
+
+- ``numpy/ndarrayobject.h``
+
+- ``random``
+
+- ``sstream``
+
+- ``ublarcvapp/UBImageMod/EmptyChannelAlgo.h``
+
+- ``ublarcvapp/UBWireTool/UBWireTool.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__prep`
+
+
+Defines
+-------
+
+
+- :ref:`exhale_define_PrepMatchTriplets_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a`
+

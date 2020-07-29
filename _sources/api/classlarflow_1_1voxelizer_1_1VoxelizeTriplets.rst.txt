@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1voxelizer_1_1VoxelizeTriplets:
+
+Class VoxelizeTriplets
+======================
+
+- Defined in :ref:`file_larflow_Voxelizer_VoxelizeTriplets.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::voxelizer::VoxelizeTriplets
+   :members:
+   :protected-members:
+   :undoc-members:

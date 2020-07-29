@@ -1,0 +1,69 @@
+
+.. _file_larflow_KeyPoints_arxiv_bvhnode_t.cxx:
+
+File bvhnode_t.cxx
+==================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_KeyPoints_arxiv>` (``larflow/KeyPoints/arxiv``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/KeyPoints/arxiv/bvhnode_t.cxx``)
+------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_KeyPoints_arxiv_bvhnode_t.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``bvhnode_t.h`` (:ref:`file_larflow_KeyPoints_arxiv_bvhnode_t.h`)
+
+- ``iostream``
+
+- ``sstream``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__keypoints`
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1ae9afaa44fd5c04b14d04cf8d599e8753`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1a06d2b91f282036333db0c541226511ae`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1af440307c12424373e801bc9d7d16e81b`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1a1fa81643a10bccfaeb3af4a580788f30`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1afcd9bffecdf8fd267ee58ffad5c462d3`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1aba3bad4344a64c8c7de63ecfde1611a2`
+
+- :ref:`exhale_function_bvhnode__t_8cxx_1ae798eba241693cafb28ae6e60a47ce77`
+

@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1NuTrackBuilder:
+
+Class NuTrackBuilder
+====================
+
+- Defined in :ref:`file_larflow_Reco_NuTrackBuilder.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larflow::reco::TrackClusterBuilder`` (:ref:`exhale_class_classlarflow_1_1reco_1_1TrackClusterBuilder`)
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::NuTrackBuilder
+   :members:
+   :protected-members:
+   :undoc-members:

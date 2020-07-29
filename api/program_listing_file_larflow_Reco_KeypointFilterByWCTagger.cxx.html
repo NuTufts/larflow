@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File KeypointFilterByWCTagger.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File KeypointFilterByWCTagger.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_KeypointFilterByWCTagger.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-keypointfilterbywctagger-cxx">
+<span id="program-listing-file-larflow-reco-keypointfilterbywctagger-cxx"></span><h1>Program Listing for File KeypointFilterByWCTagger.cxx<a class="headerlink" href="#program-listing-for-file-keypointfilterbywctagger-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_KeypointFilterByWCTagger.cxx.html#file-larflow-reco-keypointfilterbywctagger-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/KeypointFilterByWCTagger.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;KeypointFilterByWCTagger.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/pcaxis.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">KeypointFilterByWCTagger</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span><span class="p">(</span><span class="s">&quot;KeypointFilterByWCTagger&quot;</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">set_defaults</span><span class="p">();</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                          <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">process_hits</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+    <span class="n">process_keypoints</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">process_hits</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                               <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// get adc images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc_v</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">_input_adc_tree_name</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc_v</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input wire images [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_adc_tree_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// get cosmic tagged image</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_tagger</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">_input_taggerimg_tree_name</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">tagged_v</span> <span class="o">=</span> <span class="n">ev_tagger</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input tagged images [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_taggerimg_tree_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tagged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// get larmatch hits to filter</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input larmatch hit tree: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_larmatch_tree_name</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_larmatch</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_input_larmatch_tree_name</span> <span class="p">);</span>
+
+    <span class="c1">// get ssnet shower images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="k">nullptr</span><span class="p">};</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">char</span> <span class="n">prodname</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span>
+      <span class="n">sprintf</span><span class="p">(</span> <span class="n">prodname</span><span class="p">,</span> <span class="s">&quot;%s%d&quot;</span><span class="p">,</span> <span class="n">_ssnet_stem_name</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span> <span class="p">);</span>
+      <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">prodname</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// collect shower images</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;</span> <span class="n">ssnet_showerimg_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">ssnet_showerimg_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="mi">0</span><span class="p">]));</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">kept_hit_v</span><span class="p">(</span> <span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">filter_larmatchhits_using_tagged_image</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">tagged_v</span><span class="p">,</span> <span class="n">ssnet_showerimg_v</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_larmatch</span><span class="p">,</span> <span class="n">kept_hit_v</span> <span class="p">);</span>
+
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_filteredhits_output</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_filteredhits_tree_name</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_rejectedhits_output</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_save_rejected_hits</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">ev_rejectedhits_output</span> <span class="o">=</span>
+        <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_rejectedhits_tree_name</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kept_hit_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+        <span class="n">ev_filteredhits_output</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ihit</span><span class="p">)</span> <span class="p">);</span>
+      <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">_save_rejected_hits</span> <span class="o">&amp;&amp;</span> <span class="n">kept_hit_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">ev_rejectedhits_output</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ihit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num of filtered hits: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_filteredhits_output</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_save_rejected_hits</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num of rejected (i.e. on off-beam charge) hits: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_rejectedhits_output</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_larmatch</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">process_keypoints</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                                    <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// get adc images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc_v</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">_input_adc_tree_name</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc_v</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input wire images [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_adc_tree_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// get cosmic tagged image</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_tagger</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">_input_taggerimg_tree_name</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">tagged_v</span> <span class="o">=</span> <span class="n">ev_tagger</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input tagged images [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_taggerimg_tree_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tagged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// get keypoint network image</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Input keypoint tree: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_input_keypoint_tree_name</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_keypoint</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_input_keypoint_tree_name</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">ev_keypoint_pcaxis</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">_input_keypoint_tree_name</span> <span class="p">);</span>
+
+    <span class="c1">// get ssnet shower images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="k">nullptr</span><span class="p">};</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">char</span> <span class="n">prodname</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span>
+      <span class="n">sprintf</span><span class="p">(</span> <span class="n">prodname</span><span class="p">,</span> <span class="s">&quot;%s%d&quot;</span><span class="p">,</span> <span class="n">_ssnet_stem_name</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span> <span class="p">);</span>
+      <span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="n">prodname</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// collect shower images</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;</span> <span class="n">ssnet_showerimg_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">ssnet_showerimg_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="n">ev_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="mi">0</span><span class="p">]));</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">kept_keypoint_v</span><span class="p">(</span> <span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">filter_keypoint_using_tagged_image</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">tagged_v</span><span class="p">,</span> <span class="n">ssnet_showerimg_v</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_keypoint</span><span class="p">,</span> <span class="n">kept_keypoint_v</span> <span class="p">);</span>
+
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_keypoint_output</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_keypoint_tree_name</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">ev_kpaxis_output</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">_output_keypoint_tree_name</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ikp</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikp</span><span class="o">&lt;</span><span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">ikp</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kept_keypoint_v</span><span class="p">[</span><span class="n">ikp</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>  <span class="p">{</span>
+        <span class="n">ev_keypoint_output</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ikp</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">ev_kpaxis_output</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_keypoint_pcaxis</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ikp</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num of keypoint hits: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_keypoint_output</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">filter_larmatchhits_using_tagged_image</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">tagged_v</span><span class="p">,</span>
+                                                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">shower_ssnet_v</span><span class="p">,</span>
+                                                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">larmatch_v</span><span class="p">,</span>
+                                                                         <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">kept_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">kept_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">kept_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">larmatch_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">larmatch_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="n">larmatch_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+      <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot;hit[&quot; &lt;&lt; ihit &lt;&lt; &quot;] tick=&quot; &lt;&lt; hit.tick+1 &lt;&lt; std::endl;</span>
+      <span class="c1">//int tick = hit[0]/larutil::LArProperties::GetME()-&gt;DriftVelocity()/0.5 + 3200;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="o">&lt;=</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">||</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="o">&gt;=</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="kt">int</span> <span class="n">nplanes_tagged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+        <span class="kt">int</span> <span class="n">tagged</span> <span class="o">=</span> <span class="n">tagged_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="p">);</span>
+        <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot; tagged[col &quot; &lt;&lt; col &lt;&lt; &quot;]=&quot; &lt;&lt; tagged;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">tagged</span><span class="o">&gt;</span><span class="mi">5</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// check if shower</span>
+          <span class="kt">float</span> <span class="n">shower_score</span> <span class="o">=</span> <span class="n">shower_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">pixel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">);</span>
+          <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot; showerscore=&quot; &lt;&lt; shower_score;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">shower_score</span><span class="o">&lt;</span><span class="mf">0.5</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">nplanes_tagged</span><span class="o">++</span><span class="p">;</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nplanes_tagged</span><span class="o">&gt;=</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">kept_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">kept_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot;kept=&quot; &lt;&lt; kept_v[ihit] &lt;&lt; std::endl;</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">KeypointFilterByWCTagger</span><span class="o">::</span><span class="n">filter_keypoint_using_tagged_image</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">tagged_v</span><span class="p">,</span>
+                                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">shower_ssnet_v</span><span class="p">,</span>
+                                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">keypoint_v</span><span class="p">,</span>
+                                                                     <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">kept_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">kept_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">kept_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">keypoint_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">keypoint_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="n">keypoint_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+
+      <span class="kt">int</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span> <span class="o">+</span> <span class="mi">3200</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tick</span><span class="o">&lt;=</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">||</span> <span class="n">tick</span><span class="o">&gt;=</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+      <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dpos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+
+      <span class="kt">int</span> <span class="n">nplanes_tagged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="kt">int</span> <span class="n">wire</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NearestWire</span><span class="p">(</span> <span class="n">dpos</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+
+        <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">wire</span> <span class="p">);</span>
+
+        <span class="kt">int</span> <span class="n">nshower</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">ntagged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dr</span><span class="o">=-</span><span class="mi">5</span><span class="p">;</span> <span class="n">dr</span><span class="o">&lt;=</span><span class="mi">5</span><span class="p">;</span> <span class="n">dr</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">r</span> <span class="o">=</span> <span class="n">row</span><span class="o">+</span><span class="n">dr</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">r</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">r</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dc</span><span class="o">=-</span><span class="mi">5</span><span class="p">;</span> <span class="n">dc</span><span class="o">&lt;=</span><span class="mi">5</span><span class="p">;</span> <span class="n">dc</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">col</span><span class="o">+</span><span class="n">dc</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">c</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">c</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+            <span class="kt">int</span> <span class="n">tagged</span> <span class="o">=</span> <span class="n">tagged_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">tagged</span><span class="o">&gt;</span><span class="mi">5</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">ntagged</span><span class="o">++</span><span class="p">;</span>
+              <span class="c1">// check if shower</span>
+              <span class="kt">float</span> <span class="n">shower_score</span> <span class="o">=</span> <span class="n">shower_ssnet_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+
+              <span class="k">if</span> <span class="p">(</span> <span class="n">shower_score</span><span class="o">&lt;</span><span class="mf">0.25</span> <span class="p">)</span>
+                <span class="n">nshower</span><span class="o">++</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="p">}</span><span class="c1">//col neighborhood</span>
+        <span class="p">}</span><span class="c1">//row neighborhood</span>
+
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">ntagged</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">nshower</span><span class="o">&lt;=</span><span class="mi">2</span> <span class="p">)</span>
+          <span class="n">nplanes_tagged</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span><span class="c1">//end of planes</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nplanes_tagged</span><span class="o">&gt;=</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">kept_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">kept_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of hit loop</span>
+
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

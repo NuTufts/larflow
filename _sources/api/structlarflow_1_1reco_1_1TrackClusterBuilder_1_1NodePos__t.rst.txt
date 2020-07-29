@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t:
+
+Struct TrackClusterBuilder::NodePos_t
+=====================================
+
+- Defined in :ref:`file_larflow_Reco_TrackClusterBuilder.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1TrackClusterBuilder`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::TrackClusterBuilder::NodePos_t
+   :members:
+   :protected-members:
+   :undoc-members:

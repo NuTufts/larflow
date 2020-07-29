@@ -1,0 +1,38 @@
+
+.. _program_listing_file_larflow_Reco_NuInteractionMaker.h:
+
+Program Listing for File NuInteractionMaker.h
+=============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_NuInteractionMaker.h>` (``larflow/Reco/NuInteractionMaker.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __LARFLOW_RECO_NU_INTERACTION_MAKER_H__
+   #define __LARFLOW_RECO_NU_INTERACTION_MAKER_H__
+   
+   #include "larcv/core/Base/larcv_base.h"
+   
+   namespace larflow {
+   namespace reco {
+   
+     class NuInteractionMaker : larcv::larcv_base {
+   
+     public:
+   
+       NuInteractionMaker() {};
+       virtual ~NuInteractionMaker() {};
+   
+   
+       void process( larcv::IOManager& iolcv,
+                     larlite::storage_manager& ioll,
+                     const std::vector<NuVertexCandidates>& nuvtx_v );
+       
+     };
+     
+   }
+   }
+   
+   #endif

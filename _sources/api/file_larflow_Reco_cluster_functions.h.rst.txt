@@ -1,0 +1,105 @@
+
+.. _file_larflow_Reco_cluster_functions.h:
+
+File cluster_functions.h
+========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/cluster_functions.h``)
+-------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_cluster_functions.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/larflowcluster.h``
+
+- ``DataFormat/pcaxis.h``
+
+- ``larcv/core/DataFormat/Image2D.h``
+
+- ``larcv/core/DataFormat/ImageMeta.h``
+
+- ``nlohmann/json.hpp``
+
+- ``string``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_CRTMatch_CRTHitMatch.h`
+
+- :ref:`file_larflow_CRTMatch_CRTHitMatch.cxx`
+
+- :ref:`file_larflow_CRTMatch_CRTTrackMatch.h`
+
+- :ref:`file_larflow_Reco_ana_ana_showercluster.cxx`
+
+- :ref:`file_larflow_Reco_cluster_functions.cxx`
+
+- :ref:`file_larflow_Reco_DBScanLArMatchHits.h`
+
+- :ref:`file_larflow_Reco_DBScanLArMatchHits.cxx`
+
+- :ref:`file_larflow_Reco_KeypointFilterByClusterSize.cxx`
+
+- :ref:`file_larflow_Reco_KeypointReco.h`
+
+- :ref:`file_larflow_Reco_KeypointReco.cxx`
+
+- :ref:`file_larflow_Reco_ShowerRecoKeypoint.h`
+
+- :ref:`file_larflow_Reco_ProjectionDefectSplitter.h`
+
+- :ref:`file_larflow_Reco_NuVertexFitter.cxx`
+
+- :ref:`file_larflow_Reco_ProjectionDefectSplitter.cxx`
+
+- :ref:`file_larflow_Reco_ShowerLikelihoodBuilder.h`
+
+- :ref:`file_larflow_Reco_ShowerLikelihoodBuilder.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1cluster__t`
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1ClusterFunctions`
+

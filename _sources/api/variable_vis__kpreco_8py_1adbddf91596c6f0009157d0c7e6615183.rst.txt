@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__kpreco_8py_1adbddf91596c6f0009157d0c7e6615183:
+
+Variable vis_kpreco::color_by_options
+=====================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_kpreco.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_kpreco::color_by_options

@@ -1,0 +1,299 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File run_keypointreco.py &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File run_keypointreco.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_test_run_keypointreco.py.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-run-keypointreco-py">
+<span id="program-listing-file-larflow-reco-test-run-keypointreco-py"></span><h1>Program Listing for File run_keypointreco.py<a class="headerlink" href="#program-listing-for-file-run-keypointreco-py" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_test_run_keypointreco.py.html#file-larflow-reco-test-run-keypointreco-py"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/test/run_keypointreco.py</span></code>)</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">argparse</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Run the PCA-based clustering routine for track space-points.</span>
+<span class="sd">Uses 3D points saved in larflow3dhit objects.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;Run larflow3dhit clustering algorith&quot;</span><span class="p">)</span>
+<span class="c1"># required</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-i&#39;</span><span class="p">,</span><span class="s1">&#39;--input-dlmerged&#39;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input file containing ADC, ssnet, badch images/info&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-l&#39;</span><span class="p">,</span><span class="s1">&#39;--input-larflow&#39;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input file containing larlite::larflow3dhit objects&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-o&#39;</span><span class="p">,</span><span class="s1">&#39;--output&#39;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of output file. Will not overwrite&quot;</span><span class="p">)</span>
+<span class="c1"># optional</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-n&#39;</span><span class="p">,</span><span class="s1">&#39;--num-entries&#39;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of entries to run&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-e&#39;</span><span class="p">,</span><span class="s1">&#39;--start-entry&#39;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Starting entry&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-tb&#39;</span><span class="p">,</span><span class="s1">&#39;--tickbackwards&#39;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input larcv images are tick-backward&quot;</span><span class="p">)</span>
+
+<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">ROOT</span> <span class="k">as</span> <span class="nn">rt</span>
+<span class="kn">from</span> <span class="nn">ROOT</span> <span class="kn">import</span> <span class="n">std</span>
+<span class="kn">from</span> <span class="nn">larlite</span> <span class="kn">import</span> <span class="n">larlite</span>
+<span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+<span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+
+<span class="nb">print</span> <span class="n">larflow</span><span class="o">.</span><span class="n">reco</span>
+<span class="nb">print</span> <span class="n">larflow</span><span class="o">.</span><span class="n">reco</span><span class="o">.</span><span class="n">KeypointReco</span>
+
+<span class="n">io</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="o">.</span><span class="n">kREAD</span> <span class="p">)</span>
+<span class="n">iolcv</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="o">.</span><span class="n">kREAD</span><span class="p">,</span> <span class="s2">&quot;larcv&quot;</span><span class="p">,</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="o">.</span><span class="n">kTickBackward</span> <span class="p">)</span>
+
+<span class="nb">print</span> <span class="s2">&quot;[INPUT: DL MERGED] &quot;</span><span class="p">,</span><span class="n">args</span><span class="o">.</span><span class="n">input_dlmerged</span>
+<span class="nb">print</span> <span class="s2">&quot;[INPUT: LARMATCH-KPS]  &quot;</span><span class="p">,</span><span class="n">args</span><span class="o">.</span><span class="n">input_larflow</span>
+<span class="nb">print</span> <span class="s2">&quot;[OUTPUT]    &quot;</span><span class="p">,</span><span class="n">args</span><span class="o">.</span><span class="n">output</span>
+
+<span class="n">io</span><span class="o">.</span><span class="n">add_in_filename</span><span class="p">(</span>  <span class="n">args</span><span class="o">.</span><span class="n">input_dlmerged</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">add_in_filename</span><span class="p">(</span>  <span class="n">args</span><span class="o">.</span><span class="n">input_larflow</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">set_data_to_read</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="s2">&quot;larmatch&quot;</span> <span class="p">)</span>
+<span class="c1">#io.set_out_filename( args.output )</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">add_in_file</span><span class="p">(</span>   <span class="n">args</span><span class="o">.</span><span class="n">input_dlmerged</span> <span class="p">)</span>
+
+<span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tickbackwards</span><span class="p">:</span>
+    <span class="n">iolcv</span><span class="o">.</span><span class="n">reverse_all_products</span><span class="p">()</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">out</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TFile</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span><span class="s2">&quot;recreate&quot;</span><span class="p">)</span>
+
+<span class="n">kpreco</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">.</span><span class="n">reco</span><span class="o">.</span><span class="n">KeypointReco</span><span class="p">()</span>
+<span class="n">kpreco</span><span class="o">.</span><span class="n">setupOwnTree</span><span class="p">()</span>
+<span class="nb">print</span> <span class="n">kpreco</span>
+
+<span class="n">lcv_nentries</span> <span class="o">=</span> <span class="n">iolcv</span><span class="o">.</span><span class="n">get_n_entries</span><span class="p">()</span>
+<span class="n">ll_nentries</span>  <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_entries</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">lcv_nentries</span><span class="o">&lt;</span><span class="n">ll_nentries</span><span class="p">:</span>
+    <span class="n">nentries</span> <span class="o">=</span> <span class="n">lcv_nentries</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">nentries</span> <span class="o">=</span> <span class="n">ll_nentries</span>
+
+<span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">num_entries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">end_entry</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">start_entry</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">num_entries</span>
+    <span class="k">if</span> <span class="n">end_entry</span><span class="o">&gt;</span><span class="n">nentries</span><span class="p">:</span>
+        <span class="n">end_entry</span> <span class="o">=</span> <span class="n">nentries</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">end_entry</span> <span class="o">=</span> <span class="n">nentries</span>
+
+<span class="c1">#io.go_to( args.start_entry )</span>
+<span class="n">io</span><span class="o">.</span><span class="n">next_event</span><span class="p">()</span>
+<span class="c1">#io.go_to( args.start_entry )</span>
+<span class="k">for</span> <span class="n">ientry</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">start_entry</span><span class="p">,</span> <span class="n">end_entry</span> <span class="p">):</span>
+    <span class="nb">print</span> <span class="s2">&quot;[ENTRY &quot;</span><span class="p">,</span><span class="n">ientry</span><span class="p">,</span><span class="s2">&quot;]&quot;</span>
+    <span class="n">iolcv</span><span class="o">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span>
+
+    <span class="n">ev_lfhits</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="s2">&quot;larmatch&quot;</span> <span class="p">)</span>
+    <span class="nb">print</span> <span class="s2">&quot;num of hits: &quot;</span><span class="p">,</span><span class="n">ev_lfhits</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="n">kpreco</span><span class="o">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ev_lfhits</span> <span class="p">)</span>
+
+    <span class="c1">#kpreco.dump2json(&quot;dump_kpreco_event%d.json&quot;%(ientry))</span>
+    <span class="n">kpreco</span><span class="o">.</span><span class="n">fillTree</span><span class="p">()</span>
+
+    <span class="n">io</span><span class="o">.</span><span class="n">set_id</span><span class="p">(</span> <span class="n">io</span><span class="o">.</span><span class="n">run_id</span><span class="p">(),</span> <span class="n">io</span><span class="o">.</span><span class="n">subrun_id</span><span class="p">(),</span> <span class="n">io</span><span class="o">.</span><span class="n">event_id</span><span class="p">()</span> <span class="p">)</span>
+    <span class="n">io</span><span class="o">.</span><span class="n">next_event</span><span class="p">()</span>
+
+<span class="nb">print</span> <span class="s2">&quot;Event Loop finished&quot;</span>
+<span class="n">kpreco</span><span class="o">.</span><span class="n">writeTree</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">kpreco</span>
+<span class="n">out</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+
+<span class="n">io</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">iolcv</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

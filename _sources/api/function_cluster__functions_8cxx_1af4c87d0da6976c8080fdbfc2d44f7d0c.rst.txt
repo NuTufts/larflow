@@ -1,0 +1,13 @@
+.. _exhale_function_cluster__functions_8cxx_1af4c87d0da6976c8080fdbfc2d44f7d0c:
+
+Function larflow::reco::cluster_dist_from_pcaline
+=================================================
+
+- Defined in :ref:`file_larflow_Reco_cluster_functions.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::reco::cluster_dist_from_pcaline(const cluster_t&, const std::vector<float>&)

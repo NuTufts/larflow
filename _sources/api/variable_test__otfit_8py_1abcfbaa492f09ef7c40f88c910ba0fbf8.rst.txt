@@ -1,0 +1,13 @@
+.. _exhale_variable_test__otfit_8py_1abcfbaa492f09ef7c40f88c910ba0fbf8:
+
+Variable test_otfit::alpha
+==========================
+
+- Defined in :ref:`file_larflow_Reco_test_test_otfit.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test_otfit::alpha

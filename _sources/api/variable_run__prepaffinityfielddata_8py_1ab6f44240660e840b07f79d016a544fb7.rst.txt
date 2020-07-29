@@ -1,0 +1,13 @@
+.. _exhale_variable_run__prepaffinityfielddata_8py_1ab6f44240660e840b07f79d016a544fb7:
+
+Variable run_prepaffinityfielddata::badch_v
+===========================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_run_prepaffinityfielddata.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: run_prepaffinityfielddata::badch_v

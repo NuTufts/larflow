@@ -1,0 +1,70 @@
+
+.. _file_larflow_Reco_KPTrackFit.cxx:
+
+File KPTrackFit.cxx
+===================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/KPTrackFit.cxx``)
+--------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_KPTrackFit.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``KPTrackFit.h`` (:ref:`file_larflow_Reco_KPTrackFit.h`)
+
+- ``LArUtil/Geometry.h``
+
+- ``TRandom3.h``
+
+- ``algorithm``
+
+- ``boost/graph/adjacency_list.hpp``
+
+- ``boost/graph/dijkstra_shortest_paths.hpp``
+
+- ``boost/graph/graph_utility.hpp``
+
+- ``boost/graph/properties.hpp``
+
+- ``boost/property_map/property_map.hpp``
+
+- ``cilantro/kd_tree.hpp``
+
+- ``cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+- ``geofuncs.h`` (:ref:`file_larflow_Reco_geofuncs.h`)
+
+- ``set``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

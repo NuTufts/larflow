@@ -1,0 +1,68 @@
+
+.. _program_listing_file_larflow_Reco_test_test_otfit.py:
+
+Program Listing for File test_otfit.py
+======================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_test_test_otfit.py>` (``larflow/Reco/test/test_otfit.py``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: py
+
+   import os,sys,ctypes
+   import ROOT as rt
+   import numpy as np
+   from ROOT import std
+   from ctypes import c_float
+   
+   from larflow import larflow
+   
+   # what we are doing:
+   # define a simple segment, (0,0,5.0)
+   # generate data around this segment.
+   
+   # define a simple conjecture (5,0,0)
+   
+   # can we rotate to the right answer?
+   
+   NPTS = 100
+   xthrows = np.random.normal( size=NPTS, scale=0.3 )    # defines x
+   ythrows = np.random.normal( size=NPTS, scale=0.3 )    # defines y
+   zthrows  = np.random.uniform( size=NPTS )*5.0 # defines z
+   
+   print xthrows.shape
+   
+   trackpts = std.vector("std::vector<float>")()
+   trackpts.reserve(NPTS)
+   for i in xrange(NPTS):
+       pt = std.vector("float")(3,0)
+       pt[0] = xthrows[i]
+       pt[1] = ythrows[i]
+       pt[2] = zthrows[i]
+       print xthrows[i],",",ythrows[i],",",zthrows[i]
+       trackpts.push_back(pt)
+   
+   print "Generated track points"
+   
+   fittrack = std.vector("std::vector<float>")()
+   start = std.vector("float")(3,0)
+   end   = std.vector("float")(3,0)
+   end[0] = 5.0
+   fittrack.push_back( start )
+   fittrack.push_back( end )
+   
+   alpha = 1.0
+   otf = larflow.reco.TrackOTFit()
+   loss = c_float(0)
+   grad = std.vector("float")(3,0)
+   
+   for istep in xrange(100):
+       print "STEP[",istep,"]"
+       otf.getLossAndGradient( fittrack, trackpts, loss, grad )
+       print "  loss: ",loss.value," grad: (",grad[0],",",grad[1],",",grad[2],")"    
+       for i in xrange(3):
+           fittrack[1][i] -= alpha*grad[i]
+       print "  new-end: (",fittrack[1][0],",",fittrack[1][1],",",fittrack[1][2],")"
+       
+   

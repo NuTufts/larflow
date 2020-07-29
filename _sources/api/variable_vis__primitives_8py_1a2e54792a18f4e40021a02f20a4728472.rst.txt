@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1a2e54792a18f4e40021a02f20a4728472:
+
+Variable vis_primitives::nentries
+=================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::nentries

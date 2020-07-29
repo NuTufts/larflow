@@ -1,0 +1,13 @@
+.. _exhale_variable_test_8py_1ae1b829f07e06c12315d53ea254bdd0c6:
+
+Variable test::row_factory
+==========================
+
+- Defined in :ref:`file__home_twongjirad_working_larbys_ubdl_testdata_test.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test::row_factory

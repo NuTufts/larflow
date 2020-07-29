@@ -1,0 +1,876 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepFlowMatchData.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepFlowMatchData.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_arxiv_PrepFlowMatchData.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepflowmatchdata-cxx">
+<span id="program-listing-file-larflow-prepflowmatchdata-arxiv-prepflowmatchdata-cxx"></span><h1>Program Listing for File PrepFlowMatchData.cxx<a class="headerlink" href="#program-listing-for-file-prepflowmatchdata-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_arxiv_PrepFlowMatchData.cxx.html#file-larflow-prepflowmatchdata-arxiv-prepflowmatchdata-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/arxiv/PrepFlowMatchData.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepFlowMatchData.hh&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;core/LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventSparseImage.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/SparseImage.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventChStatus.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/UBImageMod/EmptyChannelAlgo.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;sstream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+
+
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+
+  <span class="c1">// ---------------------------------------------------------</span>
+  <span class="c1">// PREP FLOW MATCH MAP CLASS FACTORY</span>
+
+  <span class="k">static</span> <span class="n">PrepFlowMatchDataFactory</span> <span class="n">__global_PrepFlowMatchDataFactory__</span><span class="p">;</span>
+
+  <span class="c1">// ---------------------------------------------------------</span>
+  <span class="c1">// PREP FLOW MATCH MAP CLASS</span>
+
+  <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">PrepFlowMatchData</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">instance_name</span> <span class="p">)</span>
+    <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ProcessBase</span><span class="p">(</span><span class="n">instance_name</span><span class="p">),</span>
+    <span class="n">_input_adc_producername</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">),</span>
+    <span class="n">_input_trueflow_producername</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">),</span>
+    <span class="n">_has_mctruth</span><span class="p">(</span><span class="nb">false</span><span class="p">),</span>
+    <span class="n">_use_ana_tree</span><span class="p">(</span><span class="nb">false</span><span class="p">),</span>
+    <span class="n">_use_soft_truth</span><span class="p">(</span><span class="nb">false</span><span class="p">),</span>
+    <span class="n">_positive_example_distance</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+    <span class="n">_use_3plane_constraint</span><span class="p">(</span><span class="nb">true</span><span class="p">),</span>
+    <span class="n">_debug_detailed_output</span><span class="p">(</span><span class="nb">false</span><span class="p">),</span>
+    <span class="n">_use_gapch</span><span class="p">(</span><span class="nb">false</span><span class="p">),</span>
+    <span class="n">_source_plane</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">_matchdata_v</span><span class="p">(</span><span class="k">nullptr</span><span class="p">),</span>
+    <span class="n">_ana_tree</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span>
+  <span class="p">{}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">configure</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">PSet</span><span class="o">&amp;</span> <span class="n">pset</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// the source plane index</span>
+    <span class="n">_source_plane</span>                <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;SourcePlane&quot;</span><span class="p">);</span>
+
+    <span class="c1">// the tree holding the ADC images</span>
+    <span class="n">_input_adc_producername</span>      <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;InputADC&quot;</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span><span class="p">);</span>
+
+    <span class="c1">// the tree holding larcv::ChStatus</span>
+    <span class="n">_input_chstatus_producername</span> <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;InputChStatus&quot;</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span><span class="p">);</span>
+
+    <span class="c1">// the tree holding the true flow images</span>
+    <span class="n">_input_trueflow_producername</span> <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;InputTrueFlow&quot;</span><span class="p">,</span> <span class="s">&quot;larflow&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// [not implemented]: truth score is vector with intermediate scores, not a one-hot vector</span>
+    <span class="n">_use_soft_truth</span>              <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;UseSoftTruthVector&quot;</span><span class="p">,</span><span class="nb">false</span><span class="p">);</span>
+
+    <span class="c1">// has MC truth information</span>
+    <span class="n">_has_mctruth</span>                 <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;HasMCTruth&quot;</span><span class="p">,</span><span class="nb">false</span><span class="p">);</span>
+
+    <span class="c1">// distance witin which labeled as truth</span>
+    <span class="n">_positive_example_distance</span>   <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;PositiveExampleDistance&quot;</span><span class="p">,</span><span class="mi">5</span><span class="p">);</span>
+
+    <span class="c1">// only keep two-plane candidate matches where corresponding pixel in other wire has charge or is in dead region</span>
+    <span class="n">_use_3plane_constraint</span>       <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;Use3PlaneConstraint&quot;</span><span class="p">,</span><span class="nb">true</span><span class="p">);</span>
+
+    <span class="n">_debug_detailed_output</span>       <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;DetailedDebugOutput&quot;</span><span class="p">,</span><span class="nb">false</span><span class="p">);</span>
+
+    <span class="c1">// use gap channels instead of dead channels, if we dont believe the dead channels</span>
+    <span class="n">_use_gapch</span>                   <span class="o">=</span> <span class="n">pset</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;UseGapChannels&quot;</span><span class="p">,</span><span class="nb">false</span><span class="p">);</span>
+
+    <span class="n">useAnaTree</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">initialize</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">_setup_ana_tree</span><span class="p">();</span>
+    <span class="n">_extract_wire_overlap_bounds</span><span class="p">();</span>
+    <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowMatchMap</span><span class="o">&gt;&amp;</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">getMatchData</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_matchdata_v</span><span class="o">==</span><span class="k">nullptr</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_CRITICAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Need to initialize class first.&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Need to initialize first&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="o">*</span><span class="n">_matchdata_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">getFlowDirName</span><span class="p">(</span> <span class="n">FlowDir_t</span> <span class="n">flowdir</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">switch</span><span class="p">(</span> <span class="n">flowdir</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="nl">kU2V</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;u2v&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kU2Y</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;u2y&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kV2U</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;v2u&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kV2Y</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;v2y&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kY2U</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;y2u&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kY2V</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;y2v&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">kNumFlows</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s">&quot;allflows&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">default</span><span class="o">:</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;invalid flow direction&quot;</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="s">&quot;oh-oh&quot;</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">mgr</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// first we sparsify data,</span>
+    <span class="c1">// then for each flow direction,</span>
+    <span class="c1">//   we loop through each source pixel</span>
+    <span class="c1">//   and make a list of target image indices that the source pixel could possibly flow to.</span>
+    <span class="c1">//   we then provide a {0,1} label for each possbile flow, with 1 reserved for the correct match</span>
+    <span class="c1">// we also need to provide a weight for each event for bad and good matches, to balance that choice.</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span>  <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">mgr</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="n">_input_adc_producername</span><span class="p">);</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;get adc and flow images. len(adc)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_flow</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">ev_flow</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">mgr</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="n">_input_trueflow_producername</span><span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; len(flow)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_flow</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span> <span class="n">ev_chstatus</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_use_3plane_constraint</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Using Three Plane Constraint. Retrieving Channel Status...&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">ev_chstatus</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span><span class="p">)</span><span class="n">mgr</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductChStatus</span><span class="p">,</span> <span class="n">_input_chstatus_producername</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// make sparse image for the source ADC + 2 x (true flow + matachabilitity)+weights+nchoice,</span>
+    <span class="c1">//  + 2 x sparse target images</span>
+
+    <span class="c1">// Define source plane and target planes. Get associated ADC images.</span>
+    <span class="kt">int</span> <span class="n">srcindex</span>        <span class="o">=</span> <span class="n">_source_plane</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">target_index</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">_target_planes</span><span class="p">[</span><span class="n">_flowdirs</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+                            <span class="n">_target_planes</span><span class="p">[</span><span class="n">_flowdirs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="p">};</span>
+    <span class="kt">int</span> <span class="n">flow_index</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>   <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_flowdirs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_flowdirs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">};</span> <span class="c1">// Y-&gt;U, Y-&gt;V</span>
+
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">srcimg</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span><span class="n">srcindex</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;</span> <span class="n">tarimg</span> <span class="o">=</span> <span class="p">{</span> <span class="o">&amp;</span><span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span><span class="n">target_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                                                  <span class="o">&amp;</span><span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span><span class="n">target_index</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="p">};</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;</span> <span class="n">flowimg_v</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="k">nullptr</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+        <span class="n">flowimg_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="p">(</span><span class="n">ev_flow</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span><span class="n">flow_index</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Make both bad channel and gap channel images</span>
+    <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">EmptyChannelAlgo</span> <span class="n">empty_algo</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">badch_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">gapch_v</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ev_chstatus</span> <span class="o">&amp;&amp;</span> <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin_badch</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">badch_v</span> <span class="o">=</span> <span class="n">empty_algo</span><span class="p">.</span><span class="n">makeBadChImage</span><span class="p">(</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2400</span><span class="p">,</span> <span class="mi">6</span><span class="o">*</span><span class="mi">1008</span><span class="p">,</span> <span class="mi">3456</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_chstatus</span> <span class="p">);</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Made Bad Channel Image: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">badch_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">().</span><span class="n">dump</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">_use_gapch</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">gapch_v</span> <span class="o">=</span> <span class="n">empty_algo</span><span class="p">.</span><span class="n">findMissingBadChs</span><span class="p">(</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span> <span class="n">badch_v</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mi">100</span> <span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">badch_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="n">badch_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">();</span> <span class="n">c</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">//std::cout &lt;&lt; &quot;plane[&quot; &lt;&lt; p &lt;&lt; &quot;] badch=&quot; &lt;&lt; c &lt;&lt; &quot; status=&quot; &lt;&lt; badch_v[p].pixel(0,c) &lt;&lt; std::endl;</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">gapch_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">c</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="c1">//std::cout &lt;&lt; &quot;plane[&quot; &lt;&lt; p &lt;&lt; &quot;] gapch=&quot; &lt;&lt; c &lt;&lt; std::endl;</span>
+              <span class="n">badch_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">paint_col</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="mi">255</span><span class="p">);</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Made Gap Channel Image: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">gapch_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">().</span><span class="n">dump</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="c1">// save the prepare bad/gap channel image to the manager</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_badchout</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">mgr</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;prepflowbadch&quot;</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ev_badchout</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">badch</span> <span class="p">:</span> <span class="n">badch_v</span> <span class="p">)</span>
+          <span class="n">ev_badchout</span><span class="o">-&gt;</span><span class="n">Append</span><span class="p">(</span> <span class="n">badch</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_badch</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Time elapsed to make and store bad channel image: &quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_badch</span><span class="o">-</span><span class="n">begin_badch</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">provideBadChannelImages</span><span class="p">(</span> <span class="n">badch_v</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Badch images already provided.&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">else</span>
+        <span class="nf">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Not making badch or gapch images&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// create matchability image</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">matchability_v</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span>  <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin_match</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">_makeMatchabilityImage</span><span class="p">(</span> <span class="n">srcimg</span><span class="p">,</span> <span class="n">tarimg</span><span class="p">,</span> <span class="n">flowimg_v</span><span class="p">,</span> <span class="n">matchability_v</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_match</span>   <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Time to make matchability images: &quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_match</span><span class="o">-</span><span class="n">begin_match</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Make sparse images</span>
+
+    <span class="c1">// Source Image: combined with features [adc,trueflow1,trueflow2,matchable1,matchable2]</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">img_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">threshold_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span>   <span class="n">cuton_v</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">threshold_v</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">10.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">3999.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">3999.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span> <span class="c1">// threshold value to include pixel</span>
+      <span class="n">cuton_v</span>     <span class="o">=</span> <span class="p">{</span>    <span class="mi">1</span><span class="p">,</span>       <span class="mi">0</span><span class="p">,</span>       <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span> <span class="p">};</span> <span class="c1">// feature to make cut on (COMBINED USING OR)</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="n">threshold_v</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">10.0</span> <span class="p">};</span>
+      <span class="n">cuton_v</span>     <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span> <span class="p">};</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;make source sparse image&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">img_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">srcimg</span> <span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">img_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">ev_flow</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span> <span class="n">flow_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">);</span>
+      <span class="n">img_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">ev_flow</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">at</span><span class="p">(</span> <span class="n">flow_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span> <span class="p">);</span>
+      <span class="n">img_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">matchability_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">img_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">matchability_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">SparseImage</span> <span class="n">spsrc</span><span class="p">(</span> <span class="n">img_v</span><span class="p">,</span> <span class="n">threshold_v</span><span class="p">,</span> <span class="n">cuton_v</span> <span class="p">);</span> <span class="c1">//make the sparse image</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of source image pixels: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">spsrc</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Occupancy of source image: &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">spsrc</span><span class="p">.</span><span class="n">len</span><span class="p">())</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">spsrc</span><span class="p">.</span><span class="n">meta</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="n">cols</span><span class="p">()</span><span class="o">*</span><span class="n">spsrc</span><span class="p">.</span><span class="n">meta</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="n">rows</span><span class="p">())</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larcv</span><span class="o">::</span><span class="n">SparseImage</span> <span class="o">&gt;</span> <span class="n">spimg_v</span><span class="p">;</span>
+    <span class="n">spimg_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spsrc</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="c1">// sparse image for the target images. we just need the adc values</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;make target sparse image: flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">imgtar_v</span><span class="p">;</span>
+      <span class="n">imgtar_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">tarimg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">tar_threshold_v</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mf">10.0</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>   <span class="n">tar_cuton_v</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">SparseImage</span> <span class="n">sptar</span><span class="p">(</span> <span class="n">imgtar_v</span><span class="p">,</span> <span class="n">tar_threshold_v</span><span class="p">,</span> <span class="n">tar_cuton_v</span> <span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;target (flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) image pixels: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">sptar</span><span class="p">.</span><span class="n">len</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">spimg_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">sptar</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// now we make the flowmatch map for the source image, for both flows.</span>
+    <span class="n">_matchdata_v</span><span class="o">-&gt;</span><span class="n">clear</span><span class="p">();</span>
+    <span class="kt">int</span> <span class="n">n3plane</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">n2plane</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="c1">// loop over flow directions</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;make match map: flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin_matchmap</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">sparsesrc</span> <span class="o">=</span> <span class="n">spimg_v</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">sptar</span>     <span class="o">=</span> <span class="n">spimg_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="kt">int</span> <span class="n">source_plane</span> <span class="o">=</span> <span class="n">_source_plane</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">target_plane</span> <span class="o">=</span> <span class="n">target_index</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">other_plane</span>  <span class="o">=</span> <span class="n">_other_planes</span><span class="p">[</span> <span class="n">_flowdirs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">];</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;source plane=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">source_plane</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; target plane=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">target_plane</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; other plane=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">other_plane</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">FlowMatchMap</span> <span class="nf">matchmap</span><span class="p">(</span> <span class="n">source_plane</span><span class="p">,</span> <span class="n">target_plane</span> <span class="p">);</span>
+
+      <span class="c1">// first, we scan the target sparse image, making a map of row to vector of column indices</span>
+      <span class="c1">// essentially, giving us the columns with charge for each target</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">start_targetmap</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">targetmap</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="n">sptar</span><span class="p">.</span><span class="n">len</span><span class="p">();</span> <span class="n">ipt</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span>   <span class="n">col</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sptar</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+        <span class="kt">int</span>   <span class="n">row</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sptar</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">adc</span> <span class="o">=</span> <span class="n">sptar</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+
+        <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">targetmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">row</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">targetmap</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">targetmap</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+          <span class="n">targetmap</span><span class="p">[</span><span class="n">row</span><span class="p">].</span><span class="n">reserve</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+          <span class="n">it</span> <span class="o">=</span> <span class="n">targetmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">row</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ipt</span> <span class="p">);</span> <span class="c1">// add in the index of this point</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_targetmap</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="kt">float</span> <span class="n">elapsed_targetmap</span> <span class="o">=</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_targetmap</span><span class="o">-</span><span class="n">start_targetmap</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;target[row] -&gt; {target indices} map define (flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;).&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; elements=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">targetmap</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Prep Target Map: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed_targetmap</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; sec&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="kt">int</span> <span class="n">npix_w_matches</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npix_wo_matches</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">_ntrue_pairs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">_nfalse_pairs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+      <span class="c1">// now we can make the src pixel to target pixel choices map</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="n">sparsesrc</span><span class="p">.</span><span class="n">len</span><span class="p">();</span> <span class="n">ipt</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// source coordinates</span>
+        <span class="kt">int</span>   <span class="n">col</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sparsesrc</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+        <span class="kt">int</span>   <span class="n">row</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sparsesrc</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="kt">int</span>   <span class="n">matchable</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span>
+          <span class="n">matchable</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sparsesrc</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">5</span><span class="o">+</span><span class="n">i</span><span class="p">);</span>
+
+        <span class="kt">float</span> <span class="n">umin</span> <span class="o">=</span> <span class="n">_wire_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">col</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+        <span class="kt">float</span> <span class="n">umax</span> <span class="o">=</span> <span class="n">_wire_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">col</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">matchable_target_cols</span><span class="p">;</span>
+
+        <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">targetmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">row</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">!=</span><span class="n">targetmap</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">target_index_v</span> <span class="o">=</span> <span class="n">targetmap</span><span class="p">[</span><span class="n">row</span><span class="p">];</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">truth_v</span><span class="p">;</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">within_bounds_target_v</span><span class="p">;</span>
+
+          <span class="c1">// if MC, find the true column match</span>
+          <span class="kt">float</span> <span class="n">flow</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">target_col</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">flow</span> <span class="o">=</span> <span class="n">sparsesrc</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span><span class="n">ipt</span><span class="p">,</span><span class="mi">3</span><span class="o">+</span><span class="n">i</span><span class="p">);</span> <span class="c1">// the true flow</span>
+            <span class="n">target_col</span> <span class="o">=</span> <span class="n">col</span> <span class="o">+</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flow</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="kt">int</span> <span class="n">nmatches</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">tar_col_v</span><span class="p">;</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">other_wire_adc_v</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">target_index_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">tarcol</span> <span class="o">=</span> <span class="n">sptar</span><span class="p">.</span><span class="n">getfeature</span><span class="p">(</span> <span class="n">target_index_v</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="mi">1</span> <span class="p">);</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">tarcol</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umin</span> <span class="o">||</span> <span class="n">tarcol</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umax</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+
+            <span class="c1">// if we enforce 3-plane consistency, we need to check for charge in the other plane</span>
+            <span class="kt">bool</span> <span class="n">indead</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">_use_3plane_constraint</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="kt">double</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">;</span>
+              <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">IntersectionPoint</span><span class="p">(</span> <span class="n">col</span><span class="p">,</span> <span class="n">tarcol</span><span class="p">,</span> <span class="p">(</span><span class="n">UChar_t</span><span class="p">)</span><span class="n">source_plane</span><span class="p">,</span> <span class="p">(</span><span class="n">UChar_t</span><span class="p">)</span><span class="n">target_plane</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">);</span>
+              <span class="n">Double_t</span> <span class="n">pos</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+              <span class="kt">float</span> <span class="n">other_wire</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">pos</span><span class="p">,</span> <span class="n">other_plane</span> <span class="p">);</span>
+              <span class="kt">int</span> <span class="n">i_other_wire</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">other_wire</span><span class="p">;</span>
+
+              <span class="k">if</span> <span class="p">(</span> <span class="n">other_wire</span><span class="o">-</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">i_other_wire</span> <span class="o">&gt;</span><span class="mf">0.5</span> <span class="p">)</span>
+                <span class="n">i_other_wire</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">other_wire</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">other_wire</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">other_plane</span><span class="p">)</span> <span class="p">)</span>
+                <span class="k">continue</span><span class="p">;</span>
+
+
+              <span class="kt">float</span> <span class="n">other_adc</span>  <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dc</span><span class="o">=-</span><span class="mi">2</span><span class="p">;</span> <span class="n">dc</span><span class="o">&lt;=</span><span class="mi">2</span><span class="p">;</span> <span class="n">dc</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">i_other_wire</span><span class="o">+</span><span class="n">dc</span><span class="p">;</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">c</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">c</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">other_plane</span><span class="p">)</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+                <span class="kt">float</span> <span class="n">test_c</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="n">other_plane</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">test_c</span><span class="o">&gt;</span><span class="n">other_adc</span> <span class="p">)</span>
+                  <span class="n">other_adc</span> <span class="o">=</span> <span class="n">test_c</span><span class="p">;</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">other_adc</span><span class="o">&gt;</span><span class="mf">10.0</span> <span class="p">)</span>
+                  <span class="k">break</span><span class="p">;</span>
+              <span class="p">}</span>
+
+              <span class="k">if</span> <span class="p">(</span> <span class="n">other_adc</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+
+                <span class="c1">// not using dead channels, other plane is below threshold. skip this combination</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">ev_chstatus</span><span class="o">==</span><span class="k">nullptr</span> <span class="p">)</span>
+                  <span class="k">continue</span><span class="p">;</span>
+
+                <span class="c1">// if event chstatus pointer is not null, we check the ch status</span>
+                <span class="c1">// int chstatus = ev_chstatus-&gt;Status( other_plane ).Status( other_wire );</span>
+                <span class="c1">// if ( chstatus==4 ) {</span>
+                <span class="c1">//   // good channel so ignore this match</span>
+                <span class="c1">//   continue;</span>
+                <span class="c1">// }</span>
+
+                <span class="k">if</span> <span class="p">(</span> <span class="n">_pbadch_v</span><span class="p">[</span><span class="n">other_plane</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">pixel</span><span class="p">(</span> <span class="n">row</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i_other_wire</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+                  <span class="c1">// good channel, so ignore</span>
+                  <span class="k">continue</span><span class="p">;</span>
+                <span class="p">}</span>
+
+                <span class="c1">// otherwise pass, but in dead region</span>
+                <span class="n">indead</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+              <span class="p">}</span>
+
+              <span class="n">other_wire_adc_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">other_adc</span> <span class="p">);</span>
+
+            <span class="p">}</span><span class="c1">// if use three-plane constraint</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">indead</span> <span class="p">)</span>
+              <span class="n">n2plane</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">else</span>
+              <span class="n">n3plane</span><span class="o">++</span><span class="p">;</span>
+
+            <span class="c1">// moving on, we store this combination</span>
+
+            <span class="n">tar_col_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">tarcol</span> <span class="p">);</span>
+            <span class="n">within_bounds_target_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">target_index_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="p">);</span>
+
+            <span class="c1">// === [ MC ] =========================</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">tarcol</span><span class="o">-</span><span class="n">target_col</span><span class="p">)</span><span class="o">&lt;=</span><span class="n">_positive_example_distance</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// within positive example distance</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_use_soft_truth</span> <span class="o">||</span> <span class="n">tarcol</span><span class="o">==</span><span class="n">target_col</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// if positive example, set to truth vector to 1</span>
+        <span class="n">truth_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="mf">1.0</span><span class="p">);</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// soft truth</span>
+        <span class="n">truth_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="mf">2.0</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">tarcol</span><span class="o">-</span><span class="n">target_col</span><span class="p">)</span> <span class="p">);</span> <span class="c1">// arbitrary function</span>
+          <span class="p">}</span>
+              <span class="n">_ntrue_pairs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">tarcol</span><span class="o">==</span><span class="n">target_col</span><span class="p">)</span> <span class="n">nmatches</span><span class="o">++</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">else</span> <span class="p">{</span>
+              <span class="n">truth_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+              <span class="n">_nfalse_pairs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="p">}</span><span class="c1">//end of loop over target columns for this row</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">matchable</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">_has_mctruth</span> <span class="o">&amp;&amp;</span> <span class="n">nmatches</span><span class="o">!=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="c1">//LARCV_CRITICAL() &lt;&lt; &quot;did not find matchable column&quot; &lt;&lt; std::endl;</span>
+            <span class="p">}</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">nmatches</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+              <span class="n">npix_w_matches</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">else</span>
+              <span class="n">npix_wo_matches</span><span class="o">++</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">sstarcol</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">logger</span><span class="p">().</span><span class="n">debug</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">sstarcol</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;{ &quot;</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ii</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ii</span><span class="o">&lt;</span><span class="n">tar_col_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ii</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">sstarcol</span> <span class="o">&lt;&lt;</span> <span class="n">tar_col_v</span><span class="p">[</span><span class="n">ii</span><span class="p">];</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">_use_3plane_constraint</span> <span class="p">)</span>
+                <span class="n">sstarcol</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">other_wire_adc_v</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span><span class="p">;</span>
+              <span class="n">sstarcol</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">sstarcol</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;}&quot;</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">_debug_detailed_output</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;srcpixel[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ipt</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)] &quot;</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; flow (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">flow</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) to targetcol=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">target_col</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; matchable=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">matchable</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; bounds=[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">umin</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">umax</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                          <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+            <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  has &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">target_index_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; potential matches and &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tar_col_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; saved matches with &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">sstarcol</span><span class="p">.</span><span class="n">str</span><span class="p">()</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot;  and &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nmatches</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; correct match&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="n">matchmap</span><span class="p">.</span><span class="n">add_matchdata</span><span class="p">(</span> <span class="n">ipt</span><span class="p">,</span> <span class="n">within_bounds_target_v</span><span class="p">,</span> <span class="n">truth_v</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="n">matchmap</span><span class="p">.</span><span class="n">add_matchdata</span><span class="p">(</span> <span class="n">ipt</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">()</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//loop over points</span>
+
+      <span class="n">_matchdata_v</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">matchmap</span><span class="p">)</span> <span class="p">);</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_matchmap</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;matched map flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;: &quot;</span>
+                   <span class="o">&lt;&lt;</span> <span class="s">&quot; matchable hasmatch=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npix_w_matches</span>
+                   <span class="o">&lt;&lt;</span> <span class="s">&quot; hasnomatch=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npix_wo_matches</span>
+                   <span class="o">&lt;&lt;</span> <span class="s">&quot; elapsed=&quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_matchmap</span><span class="o">-</span><span class="n">begin_matchmap</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">)</span>
+                   <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over flow directions</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of true matches:  flow[0]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_ntrue_pairs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="o">&lt;&lt;</span> <span class="s">&quot;  flow[1]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_ntrue_pairs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of false matches: flow[0]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_nfalse_pairs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  flow[1]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_nfalse_pairs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of three-plane matches: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">n3plane</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of two-plane+dead region matches: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">n2plane</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;pass sparse images to iomanager&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">sparseout_name</span><span class="p">;</span>
+    <span class="n">sparseout_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;larflow_plane&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_source_plane</span><span class="p">;</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventSparseImage</span><span class="o">*</span> <span class="n">ev_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventSparseImage</span><span class="o">*</span><span class="p">)</span><span class="n">mgr</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductSparseImage</span><span class="p">,</span> <span class="n">sparseout_name</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">ev_out</span><span class="o">-&gt;</span><span class="n">Emplace</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span> <span class="n">spimg_v</span> <span class="p">)</span> <span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_use_ana_tree</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin_saveana</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;save flow match maps to ana tree&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_saveana</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;time to save ana tree = &quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_saveana</span><span class="o">-</span><span class="n">begin_saveana</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// clear out badch image pointers, so don&#39;t accidently use ones from previous events</span>
+    <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;done&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">finalize</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_use_ana_tree</span> <span class="p">)</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">_setup_ana_tree</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_use_ana_tree</span> <span class="p">)</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;create tree, make container, set branch&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">else</span>
+      <span class="nf">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;not storing data in ana tree&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">_matchdata_v</span> <span class="o">=</span> <span class="k">new</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">FlowMatchMap</span> <span class="o">&gt;</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_use_ana_tree</span> <span class="p">)</span>
+      <span class="k">return</span><span class="p">;</span>
+
+
+    <span class="kt">char</span> <span class="n">treename</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">treename</span><span class="p">,</span><span class="s">&quot;flowmatchdata_plane%d&quot;</span><span class="p">,</span><span class="n">_source_plane</span><span class="p">);</span>
+
+    <span class="n">_ana_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="n">treename</span><span class="p">,</span><span class="s">&quot;Provides map from source to target pixels to match&quot;</span><span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;matchmap&quot;</span><span class="p">,</span>    <span class="n">_matchdata_v</span> <span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;nfalsepairs&quot;</span><span class="p">,</span> <span class="n">_nfalse_pairs</span><span class="p">,</span> <span class="s">&quot;nfalsepairs[2]/I&quot;</span> <span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;ntruepairs&quot;</span><span class="p">,</span>  <span class="n">_ntrue_pairs</span><span class="p">,</span>  <span class="s">&quot;ntruepairs[2]/I&quot;</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">_extract_wire_overlap_bounds</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="k">const</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">*</span> <span class="n">geo</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">();</span>
+
+    <span class="c1">// set the flow directions we will evaluate</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">src_plane_name</span><span class="p">;</span>
+    <span class="k">switch</span> <span class="p">(</span> <span class="n">_source_plane</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="mi">2</span><span class="o">:</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">kY2U</span><span class="p">;</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">kY2V</span><span class="p">;</span>
+      <span class="n">src_plane_name</span> <span class="o">=</span> <span class="s">&quot;Y&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="mi">0</span><span class="o">:</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">kU2V</span><span class="p">;</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">kU2Y</span><span class="p">;</span>
+      <span class="n">src_plane_name</span> <span class="o">=</span> <span class="s">&quot;U&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="mi">1</span><span class="o">:</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">kV2U</span><span class="p">;</span>
+      <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">kV2Y</span><span class="p">;</span>
+      <span class="n">src_plane_name</span> <span class="o">=</span> <span class="s">&quot;V&quot;</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">default</span><span class="o">:</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;PrepFlowMatchData::_extract_wire_overlap_bounds: bad source plane&quot;</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// loop over flow directions</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">int</span> <span class="n">target_plane</span> <span class="o">=</span> <span class="n">_target_planes</span><span class="p">[</span><span class="n">_flowdirs</span><span class="p">[</span><span class="n">i</span><span class="p">]];</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;defined overlapping wire bounds for &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">src_plane_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_source_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;-&gt;plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">target_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">_wire_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">clear</span><span class="p">();</span>
+
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">isrc</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">isrc</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">geo</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">_source_plane</span><span class="p">);</span> <span class="n">isrc</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">Double_t</span> <span class="n">xyzstart</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+        <span class="n">Double_t</span> <span class="n">xyzend</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+        <span class="n">geo</span><span class="o">-&gt;</span><span class="n">WireEndPoints</span><span class="p">(</span> <span class="p">(</span><span class="n">UChar_t</span><span class="p">)</span><span class="n">_source_plane</span><span class="p">,</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">isrc</span><span class="p">,</span> <span class="n">xyzstart</span><span class="p">,</span> <span class="n">xyzend</span> <span class="p">);</span>
+
+        <span class="kt">float</span> <span class="n">u1</span> <span class="o">=</span> <span class="n">geo</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">xyzstart</span><span class="p">,</span> <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">target_plane</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">u2</span> <span class="o">=</span> <span class="n">geo</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">xyzend</span><span class="p">,</span>   <span class="p">(</span><span class="n">UInt_t</span><span class="p">)</span><span class="n">target_plane</span> <span class="p">);</span>
+
+        <span class="kt">float</span> <span class="n">umin</span> <span class="o">=</span> <span class="p">(</span><span class="n">u1</span><span class="o">&lt;</span><span class="n">u2</span><span class="p">)</span> <span class="o">?</span> <span class="nl">u1</span> <span class="p">:</span> <span class="n">u2</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">umax</span> <span class="o">=</span> <span class="p">(</span><span class="n">u1</span><span class="o">&gt;</span><span class="n">u2</span><span class="p">)</span> <span class="o">?</span> <span class="nl">u1</span> <span class="p">:</span> <span class="n">u2</span><span class="p">;</span>
+
+        <span class="n">umin</span> <span class="o">-=</span> <span class="mf">5.0</span><span class="p">;</span>
+        <span class="n">umax</span> <span class="o">+=</span> <span class="mf">5.0</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">umin</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="n">umin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">umax</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="n">umax</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umin</span><span class="o">&gt;=</span><span class="n">geo</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">target_plane</span><span class="p">)</span> <span class="p">)</span> <span class="n">umin</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">geo</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">target_plane</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umax</span><span class="o">&gt;=</span><span class="n">geo</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">target_plane</span><span class="p">)</span> <span class="p">)</span> <span class="n">umax</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">geo</span><span class="o">-&gt;</span><span class="n">Nwires</span><span class="p">(</span><span class="n">target_plane</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+        <span class="n">_wire_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">isrc</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">{</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umin</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">umax</span> <span class="p">};</span>
+        <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot; src[&quot; &lt;&lt; isrc &lt;&lt; &quot;] -&gt; plane[&quot; &lt;&lt; i &lt;&lt; &quot;]: (&quot; &lt;&lt; umin &lt;&lt; &quot;,&quot; &lt;&lt; umax &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;defined overlapping wire bounds&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="c1">//std::cin.get();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepFlowMatchData</span><span class="o">::</span><span class="n">_makeMatchabilityImage</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">srcimg</span><span class="p">,</span>
+                                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;&amp;</span> <span class="n">tarimg_v</span><span class="p">,</span>
+                                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;&amp;</span> <span class="n">flowimg_v</span><span class="p">,</span>
+                                                  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">matchability_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">matchability_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// loop over flow directions (2 in MicroBooNE)</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;make matchability image for flowdir=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span> <span class="n">matchability</span><span class="p">(</span> <span class="n">srcimg</span><span class="p">.</span><span class="n">meta</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">matchability</span><span class="p">.</span><span class="n">paint</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">tar</span>     <span class="o">=</span> <span class="o">*</span><span class="n">tarimg_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="c1">//auto const&amp; flowimg = flowimg_v.at( flow_index[i] );</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">flowimg</span> <span class="o">=</span> <span class="o">*</span><span class="n">flowimg_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="c1">// we check matchability of flow.  does flow go into a dead region?</span>
+      <span class="c1">// we try to setup the loop to be vectorize (and use open MP?)</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">srcdata</span>  <span class="o">=</span> <span class="n">srcimg</span><span class="p">.</span><span class="n">as_vector</span><span class="p">();</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">tardata</span>  <span class="o">=</span> <span class="n">tar</span><span class="p">.</span><span class="n">as_vector</span><span class="p">();</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">flowdata</span> <span class="o">=</span> <span class="n">flowimg</span><span class="p">.</span><span class="n">as_vector</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">matchdata</span>     <span class="o">=</span> <span class="n">matchability</span><span class="p">.</span><span class="n">as_mod_vector</span><span class="p">();</span>
+      <span class="kt">size_t</span> <span class="n">ncols</span> <span class="o">=</span> <span class="n">srcimg</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">();</span>
+      <span class="kt">size_t</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">srcimg</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">();</span>
+      <span class="kt">int</span>    <span class="n">tar_ncols</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">tar</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">();</span>
+      <span class="kt">int</span>    <span class="n">tar_nrows</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">tar</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">();</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="n">ncols</span><span class="p">;</span> <span class="n">c</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">r</span><span class="o">&lt;</span><span class="n">nrows</span><span class="p">;</span> <span class="n">r</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="kt">float</span> <span class="n">adc</span>  <span class="o">=</span> <span class="n">srcdata</span><span class="p">[</span>  <span class="n">c</span><span class="o">*</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">r</span> <span class="p">];</span>
+          <span class="kt">float</span> <span class="n">flow</span> <span class="o">=</span> <span class="n">flowdata</span><span class="p">[</span> <span class="n">c</span><span class="o">*</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">r</span> <span class="p">];</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">adc</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">flow</span><span class="o">&lt;=-</span><span class="mi">4000</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+          <span class="kt">int</span> <span class="n">target_col</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">c</span> <span class="o">+</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flow</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">target_col</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">target_col</span><span class="o">&lt;</span><span class="n">tar_ncols</span> <span class="o">&amp;&amp;</span> <span class="n">tardata</span><span class="p">[</span> <span class="n">target_col</span><span class="o">*</span><span class="n">tar_nrows</span><span class="o">+</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">r</span> <span class="p">]</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">matchdata</span><span class="p">[</span> <span class="n">c</span><span class="o">*</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">r</span> <span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//end of col loop</span>
+
+      <span class="n">matchability_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">matchability</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span><span class="c1">//end of flow loop</span>
+
+  <span class="p">}</span>
+
+  <span class="c1">// /**</span>
+  <span class="c1">//  * make sparse matrix</span>
+  <span class="c1">//  *</span>
+  <span class="c1">//  */</span>
+  <span class="c1">// std::vector&lt;larcv::SparseImage&gt; PrepFlowMatchData::_makeFlowSparseImage( const std::vector&lt;larcv::Image2D&gt;&amp; ) {</span>
+
+  <span class="c1">// }</span>
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

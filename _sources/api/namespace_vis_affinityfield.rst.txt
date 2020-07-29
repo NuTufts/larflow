@@ -1,0 +1,69 @@
+
+.. _namespace_vis_affinityfield:
+
+Namespace vis_affinityfield
+===========================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_vis__affinityfield_8py_1af395f4b7694279e72ea903ffd5db6868`
+
+- :ref:`exhale_function_vis__affinityfield_8py_1a527cc3889e5e42fbb60499757426b89c`
+
+- :ref:`exhale_function_vis__affinityfield_8py_1a5dc4953d1513f8a1d45d7c2400277c9b`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1af3c8d0e6f1ed160295699e482eac8b86`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a76acecf9d0f3f743747c9f8aa9c20ecf`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a27feef44fd275b0c8652cee904dda8c2`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1aa7c0901cd529c9cb287b8cfbce1ca103`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a044cc8727d07098e8c0f3ea95ac30ceb`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a875e65ec789d6729af4a3b8acc0c16cf`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a0edcfcb5eb7050155e8ee554b8b6a641`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ac942c9232f8e827cb2fd6a6c67005bbd`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a3d994ef49ea36ee4dfa40a22fe4f3e86`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ab125f5d04af75a376e45a28520d0d80f`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ab2eff0471c5e400d04de7a13251731ee`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ab340ca663c050c77e0ccaa4064f7a0f6`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a96710b5e47064d1ef9ff9c42d59455da`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a0dc0b882f8766c89878f52c407e57cf7`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a540d7b19f3b1fce54505dd872ca5bd14`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ad9dc48cc755965e789dbb63b3cbfe9ad`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1ad688135061658622cadb8a66e439e1d1`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a44778bdfa33c8de1c68037d5213215a7`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1a38d250f2818c80e06b2a96232f8e0682`
+
+- :ref:`exhale_variable_vis__affinityfield_8py_1af0763cc8bd17a4856de161f05a393b54`

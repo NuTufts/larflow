@@ -1,0 +1,143 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_tmp_scorecontourmatches.cxx:
+
+Program Listing for File scorecontourmatches.cxx
+================================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_tmp_scorecontourmatches.cxx>` (``larflow/FlowContourMatch/tmp/scorecontourmatches.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #incude "scorecontourmatches.h"
+   
+   namespace larflow {
+   
+     void scoreContourMatches( const ublarcvapp::ContourClusterAlgo& contour_data,
+                               const ContourFlowMatchDict_t& matchdata,
+                               const larcv::Image2D& src_adc_full,
+                               const larcv::Image2D& tar_adc_full )
+     {
+       /*
+       // takes src-target contour pairs and starts to calculate scores
+       // scores are based on what fraction of pixels get matched from source to the target contour
+       //
+       // results use m_flowdata information
+       //
+       // things we fill
+       // --------------
+       // m_score_matrix: (src,target) contour index are the pos. in the array/matrix. value is score
+       //
+       
+       m_src_ncontours = contour_data.m_plane_atomics_v[src_planeid].size();
+       m_tar_ncontours[(int)kflowdir] = contour_data.m_plane_atomics_v[tar_planeid].size();
+       // std::cout << __PRETTY_FUNCTION__ << std::endl;
+       // std::cout << "scr ncontours: " << m_src_ncontours << std::endl;
+       // std::cout << "tar ncontours: " << m_tar_ncontours << std::endl;
+   
+       if ( m_score_matrix[kflowdir]!=NULL )
+         delete m_score_matrix[kflowdir];
+       
+       m_score_matrix[kflowdir] = new double[m_src_ncontours*m_tar_ncontours[kflowdir]]; // should probably its own class
+       memset(m_score_matrix[kflowdir], 0, sizeof(double)*m_src_ncontours*m_tar_ncontours[kflowdir] );
+       
+       for ( auto& flowdata : m_flowdata[kflowdir] ) {
+         float score = _scoreMatch( flowdata );
+         flowdata.score = score;
+         m_score_matrix[kflowdir][ flowdata.src_ctr_id*m_tar_ncontours[kflowdir] + flowdata.tar_ctr_id ] = score;
+       }
+   
+       // normalize it
+       for (int is=0; is<m_src_ncontours; is++) {
+         float norm_s = 0;
+         for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+       norm_s += m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ];
+         }
+         if (norm_s>0 ) {
+       for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+         m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] /= norm_s;
+       }
+         }
+       }
+       */
+     }
+   
+     /*
+     float FlowContourMatch::_scoreMatch( const FlowMatchData_t& matchdata ) {
+       float score = 0.0;
+       int nscores = 0;
+       for ( auto const& flow : matchdata.matchingflow_v ) {
+         score += 1.0/flow.pred_miss;
+         nscores++;
+       }
+       
+       return score;
+     }
+   
+     void FlowContourMatch::_greedyMatch(const FlowDirection_t kflowdir) {
+       // goal is to assign a cluster on the
+       // source plane purely to one on the target
+       //
+       // this function modifies m_score_matrix[kflowdir]
+       //
+       
+       for (int is=0; is<m_src_ncontours; is++) {
+         float max_s = -1.0;
+         int   idx   = 0;
+         for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+       float score = m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ];
+       if ( score>max_s ) {
+         max_s = 0;
+         idx = it;
+       }
+         }
+         if (max_s>0 ) {
+       for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+         if ( it!=idx )
+           m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] = 0;
+         else
+           m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] = 1.0;
+       }
+         }
+       }
+       
+     }
+   
+     void FlowContourMatch::dumpMatchData() {
+       std::cout << __PRETTY_FUNCTION__ << std::endl;
+       for (int i=0; i<2; i++) {
+         std::cout << "===Match Data. Direction " << i << " =======" << std::endl;
+         for ( auto& flowdata : m_flowdata[i] ) {
+       //std::cout << "[CONTOURS: src(" << it.first[0] << ") -> tar(" << it.first[1] << ")]" << std::endl;
+           std::cout << "[CONTOURS: src(" << flowdata.src_ctr_id << ") -> tar(" << flowdata.tar_ctr_id << ")]" << std::endl;
+       std::cout << "  Flow entries " << flowdata.matchingflow_v.size() << std::endl;
+       for ( auto const& flow : flowdata.matchingflow_v ) {
+         std::cout << "    " << flow.row << ": " << flow.src_wire
+               << " -> " << flow.tar_wire << "  err=" << flow.pred_miss << std::endl;
+       }
+         }
+       }
+     }
+   
+     TH2D& FlowContourMatch::plotScoreMatrix(const FlowDirection_t kflowdir) {
+       if ( m_plot_scorematrix!=NULL ) {
+         delete m_plot_scorematrix[kflowdir];
+       }
+       m_plot_scorematrix[kflowdir] = new TH2D( "h2d_flowmatch_scorematrix", ";Source Contour;Target Contour",
+                            m_src_ncontours, 0, m_src_ncontours,
+                            m_tar_ncontours[kflowdir], 0, m_tar_ncontours[kflowdir] );
+       for (int is=0; is<m_src_ncontours; is++) {
+         for (int it=0; it<m_tar_ncontours[kflowdir]; it++) {
+       m_plot_scorematrix[kflowdir]->SetBinContent( is+1, it+1, m_score_matrix[kflowdir][ is*m_tar_ncontours[kflowdir] + it ] );
+         }
+       }
+   
+       m_plot_scorematrix[kflowdir]->SetMaximum(1.0);
+       m_plot_scorematrix[kflowdir]->SetMinimum(0.0);  
+       
+       return *(m_plot_scorematrix[kflowdir]);
+     }
+     */  
+   
+   }

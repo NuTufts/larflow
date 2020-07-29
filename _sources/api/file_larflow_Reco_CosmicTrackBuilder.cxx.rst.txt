@@ -1,0 +1,58 @@
+
+.. _file_larflow_Reco_CosmicTrackBuilder.cxx:
+
+File CosmicTrackBuilder.cxx
+===========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/CosmicTrackBuilder.cxx``)
+----------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_CosmicTrackBuilder.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``CosmicTrackBuilder.h`` (:ref:`file_larflow_Reco_CosmicTrackBuilder.h`)
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/opflash.h``
+
+- ``DataFormat/track.h``
+
+- ``LArUtil/Geometry.h``
+
+- ``LArUtil/LArProperties.h``
+
+- ``larflow/SCBoundary/SCBoundary.h`` (:ref:`file_larflow_SCBoundary_SCBoundary.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

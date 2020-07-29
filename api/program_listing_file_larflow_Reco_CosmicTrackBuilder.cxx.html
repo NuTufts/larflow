@@ -1,0 +1,831 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File CosmicTrackBuilder.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File CosmicTrackBuilder.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_CosmicTrackBuilder.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-cosmictrackbuilder-cxx">
+<span id="program-listing-file-larflow-reco-cosmictrackbuilder-cxx"></span><h1>Program Listing for File CosmicTrackBuilder.cxx<a class="headerlink" href="#program-listing-for-file-cosmictrackbuilder-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_CosmicTrackBuilder.cxx.html#file-larflow-reco-cosmictrackbuilder-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/CosmicTrackBuilder.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;CosmicTrackBuilder.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/track.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/opflash.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/SCBoundary/SCBoundary.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">CosmicTrackBuilder</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                    <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// get clusters, pca-axis</span>
+    <span class="c1">// std::vector&lt;std::string&gt; producer_v</span>
+    <span class="c1">//   = { &quot;trackprojsplit_full&quot;,</span>
+    <span class="c1">//       &quot;trackprojsplit_wcfilter&quot; };</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">producer_v</span>
+      <span class="o">=</span> <span class="p">{</span> <span class="s">&quot;trackprojsplit_full&quot;</span> <span class="p">};</span>
+
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">producer</span> <span class="p">:</span> <span class="n">producer_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_cluster</span>
+        <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">producer</span><span class="p">);</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">ev_pcaxis</span>
+        <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span><span class="n">producer</span><span class="p">);</span>
+      <span class="n">loadClusterLibrary</span><span class="p">(</span> <span class="o">*</span><span class="n">ev_cluster</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_pcaxis</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">buildNodeConnections</span><span class="p">();</span>
+
+    <span class="c1">// make tracks using keypoints</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">producer_keypoint</span> <span class="o">=</span> <span class="s">&quot;keypointcosmic&quot;</span><span class="p">;</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_keypoint</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">producer_keypoint</span> <span class="p">);</span>
+
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ikp</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikp</span><span class="o">&lt;</span><span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">ikp</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kp</span> <span class="o">=</span> <span class="n">ev_keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ikp</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">startpt</span> <span class="o">=</span> <span class="p">{</span> <span class="n">kp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kp</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">kp</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">buildTracksFromPoint</span><span class="p">(</span> <span class="n">startpt</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// make tracks using unused segments</span>
+    <span class="n">_buildTracksFromSegments</span><span class="p">();</span>
+
+
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">evout_track</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span> <span class="s">&quot;cosmictrack&quot;</span><span class="p">);</span>
+
+    <span class="n">fillLarliteTrackContainer</span><span class="p">(</span> <span class="o">*</span><span class="n">evout_track</span> <span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_do_boundary_analysis</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_boundary_analysis_noflash</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CosmicTrackBuilder</span><span class="o">::</span><span class="n">_boundary_analysis_noflash</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">drift_v</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+
+    <span class="c1">// loop over reconstructed tracks</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">ev_cosmic</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;cosmictrack&quot;</span><span class="p">);</span>
+
+    <span class="c1">// class to calculate distance to space charge boundary</span>
+    <span class="n">larflow</span><span class="o">::</span><span class="n">scb</span><span class="o">::</span><span class="n">SCBoundary</span> <span class="n">scb</span><span class="p">;</span>
+
+    <span class="k">struct</span> <span class="n">BoundaryAna_t</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">track_idx</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">num_ends_on_boundary</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">x_offset</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="c1">// save boundary matches, one set per track</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">BoundaryAna_t</span><span class="o">&gt;</span> <span class="n">track_boundary_v</span><span class="p">(</span><span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">());</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">contained_dist</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">track</span> <span class="o">=</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">itrack</span><span class="p">);</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;==== TRACK[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] ==========&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;start(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;--&gt; end(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">BoundaryAna_t</span><span class="o">&amp;</span> <span class="n">ba</span> <span class="o">=</span> <span class="n">track_boundary_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">itrack</span><span class="p">);</span>
+      <span class="n">ba</span><span class="p">.</span><span class="n">track_idx</span> <span class="o">=</span> <span class="n">itrack</span><span class="p">;</span>
+      <span class="n">ba</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+      <span class="c1">// mark out-of-time track</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">256.0</span>
+           <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">256.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">ba</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;track is out-of-time&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// check non anode/cathode boundaries</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="mf">116.0</span><span class="o">-</span><span class="n">fabs</span><span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">))</span><span class="o">&lt;</span><span class="n">contained_dist</span>
+           <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">contained_dist</span>
+           <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1036</span><span class="o">-</span><span class="n">contained_dist</span>
+           <span class="o">||</span> <span class="mf">116.0</span><span class="o">-</span><span class="n">fabs</span><span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">))</span><span class="o">&lt;</span><span class="n">contained_dist</span>
+           <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">contained_dist</span>
+           <span class="o">||</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">1036.0</span><span class="o">-</span><span class="n">contained_dist</span> <span class="p">)</span>  <span class="p">{</span>
+        <span class="n">ba</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;track is already near TPC boundary&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// calculate x-position if we shift point to the cathode SCE</span>
+      <span class="kt">float</span> <span class="n">xboundary_min</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">XatBoundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">xboundary_max</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">XatBoundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="p">);</span>
+
+      <span class="kt">float</span> <span class="n">xshift_min</span> <span class="o">=</span> <span class="n">xboundary_min</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="kt">float</span> <span class="n">xshift_max</span> <span class="o">=</span> <span class="n">xboundary_max</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+
+      <span class="c1">// if we move the min point, check the max-point</span>
+      <span class="kt">int</span> <span class="n">btype_min</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall_min_at_scb</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_min</span><span class="p">,</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">),</span> <span class="n">btype_min</span> <span class="p">);</span>
+      <span class="kt">bool</span> <span class="n">min_at_scb_valid</span>  <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_min</span><span class="p">)</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_min</span><span class="p">)</span><span class="o">&lt;=</span><span class="mf">256.0</span><span class="p">;</span>
+
+      <span class="c1">// if we move the max point, check the min-point is on the space charge boundary</span>
+      <span class="kt">int</span> <span class="n">btype_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall_max_at_scb</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_max</span><span class="p">,</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">),</span> <span class="n">btype_max</span> <span class="p">);</span>
+      <span class="kt">bool</span> <span class="n">max_at_scb_valid</span>  <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_max</span><span class="p">)</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_max</span><span class="p">)</span><span class="o">&lt;=</span><span class="mf">256.0</span><span class="p">;</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; if is shifted to cathode SCB: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;    move min: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_min</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &lt;--&gt; &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_min</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; dist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dwall_min_at_scb</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; b=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">btype_min</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;    move max: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_max</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &lt;--&gt; &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">xshift_max</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; dist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dwall_max_at_scb</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; b=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">btype_max</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="c1">// does one of them work</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_scb</span><span class="p">)</span><span class="o">&lt;</span><span class="n">contained_dist</span> <span class="o">&amp;&amp;</span> <span class="n">min_at_scb_valid</span> <span class="p">)</span>
+           <span class="o">||</span> <span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_scb</span><span class="p">)</span><span class="o">&lt;</span><span class="n">contained_dist</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_scb_valid</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">ba</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">min_at_scb_valid</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_scb_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_scb</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_scb</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_min</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_scb</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_scb</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_max</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">min_at_scb_valid</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">max_at_scb_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_max</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">min_at_scb_valid</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_scb_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_min</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;is thrumu if moved to SCB&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// move min to anode</span>
+      <span class="kt">int</span> <span class="n">btype_anode_min</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall_min_at_anode</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">),</span> <span class="n">btype_anode_min</span> <span class="p">);</span>
+      <span class="kt">bool</span> <span class="n">min_at_anode_valid</span>  <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">))</span><span class="o">&lt;=</span><span class="mi">256</span><span class="p">;</span>
+
+      <span class="c1">// move max to anode</span>
+      <span class="kt">int</span> <span class="n">btype_anode_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall_max_at_anode</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">),</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">),</span> <span class="n">btype_anode_max</span> <span class="p">);</span>
+      <span class="kt">bool</span> <span class="n">max_at_anode_valid</span>  <span class="o">=</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">))</span><span class="o">&gt;=</span><span class="mf">0.0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">))</span><span class="o">&lt;=</span><span class="mi">256</span><span class="p">;</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  track if shifted to anode: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;    move min: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &lt;--&gt; &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; dist2_scb=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dwall_min_at_anode</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; btype=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">btype_anode_min</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;    move max: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &lt;--&gt; &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="mf">0.0</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; dist2_scb=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dwall_max_at_anode</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; btype=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">btype_anode_max</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_anode</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">2.0</span> <span class="o">&amp;&amp;</span> <span class="n">min_at_anode_valid</span> <span class="p">)</span>
+           <span class="o">||</span> <span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_anode</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">2.0</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_anode_valid</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">ba</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">min_at_anode_valid</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_anode_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_anode</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_anode</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_min</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dwall_min_at_anode</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall_max_at_anode</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_max</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">min_at_anode_valid</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">max_at_anode_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_max</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">min_at_anode_valid</span> <span class="o">&amp;&amp;</span> <span class="n">max_at_anode_valid</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">ba</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="n">xshift_min</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;is thrumu if moved to anode&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;track is contained&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over track</span>
+
+    <span class="c1">// save track with matches along with flash as a pair</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">evout_boundary_track</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;boundarycosmic&quot;</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">evout_boundary_noshift_track</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;boundarycosmicnoshift&quot;</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">evout_contained_track</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;containedcosmic&quot;</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">bm</span> <span class="p">:</span> <span class="n">track_boundary_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">track</span> <span class="o">=</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">bm</span><span class="p">.</span><span class="n">track_idx</span><span class="p">);</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">track</span> <span class="n">cptrack</span><span class="p">;</span>
+      <span class="n">cptrack</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">()</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">track</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">();</span> <span class="n">ipt</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">const</span> <span class="n">TVector3</span><span class="o">&amp;</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">LocationAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="p">);</span>
+        <span class="n">cptrack</span><span class="p">.</span><span class="n">add_vertex</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">pos</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">bm</span><span class="p">.</span><span class="n">x_offset</span><span class="p">,</span><span class="n">pos</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">pos</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="p">);</span>
+        <span class="n">cptrack</span><span class="p">.</span><span class="n">add_direction</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">DirectionAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">bm</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">evout_boundary_track</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cptrack</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">evout_boundary_noshift_track</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">track</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">evout_contained_track</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cptrack</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;input cosmics=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;; &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot;boundary=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">evout_boundary_track</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;; &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot;contained=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">evout_contained_track</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CosmicTrackBuilder</span><span class="o">::</span><span class="n">_boundary_analysis_wflash</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">//</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">drift_v</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+
+    <span class="c1">// get the flash info</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&gt;</span> <span class="n">flash_producers_v</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&quot;simpleFlashBeam&quot;</span><span class="p">,</span>
+                                                     <span class="s">&quot;simpleFlashCosmic&quot;</span> <span class="p">};</span>
+
+    <span class="k">struct</span> <span class="n">FlashInfo_t</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">producer</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">index</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">usec</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">anode_x</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">cathode_x</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">centroid_z</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">centroid_y</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">totpe</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">FlashInfo_t</span> <span class="o">&gt;</span> <span class="n">flash_v</span><span class="p">;</span>
+    <span class="n">flash_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">prodname</span> <span class="p">:</span> <span class="n">flash_producers_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">ev_flash</span>
+        <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span> <span class="n">prodname</span> <span class="p">);</span>
+
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;opflashes from &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">prodname</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_flash</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_flash</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">flash</span> <span class="o">=</span> <span class="n">ev_flash</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+
+        <span class="n">FlashInfo_t</span> <span class="n">info</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">producer</span> <span class="o">=</span> <span class="n">prodname</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">index</span>    <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">usec</span>     <span class="o">=</span> <span class="n">flash</span><span class="p">.</span><span class="n">Time</span><span class="p">();</span> <span class="c1">// usec from trigger</span>
+        <span class="c1">// calculate x-position, if we assume track that made flash crossed anode</span>
+        <span class="c1">// calculate x-position, if we assume track that made flash crossed cathode</span>
+
+        <span class="n">info</span><span class="p">.</span><span class="n">anode_x</span>   <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">usec</span><span class="o">*</span><span class="n">drift_v</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">cathode_x</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">anode_x</span> <span class="o">+</span> <span class="mf">256.0</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">centroid_y</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">info</span><span class="p">.</span><span class="n">totpe</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pe_v</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iopdet</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iopdet</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flash</span><span class="p">.</span><span class="n">nOpDets</span><span class="p">();</span> <span class="n">iopdet</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">pe</span> <span class="o">=</span> <span class="n">flash</span><span class="p">.</span><span class="n">PE</span><span class="p">(</span><span class="n">iopdet</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pe</span><span class="o">&lt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="k">continue</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="kt">int</span> <span class="n">ch</span> <span class="o">=</span> <span class="n">iopdet</span><span class="o">%</span><span class="mi">32</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pe</span><span class="o">&gt;</span><span class="n">pe_v</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">ch</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">)</span>
+            <span class="n">pe_v</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">=</span> <span class="n">pe</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ch</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ch</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">;</span> <span class="n">ch</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">pe</span> <span class="o">=</span> <span class="n">pe_v</span><span class="p">[</span><span class="n">ch</span><span class="p">];</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xyz</span><span class="p">;</span>
+          <span class="c1">//larutil::Geometry::GetME()-&gt;GetOpDetPosition( ch, xyz );</span>
+          <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">GetOpChannelPosition</span><span class="p">(</span> <span class="n">ch</span><span class="p">,</span> <span class="n">xyz</span> <span class="p">);</span>
+          <span class="n">info</span><span class="p">.</span><span class="n">totpe</span> <span class="o">+=</span> <span class="n">pe</span><span class="p">;</span>
+          <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span> <span class="o">+=</span> <span class="n">pe</span><span class="o">*</span><span class="n">xyz</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+          <span class="n">info</span><span class="p">.</span><span class="n">centroid_y</span> <span class="o">+=</span> <span class="n">pe</span><span class="o">*</span><span class="n">xyz</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">totpe</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span> <span class="o">/=</span> <span class="n">info</span><span class="p">.</span><span class="n">totpe</span><span class="p">;</span>
+          <span class="n">info</span><span class="p">.</span><span class="n">centroid_y</span> <span class="o">/=</span> <span class="n">info</span><span class="p">.</span><span class="n">totpe</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;FLASH[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] pe=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">info</span><span class="p">.</span><span class="n">totpe</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; centroid-z=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+        <span class="n">flash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">info</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;OpFlashes loaded: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+    <span class="c1">// loop over reconstructed tracks</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">ev_cosmic</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;cosmictrack&quot;</span><span class="p">);</span>
+
+    <span class="n">larflow</span><span class="o">::</span><span class="n">scb</span><span class="o">::</span><span class="n">SCBoundary</span> <span class="n">scb</span><span class="p">;</span>
+
+    <span class="k">struct</span> <span class="n">BoundaryMatch_t</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">track_idx</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">flash_idx</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">x_offset</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">x_min</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">x_max</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">minpt_dist2scb</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">maxpt_dist2scb</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">minpt_btype</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">maxpt_btype</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dist2scb</span><span class="p">;</span> <span class="c1">// min of the two above, for sorting</span>
+      <span class="kt">int</span> <span class="n">num_ends_on_boundary</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">pmt_dz</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="k">operator</span><span class="o">&lt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">BoundaryMatch_t</span><span class="o">&amp;</span> <span class="n">rhs</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist2scb</span><span class="o">&lt;</span><span class="n">rhs</span><span class="p">.</span><span class="n">dist2scb</span> <span class="p">)</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+
+    <span class="c1">// save boundary matches, one set per track</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">BoundaryMatch_t</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">track_boundary_vv</span><span class="p">(</span><span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">());</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">track</span> <span class="o">=</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">itrack</span><span class="p">);</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;==== TRACK[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] ==========&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;   start(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;--&gt; end(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="kt">float</span> <span class="n">x_min</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">x_max</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">pt_min</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+      <span class="kt">float</span> <span class="n">pt_max</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span><span class="o">&lt;</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">x_min</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">pt_min</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="n">v</span><span class="p">);</span>
+          <span class="n">pt_max</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="n">v</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">x_min</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">pt_max</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="n">v</span><span class="p">);</span>
+          <span class="n">pt_min</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="n">v</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="kt">float</span> <span class="n">z_min</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">z_max</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">z_min</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">);</span>
+        <span class="n">z_max</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">z_max</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">Vertex</span><span class="p">()(</span><span class="mi">2</span><span class="p">);</span>
+        <span class="n">z_min</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">End</span><span class="p">()(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="c1">// we now pair with every flash, along with a null flash match where we shift</span>
+      <span class="c1">// to the space-charge boundary in x</span>
+      <span class="kt">int</span> <span class="n">nmatches</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>   <span class="c1">//&lt; number of flashes that if matched to track, moves it to a boundary</span>
+      <span class="kt">int</span> <span class="n">npossible</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">//&lt; number of flashes that were consistent with track</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iflash</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iflash</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">iflash</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">info</span> <span class="o">=</span> <span class="n">flash_v</span><span class="p">[</span><span class="n">iflash</span><span class="p">];</span>
+
+
+        <span class="kt">float</span> <span class="n">real_x_min</span> <span class="o">=</span> <span class="n">x_min</span><span class="o">-</span><span class="n">info</span><span class="p">.</span><span class="n">anode_x</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">real_x_max</span> <span class="o">=</span> <span class="n">x_max</span><span class="o">-</span><span class="n">info</span><span class="p">.</span><span class="n">anode_x</span><span class="p">;</span>
+
+        <span class="c1">//  we allow for slop of 10 cm;</span>
+        <span class="kt">float</span> <span class="n">x_offset</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">real_x_min</span><span class="o">&gt;-</span><span class="mi">10</span> <span class="o">&amp;&amp;</span> <span class="n">real_x_min</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">x_offset</span> <span class="o">=</span> <span class="o">-</span><span class="n">real_x_min</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">real_x_max</span><span class="o">&gt;</span><span class="mf">256.0</span> <span class="o">&amp;&amp;</span> <span class="n">real_x_max</span><span class="o">&lt;</span><span class="mf">256.0</span><span class="o">+</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">x_offset</span> <span class="o">=</span> <span class="mf">256.0</span><span class="o">-</span><span class="n">real_x_max</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">real_x_min</span> <span class="o">+=</span> <span class="n">x_offset</span><span class="p">;</span>
+        <span class="n">real_x_max</span> <span class="o">+=</span> <span class="n">x_offset</span><span class="p">;</span>
+
+        <span class="c1">// check if track within flash bounds</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">real_x_min</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="o">||</span> <span class="n">real_x_min</span><span class="o">&gt;</span><span class="mf">256.0</span>
+             <span class="o">||</span> <span class="n">real_x_max</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="o">||</span> <span class="n">real_x_max</span><span class="o">&gt;</span><span class="mf">256.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span> <span class="c1">// out-of-bounds</span>
+        <span class="p">}</span>
+
+        <span class="n">npossible</span><span class="o">++</span><span class="p">;</span>
+
+        <span class="c1">// check distance to boundary of ends</span>
+
+        <span class="c1">// min bound</span>
+        <span class="kt">int</span> <span class="n">btype_min</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">dist2scb_min</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">real_x_min</span><span class="p">,</span> <span class="n">pt_min</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pt_min</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">btype_min</span> <span class="p">);</span>
+
+        <span class="c1">// max bound</span>
+        <span class="kt">int</span> <span class="n">btype_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">dist2scb_max</span> <span class="o">=</span> <span class="n">scb</span><span class="p">.</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="n">real_x_max</span><span class="p">,</span> <span class="n">pt_max</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pt_max</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">btype_max</span> <span class="p">);</span>
+
+        <span class="c1">// ok, is anything close to the bound!</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">dist2scb_min</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="o">||</span> <span class="n">dist2scb_max</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">btype_min</span><span class="o">!=</span><span class="n">btype_max</span> <span class="p">)</span> <span class="p">{</span>
+
+
+          <span class="c1">// record a boundary match!</span>
+          <span class="n">BoundaryMatch_t</span> <span class="n">match</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">track_idx</span> <span class="o">=</span> <span class="n">itrack</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">flash_idx</span> <span class="o">=</span> <span class="n">iflash</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">x_offset</span> <span class="o">=</span> <span class="o">-</span><span class="n">info</span><span class="p">.</span><span class="n">anode_x</span><span class="o">+</span><span class="n">x_offset</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="n">real_x_min</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="n">real_x_max</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">minpt_dist2scb</span> <span class="o">=</span> <span class="n">dist2scb_min</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">maxpt_dist2scb</span> <span class="o">=</span> <span class="n">dist2scb_max</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">minpt_btype</span> <span class="o">=</span> <span class="n">btype_min</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">maxpt_btype</span> <span class="o">=</span> <span class="n">btype_max</span><span class="p">;</span>
+          <span class="n">match</span><span class="p">.</span><span class="n">dist2scb</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dist2scb_min</span><span class="p">)</span><span class="o">+</span><span class="n">fabs</span><span class="p">(</span><span class="n">dist2scb_max</span><span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span><span class="o">&lt;</span><span class="n">z_min</span> <span class="p">)</span>
+            <span class="n">match</span><span class="p">.</span><span class="n">pmt_dz</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span><span class="o">-</span><span class="n">z_min</span><span class="p">;</span>
+          <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span><span class="o">&gt;</span><span class="n">z_max</span> <span class="p">)</span>
+            <span class="n">match</span><span class="p">.</span><span class="n">pmt_dz</span> <span class="o">=</span> <span class="n">z_max</span> <span class="o">-</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span><span class="p">;</span>
+          <span class="k">else</span> <span class="p">{</span>
+            <span class="n">match</span><span class="p">.</span><span class="n">pmt_dz</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">z_min</span><span class="o">+</span><span class="n">z_max</span><span class="p">)</span> <span class="o">-</span> <span class="n">info</span><span class="p">.</span><span class="n">centroid_z</span><span class="p">);</span>
+          <span class="p">}</span>
+
+          <span class="n">match</span><span class="p">.</span><span class="n">num_ends_on_boundary</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist2scb_min</span><span class="o">&lt;</span><span class="mf">3.0</span> <span class="p">)</span> <span class="n">match</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">++</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist2scb_max</span><span class="o">&lt;</span><span class="mf">3.0</span> <span class="p">)</span> <span class="n">match</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">++</span><span class="p">;</span>
+
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;qualifying boundary match: track[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&lt;-&gt;flash[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">iflash</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;   dist2scb@min extremum pt (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">real_x_min</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt_min</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt_min</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;): &quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dist2scb_min</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;   dist2scb@max extremum pt (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">real_x_max</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt_max</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt_max</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;): &quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dist2scb_max</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  pmt_dz: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">match</span><span class="p">.</span><span class="n">pmt_dz</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+          <span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span><span class="n">match</span><span class="p">);</span>
+          <span class="n">nmatches</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of flash loop</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;track[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] at bounds for &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nmatches</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; flashes,&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npossible</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; flash-track matches&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span><span class="c1">//end of track loop</span>
+
+
+    <span class="c1">// now we make boundary tag + flash assignments</span>
+
+    <span class="c1">// first we go through tracks where one end x-position is &gt; 100 cm. this is range where being</span>
+    <span class="c1">//  on the boundary and matching to a flash is valuable info!</span>
+    <span class="c1">// we first make assignment to tracks with only one 2-boundary matches</span>
+    <span class="c1">// we then go through others and veto matches to previously matched flashes</span>
+    <span class="c1">//   of the non-veto&#39;d matches, we pick the ones closest to the boundary</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">BoundaryMatch_t</span> <span class="o">&gt;</span> <span class="n">final_match_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">flash_used_v</span><span class="p">(</span> <span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">tracks_matched_v</span><span class="p">(</span> <span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="c1">// first pass: accept matches where there is only one solution</span>
+    <span class="c1">//             one end must be &gt; 100 cm in position</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// first, count number of qualifying matches</span>
+      <span class="kt">int</span> <span class="n">nmatches</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">const</span> <span class="n">BoundaryMatch_t</span><span class="o">*</span> <span class="n">qualifying_match</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">bm</span> <span class="p">:</span> <span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">bm</span><span class="p">.</span><span class="n">x_min</span><span class="o">&gt;</span><span class="mf">100.0</span> <span class="o">||</span> <span class="n">bm</span><span class="p">.</span><span class="n">x_max</span><span class="o">&gt;</span><span class="mf">100.0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">bm</span><span class="p">.</span><span class="n">dist2scb</span><span class="o">&lt;</span><span class="mf">3.0</span> <span class="o">&amp;&amp;</span> <span class="n">bm</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">==</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">qualifying_match</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bm</span><span class="p">;</span>
+          <span class="n">nmatches</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nmatches</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// accept this match</span>
+        <span class="n">final_match_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">qualifying_match</span> <span class="p">);</span>
+        <span class="n">flash_used_v</span><span class="p">[</span> <span class="n">qualifying_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">tracks_matched_v</span><span class="p">[</span> <span class="n">itrack</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;FIRST PASS MATCH: track[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &lt;--&gt; flash[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">qualifying_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of track loop</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of first pass matches: &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">final_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; tracks of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// second pass, 2 ends matched, best match viz smallest dist2scb, do not reuse first pass flashes.</span>
+    <span class="kt">int</span> <span class="n">n2ndpass</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tracks_matched_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="c1">// loop through matches, accept only 2-end, exclude previous flash matches</span>
+      <span class="c1">// rank match by pmt_dz for qualifying matches only</span>
+      <span class="k">const</span> <span class="n">BoundaryMatch_t</span><span class="o">*</span> <span class="n">min_match</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">min_match_dist</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e9</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ibm</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ibm</span><span class="o">&lt;</span><span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">].</span><span class="n">size</span><span class="p">();</span> <span class="n">ibm</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">bm</span> <span class="o">=</span> <span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">].</span><span class="n">at</span><span class="p">(</span><span class="n">ibm</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span> <span class="n">flash_used_v</span><span class="p">[</span> <span class="n">bm</span><span class="p">.</span><span class="n">flash_idx</span> <span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">bm</span><span class="p">.</span><span class="n">dist2scb</span><span class="o">&lt;</span><span class="mf">5.0</span> <span class="o">&amp;&amp;</span> <span class="n">bm</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">==</span><span class="mi">2</span> <span class="o">&amp;&amp;</span> <span class="n">min_match_dist</span><span class="o">&lt;</span><span class="n">bm</span><span class="p">.</span><span class="n">pmt_dz</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">min_match_dist</span> <span class="o">=</span> <span class="n">bm</span><span class="p">.</span><span class="n">pmt_dz</span><span class="p">;</span>
+          <span class="n">min_match</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bm</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">min_match</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">final_match_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">min_match</span> <span class="p">);</span>
+        <span class="n">flash_used_v</span><span class="p">[</span> <span class="n">min_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+        <span class="n">tracks_matched_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+        <span class="n">n2ndpass</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;SECOND PASS MATCH: track[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &lt;--&gt; flash[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of second pass matches: &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">n2ndpass</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, total matches: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">final_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; tracks of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// third pass: 1 end matched, best match viz smallest dist2scb of matched end, do not reuse first+second pass flashes.</span>
+    <span class="kt">int</span> <span class="n">n3rdpass</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tracks_matched_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="c1">// loop through matches, accept only 2-end, exclude previous flash matches</span>
+      <span class="k">const</span> <span class="n">BoundaryMatch_t</span><span class="o">*</span> <span class="n">min_match</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">min_match_dist</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ibm</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ibm</span><span class="o">&lt;</span><span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">].</span><span class="n">size</span><span class="p">();</span> <span class="n">ibm</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">bm</span> <span class="o">=</span> <span class="n">track_boundary_vv</span><span class="p">[</span><span class="n">itrack</span><span class="p">].</span><span class="n">at</span><span class="p">(</span><span class="n">ibm</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span> <span class="n">flash_used_v</span><span class="p">[</span> <span class="n">bm</span><span class="p">.</span><span class="n">flash_idx</span> <span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">bm</span><span class="p">.</span><span class="n">num_ends_on_boundary</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="kt">float</span> <span class="n">minend_dist</span> <span class="o">=</span> <span class="p">(</span><span class="n">bm</span><span class="p">.</span><span class="n">minpt_dist2scb</span><span class="o">&lt;</span><span class="n">bm</span><span class="p">.</span><span class="n">maxpt_dist2scb</span><span class="p">)</span> <span class="o">?</span> <span class="n">bm</span><span class="p">.</span><span class="nl">minpt_dist2scb</span> <span class="p">:</span> <span class="n">bm</span><span class="p">.</span><span class="n">maxpt_dist2scb</span><span class="p">;</span>
+          <span class="k">if</span><span class="p">(</span> <span class="n">minend_dist</span><span class="o">&lt;</span><span class="mf">5.0</span> <span class="o">&amp;&amp;</span> <span class="n">minend_dist</span><span class="o">&lt;</span><span class="n">min_match_dist</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">min_match_dist</span> <span class="o">=</span> <span class="n">minend_dist</span><span class="p">;</span>
+            <span class="n">min_match</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bm</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">min_match</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">final_match_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">min_match</span> <span class="p">);</span>
+        <span class="n">flash_used_v</span><span class="p">[</span> <span class="n">min_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+        <span class="n">tracks_matched_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+        <span class="n">n3rdpass</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;THIRD PASS MATCH: track[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &lt;--&gt; flash[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_match</span><span class="o">-&gt;</span><span class="n">flash_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of third pass track loop</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of third pass matches: &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">n3rdpass</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, total matches: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">final_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; tracks of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track_boundary_vv</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// save track with matches along with flash as a pair</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">evout_match_track</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span><span class="s">&quot;matchedcosmictrack&quot;</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">evout_match_opflash</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span><span class="s">&quot;matchedcosmictrack&quot;</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">bm</span> <span class="p">:</span> <span class="n">final_match_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">track</span> <span class="o">=</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">bm</span><span class="p">.</span><span class="n">track_idx</span><span class="p">);</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">track</span> <span class="n">cptrack</span><span class="p">;</span>
+      <span class="n">cptrack</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">()</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">track</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">();</span> <span class="n">ipt</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">const</span> <span class="n">TVector3</span><span class="o">&amp;</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">LocationAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="p">);</span>
+        <span class="n">cptrack</span><span class="p">.</span><span class="n">add_vertex</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">pos</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">bm</span><span class="p">.</span><span class="n">x_offset</span><span class="p">,</span><span class="n">pos</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">pos</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="p">);</span>
+        <span class="n">cptrack</span><span class="p">.</span><span class="n">add_direction</span><span class="p">(</span> <span class="n">track</span><span class="p">.</span><span class="n">DirectionAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="n">evout_match_track</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cptrack</span><span class="p">)</span> <span class="p">);</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">ev_flash</span>
+        <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span> <span class="n">flash_v</span><span class="p">[</span><span class="n">bm</span><span class="p">.</span><span class="n">flash_idx</span><span class="p">].</span><span class="n">producer</span> <span class="p">);</span>
+      <span class="n">evout_match_opflash</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ev_flash</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">flash_v</span><span class="p">[</span><span class="n">bm</span><span class="p">.</span><span class="n">flash_idx</span><span class="p">].</span><span class="n">index</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,40 @@
+
+.. _program_listing_file_larflow_Reco_NuTrackBuilder.h:
+
+Program Listing for File NuTrackBuilder.h
+=========================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_NuTrackBuilder.h>` (``larflow/Reco/NuTrackBuilder.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __LARFLOW_RECO_NUTRACK_BUILDER_H__
+   #define __LARFLOW_RECO_NUTRACK_BUILDER_H__
+   
+   #include "TrackClusterBuilder.h"
+   #include "NuVertexMaker.h"
+   
+   namespace larflow {
+   namespace reco {
+   
+     class NuTrackBuilder : public TrackClusterBuilder {
+   
+     public:
+   
+       NuTrackBuilder() {};
+       virtual ~NuTrackBuilder() {};
+   
+   
+       void process( larcv::IOManager& iolcv,
+                     larlite::storage_manager& ioll,
+                     const std::vector<NuVertexCandidate>& nu_candidate_v );
+   
+     };
+   
+   }
+   }
+   
+   
+   #endif

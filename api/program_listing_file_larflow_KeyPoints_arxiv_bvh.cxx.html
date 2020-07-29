@@ -1,0 +1,365 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File bvh.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File bvh.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_KeyPoints_arxiv_bvh.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-bvh-cxx">
+<span id="program-listing-file-larflow-keypoints-arxiv-bvh-cxx"></span><h1>Program Listing for File bvh.cxx<a class="headerlink" href="#program-listing-for-file-bvh-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_KeyPoints_arxiv_bvh.cxx.html#file-larflow-keypoints-arxiv-bvh-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/KeyPoints/arxiv/bvh.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">makeBVH</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="c1">// std::cout &lt;&lt; &quot;=========================&quot; &lt;&lt; std::endl;</span>
+  <span class="c1">// std::cout &lt;&lt; &quot; makeBVH&quot; &lt;&lt; std::endl;</span>
+  <span class="c1">// std::cout &lt;&lt; &quot;=========================&quot; &lt;&lt; std::endl;</span>
+
+  <span class="n">clearBVH</span><span class="p">();</span>
+
+  <span class="c1">// xlimits derived from bound of image</span>
+  <span class="kt">float</span> <span class="n">xmin_det</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2400</span><span class="o">-</span><span class="mi">3200</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+  <span class="kt">float</span> <span class="n">xmax_det</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2400</span><span class="o">+</span><span class="mi">1008</span><span class="o">*</span><span class="mi">6</span><span class="o">-</span><span class="mi">3200</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+
+  <span class="c1">// make the root node</span>
+  <span class="n">_bvhroot</span> <span class="o">=</span> <span class="k">new</span> <span class="n">bvhnode_t</span><span class="p">(</span><span class="n">xmin_det</span><span class="p">,</span><span class="n">xmax_det</span><span class="p">,</span><span class="o">-</span><span class="mi">118</span><span class="p">,</span><span class="mi">118</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1036</span><span class="p">);</span>
+
+  <span class="c1">// make a node for all points</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">bvhnode_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">leafs</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">ikpd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpd</span> <span class="p">:</span> <span class="n">_kpd_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">bvhnode_t</span><span class="o">*</span> <span class="n">node</span> <span class="o">=</span> <span class="k">new</span> <span class="n">bvhnode_t</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                     <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                     <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">kpdidx</span> <span class="o">=</span> <span class="n">ikpd</span><span class="p">;</span>
+    <span class="n">ikpd</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">leafs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">node</span> <span class="p">);</span>
+    <span class="n">_bvhnodes_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">node</span> <span class="p">);</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">mother</span> <span class="o">=</span> <span class="n">_bvhroot</span><span class="p">;</span>
+    <span class="n">_bvhroot</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">node</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">queue</span><span class="o">&lt;</span> <span class="n">bvhnode_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">q</span><span class="p">;</span>
+  <span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span> <span class="n">_bvhroot</span> <span class="p">);</span>
+
+  <span class="k">while</span> <span class="p">(</span> <span class="n">q</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">//std::cout &lt;&lt; &quot;process node on the queue&quot; &lt;&lt; std::endl;</span>
+    <span class="n">bvhnode_t</span><span class="o">*</span> <span class="n">node</span> <span class="o">=</span> <span class="n">q</span><span class="p">.</span><span class="n">front</span><span class="p">();</span>
+    <span class="n">q</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+
+    <span class="c1">// make copies of child pointers in order to sort by dimension</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">bvhnode_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_v</span><span class="p">[</span><span class="n">v</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="k">nullptr</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">x_v</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">compare_x</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">compare_y</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">x_v</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">compare_z</span> <span class="p">);</span>
+    <span class="kt">int</span> <span class="n">nchild</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">x_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+
+    <span class="c1">// we split by the largest gap</span>
+    <span class="kt">float</span> <span class="n">dimlen</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">longdim</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">midpt</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">lowidx</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">highidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// get the center point to make a box</span>
+      <span class="kt">int</span> <span class="n">_lowidx</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">_highidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nchild</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// even</span>
+        <span class="n">_highidx</span> <span class="o">=</span> <span class="n">nchild</span><span class="o">/</span><span class="mi">2</span><span class="p">;</span> <span class="c1">// 4/2 = 2</span>
+        <span class="n">_lowidx</span>  <span class="o">=</span> <span class="n">_highidx</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>                <span class="c1">// 1</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// odd</span>
+        <span class="n">_lowidx</span>  <span class="o">=</span> <span class="n">nchild</span><span class="o">/</span><span class="mi">2</span><span class="p">;</span> <span class="c1">// 3/2 = 1</span>
+        <span class="n">_highidx</span> <span class="o">=</span> <span class="n">_lowidx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>             <span class="c1">// 2</span>
+      <span class="p">}</span>
+
+      <span class="c1">// calculate gap dist</span>
+      <span class="kt">float</span> <span class="n">gapdim</span> <span class="o">=</span>
+        <span class="n">fabs</span><span class="p">(</span><span class="n">x_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">_lowidx</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">_highidx</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">gapdim</span><span class="o">&gt;=</span><span class="n">dimlen</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">longdim</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="c1">// calculate midpoint using leaf nodes</span>
+        <span class="n">midpt</span>   <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">_lowidx</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">_highidx</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">lowidx</span>  <span class="o">=</span> <span class="n">_lowidx</span><span class="p">;</span>
+        <span class="n">highidx</span> <span class="o">=</span> <span class="n">_highidx</span><span class="p">;</span>
+        <span class="n">dimlen</span>  <span class="o">=</span> <span class="n">gapdim</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span><span class="c1">// end of loop over dimensions</span>
+
+    <span class="c1">// set this longest dim as the splitting dimension of this node</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">splitdim</span> <span class="o">=</span> <span class="n">longdim</span><span class="p">;</span>
+
+    <span class="c1">// we define two new boundary volume, using the midpoint of low and high</span>
+    <span class="c1">// to split the previous volume.</span>
+    <span class="c1">// we split the children into them.</span>
+    <span class="c1">// if the node only has one, then its a leaf node</span>
+    <span class="kt">float</span> <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">2</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lo_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">];</span>
+        <span class="n">hi_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">bounds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">lo_bounds</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">midpt</span><span class="p">;</span>
+    <span class="n">hi_bounds</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">midpt</span><span class="p">;</span>
+    <span class="n">bvhnode_t</span><span class="o">*</span> <span class="n">lo_node</span> <span class="o">=</span> <span class="k">new</span> <span class="n">bvhnode_t</span><span class="p">(</span> <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lo_bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+    <span class="n">bvhnode_t</span><span class="o">*</span> <span class="n">hi_node</span> <span class="o">=</span> <span class="k">new</span> <span class="n">bvhnode_t</span><span class="p">(</span> <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">hi_bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+    <span class="c1">// add them into node list, so we know to destroy them</span>
+    <span class="n">_bvhnodes_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">lo_node</span> <span class="p">);</span>
+    <span class="n">_bvhnodes_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hi_node</span> <span class="p">);</span>
+
+    <span class="c1">// now we divide the node&#39;s children into the new nodes</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;=</span><span class="n">lowidx</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_v</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">mother</span> <span class="o">=</span> <span class="n">lo_node</span><span class="p">;</span>
+      <span class="n">lo_node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">x_v</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">highidx</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nchild</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_v</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">mother</span> <span class="o">=</span> <span class="n">hi_node</span><span class="p">;</span>
+      <span class="n">hi_node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">x_v</span><span class="p">[</span><span class="n">longdim</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// clear the node&#39;s children and replace it with the new nodes</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">lo_node</span> <span class="p">);</span>
+    <span class="n">node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hi_node</span> <span class="p">);</span>
+
+    <span class="c1">// std::cout &lt;&lt; &quot;[split &quot; &lt;&lt; strnode(node) &lt;&lt; &quot; nchild=&quot; &lt;&lt; nchild &lt;&lt; &quot;]&quot; &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;  splitdim=&quot; &lt;&lt; longdim &lt;&lt; &quot; gapsize=&quot; &lt;&lt; dimlen &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;  lo: &quot; &lt;&lt; strnode(lo_node) &lt;&lt; &quot; nchild=&quot; &lt;&lt; lo_node-&gt;children.size() &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;  hi: &quot; &lt;&lt; strnode(hi_node) &lt;&lt; &quot; nchild=&quot; &lt;&lt; hi_node-&gt;children.size() &lt;&lt; std::endl;</span>
+
+    <span class="c1">//set them into the queue if they have more than one child</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">lo_node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span> <span class="n">lo_node</span> <span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">hi_node</span><span class="o">-&gt;</span><span class="n">children</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span> <span class="n">hi_node</span> <span class="p">);</span>
+
+    <span class="c1">//std::cout &lt;&lt; &quot;finished processing node. left in queue: &quot; &lt;&lt; q.size() &lt;&lt; std::endl;</span>
+    <span class="c1">//std::cin.get();</span>
+  <span class="p">}</span><span class="c1">//end of loop over queue</span>
+
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">clearBVH</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">pnode</span> <span class="p">:</span> <span class="n">_bvhnodes_v</span> <span class="p">)</span>
+    <span class="k">delete</span> <span class="n">pnode</span><span class="p">;</span>
+  <span class="n">_bvhnodes_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">_bvhroot</span> <span class="p">)</span>
+    <span class="k">delete</span> <span class="n">_bvhroot</span><span class="p">;</span>
+  <span class="n">_bvhroot</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">printBVH</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">print_graph</span><span class="p">(</span> <span class="n">_bvhroot</span> <span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

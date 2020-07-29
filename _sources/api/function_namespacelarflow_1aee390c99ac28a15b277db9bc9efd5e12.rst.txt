@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1aee390c99ac28a15b277db9bc9efd5e12:
+
+Function larflow::scoreMatches
+==============================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_scorecontourmatches.h`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::scoreMatches(const ublarcvapp::ContourClusterAlgo&, int, int, const FlowDirection_t)

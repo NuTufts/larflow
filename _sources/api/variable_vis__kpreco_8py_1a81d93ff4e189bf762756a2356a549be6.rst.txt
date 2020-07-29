@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__kpreco_8py_1a81d93ff4e189bf762756a2356a549be6:
+
+Variable vis_kpreco::type
+=========================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_kpreco.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_kpreco::type

@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepFlowMatchData.hh &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepFlowMatchData.hh</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_arxiv_PrepFlowMatchData.hh.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepflowmatchdata-hh">
+<span id="program-listing-file-larflow-prepflowmatchdata-arxiv-prepflowmatchdata-hh"></span><h1>Program Listing for File PrepFlowMatchData.hh<a class="headerlink" href="#program-listing-for-file-prepflowmatchdata-hh" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_arxiv_PrepFlowMatchData.hh.html#file-larflow-prepflowmatchdata-arxiv-prepflowmatchdata-hh"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/arxiv/PrepFlowMatchData.hh</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#ifndef __PREP_FLOW_MATCH_DATA_H__</span>
+<span class="cp">#define __PREP_FLOW_MATCH_DATA_H__</span>
+
+<span class="cp">#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION</span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;map&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TTree.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Processor/ProcessBase.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Processor/ProcessFactory.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;FlowMatchMap.hh&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+  <span class="k">class</span> <span class="nc">PrepFlowMatchData</span> <span class="o">:</span> <span class="k">public</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ProcessBase</span> <span class="p">{</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span> <span class="n">kU2V</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">kU2Y</span><span class="p">,</span> <span class="n">kV2U</span><span class="p">,</span> <span class="n">kV2Y</span><span class="p">,</span> <span class="n">kY2U</span><span class="p">,</span> <span class="n">kY2V</span><span class="p">,</span> <span class="n">kNumFlows</span> <span class="p">}</span> <span class="n">FlowDir_t</span><span class="p">;</span>
+
+    <span class="n">PrepFlowMatchData</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">instance_name</span> <span class="p">);</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">PrepFlowMatchData</span><span class="p">()</span> <span class="p">{</span>
+      <span class="c1">// if ( _ana_tree ) delete _ana_tree;</span>
+      <span class="c1">// if ( _matchdata_v ) delete _matchdata_v;</span>
+    <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">configure</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">PSet</span><span class="o">&amp;</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">initialize</span><span class="p">();</span>
+    <span class="kt">bool</span> <span class="nf">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">mgr</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">finalize</span><span class="p">();</span>
+
+    <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">getFlowDirName</span><span class="p">(</span> <span class="n">FlowDir_t</span> <span class="n">flowdir</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">setSourcePlaneIndex</span><span class="p">(</span> <span class="kt">int</span> <span class="n">index</span> <span class="p">)</span>        <span class="p">{</span> <span class="n">_source_plane</span><span class="o">=</span><span class="n">index</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">setADCproducer</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span> <span class="p">)</span>      <span class="p">{</span> <span class="n">_input_adc_producername</span><span class="o">=</span><span class="n">name</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">setChStatusProducer</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_input_chstatus_producername</span><span class="o">=</span><span class="n">name</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">setLArFlowproducer</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span> <span class="p">)</span>  <span class="p">{</span> <span class="n">_input_trueflow_producername</span><span class="o">=</span><span class="n">name</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">hasMCtruth</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">hasmc</span> <span class="p">)</span>  <span class="p">{</span> <span class="n">_has_mctruth</span><span class="o">=</span><span class="n">hasmc</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">useSoftTruthVector</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">usesoft</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_use_soft_truth</span> <span class="o">=</span> <span class="n">usesoft</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">useAnaTree</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">useana</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_use_ana_tree</span><span class="o">=</span><span class="n">useana</span><span class="p">;</span> <span class="p">};</span>
+    <span class="kt">void</span> <span class="nf">useGapCh</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">use</span><span class="o">=</span><span class="nb">true</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_use_gapch</span><span class="o">=</span><span class="n">use</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowMatchMap</span><span class="o">&gt;&amp;</span> <span class="n">getMatchData</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_input_adc_producername</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_input_chstatus_producername</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_input_trueflow_producername</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_has_mctruth</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_use_ana_tree</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_use_soft_truth</span><span class="p">;</span>
+    <span class="kt">int</span>         <span class="n">_positive_example_distance</span><span class="p">;</span>
+    <span class="kt">int</span>         <span class="n">_source_plane</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_use_3plane_constraint</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_debug_detailed_output</span><span class="p">;</span>
+    <span class="kt">bool</span>        <span class="n">_use_gapch</span><span class="p">;</span>
+
+    <span class="n">TTree</span><span class="o">*</span> <span class="n">_ana_tree</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">FlowMatchMap</span> <span class="o">&gt;*</span> <span class="n">_matchdata_v</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">_nfalse_pairs</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">_ntrue_pairs</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">void</span> <span class="nf">_setup_ana_tree</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">_wire_bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">void</span> <span class="nf">_extract_wire_overlap_bounds</span><span class="p">();</span>
+
+    <span class="kt">int</span> <span class="n">target_plane</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">FlowDir_t</span> <span class="n">_flowdirs</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+    <span class="c1">// each entry corresponds to FlowDir_t index</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">_source_planes</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="p">};</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">_target_planes</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">};</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">_other_planes</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>  <span class="o">=</span> <span class="p">{</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+
+
+    <span class="c1">// methods</span>
+    <span class="c1">// -------</span>
+
+    <span class="kt">void</span> <span class="nf">_makeMatchabilityImage</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">srcimg</span><span class="p">,</span>
+                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;&amp;</span> <span class="n">tarimg_v</span><span class="p">,</span>
+                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;&amp;</span> <span class="n">flowimg_v</span><span class="p">,</span>
+                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">matchability_v</span> <span class="p">);</span>
+
+    <span class="c1">// bad channel image. allow way to set it.</span>
+  <span class="k">protected</span><span class="o">:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*&gt;</span> <span class="n">_pbadch_v</span><span class="p">;</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="kt">void</span> <span class="n">provideBadChannelImages</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">badch_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">badch_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_pbadch_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">img</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">};</span>
+
+
+  <span class="p">};</span>
+
+  <span class="k">class</span> <span class="nc">PrepFlowMatchDataFactory</span> <span class="o">:</span> <span class="k">public</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ProcessFactoryBase</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="n">PrepFlowMatchDataFactory</span><span class="p">()</span> <span class="p">{</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ProcessFactory</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">add_factory</span><span class="p">(</span><span class="s">&quot;PrepFlowMatchData&quot;</span><span class="p">,</span><span class="k">this</span><span class="p">);</span> <span class="p">};</span>
+    <span class="o">~</span><span class="n">PrepFlowMatchDataFactory</span><span class="p">()</span> <span class="p">{};</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">ProcessBase</span><span class="o">*</span> <span class="n">create</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">instance_name</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="k">new</span> <span class="n">PrepFlowMatchData</span><span class="p">(</span><span class="n">instance_name</span><span class="p">);</span> <span class="p">};</span>
+  <span class="p">};</span>
+
+
+<span class="p">}</span>
+
+<span class="cp">#endif</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+
+.. _file_larflow_SCBoundary_SCBoundary.h:
+
+File SCBoundary.h
+=================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_SCBoundary>` (``larflow/SCBoundary``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/SCBoundary/SCBoundary.h``)
+------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_SCBoundary_SCBoundary.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_SCBoundary_SCBoundary.cxx`
+
+- :ref:`file_larflow_Reco_CosmicTrackBuilder.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__scb`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1scb_1_1SCBoundary`
+

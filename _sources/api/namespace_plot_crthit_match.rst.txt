@@ -1,0 +1,69 @@
+
+.. _namespace_plot_crthit_match:
+
+Namespace plot_crthit_match
+===========================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_plot__crthit__match_8py_1a7f4d2f1a0e2cdc13db63e054f390d94c`
+
+- :ref:`exhale_function_plot__crthit__match_8py_1a7970af9fdbcea85e5bb9c2dea9b75874`
+
+- :ref:`exhale_function_plot__crthit__match_8py_1aa7598174ac41ff5cd17d8496affd48c5`
+
+- :ref:`exhale_function_plot__crthit__match_8py_1a227940efd1df2e26410936dd5331ea7e`
+
+- :ref:`exhale_function_plot__crthit__match_8py_1a192106a1e1e1ac71ec7c114b3af505f1`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a7709de21b6d9a544bd083ac54e636f7e`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a3f97020e4e7e209807171d02d03d30e0`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a19177714cba0181379423ce4e171b7a7`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a0bfdbcf6dc2b60df5166d7bf5b912d68`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1af597301854e1d04c18ea42c711059625`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a6494f164959bf384d349d7a39574bbbc`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a7a25a2400c36882f997495ccd561c26e`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a83336873cec4ef80399591b6bba3bc9e`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1aaf10bbea25728ac914790ca7a6fd66df`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1afe0033ad079ede6fcf95036aeb3ff7e9`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1afb3966b5caf926a898523a7118b216e2`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a6a248f01f2af6af7ba174f67bd953911`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1ad2684be1b676670aa58d1208edea47ad`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a6315208ed0860e62a9060fa8171808bd`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1ad4dcd6a602ea5057ea9cc8b866077081`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a2409e8d5e197630b215effa943cb3429`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a628c785d33cf626288c7fd291fca9ad8`
+
+- :ref:`exhale_variable_plot__crthit__match_8py_1a98161a0e2d6cb654dbc60ec58ef3808a`

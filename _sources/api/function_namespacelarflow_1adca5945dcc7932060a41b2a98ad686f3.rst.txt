@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1adca5945dcc7932060a41b2a98ad686f3:
+
+Function larflow::get3Dhits_1pl(FlowDirection_t, bool)
+======================================================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_FlowContourMatch.h`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::get3Dhits_1pl(FlowDirection_t, bool)

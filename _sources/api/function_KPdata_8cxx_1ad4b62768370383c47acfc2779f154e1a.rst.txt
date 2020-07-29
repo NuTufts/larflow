@@ -1,0 +1,13 @@
+.. _exhale_function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a:
+
+Function larflow::keypoints::kpdata_compare_z
+=============================================
+
+- Defined in :ref:`file_larflow_KeyPoints_KPdata.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::keypoints::kpdata_compare_z(const KPdata *, const KPdata *)

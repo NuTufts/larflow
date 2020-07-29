@@ -1,0 +1,37 @@
+.. _exhale_class_classlarflow_1_1reco_1_1TrackReco2KP:
+
+Class TrackReco2KP
+==================
+
+- Defined in :ref:`file_larflow_Reco_TrackReco2KP.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1TrackReco2KP_1_1KPInfo__t`
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1TrackReco2KP_1_1KPPair__t`
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1TrackReco2KP_1_1Point__t`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::TrackReco2KP
+   :members:
+   :protected-members:
+   :undoc-members:

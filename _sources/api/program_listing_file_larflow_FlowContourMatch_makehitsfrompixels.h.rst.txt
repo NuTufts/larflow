@@ -1,0 +1,26 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_makehitsfrompixels.h:
+
+Program Listing for File makehitsfrompixels.h
+=============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_makehitsfrompixels.h>` (``larflow/FlowContourMatch/makehitsfrompixels.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __make_flow_pixels_h__
+   #define __make_flow_pixels_h__
+   
+   #include "DataFormat/hit.h"
+   
+   #include "larcv/core/DataFormat/Image2D.h"
+   
+   namespace larflow {
+   
+     larlite::event_hit makeHitsFromWholeImagePixels( const larcv::Image2D& src_adc, const float threshold );
+     
+   }
+   
+   #endif

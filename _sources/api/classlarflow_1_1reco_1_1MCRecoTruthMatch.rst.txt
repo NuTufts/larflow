@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1MCRecoTruthMatch:
+
+Class MCRecoTruthMatch
+======================
+
+- Defined in :ref:`file_larflow_Reco_MCRecoTruthMatch.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::MCRecoTruthMatch
+   :members:
+   :protected-members:
+   :undoc-members:

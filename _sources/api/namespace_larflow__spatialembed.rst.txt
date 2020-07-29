@@ -1,0 +1,22 @@
+
+.. _namespace_larflow__spatialembed:
+
+Namespace larflow::spatialembed
+===============================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1spatialembed_1_1AncestorIDPix__t`
+
+- :ref:`exhale_class_classlarflow_1_1spatialembed_1_1PrepMatchEmbed`

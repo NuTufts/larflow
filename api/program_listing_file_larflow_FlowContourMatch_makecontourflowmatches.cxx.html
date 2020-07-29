@@ -1,0 +1,609 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File makecontourflowmatches.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File makecontourflowmatches.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_FlowContourMatch_makecontourflowmatches.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-makecontourflowmatches-cxx">
+<span id="program-listing-file-larflow-flowcontourmatch-makecontourflowmatches-cxx"></span><h1>Program Listing for File makecontourflowmatches.cxx<a class="headerlink" href="#program-listing-for-file-makecontourflowmatches-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_FlowContourMatch_makecontourflowmatches.cxx.html#file-larflow-flowcontourmatch-makecontourflowmatches-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/FlowContourMatch/makecontourflowmatches.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;makecontourflowmatches.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Base/larcv_logger.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/ROOTUtil/ROOTUtils.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TGraph.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;TH2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;TBox.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;opencv2/imgproc.hpp&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">createMatchData</span><span class="p">(</span> <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contour_data</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc_full</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">tar_adc_full</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">flow_img_crop</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc_crop</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">tar_adc_crop</span><span class="p">,</span>
+                        <span class="n">ContourFlowMatchDict_t</span><span class="o">&amp;</span> <span class="n">matchdict</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="kt">float</span> <span class="n">max_dist_to_target_contour</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">Level_t</span> <span class="n">verbosity</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="kt">bool</span> <span class="n">visualize</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span> <span class="n">log</span><span class="p">(</span><span class="s">&quot;createMatchData&quot;</span><span class="p">);</span>
+    <span class="n">log</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">verbosity</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">src_planeid</span> <span class="o">=</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">();</span>
+    <span class="kt">int</span> <span class="n">tar_planeid</span> <span class="o">=</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">();</span>
+    <span class="c1">// if ( log.debug() )</span>
+    <span class="c1">//   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)</span>
+    <span class="c1">//     &lt;&lt; &quot; source plane=&quot; &lt;&lt; src_planeid &lt;&lt; &quot; &quot;</span>
+    <span class="c1">//     &lt;&lt; &quot; target plane=&quot; &lt;&lt; tar_planeid</span>
+    <span class="c1">//     &lt;&lt; std::endl;</span>
+
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">srcfullmeta</span> <span class="o">=</span> <span class="n">src_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">tarfullmeta</span> <span class="o">=</span> <span class="n">tar_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">srcmeta</span> <span class="o">=</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">tarmeta</span> <span class="o">=</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">();</span>
+
+    <span class="c1">// allocate arrays for image pixel to contour index lookup</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">matchdict</span><span class="p">.</span><span class="n">index_map_initialized</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">matchdict</span><span class="p">.</span><span class="n">src_ctr_index_map</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">src_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span><span class="o">*</span><span class="n">src_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">(),</span> <span class="o">-</span><span class="mi">1</span> <span class="p">);</span>
+      <span class="n">matchdict</span><span class="p">.</span><span class="n">tar_ctr_index_map</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">tar_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span><span class="o">*</span><span class="n">tar_adc_full</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">(),</span> <span class="o">-</span><span class="mi">1</span> <span class="p">);</span>
+      <span class="n">matchdict</span><span class="p">.</span><span class="n">index_map_initialized</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">matchdict</span><span class="p">.</span><span class="n">src_ctr_pixel_v_initialized</span> <span class="p">)</span>
+      <span class="n">matchdict</span><span class="p">.</span><span class="n">src_ctr_pixel_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">src_planeid</span><span class="p">).</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// if we visualize, we fill points here</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">vis_col</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+    <span class="kt">int</span> <span class="n">nsrcpix_in_ctr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// number of source image pixels inside a contour</span>
+    <span class="kt">int</span> <span class="n">ntarpix_in_ctr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// number of target image pixels inside a contour</span>
+    <span class="kt">int</span> <span class="n">nflow_into_ctr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// number of pixels that flow into a contour. unlikely zero, so here for a check</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">r</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">srcmeta</span><span class="p">.</span><span class="n">rows</span><span class="p">();</span> <span class="n">r</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// for each row, we find the available contours on the images.</span>
+      <span class="c1">// saves us search each time</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span>  <span class="n">tar_ctr_ids</span><span class="p">;</span>     <span class="c1">// (crop) index of target contours in this row</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">src_cols_in_ctr</span><span class="p">;</span> <span class="c1">// columns on the source (crop) image that have ctrs</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">src_cols2ctrid</span><span class="p">;</span> <span class="c1">// map from (crop) src col to src ctr</span>
+      <span class="c1">//src_cols_in_ctr.reserve(20);</span>
+
+      <span class="c1">// std::cout &lt;&lt; &quot;------------------------------------------&quot; &lt;&lt; std::endl;</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;Find row=&quot; &lt;&lt; r &lt;&lt; &quot; contours&quot; &lt;&lt; std::endl;</span>
+
+      <span class="c1">// Find contours on source image in this row</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;source: &quot;;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">srcmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">();</span> <span class="n">c</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">)</span><span class="o">&lt;</span><span class="n">threshold</span> <span class="p">)</span>
+      <span class="k">continue</span><span class="p">;</span>
+
+        <span class="kt">float</span> <span class="n">full_row</span> <span class="o">=</span> <span class="n">srcfullmeta</span><span class="p">.</span><span class="n">row</span><span class="p">(</span> <span class="n">srcmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">full_col</span> <span class="o">=</span> <span class="n">srcfullmeta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span> <span class="n">srcmeta</span><span class="p">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">);</span>
+    <span class="n">cv</span><span class="o">::</span><span class="n">Point</span> <span class="n">pt</span><span class="p">(</span> <span class="n">full_col</span><span class="p">,</span> <span class="n">full_row</span> <span class="p">);</span> <span class="c1">// point in the full image</span>
+
+        <span class="c1">// search the contours</span>
+        <span class="kt">bool</span> <span class="n">found_contour</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">closestdist</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">20000</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ictr</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ictr</span><span class="o">&lt;</span><span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">src_planeid</span><span class="p">].</span><span class="n">size</span><span class="p">();</span> <span class="n">ictr</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">ctr</span>     <span class="o">=</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">src_planeid</span><span class="p">][</span><span class="n">ictr</span><span class="p">];</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">ctrmeta</span> <span class="o">=</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">src_planeid</span><span class="p">][</span><span class="n">ictr</span><span class="p">];</span>
+
+          <span class="c1">// bbox check</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMinX</span><span class="p">()</span> <span class="o">||</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMaxX</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMinY</span><span class="p">()</span> <span class="o">||</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMaxY</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="kt">double</span> <span class="n">result</span> <span class="o">=</span>  <span class="n">cv</span><span class="o">::</span><span class="n">pointPolygonTest</span><span class="p">(</span> <span class="n">ctr</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="nb">true</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">closestdist</span> <span class="o">&lt;</span> <span class="n">result</span> <span class="p">)</span>
+            <span class="n">closestdist</span> <span class="o">=</span> <span class="n">result</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">result</span><span class="o">&gt;-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">src_cols_in_ctr</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">c</span> <span class="p">);</span>
+        <span class="n">src_cols2ctrid</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">ictr</span><span class="p">;</span>
+        <span class="c1">//std::cout &lt;&lt; &quot; source pix (&quot; &lt;&lt; r &lt;&lt; &quot;,&quot; &lt;&lt; c &lt;&lt; &quot;) &quot;</span>
+            <span class="c1">//          &lt;&lt; &quot;found in ctr=&quot; &lt;&lt; ictr &lt;&lt; &quot;. nelems=&quot; &lt;&lt; src_cols_in_ctr.size() &lt;&lt; std::endl;</span>
+
+            <span class="c1">// store in lookup map for crop</span>
+            <span class="kt">int</span> <span class="n">pixindex</span> <span class="o">=</span> <span class="n">full_row</span><span class="o">*</span><span class="n">srcfullmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">()</span> <span class="o">+</span> <span class="n">full_col</span><span class="p">;</span>
+            <span class="n">matchdict</span><span class="p">.</span><span class="n">src_ctr_pixel_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span> <span class="n">ictr</span> <span class="p">).</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pixindex</span> <span class="p">);</span>
+        <span class="n">matchdict</span><span class="p">.</span><span class="n">src_ctr_index_map</span><span class="p">[</span> <span class="n">pixindex</span> <span class="p">]</span> <span class="o">=</span> <span class="n">ictr</span><span class="p">;</span>
+            <span class="n">nsrcpix_in_ctr</span><span class="o">++</span><span class="p">;</span>
+            <span class="n">found_contour</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">visualize</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="c1">// source points with charge</span>
+              <span class="n">vis_row</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">srcmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">);</span>
+              <span class="n">vis_col</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">full_col</span> <span class="p">);</span>
+            <span class="p">}</span>
+
+        <span class="k">break</span><span class="p">;</span>
+
+          <span class="p">}</span>
+    <span class="p">}</span><span class="c1">//end of contour loop</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">found_contour</span> <span class="o">&amp;&amp;</span> <span class="n">log</span><span class="p">.</span><span class="n">debug</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;did not find source contour for point (col,row)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)! &quot;</span>
+                                                               <span class="o">&lt;&lt;</span> <span class="s">&quot; closest dist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">closestdist</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//end of cropped column loop</span>
+      <span class="c1">//std::cout &lt;&lt; std::endl;</span>
+
+      <span class="c1">// Find Contours on the target image in this row</span>
+      <span class="c1">//std::cout &lt;&lt; &quot;target: &quot;;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">tarmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">();</span> <span class="n">c</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">)</span><span class="o">&lt;</span><span class="n">threshold</span> <span class="p">)</span>
+      <span class="k">continue</span><span class="p">;</span>
+
+        <span class="kt">float</span> <span class="n">full_row</span> <span class="o">=</span> <span class="n">tarfullmeta</span><span class="p">.</span><span class="n">row</span><span class="p">(</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">full_col</span> <span class="o">=</span> <span class="n">tarfullmeta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="n">cv</span><span class="o">::</span><span class="n">Point</span> <span class="n">pt</span><span class="p">(</span> <span class="n">full_col</span><span class="p">,</span> <span class="n">full_row</span> <span class="p">);</span>
+
+        <span class="c1">// search the contours</span>
+        <span class="kt">float</span> <span class="n">closest_dist</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1000000</span><span class="p">;</span>
+        <span class="kt">bool</span> <span class="n">found_contour</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ictr</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ictr</span><span class="o">&lt;</span><span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">tar_planeid</span><span class="p">].</span><span class="n">size</span><span class="p">();</span> <span class="n">ictr</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">ctr</span>     <span class="o">=</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">tar_planeid</span><span class="p">][</span><span class="n">ictr</span><span class="p">];</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">ctrmeta</span> <span class="o">=</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">tar_planeid</span><span class="p">][</span><span class="n">ictr</span><span class="p">];</span>
+
+          <span class="c1">// bbox check</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMinX</span><span class="p">()</span> <span class="o">||</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMaxX</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMinY</span><span class="p">()</span> <span class="o">||</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">ctrmeta</span><span class="p">.</span><span class="n">getMaxY</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="kt">double</span> <span class="n">result</span> <span class="o">=</span>  <span class="n">cv</span><span class="o">::</span><span class="n">pointPolygonTest</span><span class="p">(</span> <span class="n">ctr</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="nb">true</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="n">closest_dist</span> <span class="p">)</span>
+            <span class="n">closest_dist</span> <span class="o">=</span> <span class="n">result</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">result</span><span class="o">&gt;=-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">tar_ctr_ids</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">ictr</span> <span class="p">);</span>
+            <span class="n">matchdict</span><span class="p">.</span><span class="n">tar_ctr_index_map</span><span class="p">[</span> <span class="n">full_row</span><span class="o">*</span><span class="n">tarfullmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">()</span> <span class="o">+</span> <span class="n">full_col</span> <span class="p">]</span> <span class="o">=</span> <span class="n">ictr</span><span class="p">;</span>
+            <span class="n">ntarpix_in_ctr</span><span class="o">++</span><span class="p">;</span>
+            <span class="n">found_contour</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span><span class="c1">//end of target contour loop</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">found_contour</span> <span class="o">&amp;&amp;</span> <span class="n">log</span><span class="p">.</span><span class="n">debug</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot;did not find target contour for point (col,row)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pt</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)! &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot; localpix=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">c</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">r</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot; closest dist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">closest_dist</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//end of target col loop</span>
+      <span class="c1">//std::cout &lt;&lt; std::endl;</span>
+
+      <span class="c1">// Nothing in this row, move on to the next row</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">src_cols_in_ctr</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="o">||</span> <span class="n">tar_ctr_ids</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// if ( log.debug() )</span>
+        <span class="c1">//   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)</span>
+        <span class="c1">//     &lt;&lt; &quot;nothing to match. &quot;</span>
+        <span class="c1">//     &lt;&lt; &quot; srcwires=&quot; &lt;&lt; src_cols_in_ctr.size()</span>
+        <span class="c1">//     &lt;&lt; &quot; tarwires=&quot; &lt;&lt; tar_ctr_ids.size()</span>
+        <span class="c1">//     &lt;&lt; std::endl;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">src_cols_in_ctr</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">tar_ctr_ids</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// if ( log.debug() )</span>
+        <span class="c1">//   log.send(larcv::msg::kDEBUG,__FUNCTION__,__LINE__)</span>
+        <span class="c1">//     &lt;&lt; &quot; srcwires=&quot; &lt;&lt; src_cols_in_ctr.size()</span>
+        <span class="c1">//     &lt;&lt; &quot; tarwires=&quot; &lt;&lt; tar_ctr_ids.size()</span>
+        <span class="c1">//     &lt;&lt; std::endl;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// now loop over source columns in contours and make matches to target contours</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">source_crop_col</span> <span class="p">:</span> <span class="n">src_cols_in_ctr</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="kt">float</span> <span class="n">flow</span>     <span class="o">=</span> <span class="n">flow_img_crop</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">source_crop_col</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="n">target_crop_col</span> <span class="o">=</span> <span class="n">source_crop_col</span><span class="o">+</span><span class="n">flow</span><span class="p">;</span>
+        <span class="c1">//std::cout &lt;&lt; &quot; source-crop-col flow (&quot; &lt;&lt; r &lt;&lt; &quot;,&quot; &lt;&lt; source_crop_col &lt;&lt; &quot;) flow=&quot; &lt;&lt; flow &lt;&lt; &quot; target-crop-col=&quot; &lt;&lt; target_crop_col &lt;&lt; std::endl;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">target_crop_col</span><span class="o">&gt;=</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span> <span class="c1">// flow out of bounds</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">target_crop_col</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span> <span class="c1">// flow out of bounds</span>
+        <span class="kt">float</span> <span class="n">tar_row_full</span> <span class="o">=</span> <span class="n">tarfullmeta</span><span class="p">.</span><span class="n">row</span><span class="p">(</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">tar_col_full</span> <span class="o">=</span> <span class="n">tarfullmeta</span><span class="p">.</span><span class="n">col</span><span class="p">(</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">target_crop_col</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">cv</span><span class="o">::</span><span class="n">Point</span> <span class="n">tar_pt</span><span class="p">(</span> <span class="n">tar_col_full</span><span class="p">,</span> <span class="n">tar_row_full</span> <span class="p">);</span>
+
+    <span class="c1">// retrieve the contour we&#39;re in</span>
+    <span class="kt">int</span> <span class="n">src_ctr_id</span> <span class="o">=</span> <span class="n">src_cols2ctrid</span><span class="p">[</span><span class="n">source_crop_col</span><span class="p">];</span>
+
+    <span class="c1">// loop through the target contours, find the contour closest to the flowed-to target wire</span>
+        <span class="kt">int</span> <span class="n">closest_contour_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">closest_dist</span> <span class="o">=</span> <span class="o">-</span><span class="mi">50</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">ctrid</span> <span class="p">:</span> <span class="n">tar_ctr_ids</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// have to move point back to full image coordinates</span>
+
+      <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">cv</span><span class="o">::</span><span class="n">pointPolygonTest</span><span class="p">(</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">tar_planeid</span><span class="p">][</span><span class="n">ctrid</span><span class="p">],</span> <span class="n">tar_pt</span><span class="p">,</span> <span class="nb">true</span> <span class="p">);</span>
+          <span class="c1">// if dist is negatice, its outside the contour</span>
+          <span class="c1">// if dist is positive, its inside the contour</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// inside, no need to search further</span>
+            <span class="n">closest_contour_idx</span> <span class="o">=</span> <span class="n">ctrid</span><span class="p">;</span>
+            <span class="n">closest_dist</span>        <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+            <span class="n">nflow_into_ctr</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">break</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;-</span><span class="mi">1</span><span class="o">*</span><span class="n">max_dist_to_target_contour</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// enforce a max distance to a contour</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">closest_contour_idx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">closest_dist</span> <span class="o">&lt;</span> <span class="n">dist</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">closest_contour_idx</span> <span class="o">=</span> <span class="n">ctrid</span><span class="p">;</span>
+              <span class="n">closest_dist</span>        <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">}</span><span class="c1">//end of contour loop</span>
+
+        <span class="c1">// if no contour found, move on</span>
+        <span class="c1">//std::cout &lt;&lt; &quot;source -&gt; tar contour index=&quot; &lt;&lt; closest_contour_idx &lt;&lt; &quot;. closest dist=&quot; &lt;&lt; closest_dist &lt;&lt; std::endl;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">closest_contour_idx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">visualize</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">vis_row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">);</span>
+          <span class="n">vis_col</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">tar_col_full</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">// else we store/append a src-tar contour match for this source pixel</span>
+
+        <span class="c1">// store the match data</span>
+        <span class="c1">// --------------------</span>
+
+        <span class="c1">// create a pair key</span>
+        <span class="n">SrcTarPair_t</span> <span class="n">idpair</span> <span class="o">=</span> <span class="p">{</span> <span class="n">src_ctr_id</span><span class="p">,</span> <span class="n">closest_contour_idx</span> <span class="p">};</span>
+
+        <span class="c1">// check if we have one for this pair already</span>
+        <span class="k">auto</span> <span class="n">it_indexmap</span> <span class="o">=</span> <span class="n">matchdict</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">idpair</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_indexmap</span><span class="o">==</span><span class="n">matchdict</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// if the map doesn&#39;t have the pair we&#39;re looking for, we create the data</span>
+          <span class="n">ContourFlowMatch_t</span> <span class="n">x</span><span class="p">(</span> <span class="n">src_ctr_id</span><span class="p">,</span>  <span class="n">closest_contour_idx</span><span class="p">);</span>
+          <span class="n">matchdict</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">SrcTarPair_t</span><span class="p">,</span><span class="n">ContourFlowMatch_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">idpair</span><span class="p">,</span><span class="n">x</span><span class="p">)</span> <span class="p">);</span>
+          <span class="n">it_indexmap</span> <span class="o">=</span> <span class="n">matchdict</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">idpair</span><span class="p">);</span>
+        <span class="p">}</span>
+
+
+        <span class="c1">// store the specific pixel flow information</span>
+        <span class="kt">float</span> <span class="n">src_full_wire</span> <span class="o">=</span> <span class="n">srcmeta</span><span class="p">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">source_crop_col</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">tar_full_wire</span> <span class="o">=</span> <span class="n">tarmeta</span><span class="p">.</span><span class="n">pos_x</span><span class="p">(</span><span class="n">target_crop_col</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">in_contour_wire</span> <span class="o">=</span> <span class="n">tar_full_wire</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">closest_dist</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// if we missed a contour, we find the offset that moves us into it</span>
+          <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">Contour_t</span><span class="o">&amp;</span> <span class="n">tar_ctr</span> <span class="o">=</span> <span class="n">contour_data</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">tar_planeid</span><span class="p">][</span><span class="n">closest_contour_idx</span><span class="p">];</span>
+          <span class="kt">bool</span> <span class="n">shift_pos</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+          <span class="kt">float</span> <span class="n">shifted_pos</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ioffset</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span> <span class="n">ioffset</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">;</span> <span class="n">ioffset</span><span class="o">+=</span><span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">tar_col_full_shifted</span> <span class="o">=</span> <span class="n">tar_full_wire</span> <span class="o">+</span> <span class="kt">float</span><span class="p">(</span><span class="n">ioffset</span><span class="p">)</span><span class="o">*</span><span class="n">fabs</span><span class="p">(</span><span class="n">closest_dist</span><span class="p">);</span>
+            <span class="kt">float</span> <span class="n">testdist</span> <span class="o">=</span> <span class="n">cv</span><span class="o">::</span><span class="n">pointPolygonTest</span><span class="p">(</span> <span class="n">tar_ctr</span><span class="p">,</span> <span class="n">cv</span><span class="o">::</span><span class="n">Point</span><span class="p">(</span> <span class="n">tar_col_full_shifted</span><span class="p">,</span> <span class="n">tar_row_full</span> <span class="p">),</span> <span class="nb">true</span> <span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">testdist</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">||</span> <span class="p">(</span><span class="n">testdist</span><span class="o">&gt;-</span><span class="n">max_dist_to_target_contour</span> <span class="o">&amp;&amp;</span> <span class="n">fabs</span><span class="p">(</span><span class="n">testdist</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">closest_dist</span><span class="p">))</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">shifted_pos</span> <span class="o">=</span> <span class="n">tar_col_full_shifted</span><span class="p">;</span>
+              <span class="c1">//std::cout &lt;&lt; &quot;shifted position better: dist=&quot; &lt;&lt; closest_dist &lt;&lt; &quot; to &quot; &lt;&lt; testdist &lt;&lt; std::endl;</span>
+              <span class="n">closest_dist</span> <span class="o">=</span> <span class="n">testdist</span><span class="p">;</span>
+              <span class="n">shift_pos</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+          <span class="c1">// replace, as we did better</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">shift_pos</span> <span class="p">)</span>
+            <span class="n">in_contour_wire</span> <span class="o">=</span> <span class="n">shifted_pos</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">visualize</span> <span class="p">)</span>
+          <span class="n">vis_col</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">in_contour_wire</span> <span class="p">);</span>
+
+        <span class="n">ContourFlowMatch_t</span><span class="o">::</span><span class="n">FlowPixel_t</span> <span class="n">flowpix</span><span class="p">;</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">src_wire</span> <span class="o">=</span> <span class="n">src_full_wire</span><span class="p">;</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">tar_wire</span> <span class="o">=</span> <span class="n">in_contour_wire</span><span class="p">;</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">tar_orig</span> <span class="o">=</span> <span class="n">tar_full_wire</span><span class="p">;</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">row</span>      <span class="o">=</span> <span class="n">tar_row_full</span><span class="p">;</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">tick</span>     <span class="o">=</span> <span class="n">tarfullmeta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span> <span class="n">tar_row_full</span> <span class="p">);</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">pred_miss</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">fabs</span><span class="p">(</span><span class="n">closest_dist</span><span class="p">);</span>
+        <span class="n">flowpix</span><span class="p">.</span><span class="n">dist2cropcenter</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">fabs</span><span class="p">(</span><span class="n">source_crop_col</span> <span class="o">-</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">srcmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span><span class="p">);</span>
+        <span class="kt">int</span> <span class="n">srcindex</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flowpix</span><span class="p">.</span><span class="n">row</span> <span class="o">*</span> <span class="n">srcfullmeta</span><span class="p">.</span><span class="n">cols</span><span class="p">()</span> <span class="o">+</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">flowpix</span><span class="p">.</span><span class="n">src_wire</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ContourFlowMatch_t</span><span class="o">::</span><span class="n">FlowPixel_t</span><span class="o">&gt;&amp;</span> <span class="n">flowpix_v</span> <span class="o">=</span> <span class="n">it_indexmap</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">getFlowPixelList</span><span class="p">(</span> <span class="n">srcindex</span> <span class="p">);</span>
+        <span class="n">flowpix_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">flowpix</span><span class="p">)</span> <span class="p">);</span>
+
+        <span class="c1">// debug</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">log</span><span class="p">.</span><span class="n">debug</span><span class="p">()</span> <span class="p">)</span>
+          <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">)</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot;creating a src-tar datapoint: &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot;[src=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">src_full_wire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; -&gt; &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot;tar(orig)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tar_full_wire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; tar(shift)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">in_contour_wire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&quot;dist2ctr=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">closest_dist</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;(orig) &quot;</span>
+            <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="p">}</span><span class="c1">//end of loop over source cols</span>
+    <span class="p">}</span><span class="c1">//end of loop over rows</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">()</span> <span class="p">)</span>
+      <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span>
+        <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of pixels inside crop that flowed into a contour: &quot;</span>
+        <span class="o">&lt;&lt;</span> <span class="n">nflow_into_ctr</span>
+        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">visualize</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// we plot all three planes.</span>
+      <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span>
+        <span class="o">&lt;&lt;</span> <span class="s">&quot;number of src pts, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span>
+        <span class="o">&lt;&lt;</span> <span class="s">&quot; tar pts, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;.&quot;</span>
+        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span>
+        <span class="o">&lt;&lt;</span> <span class="s">&quot;source meta: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">dump</span><span class="p">()</span>
+        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kDEBUG</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span> <span class="p">)</span>
+        <span class="o">&lt;&lt;</span> <span class="s">&quot;target meta: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">dump</span><span class="p">()</span>
+        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">TCanvas</span> <span class="nf">c</span><span class="p">(</span><span class="s">&quot;cflow&quot;</span><span class="p">,</span><span class="s">&quot;FlowContourMatch&quot;</span><span class="p">,</span><span class="mi">1400</span><span class="p">,</span><span class="mi">600</span><span class="p">);</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">Divide</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+      <span class="n">TH2D</span> <span class="n">hadc_source</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">::</span><span class="n">rootutils</span><span class="o">::</span><span class="n">as_th2d</span><span class="p">(</span> <span class="n">src_adc_full</span><span class="p">,</span> <span class="s">&quot;hadc_source&quot;</span> <span class="p">);</span>
+      <span class="n">TH2D</span> <span class="n">hadc_target</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">::</span><span class="n">rootutils</span><span class="o">::</span><span class="n">as_th2d</span><span class="p">(</span> <span class="n">tar_adc_full</span><span class="p">,</span> <span class="s">&quot;hadc_target&quot;</span> <span class="p">);</span>
+      <span class="n">TGraph</span> <span class="nf">gsrcpts</span><span class="p">(</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">(),</span> <span class="n">vis_col</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">data</span><span class="p">(),</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">data</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">TGraph</span> <span class="nf">gtarpts</span><span class="p">(</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">(),</span> <span class="n">vis_col</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">data</span><span class="p">(),</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">data</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">TGraph</span> <span class="nf">gtarcontourpts</span><span class="p">(</span> <span class="n">vis_col</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">size</span><span class="p">(),</span> <span class="n">vis_col</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">data</span><span class="p">(),</span> <span class="n">vis_row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">data</span><span class="p">()</span> <span class="p">);</span>
+
+      <span class="n">TBox</span> <span class="nf">src_box</span><span class="p">(</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">(),</span>
+                    <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_x</span><span class="p">(),</span> <span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">TBox</span> <span class="nf">tar_box</span><span class="p">(</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">(),</span>
+                    <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_x</span><span class="p">(),</span> <span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">src_box</span><span class="p">.</span><span class="n">SetLineColor</span><span class="p">(</span><span class="n">kRed</span><span class="p">);</span>
+      <span class="n">src_box</span><span class="p">.</span><span class="n">SetLineWidth</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="n">src_box</span><span class="p">.</span><span class="n">SetFillStyle</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">tar_box</span><span class="p">.</span><span class="n">SetLineColor</span><span class="p">(</span><span class="n">kRed</span><span class="p">);</span>
+      <span class="n">tar_box</span><span class="p">.</span><span class="n">SetLineWidth</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="n">tar_box</span><span class="p">.</span><span class="n">SetFillStyle</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+      <span class="n">c</span><span class="p">.</span><span class="n">Draw</span><span class="p">();</span>
+
+      <span class="n">gsrcpts</span><span class="p">.</span><span class="n">SetMarkerStyle</span><span class="p">(</span><span class="mi">24</span><span class="p">);</span>
+
+      <span class="n">gtarpts</span><span class="p">.</span><span class="n">SetMarkerStyle</span><span class="p">(</span><span class="mi">24</span><span class="p">);</span>
+
+      <span class="n">gtarcontourpts</span><span class="p">.</span><span class="n">SetLineColor</span><span class="p">(</span><span class="n">kRed</span><span class="p">);</span>
+      <span class="n">gtarcontourpts</span><span class="p">.</span><span class="n">SetMarkerColor</span><span class="p">(</span><span class="n">kRed</span><span class="p">);</span>
+      <span class="n">gtarcontourpts</span><span class="p">.</span><span class="n">SetMarkerStyle</span><span class="p">(</span><span class="mi">24</span><span class="p">);</span>
+
+      <span class="n">c</span><span class="p">.</span><span class="n">cd</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+      <span class="n">hadc_source</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;colz&quot;</span><span class="p">);</span>
+      <span class="n">gsrcpts</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;p&quot;</span><span class="p">);</span>
+      <span class="n">src_box</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;same&quot;</span><span class="p">);</span>
+
+      <span class="n">c</span><span class="p">.</span><span class="n">cd</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="n">hadc_target</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;colz&quot;</span><span class="p">);</span>
+      <span class="n">gtarpts</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;psame&quot;</span><span class="p">);</span>
+      <span class="n">gtarcontourpts</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;psame&quot;</span><span class="p">);</span>
+      <span class="n">tar_box</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;same&quot;</span><span class="p">);</span>
+
+      <span class="n">c</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+
+      <span class="n">TCanvas</span> <span class="nf">ccheck</span><span class="p">(</span><span class="s">&quot;cropcheck&quot;</span><span class="p">,</span><span class="s">&quot;Crop Check&quot;</span><span class="p">,</span><span class="mi">1400</span><span class="p">,</span><span class="mi">600</span><span class="p">);</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">Divide</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">Draw</span><span class="p">();</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">cd</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+      <span class="n">TH2D</span> <span class="n">hsrc_crop</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">::</span><span class="n">rootutils</span><span class="o">::</span><span class="n">as_th2d</span><span class="p">(</span> <span class="n">src_adc_crop</span><span class="p">,</span> <span class="s">&quot;hsrc_crop&quot;</span> <span class="p">);</span>
+      <span class="n">hsrc_crop</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;colz&quot;</span><span class="p">);</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">cd</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+      <span class="n">TH2D</span> <span class="n">htar_crop</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">::</span><span class="n">rootutils</span><span class="o">::</span><span class="n">as_th2d</span><span class="p">(</span> <span class="n">tar_adc_crop</span><span class="p">,</span> <span class="s">&quot;htar_crop&quot;</span> <span class="p">);</span>
+      <span class="n">htar_crop</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;colz&quot;</span><span class="p">);</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">cd</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+      <span class="n">TH2D</span> <span class="n">hflow_crop</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">::</span><span class="n">rootutils</span><span class="o">::</span><span class="n">as_th2d</span><span class="p">(</span> <span class="n">flow_img_crop</span><span class="p">,</span> <span class="s">&quot;hflow_crop&quot;</span> <span class="p">);</span>
+      <span class="c1">//hflow_crop.GetZaxis()-&gt;SetRangeUser(-832,832);</span>
+      <span class="n">hflow_crop</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="s">&quot;colz&quot;</span><span class="p">);</span>
+      <span class="n">ccheck</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+
+      <span class="kt">char</span> <span class="n">cname</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+      <span class="n">sprintf</span><span class="p">(</span> <span class="n">cname</span><span class="p">,</span> <span class="s">&quot;flowcheck_src%d_to_tar%d_%d_%d.png&quot;</span><span class="p">,</span>
+               <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">(),(</span><span class="kt">int</span><span class="p">)</span><span class="n">tar_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">(),</span>
+               <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_x</span><span class="p">(),(</span><span class="kt">int</span><span class="p">)</span><span class="n">src_adc_crop</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">SaveAs</span><span class="p">(</span><span class="n">cname</span><span class="p">);</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;[enter] to continue.&quot; &lt;&lt; std::endl;</span>
+      <span class="c1">//std::cin.get();</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

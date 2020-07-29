@@ -1,0 +1,26 @@
+.. _exhale_class_classlarflow_1_1prep_1_1FlowMatchHitMaker:
+
+Class FlowMatchHitMaker
+=======================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_FlowMatchHitMaker.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::prep::FlowMatchHitMaker
+   :members:
+   :protected-members:
+   :undoc-members:

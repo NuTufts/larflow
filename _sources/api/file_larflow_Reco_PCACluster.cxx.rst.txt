@@ -1,0 +1,68 @@
+
+.. _file_larflow_Reco_PCACluster.cxx:
+
+File PCACluster.cxx
+===================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/PCACluster.cxx``)
+--------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_PCACluster.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/larflowcluster.h``
+
+- ``PCACluster.h`` (:ref:`file_larflow_Reco_PCACluster.h`)
+
+- ``TRandom3.h``
+
+- ``cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+- ``ctime``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``nlohmann/json.hpp``
+
+- ``opencv2/core.hpp``
+
+- ``opencv2/imgproc.hpp``
+
+- ``ublarcvapp/ContourTools/ContourClusterAlgo.h``
+
+- ``ublarcvapp/dbscan/DBScan.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

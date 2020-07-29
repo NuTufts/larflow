@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1DBScanLArMatchHits:
+
+Class DBScanLArMatchHits
+========================
+
+- Defined in :ref:`file_larflow_Reco_DBScanLArMatchHits.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::DBScanLArMatchHits
+   :members:
+   :protected-members:
+   :undoc-members:

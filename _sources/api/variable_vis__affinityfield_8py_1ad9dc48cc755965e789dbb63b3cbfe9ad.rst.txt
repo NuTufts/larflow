@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__affinityfield_8py_1ad9dc48cc755965e789dbb63b3cbfe9ad:
+
+Variable vis_affinityfield::plotopt
+===================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_affinityfield.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_affinityfield::plotopt

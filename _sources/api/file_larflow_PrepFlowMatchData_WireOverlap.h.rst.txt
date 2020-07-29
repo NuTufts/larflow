@@ -1,0 +1,63 @@
+
+.. _file_larflow_PrepFlowMatchData_WireOverlap.h:
+
+File WireOverlap.h
+==================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_PrepFlowMatchData>` (``larflow/PrepFlowMatchData``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/PrepFlowMatchData/WireOverlap.h``)
+--------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_PrepFlowMatchData_WireOverlap.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``map``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_PrepFlowMatchData_FlowTriples.cxx`
+
+- :ref:`file_larflow_PrepFlowMatchData_WireOverlap.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__prep`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1prep_1_1WireOverlap`
+

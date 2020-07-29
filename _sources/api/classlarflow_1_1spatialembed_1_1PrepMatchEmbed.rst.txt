@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1spatialembed_1_1PrepMatchEmbed:
+
+Class PrepMatchEmbed
+====================
+
+- Defined in :ref:`file_larflow_SpatialEmbed_PrepMatchEmbed.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::spatialembed::PrepMatchEmbed
+   :members:
+   :protected-members:
+   :undoc-members:

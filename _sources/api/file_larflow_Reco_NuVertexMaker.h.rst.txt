@@ -1,0 +1,83 @@
+
+.. _file_larflow_Reco_NuVertexMaker.h:
+
+File NuVertexMaker.h
+====================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/NuVertexMaker.h``)
+---------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_NuVertexMaker.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/larflowcluster.h``
+
+- ``DataFormat/pcaxis.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``NuVertexCandidate.h`` (:ref:`file_larflow_Reco_NuVertexCandidate.h`)
+
+- ``TTree.h``
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``map``
+
+- ``string``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_KPSRecoManager.h`
+
+- :ref:`file_larflow_Reco_NuTrackBuilder.h`
+
+- :ref:`file_larflow_Reco_NuVertexFitter.h`
+
+- :ref:`file_larflow_Reco_NuVertexMaker.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1NuVertexMaker`
+

@@ -1,0 +1,44 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_tmp_makeflowhits.h:
+
+Program Listing for File makeflowhits.h
+=======================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_tmp_makeflowhits.h>` (``larflow/FlowContourMatch/tmp/makeflowhits.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __makeflowhits_h__
+   #define __makeflowhits_h__
+   
+   namespace larflow {
+   
+     class configMakeFlowHitsFromCrops {
+   
+     public:
+   
+       configMakeFlowHitsFromCrops() {};
+       virtual ~configMakeFlowHitsFromCrops() {};
+   
+       // contourcluster pars    
+       float adc_threshold;
+       int   dilation_iterations;
+       int   min_defect_size;
+       int   hull_edge_pts_split;
+       int   n_allowed_breaks;
+       int   contour_verbosity;
+       
+     };
+     
+     std::vector<larlite::larflow3dhit> makeFlowHitsFromCrops( const std::vector<larcv::Image2D>& wholeview_v,
+                                                               const std::vector<larcv::Image2D>& adc_crop_v,
+                                                               const std::vector<larcv::SparseImage>& flowy2u_v,
+                                                               const std::vector<larcv::SparseImage>& flowy2v_v,
+                                                               const configMakeFlowHitsFromCrops& cfg );                                                            
+     
+   
+   }
+   
+   #endif

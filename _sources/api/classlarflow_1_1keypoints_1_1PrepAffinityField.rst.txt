@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1keypoints_1_1PrepAffinityField:
+
+Class PrepAffinityField
+=======================
+
+- Defined in :ref:`file_larflow_KeyPoints_PrepAffinityField.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::keypoints::PrepAffinityField
+   :members:
+   :protected-members:
+   :undoc-members:

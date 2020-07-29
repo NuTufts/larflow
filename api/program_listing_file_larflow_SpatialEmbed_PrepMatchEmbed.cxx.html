@@ -1,0 +1,305 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepMatchEmbed.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepMatchEmbed.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_SpatialEmbed_PrepMatchEmbed.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepmatchembed-cxx">
+<span id="program-listing-file-larflow-spatialembed-prepmatchembed-cxx"></span><h1>Program Listing for File PrepMatchEmbed.cxx<a class="headerlink" href="#program-listing-for-file-prepmatchembed-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_SpatialEmbed_PrepMatchEmbed.cxx.html#file-larflow-spatialembed-prepmatchembed-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/SpatialEmbed/PrepMatchEmbed.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepMatchEmbed.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;map&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/Image2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">spatialembed</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchEmbed</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">triplets</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_image</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;wiremc&quot;</span> <span class="p">);</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_ancestor</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;ancestor&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// collect 2D pixel clusters based on ancestor ID number</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">_collect_ancestor_pixels</span><span class="p">(</span> <span class="n">ev_image</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="n">p</span><span class="p">],</span> <span class="n">ev_ancestor</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()[</span><span class="n">p</span><span class="p">]</span> <span class="p">);</span>
+
+    <span class="c1">// assign ancestor ID to triplets</span>
+    <span class="n">_assign_triplet_ancestor_id</span><span class="p">(</span> <span class="n">triplets</span><span class="p">,</span> <span class="n">ev_ancestor</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepMatchEmbed</span><span class="o">::</span><span class="n">_collect_ancestor_pixels</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">adc</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">ancestor</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">int</span> <span class="n">plane</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">();</span>
+    <span class="n">pix_map_m</span><span class="p">[</span><span class="n">plane</span><span class="p">].</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="k">auto</span><span class="o">&amp;</span> <span class="n">pixmap</span> <span class="o">=</span> <span class="n">pix_map_m</span><span class="p">[</span><span class="n">plane</span><span class="p">];</span>
+
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">ancestor</span><span class="p">.</span><span class="n">meta</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">r</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">meta</span><span class="p">.</span><span class="n">rows</span><span class="p">();</span> <span class="n">r</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">meta</span><span class="p">.</span><span class="n">cols</span><span class="p">();</span> <span class="n">c</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="kt">float</span> <span class="n">pixval</span> <span class="o">=</span> <span class="n">adc</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">pixval</span><span class="o">&gt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">id</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ancestor</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pixmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="o">==</span><span class="n">pixmap</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">pixmap</span><span class="p">[</span> <span class="n">id</span> <span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">AncestorIDPix_t</span><span class="o">&gt;</span><span class="p">();</span>
+          <span class="p">}</span>
+
+
+          <span class="n">AncestorIDPix_t</span> <span class="n">pix</span><span class="p">(</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">id</span> <span class="p">);</span>
+          <span class="n">pixmap</span><span class="p">[</span><span class="n">id</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pix</span> <span class="p">);</span>
+
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ PrepMatchEmbed::_collect_ancestor_stats ] collect ancestor instances&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  plane: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">plane</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of IDs: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pixmap</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">pixmap</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">pixmap</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] id=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; npixels=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="c1">// sort for easier search</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">AncestorIDPix_t</span><span class="o">&gt;&amp;</span> <span class="n">PrepMatchEmbed</span><span class="o">::</span><span class="n">get_instance_pixlist</span><span class="p">(</span><span class="kt">int</span> <span class="n">plane</span><span class="p">,</span> <span class="kt">int</span> <span class="n">aid</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">pix_map_m</span><span class="p">[</span><span class="n">plane</span><span class="p">].</span><span class="n">find</span><span class="p">(</span><span class="n">aid</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">pix_map_m</span><span class="p">[</span><span class="n">plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;no ancestor id in pix_map_m&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="cm">/*</span>
+<span class="cm">   * assign an ancestor id label to each triplet.</span>
+<span class="cm">   * also collect indices to triplets for those with the same ancestor id.</span>
+<span class="cm">   * in effect clusters the triplet/3d spacepoints based on truth information found in ancestor id images.</span>
+<span class="cm">   *</span>
+<span class="cm">   */</span>
+  <span class="kt">void</span> <span class="n">PrepMatchEmbed</span><span class="o">::</span><span class="n">_assign_triplet_ancestor_id</span><span class="p">(</span> <span class="k">const</span> <span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">triplet</span><span class="p">,</span>
+                                                    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">ancestor_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

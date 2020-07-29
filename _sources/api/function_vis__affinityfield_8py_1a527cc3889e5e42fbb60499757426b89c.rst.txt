@@ -1,0 +1,13 @@
+.. _exhale_function_vis__affinityfield_8py_1a527cc3889e5e42fbb60499757426b89c:
+
+Function vis_affinityfield::make_figures
+========================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_affinityfield.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_affinityfield::make_figures(entry, plotby)

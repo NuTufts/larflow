@@ -1,0 +1,13 @@
+.. _exhale_function_cluster__functions_8cxx_1a33e2d503e7f5fae9bb0c6eb7daa46ff9:
+
+Function larflow::reco::cluster_sdbscan_larflow3dhits
+=====================================================
+
+- Defined in :ref:`file_larflow_Reco_cluster_functions.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::reco::cluster_sdbscan_larflow3dhits(const std::vector<larlite::larflow3dhit>&, std::vector<cluster_t>&, const float, const int, const int)

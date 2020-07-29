@@ -1,0 +1,489 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File KPSRecoManager.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File KPSRecoManager.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_KPSRecoManager.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-kpsrecomanager-cxx">
+<span id="program-listing-file-larflow-reco-kpsrecomanager-cxx"></span><h1>Program Listing for File KPSRecoManager.cxx<a class="headerlink" href="#program-listing-for-file-kpsrecomanager-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_KPSRecoManager.cxx.html#file-larflow-reco-kpsrecomanager-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/KPSRecoManager.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;KPSRecoManager.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite</span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/opflash.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventChStatus.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/LArFlowConstants/LArFlowConstants.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">KPSRecoManager</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">inputfile_name</span> <span class="p">)</span>
+    <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span><span class="p">(</span><span class="s">&quot;KPSRecoManager&quot;</span><span class="p">),</span>
+    <span class="n">_ana_output_file</span><span class="p">(</span><span class="n">inputfile_name</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">make_ana_file</span><span class="p">();</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">add_nuvertex_branch</span><span class="p">(</span> <span class="n">_ana_tree</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">KPSRecoManager</span><span class="o">::~</span><span class="n">KPSRecoManager</span><span class="p">()</span>
+  <span class="p">{</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+
+    <span class="c1">// PREP: make bad channel image</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span> <span class="n">ev_chstatus</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductChStatus</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">gapch_v</span> <span class="o">=</span>
+      <span class="n">_badchmaker</span><span class="p">.</span><span class="n">makeGapChannelImage</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_chstatus</span><span class="p">,</span>
+                                       <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2400</span><span class="p">,</span> <span class="mi">6</span><span class="o">*</span><span class="mi">1008</span><span class="p">,</span> <span class="mi">3456</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                                       <span class="mf">5.0</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="p">);</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of badcv images made: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">gapch_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">evout_badch</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;badch&quot;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">gap</span> <span class="p">:</span> <span class="n">gapch_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">evout_badch</span><span class="o">-&gt;</span><span class="n">Emplace</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">gap</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// PREP SETS OF HITS</span>
+    <span class="c1">// ------------------</span>
+
+    <span class="c1">// PREP WC-FILTERED HITS</span>
+    <span class="n">_wcfilter</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_wcfilter</span><span class="p">.</span><span class="n">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;larmatch&quot;</span> <span class="p">);</span>
+    <span class="n">_wcfilter</span><span class="p">.</span><span class="n">set_output_filteredhits_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerfilterhit&quot;</span> <span class="p">);</span>
+    <span class="n">_wcfilter</span><span class="p">.</span><span class="n">set_save_rejected_hits</span><span class="p">(</span> <span class="nb">true</span> <span class="p">);</span>
+    <span class="n">_wcfilter</span><span class="p">.</span><span class="n">process_hits</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER</span>
+    <span class="c1">// input:</span>
+    <span class="c1">//  * image2d_ubspurn_planeX: ssnet (track,shower) scores</span>
+    <span class="c1">//  * larflow3dhit_larmatch_tree: output of KPS larmatch network</span>
+    <span class="c1">// output:</span>
+    <span class="c1">//  * larflow3dhit_showerhit_tree</span>
+    <span class="c1">//  * larflow3dhit_trackhit_tree</span>
+    <span class="n">_splithits_wcfilter</span><span class="p">.</span><span class="n">set_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerfilterhit&quot;</span> <span class="p">);</span>
+    <span class="n">_splithits_wcfilter</span><span class="p">.</span><span class="n">set_output_tree_stem_name</span><span class="p">(</span> <span class="s">&quot;ssnetsplit_wcfilter&quot;</span> <span class="p">);</span>
+    <span class="n">_splithits_wcfilter</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_input_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;ssnetsplit_wcfilter_trackhit&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_output_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;maxtrackhit_wcfilter&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_input_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;ssnetsplit_wcfilter_showerhit&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_output_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;maxshowerhit&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS</span>
+    <span class="n">_splithits_full</span><span class="p">.</span><span class="n">set_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerrejecthit&quot;</span> <span class="p">);</span>
+    <span class="n">_splithits_full</span><span class="p">.</span><span class="n">set_output_tree_stem_name</span><span class="p">(</span> <span class="s">&quot;ssnetsplit_full&quot;</span> <span class="p">);</span>
+    <span class="n">_splithits_full</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// PREP: MAX-SCORE REDUCTION ON COSMIC HITS</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_input_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;ssnetsplit_full_trackhit&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">set_output_larflow3dhit_treename</span><span class="p">(</span> <span class="s">&quot;full_maxtrackhit&quot;</span> <span class="p">);</span>
+    <span class="n">_choosemaxhit</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// Make keypoints</span>
+    <span class="n">recoKeypoints</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">false</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// for debug</span>
+      <span class="n">_ana_run</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">run</span><span class="p">();</span>
+      <span class="n">_ana_subrun</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">subrun</span><span class="p">();</span>
+      <span class="n">_ana_event</span>  <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">event</span><span class="p">();</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// FILTER KEYPOINTS: To be on clusters larger than X hits</span>
+    <span class="c1">// _kpfilter.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="c1">// _kpfilter.set_input_keypoint_tree_name( &quot;taggerfilterkeypoint&quot; );</span>
+    <span class="c1">// _kpfilter.set_input_larflowhits_tree_name( &quot;taggerfilterhit&quot; );</span>
+    <span class="c1">// _kpfilter.process( iolcv, ioll );</span>
+
+    <span class="c1">// PARTICLE FRAGMENT RECO</span>
+    <span class="n">recoParticles</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// COSMIC RECO</span>
+    <span class="n">_cosmic_track_builder</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="c1">//_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="n">_cosmic_track_builder</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_cosmic_track_builder</span><span class="p">.</span><span class="n">do_boundary_analysis</span><span class="p">(</span> <span class="nb">true</span> <span class="p">);</span>
+    <span class="n">_cosmic_track_builder</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// MULTI-PRONG INTERNAL RECO</span>
+    <span class="n">multiProngReco</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// Single particle interactions</span>
+
+    <span class="c1">// Copy larlite contents</span>
+    <span class="c1">// in-time opflash</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">ev_input_opflash_beam</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span><span class="s">&quot;simpleFlashBeam&quot;</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">evout_opflash_beam</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span><span class="s">&quot;simpleFlashBeam&quot;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">flash</span> <span class="p">:</span> <span class="o">*</span><span class="n">ev_input_opflash_beam</span> <span class="p">)</span>
+      <span class="n">evout_opflash_beam</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">flash</span> <span class="p">);</span>
+
+
+    <span class="c1">// Fill Ana Tree</span>
+    <span class="n">_ana_run</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">run</span><span class="p">();</span>
+    <span class="n">_ana_subrun</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">subrun</span><span class="p">();</span>
+    <span class="n">_ana_event</span>  <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">event</span><span class="p">();</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">recoKeypoints</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                      <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// KEYPOINT RECO: make keypoint candidates</span>
+    <span class="c1">//  * larflow3dhit_larmatch_tree: output of KPS larmatch network</span>
+    <span class="c1">// output:</span>
+    <span class="c1">//  * _kpreco.output_pt_v: container of KPCluster objects</span>
+
+    <span class="c1">// neutrino</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerfilterhit&quot;</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_sigma</span><span class="p">(</span> <span class="mf">10.0</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">50.0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">20.0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_larmatch_threshold</span><span class="p">(</span> <span class="mf">0.5</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_keypoint_type</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNuVertex</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">set_lfhit_score_index</span><span class="p">(</span> <span class="mi">13</span> <span class="p">);</span>
+    <span class="n">_kpreco_nu</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerfilterhit&quot;</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_sigma</span><span class="p">(</span> <span class="mf">10.0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">50.0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">20.0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_larmatch_threshold</span><span class="p">(</span> <span class="mf">0.5</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_keypoint_type</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kTrackEnds</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">set_lfhit_score_index</span><span class="p">(</span> <span class="mi">14</span> <span class="p">);</span>
+    <span class="n">_kpreco_track</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerfilterhit&quot;</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_sigma</span><span class="p">(</span> <span class="mf">10.0</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">50.0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">20.0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_larmatch_threshold</span><span class="p">(</span> <span class="mf">0.5</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_keypoint_type</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kShowerStart</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">set_lfhit_score_index</span><span class="p">(</span> <span class="mi">15</span> <span class="p">);</span>
+    <span class="n">_kpreco_shower</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="s">&quot;taggerrejecthit&quot;</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_output_tree_name</span><span class="p">(</span> <span class="s">&quot;keypointcosmic&quot;</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_sigma</span><span class="p">(</span> <span class="mf">50.0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">50.0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_max_dbscan_dist</span><span class="p">(</span> <span class="mf">10.0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_min_cluster_size</span><span class="p">(</span>   <span class="mf">20.0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_keypoint_threshold</span><span class="p">(</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_larmatch_threshold</span><span class="p">(</span> <span class="mf">0.5</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_keypoint_type</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kTrackEnds</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">set_lfhit_score_index</span><span class="p">(</span> <span class="mi">14</span> <span class="p">);</span>
+    <span class="n">_kpreco_track_cosmic</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">recoParticles</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                      <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+
+    <span class="c1">// TRACK 2-KP RECO: make tracks using pairs of keypoints</span>
+    <span class="c1">// input:</span>
+    <span class="c1">// * larflow3dhit_trackhit_tree: track hits from  SplitLArMatchHitsBySSNet</span>
+    <span class="c1">// output:</span>
+    <span class="c1">// * track_track2kp_tree: output tracks</span>
+    <span class="c1">// * larflow3dhit_keypoint_tree: copy of hits passed into algorithm</span>
+    <span class="c1">// _tracker2kp.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="c1">// _tracker2kp.set_larflow3dhit_tree_name( &quot;trackhit&quot; );</span>
+    <span class="c1">// _tracker2kp.set_keypoint_tree_name( &quot;keypoint_bigcluster&quot; );</span>
+    <span class="c1">// _tracker2kp.process( iolcv, ioll );</span>
+
+    <span class="c1">// TRACK PCA-CLUSTER: act on remaining clusters</span>
+    <span class="c1">//_pcacluster.set_input_larmatchhit_tree_name( &quot;track2kpunused&quot; );</span>
+    <span class="c1">//_pcacluster.set_input_larmatchhit_tree_name( &quot;trackhit&quot; );</span>
+    <span class="c1">//_pcacluster.process( iolcv, ioll );</span>
+
+    <span class="c1">// PRIMITIVE TRACK FRAGMENTS: WC-FILTER</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">_maxdist</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">_minsize</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">_maxkd</span>   <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+    <span class="c1">//_projsplitter.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="n">_projsplitter</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_projsplitter</span><span class="p">.</span><span class="n">set_dbscan_pars</span><span class="p">(</span> <span class="n">_maxdist</span><span class="p">,</span> <span class="n">_minsize</span><span class="p">,</span> <span class="n">_maxkd</span> <span class="p">);</span>
+    <span class="n">_projsplitter</span><span class="p">.</span><span class="n">set_input_larmatchhit_tree_name</span><span class="p">(</span> <span class="s">&quot;maxtrackhit_wcfilter&quot;</span> <span class="p">);</span>
+    <span class="n">_projsplitter</span><span class="p">.</span><span class="n">set_output_tree_name</span><span class="p">(</span><span class="s">&quot;trackprojsplit_wcfilter&quot;</span><span class="p">);</span>
+    <span class="n">_projsplitter</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS</span>
+    <span class="n">_projsplitter_cosmic</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_projsplitter_cosmic</span><span class="p">.</span><span class="n">set_input_larmatchhit_tree_name</span><span class="p">(</span> <span class="s">&quot;full_maxtrackhit&quot;</span> <span class="p">);</span>
+    <span class="n">_projsplitter_cosmic</span><span class="p">.</span><span class="n">set_output_tree_name</span><span class="p">(</span><span class="s">&quot;trackprojsplit_full&quot;</span><span class="p">);</span>
+    <span class="n">_projsplitter_cosmic</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// SHOWER 1-KP RECO: make shower using clusters and single keypoint</span>
+    <span class="n">_showerkp</span><span class="p">.</span><span class="n">set_ssnet_lfhit_tree_name</span><span class="p">(</span> <span class="s">&quot;maxshowerhit&quot;</span> <span class="p">);</span>
+    <span class="c1">//_showerkp.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="n">_showerkp</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_showerkp</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints</span>
+
+    <span class="c1">// SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">multiProngReco</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                       <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">//_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">add_keypoint_producer</span><span class="p">(</span> <span class="s">&quot;keypoint&quot;</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">add_cluster_producer</span><span class="p">(</span><span class="s">&quot;trackprojsplit_wcfilter&quot;</span><span class="p">,</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kTrack</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">add_cluster_producer</span><span class="p">(</span><span class="s">&quot;showerkp&quot;</span><span class="p">,</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShowerKP</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">add_cluster_producer</span><span class="p">(</span><span class="s">&quot;showergoodhit&quot;</span><span class="p">,</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShower</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">apply_cosmic_veto</span><span class="p">(</span> <span class="nb">true</span> <span class="p">);</span>
+    <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">_nu_track_builder</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_nu_track_builder</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span><span class="p">,</span> <span class="n">_nuvertexmaker</span><span class="p">.</span><span class="n">get_nu_candidates</span><span class="p">()</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KPSRecoManager</span><span class="o">::</span><span class="n">make_ana_file</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_ana_file</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TFile</span><span class="p">(</span><span class="n">_ana_output_file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;recreate&quot;</span><span class="p">);</span>
+    <span class="n">_ana_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;KPSRecoManagerTree&quot;</span><span class="p">,</span><span class="s">&quot;Ana Output of KPSRecoManager algorithms&quot;</span><span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;run&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_run</span><span class="p">,</span><span class="s">&quot;run/I&quot;</span><span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;subrun&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_subrun</span><span class="p">,</span><span class="s">&quot;subrun/I&quot;</span><span class="p">);</span>
+    <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;event&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_event</span><span class="p">,</span><span class="s">&quot;event/I&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1TrackReco2KP_1_1KPInfo__t:
+
+Struct TrackReco2KP::KPInfo_t
+=============================
+
+- Defined in :ref:`file_larflow_Reco_TrackReco2KP.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1TrackReco2KP`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::TrackReco2KP::KPInfo_t
+   :members:
+   :protected-members:
+   :undoc-members:

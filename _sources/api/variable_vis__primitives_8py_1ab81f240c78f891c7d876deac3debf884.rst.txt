@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1ab81f240c78f891c7d876deac3debf884:
+
+Variable vis_primitives::HAS_MC
+===============================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::HAS_MC

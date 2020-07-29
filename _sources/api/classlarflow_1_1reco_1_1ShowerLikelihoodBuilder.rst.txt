@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1ShowerLikelihoodBuilder:
+
+Class ShowerLikelihoodBuilder
+=============================
+
+- Defined in :ref:`file_larflow_Reco_ShowerLikelihoodBuilder.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::ShowerLikelihoodBuilder
+   :members:
+   :protected-members:
+   :undoc-members:

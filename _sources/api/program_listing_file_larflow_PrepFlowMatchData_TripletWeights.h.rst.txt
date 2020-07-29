@@ -1,0 +1,26 @@
+
+.. _program_listing_file_larflow_PrepFlowMatchData_TripletWeights.h:
+
+Program Listing for File TripletWeights.h
+=========================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_PrepFlowMatchData_TripletWeights.h>` (``larflow/PrepFlowMatchData/TripletWeights.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   
+   namespace larflow {
+   namespace prepdata {
+   
+     void calculate_weight_from_mc( const larlite::event_mctrack&, const larlite::event_mcshower&,
+                                    const std::vector<larcv::Image2D>& instance_img,
+                                    const std::vector<larcv::Image2D>& ancestor_img,
+                                    const std::vector<larcv::Image2D>& segment_img,
+                                    PrepMatchTriplets& triplet_data );
+   
+   
+   
+   }
+   }

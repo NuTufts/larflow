@@ -1,0 +1,87 @@
+
+.. _file_larflow_KeyPoints_PrepKeypointData.cxx:
+
+File PrepKeypointData.cxx
+=========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_KeyPoints>` (``larflow/KeyPoints``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/KeyPoints/PrepKeypointData.cxx``)
+-------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_KeyPoints_PrepKeypointData.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/mcshower.h``
+
+- ``DataFormat/mctrack.h``
+
+- ``DataFormat/mctruth.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``LArUtil/Geometry.h``
+
+- ``LArUtil/LArProperties.h``
+
+- ``LArUtil/SpaceChargeMicroBooNE.h``
+
+- ``PrepKeypointData.h`` (:ref:`file_larflow_KeyPoints_PrepKeypointData.h`)
+
+- ``TH2D.h``
+
+- ``algorithm``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``larcv/core/DataFormat/Image2D.h``
+
+- ``numpy/ndarrayobject.h``
+
+- ``queue``
+
+- ``sstream``
+
+- ``ublarcvapp/MCTools/MCPixelPGraph.h``
+
+- ``ublarcvapp/MCTools/crossingPointsAnaMethods.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__keypoints`
+
+
+Defines
+-------
+
+
+- :ref:`exhale_define_PrepKeypointData_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a`
+

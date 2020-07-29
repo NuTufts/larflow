@@ -1,0 +1,75 @@
+
+.. _file_larflow_Reco_ChooseMaxLArFlowHit.h:
+
+File ChooseMaxLArFlowHit.h
+==========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/ChooseMaxLArFlowHit.h``)
+---------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_ChooseMaxLArFlowHit.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``map``
+
+- ``string``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_ChooseMaxLArFlowHit.cxx`
+
+- :ref:`file_larflow_Reco_KPSRecoManager.h`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t`
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1ChooseMaxLArFlowHit`
+

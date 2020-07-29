@@ -1,0 +1,13 @@
+.. _exhale_function_vis__voxels_8py_1acc6914a1f4f64ca592b58659c9705993:
+
+Function vis_voxels::cb_render
+==============================
+
+- Defined in :ref:`file_larflow_Voxelizer_test_vis_voxels.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_voxels::cb_render(vals)

@@ -1,0 +1,13 @@
+.. _exhale_function_TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d:
+
+Function larflow::prepdata::calculate_weight_from_mc
+====================================================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_TripletWeights.h`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::prepdata::calculate_weight_from_mc(const larlite::event_mctrack&, const larlite::event_mcshower&, const std::vector<larcv::Image2D>&, const std::vector<larcv::Image2D>&, const std::vector<larcv::Image2D>&, PrepMatchTriplets&)

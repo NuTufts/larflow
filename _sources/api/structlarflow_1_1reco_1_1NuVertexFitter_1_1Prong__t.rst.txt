@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t:
+
+Struct NuVertexFitter::Prong_t
+==============================
+
+- Defined in :ref:`file_larflow_Reco_NuVertexFitter.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1NuVertexFitter`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::NuVertexFitter::Prong_t
+   :members:
+   :protected-members:
+   :undoc-members:

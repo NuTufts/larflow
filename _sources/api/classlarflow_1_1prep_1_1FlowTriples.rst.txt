@@ -1,0 +1,26 @@
+.. _exhale_class_classlarflow_1_1prep_1_1FlowTriples:
+
+Class FlowTriples
+=================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_FlowTriples.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::prep::FlowTriples
+   :members:
+   :protected-members:
+   :undoc-members:

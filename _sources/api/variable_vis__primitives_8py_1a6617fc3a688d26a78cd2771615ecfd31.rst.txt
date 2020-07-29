@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1a6617fc3a688d26a78cd2771615ecfd31:
+
+Variable vis_primitives::layout
+===============================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::layout

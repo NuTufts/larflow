@@ -1,0 +1,42 @@
+
+.. _program_listing_file_larflow_Reco_PyLArFlow.h:
+
+Program Listing for File PyLArFlow.h
+====================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_PyLArFlow.h>` (``larflow/Reco/PyLArFlow.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __PY_LARFLOW_H__
+   #define __PY_LARFLOW_H__
+   
+   #include <Python.h>
+   #include <vector>
+   #include "DataFormat/larflowcluster.h"
+   
+   namespace larflow {
+   namespace reco {
+   
+     class PyLArFlow {
+     public:
+       PyLArFlow();
+       virtual ~PyLArFlow() {};
+       
+       static PyObject* as_ndarray_larflowcluster_wcharge( const larlite::larflowcluster& lfcluster );
+       static PyObject* as_ndarray_larflowcluster_wssnet(  const larlite::larflowcluster& lfcluster );
+       static PyObject* as_ndarray_larflowcluster_wprob(   const larlite::larflowcluster& lfcluster );  
+       static PyObject* as_ndarray_larflowcluster_wdeadch( const larlite::larflowcluster& lfcluster );    
+   
+       static PyLArFlow _g_instance; 
+       static bool      _g_once;     
+     protected:
+       static int import_ndarray();  
+     };
+   
+   }
+   }
+   
+   #endif

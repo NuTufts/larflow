@@ -1,0 +1,470 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PyFlowMatchData.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PyFlowMatchData.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_arxiv_PyFlowMatchData.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-pyflowmatchdata-cxx">
+<span id="program-listing-file-larflow-prepflowmatchdata-arxiv-pyflowmatchdata-cxx"></span><h1>Program Listing for File PyFlowMatchData.cxx<a class="headerlink" href="#program-listing-for-file-pyflowmatchdata-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_arxiv_PyFlowMatchData.cxx.html#file-larflow-prepflowmatchdata-arxiv-pyflowmatchdata-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/arxiv/PyFlowMatchData.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PyFlowMatchData.hh&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;numpy/ndarrayobject.h&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;algorithm&gt;    // std::shuffle</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;random&gt;       // std::default_random_engine</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;chrono&gt;       // std::chrono::system_clock</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/PyUtil/PyUtils.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Base/larcv_logger.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;core/LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;core/LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">sample_pair_array</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsamples</span><span class="p">,</span> <span class="k">const</span> <span class="n">FlowMatchMap</span><span class="o">&amp;</span> <span class="n">matchdata</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nfilled</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">//larcv::SetPyUtil();</span>
+    <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+    <span class="kt">size_t</span> <span class="n">nsource_indices</span> <span class="o">=</span> <span class="n">matchdata</span><span class="p">.</span><span class="n">nsourceIndices</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">nsource_indices</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nsource_indices</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="n">seed</span> <span class="o">=</span>  <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">().</span><span class="n">time_since_epoch</span><span class="p">().</span><span class="n">count</span><span class="p">();</span>
+    <span class="n">shuffle</span> <span class="p">(</span><span class="n">idx_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">idx_v</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">default_random_engine</span><span class="p">(</span><span class="n">seed</span><span class="p">));</span>
+
+    <span class="kt">int</span> <span class="n">num_source_pixels</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nf">_make_pair_array</span><span class="p">(</span> <span class="n">matchdata</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nsamples</span><span class="p">,</span> <span class="n">num_source_pixels</span><span class="p">,</span> <span class="n">nfilled</span><span class="p">,</span> <span class="n">withtruth</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">get_chunk_pair_array</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">start_source_pixel_index</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">max_num_pairs</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">FlowMatchMap</span><span class="o">&amp;</span> <span class="n">matchdata</span><span class="p">,</span>
+                                  <span class="kt">int</span><span class="o">&amp;</span> <span class="n">last_source_pixel_index</span><span class="p">,</span>
+                                  <span class="kt">int</span><span class="o">&amp;</span> <span class="n">num_pairs_filled</span><span class="p">,</span>
+                                  <span class="kt">bool</span> <span class="n">with_truth</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// how many source pixels are in the matchmap</span>
+    <span class="kt">size_t</span> <span class="n">nsource_indices</span> <span class="o">=</span> <span class="n">matchdata</span><span class="p">.</span><span class="n">nsourceIndices</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nsource_indices</span> <span class="o">&lt;=</span> <span class="n">start_source_pixel_index</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;[PyFlowMatchData.cxx:get_chunk_pair_array] starting source pixel index bigger than number of source pixels&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">size_t</span> <span class="n">num_indices</span> <span class="o">=</span> <span class="n">nsource_indices</span><span class="o">-</span><span class="n">start_source_pixel_index</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">idx_v</span><span class="p">(</span> <span class="n">num_indices</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">num_indices</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_source_pixel_index</span><span class="o">+</span><span class="n">i</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">num_pairs_filled</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nf">_make_pair_array</span><span class="p">(</span> <span class="n">matchdata</span><span class="p">,</span> <span class="n">idx_v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">max_num_pairs</span><span class="p">,</span> <span class="n">last_source_pixel_index</span><span class="p">,</span> <span class="n">num_pairs_filled</span><span class="p">,</span> <span class="n">with_truth</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">_make_pair_array</span><span class="p">(</span> <span class="k">const</span> <span class="n">FlowMatchMap</span><span class="o">&amp;</span> <span class="n">matchdata</span><span class="p">,</span>
+                              <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&amp;</span> <span class="n">idx_v</span><span class="p">,</span>
+                              <span class="k">const</span> <span class="kt">int</span> <span class="n">start_idx</span><span class="p">,</span>
+                              <span class="k">const</span> <span class="kt">int</span> <span class="n">max_num_pairs</span><span class="p">,</span>
+                              <span class="kt">int</span><span class="o">&amp;</span> <span class="n">nsource_pixels_covered</span><span class="p">,</span>
+                              <span class="kt">int</span><span class="o">&amp;</span> <span class="n">num_pairs_filled</span><span class="p">,</span>
+                              <span class="kt">bool</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+    <span class="n">npy_intp</span><span class="o">*</span> <span class="n">dims</span> <span class="o">=</span> <span class="k">new</span> <span class="n">npy_intp</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_num_pairs</span><span class="p">;</span>
+
+    <span class="c1">// if we want truth, we include additional value with 1=correct match, 0=false</span>
+    <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">withtruth</span><span class="p">)</span> <span class="o">?</span> <span class="mi">3</span> <span class="o">:</span> <span class="mi">2</span><span class="p">;</span>
+
+    <span class="c1">// output array</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_LONG</span> <span class="p">);</span>
+
+    <span class="c1">// number of pairs we&#39;ve stored</span>
+    <span class="n">num_pairs_filled</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="c1">// number of source pixels we&#39;ve used</span>
+    <span class="n">nsource_pixels_covered</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">isrc</span><span class="o">=</span><span class="n">start_idx</span><span class="p">;</span> <span class="n">isrc</span><span class="o">&lt;</span><span class="n">idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">isrc</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">size_t</span> <span class="n">srcidx</span> <span class="o">=</span> <span class="n">idx_v</span><span class="p">[</span><span class="n">isrc</span><span class="p">];</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">target_v</span> <span class="o">=</span> <span class="n">matchdata</span><span class="p">.</span><span class="n">getTargetIndices</span><span class="p">(</span><span class="n">srcidx</span><span class="p">);</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;*</span> <span class="n">truth_v</span>  <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="n">truth_v</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">matchdata</span><span class="p">.</span><span class="n">getTruthVector</span><span class="p">(</span><span class="n">srcidx</span><span class="p">);</span>
+
+      <span class="c1">// number of pairs for this source pixel</span>
+      <span class="kt">size_t</span> <span class="n">numpairs</span> <span class="o">=</span> <span class="n">target_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">num_pairs_filled</span><span class="o">+</span><span class="n">numpairs</span><span class="o">&gt;</span><span class="n">max_num_pairs</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// if filling these pairs leads to an incomplete sample,</span>
+        <span class="c1">// we stop</span>
+        <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;  srcidx=&quot; &lt;&lt; srcidx &lt;&lt; &quot;: number of target indices=&quot; &lt;&lt; target_v.size() &lt;&lt; &quot; nfilled=&quot; &lt;&lt; nfilled &lt;&lt; std::endl;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itar</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itar</span><span class="o">&lt;</span><span class="n">target_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itar</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">taridx</span> <span class="o">=</span> <span class="n">target_v</span><span class="p">[</span><span class="n">itar</span><span class="p">];</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">num_pairs_filled</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">srcidx</span><span class="p">;</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">num_pairs_filled</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">taridx</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">withtruth</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">num_pairs_filled</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">truth_v</span><span class="p">)[</span><span class="n">itar</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="n">num_pairs_filled</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">num_pairs_filled</span><span class="o">==</span><span class="n">max_num_pairs</span><span class="p">)</span>
+          <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">nsource_pixels_covered</span><span class="o">++</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">num_pairs_filled</span><span class="o">==</span><span class="n">max_num_pairs</span> <span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span><span class="c1">//end of indices loop</span>
+
+    <span class="c1">// zero rest of array</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">num_pairs_filled</span><span class="o">&lt;</span><span class="n">max_num_pairs</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="n">num_pairs_filled</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">max_num_pairs</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span> <span class="n">array</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// return the array</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">make_larflow_hits</span><span class="p">(</span> <span class="n">PyObject</span><span class="o">*</span> <span class="n">pair_probs</span><span class="p">,</span>
+                          <span class="n">PyObject</span><span class="o">*</span> <span class="n">source_sparseimg</span><span class="p">,</span> <span class="n">PyObject</span><span class="o">*</span> <span class="n">target_sparseimg</span><span class="p">,</span>
+                          <span class="n">PyObject</span><span class="o">*</span> <span class="n">matchpairs</span><span class="p">,</span>
+                          <span class="k">const</span> <span class="kt">int</span> <span class="n">source_plane</span><span class="p">,</span>
+                          <span class="k">const</span> <span class="kt">int</span> <span class="n">target_plane</span><span class="p">,</span>
+                          <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">source_meta</span><span class="p">,</span>
+                          <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+                          <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                          <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span> <span class="n">ev_chstatus</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">SetPyUtil</span><span class="p">();</span>
+
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">NPY_FLOAT</span><span class="p">;</span>
+    <span class="n">PyArray_Descr</span> <span class="o">*</span><span class="n">descr</span> <span class="o">=</span> <span class="n">PyArray_DescrFromType</span><span class="p">(</span><span class="n">dtype</span><span class="p">);</span>
+
+    <span class="n">npy_intp</span> <span class="n">pair_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="o">**</span><span class="n">probs_carray</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">PyArray_AsCArray</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">pair_probs</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">probs_carray</span><span class="p">,</span> <span class="n">pair_dims</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">descr</span> <span class="p">)</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;PyFlowMatchData::make_larflow_hits&quot;</span><span class="p">).</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kCRITICAL</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">,</span> <span class="s">&quot;cannot get carray for pair prob matrix&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">npy_intp</span> <span class="n">source_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="o">**</span><span class="n">source_carray</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">PyArray_AsCArray</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">source_sparseimg</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">source_carray</span><span class="p">,</span> <span class="n">source_dims</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">descr</span> <span class="p">)</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;PyFlowMatchData::make_larflow_hits&quot;</span><span class="p">).</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kCRITICAL</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">,</span> <span class="s">&quot;cannot get carray for source sparse-image matrix&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">npy_intp</span> <span class="n">target_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="o">**</span><span class="n">target_carray</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">PyArray_AsCArray</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">target_sparseimg</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">target_carray</span><span class="p">,</span> <span class="n">target_dims</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">descr</span> <span class="p">)</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;PyFlowMatchData::make_larflow_hits&quot;</span><span class="p">).</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kCRITICAL</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">,</span> <span class="s">&quot;cannot get carray for target sparse-image matrix&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">npy_intp</span> <span class="n">match_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">long</span> <span class="o">**</span><span class="n">matchpairs_carray</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">PyArray_AsCArray</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">matchpairs</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">matchpairs_carray</span><span class="p">,</span> <span class="n">match_dims</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">PyArray_DescrFromType</span><span class="p">(</span><span class="n">NPY_LONG</span><span class="p">)</span> <span class="p">)</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;PyFlowMatchData::make_larflow_hits&quot;</span><span class="p">).</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kCRITICAL</span><span class="p">,</span><span class="n">__FUNCTION__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">,</span> <span class="s">&quot;cannot get carray for match pair matrix&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// std::cout &lt;&lt; &quot;match matrix:  (&quot; &lt;&lt; match_dims[0]  &lt;&lt; &quot;,&quot; &lt;&lt; match_dims[1]  &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;prob matrix:   (&quot; &lt;&lt; pair_dims[0]   &lt;&lt; &quot;,&quot; &lt;&lt; pair_dims[1]   &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;source matrix: (&quot; &lt;&lt; source_dims[0] &lt;&lt; &quot;,&quot; &lt;&lt; source_dims[1] &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+    <span class="c1">// std::cout &lt;&lt; &quot;target matrix: (&quot; &lt;&lt; target_dims[0] &lt;&lt; &quot;,&quot; &lt;&lt; target_dims[1] &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">cm_per_tick</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">*</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">other_plane</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">source_plane</span><span class="o">==</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">other_plane</span> <span class="o">=</span> <span class="p">(</span> <span class="n">target_plane</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">source_plane</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">other_plane</span> <span class="o">=</span> <span class="p">(</span> <span class="n">target_plane</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="o">?</span> <span class="mi">2</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">source_plane</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">other_plane</span> <span class="o">=</span> <span class="p">(</span> <span class="n">target_plane</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="o">?</span> <span class="mi">2</span> <span class="o">:</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ipair</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipair</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">pair_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="n">ipair</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">float</span> <span class="n">prob</span> <span class="o">=</span> <span class="n">probs_carray</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">ipair</span><span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">prob</span><span class="o">&lt;</span><span class="mf">0.5</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="kt">int</span> <span class="n">srcidx</span> <span class="o">=</span> <span class="n">matchpairs_carray</span><span class="p">[</span><span class="n">ipair</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">taridx</span> <span class="o">=</span> <span class="n">matchpairs_carray</span><span class="p">[</span><span class="n">ipair</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">srccol</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">source_carray</span><span class="p">[</span><span class="n">srcidx</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">srcrow</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">source_carray</span><span class="p">[</span><span class="n">srcidx</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+      <span class="kt">int</span> <span class="n">tarcol</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">target_carray</span><span class="p">[</span><span class="n">taridx</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+      <span class="c1">//int tarrow = (int)target_carray[taridx][0];</span>
+
+      <span class="kt">float</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">source_meta</span><span class="p">.</span><span class="n">pos_y</span><span class="p">(</span> <span class="n">srcrow</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">tick</span><span class="o">-</span><span class="mf">3200.0</span><span class="p">)</span><span class="o">*</span><span class="n">cm_per_tick</span><span class="p">;</span>
+      <span class="kt">double</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">;</span>
+      <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">IntersectionPoint</span><span class="p">(</span> <span class="n">srccol</span><span class="p">,</span> <span class="n">tarcol</span><span class="p">,</span> <span class="p">(</span><span class="n">UChar_t</span><span class="p">)</span><span class="n">source_plane</span><span class="p">,</span> <span class="p">(</span><span class="n">UChar_t</span><span class="p">)</span><span class="n">target_plane</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">);</span>
+
+      <span class="n">Double_t</span> <span class="n">pos</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+      <span class="kt">float</span> <span class="n">other_wire</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">pos</span><span class="p">,</span> <span class="n">other_plane</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">other_adc</span>  <span class="o">=</span> <span class="n">img_v</span><span class="p">[</span><span class="n">other_plane</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">srcrow</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">other_wire</span> <span class="p">);</span>
+
+      <span class="kt">bool</span> <span class="n">indead</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">other_adc</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">ev_chstatus</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// if event chstatus pointer is not null, we check the ch status</span>
+        <span class="kt">int</span> <span class="n">chstatus</span> <span class="o">=</span> <span class="n">ev_chstatus</span><span class="o">-&gt;</span><span class="n">Status</span><span class="p">(</span> <span class="n">other_plane</span> <span class="p">).</span><span class="n">Status</span><span class="p">(</span> <span class="n">other_wire</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">chstatus</span><span class="o">==</span><span class="mi">4</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// good, so we ignore this match</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">indead</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="n">lfhit</span><span class="p">;</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">srcwire</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span><span class="n">srccol</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">target_plane</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">flowdir</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kY2U</span><span class="p">;</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tarcol</span><span class="p">;</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">other_wire</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">flowdir</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kY2V</span><span class="p">;</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">other_wire</span><span class="p">;</span>
+        <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tarcol</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span><span class="p">;</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+      <span class="n">lfhit</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">;</span>
+      <span class="n">lfhit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span><span class="p">;</span>
+
+      <span class="c1">// if we are in the dead region, we put the score between 0-0.5</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">track_score</span> <span class="o">=</span> <span class="p">(</span><span class="o">!</span><span class="n">indead</span><span class="p">)</span> <span class="o">?</span> <span class="nl">prob</span> <span class="p">:</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">prob</span><span class="p">;</span>
+
+      <span class="n">hit_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfhit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">make_larflow_hits_with_deadchs</span><span class="p">(</span> <span class="n">PyObject</span><span class="o">*</span> <span class="n">pair_probs</span><span class="p">,</span>
+                                       <span class="n">PyObject</span><span class="o">*</span> <span class="n">source_sparseimg</span><span class="p">,</span> <span class="n">PyObject</span><span class="o">*</span> <span class="n">target_sparseimg</span><span class="p">,</span>
+                                       <span class="n">PyObject</span><span class="o">*</span> <span class="n">matchpairs</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="kt">int</span> <span class="n">source_plane</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="kt">int</span> <span class="n">target_plane</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">source_meta</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">&amp;</span> <span class="n">ev_chstatus</span><span class="p">,</span>
+                                       <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">&amp;</span> <span class="n">hit_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">make_larflow_hits</span><span class="p">(</span> <span class="n">pair_probs</span><span class="p">,</span>
+                       <span class="n">source_sparseimg</span><span class="p">,</span> <span class="n">target_sparseimg</span><span class="p">,</span>
+                       <span class="n">matchpairs</span><span class="p">,</span>
+                       <span class="n">source_plane</span><span class="p">,</span>
+                       <span class="n">target_plane</span><span class="p">,</span>
+                       <span class="n">source_meta</span><span class="p">,</span>
+                       <span class="n">img_v</span><span class="p">,</span> <span class="n">hit_v</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ev_chstatus</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

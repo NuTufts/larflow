@@ -1,0 +1,884 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File CRTHitMatch.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File CRTHitMatch.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_CRTMatch_CRTHitMatch.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-crthitmatch-cxx">
+<span id="program-listing-file-larflow-crtmatch-crthitmatch-cxx"></span><h1>Program Listing for File CRTHitMatch.cxx<a class="headerlink" href="#program-listing-for-file-crthitmatch-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_CRTMatch_CRTHitMatch.cxx.html#file-larflow-crtmatch-crthitmatch-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/CRTMatch/CRTHitMatch.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;CRTHitMatch.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/cluster_functions.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TRandom2.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">crtmatch</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">clear</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="c1">// input containers</span>
+    <span class="n">_intime_opflash_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_outtime_opflash_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_crthit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_crttrack_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_lfcluster_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_pcaxis_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_hit2track_rank_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_all_rank_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// output containers</span>
+    <span class="n">_matched_hitidx</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_flash_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_match_hit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_matched_cluster</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_matched_cluster_t</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_matched_opflash_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_used_tracks_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">addIntimeOpFlashes</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">&amp;</span> <span class="n">opflash_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">opf</span> <span class="p">:</span> <span class="n">opflash_v</span> <span class="p">)</span>
+      <span class="n">_intime_opflash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">opf</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">addCosmicOpFlashes</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">&amp;</span> <span class="n">opflash_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">opf</span> <span class="p">:</span> <span class="n">opflash_v</span> <span class="p">)</span>
+      <span class="n">_outtime_opflash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">opf</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">addCRThits</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_crthit</span><span class="o">&amp;</span> <span class="n">crthit_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">crthit_v</span> <span class="p">)</span>
+      <span class="n">_crthit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">addCRTtracks</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_crttrack</span><span class="o">&amp;</span> <span class="n">crttrack_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">track</span> <span class="p">:</span> <span class="n">_crttrack_v</span> <span class="p">)</span>
+      <span class="n">_crttrack_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">track</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">addLArFlowClusters</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">&amp;</span> <span class="n">lfcluster_v</span><span class="p">,</span>
+                                        <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">&amp;</span> <span class="n">pcaxis_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">lfcluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_lfcluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">cluster</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pca</span> <span class="p">:</span> <span class="n">pcaxis_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_pcaxis_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">pca</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">llio</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">clear</span><span class="p">();</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">beamflash</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">llio</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span> <span class="s">&quot;simpleFlashBeam&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">cosmicflash</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">llio</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span> <span class="s">&quot;simpleFlashCosmic&quot;</span> <span class="p">);</span>
+    <span class="n">addIntimeOpFlashes</span><span class="p">(</span> <span class="o">*</span><span class="n">beamflash</span> <span class="p">);</span>
+    <span class="n">addCosmicOpFlashes</span><span class="p">(</span> <span class="o">*</span><span class="n">cosmicflash</span> <span class="p">);</span>
+
+    <span class="c1">// get crt hits</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_crthit</span><span class="o">*</span> <span class="n">crthit_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_crthit</span><span class="o">*</span><span class="p">)</span><span class="n">llio</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kCRTHit</span><span class="p">,</span> <span class="s">&quot;crthitcorr&quot;</span> <span class="p">);</span>
+    <span class="n">addCRThits</span><span class="p">(</span> <span class="o">*</span><span class="n">crthit_v</span> <span class="p">);</span>
+
+    <span class="c1">// get clusters</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">lfclusters_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">llio</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span>
+                                                       <span class="n">_input_cluster_treename</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">pcaxis_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">llio</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span>
+                                               <span class="n">_input_pcaxis_treename</span> <span class="p">);</span>
+    <span class="n">addLArFlowClusters</span><span class="p">(</span> <span class="o">*</span><span class="n">lfclusters_v</span><span class="p">,</span> <span class="o">*</span><span class="n">pcaxis_v</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">test_v</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">icluster</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">plfcluster</span> <span class="p">:</span> <span class="n">_lfcluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[convert cluster &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">icluster</span>  <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">c</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="o">*</span><span class="n">plfcluster</span> <span class="p">);</span>
+      <span class="n">test_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">icluster</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;passed conversion test&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nf">makeMatches</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">makeMatches</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="c1">// compile matches</span>
+    <span class="n">compilematches</span><span class="p">();</span>
+
+    <span class="n">_used_tracks_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">_lfcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="c1">// process matches in greedy fashion</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">m</span> <span class="p">:</span> <span class="n">_all_rank_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// get index of crt hit of this match</span>
+      <span class="kt">int</span> <span class="n">crthitidx</span> <span class="o">=</span> <span class="n">m</span><span class="p">.</span><span class="n">hitidx</span><span class="p">;</span>
+
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">hit_matches_v</span> <span class="o">=</span> <span class="n">_hit2track_rank_v</span><span class="p">[</span> <span class="n">crthitidx</span> <span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hit_matches_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// shouldn&#39;t happen</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hit_matches_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// if track already used. skip</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">_used_tracks_v</span><span class="p">[</span> <span class="n">m</span><span class="p">.</span><span class="n">trackidx</span> <span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// if not, make the match</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; store single crt-hit to cluster match products&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">_matched_hitidx</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">crthitidx</span> <span class="p">);</span>
+        <span class="c1">// create a copy</span>
+        <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span>  <span class="n">lfc</span>   <span class="o">=</span> <span class="o">*</span><span class="n">_lfcluster_v</span><span class="p">[</span> <span class="n">m</span><span class="p">.</span><span class="n">trackidx</span> <span class="p">];</span> <span class="c1">// create a copy</span>
+        <span class="n">_matched_cluster</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfc</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">_used_tracks_v</span><span class="p">[</span> <span class="n">m</span><span class="p">.</span><span class="n">trackidx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// more than 1, attempt a merge</span>
+
+        <span class="c1">// set the usage vector for these matches</span>
+        <span class="kt">bool</span> <span class="n">has_unused</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_track_v</span><span class="p">(</span> <span class="n">hit_matches_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">hit_matches_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">used_track_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_used_tracks_v</span><span class="p">[</span> <span class="n">hit_matches_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">trackidx</span> <span class="p">];</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">used_track_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+            <span class="n">has_unused</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">has_unused</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">bool</span> <span class="n">performed_merge</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+          <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">merge</span> <span class="o">=</span> <span class="n">_merge_matched_cluster</span><span class="p">(</span> <span class="n">hit_matches_v</span><span class="p">,</span>
+                                                                  <span class="n">used_track_v</span><span class="p">,</span>
+                                                                  <span class="n">performed_merge</span> <span class="p">);</span>
+
+          <span class="c1">// make match based on merge result</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">performed_merge</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">clout</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">merge</span> <span class="p">);</span>
+            <span class="n">_matched_hitidx</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">crthitidx</span> <span class="p">);</span>
+            <span class="n">_matched_cluster</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">merge</span> <span class="p">);</span>
+            <span class="n">_used_tracks_v</span><span class="p">[</span> <span class="n">m</span><span class="p">.</span><span class="n">trackidx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;store merged clusters&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+
+
+    <span class="p">}</span><span class="c1">//end of loop over all rank matches</span>
+
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of crt-hit to track matches: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_matched_cluster</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// apply t0 offset to clusters</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">imatch</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">imatch</span><span class="o">&lt;</span><span class="n">_matched_hitidx</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">imatch</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">hitidx</span> <span class="o">=</span> <span class="n">_matched_hitidx</span><span class="p">[</span> <span class="n">imatch</span> <span class="p">];</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">crthit</span> <span class="o">=</span> <span class="n">_crthit_v</span><span class="p">[</span> <span class="n">hitidx</span> <span class="p">];</span>
+      <span class="k">auto</span><span class="o">&amp;</span>  <span class="n">lfc</span> <span class="o">=</span> <span class="n">_matched_cluster</span><span class="p">[</span> <span class="n">imatch</span> <span class="p">];</span>
+      <span class="kt">float</span> <span class="n">xoffset</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">*</span><span class="p">(</span> <span class="n">crthit</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">0.001</span> <span class="p">);</span>
+      <span class="c1">// we need to t0 subtract the points</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">lfc</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">xoffset</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="c1">// store cluster_t for modified larflow cluster</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">clout</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfc</span> <span class="p">);</span>
+      <span class="n">_matched_cluster_t</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">clout</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// now match CRT hits with tracks to opflashes</span>
+    <span class="c1">// make list of flashes</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">flash</span> <span class="p">:</span> <span class="n">_intime_opflash_v</span> <span class="p">)</span>
+      <span class="n">_flash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">flash</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">flash</span> <span class="p">:</span> <span class="n">_outtime_opflash_v</span> <span class="p">)</span>
+      <span class="n">_flash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">flash</span> <span class="p">);</span>
+    <span class="c1">// make list of crt hits with matches</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hitidx</span> <span class="p">:</span> <span class="n">_matched_hitidx</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_match_hit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">_crthit_v</span><span class="p">[</span> <span class="n">hitidx</span> <span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">_matchOpflashes</span><span class="p">(</span> <span class="n">_flash_v</span><span class="p">,</span> <span class="n">_match_hit_v</span><span class="p">,</span> <span class="n">_matched_cluster</span><span class="p">,</span> <span class="n">_matched_opflash_v</span> <span class="p">);</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">compilematches</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="n">_hit2track_rank_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">_crthit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// plane positions</span>
+    <span class="kt">float</span> <span class="n">crt_plane_pos</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="o">-</span><span class="mf">261.606</span><span class="p">,</span> <span class="o">-</span><span class="mf">142.484</span><span class="p">,</span> <span class="mf">393.016</span><span class="p">,</span> <span class="mf">618.25</span> <span class="p">};</span> <span class="c1">// bottom, side, side, top</span>
+
+    <span class="c1">//larlite::event_pcaxis* ev_pcaout = (larlite::event_pcaxis*)outio.get_data( larlite::data::kPCAxis, &quot;crtmatch&quot; );</span>
+
+    <span class="c1">// loop over larflow tracks, assign it to the best hit in each CRT plane</span>
+    <span class="c1">// we are filling out _hit2track_rank_v[ hit index ] -&gt; list of track indices</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;==============================&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; Start match function&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_pcaxis_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="n">_lfcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span> <span class="s">&quot;number of clusters and pc axis do not match&quot;</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="n">_pcaxis_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// represent track and its direction with its pc axis</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">pca</span> <span class="o">=</span> <span class="o">*</span><span class="n">_pcaxis_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">];</span>
+
+      <span class="c1">// enforce minimum length</span>
+      <span class="kt">float</span> <span class="n">len</span> <span class="o">=</span> <span class="n">getLength</span><span class="p">(</span><span class="n">pca</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">len</span><span class="o">&lt;</span><span class="mf">5.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="c1">// allocate vars for best intersection for each CRT plane</span>
+      <span class="kt">float</span> <span class="n">min_dist</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>  <span class="o">=</span> <span class="p">{</span> <span class="mf">1.0e9</span><span class="p">,</span> <span class="mf">1.0e9</span><span class="p">,</span> <span class="mf">1.0e9</span><span class="p">,</span> <span class="mf">1.0e9</span> <span class="p">};</span>
+      <span class="kt">int</span> <span class="n">best_hitidx</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+
+      <span class="c1">// loop over crt hits</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">jhit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">jhit</span><span class="o">&lt;</span><span class="n">_crthit_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">jhit</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">crthit</span> <span class="o">=</span> <span class="n">_crthit_v</span><span class="p">[</span><span class="n">jhit</span><span class="p">];</span>
+        <span class="kt">int</span> <span class="n">crtplane</span> <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">plane</span><span class="p">;</span>
+
+        <span class="c1">// calculate distance to crt hit and position of intersection on the panel</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">panel_pos</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">makeOneMatch</span><span class="p">(</span> <span class="n">pca</span><span class="p">,</span> <span class="n">crthit</span><span class="p">,</span> <span class="n">panel_pos</span> <span class="p">);</span>
+
+        <span class="c1">// update closest hit on the plane</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">dist</span><span class="o">&lt;</span><span class="n">min_dist</span><span class="p">[</span><span class="n">crtplane</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">min_dist</span><span class="p">[</span><span class="n">crtplane</span><span class="p">]</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+          <span class="n">best_hitidx</span><span class="p">[</span><span class="n">crtplane</span><span class="p">]</span> <span class="o">=</span> <span class="n">jhit</span><span class="p">;</span>
+          <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">crtplane</span><span class="p">]</span> <span class="o">=</span> <span class="n">panel_pos</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//end of hit loop</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">itrack</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] closest dist per plane = &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot;[ &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_dist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_dist</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_dist</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="c1">// loop over plane</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// if a good hit found in the plane</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">best_hitidx</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">besthit</span> <span class="o">=</span> <span class="n">_crthit_v</span><span class="p">[</span><span class="n">best_hitidx</span><span class="p">[</span><span class="n">p</span><span class="p">]];</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; crt_hit=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">besthit</span><span class="p">.</span><span class="n">x_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">besthit</span><span class="p">.</span><span class="n">y_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">besthit</span><span class="p">.</span><span class="n">z_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; panel_pos=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">min_dist</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">min_dist</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">&lt;</span><span class="mf">50.0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">line</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+            <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_panel_pos</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">pca</span><span class="p">.</span><span class="n">getAvePosition</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+              <span class="n">dist</span> <span class="o">+=</span> <span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+            <span class="p">}</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">dist</span><span class="p">;</span>
+
+            <span class="c1">// store a match</span>
+            <span class="n">match_t</span> <span class="n">m</span><span class="p">;</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">hitidx</span>   <span class="o">=</span> <span class="n">best_hitidx</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">trackidx</span> <span class="o">=</span> <span class="n">itrack</span><span class="p">;</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">tracklen</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">dist2hit</span> <span class="o">=</span> <span class="n">min_dist</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+
+            <span class="n">_hit2track_rank_v</span><span class="p">[</span> <span class="n">best_hitidx</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">m</span> <span class="p">);</span>
+            <span class="n">_all_rank_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">m</span> <span class="p">);</span>
+
+            <span class="c1">// store for visualization purposes</span>
+            <span class="c1">// larlite::pcaxis::EigenVectors e_v; // 3-axis + 2-endpoints</span>
+            <span class="c1">// for ( size_t p=0; p&lt;3; p++ ) {</span>
+            <span class="c1">//   std::vector&lt;double&gt; da_v = { line[0], line[1], line[2] };</span>
+            <span class="c1">//   e_v.push_back( da_v );</span>
+            <span class="c1">// }</span>
+            <span class="c1">// std::vector&lt;double&gt; centroid_v = { pca.getAvePosition()[0], pca.getAvePosition()[1], pca.getAvePosition()[2] };</span>
+            <span class="c1">// std::vector&lt;double&gt; panel_v = { best_panel_pos[p][0], best_panel_pos[p][1], best_panel_pos[p][2] };</span>
+            <span class="c1">// e_v.push_back( centroid_v );</span>
+            <span class="c1">// e_v.push_back( panel_v );</span>
+            <span class="c1">// double eigenval[3] = { min_dist[p], 0, 0 };</span>
+            <span class="c1">// larlite::pcaxis llpca( true, 1, eigenval, e_v, centroid_v.data(), 0, itrack );</span>
+            <span class="c1">// //ev_pcaout-&gt;emplace_back( std::move(llpca) );</span>
+
+          <span class="p">}</span> <span class="c1">// close enough to a hit to register a match</span>
+        <span class="p">}</span><span class="c1">//if valid hit found for plane</span>
+      <span class="p">}</span><span class="c1">//end of loop over CRT planes</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over tracks</span>
+
+    <span class="c1">// sort the all rank list</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">_all_rank_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">_all_rank_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// sort each hit list</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">hitmatches</span> <span class="p">:</span> <span class="n">_hit2track_rank_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">hitmatches</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">hitmatches</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">printHitInfo</span><span class="p">();</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">printHitInfo</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;===============================================&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ CRT HIT INFO ]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">_crthit_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="n">_crthit_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; [hit &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">idx</span>
+         <span class="o">&lt;&lt;</span> <span class="s">&quot; p=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit</span><span class="p">.</span><span class="n">plane</span>
+         <span class="o">&lt;&lt;</span> <span class="s">&quot; pos=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit</span><span class="p">.</span><span class="n">x_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit</span><span class="p">.</span><span class="n">y_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit</span><span class="p">.</span><span class="n">z_pos</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+         <span class="o">&lt;&lt;</span> <span class="s">&quot; t=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">1.0e-3</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; usec ]&quot;</span><span class="p">;</span>
+
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; matches[&quot;</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hidx</span> <span class="p">:</span> <span class="n">_hit2track_rank_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="p">)</span>
+        <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hidx</span><span class="p">.</span><span class="n">dist2hit</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hidx</span><span class="p">.</span><span class="n">tracklen</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ] &quot;</span><span class="p">;</span>
+      <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;===============================================&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">makeOneMatch</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">&amp;</span> <span class="n">lfcluster_axis</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">crthit</span><span class="o">&amp;</span> <span class="n">hit</span><span class="p">,</span>
+                                   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">panel_pos</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="kt">int</span>   <span class="n">crt_plane_dim</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>        <span class="mi">1</span><span class="p">,</span>        <span class="mi">0</span><span class="p">,</span>       <span class="mi">0</span><span class="p">,</span>      <span class="mi">1</span> <span class="p">};</span> <span class="c1">// Y-axis, X-axis, X-axis, Y-axis</span>
+    <span class="kt">float</span> <span class="n">endpts</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">center</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">dir</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">crtpos</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">.</span><span class="n">x_pos</span><span class="p">,</span> <span class="n">hit</span><span class="p">.</span><span class="n">y_pos</span><span class="p">,</span> <span class="n">hit</span><span class="p">.</span><span class="n">z_pos</span> <span class="p">};</span>
+    <span class="kt">float</span> <span class="n">len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">endpts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfcluster_axis</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">3</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">endpts</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfcluster_axis</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">4</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">center</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>    <span class="o">=</span> <span class="n">lfcluster_axis</span><span class="p">.</span><span class="n">getAvePosition</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">endpts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">center</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len</span> <span class="o">+=</span> <span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">len</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">len</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">len</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">float</span> <span class="n">max_x</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">min_x</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">endpts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">max_x</span> <span class="p">)</span>
+        <span class="n">max_x</span> <span class="o">=</span> <span class="n">endpts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">endpts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">min_x</span> <span class="p">)</span>
+        <span class="n">min_x</span> <span class="o">=</span> <span class="n">endpts</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="c1">// check if parallel to the plane</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">dir</span><span class="p">[</span> <span class="n">crt_plane_dim</span><span class="p">[</span> <span class="n">hit</span><span class="p">.</span><span class="n">plane</span> <span class="p">]</span> <span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// check if in time</span>
+    <span class="kt">float</span> <span class="n">x_offset</span> <span class="o">=</span> <span class="n">hit</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">0.001</span><span class="o">*</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">max_x</span><span class="o">-</span><span class="n">x_offset</span> <span class="o">&gt;=</span> <span class="mf">260.0</span> <span class="o">||</span> <span class="n">max_x</span><span class="o">-</span><span class="n">x_offset</span><span class="o">&lt;-</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">min_x</span><span class="o">-</span><span class="n">x_offset</span> <span class="o">&gt;=</span> <span class="mf">260.0</span> <span class="o">||</span> <span class="n">min_x</span><span class="o">-</span><span class="n">x_offset</span><span class="o">&lt;-</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// in time, so let&#39;s calculte the position onto the plane</span>
+    <span class="c1">// remove the time offset</span>
+    <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">x_offset</span><span class="p">;</span>
+
+    <span class="c1">// project onto crt plane</span>
+    <span class="kt">float</span> <span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="n">crtpos</span><span class="p">[</span> <span class="n">crt_plane_dim</span><span class="p">[</span> <span class="n">hit</span><span class="p">.</span><span class="n">plane</span> <span class="p">]</span> <span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span> <span class="n">crt_plane_dim</span><span class="p">[</span><span class="n">hit</span><span class="p">.</span><span class="n">plane</span><span class="p">]</span> <span class="p">])</span><span class="o">/</span><span class="n">dir</span><span class="p">[</span> <span class="n">crt_plane_dim</span><span class="p">[</span><span class="n">hit</span><span class="p">.</span><span class="n">plane</span><span class="p">]</span> <span class="p">];</span>
+    <span class="n">panel_pos</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">panel_pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">center</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="o">*</span><span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="c1">// calculate distance to the hit</span>
+    <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">crtpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">panel_pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">crtpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">panel_pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span> <span class="n">dist</span> <span class="p">);</span>
+
+    <span class="n">panel_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x_offset</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">dist</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">getLength</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">&amp;</span> <span class="n">pca</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span> <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">3</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">4</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">dist</span> <span class="o">+=</span> <span class="n">dx</span><span class="o">*</span><span class="n">dx</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">_matchOpflashes</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">opflash</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">flash_v</span><span class="p">,</span>
+                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">crthit</span><span class="o">*</span> <span class="o">&gt;&amp;</span>  <span class="n">hit_v</span><span class="p">,</span>
+                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                                     <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">opflash</span> <span class="o">&gt;&amp;</span> <span class="n">matched_opflash_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">used_flash_v</span><span class="p">(</span> <span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">_max_dt_flash_crt</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">crt</span> <span class="o">=</span> <span class="o">*</span><span class="n">hit_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">opflash</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">matched_in_time_v</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">dt_usec_v</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">matched_index_v</span><span class="p">;</span>
+
+      <span class="kt">float</span> <span class="n">closest_time</span> <span class="o">=</span> <span class="mf">10e9</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">flash_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_flash_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="kt">float</span> <span class="n">dt_usec</span> <span class="o">=</span> <span class="n">crt</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">1.0e-3</span> <span class="o">-</span> <span class="n">flash_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Time</span><span class="p">();</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dt_usec</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">closest_time</span> <span class="p">)</span>
+          <span class="n">closest_time</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dt_usec</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dt_usec</span><span class="p">)</span><span class="o">&lt;</span><span class="n">_max_dt_flash_crt</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">matched_in_time_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">flash_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dt_usec_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">dt_usec</span> <span class="p">);</span>
+          <span class="n">matched_index_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">i</span> <span class="p">);</span>
+          <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ...  crt-track and opflash matched. dt_usec=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dt_usec</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of flash loop</span>
+
+      <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;crt-hit has &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">matched_index_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; flash matches. closest time=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">closest_time</span>  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">matched_in_time_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// make empty opflash at the time of the crttrack</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">double</span> <span class="o">&gt;</span> <span class="n">PEperOpDet</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+        <span class="n">larlite</span><span class="o">::</span><span class="n">opflash</span> <span class="n">blank_flash</span><span class="p">(</span> <span class="n">crt</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">1.0e-3</span><span class="p">,</span>
+                                      <span class="mf">0.0</span><span class="p">,</span>
+                                      <span class="n">crt</span><span class="p">.</span><span class="n">ts2_ns</span><span class="o">*</span><span class="mf">1.0e-3</span><span class="p">,</span>
+                                      <span class="mi">0</span><span class="p">,</span>
+                                      <span class="n">PEperOpDet</span> <span class="p">);</span>
+        <span class="n">matched_opflash_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">blank_flash</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">matched_in_time_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// store a copy of the single matched opflash</span>
+        <span class="n">matched_opflash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">matched_in_time_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">used_flash_v</span><span class="p">[</span> <span class="n">matched_index_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+
+        <span class="c1">// choose closest using distance from center of flash and track</span>
+        <span class="c1">// need mean of cluster</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">cluster_mean</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">cluster_v</span><span class="p">[</span> <span class="n">ihit</span> <span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+            <span class="n">cluster_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="n">cluster_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+
+        <span class="kt">float</span> <span class="n">smallest_dist</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+        <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">opflash</span><span class="o">*</span> <span class="n">closest_opflash</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+
+        <span class="c1">// we have a loose initial standard. if more than one, we use a tighter standard</span>
+        <span class="kt">bool</span> <span class="n">have_tight_match</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">dt_usec</span> <span class="p">:</span> <span class="n">dt_usec_v</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dt_usec</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1.5</span> <span class="p">)</span> <span class="n">have_tight_match</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">matched_in_time_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="c1">// ignore loose match if we know we have at least one good one</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">have_tight_match</span> <span class="o">&amp;&amp;</span> <span class="n">dt_usec_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="mf">1.5</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+          <span class="c1">// get mean of opflash</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">flashcenter</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">0.0</span><span class="p">,</span>
+                                             <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">matched_in_time_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">YCenter</span><span class="p">(),</span>
+                                             <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">matched_in_time_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">ZCenter</span><span class="p">()</span> <span class="p">};</span>
+
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">flashcenter</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">cluster_mean</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">flashcenter</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">cluster_mean</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+          <span class="p">}</span>
+          <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="n">smallest_dist</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">smallest_dist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+            <span class="n">closest_opflash</span> <span class="o">=</span> <span class="n">matched_in_time_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+          <span class="p">}</span>
+          <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... distance between opflash and track center: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dist</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="p">}</span><span class="c1">//end of candidate opflash match</span>
+
+        <span class="c1">// store best match</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">closest_opflash</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">matched_opflash_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">closest_opflash</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="c1">// shouldnt get here</span>
+          <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span> <span class="s">&quot;should not get here&quot;</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//else more than 1 match</span>
+
+    <span class="p">}</span><span class="c1">//end of CRT HIT loop</span>
+
+    <span class="c1">// check we have the right amount of flashes</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">matched_opflash_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">||</span> <span class="n">matched_opflash_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span> <span class="s">&quot;different amount of input crt-hit, cluster, and opflashes&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">_merge_matched_cluster</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">match_t</span> <span class="o">&gt;&amp;</span> <span class="n">hit_match_v</span><span class="p">,</span>
+                                                               <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">used_in_merge</span><span class="p">,</span>
+                                                               <span class="kt">bool</span><span class="o">&amp;</span> <span class="n">merged</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">merged</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfcluster</span><span class="p">;</span>
+
+    <span class="c1">// if one or zero matches, nothing to do here.</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">hit_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;=</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="k">return</span> <span class="n">lfcluster</span><span class="p">;</span>
+
+    <span class="c1">// we use cluster tools, so start by converting best track</span>
+    <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">mergecluster</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nmerged</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">hit_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;merger: make cluster for larflowcluster index=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit_match_v</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">trackidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; nhits=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_lfcluster_v</span><span class="p">[</span> <span class="n">hit_match_v</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">trackidx</span> <span class="p">]</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">c</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="o">*</span><span class="n">_lfcluster_v</span><span class="p">[</span> <span class="n">hit_match_v</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">trackidx</span> <span class="p">]</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nmerged</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// first cluster</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;merger: set first cluster&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">mergecluster</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+        <span class="n">used_in_merge</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="n">nmerged</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// determine a good match</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;merger: test for merger&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">closestpts_vv</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">endptdist</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_closest_endpt_dist</span><span class="p">(</span> <span class="n">mergecluster</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">closestpts_vv</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">cospca</span> <span class="o">=</span> <span class="n">cluster_cospca</span><span class="p">(</span> <span class="n">mergecluster</span><span class="p">,</span> <span class="n">c</span> <span class="p">);</span>
+      <span class="n">cospca</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">fabs</span><span class="p">(</span><span class="n">cospca</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="kt">float</span><span class="p">(</span><span class="n">cospca</span><span class="p">)</span><span class="o">*</span><span class="mf">180.0</span><span class="o">/</span><span class="mf">3.14159</span> <span class="o">&lt;</span> <span class="mf">20.0</span> <span class="o">&amp;&amp;</span> <span class="n">endptdist</span> <span class="o">&lt;</span> <span class="mf">30.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;merge test passed&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">testmerge</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_merge</span><span class="p">(</span> <span class="n">mergecluster</span><span class="p">,</span> <span class="n">c</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">testmerge</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">30.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">merged</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+          <span class="n">used_in_merge</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+          <span class="n">nmerged</span><span class="o">++</span><span class="p">;</span>
+          <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;swap for merged cluster&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span> <span class="n">mergecluster</span><span class="p">,</span> <span class="n">testmerge</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">hit_match_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_in_merge</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="o">*</span><span class="n">_lfcluster_v</span><span class="p">[</span> <span class="n">hit_match_v</span><span class="p">[</span><span class="n">idx</span><span class="p">].</span><span class="n">trackidx</span> <span class="p">]</span> <span class="p">)</span>
+          <span class="n">lfcluster</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">lfcluster</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">save_to_file</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">outll</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">remove_if_no_flash</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// larlite::event_crthit* out_crthit</span>
+    <span class="c1">//   = (larlite::event_crthit*)outll.get_data( larlite::data::kCRTHit, &quot;matchcrthit&quot; );</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_crttrack</span><span class="o">*</span> <span class="n">out_crttrack</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_crttrack</span><span class="o">*</span><span class="p">)</span><span class="n">outll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kCRTTrack</span><span class="p">,</span> <span class="s">&quot;matchcrthit&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span> <span class="n">out_opflash</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_opflash</span><span class="o">*</span><span class="p">)</span><span class="n">outll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kOpFlash</span><span class="p">,</span> <span class="s">&quot;matchcrthit&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">out_lfcluster</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">outll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;matchcrthit&quot;</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_matched_cluster</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">_matched_cluster</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">opflash</span> <span class="o">=</span> <span class="n">_matched_opflash_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">crthit</span>  <span class="o">=</span> <span class="o">*</span><span class="n">_match_hit_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">clustert</span> <span class="o">=</span> <span class="n">_matched_cluster_t</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">remove_if_no_flash</span> <span class="o">&amp;&amp;</span> <span class="n">opflash</span><span class="p">.</span><span class="n">TotalPE</span><span class="p">()</span><span class="o">==</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;no matching flash for matched CRT hit[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;], not saving&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="kt">float</span> <span class="n">petot</span> <span class="o">=</span> <span class="n">opflash</span><span class="p">.</span><span class="n">TotalPE</span><span class="p">();</span>
+      <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;saving track with opflash pe=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">petot</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; nopdets=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">opflash</span><span class="p">.</span><span class="n">nOpDets</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="c1">// form a crt-track</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">crttrack</span> <span class="n">outtrack</span><span class="p">;</span>
+      <span class="c1">// outtrack.feb_id = crthit.feb_id;</span>
+      <span class="c1">// outtrack.pesmap = crthit.pesmap;</span>
+      <span class="c1">// outtrack.peshit = crthit.peshit;</span>
+      <span class="c1">// outtrack.ts0_s       = crthit.ts0_s;</span>
+      <span class="c1">// outtrack.ts0_ns      = crthit.ts0_ns;</span>
+      <span class="c1">// outtrack.ts0_ns_corr = crthit.ts0_ns_corr;</span>
+
+      <span class="c1">// first crt hit</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">ts2_ns_h1</span>  <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">ts2_ns</span><span class="p">;</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">plane1</span>     <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">plane</span><span class="p">;</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">x1_pos</span>     <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">x_pos</span><span class="p">;</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">y1_pos</span>     <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">y_pos</span><span class="p">;</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">z1_pos</span>     <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">z_pos</span><span class="p">;</span>
+
+      <span class="c1">// second crt hit: use the farthest point on the cluster</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">plane2</span>     <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">ts2_ns_h2</span> <span class="o">=</span> <span class="n">crthit</span><span class="p">.</span><span class="n">ts2_ns</span><span class="p">;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">crtpos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">outtrack</span><span class="p">.</span><span class="n">x1_pos</span><span class="p">,</span> <span class="n">outtrack</span><span class="p">.</span><span class="n">y1_pos</span><span class="p">,</span> <span class="n">outtrack</span><span class="p">.</span><span class="n">z1_pos</span> <span class="p">};</span>
+
+      <span class="kt">int</span> <span class="n">farend</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">fardist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">iend</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iend</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">iend</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">crtpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span> <span class="n">clustert</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">crtpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span> <span class="n">clustert</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="n">fardist</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">fardist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+          <span class="n">farend</span> <span class="o">=</span> <span class="n">iend</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">x2_pos</span> <span class="o">=</span> <span class="n">clustert</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">farend</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">y2_pos</span> <span class="o">=</span> <span class="n">clustert</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">farend</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+      <span class="n">outtrack</span><span class="p">.</span><span class="n">z2_pos</span> <span class="o">=</span> <span class="n">clustert</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">farend</span><span class="p">][</span><span class="mi">2</span><span class="p">];</span>
+
+      <span class="n">out_crttrack</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span><span class="n">outtrack</span><span class="p">);</span>
+      <span class="n">out_opflash</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span><span class="n">opflash</span><span class="p">);</span>
+      <span class="n">out_lfcluster</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span> <span class="p">);</span>
+
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">CRTHitMatch</span><span class="o">::</span><span class="n">was_cluster_used</span><span class="p">(</span> <span class="kt">int</span> <span class="n">idx</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">idx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">idx</span><span class="o">&gt;=</span><span class="n">_used_tracks_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_used_tracks_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

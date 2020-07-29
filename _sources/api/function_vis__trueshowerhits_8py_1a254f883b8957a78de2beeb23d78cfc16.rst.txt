@@ -1,0 +1,13 @@
+.. _exhale_function_vis__trueshowerhits_8py_1a254f883b8957a78de2beeb23d78cfc16:
+
+Function vis_trueshowerhits::cb_render
+======================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trueshowerhits.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_trueshowerhits::cb_render(vals)

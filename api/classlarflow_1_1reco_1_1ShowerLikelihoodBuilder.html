@@ -1,0 +1,459 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class ShowerLikelihoodBuilder &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class ShowerRecoKeypoint" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html" />
+    <link rel="prev" title="Class PyLArFlow" href="classlarflow_1_1reco_1_1PyLArFlow.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class ShowerLikelihoodBuilder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1reco_1_1ShowerLikelihoodBuilder.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-showerlikelihoodbuilder">
+<span id="exhale-class-classlarflow-1-1reco-1-1showerlikelihoodbuilder"></span><h1>Class ShowerLikelihoodBuilder<a class="headerlink" href="#class-showerlikelihoodbuilder" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_Reco_ShowerLikelihoodBuilder.h.html#file-larflow-reco-showerlikelihoodbuilder-h"><span class="std std-ref">File ShowerLikelihoodBuilder.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilderE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilderE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilderE"></span><span id="larflow::reco::ShowerLikelihoodBuilder"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder"></span><em class="property">class </em><code class="descname">ShowerLikelihoodBuilder</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilderE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Tools to build shower shape likelihood. </p>
+<p>This class contains functions to build distibutions needed to make shower likelihood functions to be used in the larfow shower reco code</p>
+<p>This includes: <ul class="simple">
+<li><dl class="first docutils">
+<dt>shower profile likelihood in 3D. its the location of charge deposited as a function of </dt>
+<dd>the distance along the trunk line and the perpendicular dist from the trunk line</dd>
+</dl>
+</li>
+<li>brem segment impact param, distance to trunk line, cosine of pca between trunk lines</li>
+</ul>
+</p>
+<p>We fill a tree to later use to make distributions. Can feed it, single shower MC (best) or low energy neutrino. OK. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder23ShowerLikelihoodBuilderEv">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder23ShowerLikelihoodBuilderEv"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder23ShowerLikelihoodBuilderEv"></span><span id="larflow::reco::ShowerLikelihoodBuilder::ShowerLikelihoodBuilder"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a55d3094879bde4433fb19d52c9f1c10e"></span><code class="descname">ShowerLikelihoodBuilder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder23ShowerLikelihoodBuilderEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>default constructor </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilderD0Ev">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilderD0Ev"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilderD0Ev"></span><span id="larflow::reco::ShowerLikelihoodBuilder::~ShowerLikelihoodBuilder"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a677091103fb28c59b9b100c5e1d3b3e5"></span><code class="descname">~ShowerLikelihoodBuilder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilderD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder7processERN5larcv9IOManagerERN7larlite15storage_managerE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::process__larcv::IOManagerR.larlite::storage_managerR"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1ae79d035e40e19b704ca87d78e091a086"></span>void <code class="descname">process</code><span class="sig-paren">(</span>larcv::IOManager &amp;<em>iolcv</em>, larlite::storage_manager &amp;<em>ioll</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder7processERN5larcv9IOManagerERN7larlite15storage_managerE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>process data for one event, retrieving data from larcv and larlite io managers </p>
+<p>steps:</p>
+<p>first we need to assemble true triplet points of showers <ul class="simple">
+<li>we start by masking out adc images by segment image, keeping shower pixels</li>
+<li>then we pass the masked image into the triplet proposal algorithm, making true pixels</li>
+<li>we filter out the proposals by true match + source pixel being on an electron (true ssnet label)</li>
+</ul>
+</p>
+<p>after ground truth points are made, we can build the calculations we want</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">iolcv</span></code>: LArCV IO manager </li>
+<li><code class="docutils literal notranslate"><span class="pre">ioll</span></code>: larlite IO manager </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder16_fillProfileHistERKNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder16_fillProfileHistERKNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder16_fillProfileHistERKNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_fillProfileHist__std::vector:larlite::larflow3dhit:CR.std::vector:float:R.std::vector:float:R"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1ad8823be672f977069ca198599d33a7ac"></span>void <code class="descname">_fillProfileHist</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;larlite::larflow3dhit&gt; &amp;<em>truehit_v</em>, std::vector&lt;float&gt; &amp;<em>shower_dir</em>, std::vector&lt;float&gt; &amp;<em>shower_vtx</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder16_fillProfileHistERKNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Build a shower profile histogram using true shower hits. </p>
+<p>we assume all hits belong to the shower. note: this code was intended to run on single shower events, in order to build a proper profile that we can use on multi-shower events.</p>
+<p>this method populates the member histograms, _hll_weighted and _hll. to do: create profiles for different energies</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">truehit_v</span></code>: Collection of true shower hits </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_dir</span></code>: Vector describing initial 3D shower direction </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_vtx</span></code>: Vector giving 3D shower start point/vertex </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder10_dist2lineERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRf">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder10_dist2lineERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRf"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder10_dist2lineERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRf"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_dist2line__std::vector:float:CR.std::vector:float:CR.std::vector:float:CR.floatR.floatR"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1acd3fc9129acdb308fe4aa599579f3e40"></span>void <code class="descname">_dist2line</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;float&gt; &amp;<em>ray_start</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>ray_dir</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>pt</em>, float &amp;<em>radial_dist</em>, float &amp;<em>projection</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder10_dist2lineERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRf" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>function that calculates shortest distance from a point to a line. </p>
+<p>the the line is defined by a start point and a ray.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">ray_start</span></code>: Line 3D start point </li>
+<li><code class="docutils literal notranslate"><span class="pre">ray_dir</span></code>: Line 3D direction </li>
+<li><code class="docutils literal notranslate"><span class="pre">pt</span></code>: Test 3D point </li>
+<li><code class="docutils literal notranslate"><span class="pre">radial_dist</span></code>: Shortest distance between pt and line. </li>
+<li><code class="docutils literal notranslate"><span class="pre">projection</span></code>: Distance from start point of line to the closest distance segment along line. </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder22_make_truehit_clustersERNSt6vectorIN7larlite12larflow3dhitEEE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder22_make_truehit_clustersERNSt6vectorIN7larlite12larflow3dhitEEE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder22_make_truehit_clustersERNSt6vectorIN7larlite12larflow3dhitEEE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_make_truehit_clusters__std::vector:larlite::larflow3dhit:R"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1aca37415baaa814a0ba7a46091f6f6dbd"></span>void <code class="descname">_make_truehit_clusters</code><span class="sig-paren">(</span>std::vector&lt;larlite::larflow3dhit&gt; &amp;<em>truehit_v</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder22_make_truehit_clustersERNSt6vectorIN7larlite12larflow3dhitEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Make truehit clusters. </p>
+<p>populates the member cluster container, cluster_v.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">truehit_v</span></code>: Collection of true shower hits </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder21_find_closest_clusterERNSt6vectorIiEERNSt6vectorIfEERNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder21_find_closest_clusterERNSt6vectorIiEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder21_find_closest_clusterERNSt6vectorIiEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_find_closest_cluster__std::vector:i:R.std::vector:float:R.std::vector:float:R"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a1f4c826c0f279ab46ae4c6d8998f2a4b"></span>int <code class="descname">_find_closest_cluster</code><span class="sig-paren">(</span>std::vector&lt;int&gt; &amp;<em>claimed_cluster_v</em>, std::vector&lt;float&gt; &amp;<em>shower_vtx</em>, std::vector&lt;float&gt; &amp;<em>shower_dir</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder21_find_closest_clusterERNSt6vectorIiEERNSt6vectorIfEERNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Find closest cluster to given shower start an direction. </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">claimed_cluster_v</span></code>: Clusters to search </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_vtx</span></code>: Vector giving 3D shower start point/vertex for which we find the closest cluster </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_dir</span></code>: Vector describing initial 3D shower direction. Not used. </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder17_analyze_clustersERNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder17_analyze_clustersERNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder17_analyze_clustersERNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_analyze_clusters__std::vector:larlite::larflow3dhit:R.std::vector:float:R.std::vector:float:R"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a5e120ab152850ac1b5b48e47e66bdf72"></span>void <code class="descname">_analyze_clusters</code><span class="sig-paren">(</span>std::vector&lt;larlite::larflow3dhit&gt; &amp;<em>truehit_v</em>, std::vector&lt;float&gt; &amp;<em>shower_dir</em>, std::vector&lt;float&gt; &amp;<em>shower_vtx</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder17_analyze_clustersERNSt6vectorIN7larlite12larflow3dhitEEERNSt6vectorIfEERNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Performs cluster-based analysis of true shower. </p>
+<p>Gathers statistics we hope to use to relate shower fragment to shower trunks. note: this code was intended to run on single shower events, in order to build a proper profile that we can use on multi-shower events.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">truehit_v</span></code>: Collection of true shower hits </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_dir</span></code>: Vector describing initial 3D shower direction </li>
+<li><code class="docutils literal notranslate"><span class="pre">shower_vtx</span></code>: Vector giving 3D shower start point/vertex </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11_impactdistERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRfRf">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder11_impactdistERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRfRf"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder11_impactdistERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRfRf"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_impactdist__std::vector:float:CR.std::vector:float:CR.std::vector:float:CR.std::vector:float:CR.floatR.floatR.floatR"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a27ef8063018b22f0d484f9c2de4c286c"></span>void <code class="descname">_impactdist</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;float&gt; &amp;<em>l_start</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>l_dir</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>m_start</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>m_dir</em>, float &amp;<em>impact_dist</em>, float &amp;<em>proj_l</em>, float &amp;<em>proj_m</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11_impactdistERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEERfRfRf" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>shortest distance between lines </p>
+<p>Calculations referenced from: <a class="reference external" href="https://math.stackexchange.com/questions/2213165/find-shortest-distance-between-lines-in-3d">https://math.stackexchange.com/questions/2213165/find-shortest-distance-between-lines-in-3d</a></p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">l_start</span></code>: Start of one line </li>
+<li><code class="docutils literal notranslate"><span class="pre">l_dir</span></code>: Direction of one line </li>
+<li><code class="docutils literal notranslate"><span class="pre">m_start</span></code>: Start of the other line </li>
+<li><code class="docutils literal notranslate"><span class="pre">m_dir</span></code>: Direction of the other line </li>
+<li><code class="docutils literal notranslate"><span class="pre">impact_dist</span></code>: Shortest distance between the two lines </li>
+<li><code class="docutils literal notranslate"><span class="pre">proj_l</span></code>: Where the shortest distance line is on the l-line relative to l_start </li>
+<li><code class="docutils literal notranslate"><span class="pre">proj_m</span></code>: where the shortest distance line is on the m-line relative to m_start </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Members</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11tripletalgoE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder11tripletalgoE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder11tripletalgoE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::tripletalgo__larflow::prep::PrepMatchTriplets"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a257c5450475fc970b8cb059bc66698d7"></span>larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> <code class="descname">tripletalgo</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11tripletalgoE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>class that produces spacepoints from the wire plane images </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder9cluster_vE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder9cluster_vE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder9cluster_vE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::cluster_v__std::vector:cluster_t:"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a9847f5052c42640df7688bd07582aed9"></span>std::vector&lt;<a class="reference internal" href="structlarflow_1_1reco_1_1cluster__t.html#_CPPv4N7larflow4reco9cluster_tE" title="larflow::reco::cluster_t">cluster_t</a>&gt; <code class="descname">cluster_v</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder9cluster_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>container for clusters of true shower hits </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder14_trunk_clusterE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder14_trunk_clusterE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder14_trunk_clusterE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_trunk_cluster__i"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a41f8bf9e807b4a38464d4c78deccf95d"></span>int <code class="descname">_trunk_cluster</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder14_trunk_clusterE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>index of cluster that is the trunk </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder22cluster_pcacos2trunk_vE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder22cluster_pcacos2trunk_vE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder22cluster_pcacos2trunk_vE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::cluster_pcacos2trunk_v__std::vector:float:"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a0a181b7bf5abaed016183626fa6fa791"></span>std::vector&lt;float&gt; <code class="descname">cluster_pcacos2trunk_v</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder22cluster_pcacos2trunk_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>cosine between first PC of sub-cluster and trunk cluster of a true shower </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder20cluster_dist2trunk_vE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder20cluster_dist2trunk_vE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder20cluster_dist2trunk_vE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::cluster_dist2trunk_v__std::vector:float:"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a1812c3214542e03df5d77e60c877ebb7"></span>std::vector&lt;float&gt; <code class="descname">cluster_dist2trunk_v</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder20cluster_dist2trunk_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>distance between sub-cluster and trunk-cluster </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder26cluster_impactdist2trunk_vE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder26cluster_impactdist2trunk_vE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder26cluster_impactdist2trunk_vE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::cluster_impactdist2trunk_v__std::vector:float:"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a059d3e25b4b43086e65000f66910b191"></span>std::vector&lt;float&gt; <code class="descname">cluster_impactdist2trunk_v</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder26cluster_impactdist2trunk_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>impact parameter between sub-cluster and trunk-cluster </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder5_psceE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder5_psceE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder5_psceE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_psce__larutil::SpaceChargeMicroBooNEP"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a6b967c055efbf915561ac98914bafdff"></span>larutil::SpaceChargeMicroBooNE *<code class="descname">_psce</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder5_psceE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>pointer to a copy of the space charge offset calculating algo </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder4_hllE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder4_hllE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder4_hllE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_hll__TH2FP"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a0e2bf8f25a58b971dc0a6f7400917e82"></span>TH2F *<code class="descname">_hll</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder4_hllE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>2D likelihood distribution over distance along and perpendicular to the trunk’s first principle component </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder13_hll_weightedE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder13_hll_weightedE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder13_hll_weightedE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_hll_weighted__TH2FP"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1ac037401c97eb8a33decadb386214f6ad"></span>TH2F *<code class="descname">_hll_weighted</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder13_hll_weightedE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>likelihood weighed by R^2, the squared-distnce perpendicular from the trunk </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder27_tree_cluster_relationshipsE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder27_tree_cluster_relationshipsE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder27_tree_cluster_relationshipsE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_tree_cluster_relationships__TTreeP"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1a6f1ee14f04ed3e84ca0713633a5c8d0e"></span>TTree *<code class="descname">_tree_cluster_relationships</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder27_tree_cluster_relationshipsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>tree containing observables between sub-cluster and trunk-cluster. used to build selection method </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11_dist2trunkE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder11_dist2trunkE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder11_dist2trunkE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_dist2trunk__float"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1aba1b7256c9095686b6a4ab4169cf5c58"></span>float <code class="descname">_dist2trunk</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder11_dist2trunkE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>distance of true vertex to the trunk </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow4reco23ShowerLikelihoodBuilder20_tree_trunk_featuresE">
+<span id="_CPPv3N7larflow4reco23ShowerLikelihoodBuilder20_tree_trunk_featuresE"></span><span id="_CPPv2N7larflow4reco23ShowerLikelihoodBuilder20_tree_trunk_featuresE"></span><span id="larflow::reco::ShowerLikelihoodBuilder::_tree_trunk_features__TTreeP"></span><span class="target" id="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder_1ac89f2fc5f0bbebef65598c0bc6b119ab"></span>TTree *<code class="descname">_tree_trunk_features</code><a class="headerlink" href="#_CPPv4N7larflow4reco23ShowerLikelihoodBuilder20_tree_trunk_featuresE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>tree containing features that characterize the shower-trunk cluster, to help select trunk from sub-clusters </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html" class="btn btn-neutral float-right" title="Class ShowerRecoKeypoint" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1reco_1_1PyLArFlow.html" class="btn btn-neutral float-left" title="Class PyLArFlow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

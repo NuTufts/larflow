@@ -1,0 +1,67 @@
+
+.. _file_larflow_Reco_NuVertexCandidate.h:
+
+File NuVertexCandidate.h
+========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/NuVertexCandidate.h``)
+-------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_NuVertexCandidate.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``string``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_NuVertexMaker.h`
+
+- :ref:`file_larflow_Reco_NuVertexCandidate.cxx`
+
+- :ref:`file_larflow_Reco_NuVertexFitter.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t`
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1NuVertexCandidate`
+

@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1KPCluster:
+
+Class KPCluster
+===============
+
+- Defined in :ref:`file_larflow_Reco_KPCluster.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::KPCluster
+   :members:
+   :protected-members:
+   :undoc-members:

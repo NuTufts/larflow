@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1ShowerReco:
+
+Class ShowerReco
+================
+
+- Defined in :ref:`file_larflow_Reco_ShowerReco.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::ShowerReco
+   :members:
+   :protected-members:
+   :undoc-members:

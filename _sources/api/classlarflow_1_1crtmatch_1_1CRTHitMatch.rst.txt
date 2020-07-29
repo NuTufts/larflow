@@ -1,0 +1,35 @@
+.. _exhale_class_classlarflow_1_1crtmatch_1_1CRTHitMatch:
+
+Class CRTHitMatch
+=================
+
+- Defined in :ref:`file_larflow_CRTMatch_CRTHitMatch.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::crtmatch::CRTHitMatch
+   :members:
+   :protected-members:
+   :undoc-members:

@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1a2df6360088445daf2d13a9d9b216bff7:
+
+Function larflow::makeHitsFromWholeImagePixels(const larcv::Image2D&, const float)
+==================================================================================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_makehitsfrompixels.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::makeHitsFromWholeImagePixels(const larcv::Image2D&, const float)

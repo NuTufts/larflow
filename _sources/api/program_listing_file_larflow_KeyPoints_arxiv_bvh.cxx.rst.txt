@@ -1,0 +1,170 @@
+
+.. _program_listing_file_larflow_KeyPoints_arxiv_bvh.cxx:
+
+Program Listing for File bvh.cxx
+================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_KeyPoints_arxiv_bvh.cxx>` (``larflow/KeyPoints/arxiv/bvh.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   
+     void PrepKeypointData::makeBVH() {
+   
+       // std::cout << "=========================" << std::endl;
+       // std::cout << " makeBVH" << std::endl;
+       // std::cout << "=========================" << std::endl;    
+       
+       clearBVH();
+       
+       // xlimits derived from bound of image
+       float xmin_det = (2400-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+       float xmax_det = (2400+1008*6-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+   
+       // make the root node    
+       _bvhroot = new bvhnode_t(xmin_det,xmax_det,-118,118,0,1036);
+   
+       // make a node for all points
+       std::vector< bvhnode_t* > leafs;
+       int ikpd = 0;
+       for ( auto const& kpd : _kpd_v ) {
+         bvhnode_t* node = new bvhnode_t( kpd.keypt[0], kpd.keypt[0],
+                                          kpd.keypt[1], kpd.keypt[1],
+                                          kpd.keypt[2], kpd.keypt[2] );
+         node->kpdidx = ikpd;
+         ikpd++;
+         leafs.push_back( node );
+         _bvhnodes_v.push_back( node );
+         node->mother = _bvhroot;
+         _bvhroot->children.push_back( node );
+       }
+   
+       std::queue< bvhnode_t* > q;
+       q.push( _bvhroot );
+   
+       while ( q.size()>0 ) {
+         //std::cout << "process node on the queue" << std::endl;
+         bvhnode_t* node = q.front();
+         q.pop();
+   
+         // make copies of child pointers in order to sort by dimension
+         std::vector< bvhnode_t* > x_v[3];
+         for (int v=0; v<3; v++) {
+           x_v[v].resize(node->children.size(),nullptr);
+           for (size_t i=0; i<node->children.size(); i++)
+             x_v[v][i] = node->children[i];
+         }
+         std::sort( x_v[0].begin(), x_v[0].end(), compare_x );
+         std::sort( x_v[1].begin(), x_v[1].end(), compare_y );
+         std::sort( x_v[2].begin(), x_v[2].end(), compare_z );
+         int nchild = (int)x_v[0].size();
+   
+         // we split by the largest gap
+         float dimlen = -1;
+         int longdim = 0;
+         float midpt = 0.0;
+         int lowidx  = 0;
+         int highidx = 0;
+         for (int i=0; i<3; i++ ) {
+   
+           // get the center point to make a box
+           int _lowidx  = 0;
+           int _highidx = 0;
+           if ( nchild%2==0 ) {
+             // even
+             _highidx = nchild/2; // 4/2 = 2
+             _lowidx  = _highidx-1;                // 1
+           }
+           else {
+             // odd
+             _lowidx  = nchild/2; // 3/2 = 1
+             _highidx = _lowidx + 1;             // 2
+           }
+   
+           // calculate gap dist
+           float gapdim = 
+             fabs(x_v[i][_lowidx]->bounds[i][0] - x_v[i][_highidx]->bounds[i][0]);
+   
+           if ( gapdim>=dimlen ) {
+             longdim = i;        
+             // calculate midpoint using leaf nodes
+             midpt   = 0.5*(x_v[i][_lowidx]->bounds[i][0] + x_v[i][_highidx]->bounds[i][0] );
+             lowidx  = _lowidx;
+             highidx = _highidx;
+             dimlen  = gapdim;
+           }
+         }// end of loop over dimensions
+         
+         // set this longest dim as the splitting dimension of this node
+         node->splitdim = longdim;
+   
+         // we define two new boundary volume, using the midpoint of low and high
+         // to split the previous volume.
+         // we split the children into them.
+         // if the node only has one, then its a leaf node
+         float lo_bounds[3][2];
+         float hi_bounds[3][2];
+         for (int i=0; i<3; i++ ) {
+           for (int j=0; j<2; j++ ) {
+             lo_bounds[i][j] = node->bounds[i][j];
+             hi_bounds[i][j] = node->bounds[i][j];
+           }
+         }
+         lo_bounds[longdim][1] = midpt;
+         hi_bounds[longdim][0] = midpt;
+         bvhnode_t* lo_node = new bvhnode_t( lo_bounds[0][0], lo_bounds[0][1],
+                                             lo_bounds[1][0], lo_bounds[1][1],
+                                             lo_bounds[2][0], lo_bounds[2][1] );
+         bvhnode_t* hi_node = new bvhnode_t( hi_bounds[0][0], hi_bounds[0][1],
+                                             hi_bounds[1][0], hi_bounds[1][1],
+                                             hi_bounds[2][0], hi_bounds[2][1] );
+         // add them into node list, so we know to destroy them
+         _bvhnodes_v.push_back( lo_node );
+         _bvhnodes_v.push_back( hi_node );
+   
+         // now we divide the node's children into the new nodes
+         for (int i=0; i<=lowidx; i++ ) {
+           x_v[longdim][i]->mother = lo_node;
+           lo_node->children.push_back( x_v[longdim][i] );
+         }
+         for (int i=highidx; i<nchild; i++ ) {
+           x_v[longdim][i]->mother = hi_node;        
+           hi_node->children.push_back( x_v[longdim][i] );
+         }
+   
+         // clear the node's children and replace it with the new nodes
+         node->children.clear();
+         node->children.push_back( lo_node );
+         node->children.push_back( hi_node );
+   
+         // std::cout << "[split " << strnode(node) << " nchild=" << nchild << "]" << std::endl;
+         // std::cout << "  splitdim=" << longdim << " gapsize=" << dimlen << std::endl;
+         // std::cout << "  lo: " << strnode(lo_node) << " nchild=" << lo_node->children.size() << std::endl;
+         // std::cout << "  hi: " << strnode(hi_node) << " nchild=" << hi_node->children.size() << std::endl;      
+   
+         //set them into the queue if they have more than one child
+         if (lo_node->children.size()>1 )
+           q.push( lo_node );
+         if (hi_node->children.size()>1 )
+           q.push( hi_node );
+   
+         //std::cout << "finished processing node. left in queue: " << q.size() << std::endl;
+         //std::cin.get();
+       }//end of loop over queue
+       
+     }
+   
+     void PrepKeypointData::clearBVH() {
+       for ( auto& pnode : _bvhnodes_v )
+         delete pnode;
+       _bvhnodes_v.clear();
+       if ( _bvhroot )
+         delete _bvhroot;
+       _bvhroot = nullptr;
+     }
+   
+     void PrepKeypointData::printBVH() {
+       print_graph( _bvhroot );
+     }

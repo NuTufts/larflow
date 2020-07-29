@@ -1,0 +1,48 @@
+
+.. _file_larflow_SCBoundary_SCBoundary.cxx:
+
+File SCBoundary.cxx
+===================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_SCBoundary>` (``larflow/SCBoundary``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/SCBoundary/SCBoundary.cxx``)
+--------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_SCBoundary_SCBoundary.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``SCBoundary.h`` (:ref:`file_larflow_SCBoundary_SCBoundary.h`)
+
+- ``cmath``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__scb`
+

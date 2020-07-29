@@ -1,0 +1,48 @@
+
+.. _file_larflow_KeyPoints_LoaderAffinityField.cxx:
+
+File LoaderAffinityField.cxx
+============================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_KeyPoints>` (``larflow/KeyPoints``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/KeyPoints/LoaderAffinityField.cxx``)
+----------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_KeyPoints_LoaderAffinityField.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``LoaderAffinityField.h`` (:ref:`file_larflow_KeyPoints_LoaderAffinityField.h`)
+
+- ``iostream``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__keypoints`
+

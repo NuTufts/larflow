@@ -1,0 +1,60 @@
+
+.. _file_larflow_Reco_ShowerLikelihoodBuilder.cxx:
+
+File ShowerLikelihoodBuilder.cxx
+================================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/ShowerLikelihoodBuilder.cxx``)
+---------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_ShowerLikelihoodBuilder.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/mcshower.h``
+
+- ``LArUtil/SpaceChargeMicroBooNE.h``
+
+- ``ShowerLikelihoodBuilder.h`` (:ref:`file_larflow_Reco_ShowerLikelihoodBuilder.h`)
+
+- ``cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+- ``larcv/core/DataFormat/DataFormatTypes.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``ublarcvapp/MCTools/MCPixelPGraph.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

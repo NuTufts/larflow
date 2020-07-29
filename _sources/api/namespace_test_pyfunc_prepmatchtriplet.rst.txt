@@ -1,0 +1,52 @@
+
+.. _namespace_test_pyfunc_prepmatchtriplet:
+
+Namespace test_pyfunc_prepmatchtriplet
+======================================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a3e7655752cc6760818d8ee56e34208dd`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1aa201a0a6a087d9886a0cc23f14096886`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a8e09d8cfeac68fb2df4eaf9a5472cdb9`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a22059099fbb4a8bc724a4159decc161d`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1af911eb2129d7e9bd0ea83f57ca7de12d`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1af63f1dfabb2fd7b9baedfe9a2906806e`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a179c73ad60192776c3e64ada07e61cfc`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1ab72356a0b5a8bc7897e31f87d6481970`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a39977d5acaa346fb6179da0ecdf967d8`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1ae04241b74859d6f0c3567d43e7ab954c`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a283ff7f22cdbdaacc60537320f736865`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a16f6ce87bb67a17bc379aa8a7dddc79f`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a79a37c30de8b2c3028a54ab9179c8eeb`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a97e49a9e25a5059989bc91556eda4a5a`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1ad1af2eb5cb621fea53278a8fc992cbb6`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1aa72c9dee7ee73fef8c3408f2690bdd2a`
+
+- :ref:`exhale_variable_test__pyfunc__prepmatchtriplet_8py_1a108736a8ae3b167397dad3b64bbcbe6b`

@@ -1,0 +1,26 @@
+.. _exhale_class_classlarflow_1_1reco_1_1VertexReco:
+
+Class VertexReco
+================
+
+- Defined in :ref:`file_larflow_Reco_VertexReco.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1VertexReco_1_1Candidate__t`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::VertexReco
+   :members:
+   :protected-members:
+   :undoc-members:

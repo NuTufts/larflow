@@ -1,0 +1,66 @@
+
+.. _file_larflow_Reco_ShowerRecoKeypoint.cxx:
+
+File ShowerRecoKeypoint.cxx
+===========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/ShowerRecoKeypoint.cxx``)
+----------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_ShowerRecoKeypoint.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/larflowcluster.h``
+
+- ``DataFormat/pcaxis.h``
+
+- ``ShowerRecoKeypoint.h`` (:ref:`file_larflow_Reco_ShowerRecoKeypoint.h`)
+
+- ``cilantro/principal_component_analysis.hpp``
+
+- ``ctime``
+
+- ``fstream``
+
+- ``geofuncs.h`` (:ref:`file_larflow_Reco_geofuncs.h`)
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larflow/LArFlowConstants/LArFlowConstants.h`` (:ref:`file_larflow_LArFlowConstants_LArFlowConstants.h`)
+
+- ``nlohmann/json.hpp``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

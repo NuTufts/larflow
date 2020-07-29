@@ -1,0 +1,56 @@
+
+.. _file_larflow_SpatialEmbed_PrepMatchEmbed.cxx:
+
+File PrepMatchEmbed.cxx
+=======================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_SpatialEmbed>` (``larflow/SpatialEmbed``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/SpatialEmbed/PrepMatchEmbed.cxx``)
+--------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_SpatialEmbed_PrepMatchEmbed.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/storage_manager.h``
+
+- ``PrepMatchEmbed.h`` (:ref:`file_larflow_SpatialEmbed_PrepMatchEmbed.h`)
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``larcv/core/DataFormat/Image2D.h``
+
+- ``map``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__spatialembed`
+

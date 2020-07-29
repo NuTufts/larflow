@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1configMakeFlowHitsFromCrops:
+
+Class configMakeFlowHitsFromCrops
+=================================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_makeflowhits.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::configMakeFlowHitsFromCrops
+   :members:
+   :protected-members:
+   :undoc-members:

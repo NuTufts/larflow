@@ -1,0 +1,13 @@
+.. _exhale_function_vis__trackbuilder_8py_1a70c8b6b5f7145dff4f6db1a1ee3c8f0c:
+
+Function vis_trackbuilder::make_figures
+=======================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trackbuilder.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_trackbuilder::make_figures(entry, vtxid, plotby, treename, minprob)

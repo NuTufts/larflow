@@ -1,0 +1,103 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_tmp_matchcontourwflow.h:
+
+Program Listing for File matchcontourwflow.h
+============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_tmp_matchcontourwflow.h>` (``larflow/FlowContourMatch/tmp/matchcontourwflow.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __match_contour_w_flow_h__
+   #define __match_contour_w_flow_h__
+   
+   namespace larflow {
+   
+   
+     typedef std::pair<int,int> SrcTarIndexPair_t; 
+     
+     class FlowMatchData_t {
+     protected:  
+       FlowMatchData_t()
+         : sourceplane(-1),
+         targetplane(-1),
+         src_ctr_idx(-1),
+         tar_ctr_idx(-1)
+         {};
+       
+     public:
+       
+       FlowMatchData_t( int sourceplane, int targetplane,
+                        int srcidx, int taridx )
+         : src_plane(sourceplane),
+         tar_plane(targetplane),
+         src_ctr_idx(srcidx),
+         tar_ctr_idx(taridx),
+         score(-1.0)
+         {};
+       
+       virtual ~FlowMatchData_t() { matchingflow_v.clear(); }
+   
+       FlowMatchData_t( const FlowMatchData_t& s ) 
+         : src_plane(x.sourceplane),
+         tar_plane(x.targetplane),
+         src_ctr_id(x.src_ctr_id),
+         tar_ctr_id(x.tar_ctr_id),
+         score(x.score)
+         {
+           matchingflow_v = x.matchingflow_v;        
+         };
+       
+       int src_plane;   // index of source plane
+       int tar_plane;   // index of target plane
+       int src_ctr_idx; // source contour id
+       int tar_ctr_idx; // target contour id
+       float score;     // score for this connection
+       
+       bool operator < ( const FlowMatchData_t& rhs ) const {
+         if ( this->score < rhs.score ) return true;
+         return false;
+       };
+   
+     protected:
+       // flow data that contributed to the match
+       // i.e. the pixel or hit data within the contour
+       struct FlowPixel_t {
+         int src_wire; 
+         int tar_wire;
+         int tick;
+         float pred_miss; // pixel dist from target contour
+         float adjusted_tar_wire;
+       };
+       std::vector< FlowPixel_t > matchingflow_v;
+   
+     public:
+       
+       void recordFlow( int src_wire, int tar_wire, int tick, float target_dist );
+       
+     };
+   
+   
+     class ContourMatches_t : public std::map< SrcTarIndexPair_t, FlowMatchData_t > {
+   
+     public:
+   
+       ContourMatches_t() {};
+       virtual ~ContourMatches_t() {};
+       
+     };
+   
+     void makeContourMatches( ContourMatches_t& matches,
+                              const ublarcvapp::ContourClusterAlgo& contours,
+                              const larcv::Image2D& src_img,
+                              const larcv::Image2D& tar_img,                           
+                              const larcv::Image2D& src_crop,
+                              const larcv::Image2D& tar_crop,
+                              const larcv::SparseImage& flow,
+                              const float max_contour_dist );
+     
+   }
+   
+   #endif

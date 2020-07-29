@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1prep_1_1PrepMatchTriplets:
+
+Class PrepMatchTriplets
+=======================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::prep::PrepMatchTriplets
+   :members:
+   :protected-members:
+   :undoc-members:

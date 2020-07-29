@@ -1,0 +1,363 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepSSNetTriplet.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepSSNetTriplet.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepssnettriplet-cxx">
+<span id="program-listing-file-larflow-prepflowmatchdata-arxiv-prepssnettriplet-cxx"></span><h1>Program Listing for File PrepSSNetTriplet.cxx<a class="headerlink" href="#program-listing-for-file-prepssnettriplet-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.cxx.html#file-larflow-prepflowmatchdata-arxiv-prepssnettriplet-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/arxiv/PrepSSNetTriplet.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepSSNetTriplet.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/crossingPointsAnaMethods.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/NeutrinoVertex.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">prepflowmatchdata</span> <span class="p">{</span>
+
+  <span class="n">PrepSSNetTriplet</span><span class="o">::~</span><span class="n">PrepSSNetTriplet</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">_label_tree</span><span class="p">)</span> <span class="k">delete</span> <span class="n">_label_tree</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">PrepSSNetTriplet</span><span class="o">::</span><span class="n">make_ssnet_labels</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                            <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span><span class="p">,</span>
+                                            <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">tripletmaker</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// get truth images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_segment</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;segment&quot;</span><span class="p">);</span>
+
+    <span class="c1">// get neutrino vertex position</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">vtx_imgcoord</span> <span class="o">=</span>
+      <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">NeutrinoVertex</span><span class="o">::</span><span class="n">getImageCoords</span><span class="p">(</span><span class="n">ioll</span><span class="p">);</span>
+
+
+    <span class="n">_run</span> <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">run</span><span class="p">();</span>
+    <span class="n">_subrun</span> <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">subrun</span><span class="p">();</span>
+    <span class="n">_event</span>  <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">event</span><span class="p">();</span>
+
+    <span class="n">make_trackshower_labels</span><span class="p">(</span> <span class="n">ev_segment</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+                             <span class="n">tripletmaker</span><span class="p">,</span>
+                             <span class="n">vtx_imgcoord</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepSSNetTriplet</span><span class="o">::</span><span class="n">make_trackshower_labels</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">segment_v</span><span class="p">,</span>
+                                                  <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">tripletmaker</span><span class="p">,</span>
+                                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">vtx_imgcoord</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+
+    <span class="kt">size_t</span> <span class="n">ntriplets</span> <span class="o">=</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="n">_trackshower_label_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_trackshower_label_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">ntriplets</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">_trackshower_weight_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_trackshower_weight_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">ntriplets</span><span class="p">,</span> <span class="mf">1.0</span> <span class="p">);</span>
+    <span class="n">_trackshower_num_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_trackshower_num_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">vtxrow</span> <span class="o">=</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_imgmeta_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">vtx_imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">);</span> <span class="c1">// convert tick to row</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">_trackshower_num_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrip</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrip</span><span class="o">&lt;</span><span class="n">ntriplets</span><span class="p">;</span> <span class="n">itrip</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">triplet</span> <span class="o">=</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">];</span>
+
+      <span class="c1">// if the triplet is bad, leave the label as 0 (background)</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_truth_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_trackshower_label_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">_trackshower_weight_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span>
+        <span class="n">_trackshower_num_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// we get the column for each plane</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">imgcoord</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span> <span class="c1">//(u,v,y,row)</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">imgcoord</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">triplet</span><span class="p">[</span><span class="n">p</span><span class="p">]].</span><span class="n">col</span><span class="p">;</span>
+      <span class="c1">//use the y-plane for the row, should be the same</span>
+      <span class="n">imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">tripletmaker</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">triplet</span><span class="p">[</span><span class="mi">2</span><span class="p">]].</span><span class="n">row</span><span class="p">;</span>
+
+      <span class="c1">// got to planes and vote on label and boundary status</span>
+      <span class="kt">int</span> <span class="n">ntrack</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">nshower</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">isboundary</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">isvertex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">seg</span> <span class="o">=</span> <span class="n">segment_v</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+        <span class="kt">int</span> <span class="n">label</span> <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span> <span class="n">imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">imgcoord</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+        <span class="c1">// determine if boundary</span>
+        <span class="kt">int</span> <span class="n">nneigh</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">nsame</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">dr</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span> <span class="n">dr</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">;</span> <span class="n">dr</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">dr</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">row</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">row</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">seg</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">dc</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span> <span class="n">dc</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">;</span> <span class="n">dc</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">imgcoord</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">+</span><span class="n">dc</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">col</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">col</span><span class="o">&gt;=</span><span class="n">seg</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+            <span class="kt">int</span> <span class="n">neighbor_label</span> <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">,</span><span class="n">__FILE__</span><span class="p">,</span><span class="n">__LINE__</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">neighbor_label</span><span class="o">!=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">nneigh</span><span class="o">++</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">neighbor_label</span><span class="o">==</span><span class="n">label</span> <span class="p">)</span>
+                <span class="n">nsame</span><span class="o">++</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span><span class="c1">//end of dcol loop</span>
+        <span class="p">}</span><span class="c1">//end of drow loop</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">nneigh</span><span class="o">!=</span><span class="n">nsame</span><span class="p">)</span>
+          <span class="n">isboundary</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="c1">// determine track/shower label</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">label</span><span class="o">==</span><span class="n">larcv</span><span class="o">::</span><span class="n">kROIEminus</span> <span class="o">||</span> <span class="n">label</span><span class="o">==</span><span class="n">larcv</span><span class="o">::</span><span class="n">kROIGamma</span><span class="p">)</span>
+          <span class="n">nshower</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">else</span>
+          <span class="n">ntrack</span><span class="o">++</span><span class="p">;</span>
+
+        <span class="c1">// determine if near vertex</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">abs</span><span class="p">(</span><span class="n">imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">-</span><span class="n">vtxrow</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">10</span> <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">imgcoord</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">-</span><span class="n">vtx_imgcoord</span><span class="p">[</span><span class="n">p</span><span class="p">])</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span>
+          <span class="n">isvertex</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span><span class="c1">//end of plane loop</span>
+
+
+      <span class="c1">// set label</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ntrack</span><span class="o">&gt;</span><span class="n">nshower</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_trackshower_label_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">_trackshower_num_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">_trackshower_label_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+        <span class="n">_trackshower_num_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// set weight</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">isvertex</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+        <span class="n">_trackshower_weight_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mf">100.</span><span class="p">;</span>
+      <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">isboundary</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">_trackshower_weight_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.</span><span class="p">;</span>
+      <span class="k">else</span>
+        <span class="n">_trackshower_weight_v</span><span class="p">[</span><span class="n">itrip</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over proposed triplets</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_label_tree</span> <span class="p">)</span>
+      <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepSSNetTriplet</span><span class="o">::</span><span class="n">defineAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_label_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;ssnetlabels&quot;</span><span class="p">,</span><span class="s">&quot;SSNet Triplet labels and weights&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;run&quot;</span><span class="p">,</span>    <span class="o">&amp;</span><span class="n">_run</span><span class="p">,</span>    <span class="s">&quot;run/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;subrun&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_subrun</span><span class="p">,</span> <span class="s">&quot;subrun/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;event&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">_event</span><span class="p">,</span>  <span class="s">&quot;event/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;trackshower_label_v&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">_trackshower_label_v</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;trackshower_weight_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_trackshower_weight_v</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;trackshower_num_v&quot;</span><span class="p">,</span>    <span class="o">&amp;</span><span class="n">_trackshower_num_v</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepSSNetTriplet</span><span class="o">::</span><span class="n">writeAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_label_tree</span> <span class="p">)</span> <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

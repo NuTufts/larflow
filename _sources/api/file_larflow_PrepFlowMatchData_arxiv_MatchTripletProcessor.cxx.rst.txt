@@ -1,0 +1,55 @@
+
+.. _file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.cxx:
+
+File MatchTripletProcessor.cxx
+==============================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_PrepFlowMatchData_arxiv>` (``larflow/PrepFlowMatchData/arxiv``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/PrepFlowMatchData/arxiv/MatchTripletProcessor.cxx``)
+--------------------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``MatchTripletProcessor.h`` (:ref:`file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.h`)
+
+- ``larcv/core/DataFormat/EventChStatus.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_namespacelarflow_1aa9fce646b6f20595850dcfc64dee36e3`
+

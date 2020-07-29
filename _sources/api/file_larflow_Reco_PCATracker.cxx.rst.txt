@@ -1,0 +1,56 @@
+
+.. _file_larflow_Reco_PCATracker.cxx:
+
+File PCATracker.cxx
+===================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/PCATracker.cxx``)
+--------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_PCATracker.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/pcaxis.h``
+
+- ``DataFormat/track.h``
+
+- ``PCATracker.h`` (:ref:`file_larflow_Reco_PCATracker.h`)
+
+- ``algorithm``
+
+- ``cilantro/principal_component_analysis.hpp``
+
+- ``geofuncs.h`` (:ref:`file_larflow_Reco_geofuncs.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

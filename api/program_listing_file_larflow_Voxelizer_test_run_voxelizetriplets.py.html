@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File run_voxelizetriplets.py &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File run_voxelizetriplets.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Voxelizer_test_run_voxelizetriplets.py.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-run-voxelizetriplets-py">
+<span id="program-listing-file-larflow-voxelizer-test-run-voxelizetriplets-py"></span><h1>Program Listing for File run_voxelizetriplets.py<a class="headerlink" href="#program-listing-for-file-run-voxelizetriplets-py" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Voxelizer_test_run_voxelizetriplets.py.html#file-larflow-voxelizer-test-run-voxelizetriplets-py"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Voxelizer/test/run_voxelizetriplets.py</span></code>)</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">argparse</span><span class="o">,</span><span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">c_int</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Run Prep LArFlow Match Data&#39;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-o&#39;</span><span class="p">,</span><span class="s1">&#39;--output&#39;</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Filename stem for output files&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-mc&quot;</span><span class="p">,</span><span class="s2">&quot;--has-mc&quot;</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Has MC information&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-a&quot;</span><span class="p">,</span><span class="s2">&quot;--adc&quot;</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;wire&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of wire and chstatus producers&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;input_larcv&#39;</span><span class="p">,</span><span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input larcv files&quot;</span><span class="p">)</span>
+
+
+<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+<span class="kn">import</span> <span class="nn">ROOT</span> <span class="k">as</span> <span class="nn">rt</span>
+<span class="kn">from</span> <span class="nn">ROOT</span> <span class="kn">import</span> <span class="n">std</span>
+<span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+<span class="n">larcv</span><span class="o">.</span><span class="n">load_pyutil</span><span class="p">()</span>
+<span class="kn">from</span> <span class="nn">ublarcvapp</span> <span class="kn">import</span> <span class="n">ublarcvapp</span>
+<span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+
+<span class="n">rt</span><span class="o">.</span><span class="n">gStyle</span><span class="o">.</span><span class="n">SetOptStat</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">io</span> <span class="o">=</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="o">.</span><span class="n">kREAD</span><span class="p">,</span> <span class="s2">&quot;io&quot;</span><span class="p">,</span> <span class="n">larcv</span><span class="o">.</span><span class="n">IOManager</span><span class="o">.</span><span class="n">kTickBackward</span> <span class="p">)</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">input_larcv</span><span class="p">:</span>
+    <span class="n">io</span><span class="o">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="n">f</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">specify_data_read</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">kProductImage2D</span><span class="p">,</span>  <span class="n">args</span><span class="o">.</span><span class="n">adc</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">specify_data_read</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">kProductImage2D</span><span class="p">,</span>  <span class="s2">&quot;larflow&quot;</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">specify_data_read</span><span class="p">(</span> <span class="n">larcv</span><span class="o">.</span><span class="n">kProductChStatus</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adc</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">reverse_all_products</span><span class="p">()</span>
+<span class="n">io</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">nentries</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_n_entries</span><span class="p">()</span>
+<span class="n">nentries</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of input entries to run: &quot;</span><span class="p">,</span><span class="n">nentries</span><span class="p">)</span>
+
+<span class="n">outfile</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TFile</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span><span class="s2">&quot;recreate&quot;</span><span class="p">)</span>
+<span class="n">outtree</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TTree</span><span class="p">(</span><span class="s2">&quot;voxelizer&quot;</span><span class="p">,</span><span class="s2">&quot;Voxelization Data&quot;</span><span class="p">)</span>
+<span class="n">data_v</span> <span class="o">=</span> <span class="n">std</span><span class="o">.</span><span class="n">vector</span><span class="p">(</span><span class="s2">&quot;larflow::voxelizer::VoxelizeTriplets&quot;</span><span class="p">)(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">outtree</span><span class="o">.</span><span class="n">Branch</span><span class="p">(</span><span class="s2">&quot;data_v&quot;</span><span class="p">,</span><span class="n">data_v</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">ientry</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">nentries</span><span class="p">):</span>
+
+    <span class="n">io</span><span class="o">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span>
+
+    <span class="n">data_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">process_fullchain</span><span class="p">(</span> <span class="n">io</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adc</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adc</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">has_mc</span> <span class="p">)</span>
+
+    <span class="n">outtree</span><span class="o">.</span><span class="n">Fill</span><span class="p">()</span>
+
+<span class="n">outfile</span><span class="o">.</span><span class="n">Write</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

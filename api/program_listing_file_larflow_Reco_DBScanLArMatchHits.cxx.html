@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File DBScanLArMatchHits.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File DBScanLArMatchHits.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_DBScanLArMatchHits.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-dbscanlarmatchhits-cxx">
+<span id="program-listing-file-larflow-reco-dbscanlarmatchhits-cxx"></span><h1>Program Listing for File DBScanLArMatchHits.cxx<a class="headerlink" href="#program-listing-for-file-dbscanlarmatchhits-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_DBScanLArMatchHits.cxx.html#file-larflow-reco-dbscanlarmatchhits-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/DBScanLArMatchHits.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;DBScanLArMatchHits.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;cluster_functions.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;nlohmann/json.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/ContourTools/ContourClusterAlgo.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/dbscan/DBScan.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflowcluster.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TRandom3.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;opencv2/core.hpp&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;opencv2/imgproc.hpp&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">DBScanLArMatchHits</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_lfhits</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_input_larflowhit_tree_name</span> <span class="p">);</span>
+
+    <span class="c1">// cluster track hits</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_hits_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">cluster_v</span><span class="p">;</span>
+    <span class="n">makeCluster</span><span class="p">(</span> <span class="o">*</span><span class="n">ev_lfhits</span><span class="p">,</span> <span class="n">cluster_v</span><span class="p">,</span> <span class="n">used_hits_v</span> <span class="p">);</span>
+
+    <span class="c1">// form clusters of larflow hits for saving</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">evout_lfcluster</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">_out_cluster_tree_name</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span>         <span class="n">evout_pcaxis</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span>        <span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span>         <span class="n">_out_cluster_tree_name</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">cidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">c</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// cluster of hits</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfcluster</span> <span class="o">=</span> <span class="n">makeLArFlowCluster</span><span class="p">(</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_lfhits</span> <span class="p">);</span>
+      <span class="n">evout_lfcluster</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfcluster</span><span class="p">)</span> <span class="p">);</span>
+      <span class="c1">// pca-axis</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">llpca</span> <span class="o">=</span> <span class="n">cluster_make_pcaxis</span><span class="p">(</span> <span class="n">c</span><span class="p">,</span> <span class="n">cidx</span> <span class="p">);</span>
+      <span class="n">evout_pcaxis</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">llpca</span> <span class="p">);</span>
+      <span class="n">cidx</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// make noise cluster</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">evout_noise_lfcluster</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">_out_cluster_tree_name</span><span class="o">+</span><span class="s">&quot;noise&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfnoise</span><span class="p">;</span>
+    <span class="n">cluster_t</span> <span class="n">noise_cluster</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">ev_lfhits</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">ev_lfhits</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_hits_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pt</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">coord_v</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span> <span class="p">};</span>
+        <span class="n">noise_cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pt</span>  <span class="p">);</span>
+        <span class="n">noise_cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord_v</span> <span class="p">);</span>
+        <span class="n">noise_cluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">i</span> <span class="p">);</span>
+        <span class="n">lfnoise</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">noise_cluster</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">noise_pca</span> <span class="o">=</span> <span class="n">cluster_make_pcaxis</span><span class="p">(</span> <span class="n">noise_cluster</span> <span class="p">);</span>
+    <span class="n">evout_noise_lfcluster</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">lfnoise</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">DBScanLArMatchHits</span><span class="o">::</span><span class="n">makeLArFlowCluster</span><span class="p">(</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">source_lfhit_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfcluster</span><span class="p">;</span>
+    <span class="n">lfcluster</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ii</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ii</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">ordered_idx_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ii</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">int</span> <span class="n">ihit</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">ordered_idx_v</span><span class="p">[</span><span class="n">ii</span><span class="p">];</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="n">lfhit</span><span class="p">;</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span> <span class="c1">// (x,y,z,pixU,pixV,pixY,matchprob)</span>
+
+      <span class="c1">// transfer 3D points</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">lfhit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="c1">// transfer image coordates</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">srcwire</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">2</span><span class="p">];</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">0</span><span class="p">];</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">1</span><span class="p">];</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">2</span><span class="p">];</span>
+      <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span>          <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">3</span><span class="p">];</span>
+
+      <span class="n">lfcluster</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfhit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span><span class="c1">//end of hit loop</span>
+
+    <span class="k">return</span> <span class="n">lfcluster</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">cluster_t</span> <span class="n">DBScanLArMatchHits</span><span class="o">::</span><span class="n">absorb_nearby_hits</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                                    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                                                    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">used_hits_v</span><span class="p">,</span>
+                                                    <span class="kt">float</span> <span class="n">max_dist2line</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">cluster_t</span> <span class="n">newcluster</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nused</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="n">hit_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_hits_v</span><span class="p">[</span> <span class="n">ihit</span> <span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="c1">// apply quick bounding box test</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+           <span class="o">||</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+           <span class="o">||</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">&gt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// else calculate distance from pca-line</span>
+      <span class="kt">float</span> <span class="n">dist2line</span> <span class="o">=</span> <span class="n">cluster_dist_from_pcaline</span><span class="p">(</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">hit</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dist2line</span> <span class="o">&lt;</span> <span class="n">max_dist2line</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pt</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">coord_v</span> <span class="o">=</span> <span class="p">{</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span> <span class="p">};</span>
+        <span class="n">newcluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pt</span> <span class="p">);</span>
+        <span class="n">newcluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord_v</span> <span class="p">);</span>
+        <span class="n">newcluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ihit</span> <span class="p">);</span>
+        <span class="n">used_hits_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">nused</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">nused</span><span class="o">&gt;=</span><span class="mi">10</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[absorb_nearby_hits] cluster absorbed &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nused</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; hits&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">newcluster</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="c1">// throw them back</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[absorb_nearby_hits] cluster hits &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nused</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; below threshold&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">newcluster</span><span class="p">.</span><span class="n">hitidx_v</span> <span class="p">)</span>
+        <span class="n">used_hits_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">newcluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">newcluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">newcluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="p">}</span>
+
+
+    <span class="k">return</span> <span class="n">newcluster</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">DBScanLArMatchHits</span><span class="o">::</span><span class="n">makeCluster</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">inputhits</span><span class="p">,</span>
+                                        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">output_cluster_v</span><span class="p">,</span>
+                                        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">used_hits_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">max_pts_to_cluster</span> <span class="o">=</span> <span class="mi">30000</span><span class="p">;</span>
+
+    <span class="n">TRandom3</span> <span class="nf">rand</span><span class="p">(</span><span class="mi">12345</span><span class="p">);</span>
+
+    <span class="n">used_hits_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">inputhits</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">output_cluster_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// count points remaining</span>
+    <span class="kt">int</span> <span class="n">total_pts_remaining</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="c1">// on first pass, all points remain</span>
+    <span class="n">total_pts_remaining</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">inputhits</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+    <span class="c1">// downsample points, if needed</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">downsample_hit_v</span><span class="p">;</span>
+    <span class="n">downsample_hit_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">max_pts_to_cluster</span> <span class="p">);</span>
+
+    <span class="kt">float</span> <span class="n">downsample_fraction</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">max_pts_to_cluster</span><span class="o">/</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">total_pts_remaining</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">total_pts_remaining</span><span class="o">&gt;</span><span class="n">max_pts_to_cluster</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">inputhits</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_hits_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">rand</span><span class="p">.</span><span class="n">Uniform</span><span class="p">()</span><span class="o">&lt;</span><span class="n">downsample_fraction</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">downsample_hit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">inputhits</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">inputhits</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_hits_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">downsample_hit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">inputhits</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">inputhits</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; hits downsampled to &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">downsample_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// cluster these hits</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">cluster_pass_v</span><span class="p">;</span>
+    <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_sdbscan_larflow3dhits</span><span class="p">(</span> <span class="n">downsample_hit_v</span><span class="p">,</span> <span class="n">cluster_pass_v</span><span class="p">,</span> <span class="n">_maxdist</span><span class="p">,</span> <span class="n">_minsize</span><span class="p">,</span> <span class="n">_maxkd</span> <span class="p">);</span> <span class="c1">// external implementation, seems best</span>
+    <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_runpca</span><span class="p">(</span> <span class="n">cluster_pass_v</span> <span class="p">);</span>
+
+    <span class="c1">// we then absorb the hits around these clusters</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">ds_cluster</span> <span class="p">:</span> <span class="n">cluster_pass_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_t</span> <span class="n">dense_cluster</span> <span class="o">=</span> <span class="n">absorb_nearby_hits</span><span class="p">(</span> <span class="n">ds_cluster</span><span class="p">,</span>
+                                                    <span class="n">inputhits</span><span class="p">,</span>
+                                                    <span class="n">used_hits_v</span><span class="p">,</span>
+                                                    <span class="mf">10.0</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dense_cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">output_cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">dense_cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="kt">int</span> <span class="n">nused_tot</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">used</span> <span class="p">:</span> <span class="n">used_hits_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">nused_tot</span> <span class="o">+=</span> <span class="n">used</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_NORMAL</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Made &quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">output_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; clusters; &quot;</span>
+                   <span class="o">&lt;&lt;</span> <span class="n">nused_tot</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">used_hits_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; hits used&quot;</span>
+                   <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

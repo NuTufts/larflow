@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__keypointreco_8py_1aa57eb278675ef84e79c968ce29b8e01d:
+
+Variable vis_keypointreco::str
+==============================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_keypointreco.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_keypointreco::str

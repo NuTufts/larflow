@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1MatchTripletProcessorFactory:
+
+Class MatchTripletProcessorFactory
+==================================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public ProcessFactoryBase``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::MatchTripletProcessorFactory
+   :members:
+   :protected-members:
+   :undoc-members:

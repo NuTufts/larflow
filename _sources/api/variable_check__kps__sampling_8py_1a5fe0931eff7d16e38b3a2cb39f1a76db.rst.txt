@@ -1,0 +1,13 @@
+.. _exhale_variable_check__kps__sampling_8py_1a5fe0931eff7d16e38b3a2cb39f1a76db:
+
+Variable check_kps_sampling::loader
+===================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_check_kps_sampling.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: check_kps_sampling::loader

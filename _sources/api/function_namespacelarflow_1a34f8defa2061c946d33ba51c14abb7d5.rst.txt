@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1a34f8defa2061c946d33ba51c14abb7d5:
+
+Function larflow::stitchInfill
+==============================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_FlowContourMatch.h`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::stitchInfill(const larcv::Image2D&, larcv::Image2D&, larcv::Image2D&, const larcv::EventChStatus&)

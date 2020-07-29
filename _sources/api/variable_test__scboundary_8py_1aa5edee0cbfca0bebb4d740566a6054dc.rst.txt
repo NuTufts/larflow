@@ -1,0 +1,13 @@
+.. _exhale_variable_test__scboundary_8py_1aa5edee0cbfca0bebb4d740566a6054dc:
+
+Variable test_scboundary::detdata
+=================================
+
+- Defined in :ref:`file_larflow_SCBoundary_test_test_scboundary.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test_scboundary::detdata

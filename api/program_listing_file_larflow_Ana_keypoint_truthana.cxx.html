@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File keypoint_truthana.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File keypoint_truthana.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Ana_keypoint_truthana.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-keypoint-truthana-cxx">
+<span id="program-listing-file-larflow-ana-keypoint-truthana-cxx"></span><h1>Program Listing for File keypoint_truthana.cxx<a class="headerlink" href="#program-listing-for-file-keypoint-truthana-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Ana_keypoint_truthana.cxx.html#file-larflow-ana-keypoint-truthana-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Ana/keypoint_truthana.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TTree.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/LArbysMC.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/KeyPoints/PrepKeypointData.h&quot;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">nargs</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span> <span class="p">)</span>
+<span class="p">{</span>
+
+  <span class="c1">// keypoint truth analysis</span>
+  <span class="c1">// output:</span>
+  <span class="c1">//  1) ttree with entries per truth keypoint, storing</span>
+  <span class="c1">//     - x,y,z real + sce</span>
+  <span class="c1">//     - distance to maximum keypoint score triplet</span>
+  <span class="c1">//     - value of maximum keypoint score triplet</span>
+  <span class="c1">//     - type of keypoint: track/shower/neutrino vertex</span>
+
+
+
+  <span class="c1">// inputs</span>
+  <span class="c1">// ------</span>
+
+  <span class="c1">// 1) dlmerged file</span>
+  <span class="c1">// 2) kps larmatch output</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">dlmerged_file</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">kps_file</span>      <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+  <span class="c1">// outputs</span>
+  <span class="c1">// 1) ana tfile with ana ttree</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfilename</span>   <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+  <span class="c1">// Load inputs</span>
+  <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span> <span class="n">iocv</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kREAD</span><span class="p">,</span> <span class="s">&quot;larcv&quot;</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kTickBackward</span> <span class="p">);</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="n">dlmerged_file</span> <span class="p">);</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">reverse_all_products</span><span class="p">();</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span> <span class="n">ioll</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">::</span><span class="n">kREAD</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="n">kps_file</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="n">dlmerged_file</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">open</span><span class="p">();</span>
+
+  <span class="c1">// load outputs</span>
+  <span class="n">TFile</span><span class="o">*</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TFile</span><span class="p">(</span><span class="n">outfilename</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="s">&quot;new&quot;</span><span class="p">);</span>
+
+  <span class="c1">// define output tree</span>
+  <span class="n">TTree</span><span class="o">*</span> <span class="n">ana</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;kpsana&quot;</span><span class="p">,</span><span class="s">&quot;Keypoint Truth Ana tree&quot;</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">vtx_sce</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+  <span class="kt">float</span> <span class="n">max_score</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">max_score_dist</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">is_nu_vtx</span><span class="p">;</span>
+  <span class="n">ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;vtx_sce&quot;</span><span class="p">,</span><span class="n">vtx_sce</span><span class="p">,</span><span class="s">&quot;vtx_sce[3]/F&quot;</span><span class="p">);</span>
+  <span class="n">ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;max_score&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">max_score</span><span class="p">,</span><span class="s">&quot;max_score/F&quot;</span><span class="p">);</span>
+  <span class="n">ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;max_score_dist&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">max_score_dist</span><span class="p">,</span><span class="s">&quot;max_score_dist/F&quot;</span><span class="p">);</span>
+  <span class="n">ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;is_nu_vtx&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">is_nu_vtx</span><span class="p">,</span><span class="s">&quot;is_nu_vtx/I&quot;</span><span class="p">);</span>
+
+  <span class="k">const</span> <span class="kt">float</span> <span class="n">cut_off_dist</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="c1">// cm</span>
+  <span class="k">const</span> <span class="kt">float</span> <span class="n">cut_off_distsq</span> <span class="o">=</span> <span class="n">cut_off_dist</span><span class="o">*</span><span class="n">cut_off_dist</span><span class="p">;</span>
+
+  <span class="c1">// Keypoint Truth Data Maker</span>
+  <span class="n">larflow</span><span class="o">::</span><span class="n">keypoints</span><span class="o">::</span><span class="n">PrepKeypointData</span> <span class="n">kpdata</span><span class="p">;</span>
+  <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">LArbysMC</span> <span class="n">lmc</span><span class="p">;</span>
+  <span class="n">lmc</span><span class="p">.</span><span class="n">bindAnaVariables</span><span class="p">(</span> <span class="n">ana</span> <span class="p">);</span>
+
+  <span class="kt">int</span> <span class="n">nentries</span> <span class="o">=</span> <span class="n">iocv</span><span class="p">.</span><span class="n">get_n_entries</span><span class="p">();</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ientry</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ientry</span><span class="o">&lt;</span><span class="n">nentries</span><span class="p">;</span> <span class="n">ientry</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">iocv</span><span class="p">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+    <span class="n">ioll</span><span class="p">.</span><span class="n">go_to</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+
+    <span class="n">lmc</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="c1">// larmatch hits</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_lmhit</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span><span class="s">&quot;larmatch&quot;</span><span class="p">);</span>
+
+    <span class="c1">// truth keypoints</span>
+    <span class="n">kpdata</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iocv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of truth keypoints: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpdata</span><span class="p">.</span><span class="n">getKPdata</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpd</span> <span class="p">:</span> <span class="n">kpdata</span><span class="p">.</span><span class="n">getKPdata</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// for each truth keypoint, we save max triplet within certain distance</span>
+      <span class="n">max_score_dist</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+      <span class="n">max_score</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="o">*</span><span class="n">ev_lmhit</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+          <span class="n">vtx_sce</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="n">cut_off_distsq</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span><span class="o">&gt;</span><span class="n">max_score</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">max_score</span> <span class="o">=</span> <span class="n">hit</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+            <span class="n">max_score_dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+
+      <span class="c1">// is neutrino vertex?</span>
+      <span class="kt">float</span> <span class="n">vtx_dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">true_vtx</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_x</span><span class="p">,</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_y</span><span class="p">,</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_z</span> <span class="p">};</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">vtx_dist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">vtx_sce</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">vtx_sce</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+      <span class="p">}</span>
+      <span class="n">vtx_dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">vtx_dist</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;true keypoint dist to true-neutrino vtx: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vtx_dist</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">vtx_dist</span><span class="o">&lt;</span><span class="mf">1.0</span> <span class="p">)</span> <span class="n">is_nu_vtx</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="k">else</span> <span class="n">is_nu_vtx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+      <span class="c1">// save result</span>
+      <span class="n">ana</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">}</span><span class="c1">//end of event loop</span>
+
+  <span class="n">out</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

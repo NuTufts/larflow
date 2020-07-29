@@ -1,0 +1,60 @@
+
+.. _file_larflow_Reco_geofuncs.h:
+
+File geofuncs.h
+===============
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/geofuncs.h``)
+----------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_geofuncs.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_KeyPoints_PrepAffinityField.cxx`
+
+- :ref:`file_larflow_Reco_geofuncs.cxx`
+
+- :ref:`file_larflow_Reco_NuVertexMaker.cxx`
+
+- :ref:`file_larflow_Reco_ShowerRecoKeypoint.cxx`
+
+- :ref:`file_larflow_Reco_TrackClusterBuilder.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

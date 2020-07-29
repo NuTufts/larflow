@@ -1,0 +1,65 @@
+
+.. _file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.h:
+
+File MatchTripletProcessor.h
+============================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_PrepFlowMatchData_arxiv>` (``larflow/PrepFlowMatchData/arxiv``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/PrepFlowMatchData/arxiv/MatchTripletProcessor.h``)
+------------------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``PrepMatchTriplets.h`` (:ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`)
+
+- ``larcv/core/Processor/ProcessBase.h``
+
+- ``larcv/core/Processor/ProcessFactory.h``
+
+- ``ublarcvapp/UBImageMod/EmptyChannelAlgo.h``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1MatchTripletProcessor`
+
+- :ref:`exhale_class_classlarflow_1_1MatchTripletProcessorFactory`
+

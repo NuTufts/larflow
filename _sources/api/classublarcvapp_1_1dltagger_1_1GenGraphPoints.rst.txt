@@ -1,0 +1,35 @@
+.. _exhale_class_classublarcvapp_1_1dltagger_1_1GenGraphPoints:
+
+Class GenGraphPoints
+====================
+
+- Defined in :ref:`file_larflow_Reco_GenGraphPoints.h`
+
+
+Nested Relationships
+--------------------
+
+
+Nested Types
+************
+
+- :ref:`exhale_struct_structublarcvapp_1_1dltagger_1_1GenGraphPoints_1_1MaskExtrema__t`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: ublarcvapp::dltagger::GenGraphPoints
+   :members:
+   :protected-members:
+   :undoc-members:

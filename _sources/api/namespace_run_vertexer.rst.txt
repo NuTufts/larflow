@@ -1,0 +1,32 @@
+
+.. _namespace_run_vertexer:
+
+Namespace run_vertexer
+======================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_run__vertexer_8py_1a22ff53393a2e6ff050522bb22468f202`
+
+- :ref:`exhale_variable_run__vertexer_8py_1a9661df276d90fc76e47e7e8268b5928b`
+
+- :ref:`exhale_variable_run__vertexer_8py_1a2df1eb53d0f9a6dd9737c4ad58618f3a`
+
+- :ref:`exhale_variable_run__vertexer_8py_1ad180eecf04d0284ad48670e0f9d98885`
+
+- :ref:`exhale_variable_run__vertexer_8py_1a6030416a9b07534c36ceab7578eb0a60`
+
+- :ref:`exhale_variable_run__vertexer_8py_1aef8b5831d5ffbc23cb3eb2bb57a6a32e`
+
+- :ref:`exhale_variable_run__vertexer_8py_1a2d5a06e6273afde4d028291f2088ed54`

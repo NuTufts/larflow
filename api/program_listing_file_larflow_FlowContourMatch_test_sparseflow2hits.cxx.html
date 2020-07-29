@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File sparseflow2hits.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File sparseflow2hits.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_FlowContourMatch_test_sparseflow2hits.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-sparseflow2hits-cxx">
+<span id="program-listing-file-larflow-flowcontourmatch-test-sparseflow2hits-cxx"></span><h1>Program Listing for File sparseflow2hits.cxx<a class="headerlink" href="#program-listing-for-file-sparseflow2hits-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_FlowContourMatch_test_sparseflow2hits.cxx.html#file-larflow-flowcontourmatch-test-sparseflow2hits-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/FlowContourMatch/test/sparseflow2hits.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp"></span>
+
+<span class="c1">// ROOT</span>
+<span class="cp">#include</span> <span class="cpf">&quot;TApplication.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larcv</span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Base/larcv_logger.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventSparseImage.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite</span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larflow</span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/FlowContourMatch/FlowContourMatch.h&quot;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">nargs</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span> <span class="p">)</span> <span class="p">{</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;================================&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;sparseflow2hits&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;--------------------------------&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="n">TApplication</span> <span class="n">app</span><span class="p">(</span><span class="s">&quot;app&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">nargs</span><span class="p">,</span><span class="n">argv</span><span class="p">);</span>
+
+  <span class="n">larcv</span><span class="o">::</span><span class="n">logger</span> <span class="n">log</span><span class="p">(</span><span class="s">&quot;sparseflow2hits&quot;</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">cropcfg</span> <span class="o">=</span> <span class="s">&quot;ubcrop.cfg&quot;</span><span class="p">;</span>
+
+  <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span> <span class="n">io_fullview</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kREAD</span><span class="p">,</span><span class="s">&quot;FullView&quot;</span><span class="p">,</span><span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kTickBackward</span><span class="p">);</span>
+  <span class="n">io_fullview</span><span class="p">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="s">&quot;larcvtruth-Run000002-SubRun002000.root&quot;</span> <span class="p">);</span>
+  <span class="n">io_fullview</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+  <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span> <span class="n">io_sparse</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kREAD</span><span class="p">,</span><span class="s">&quot;SparseInput&quot;</span><span class="p">);</span>
+  <span class="n">io_sparse</span><span class="p">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="s">&quot;test_larflow_sparseout.root&quot;</span> <span class="p">);</span>
+  <span class="n">io_sparse</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span> <span class="n">out_larlite</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">::</span><span class="n">kWRITE</span> <span class="p">);</span>
+  <span class="n">out_larlite</span><span class="p">.</span><span class="n">set_out_filename</span><span class="p">(</span> <span class="s">&quot;output_sparse_larflowhits.root&quot;</span> <span class="p">);</span>
+  <span class="n">out_larlite</span><span class="p">.</span><span class="n">open</span><span class="p">();</span>
+
+  <span class="kt">int</span> <span class="n">nentries</span> <span class="o">=</span> <span class="n">io_sparse</span><span class="p">.</span><span class="n">get_n_entries</span><span class="p">();</span>
+
+  <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of entries: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nentries</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">nentries</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nentries</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">io_sparse</span><span class="p">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+    <span class="n">io_fullview</span><span class="p">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+
+    <span class="c1">// whole images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_wire</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">io_fullview</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;wiremc&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_wire</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// truth whole images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_trueflow</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">io_fullview</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;larflow&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">trueflow_v</span> <span class="o">=</span> <span class="n">ev_trueflow</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// event chstatus</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span> <span class="n">ev_status</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">*</span><span class="p">)</span><span class="n">io_fullview</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductChStatus</span><span class="p">,</span><span class="s">&quot;wiremc&quot;</span><span class="p">);</span>
+
+    <span class="c1">// output of sparse dualflow deploy</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventSparseImage</span><span class="o">*</span> <span class="n">ev_crop_dualflow</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventSparseImage</span><span class="o">*</span><span class="p">)</span><span class="n">io_sparse</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductSparseImage</span><span class="p">,</span><span class="s">&quot;cropdualflow&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">dualflow_v</span> <span class="o">=</span> <span class="n">ev_crop_dualflow</span><span class="o">-&gt;</span><span class="n">SparseImageArray</span><span class="p">();</span>
+
+
+    <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;ENTRY[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] num dualflow crops: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dualflow_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+    <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Make Reco Flow Hits&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// RECO FLOW HITS</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">flowhit</span>
+      <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">makeFlowHitsFromSparseCrops</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span>
+                                              <span class="n">dualflow_v</span><span class="p">,</span>
+                                              <span class="mf">10.0</span><span class="p">,</span>
+                                              <span class="n">cropcfg</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kNORMAL</span><span class="p">,</span>
+                                              <span class="nb">true</span> <span class="p">);</span>
+
+    <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Make True Flow Hits&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// TRUTH FLOW HITS</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">trueflow</span>
+      <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">makeTrueFlowHitsFromWholeImage</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                 <span class="o">*</span><span class="n">ev_status</span><span class="p">,</span>
+                                                 <span class="n">trueflow_v</span><span class="p">,</span>
+                                                 <span class="mf">10.0</span><span class="p">,</span>
+                                                 <span class="s">&quot;ubcroptrueflow.cfg&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// OUTPUT</span>
+    <span class="n">log</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">kINFO</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Save the output.&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_hitout</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">out_larlite</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span><span class="s">&quot;flowhits&quot;</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">flowhit</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">hit</span><span class="p">.</span><span class="n">idxhit</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+      <span class="n">ev_hitout</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">idx</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_truthout</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">out_larlite</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span><span class="s">&quot;trueflowhits&quot;</span><span class="p">);</span>
+
+    <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">trueflow</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">hit</span><span class="p">.</span><span class="n">idxhit</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+      <span class="n">ev_truthout</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">idx</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">out_larlite</span><span class="p">.</span><span class="n">set_id</span><span class="p">(</span> <span class="n">ev_wire</span><span class="o">-&gt;</span><span class="n">run</span><span class="p">(),</span> <span class="n">ev_wire</span><span class="o">-&gt;</span><span class="n">subrun</span><span class="p">(),</span> <span class="n">ev_wire</span><span class="o">-&gt;</span><span class="n">event</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">out_larlite</span><span class="p">.</span><span class="n">next_event</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">out_larlite</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

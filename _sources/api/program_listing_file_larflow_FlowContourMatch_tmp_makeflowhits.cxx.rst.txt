@@ -1,0 +1,32 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_tmp_makeflowhits.cxx:
+
+Program Listing for File makeflowhits.cxx
+=========================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_tmp_makeflowhits.cxx>` (``larflow/FlowContourMatch/tmp/makeflowhits.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #include "makeflowhits.h"
+   
+   namespace larflow {
+   
+     std::vector<larlite::larflow3dhit> makeFlowHitsFromCrops( const std::vector<larcv::Image2D>& wholeview_v,
+                                                               const std::vector<larcv::Image2D>& adc_crop_v,
+                                                               const std::vector<larcv::SparseImage>& flowy2u_v,
+                                                               const std::vector<larcv::SparseImage>& flowy2v_v,
+                                                               const configMakeFlowHitsFromCrops& cfg ) {
+       
+       // collect contours from whole image
+       ublarcvapp::ContourClusterAlgo contourclusters;
+       contourclusters.analyzeImages( wholeview_v );
+   
+       // 
+       
+     }
+     
+     
+   }

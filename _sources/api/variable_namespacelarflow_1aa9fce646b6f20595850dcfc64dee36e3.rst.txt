@@ -1,0 +1,13 @@
+.. _exhale_variable_namespacelarflow_1aa9fce646b6f20595850dcfc64dee36e3:
+
+Variable larflow::__global_MatchTripletProcessorFactory__
+=========================================================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_arxiv_MatchTripletProcessor.cxx`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: larflow::__global_MatchTripletProcessorFactory__

@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepKeypointData.h &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepKeypointData.h</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_KeyPoints_PrepKeypointData.h.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepkeypointdata-h">
+<span id="program-listing-file-larflow-keypoints-prepkeypointdata-h"></span><h1>Program Listing for File PrepKeypointData.h<a class="headerlink" href="#program-listing-for-file-prepkeypointdata-h" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_KeyPoints_PrepKeypointData.h.html#file-larflow-keypoints-prepkeypointdata-h"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/KeyPoints/PrepKeypointData.h</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#ifndef __PREP_KEYPOINT_DATA_H__</span>
+<span class="cp">#define __PREP_KEYPOINT_DATA_H__</span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;Python.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;bytesobject.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/LArFlowConstants/LArFlowConstants.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/PrepFlowMatchData/PrepMatchTriplets.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;KPdata.h&quot;</span><span class="cp"></span>
+
+<span class="k">class</span> <span class="nc">TH1F</span><span class="p">;</span>
+<span class="k">class</span> <span class="nc">TH2D</span><span class="p">;</span>
+
+<span class="k">namespace</span> <span class="n">larcv</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">Image2D</span><span class="p">;</span>
+  <span class="k">class</span> <span class="nc">IOManager</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">namespace</span> <span class="n">larlite</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">event_mctrack</span><span class="p">;</span>
+  <span class="k">class</span> <span class="nc">event_mcshower</span><span class="p">;</span>
+  <span class="k">class</span> <span class="nc">event_mctruth</span><span class="p">;</span>
+  <span class="k">class</span> <span class="nc">storage_manager</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">namespace</span> <span class="n">larutil</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">SpaceChargeMicroBooNE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">namespace</span> <span class="n">ublarcvapp</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">mctools</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">MCPixelPGraph</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">keypoints</span> <span class="p">{</span>
+
+
+  <span class="k">class</span> <span class="nc">PrepKeypointData</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="n">PrepKeypointData</span><span class="p">();</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">PrepKeypointData</span><span class="p">();</span>
+
+    <span class="kt">void</span> <span class="nf">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                  <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">process</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">adc_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">badch_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">segment_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">instance_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">ancestor_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span>  <span class="n">mctrack_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">&amp;</span> <span class="n">mcshower_v</span><span class="p">,</span>
+                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">&amp;</span>  <span class="n">mctruth_v</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">make_proposal_labels</span><span class="p">(</span> <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">match_proposals</span> <span class="p">);</span>
+
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_adc_image_treename</span><span class="p">;</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">_kpd_v</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span>
+      <span class="n">getMuonEndpoints</span><span class="p">(</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">&amp;</span> <span class="n">mcpg</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span> <span class="n">mctrack_v</span><span class="p">,</span>
+                        <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span>
+      <span class="n">getShowerStarts</span><span class="p">(</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">&amp;</span> <span class="n">mcpg</span><span class="p">,</span>
+                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                       <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">&amp;</span> <span class="n">mcshower_v</span><span class="p">,</span>
+                       <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_label_nu_keypoints</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">&amp;</span> <span class="n">mctruth_v</span><span class="p">,</span>
+                              <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                              <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span><span class="p">,</span>
+                              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;&amp;</span> <span class="n">kpdata_v</span>  <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">filter_duplicates</span><span class="p">();</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="kt">void</span> <span class="n">setADCimageTreeName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">treename</span><span class="p">)</span> <span class="p">{</span> <span class="n">_adc_image_treename</span><span class="o">=</span><span class="n">treename</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;&amp;</span> <span class="n">getKPdata</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_kpd_v</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">printKeypoints</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="n">PyObject</span><span class="o">*</span> <span class="n">get_keypoint_array</span><span class="p">(</span><span class="kt">int</span> <span class="n">ikpclass</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+    <span class="n">PyObject</span><span class="o">*</span> <span class="nf">get_triplet_score_array</span><span class="p">(</span> <span class="kt">float</span> <span class="n">sig</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+
+
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="c1">// PROPOSAL LABELS</span>
+    <span class="c1">// ----------------</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+    <span class="c1">// Ana Tree</span>
+    <span class="kt">int</span> <span class="n">_run</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">_subrun</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">_event</span><span class="p">;</span>
+    <span class="n">TTree</span><span class="o">*</span> <span class="n">_label_tree</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">_kppos_v</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="c1">//&lt; we need to keep a list of primary pixels to limit the neutrino score field</span>
+    <span class="c1">//std::vector&lt; std::set&lt;std::pair&lt;int,int&gt; &gt; &gt;  _primarypixels_v;</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="kt">void</span> <span class="n">defineAnaTree</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">writeAnaTree</span><span class="p">();</span>
+
+    <span class="kt">void</span> <span class="nf">fillAnaTree</span><span class="p">()</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span><span class="n">_label_tree</span><span class="p">)</span> <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span> <span class="p">};</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="c1">// statistics variables</span>
+    <span class="n">TH1F</span><span class="o">*</span> <span class="n">hdist</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="n">TH1F</span><span class="o">*</span> <span class="n">hdpix</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">_nclose</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">_nfar</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="nf">writeHists</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">makeScoreImage</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">ikpclass</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="n">sigma</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">histname</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">tripmaker</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+
+  <span class="k">private</span><span class="o">:</span>
+
+    <span class="k">static</span> <span class="kt">bool</span> <span class="n">_setup_numpy</span><span class="p">;</span>
+
+  <span class="p">};</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="cp">#endif</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

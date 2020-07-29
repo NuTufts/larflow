@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class LoaderAffinityField &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class LoaderKeypointData" href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html" />
+    <link rel="prev" title="Class KPdata" href="classlarflow_1_1keypoints_1_1KPdata.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class LoaderAffinityField</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1keypoints_1_1LoaderAffinityField.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-loaderaffinityfield">
+<span id="exhale-class-classlarflow-1-1keypoints-1-1loaderaffinityfield"></span><h1>Class LoaderAffinityField<a class="headerlink" href="#class-loaderaffinityfield" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_KeyPoints_LoaderAffinityField.h.html#file-larflow-keypoints-loaderaffinityfield-h"><span class="std std-ref">File LoaderAffinityField.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityFieldE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityFieldE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityFieldE"></span><span id="larflow::keypoints::LoaderAffinityField"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField"></span><em class="property">class </em><code class="descname">LoaderAffinityField</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityFieldE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>used to help load affinity field ground truth data for training </p>
+<p>This class will load data from the <code class="docutils literal notranslate"><span class="pre">AffinityFieldTree</span></code> produced by <a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html#classlarflow_1_1keypoints_1_1PrepAffinityField"><span class="std std-ref">larflow::keypoints::PrepAffinityField</span></a>.</p>
+<p>This data comes in the form of a 3D direction for each proposed spacepoint in an image. This is the target output of the network.</p>
+<p>Functions are provided to get these training labels in the form of numpy arrays in order to interface with DL frameworks. (We usually develop with pytorch in mind.)</p>
+<p>Usage: (to do) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldEv">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldEv"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldEv"></span><span id="larflow::keypoints::LoaderAffinityField::LoaderAffinityField"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1ab4642cf15adde403256027f8145eb9c3"></span><code class="descname">LoaderAffinityField</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldERNSt6vectorINSt6stringEEE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldERNSt6vectorINSt6stringEEE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldERNSt6vectorINSt6stringEEE"></span><span id="larflow::keypoints::LoaderAffinityField::LoaderAffinityField__std::vector:ss:R"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a6150d3fb2a8bd032d1403eb036277fe4"></span><code class="descname">LoaderAffinityField</code><span class="sig-paren">(</span>std::vector&lt;std::string&gt; &amp;<em>input_v</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField19LoaderAffinityFieldERNSt6vectorINSt6stringEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>constructor with list of input ROOT files </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">input_v</span></code>: List of paths to input ROOT files containing ground truth data </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityFieldD0Ev">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityFieldD0Ev"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityFieldD0Ev"></span><span id="larflow::keypoints::LoaderAffinityField::~LoaderAffinityField"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a44b5e399de9db32bbdc80bb693975b09"></span><code class="descname">~LoaderAffinityField</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityFieldD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField14add_input_fileENSt6stringE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField14add_input_fileENSt6stringE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField14add_input_fileENSt6stringE"></span><span id="larflow::keypoints::LoaderAffinityField::add_input_file__ss"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1adbbb1dde75aca9074420867c61d1ede9"></span>void <code class="descname">add_input_file</code><span class="sig-paren">(</span>std::string <em>input</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField14add_input_fileENSt6stringE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>add input ROOT file to be loaded </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">input</span></code>: path to ROOT file containing <code class="docutils literal notranslate"><span class="pre">AffinityFieldTree</span></code> </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField22exclude_false_tripletsEb">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField22exclude_false_tripletsEb"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField22exclude_false_tripletsEb"></span><span id="larflow::keypoints::LoaderAffinityField::exclude_false_triplets__b"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a3d914aed7c1270c98cb2c0ae3d63eb36"></span>void <code class="descname">exclude_false_triplets</code><span class="sig-paren">(</span>bool <em>exclude</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField22exclude_false_tripletsEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>set flag that, if true, will only return labels for true (i.e. non-ghost) points </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField9load_treeEv">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField9load_treeEv"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField9load_treeEv"></span><span id="larflow::keypoints::LoaderAffinityField::load_tree"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a4b7ae1755460f057c1106a173f61e83d"></span>void <code class="descname">load_tree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField9load_treeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>load TTree class data members and define TBranches </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField10load_entryEi">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField10load_entryEi"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField10load_entryEi"></span><span id="larflow::keypoints::LoaderAffinityField::load_entry__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a3fe75cb56b53e2fe0b9716564924654e"></span>unsigned long <code class="descname">load_entry</code><span class="sig-paren">(</span>int <em>entry</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField10load_entryEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>load data for a given entry </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>number of bytes loaded from the file. zero is no more entries or there was an error. </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">entry</span></code>: entry number in TChain </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField10GetEntriesEv">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField10GetEntriesEv"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField10GetEntriesEv"></span><span id="larflow::keypoints::LoaderAffinityField::GetEntries"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a67f531795c7bce3aa8b722ec4826079f"></span>unsigned long <code class="descname">GetEntries</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField10GetEntriesEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get total entries </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>number of entries in the TChain _paf </dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField14get_match_dataEP8PyObjectb">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField14get_match_dataEP8PyObjectb"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField14get_match_dataEP8PyObjectb"></span><span id="larflow::keypoints::LoaderAffinityField::get_match_data__PyObjectP.b"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a8edb6dc1e073c23f397f82b016d5379b"></span>PyObject *<code class="descname">get_match_data</code><span class="sig-paren">(</span>PyObject *<em>triplet_matches_pyobj</em>, bool <em>exclude_neg_examples</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField14get_match_dataEP8PyObjectb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>return a ground truth data, return a subsample of all truth matches </p>
+<p>returns a python dictionary. Contents include (list starts with key of entry) <ul class="simple">
+<li><ul class="first">
+<li><cite>paf_label</cite>:affinity field ground truth (direction of particle at spacepoint)</li>
+</ul>
+</li>
+<li><ul class="first">
+<li><cite>paf_weight</cite>:weight for affinity field labels}</li>
+</ul>
+</li>
+<li></li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Python dictionary with numpy arrays </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">triplet_matches_pyobj</span></code>: The sampled larmatch triplets. Expected shape: (N,4). </li>
+<li><code class="docutils literal notranslate"><span class="pre">exclude_neg_examples</span></code>: Exclude negative examples </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Members</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField11input_filesE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField11input_filesE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField11input_filesE"></span><span id="larflow::keypoints::LoaderAffinityField::input_files__std::vector:ss:"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a5ab0af6c13d572b7bdd2940ff76e1001"></span>std::vector&lt;std::string&gt; <code class="descname">input_files</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField11input_filesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>list of input files to load </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField4tpafE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField4tpafE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField4tpafE"></span><span id="larflow::keypoints::LoaderAffinityField::tpaf__TChainP"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1aae1e8defc8e0913c31245b0e151f2dc5"></span>TChain *<code class="descname">tpaf</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField4tpafE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>pointer to TChain for <code class="docutils literal notranslate"><span class="pre">AffinityFieldTree</span></code> </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField8_label_vE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField8_label_vE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField8_label_vE"></span><span id="larflow::keypoints::LoaderAffinityField::_label_v__std::vector:std::vector:float::P"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1a3a735f21d5c0146fdccb25bb85042c44"></span>std::vector&lt;std::vector&lt;float&gt;&gt; *<code class="descname">_label_v</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField8_label_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>direction labels for each space point in the image </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField15make_paf_arraysEKiRKNSt6vectorIiEEKbP13PyArrayObjectRP13PyArrayObjectRP13PyArrayObject">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField15make_paf_arraysEKiRKNSt6vectorIiEEKbP13PyArrayObjectRP13PyArrayObjectRP13PyArrayObject"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField15make_paf_arraysEKiRKNSt6vectorIiEEKbP13PyArrayObjectRP13PyArrayObjectRP13PyArrayObject"></span><span id="larflow::keypoints::LoaderAffinityField::make_paf_arrays__iC.std::vector:i:CR.bC.PyArrayObjectP.PyArrayObjectPR.PyArrayObjectPR"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1aef1217beecbef75c67c49edf2367061a"></span>int <code class="descname">make_paf_arrays</code><span class="sig-paren">(</span><em class="property">const</em> int <em>nfilled</em>, <em class="property">const</em> std::vector&lt;int&gt; &amp;<em>pos_match_index</em>, <em class="property">const</em> bool <em>exclude_neg_examples</em>, PyArrayObject *<em>match_array</em>, PyArrayObject *&amp;<em>paf_label</em>, PyArrayObject *&amp;<em>paf_weight</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField15make_paf_arraysEKiRKNSt6vectorIiEEKbP13PyArrayObjectRP13PyArrayObjectRP13PyArrayObject" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>make particle affinity field ground truth numpy arrays </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>always returns 0 </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">nfilled</span></code>: number of samples actually returned </li>
+<li><code class="docutils literal notranslate"><span class="pre">pos_match_index</span></code>: vector index in return samples for space points which are true/good </li>
+<li><code class="docutils literal notranslate"><span class="pre">exclude_neg_examples</span></code>: If true, training samples return do not have negative/bad spacepoint examples </li>
+<li><code class="docutils literal notranslate"><span class="pre">match_array</span></code>: numpy array containing indices to sparse image for each spacepoint </li>
+<li><code class="docutils literal notranslate"><span class="pre">paf_label</span></code>: numpy array containing target direction for each spacepoint. shape (N,3) </li>
+<li><code class="docutils literal notranslate"><span class="pre">paf_weight</span></code>: numpy array containing weight for each spacepoint. shape (N,) </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Attributes</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField21_exclude_neg_examplesE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField21_exclude_neg_examplesE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField21_exclude_neg_examplesE"></span><span id="larflow::keypoints::LoaderAffinityField::_exclude_neg_examples__b"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1ab96a62bf6212e82ffd1bc8bf73ca92bc"></span>bool <code class="descname">_exclude_neg_examples</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField21_exclude_neg_examplesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>flag that, if true, causes <a class="reference internal" href="#classlarflow_1_1keypoints_1_1LoaderAffinityField_1a8edb6dc1e073c23f397f82b016d5379b"><span class="std std-ref">get_match_data()</span></a> to return only true (i.e. non-ghost) points </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Static Attributes</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints19LoaderAffinityField12_setup_numpyE">
+<span id="_CPPv3N7larflow9keypoints19LoaderAffinityField12_setup_numpyE"></span><span id="_CPPv2N7larflow9keypoints19LoaderAffinityField12_setup_numpyE"></span><span id="larflow::keypoints::LoaderAffinityField::_setup_numpy__b"></span><span class="target" id="classlarflow_1_1keypoints_1_1LoaderAffinityField_1ad168efa573c80865f70df9437794f532"></span>bool <code class="descname">_setup_numpy</code> = false<a class="headerlink" href="#_CPPv4N7larflow9keypoints19LoaderAffinityField12_setup_numpyE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>flag indicating if import_numpy() has been called </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html" class="btn btn-neutral float-right" title="Class LoaderKeypointData" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1keypoints_1_1KPdata.html" class="btn btn-neutral float-left" title="Class KPdata" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

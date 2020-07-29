@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1keypoints_1_1KPdata:
+
+Class KPdata
+============
+
+- Defined in :ref:`file_larflow_KeyPoints_KPdata.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::keypoints::KPdata
+   :members:
+   :protected-members:
+   :undoc-members:

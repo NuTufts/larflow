@@ -1,0 +1,430 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File ana_showercluster.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File ana_showercluster.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_ana_ana_showercluster.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-ana-showercluster-cxx">
+<span id="program-listing-file-larflow-reco-ana-ana-showercluster-cxx"></span><h1>Program Listing for File ana_showercluster.cxx<a class="headerlink" href="#program-listing-for-file-ana-showercluster-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_ana_ana_showercluster.cxx.html#file-larflow-reco-ana-ana-showercluster-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/ana/ana_showercluster.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;set&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflowcluster.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctrack.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mcshower.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctrajectory.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctruth.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/MCPixelPGraph.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/cluster_functions.h&quot;</span><span class="cp"></span>
+
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">nargs</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span> <span class="p">)</span> <span class="p">{</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Ana ShowerCluster&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="c1">// we want to know</span>
+  <span class="c1">// 1) which shower cluster, if any, matches best to the truth shower-trunk</span>
+  <span class="c1">// 2) purity of that best shower cluster</span>
+  <span class="c1">// 3) efficiency of that shower cluster</span>
+  <span class="c1">// 4) pca-line versus shower direction</span>
+  <span class="c1">// 5) statistics of matched clusters and false clusters</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span> <span class="n">ioll</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">::</span><span class="n">kREAD</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="s">&quot;../test/merged_dlreco_eLEE_sample2.root&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="s">&quot;../test/larmatch_eLEE_sample2.root&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="s">&quot;../test/larflow_cluster_eLEE_sample2_full.root&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">open</span><span class="p">();</span>
+
+  <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span> <span class="n">iolcv</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kREAD</span><span class="p">,</span> <span class="s">&quot;iolcv&quot;</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kTickBackward</span> <span class="p">);</span>
+  <span class="n">iolcv</span><span class="p">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="s">&quot;../test/merged_dlreco_eLEE_sample2.root&quot;</span> <span class="p">);</span>
+  <span class="n">iolcv</span><span class="p">.</span><span class="n">reverse_all_products</span><span class="p">();</span>
+  <span class="n">iolcv</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+  <span class="kt">int</span> <span class="n">nentries_iolcv</span> <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">get_n_entries</span><span class="p">();</span>
+  <span class="kt">int</span> <span class="n">nentries_ioll</span>  <span class="o">=</span> <span class="n">ioll</span><span class="p">.</span><span class="n">get_entries</span><span class="p">();</span>
+
+  <span class="kt">int</span> <span class="n">nentries</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">nentries_iolcv</span><span class="p">,</span><span class="n">nentries_ioll</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Num entries: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nentries</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="n">TFile</span><span class="o">*</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TFile</span><span class="p">(</span><span class="s">&quot;out_ana_showercluster.root&quot;</span><span class="p">,</span><span class="s">&quot;recreate&quot;</span><span class="p">);</span>
+
+  <span class="n">TTree</span><span class="o">*</span> <span class="n">truthmatchana</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;truthmatchana&quot;</span><span class="p">,</span><span class="s">&quot;Info for best Truth-Matched Cluster&quot;</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">entry</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">EnuMeV</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">EeMeV</span><span class="p">;</span>
+  <span class="kt">int</span>   <span class="n">cluster_max_truthpix</span><span class="p">;</span>
+  <span class="kt">int</span>   <span class="n">cluster_max_recopix</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">cluster_max_truthfraction</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">cluster_max_pixelsum</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+  <span class="kt">float</span> <span class="n">truetrunk_pix_planeave</span><span class="p">;</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;entry&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">entry</span><span class="p">,</span>  <span class="s">&quot;entry/I&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;EnuMeV&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">EnuMeV</span><span class="p">,</span> <span class="s">&quot;ENuMeV/F&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;EeMeV&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">EeMeV</span><span class="p">,</span>  <span class="s">&quot;EeMeV/F&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;cluster_max_recopix&quot;</span><span class="p">,</span>       <span class="o">&amp;</span><span class="n">cluster_max_recopix</span><span class="p">,</span>       <span class="s">&quot;cluster_max_recopix/I&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;cluster_max_truthpix&quot;</span><span class="p">,</span>      <span class="o">&amp;</span><span class="n">cluster_max_truthpix</span><span class="p">,</span>      <span class="s">&quot;cluster_max_truthpix/I&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;cluster_max_truthfraction&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">cluster_max_truthfraction</span><span class="p">,</span> <span class="s">&quot;cluster_max_truthfraction/F&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;cluster_max_pixelsum&quot;</span><span class="p">,</span>      <span class="n">cluster_max_pixelsum</span><span class="p">,</span>       <span class="s">&quot;cluster_max_pixelsum[3]/F&quot;</span> <span class="p">);</span>
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;truetrunk_pix_planeave&quot;</span><span class="p">,</span>    <span class="o">&amp;</span><span class="n">truetrunk_pix_planeave</span><span class="p">,</span>    <span class="s">&quot;truetrunk_pix_planeave/F&quot;</span> <span class="p">);</span>
+
+  <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">MCPixelPGraph</span> <span class="n">mcpg</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ientry</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ientry</span><span class="o">&lt;</span><span class="n">nentries</span><span class="p">;</span> <span class="n">ientry</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;===============&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; Entry &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ientry</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;===============&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">entry</span> <span class="o">=</span> <span class="n">ientry</span><span class="p">;</span>
+
+    <span class="c1">// load entry</span>
+    <span class="n">ioll</span><span class="p">.</span><span class="n">go_to</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+    <span class="n">iolcv</span><span class="p">.</span><span class="n">read_entry</span><span class="p">(</span> <span class="n">ientry</span> <span class="p">);</span>
+
+    <span class="c1">// build MC pgraph and assign image pixels to them</span>
+    <span class="n">mcpg</span><span class="p">.</span><span class="n">buildgraph</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+    <span class="n">mcpg</span><span class="p">.</span><span class="n">printGraph</span><span class="p">();</span>
+
+    <span class="c1">// get reco shower clusters</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">shower_lfcluster_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;lfshower&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// get back to cluster_t objects</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">shower_cluster_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">lfcluster</span> <span class="p">:</span> <span class="o">*</span><span class="n">shower_lfcluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_t</span> <span class="n">c</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="n">lfcluster</span> <span class="p">);</span>
+      <span class="n">shower_cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// get ADC images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;wire&quot;</span> <span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// we are after the primary electron, get it&#39;s data</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">::</span><span class="n">Node_t</span><span class="o">*&gt;</span> <span class="n">nodelist</span>
+      <span class="o">=</span> <span class="n">mcpg</span><span class="p">.</span><span class="n">getPrimaryParticles</span><span class="p">();</span>
+
+    <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">::</span><span class="n">Node_t</span><span class="o">*</span> <span class="n">prim_electron</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">pnode</span> <span class="p">:</span> <span class="n">nodelist</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">)</span><span class="o">==</span><span class="mi">11</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">prim_electron</span> <span class="o">=</span> <span class="n">pnode</span><span class="p">;</span>
+        <span class="k">break</span><span class="p">;</span> <span class="c1">// don&#39;t expect another primary</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">prim_electron</span><span class="o">==</span><span class="k">nullptr</span> <span class="p">)</span>
+      <span class="k">continue</span><span class="p">;</span>
+
+    <span class="c1">// we build a set of (tick,wire) pairs for look up reasons</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">electron_pixels_vv</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+    <span class="n">truetrunk_pix_planeave</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nplane_w_truth</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">int</span> <span class="n">ntruthpixels</span> <span class="o">=</span> <span class="n">prim_electron</span><span class="o">-&gt;</span><span class="n">pix_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">size</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span><span class="p">;</span>
+      <span class="n">truetrunk_pix_planeave</span> <span class="o">+=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">ntruthpixels</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ntruthpixels</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">nplane_w_truth</span><span class="o">++</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ipix</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipix</span><span class="o">&lt;</span><span class="n">ntruthpixels</span><span class="p">;</span> <span class="n">ipix</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">prim_electron</span><span class="o">-&gt;</span><span class="n">pix_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span> <span class="mi">2</span><span class="o">*</span><span class="n">ipix</span> <span class="p">];</span>
+        <span class="kt">int</span> <span class="n">wire</span> <span class="o">=</span> <span class="n">prim_electron</span><span class="o">-&gt;</span><span class="n">pix_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span> <span class="mi">2</span><span class="o">*</span><span class="n">ipix</span><span class="o">+</span><span class="mi">1</span> <span class="p">];</span>
+        <span class="n">electron_pixels_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">insert</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">tick</span><span class="p">,</span><span class="n">wire</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nplane_w_truth</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">truetrunk_pix_planeave</span> <span class="o">/=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">nplane_w_truth</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// get truth info for primary electron</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">*</span> <span class="n">mctrack_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTrack</span><span class="p">,</span><span class="s">&quot;mcreco&quot;</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">*</span> <span class="n">mcshower_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCShower</span><span class="p">,</span><span class="s">&quot;mcreco&quot;</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="n">profE</span> <span class="o">=</span> <span class="n">mcshower_v</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span> <span class="n">prim_electron</span><span class="o">-&gt;</span><span class="n">vidx</span> <span class="p">).</span><span class="n">DetProfile</span><span class="p">().</span><span class="n">E</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">stepE</span> <span class="o">=</span> <span class="n">mcshower_v</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span> <span class="n">prim_electron</span><span class="o">-&gt;</span><span class="n">vidx</span> <span class="p">).</span><span class="n">Start</span><span class="p">().</span><span class="n">E</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;truth shower profileE=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">profE</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; MeV stepE=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">stepE</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; MeV&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">EeMeV</span> <span class="o">=</span> <span class="n">profE</span><span class="p">;</span>
+
+    <span class="c1">// neutrino energy</span>
+    <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">mctruth</span><span class="o">&amp;</span> <span class="n">mctruth</span>
+      <span class="o">=</span> <span class="p">((</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTruth</span><span class="p">,</span><span class="s">&quot;generator&quot;</span><span class="p">))</span><span class="o">-&gt;</span><span class="n">front</span><span class="p">();</span>
+    <span class="kt">float</span> <span class="n">trueNuE</span> <span class="o">=</span> <span class="n">mctruth</span><span class="p">.</span><span class="n">GetNeutrino</span><span class="p">().</span><span class="n">Nu</span><span class="p">().</span><span class="n">Trajectory</span><span class="p">().</span><span class="n">front</span><span class="p">().</span><span class="n">E</span><span class="p">()</span><span class="o">*</span><span class="mf">1000.0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;truth neutrino energy= &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trueNuE</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; MeV&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">EnuMeV</span> <span class="o">=</span> <span class="n">trueNuE</span><span class="p">;</span>
+
+    <span class="c1">// loop over clusters, get the fraction that lie on truth pixels</span>
+    <span class="c1">// for larflow, might make mistakes, so 2 of 3 planes must be on pixels</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>   <span class="n">truth_pixels_v</span><span class="p">(</span>   <span class="n">shower_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">truth_fraction_v</span><span class="p">(</span> <span class="n">shower_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">shower_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// scan over hits</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">shower_cluster_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">coord</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+        <span class="kt">int</span> <span class="n">noverlap</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">tw</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">coord</span><span class="p">[</span><span class="n">p</span><span class="p">]);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">electron_pixels_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">find</span><span class="p">(</span> <span class="n">tw</span> <span class="p">)</span><span class="o">!=</span><span class="n">electron_pixels_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">noverlap</span><span class="o">++</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">noverlap</span><span class="o">&gt;=</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">truth_pixels_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+          <span class="n">truth_fraction_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">truth_fraction_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">max_cluster</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">max_pixels</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">truth_pixels_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">truth_pixels_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="n">max_pixels</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">max_pixels</span> <span class="o">=</span> <span class="n">truth_pixels_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">max_cluster</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">max_cluster</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_max_truthpix</span> <span class="o">=</span> <span class="n">max_pixels</span><span class="p">;</span>
+      <span class="n">cluster_max_truthfraction</span> <span class="o">=</span> <span class="n">truth_fraction_v</span><span class="p">[</span><span class="n">max_cluster</span><span class="p">];</span>
+      <span class="n">cluster_max_recopix</span>  <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">shower_cluster_v</span><span class="p">[</span><span class="n">max_cluster</span><span class="p">].</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pixsum</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">cluster_pixelsum</span><span class="p">(</span> <span class="n">shower_cluster_v</span><span class="p">[</span><span class="n">max_cluster</span><span class="p">],</span> <span class="n">adc_v</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">cluster_max_pixelsum</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixsum</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="n">cluster_max_truthpix</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">cluster_max_recopix</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">cluster_max_truthfraction</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">cluster_max_pixelsum</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;--------------------------------------------------------------------------&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Max shower reco cluster=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">max_cluster</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; max pixels in cluster=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">max_pixels</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; fraction=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">truth_fraction_v</span><span class="p">[</span><span class="n">max_cluster</span><span class="p">]</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;--------------------------------------------------------------------------&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="n">truthmatchana</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+
+  <span class="n">out</span><span class="o">-&gt;</span><span class="n">Close</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

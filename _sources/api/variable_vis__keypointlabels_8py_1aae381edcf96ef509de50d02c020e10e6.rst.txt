@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__keypointlabels_8py_1aae381edcf96ef509de50d02c020e10e6:
+
+Variable vis_keypointlabels::type
+=================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_keypointlabels.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_keypointlabels::type

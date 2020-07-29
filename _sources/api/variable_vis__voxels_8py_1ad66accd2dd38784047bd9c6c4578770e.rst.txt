@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__voxels_8py_1ad66accd2dd38784047bd9c6c4578770e:
+
+Variable vis_voxels::colorscale
+===============================
+
+- Defined in :ref:`file_larflow_Voxelizer_test_vis_voxels.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_voxels::colorscale

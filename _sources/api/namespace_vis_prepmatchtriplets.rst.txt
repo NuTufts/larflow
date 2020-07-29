@@ -1,0 +1,63 @@
+
+.. _namespace_vis_prepmatchtriplets:
+
+Namespace vis_prepmatchtriplets
+===============================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_vis__prepmatchtriplets_8py_1a298faa3eff64825db3fd492e167cb275`
+
+- :ref:`exhale_function_vis__prepmatchtriplets_8py_1aaac8142dc38c99ea10e88d4203eda314`
+
+- :ref:`exhale_function_vis__prepmatchtriplets_8py_1a394def169656464caef22159f605add9`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a8b34953b8d79d8613a710502a3c9c636`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a445b53735f1b0846f26ce25edbaf6ef8`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a65ba0ce5efef3de62c22d954e83096fb`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a018ad7fd476a0964f7de3060f64adf1d`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a2864ba3db5823a2af4c031066063633f`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a32ad11d0445dc3ec4a828cc6c66e5e4b`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a3223086dcbce91254e0ff6acd1d02f60`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1aa8b89fbba33d63e04c2363338b46c802`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1acd27e191d8e4b95854fd8dfeb66055ec`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a4fe9a1230d2c71f8734231d5050e08fd`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a6e5467491dbdb81c9f05e3ef65a33295`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a83b9dcdafa1faf59ba6da7b5c1345df2`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a7b52cb844033683e86ddf162d78bd2bc`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1ac148731ad94cf3133f90a801bb614794`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a4993f08992efdb4646e2874620145c4e`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a1726322624fb13b0f2839a9aac7675fe`
+
+- :ref:`exhale_variable_vis__prepmatchtriplets_8py_1a3c404c0eca3278c341455eb10636474f`

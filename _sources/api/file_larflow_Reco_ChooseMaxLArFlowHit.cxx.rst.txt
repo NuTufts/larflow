@@ -1,0 +1,46 @@
+
+.. _file_larflow_Reco_ChooseMaxLArFlowHit.cxx:
+
+File ChooseMaxLArFlowHit.cxx
+============================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/ChooseMaxLArFlowHit.cxx``)
+-----------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_ChooseMaxLArFlowHit.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``ChooseMaxLArFlowHit.h`` (:ref:`file_larflow_Reco_ChooseMaxLArFlowHit.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

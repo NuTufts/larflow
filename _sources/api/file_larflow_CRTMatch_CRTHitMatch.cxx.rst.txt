@@ -1,0 +1,52 @@
+
+.. _file_larflow_CRTMatch_CRTHitMatch.cxx:
+
+File CRTHitMatch.cxx
+====================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_CRTMatch>` (``larflow/CRTMatch``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/CRTMatch/CRTHitMatch.cxx``)
+-------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_CRTMatch_CRTHitMatch.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``CRTHitMatch.h`` (:ref:`file_larflow_CRTMatch_CRTHitMatch.h`)
+
+- ``LArUtil/LArProperties.h``
+
+- ``TRandom2.h``
+
+- ``larflow/Reco/cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__crtmatch`
+

@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1prep_1_1WireOverlap:
+
+Class WireOverlap
+=================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_WireOverlap.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::prep::WireOverlap
+   :members:
+   :protected-members:
+   :undoc-members:

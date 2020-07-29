@@ -1,0 +1,385 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File makesimpleflowhits.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File makesimpleflowhits.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_FlowContourMatch_makesimpleflowhits.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-makesimpleflowhits-cxx">
+<span id="program-listing-file-larflow-flowcontourmatch-makesimpleflowhits-cxx"></span><h1>Program Listing for File makesimpleflowhits.cxx<a class="headerlink" href="#program-listing-for-file-makesimpleflowhits-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_FlowContourMatch_makesimpleflowhits.cxx.html#file-larflow-flowcontourmatch-makesimpleflowhits-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/FlowContourMatch/makesimpleflowhits.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;makesimpleflowhits.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/ImageMeta.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">makeSimpleFlowHits</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_full_v</span><span class="p">,</span>
+                                                         <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contours</span><span class="p">,</span>
+                                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ContourFlowMatchDict_t</span><span class="o">&gt;&amp;</span> <span class="n">matchdict_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// we loop through the source contours</span>
+    <span class="c1">// and choose the best flow for each source pixel.</span>
+    <span class="c1">// we choose based on distance of source pixel to center.</span>
+    <span class="c1">// also, we try to pix one which flows into a target contour</span>
+
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">src_full_meta</span> <span class="o">=</span> <span class="n">adc_full_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="n">meta</span><span class="p">();</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">src_ctr_v</span> <span class="o">=</span> <span class="n">contours</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">flowhits_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">src_ctr_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">src_ctr_idx</span><span class="o">&lt;</span><span class="n">src_ctr_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">src_ctr_idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// get the source contour</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">src_ctr</span> <span class="o">=</span> <span class="n">src_ctr_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">src_ctr_idx</span><span class="p">);</span>
+
+      <span class="c1">// for every unique source pixel(index), we store a larflowhit</span>
+      <span class="c1">// note: index = row*ncols + col</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">srcpix_hitmap</span><span class="p">;</span>
+
+      <span class="c1">// loop through the possible contours</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iflowdir</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iflowdir</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">iflowdir</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">it_mapdict</span> <span class="p">:</span> <span class="n">matchdict_v</span><span class="p">[</span><span class="n">iflowdir</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">it_mapdict</span><span class="p">.</span><span class="n">first</span><span class="p">.</span><span class="n">first</span><span class="o">==</span><span class="n">src_ctr_idx</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// found src contour match</span>
+
+            <span class="c1">// now loop over the flow information in it</span>
+            <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">it_flowinfo</span> <span class="p">:</span> <span class="n">it_mapdict</span><span class="p">.</span><span class="n">second</span><span class="p">.</span><span class="n">matchingflow_map</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="kt">int</span> <span class="n">srcpix_index</span> <span class="o">=</span> <span class="n">it_flowinfo</span><span class="p">.</span><span class="n">first</span><span class="p">;</span>
+              <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">ContourFlowMatch_t</span><span class="o">::</span><span class="n">FlowPixel_t</span> <span class="o">&gt;&amp;</span> <span class="n">flowinfo_v</span> <span class="o">=</span> <span class="n">it_flowinfo</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+
+              <span class="c1">// what is the row and column for this hit?</span>
+              <span class="kt">int</span> <span class="n">src_col</span> <span class="o">=</span> <span class="n">srcpix_index</span><span class="o">%</span><span class="n">src_full_meta</span><span class="p">.</span><span class="n">cols</span><span class="p">();</span>
+              <span class="kt">int</span> <span class="n">src_row</span> <span class="o">=</span> <span class="n">srcpix_index</span><span class="o">/</span><span class="n">src_full_meta</span><span class="p">.</span><span class="n">cols</span><span class="p">();</span>
+
+              <span class="c1">// get a hit (or make one)</span>
+              <span class="k">auto</span> <span class="n">it_hit</span> <span class="o">=</span> <span class="n">srcpix_hitmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">srcpix_index</span> <span class="p">);</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">it_hit</span><span class="o">==</span><span class="n">srcpix_hitmap</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="n">srcpix_hitmap</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">srcpix_index</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="p">()</span> <span class="p">)</span> <span class="p">);</span>
+                <span class="n">it_hit</span> <span class="o">=</span> <span class="n">srcpix_hitmap</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">srcpix_index</span> <span class="p">);</span>
+              <span class="p">}</span>
+
+              <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&amp;</span> <span class="n">hit</span> <span class="o">=</span> <span class="n">it_hit</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+
+              <span class="c1">// std::cout &lt;&lt; &quot;src-contour[&quot; &lt;&lt; src_ctr_idx &lt;&lt; &quot;] &quot;</span>
+              <span class="c1">//           &lt;&lt; &quot;src-tar-pair(&quot; &lt;&lt; src_ctr_idx &lt;&lt; &quot;,&quot; &lt;&lt; it_mapdict.first.second &lt;&lt; &quot;) &quot;</span>
+              <span class="c1">//           &lt;&lt; &quot; sourcepixel[&quot; &lt;&lt; srcpix_index &lt;&lt; &quot;] &quot;</span>
+              <span class="c1">//           &lt;&lt; &quot;@(&quot; &lt;&lt; src_row &lt;&lt; &quot;,&quot; &lt;&lt; src_col &lt;&lt; &quot;) &quot;</span>
+              <span class="c1">//           &lt;&lt; &quot;has &quot; &lt;&lt; flowinfo_v.size() &lt;&lt; &quot; flow-pixels&quot; &lt;&lt; std::endl;</span>
+
+              <span class="c1">// now fill in the details</span>
+              <span class="c1">// ------------------------</span>
+
+              <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="mi">3</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="n">hit</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+                <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+              <span class="p">}</span>
+
+              <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">info</span> <span class="p">:</span> <span class="n">flowinfo_v</span> <span class="p">)</span> <span class="p">{</span>
+
+                <span class="c1">// determine if we replace the values for the hit</span>
+                <span class="kt">bool</span> <span class="n">replace</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">matchquality</span><span class="o">==</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kNoMatch</span> <span class="p">)</span> <span class="p">{</span>
+                  <span class="n">replace</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">matchquality</span><span class="o">&lt;=</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kClosestC</span> <span class="p">)</span> <span class="p">{</span>
+                  <span class="c1">// if there was a value ...</span>
+                  <span class="c1">// replace if we&#39;re closer to a contour</span>
+                  <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">renormed_track_score</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">fabs</span><span class="p">(</span><span class="n">info</span><span class="p">.</span><span class="n">pred_miss</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+                    <span class="n">replace</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+                  <span class="p">}</span>
+                  <span class="c1">// replace if same distance, but closer to center of y-plane</span>
+                  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">hit</span><span class="p">.</span><span class="n">renormed_track_score</span><span class="p">)</span><span class="o">==</span><span class="n">fabs</span><span class="p">(</span><span class="n">info</span><span class="p">.</span><span class="n">pred_miss</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">hit</span><span class="p">.</span><span class="n">center_y_dist</span><span class="o">&gt;</span><span class="n">info</span><span class="p">.</span><span class="n">dist2cropcenter</span> <span class="p">)</span> <span class="p">{</span>
+                    <span class="n">replace</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+                  <span class="p">}</span>
+                <span class="p">}</span>
+
+                <span class="k">if</span> <span class="p">(</span> <span class="n">replace</span> <span class="p">)</span> <span class="p">{</span>
+
+                  <span class="c1">// we fill the hit</span>
+                  <span class="k">const</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">*</span> <span class="n">geo</span>       <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">();</span>
+                  <span class="k">const</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">*</span> <span class="n">larp</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">();</span>
+
+                  <span class="c1">// do the channels intersect</span>
+                  <span class="n">Double_t</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">;</span>
+                  <span class="n">geo</span><span class="o">-&gt;</span><span class="n">IntersectionPoint</span><span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">src_wire</span><span class="p">,</span> <span class="n">info</span><span class="p">.</span><span class="n">tar_wire</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">iflowdir</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">);</span>
+                  <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span><span class="p">;</span>
+
+                  <span class="c1">// tick and x</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">tick</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">info</span><span class="p">.</span><span class="n">tick</span><span class="o">-</span><span class="mf">3200.0</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">larp</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">();</span>
+
+                  <span class="c1">// wires</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">srcwire</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">src_wire</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span> <span class="n">iflowdir</span> <span class="p">]</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">tar_wire</span><span class="p">;</span>
+
+                  <span class="k">if</span> <span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">pred_miss</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+                    <span class="n">hit</span><span class="p">.</span><span class="n">matchquality</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kQandCmatch</span><span class="p">;</span>
+                  <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">info</span><span class="p">.</span><span class="n">pred_miss</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span>
+                    <span class="n">hit</span><span class="p">.</span><span class="n">matchquality</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kCmatch</span><span class="p">;</span>
+                  <span class="k">else</span>
+                    <span class="n">hit</span><span class="p">.</span><span class="n">matchquality</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kClosestC</span><span class="p">;</span>
+
+                  <span class="c1">// flow-dir</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">flowdir</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">FlowDirection_t</span><span class="p">)</span><span class="n">iflowdir</span><span class="p">;</span>
+
+                  <span class="c1">// truth matching</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">truthflag</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kNoTruthMatch</span><span class="p">;</span>
+
+                  <span class="c1">// center to distance</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">center_y_dist</span> <span class="o">=</span> <span class="n">info</span><span class="p">.</span><span class="n">dist2cropcenter</span><span class="p">;</span>
+
+                  <span class="c1">// consistency</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">consistency3d</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">::</span><span class="n">kNoValue</span><span class="p">;</span> <span class="c1">// do later</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">dy</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">dz</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+                  <span class="c1">// using to store closest distance to contour</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">renormed_track_score</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">info</span><span class="p">.</span><span class="n">pred_miss</span><span class="p">);</span>
+
+                  <span class="c1">// ssnet scores</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">endpt_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">track_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">shower_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">renormed_shower_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+                  <span class="c1">// infill</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">src_infill</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">tar_infill</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+                  <span class="c1">// truth</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">X_truth</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">trackid</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+                  <span class="n">hit</span><span class="p">.</span><span class="n">dWall</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+                <span class="p">}</span><span class="c1">//if replace</span>
+
+              <span class="p">}</span><span class="c1">//loop over flowinfo</span>
+
+            <span class="p">}</span><span class="c1">//loop over pixelflow info stored in each contour pair</span>
+
+          <span class="p">}</span><span class="c1">//end of if we matched to source contour index</span>
+
+        <span class="p">}</span><span class="c1">//end of loop over contour flow match dictionary contact</span>
+
+      <span class="p">}</span><span class="c1">//end of flow-direction loop</span>
+
+      <span class="c1">// move hits into final container</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="nl">it_srcpixhits</span> <span class="p">:</span> <span class="n">srcpix_hitmap</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">flowhits_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">it_srcpixhits</span><span class="p">.</span><span class="n">second</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over source contour indices</span>
+
+
+    <span class="k">return</span> <span class="n">flowhits_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

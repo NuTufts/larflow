@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__affinityfield_8py_1a96710b5e47064d1ef9ff9c42d59455da:
+
+Variable vis_affinityfield::option_dict
+=======================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_affinityfield.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_affinityfield::option_dict

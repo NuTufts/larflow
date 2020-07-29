@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1abb1da2badcd79e9d372e004f78894f75:
+
+Variable vis_primitives::keypoint_colors
+========================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::keypoint_colors

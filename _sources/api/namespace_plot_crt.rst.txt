@@ -1,0 +1,82 @@
+
+.. _namespace_plot_crt:
+
+Namespace plot_crt
+==================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_plot__crt_8py_1a77c16fc26443ecf9aff71ddc2b79dd9a`
+
+- :ref:`exhale_variable_plot__crt_8py_1aca73de0d24017734daae3b5057fe99a7`
+
+- :ref:`exhale_variable_plot__crt_8py_1a947e8aa4bc780b93c26e919fbf60537b`
+
+- :ref:`exhale_variable_plot__crt_8py_1a5e204b61223aa04ccecaa77256ae4e7c`
+
+- :ref:`exhale_variable_plot__crt_8py_1adeef8c8fbaea1d6ab4902ade3af1e30e`
+
+- :ref:`exhale_variable_plot__crt_8py_1a22e48de2590ecc11e436035898da1756`
+
+- :ref:`exhale_variable_plot__crt_8py_1a25d575b0120c18baaa2e52c1132af957`
+
+- :ref:`exhale_variable_plot__crt_8py_1ae6a9e7ea3848a3682951dcf5ab93546b`
+
+- :ref:`exhale_variable_plot__crt_8py_1a0890e1befd86a7f29b10660f88122059`
+
+- :ref:`exhale_variable_plot__crt_8py_1afa656009e825a85353ebada2bce80416`
+
+- :ref:`exhale_variable_plot__crt_8py_1ad2d3d6520047b042a0151e9bfed52052`
+
+- :ref:`exhale_variable_plot__crt_8py_1abfe0cddf521b96d4e2f6524592c29c0a`
+
+- :ref:`exhale_variable_plot__crt_8py_1a20dc1cb08c88595df759c43d4565ddc9`
+
+- :ref:`exhale_variable_plot__crt_8py_1aee8a7f692be8876aa296ddfafed12872`
+
+- :ref:`exhale_variable_plot__crt_8py_1afd3694ec4802c3696bf0b684270cf81e`
+
+- :ref:`exhale_variable_plot__crt_8py_1a90bbfacd8d77c267b530efafa6f37cec`
+
+- :ref:`exhale_variable_plot__crt_8py_1a9e423f72834487610e3709eec4a0252c`
+
+- :ref:`exhale_variable_plot__crt_8py_1abe588178575d7eec6542109e6429ef14`
+
+- :ref:`exhale_variable_plot__crt_8py_1a46a0f9eaa27e214134b731b8462cf606`
+
+- :ref:`exhale_variable_plot__crt_8py_1ab75b26de2042f0ee961d55003a759a07`
+
+- :ref:`exhale_variable_plot__crt_8py_1aed2bd7d9d98a9aad36fda15e2dd38839`
+
+- :ref:`exhale_variable_plot__crt_8py_1af9abcdd38d781940d8fb679a5af55fee`
+
+- :ref:`exhale_variable_plot__crt_8py_1af69b8e530af8c885cd08adeef40128eb`
+
+- :ref:`exhale_variable_plot__crt_8py_1a0b07381a6dd11e9a3e6e6732fd1f79b3`
+
+- :ref:`exhale_variable_plot__crt_8py_1afde208a846ec4fbbfd6f861dd65d6592`
+
+- :ref:`exhale_variable_plot__crt_8py_1a53108b73dc559448a36b5dbacf580f9c`
+
+- :ref:`exhale_variable_plot__crt_8py_1a4457950a3251b7cd7ffb59e0e4d7063a`
+
+- :ref:`exhale_variable_plot__crt_8py_1a989a1759790e06e0e3c8724b1aa54945`
+
+- :ref:`exhale_variable_plot__crt_8py_1ac371d1533fb355bb87a5f72519662536`
+
+- :ref:`exhale_variable_plot__crt_8py_1a76c5cea8c23abc99a57c976eebf6d493`
+
+- :ref:`exhale_variable_plot__crt_8py_1a522857c69e99d7c8544a19815d0ced94`
+
+- :ref:`exhale_variable_plot__crt_8py_1ad4bd29019a471cd219d7d4d8b1468366`

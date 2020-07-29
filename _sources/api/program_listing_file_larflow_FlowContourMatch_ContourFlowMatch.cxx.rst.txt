@@ -1,0 +1,32 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_ContourFlowMatch.cxx:
+
+Program Listing for File ContourFlowMatch.cxx
+=============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_ContourFlowMatch.cxx>` (``larflow/FlowContourMatch/ContourFlowMatch.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #include "ContourFlowMatch.h"
+   
+   #include <vector>
+   
+   namespace larflow {
+   
+     ContourFlowMatch_t::ContourFlowMatch_t( int srcid, int tarid )
+       : src_ctr_id(srcid), tar_ctr_id(tarid), score(0)
+     {}
+   
+     ContourFlowMatch_t::ContourFlowMatch_t( const ContourFlowMatch_t& x )
+       : src_ctr_id(x.src_ctr_id),
+         tar_ctr_id(x.tar_ctr_id),
+         score(x.score)
+     {
+       matchingflow_map = x.matchingflow_map;
+     }
+     
+   
+   }

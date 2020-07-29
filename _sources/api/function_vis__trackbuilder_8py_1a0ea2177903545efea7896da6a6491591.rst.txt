@@ -1,0 +1,13 @@
+.. _exhale_function_vis__trackbuilder_8py_1a0ea2177903545efea7896da6a6491591:
+
+Function vis_trackbuilder::cb_render
+====================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trackbuilder.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_trackbuilder::cb_render(vals)

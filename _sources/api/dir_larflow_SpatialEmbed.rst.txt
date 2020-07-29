@@ -1,0 +1,27 @@
+.. _dir_larflow_SpatialEmbed:
+
+
+Directory SpatialEmbed
+======================
+
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow>` (``larflow``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+*Directory path:* ``larflow/SpatialEmbed``
+
+Subdirectories
+--------------
+
+- :ref:`dir_larflow_SpatialEmbed_test`
+
+
+Files
+-----
+
+- :ref:`file_larflow_SpatialEmbed_LinkDef.h`
+- :ref:`file_larflow_SpatialEmbed_PrepMatchEmbed.cxx`
+- :ref:`file_larflow_SpatialEmbed_PrepMatchEmbed.h`
+
+

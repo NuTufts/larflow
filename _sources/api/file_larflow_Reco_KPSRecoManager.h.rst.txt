@@ -1,0 +1,91 @@
+
+.. _file_larflow_Reco_KPSRecoManager.h:
+
+File KPSRecoManager.h
+=====================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/KPSRecoManager.h``)
+----------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_KPSRecoManager.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``ChooseMaxLArFlowHit.h`` (:ref:`file_larflow_Reco_ChooseMaxLArFlowHit.h`)
+
+- ``CosmicTrackBuilder.h`` (:ref:`file_larflow_Reco_CosmicTrackBuilder.h`)
+
+- ``DataFormat/storage_manager.h``
+
+- ``KeypointFilterByClusterSize.h`` (:ref:`file_larflow_Reco_KeypointFilterByClusterSize.h`)
+
+- ``KeypointFilterByWCTagger.h`` (:ref:`file_larflow_Reco_KeypointFilterByWCTagger.h`)
+
+- ``KeypointReco.h`` (:ref:`file_larflow_Reco_KeypointReco.h`)
+
+- ``NuTrackBuilder.h`` (:ref:`file_larflow_Reco_NuTrackBuilder.h`)
+
+- ``NuVertexMaker.h`` (:ref:`file_larflow_Reco_NuVertexMaker.h`)
+
+- ``ProjectionDefectSplitter.h`` (:ref:`file_larflow_Reco_ProjectionDefectSplitter.h`)
+
+- ``ShowerRecoKeypoint.h`` (:ref:`file_larflow_Reco_ShowerRecoKeypoint.h`)
+
+- ``SplitHitsBySSNet.h`` (:ref:`file_larflow_Reco_SplitHitsBySSNet.h`)
+
+- ``TFile.h``
+
+- ``TTree.h``
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``string``
+
+- ``ublarcvapp/UBImageMod/EmptyChannelAlgo.h``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_KPSRecoManager.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1KPSRecoManager`
+

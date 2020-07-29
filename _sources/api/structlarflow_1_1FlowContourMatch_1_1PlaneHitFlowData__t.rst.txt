@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1FlowContourMatch_1_1PlaneHitFlowData__t:
+
+Struct FlowContourMatch::PlaneHitFlowData_t
+===========================================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_arxiv_FlowContourMatch.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1FlowContourMatch`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::FlowContourMatch::PlaneHitFlowData_t
+   :members:
+   :protected-members:
+   :undoc-members:

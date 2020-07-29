@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1keypoints_1_1LoaderKeypointData:
+
+Class LoaderKeypointData
+========================
+
+- Defined in :ref:`file_larflow_KeyPoints_LoaderKeypointData.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::keypoints::LoaderKeypointData
+   :members:
+   :protected-members:
+   :undoc-members:

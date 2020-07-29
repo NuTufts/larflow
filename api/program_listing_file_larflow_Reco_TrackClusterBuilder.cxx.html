@@ -1,0 +1,911 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File TrackClusterBuilder.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File TrackClusterBuilder.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_TrackClusterBuilder.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-trackclusterbuilder-cxx">
+<span id="program-listing-file-larflow-reco-trackclusterbuilder-cxx"></span><h1>Program Listing for File TrackClusterBuilder.cxx<a class="headerlink" href="#program-listing-for-file-trackclusterbuilder-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_TrackClusterBuilder.cxx.html#file-larflow-reco-trackclusterbuilder-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/TrackClusterBuilder.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;TrackClusterBuilder.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TVector3.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/geofuncs.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/ubdllee/dwall.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                     <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">producer</span> <span class="o">=</span> <span class="s">&quot;trackprojsplit_full&quot;</span><span class="p">;</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">ev_cluster</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">producer</span><span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">ev_pcaxis</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span><span class="n">producer</span><span class="p">);</span>
+
+    <span class="n">loadClusterLibrary</span><span class="p">(</span> <span class="o">*</span><span class="n">ev_cluster</span><span class="p">,</span> <span class="o">*</span><span class="n">ev_pcaxis</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">clear</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_segment_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_segedge_m</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_connect_m</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_nodepos_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">loadClusterLibrary</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                                                <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">&amp;</span> <span class="n">pcaxis_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+      <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">&amp;</span> <span class="n">pca</span> <span class="o">=</span> <span class="n">pcaxis_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+
+      <span class="c1">// create a segment object</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">start</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">end</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">){</span>
+        <span class="n">start</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">3</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">end</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>   <span class="o">=</span> <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">4</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+      <span class="p">}</span>
+
+      <span class="n">Segment_t</span> <span class="n">seg</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="p">);</span>
+      <span class="n">seg</span><span class="p">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">cluster</span><span class="p">;</span>
+      <span class="n">seg</span><span class="p">.</span><span class="n">pca</span>     <span class="o">=</span> <span class="o">&amp;</span><span class="n">pca</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">seg</span><span class="p">.</span><span class="n">len</span><span class="o">&lt;</span><span class="mf">1.0</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">_segment_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">seg</span><span class="p">);</span>
+      <span class="n">_segment_v</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_segment_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+      <span class="n">NodePos_t</span> <span class="n">node1</span><span class="p">;</span>
+      <span class="n">node1</span><span class="p">.</span><span class="n">segidx</span>  <span class="o">=</span> <span class="n">_segment_v</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">idx</span><span class="p">;</span>
+      <span class="n">node1</span><span class="p">.</span><span class="n">nodeidx</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+      <span class="n">node1</span><span class="p">.</span><span class="n">pos</span>     <span class="o">=</span> <span class="n">start</span><span class="p">;</span>
+
+      <span class="n">NodePos_t</span> <span class="n">node2</span><span class="p">;</span>
+      <span class="n">node2</span><span class="p">.</span><span class="n">segidx</span>  <span class="o">=</span> <span class="n">_segment_v</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">idx</span><span class="p">;</span>
+      <span class="n">node2</span><span class="p">.</span><span class="n">nodeidx</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+      <span class="n">node2</span><span class="p">.</span><span class="n">pos</span>     <span class="o">=</span> <span class="n">end</span><span class="p">;</span>
+
+      <span class="n">_nodepos_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">node1</span> <span class="p">);</span>
+      <span class="n">_nodepos_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">node2</span> <span class="p">);</span>
+
+      <span class="c1">// make segment edges</span>
+      <span class="n">Connection_t</span> <span class="n">segedge1to2</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">node</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_segment_v</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">from_seg_idx</span> <span class="o">=</span> <span class="n">node1</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">to_seg_idx</span>   <span class="o">=</span> <span class="n">node2</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">dist</span>         <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">len</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">cosine</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">cosine_seg</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">segedge1to2</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">;</span>
+
+      <span class="n">Connection_t</span> <span class="n">segedge2to1</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">node</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_segment_v</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">from_seg_idx</span> <span class="o">=</span> <span class="n">node2</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">to_seg_idx</span>   <span class="o">=</span> <span class="n">node1</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">dist</span>         <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">len</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">cosine</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">cosine_seg</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">segedge2to1</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="n">segedge2to1</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+
+      <span class="n">_segedge_m</span><span class="p">[</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">node1</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">node2</span><span class="p">.</span><span class="n">nodeidx</span> <span class="p">)</span> <span class="p">]</span> <span class="o">=</span> <span class="n">segedge1to2</span><span class="p">;</span>
+      <span class="n">_segedge_m</span><span class="p">[</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">node2</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">node1</span><span class="p">.</span><span class="n">nodeidx</span> <span class="p">)</span> <span class="p">]</span> <span class="o">=</span> <span class="n">segedge2to1</span><span class="p">;</span>
+
+
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Stored &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_segment_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; track segments&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Stored &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; segment endpoints as nodes&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">buildNodeConnections</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">inode</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">inode</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">inode</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node_i</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="n">inode</span><span class="p">];</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">jnode</span><span class="o">=</span><span class="n">inode</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span> <span class="n">jnode</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">jnode</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// do not connect nodes on the same segment</span>
+        <span class="k">auto</span> <span class="n">it_segedge</span> <span class="o">=</span> <span class="n">_segedge_m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">inode</span><span class="p">,</span><span class="n">jnode</span><span class="p">)</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_segedge</span><span class="o">!=</span><span class="n">_segedge_m</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// define a connection in both directions</span>
+        <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node_j</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="n">jnode</span><span class="p">];</span>
+
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">dir_ij</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">dir_ij</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">node_j</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">node_i</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="n">dir_ij</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">dir_ij</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="n">dir_ij</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">/=</span> <span class="n">dist</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="mf">100.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// make sure this is the shortest distance</span>
+        <span class="c1">// between the segments</span>
+        <span class="kt">int</span> <span class="n">jnode_pair</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">jnode</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">jnode_pair</span> <span class="o">=</span> <span class="n">jnode</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+          <span class="n">jnode_pair</span> <span class="o">=</span> <span class="n">jnode</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+        <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node_j_pair</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="n">jnode_pair</span><span class="p">];</span>
+        <span class="kt">float</span> <span class="n">pairdist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">pairdist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">node_j_pair</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">node_i</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">node_j_pair</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">node_i</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="n">pairdist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pairdist</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">pairdist</span><span class="o">&lt;</span><span class="n">dist</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// the node&#39;s segment pair is closer to node_i, so we do not make this connection</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// i-&gt;j</span>
+        <span class="n">Connection_t</span> <span class="n">con_ij</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">node</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">from_seg_idx</span> <span class="o">=</span> <span class="n">inode</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">to_seg_idx</span>   <span class="o">=</span> <span class="n">jnode</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">endidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">cosine</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">cosine_seg</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">dir_ij</span><span class="p">;</span>
+
+        <span class="n">Connection_t</span> <span class="n">con_ji</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">node</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">from_seg_idx</span> <span class="o">=</span> <span class="n">jnode</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">to_seg_idx</span>   <span class="o">=</span> <span class="n">inode</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">dist</span>   <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+        <span class="n">con_ij</span><span class="p">.</span><span class="n">endidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">cosine</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">cosine_seg</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="n">con_ji</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">dir_ij</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">con_ji</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">_connect_m</span><span class="p">[</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">inode</span><span class="p">,</span><span class="n">jnode</span><span class="p">)</span> <span class="p">]</span> <span class="o">=</span> <span class="n">con_ij</span><span class="p">;</span>
+        <span class="n">_connect_m</span><span class="p">[</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">jnode</span><span class="p">,</span><span class="n">inode</span><span class="p">)</span> <span class="p">]</span> <span class="o">=</span> <span class="n">con_ji</span><span class="p">;</span>
+
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Made &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_connect_m</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; nodepos connections&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">buildTracksFromPoint</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">startpoint</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// find closest segment</span>
+    <span class="kt">float</span> <span class="n">mindist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">min_segidx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">iseg</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iseg</span><span class="o">&lt;</span><span class="n">_segment_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">iseg</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">];</span>
+      <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span>  <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">,</span> <span class="n">seg</span><span class="p">.</span><span class="n">end</span><span class="p">,</span> <span class="n">startpoint</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">proj</span> <span class="o">=</span> <span class="n">pointRayProjection</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">,</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">,</span> <span class="n">startpoint</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">proj</span><span class="o">&gt;-</span><span class="mf">3.0</span> <span class="o">&amp;&amp;</span> <span class="n">proj</span><span class="o">&lt;=</span><span class="n">seg</span><span class="p">.</span><span class="n">len</span><span class="o">+</span><span class="mf">3.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">mindist</span><span class="o">&gt;</span><span class="n">dist</span> <span class="o">||</span> <span class="n">min_segidx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">mindist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+          <span class="n">min_segidx</span> <span class="o">=</span> <span class="n">iseg</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">min_segidx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;No acceptable segment found for startpoint&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">mindist</span><span class="o">&gt;</span><span class="mf">3.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;No segment is close enough to keypoint&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;=== Seed track with point (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startpoint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startpoint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startpoint</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) ======&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; segment found idx=[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_segidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] to build from &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">str</span><span class="p">(</span><span class="n">_segment_v</span><span class="p">[</span><span class="n">min_segidx</span><span class="p">])</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// reset the nodes</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">node</span> <span class="p">:</span> <span class="n">_nodepos_v</span> <span class="p">)</span>
+      <span class="n">node</span><span class="p">.</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="c1">// Nodes from the segment</span>
+    <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node1</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">min_segidx</span><span class="p">];</span>
+    <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node2</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">min_segidx</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">node1</span><span class="p">.</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="n">node2</span><span class="p">.</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+
+    <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">startnode</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">nextnode</span>  <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">dist1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">dist2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">dist1</span> <span class="o">+=</span> <span class="p">(</span><span class="n">node1</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">startpoint</span><span class="p">[</span><span class="n">v</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">node1</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">startpoint</span><span class="p">[</span><span class="n">v</span><span class="p">]);</span>
+      <span class="n">dist2</span> <span class="o">+=</span> <span class="p">(</span><span class="n">node2</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">startpoint</span><span class="p">[</span><span class="n">v</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">node2</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">startpoint</span><span class="p">[</span><span class="n">v</span><span class="p">]);</span>
+    <span class="p">}</span>
+    <span class="n">startnode</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist1</span><span class="o">&lt;</span><span class="n">dist2</span><span class="p">)</span> <span class="o">?</span> <span class="o">&amp;</span><span class="nl">node1</span> <span class="p">:</span> <span class="o">&amp;</span><span class="n">node2</span><span class="p">;</span>
+    <span class="n">nextnode</span>  <span class="o">=</span> <span class="p">(</span><span class="n">dist1</span><span class="o">&gt;</span><span class="n">dist2</span><span class="p">)</span> <span class="o">?</span> <span class="o">&amp;</span><span class="nl">node1</span> <span class="p">:</span> <span class="o">&amp;</span><span class="n">node2</span><span class="p">;</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; starting track from: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">startnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; first gap edge from: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">auto</span> <span class="n">it_segedge12</span> <span class="o">=</span> <span class="n">_segedge_m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">startnode</span><span class="o">-&gt;</span><span class="n">nodeidx</span><span class="p">,</span><span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">nodeidx</span><span class="p">)</span> <span class="p">);</span>
+    <span class="k">auto</span> <span class="n">it_segedge21</span> <span class="o">=</span> <span class="n">_segedge_m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">nodeidx</span><span class="p">,</span><span class="n">startnode</span><span class="o">-&gt;</span><span class="n">nodeidx</span><span class="p">)</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">path_dir</span> <span class="o">=</span> <span class="n">it_segedge12</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">dir</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">NodePos_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">path</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;*</span> <span class="o">&gt;</span> <span class="n">path_dir_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="o">&gt;</span> <span class="n">complete_v</span><span class="p">;</span>
+
+    <span class="c1">// start to nextnode</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">startnode</span><span class="o">-&gt;</span><span class="n">veto</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">path</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">path_dir_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">path</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">startnode</span> <span class="p">);</span>
+      <span class="n">path_dir_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">path_dir</span> <span class="p">);</span>
+      <span class="n">_recursiveFollowPath</span><span class="p">(</span> <span class="o">*</span><span class="n">nextnode</span><span class="p">,</span> <span class="n">path_dir</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">path_dir_v</span><span class="p">,</span> <span class="n">complete_v</span> <span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[after start-&gt;next] point generated &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">complete_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; possible tracks&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// flip things</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">nextnode</span><span class="o">-&gt;</span><span class="n">veto</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">path</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">path_dir_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">path</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">nextnode</span> <span class="p">);</span>
+      <span class="n">path_dir_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">it_segedge21</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">dir</span> <span class="p">);</span>
+      <span class="n">_recursiveFollowPath</span><span class="p">(</span> <span class="o">*</span><span class="n">startnode</span><span class="p">,</span> <span class="n">path_dir</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">path_dir_v</span><span class="p">,</span> <span class="n">complete_v</span> <span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[after next-&gt;start] point generated &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">complete_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; possible tracks&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// this will generate proposals. we must choose among them</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="o">&gt;</span> <span class="n">filtered_v</span><span class="p">;</span>
+    <span class="n">_choose_best_paths</span><span class="p">(</span> <span class="n">complete_v</span><span class="p">,</span> <span class="n">filtered_v</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">path</span> <span class="p">:</span> <span class="n">filtered_v</span> <span class="p">)</span>  <span class="p">{</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;storing path nnodes=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; node[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">front</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">nodeidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]-&gt;node[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">back</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">nodeidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; seg[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">front</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">segidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]-&gt;seg[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">back</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">segidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">path</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of paths now stored: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">_recursiveFollowPath</span><span class="p">(</span> <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node</span><span class="p">,</span>
+                                                  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">path_dir</span><span class="p">,</span>
+                                                  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;&amp;</span> <span class="n">path</span><span class="p">,</span>
+                                                  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;*</span> <span class="o">&gt;</span> <span class="n">path_dir_v</span><span class="p">,</span>
+                                                  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">complete</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// we add ourselves to the current path</span>
+    <span class="n">node</span><span class="p">.</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="n">path</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">node</span> <span class="p">);</span>
+    <span class="n">path_dir_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">path_dir</span> <span class="p">);</span>
+
+    <span class="c1">// oh wow. we loop through possible connections, and descend.</span>
+    <span class="kt">int</span> <span class="n">nconnections</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">mindist</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">maxcos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">inode</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">inode</span><span class="o">&lt;</span><span class="n">_nodepos_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">inode</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">nextnode</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="n">inode</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nextnode</span><span class="p">.</span><span class="n">inpath</span> <span class="o">||</span> <span class="n">nextnode</span><span class="p">.</span><span class="n">veto</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">_connect_m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">nodeidx</span><span class="p">,</span><span class="n">inode</span><span class="p">)</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">_connect_m</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// no connection</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;  (connect &quot; &lt;&lt; seg.idx &lt;&lt; &quot;-&gt;&quot; &lt;&lt; iseg &lt;&lt; &quot;) dist=&quot; &lt;&lt; it-&gt;second.dist &lt;&lt; &quot; cos=&quot;  &lt;&lt; it-&gt;second.cosine &lt;&lt; std::endl;</span>
+
+      <span class="c1">// we connect based on:</span>
+
+      <span class="c1">// distance between node (edge length)</span>
+      <span class="c1">// direction between nodes (edge direction)</span>
+      <span class="c1">// direction between nextnode and its pair (segment direction)</span>
+      <span class="kt">int</span> <span class="n">inode_pair</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">inode</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">inode_pair</span> <span class="o">=</span> <span class="n">inode</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+      <span class="k">else</span>
+        <span class="n">inode_pair</span> <span class="o">=</span> <span class="n">inode</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+      <span class="k">auto</span> <span class="n">it_segedge</span> <span class="o">=</span> <span class="n">_segedge_m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">inode</span><span class="p">,</span><span class="n">inode_pair</span><span class="p">)</span> <span class="p">);</span>
+      <span class="kt">float</span><span class="o">&amp;</span> <span class="n">gaplen</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">dist</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span>  <span class="n">gapdir</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">dir</span><span class="p">;</span> <span class="c1">// should have worked ...</span>
+      <span class="c1">// std::vector&lt;float&gt;  gapdir(3,0);// = it-&gt;second.dir;</span>
+      <span class="c1">// for (int v=0; v&lt;3; v++) {</span>
+      <span class="c1">//   gapdir[v] = (nextnode.pos[v]-node.pos[v])/gaplen;</span>
+      <span class="c1">// }</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">segdir</span> <span class="o">=</span> <span class="n">it_segedge</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">dir</span><span class="p">;</span>
+
+      <span class="kt">float</span> <span class="n">segcos</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>  <span class="c1">// cosine between last segment and proposed segment</span>
+      <span class="kt">float</span> <span class="n">concos1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span> <span class="c1">// cosine between last segment and gap edge</span>
+      <span class="kt">float</span> <span class="n">concos2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span> <span class="c1">// cosine between gap edge and proposed segment dir</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">segcos</span>  <span class="o">+=</span> <span class="n">path_dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">segdir</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">concos1</span> <span class="o">+=</span> <span class="n">path_dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">gapdir</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">concos2</span> <span class="o">+=</span> <span class="n">gapdir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">segdir</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+      <span class="p">}</span>
+
+      <span class="c1">// add this segment</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;  consider node[&quot; &lt;&lt; node.nodeidx &lt;&lt; &quot;]-&gt;node[&quot; &lt;&lt; nextnode.nodeidx &lt;&lt; &quot;] &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot; seg[&quot; &lt;&lt; node.segidx &lt;&lt; &quot;]-&gt;seg[&quot; &lt;&lt; nextnode.segidx &lt;&lt; &quot;] &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot;dist=&quot; &lt;&lt; gaplen &lt;&lt; &quot; &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot; seg1-seg2=&quot; &lt;&lt; segcos</span>
+      <span class="c1">//           &lt;&lt; &quot; seg1-edge=&quot; &lt;&lt; concos1</span>
+      <span class="c1">//           &lt;&lt; &quot; edge-seg2=&quot; &lt;&lt; concos2</span>
+      <span class="c1">//           &lt;&lt; std::endl;</span>
+
+      <span class="c1">// criteria for accepting connection</span>
+      <span class="c1">// ugh, the heuristics ...</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">gaplen</span><span class="o">&lt;</span><span class="mf">2.0</span> <span class="o">&amp;&amp;</span> <span class="n">segcos</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="c1">// close: only check direction between segments</span>
+           <span class="o">||</span> <span class="p">(</span><span class="n">gaplen</span><span class="o">&gt;=</span><span class="mf">2.0</span> <span class="o">&amp;&amp;</span> <span class="n">gaplen</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="o">&amp;&amp;</span> <span class="n">segcos</span><span class="o">&gt;</span><span class="mf">0.8</span> <span class="o">&amp;&amp;</span> <span class="n">concos1</span><span class="o">&gt;</span><span class="mf">0.8</span> <span class="o">&amp;&amp;</span> <span class="n">concos2</span><span class="o">&gt;</span><span class="mf">0.8</span> <span class="p">)</span>  <span class="c1">// far: everything in the same direction</span>
+           <span class="o">||</span> <span class="p">(</span><span class="n">gaplen</span><span class="o">&gt;=</span><span class="mf">10.0</span> <span class="o">&amp;&amp;</span> <span class="n">segcos</span><span class="o">&gt;</span><span class="mf">0.9</span> <span class="o">&amp;&amp;</span> <span class="n">concos1</span><span class="o">&gt;</span><span class="mf">0.9</span> <span class="o">&amp;&amp;</span> <span class="n">concos2</span><span class="o">&gt;</span><span class="mf">0.9</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  <span class="c1">// far: everything in the same direction</span>
+
+        <span class="c1">// add this segment</span>
+        <span class="c1">// std::cout &lt;&lt; &quot;  ==&gt; connect node[&quot; &lt;&lt; node.nodeidx &lt;&lt; &quot;]-&gt;node[&quot; &lt;&lt; node.nodeidx &lt;&lt; &quot;] &quot;</span>
+        <span class="c1">//           &lt;&lt; &quot; seg[&quot; &lt;&lt; node.segidx &lt;&lt; &quot;]-&gt;seg[&quot; &lt;&lt; nextnode.segidx &lt;&lt; &quot;] &quot;</span>
+        <span class="c1">//           &lt;&lt; std::endl;</span>
+        <span class="c1">//std::cin.get();</span>
+
+        <span class="n">NodePos_t</span><span class="o">&amp;</span> <span class="n">node_pair</span> <span class="o">=</span> <span class="n">_nodepos_v</span><span class="p">[</span><span class="n">inode_pair</span><span class="p">];</span>
+        <span class="n">nextnode</span><span class="p">.</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="n">path_dir_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">segdir</span> <span class="p">);</span>
+        <span class="n">path</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">nextnode</span> <span class="p">);</span>
+        <span class="n">nconnections</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">_recursiveFollowPath</span><span class="p">(</span> <span class="n">node_pair</span><span class="p">,</span> <span class="n">segdir</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">path_dir_v</span><span class="p">,</span> <span class="n">complete</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">complete</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;=</span><span class="mi">1000</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">//cut this off!</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  cut off search. track limit reached: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nconnections</span><span class="o">==</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">complete</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">10000</span> <span class="o">&amp;&amp;</span> <span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// was a leaf, so make a complete track.</span>
+      <span class="c1">// else was a link</span>
+      <span class="n">complete</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">path</span> <span class="p">);</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;reached a leaf, copy track len=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; to completed list. num of completed tracks: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="c1">//std::cout &lt;&lt; &quot;  mindist=&quot; &lt;&lt; mindist &lt;&lt; &quot; maxcos=&quot; &lt;&lt; maxcos &lt;&lt; std::endl;</span>
+    <span class="c1">// pop  off the last two nodes</span>
+    <span class="kt">int</span> <span class="n">nnodes</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">2</span> <span class="p">)</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="n">path</span><span class="p">[</span><span class="n">nnodes</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">path</span><span class="p">[</span><span class="n">nnodes</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">inpath</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">path</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
+    <span class="n">path</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
+    <span class="n">path_dir</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
+    <span class="n">path_dir</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">str</span><span class="p">(</span> <span class="k">const</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">Segment_t</span><span class="o">&amp;</span> <span class="n">seg</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+    <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[segment[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] len=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">len</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; start=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seg</span><span class="p">.</span><span class="n">end</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; end=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; dir=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span><span class="p">;</span>
+    <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">_choose_best_paths</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">complete_v</span><span class="p">,</span>
+                                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">filtered_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+
+    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NodePos_t</span><span class="o">*&gt;</span> <span class="n">Path_t</span><span class="p">;</span>
+
+    <span class="c1">// phase 1, group paths by leaf index (the index of the last node)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">Path_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">leaf_groups</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">path</span> <span class="p">:</span> <span class="n">complete_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">leafidx</span> <span class="o">=</span> <span class="n">path</span><span class="p">.</span><span class="n">back</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">nodeidx</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">leaf_groups</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">leafidx</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">leaf_groups</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">leaf_groups</span><span class="p">[</span><span class="n">leafidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">Path_t</span><span class="o">*</span> <span class="o">&gt;</span><span class="p">();</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">leaf_groups</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">leafidx</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">path</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// loop over leaf groups, choosing subset close to min</span>
+    <span class="kt">int</span> <span class="n">nfiltered_before</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">filtered_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">Path_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">selected_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">path_dist_ratio_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">selected_pathlen_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">selected_enddist_v</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">min_pathdist_ratio</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+    <span class="n">path_dist_ratio_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">leaf_groups</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">leaf_groups</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">leaf_groups</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;=== Find mindist subgroup in Leaf Group[&quot; &lt;&lt; it-&gt;first &lt;&lt; &quot;] ===&quot; &lt;&lt; std::endl;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">pathlen_v</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">seglen_v</span><span class="p">;</span>
+      <span class="n">pathlen_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">seglen_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+
+      <span class="kt">int</span> <span class="n">minpath_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">minpathlen</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ipath</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipath</span><span class="o">&lt;</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ipath</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">Path_t</span><span class="o">*</span> <span class="n">ppath</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">ipath</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">pathdist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">totseglen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">inode</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span> <span class="n">inode</span><span class="o">&lt;</span><span class="n">ppath</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">inode</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">pnode</span> <span class="o">=</span> <span class="n">ppath</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">inode</span><span class="p">);</span>
+          <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">pnode_prev</span> <span class="o">=</span> <span class="n">ppath</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">inode</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pnode_prev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pnode_prev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">inode</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+            <span class="n">totseglen</span> <span class="o">+=</span> <span class="n">dist</span><span class="p">;</span>
+          <span class="n">pathdist</span> <span class="o">+=</span> <span class="n">dist</span><span class="p">;</span>
+
+        <span class="p">}</span><span class="c1">//end of loop over path segments</span>
+        <span class="c1">//std::cout &lt;&lt; &quot;  Leaf-group[&quot; &lt;&lt; it-&gt;first &lt;&lt; &quot;] path[&quot; &lt;&lt; ipath &lt;&lt; &quot;] pathlen=&quot; &lt;&lt; pathdist &lt;&lt; &quot; seglen=&quot; &lt;&lt; totseglen &lt;&lt; std::endl;</span>
+        <span class="n">pathlen_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">pathdist</span><span class="p">);</span>
+        <span class="n">seglen_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">totseglen</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">pathdist</span><span class="o">&lt;</span><span class="n">minpathlen</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">minpath_idx</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ipath</span><span class="p">;</span>
+          <span class="n">minpathlen</span> <span class="o">=</span> <span class="n">pathdist</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span><span class="c1">//end of path loop</span>
+      <span class="c1">//std::cout &lt;&lt; &quot; Leaf group minpathlen=&quot; &lt;&lt; minpathlen &lt;&lt; std::endl;</span>
+
+      <span class="c1">// get max seg/path frac out of paths within minimum dist</span>
+      <span class="kt">int</span> <span class="n">max_segfrac_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">max_segfrac</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ipath</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipath</span><span class="o">&lt;</span><span class="n">pathlen_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ipath</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">pathlen_v</span><span class="p">[</span><span class="n">ipath</span><span class="p">]</span><span class="o">-</span><span class="n">minpathlen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">20.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">segfrac</span> <span class="o">=</span> <span class="n">seglen_v</span><span class="p">[</span><span class="n">ipath</span><span class="p">]</span><span class="o">/</span><span class="n">pathlen_v</span><span class="p">[</span><span class="n">ipath</span><span class="p">];</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">segfrac</span><span class="o">&gt;</span><span class="n">max_segfrac</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">max_segfrac</span> <span class="o">=</span> <span class="n">segfrac</span><span class="p">;</span>
+            <span class="n">max_segfrac_idx</span> <span class="o">=</span> <span class="n">ipath</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="c1">//std::cout &lt;&lt; &quot; Leaf sub-group maxsegfrac=&quot; &lt;&lt; max_segfrac &lt;&lt;&quot; pathidx=&quot; &lt;&lt; max_segfrac_idx &lt;&lt; std::endl;</span>
+      <span class="n">selected_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">max_segfrac_idx</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">selected_pathlen_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pathlen_v</span><span class="p">[</span><span class="n">max_segfrac_idx</span><span class="p">]</span> <span class="p">);</span>
+
+      <span class="c1">// store path/dist ratio</span>
+      <span class="n">Path_t</span><span class="o">*</span> <span class="n">leafpath</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">max_segfrac_idx</span><span class="p">);</span>
+
+
+      <span class="kt">float</span> <span class="n">end_dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">leafpath</span><span class="o">-&gt;</span><span class="n">front</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">-</span> <span class="n">leafpath</span><span class="o">-&gt;</span><span class="n">back</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">end_dist</span> <span class="o">+=</span> <span class="n">dx</span><span class="o">*</span><span class="n">dx</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">end_dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">end_dist</span><span class="p">);</span>
+      <span class="n">selected_enddist_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">end_dist</span> <span class="p">);</span>
+
+      <span class="kt">float</span> <span class="n">pathdist_ratio</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">end_dist</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">pathdist_ratio</span> <span class="o">=</span> <span class="n">pathlen_v</span><span class="p">[</span><span class="n">max_segfrac_idx</span><span class="p">]</span><span class="o">/</span><span class="n">end_dist</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">path_dist_ratio_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pathdist_ratio</span> <span class="p">);</span>
+
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">pathdist_ratio</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">pathdist_ratio</span><span class="o">&lt;</span><span class="n">min_pathdist_ratio</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">min_pathdist_ratio</span> <span class="o">=</span> <span class="n">pathdist_ratio</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;  Leafgroup[&quot;  &lt;&lt; it-&gt;first &lt;&lt; &quot;] best path dist between ends: &quot; &lt;&lt; end_dist &lt;&lt; std::endl;</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;=== End of Leafgroup[&quot; &lt;&lt; it-&gt;first &lt;&lt; &quot;] selection path/dist ratio: &quot; &lt;&lt; pathdist_ratio &lt;&lt; &quot; len=&quot; &lt;&lt; pathlen_v[max_segfrac_idx] &lt;&lt; &quot; ===&quot; &lt;&lt; std::endl;</span>
+    <span class="p">}</span><span class="c1">//end of group loop</span>
+
+    <span class="c1">// so far we&#39;ve chosen best path from seed point to leaf point,</span>
+    <span class="c1">// now choose among leaf points, if _one_track_per_startpoint is true.</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_one_track_per_startpoint</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// choose among the best of the best?</span>
+      <span class="c1">// the minimum ratio of path-length to</span>
+      <span class="kt">float</span> <span class="n">min_track_path_dist_ratio</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">max_track_dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">min_max_len_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">selected_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">path_dist_ratio_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;=</span><span class="mf">1.0</span> <span class="o">&amp;&amp;</span> <span class="n">path_dist_ratio_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;</span><span class="n">min_pathdist_ratio</span><span class="o">+</span><span class="mf">0.2</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// if ( min_track_path_dist_ratio&gt;path_dist_ratio_v[i] ) {</span>
+          <span class="c1">//   min_max_len_idx = i;</span>
+          <span class="c1">//   min_track_path_dist_ratio = path_dist_ratio_v[i];</span>
+          <span class="c1">// }</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">max_track_dist</span><span class="o">&lt;</span><span class="n">selected_enddist_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">max_track_dist</span> <span class="o">=</span> <span class="n">selected_enddist_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+            <span class="n">min_max_len_idx</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">min_max_len_idx</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">filtered_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">selected_v</span><span class="p">[</span><span class="n">min_max_len_idx</span><span class="p">]</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="c1">// allow us to return a collection of paths from the same start point to many different leaves</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">ppath</span> <span class="p">:</span> <span class="n">selected_v</span> <span class="p">)</span>
+        <span class="n">filtered_v</span><span class="p">.</span><span class="n">push_back</span> <span class="p">(</span> <span class="o">*</span><span class="n">ppath</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of leaf-group candidate tracks return: &quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">filtered_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="n">nfiltered_before</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">fillLarliteTrackContainer</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">&amp;</span> <span class="n">evout_track</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">path</span> <span class="o">=</span> <span class="n">_track_proposal_v</span><span class="p">[</span><span class="n">itrack</span><span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;=</span><span class="mi">1</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">track</span> <span class="n">lltrack</span><span class="p">;</span>
+      <span class="n">lltrack</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">());</span> <span class="c1">// npts = 2*num seg;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">last_seg_dir</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">inode</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span> <span class="n">inode</span><span class="o">&lt;</span><span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">inode</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">const</span> <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">node</span>     <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="n">inode</span><span class="p">];</span>
+        <span class="k">const</span> <span class="n">NodePos_t</span><span class="o">*</span> <span class="n">nodeprev</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="n">inode</span><span class="o">-</span><span class="mi">1</span><span class="p">];</span>
+        <span class="kt">float</span> <span class="n">d</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">last_seg_dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">nodeprev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+          <span class="n">d</span> <span class="o">+=</span> <span class="n">last_seg_dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">last_seg_dir</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">d</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+            <span class="n">last_seg_dir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">/=</span> <span class="n">d</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">lltrack</span><span class="p">.</span><span class="n">add_vertex</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">nodeprev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">nodeprev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">nodeprev</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="p">);</span>
+        <span class="n">lltrack</span><span class="p">.</span><span class="n">add_direction</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">inode</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">path</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">lltrack</span><span class="p">.</span><span class="n">add_vertex</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="p">);</span>
+          <span class="n">lltrack</span><span class="p">.</span><span class="n">add_direction</span><span class="p">(</span> <span class="n">TVector3</span><span class="p">(</span><span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">last_seg_dir</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of loop over nodes</span>
+
+      <span class="n">evout_track</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lltrack</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span><span class="c1">//end of loop over tracks</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">TrackClusterBuilder</span><span class="o">::</span><span class="n">_buildTracksFromSegments</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="c1">// mark segments used</span>
+    <span class="kt">int</span> <span class="n">unused</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_v</span><span class="p">(</span> <span class="n">_segment_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">path</span> <span class="p">:</span> <span class="n">_track_proposal_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pnode</span> <span class="p">:</span> <span class="n">path</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">used_v</span><span class="p">[</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">segidx</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// make seginfo</span>
+    <span class="k">struct</span> <span class="n">UnusedSeg_t</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">segidx</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="k">operator</span><span class="o">&lt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">UnusedSeg_t</span><span class="o">&amp;</span> <span class="n">rhs</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dwall</span><span class="o">&lt;</span><span class="n">rhs</span><span class="p">.</span><span class="n">dwall</span> <span class="p">)</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">UnusedSeg_t</span> <span class="o">&gt;</span> <span class="n">seglist_v</span><span class="p">;</span>
+    <span class="n">seglist_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">_segment_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">iseg</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iseg</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">used_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">iseg</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="n">UnusedSeg_t</span> <span class="n">seginfo</span><span class="p">;</span>
+      <span class="n">seginfo</span><span class="p">.</span><span class="n">segidx</span> <span class="o">=</span> <span class="n">iseg</span><span class="p">;</span>
+
+      <span class="kt">int</span> <span class="n">btype1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">btype2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dwall1</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dwall_noAC</span><span class="p">(</span> <span class="n">_segment_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">].</span><span class="n">start</span><span class="p">,</span> <span class="n">btype1</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">dwall2</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dwall_noAC</span><span class="p">(</span> <span class="n">_segment_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">].</span><span class="n">end</span><span class="p">,</span>   <span class="n">btype2</span> <span class="p">);</span>
+
+      <span class="n">seginfo</span><span class="p">.</span><span class="n">dwall</span> <span class="o">=</span>  <span class="p">(</span> <span class="n">dwall1</span><span class="o">&lt;</span><span class="n">dwall2</span> <span class="p">)</span> <span class="o">?</span> <span class="nl">dwall1</span><span class="p">:</span> <span class="n">dwall2</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dwall1</span><span class="o">&lt;</span><span class="n">dwall2</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">seginfo</span><span class="p">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">_segment_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">].</span><span class="n">start</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">seginfo</span><span class="p">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">_segment_v</span><span class="p">[</span><span class="n">iseg</span><span class="p">].</span><span class="n">end</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">seglist_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">seginfo</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">seglist_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">seglist_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of (sorted) unused segments: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seglist_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="kt">bool</span> <span class="n">something2run</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nsegtracks_made</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">something2run</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// choose which segment to run</span>
+      <span class="n">something2run</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="n">UnusedSeg_t</span><span class="o">*</span> <span class="n">seg2run</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">seginfo</span> <span class="p">:</span> <span class="n">seglist_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">seginfo</span><span class="p">.</span><span class="n">dwall</span> <span class="o">&lt;</span> <span class="mf">30.0</span> <span class="o">&amp;&amp;</span> <span class="n">used_v</span><span class="p">[</span><span class="n">seginfo</span><span class="p">.</span><span class="n">segidx</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// unused</span>
+          <span class="n">seg2run</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">seginfo</span><span class="p">;</span>
+          <span class="n">something2run</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="c1">// nothing to run</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">something2run</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// number of tracks already made</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Make track from segment[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">segidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] dwall=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">dwall</span>
+                      <span class="o">&lt;&lt;</span> <span class="s">&quot; pos=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                      <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+        <span class="kt">int</span> <span class="n">ntracksmade</span> <span class="o">=</span> <span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+        <span class="n">buildTracksFromPoint</span><span class="p">(</span> <span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">pos</span> <span class="p">);</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">seg2run</span><span class="o">-&gt;</span><span class="n">segidx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="c1">// number of tracks made</span>
+        <span class="kt">int</span> <span class="n">nmade</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="n">ntracksmade</span><span class="p">;</span>
+        <span class="n">nsegtracks_made</span> <span class="o">+=</span> <span class="n">nmade</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">itrack</span><span class="o">=</span><span class="n">ntracksmade</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">auto</span><span class="o">&amp;</span> <span class="n">path</span> <span class="o">=</span> <span class="n">_track_proposal_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">itrack</span><span class="p">);</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="nl">pnode</span> <span class="p">:</span> <span class="n">path</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">used_v</span><span class="p">[</span><span class="n">pnode</span><span class="o">-&gt;</span><span class="n">segidx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;No segment to run&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[entry to continue]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="c1">//std::cin.get();</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of tracks made via segment seeds: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nsegtracks_made</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

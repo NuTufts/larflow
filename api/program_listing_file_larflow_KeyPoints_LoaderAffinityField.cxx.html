@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File LoaderAffinityField.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File LoaderAffinityField.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_KeyPoints_LoaderAffinityField.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-loaderaffinityfield-cxx">
+<span id="program-listing-file-larflow-keypoints-loaderaffinityfield-cxx"></span><h1>Program Listing for File LoaderAffinityField.cxx<a class="headerlink" href="#program-listing-for-file-loaderaffinityfield-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_KeyPoints_LoaderAffinityField.cxx.html#file-larflow-keypoints-loaderaffinityfield-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/KeyPoints/LoaderAffinityField.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;LoaderAffinityField.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">keypoints</span> <span class="p">{</span>
+
+  <span class="kt">bool</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+  <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">LoaderAffinityField</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&amp;</span> <span class="n">input_v</span> <span class="p">)</span>
+    <span class="o">:</span> <span class="n">tpaf</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">input_files</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">input_files</span> <span class="o">=</span> <span class="n">input_v</span><span class="p">;</span>
+    <span class="n">load_tree</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="n">LoaderAffinityField</span><span class="o">::~</span><span class="n">LoaderAffinityField</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">tpaf</span> <span class="p">)</span> <span class="k">delete</span> <span class="n">tpaf</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">load_tree</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[LoaderAffinityField::load_tree()]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">tpaf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TChain</span><span class="p">(</span><span class="s">&quot;AffinityFieldTree&quot;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">infile</span> <span class="p">:</span> <span class="n">input_files</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;add &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">infile</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; to AffinityFieldTree chain&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">tpaf</span><span class="o">-&gt;</span><span class="n">Add</span><span class="p">(</span><span class="n">infile</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="n">_label_v</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">tpaf</span><span class="o">-&gt;</span><span class="n">SetBranchAddress</span><span class="p">(</span> <span class="s">&quot;label_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_label_v</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">load_entry</span><span class="p">(</span> <span class="kt">int</span> <span class="n">entry</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">bytes</span> <span class="o">=</span> <span class="n">tpaf</span><span class="o">-&gt;</span><span class="n">GetEntry</span><span class="p">(</span><span class="n">entry</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">bytes</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">GetEntries</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">return</span> <span class="n">tpaf</span><span class="o">-&gt;</span><span class="n">GetEntries</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">get_match_data</span><span class="p">(</span> <span class="n">PyObject</span><span class="o">*</span> <span class="n">triplet_matches_pyobj</span><span class="p">,</span>
+                                                <span class="kt">bool</span> <span class="n">exclude_neg_examples</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">_exclude_neg_examples</span> <span class="o">=</span> <span class="n">exclude_neg_examples</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">index_col</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+
+    <span class="c1">// cast to numpy array</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">matches</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">triplet_matches_pyobj</span><span class="p">;</span>
+
+    <span class="c1">// get the dimensions</span>
+    <span class="kt">int</span> <span class="n">ndims</span> <span class="o">=</span> <span class="n">PyArray_NDIM</span><span class="p">(</span> <span class="n">matches</span> <span class="p">);</span>
+    <span class="n">npy_intp</span><span class="o">*</span> <span class="n">shape</span> <span class="o">=</span> <span class="n">PyArray_SHAPE</span><span class="p">(</span> <span class="n">matches</span> <span class="p">);</span>
+    <span class="kt">int</span> <span class="n">nfilled</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+
+    <span class="c1">// count npos, nneg examples</span>
+    <span class="c1">// also make list of indices of positive examples, these are the ones we will evaluate ssnet not</span>
+    <span class="kt">int</span> <span class="n">npos</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nneg</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">pos_index_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nfilled</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kt">long</span> <span class="n">ispositive</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="mi">3</span><span class="p">));</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">ispositive</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">npos</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">pos_index_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">nneg</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// PARTICLE AFFINITY FIELD GROUND TRUTH</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">paf_label</span>  <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">paf_weight</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+    <span class="n">make_paf_arrays</span><span class="p">(</span> <span class="n">nfilled</span><span class="p">,</span> <span class="n">pos_index_v</span><span class="p">,</span> <span class="n">exclude_neg_examples</span><span class="p">,</span>
+                     <span class="n">matches</span><span class="p">,</span> <span class="n">paf_label</span><span class="p">,</span> <span class="n">paf_weight</span> <span class="p">);</span>
+    <span class="n">PyObject</span> <span class="o">*</span><span class="n">paf_label_key</span>     <span class="o">=</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span> <span class="s">&quot;paf_label&quot;</span> <span class="p">);</span>
+    <span class="n">PyObject</span> <span class="o">*</span><span class="n">paf_weight_key</span>    <span class="o">=</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span> <span class="s">&quot;paf_weight&quot;</span> <span class="p">);</span>
+
+    <span class="n">PyObject</span> <span class="o">*</span><span class="n">d</span> <span class="o">=</span> <span class="n">PyDict_New</span><span class="p">();</span>
+    <span class="n">PyDict_SetItem</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">paf_label_key</span><span class="p">,</span>  <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">paf_label</span> <span class="p">);</span>
+    <span class="n">PyDict_SetItem</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">paf_weight_key</span><span class="p">,</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">paf_weight</span> <span class="p">);</span>
+
+    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">paf_label_key</span><span class="p">);</span>
+    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">paf_weight_key</span><span class="p">);</span>
+
+    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">paf_label</span><span class="p">);</span>
+    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">paf_weight</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">d</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">LoaderAffinityField</span><span class="o">::</span><span class="n">make_paf_arrays</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">nfilled</span><span class="p">,</span>
+                                           <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">pos_match_index</span><span class="p">,</span>
+                                           <span class="k">const</span> <span class="kt">bool</span> <span class="n">exclude_neg_examples</span><span class="p">,</span>
+                                           <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">match_array</span><span class="p">,</span>
+                                           <span class="n">PyArrayObject</span><span class="o">*&amp;</span> <span class="n">paf_label</span><span class="p">,</span>
+                                           <span class="n">PyArrayObject</span><span class="o">*&amp;</span> <span class="n">paf_weight</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">int</span> <span class="n">index_col</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">nd</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">pos_match_index</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">3</span> <span class="p">};</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">exclude_neg_examples</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">nfilled</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">paf_label</span>  <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_FLOAT</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">nd_weight</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims_weight</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">};</span>
+    <span class="n">paf_weight</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd_weight</span><span class="p">,</span> <span class="n">dims_weight</span><span class="p">,</span> <span class="n">NPY_FLOAT</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">npos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nneg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">nmissing</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">pixtype</span><span class="p">(</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// sample array index</span>
+      <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">exclude_neg_examples</span><span class="p">)</span> <span class="o">?</span> <span class="n">pos_match_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">:</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="p">;</span>
+      <span class="c1">// triplet index</span>
+      <span class="kt">long</span> <span class="n">index</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">match_array</span><span class="p">,</span><span class="n">idx</span><span class="p">,</span><span class="n">index_col</span><span class="p">));</span>
+      <span class="c1">// ground truth for triplet</span>
+      <span class="kt">long</span> <span class="n">isgood</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">match_array</span><span class="p">,</span><span class="n">idx</span><span class="p">,</span><span class="mi">3</span><span class="p">));</span>
+
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">label_v</span> <span class="o">=</span> <span class="n">_label_v</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">index</span><span class="p">);</span>
+
+      <span class="c1">// if good spacepoint but we don&#39;t have a direction label, we zero out the event (missing)</span>
+      <span class="c1">// if good spacepoint and has direction label, counted as positive example</span>
+      <span class="c1">// if bad spacepoint point but doesnt matter if have a label, counted as negative example,</span>
+      <span class="c1">//   correct answer will be zero vector</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">isgood</span><span class="o">==</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">label_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">10</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// positive examples</span>
+        <span class="n">npos</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">paf_label</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="n">label_v</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+        <span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">isgood</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// negative examples</span>
+        <span class="n">nneg</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">paf_label</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+        <span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">isgood</span><span class="o">==</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">label_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">nmissing</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">paf_label</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">))</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+        <span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">nneg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="c1">// weights for positive and negative examples</span>
+    <span class="kt">float</span> <span class="n">w_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">npos</span><span class="p">)</span> <span class="o">?</span> <span class="kt">float</span><span class="p">(</span><span class="n">npos</span><span class="o">+</span><span class="n">nneg</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">npos</span><span class="p">)</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">w_neg</span> <span class="o">=</span> <span class="p">(</span><span class="n">nneg</span><span class="p">)</span> <span class="o">?</span> <span class="kt">float</span><span class="p">(</span><span class="n">npos</span><span class="o">+</span><span class="n">nneg</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">nneg</span><span class="p">)</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">w_norm</span> <span class="o">=</span> <span class="n">w_pos</span><span class="o">*</span><span class="n">npos</span> <span class="o">+</span> <span class="n">w_neg</span><span class="o">*</span><span class="n">nneg</span><span class="p">;</span>
+
+    <span class="c1">//std::cout &lt;&lt; &quot;KPWEIGHT: W(POS)=&quot; &lt;&lt; w_pos/w_norm &lt;&lt; &quot; W(NEG)=&quot; &lt;&lt; w_neg/w_norm &lt;&lt; std::endl;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR1</span><span class="p">(</span><span class="n">paf_weight</span><span class="p">,</span><span class="n">i</span><span class="p">))</span> <span class="o">=</span> <span class="n">w_pos</span><span class="o">/</span><span class="n">w_norm</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR1</span><span class="p">(</span><span class="n">paf_weight</span><span class="p">,</span><span class="n">i</span><span class="p">))</span>  <span class="o">=</span> <span class="n">w_neg</span><span class="o">/</span><span class="n">w_norm</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pixtype</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR1</span><span class="p">(</span><span class="n">paf_weight</span><span class="p">,</span><span class="n">i</span><span class="p">))</span>  <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

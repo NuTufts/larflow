@@ -1,0 +1,16 @@
+.. _exhale_struct_structlarflow_1_1keypoints_1_1bvhnode__t:
+
+Struct bvhnode_t
+================
+
+- Defined in :ref:`file_larflow_KeyPoints_arxiv_bvhnode_t.h`
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::keypoints::bvhnode_t
+   :members:
+   :protected-members:
+   :undoc-members:

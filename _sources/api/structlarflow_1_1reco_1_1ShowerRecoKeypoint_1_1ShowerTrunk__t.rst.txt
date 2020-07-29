@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t:
+
+Struct ShowerRecoKeypoint::ShowerTrunk_t
+========================================
+
+- Defined in :ref:`file_larflow_Reco_ShowerRecoKeypoint.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1ShowerRecoKeypoint`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::ShowerRecoKeypoint::ShowerTrunk_t
+   :members:
+   :protected-members:
+   :undoc-members:

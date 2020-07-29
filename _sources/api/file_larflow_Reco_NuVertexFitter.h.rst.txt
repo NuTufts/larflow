@@ -1,0 +1,69 @@
+
+.. _file_larflow_Reco_NuVertexFitter.h:
+
+File NuVertexFitter.h
+=====================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/NuVertexFitter.h``)
+----------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_NuVertexFitter.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/storage_manager.h``
+
+- ``NuVertexMaker.h`` (:ref:`file_larflow_Reco_NuVertexMaker.h`)
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_NuVertexFitter.cxx`
+
+- :ref:`file_larflow_Reco_NuVertexMaker.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t`
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1NuVertexFitter`
+

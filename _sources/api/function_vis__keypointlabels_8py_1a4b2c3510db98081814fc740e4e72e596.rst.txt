@@ -1,0 +1,13 @@
+.. _exhale_function_vis__keypointlabels_8py_1a4b2c3510db98081814fc740e4e72e596:
+
+Function vis_keypointlabels::make_figures
+=========================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_keypointlabels.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_keypointlabels::make_figures(entry, plotby)

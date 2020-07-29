@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__primitives_8py_1a211e76204a06ba7ae092c9429382a8d3:
+
+Variable vis_primitives::axis_template
+======================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_primitives::axis_template

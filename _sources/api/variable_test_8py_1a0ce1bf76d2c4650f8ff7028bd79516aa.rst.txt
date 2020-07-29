@@ -1,0 +1,13 @@
+.. _exhale_variable_test_8py_1a0ce1bf76d2c4650f8ff7028bd79516aa:
+
+Variable test::cur
+==================
+
+- Defined in :ref:`file__home_twongjirad_working_larbys_ubdl_testdata_test.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test::cur

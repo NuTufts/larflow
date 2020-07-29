@@ -1,0 +1,573 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepAffinityField.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepAffinityField.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_KeyPoints_PrepAffinityField.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepaffinityfield-cxx">
+<span id="program-listing-file-larflow-keypoints-prepaffinityfield-cxx"></span><h1>Program Listing for File PrepAffinityField.cxx<a class="headerlink" href="#program-listing-for-file-prepaffinityfield-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_KeyPoints_PrepAffinityField.cxx.html#file-larflow-keypoints-prepaffinityfield-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/KeyPoints/PrepAffinityField.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepAffinityField.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/geofuncs.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">keypoints</span> <span class="p">{</span>
+
+  <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">PrepAffinityField</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span><span class="p">(</span><span class="s">&quot;PrepAffinityField&quot;</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">psce</span> <span class="o">=</span> <span class="k">new</span> <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">PrepAffinityField</span><span class="o">::~</span><span class="n">PrepAffinityField</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">delete</span> <span class="n">psce</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                   <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">match_proposals</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_instance</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span> <span class="s">&quot;instance&quot;</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">*</span> <span class="n">ev_mctrack</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTrack</span><span class="p">,</span> <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">*</span> <span class="n">ev_mcshower</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCShower</span><span class="p">,</span> <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+
+
+    <span class="n">_match_labels_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_match_labels_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Make labels for &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; triplet proposals&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span> <span class="o">&lt;&lt;</span><span class="s">&quot;] pixels: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span><span class="s">&quot;] pixels: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span> <span class="o">&lt;&lt;</span><span class="s">&quot;] pixels: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">itriplet</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itriplet</span><span class="o">&lt;</span><span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">itriplet</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">triplet</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">itriplet</span><span class="p">);</span>
+      <span class="kt">int</span> <span class="n">true_triplet</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_truth_v</span><span class="p">[</span><span class="n">itriplet</span><span class="p">];</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">spacepoint</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_pos_v</span><span class="p">[</span><span class="n">itriplet</span><span class="p">];</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;(&quot; &lt;&lt; itriplet &lt;&lt; &quot;) [&quot; &lt;&lt; triplet[0] &lt;&lt; &quot;,&quot; &lt;&lt; triplet[1] &lt;&lt; &quot;,&quot; &lt;&lt; triplet[2] &lt;&lt; &quot;,&quot; &lt;&lt; triplet[3] &lt;&lt; &quot;] &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot; true=&quot; &lt;&lt; true_triplet &lt;&lt; std::endl;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">label_v</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">weight</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">true_triplet</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">pixlist_v</span><span class="p">(</span><span class="n">ev_instance</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">());</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">at</span><span class="p">(</span> <span class="n">triplet</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">).</span><span class="n">row</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">at</span><span class="p">(</span> <span class="n">triplet</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">).</span><span class="n">col</span><span class="p">;</span>
+          <span class="n">pixlist_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span> <span class="p">{</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="p">}</span> <span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="n">_determine_triplet_labels</span><span class="p">(</span> <span class="n">pixlist_v</span><span class="p">,</span>
+                                   <span class="n">spacepoint</span><span class="p">,</span>
+                                   <span class="n">ev_instance</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+                                   <span class="o">*</span><span class="n">ev_mctrack</span><span class="p">,</span>
+                                   <span class="o">*</span><span class="n">ev_mcshower</span><span class="p">,</span>
+                                   <span class="n">label_v</span><span class="p">,</span> <span class="n">weight</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">_match_labels_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">label_v</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">_determine_triplet_labels</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">pixlist_v</span><span class="p">,</span>
+                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">spacepoint_v</span><span class="p">,</span>
+                                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span> <span class="o">&gt;&amp;</span> <span class="n">instance_v</span><span class="p">,</span>
+                                                     <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span> <span class="n">ev_mctrack_v</span><span class="p">,</span>
+                                                     <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">&amp;</span> <span class="n">ev_mcshower_v</span><span class="p">,</span>
+                                                     <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">label_v</span><span class="p">,</span>
+                                                     <span class="kt">float</span><span class="o">&amp;</span> <span class="n">weight</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">weight</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+
+    <span class="c1">// [0-2]: 3D direction</span>
+    <span class="c1">// [3-8]: 3 planes x 2D direction</span>
+    <span class="c1">// [9]: instance id</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">instance_counts</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">pixlist_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//std::cout &lt;&lt; &quot;pixel[plane &quot; &lt;&lt; p &lt;&lt; &quot;] (&quot; &lt;&lt; pixlist_v[p][0] &lt;&lt; &quot;,&quot; &lt;&lt; pixlist_v[p][1] &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+      <span class="kt">int</span> <span class="n">instance_id</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">instance_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">pixlist_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">pixlist_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+      <span class="c1">//std::cout &lt;&lt; &quot;  instanceid=&quot; &lt;&lt; instance_id &lt;&lt; std::endl;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">instance_id</span><span class="o">&lt;=</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+      <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">instance_counts</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">instance_id</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">==</span><span class="n">instance_counts</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">instance_counts</span><span class="p">[</span><span class="n">instance_id</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">instance_counts</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">instance_id</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">max_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">max_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">instance_counts</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">instance_counts</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">&gt;</span><span class="n">max_count</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">max_count</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+        <span class="n">max_id</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">max_id</span><span class="o">&lt;=</span><span class="mi">0</span> <span class="o">||</span> <span class="n">max_count</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">//std::cout &lt;&lt; &quot;max track-id counts: &quot; &lt;&lt; max_id &lt;&lt; &quot; counts=&quot; &lt;&lt; max_count &lt;&lt; std::endl;</span>
+
+    <span class="kt">int</span> <span class="n">is_track</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_mctrack_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_mctrack_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">TrackID</span><span class="p">()</span><span class="o">==</span><span class="n">max_id</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">is_track</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">is_track</span><span class="o">&lt;</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_mcshower_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_mcshower_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">TrackID</span><span class="p">()</span><span class="o">==</span><span class="n">max_id</span>  <span class="p">)</span> <span class="p">{</span>
+          <span class="n">is_track</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="n">idx</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">idx</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">label_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="n">label_v</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">max_id</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dspacepoint</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">spacepoint_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                        <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">spacepoint_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">spacepoint_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">is_track</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_get_track_direction</span><span class="p">(</span> <span class="n">ev_mctrack_v</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">dspacepoint</span><span class="p">,</span> <span class="n">instance_v</span><span class="p">,</span> <span class="n">label_v</span><span class="p">,</span> <span class="n">weight</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="n">_get_shower_direction</span><span class="p">(</span> <span class="n">ev_mcshower_v</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">dspacepoint</span><span class="p">,</span> <span class="n">instance_v</span><span class="p">,</span> <span class="n">label_v</span><span class="p">,</span> <span class="n">weight</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">_get_track_direction</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">mctrack</span><span class="o">&amp;</span> <span class="n">track</span><span class="p">,</span>
+                                                <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">pt</span><span class="p">,</span>
+                                                <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+                                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">label_v</span><span class="p">,</span>
+                                                <span class="kt">float</span><span class="o">&amp;</span> <span class="n">weight</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">int</span> <span class="n">nsteps</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">nsteps</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">label_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">start</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">end</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">stepdir</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="n">steplen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">best_step</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">double</span> <span class="n">best_step_r</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">best_stepdir</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">best_start</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">best_end</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+
+    <span class="c1">//std::cout &lt;&lt; &quot;  track size: &quot; &lt;&lt; nsteps &lt;&lt; std::endl;</span>
+
+    <span class="c1">// set start</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">Position</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">psce</span><span class="o">-&gt;</span><span class="n">GetPosOffsets</span><span class="p">(</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+    <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.7</span><span class="p">;</span>
+    <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">istep</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">istep</span><span class="o">+</span><span class="mi">1</span><span class="o">&lt;</span><span class="n">nsteps</span><span class="p">;</span> <span class="n">istep</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// we get the end point, apply the space charge effect</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">track</span><span class="p">[</span><span class="n">istep</span><span class="o">+</span><span class="mi">1</span><span class="p">].</span><span class="n">Position</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">offsets</span> <span class="o">=</span> <span class="n">psce</span><span class="o">-&gt;</span><span class="n">GetPosOffsets</span><span class="p">(</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.7</span><span class="p">;</span>
+      <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+      <span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+      <span class="c1">// std::cout &lt;&lt; &quot;step[&quot; &lt;&lt; istep &lt;&lt; &quot;] &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot;start=(&quot; &lt;&lt; start[0] &lt;&lt; &quot;,&quot; &lt;&lt; start[1] &lt;&lt; &quot;,&quot; &lt;&lt; start[2] &lt;&lt; &quot;) -&gt; &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot;end=(&quot; &lt;&lt; end[0] &lt;&lt; &quot;,&quot; &lt;&lt; end[1] &lt;&lt; &quot;,&quot; &lt;&lt; end[2] &lt;&lt; &quot;)&quot;</span>
+      <span class="c1">//           &lt;&lt; std::endl;</span>
+
+      <span class="n">steplen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">stepdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+        <span class="n">steplen</span> <span class="o">+=</span> <span class="n">stepdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">stepdir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">steplen</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">steplen</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">steplen</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="n">stepdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">steplen</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">steplen</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">double</span> <span class="n">projs</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">pointRayProjection</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">stepdir</span><span class="p">,</span> <span class="n">pt</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">projs</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">projs</span><span class="o">&lt;</span><span class="n">steplen</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">double</span> <span class="n">r</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">pointLineDistance</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">pt</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">best_step</span><span class="o">==-</span><span class="mi">1</span> <span class="o">||</span> <span class="n">best_step_r</span><span class="o">&gt;</span><span class="n">r</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">best_step</span> <span class="o">=</span> <span class="n">istep</span><span class="p">;</span>
+            <span class="n">best_step_r</span> <span class="o">=</span> <span class="n">r</span><span class="p">;</span>
+            <span class="n">best_stepdir</span> <span class="o">=</span> <span class="n">stepdir</span><span class="p">;</span>
+            <span class="n">best_start</span> <span class="o">=</span> <span class="n">start</span><span class="p">;</span>
+            <span class="n">best_end</span> <span class="o">=</span> <span class="n">end</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="c1">// replace the starting step</span>
+      <span class="n">start</span> <span class="o">=</span> <span class="n">end</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">best_step</span><span class="o">==-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// no label generated</span>
+      <span class="n">label_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// copy 3d direction</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_stepdir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="c1">// calculate 2d projected direction, by projecting into image, making direction</span>
+    <span class="c1">// should use plane directions to do this, but projection into plane is the dumb thing to do for now</span>
+    <span class="kt">float</span> <span class="n">start_tick</span> <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">best_start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">end_tick</span>   <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">best_end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">row_dir</span> <span class="o">=</span> <span class="p">(</span><span class="n">end_tick</span><span class="o">-</span><span class="n">start_tick</span><span class="p">)</span><span class="o">/</span><span class="n">img_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">().</span><span class="n">pixel_height</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">wire_start</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">best_start</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">wire_end</span>   <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">best_end</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">col_dir</span> <span class="o">=</span> <span class="n">wire_end</span><span class="o">-</span><span class="n">wire_start</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">len2d</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">len2d</span> <span class="o">=</span> <span class="n">row_dir</span><span class="o">*</span><span class="n">row_dir</span> <span class="o">+</span> <span class="n">col_dir</span><span class="o">*</span><span class="n">col_dir</span><span class="p">;</span>
+      <span class="n">len2d</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len2d</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">len2d</span><span class="o">&gt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">label_v</span><span class="p">[</span> <span class="mi">3</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span> <span class="p">]</span>   <span class="o">=</span> <span class="n">row_dir</span><span class="o">/</span><span class="n">len2d</span><span class="p">;</span>
+        <span class="n">label_v</span><span class="p">[</span> <span class="mi">3</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">+</span><span class="mi">1</span> <span class="p">]</span> <span class="o">=</span> <span class="n">col_dir</span><span class="o">/</span><span class="n">len2d</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">_get_shower_direction</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">mcshower</span><span class="o">&amp;</span> <span class="n">shower</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">pt</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+                                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">label_v</span><span class="p">,</span>
+                                                 <span class="kt">float</span><span class="o">&amp;</span> <span class="n">weight</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// use det profile direction for 3D label</span>
+    <span class="kt">float</span> <span class="n">len</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">shower</span><span class="p">.</span><span class="n">DetProfile</span><span class="p">().</span><span class="n">Momentum</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len</span> <span class="o">+=</span> <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">len</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">label_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">len</span><span class="p">;</span>
+
+    <span class="c1">// make step</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">start</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">end</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.0</span><span class="o">*</span><span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="c1">// sce correct step</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">offset_start</span> <span class="o">=</span> <span class="n">psce</span><span class="o">-&gt;</span><span class="n">GetPosOffsets</span><span class="p">(</span> <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">offset_end</span>   <span class="o">=</span> <span class="n">psce</span><span class="o">-&gt;</span><span class="n">GetPosOffsets</span><span class="p">(</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+
+    <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset_start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.7</span><span class="p">;</span>
+    <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset_start</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset_start</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+    <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset_end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.7</span><span class="p">;</span>
+    <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset_end</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset_end</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+    <span class="c1">// calculate the final direction</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len</span> <span class="o">+=</span> <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">len</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">label_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">len</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// calculate 2d projected direction, by projecting into image, making direction</span>
+    <span class="c1">// should use plane directions to do this, but projection into plane is the dumb thing to do for now</span>
+    <span class="kt">float</span> <span class="n">start_tick</span> <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">end_tick</span>   <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">row_dir</span> <span class="o">=</span> <span class="p">(</span><span class="n">end_tick</span><span class="o">-</span><span class="n">start_tick</span><span class="p">)</span><span class="o">/</span><span class="n">img_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">().</span><span class="n">pixel_height</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">wire_start</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">wire_end</span>   <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">WireCoordinate</span><span class="p">(</span> <span class="n">end</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+      <span class="kt">float</span> <span class="n">col_dir</span> <span class="o">=</span> <span class="n">wire_end</span><span class="o">-</span><span class="n">wire_start</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">len2d</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="n">len2d</span> <span class="o">=</span> <span class="n">row_dir</span><span class="o">*</span><span class="n">row_dir</span> <span class="o">+</span> <span class="n">col_dir</span><span class="o">*</span><span class="n">col_dir</span><span class="p">;</span>
+      <span class="n">len2d</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len2d</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">len2d</span><span class="o">&gt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">label_v</span><span class="p">[</span> <span class="mi">3</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span> <span class="p">]</span>   <span class="o">=</span> <span class="n">row_dir</span><span class="o">/</span><span class="n">len2d</span><span class="p">;</span>
+        <span class="n">label_v</span><span class="p">[</span> <span class="mi">3</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">+</span><span class="mi">1</span> <span class="p">]</span> <span class="o">=</span> <span class="n">col_dir</span><span class="o">/</span><span class="n">len2d</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">defineAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_label_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;AffinityFieldTree&quot;</span><span class="p">,</span> <span class="s">&quot;Affinity Field Label Tree&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;run&quot;</span><span class="p">,</span>     <span class="o">&amp;</span><span class="n">_run</span><span class="p">,</span>    <span class="s">&quot;run/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;subrun&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">_subrun</span><span class="p">,</span> <span class="s">&quot;subrun/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;event&quot;</span><span class="p">,</span>   <span class="o">&amp;</span><span class="n">_event</span><span class="p">,</span>  <span class="s">&quot;event/I&quot;</span> <span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;label_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_match_labels_v</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">fillAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">_label_tree</span><span class="p">)</span> <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepAffinityField</span><span class="o">::</span><span class="n">writeAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_label_tree</span> <span class="p">)</span> <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

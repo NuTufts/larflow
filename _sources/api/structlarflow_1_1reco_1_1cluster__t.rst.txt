@@ -1,0 +1,16 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1cluster__t:
+
+Struct cluster_t
+================
+
+- Defined in :ref:`file_larflow_Reco_cluster_functions.h`
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::cluster_t
+   :members:
+   :protected-members:
+   :undoc-members:

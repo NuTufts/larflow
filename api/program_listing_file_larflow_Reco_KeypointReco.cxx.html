@@ -1,0 +1,530 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File KeypointReco.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File KeypointReco.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_KeypointReco.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-keypointreco-cxx">
+<span id="program-listing-file-larflow-reco-keypointreco-cxx"></span><h1>Program Listing for File KeypointReco.cxx<a class="headerlink" href="#program-listing-for-file-keypointreco-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_KeypointReco.cxx.html#file-larflow-reco-keypointreco-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/KeypointReco.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;KeypointReco.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;nlohmann/json.hpp&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/pcaxis.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;cluster_functions.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">set_param_defaults</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_sigma</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span> <span class="c1">// cm</span>
+    <span class="n">_larmatch_score_threshold</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">;</span>
+    <span class="n">_num_passes</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">_keypoint_score_threshold_v</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">0.5</span> <span class="p">);</span>
+    <span class="n">_min_cluster_size_v</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">50</span><span class="p">);</span>
+    <span class="n">_max_dbscan_dist</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
+    <span class="n">_input_larflowhit_tree_name</span> <span class="o">=</span> <span class="s">&quot;larmatch&quot;</span><span class="p">;</span>
+    <span class="n">_output_tree_name</span> <span class="o">=</span> <span class="s">&quot;keypoint&quot;</span><span class="p">;</span>
+    <span class="n">_keypoint_type</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">io_ll</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">ev_larflow_hit</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">io_ll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_input_larflowhit_tree_name</span> <span class="p">);</span>
+
+    <span class="n">process</span><span class="p">(</span> <span class="o">*</span><span class="n">ev_larflow_hit</span> <span class="p">);</span>
+
+    <span class="c1">// save into larlite::storage_manager</span>
+    <span class="c1">// we need our own data product, but for now we use abuse the larflow3dhit</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_keypoint</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">io_ll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_output_tree_name</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">evout_pcaxis</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">io_ll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">_output_tree_name</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">cidx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpc</span> <span class="p">:</span> <span class="n">output_pt_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="n">hit</span><span class="p">;</span>
+      <span class="n">hit</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span> <span class="p">);</span> <span class="c1">// [0-2]: hit pos, [3]: type</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">max_pt_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">hit</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">_cluster_type</span><span class="p">;</span>
+
+      <span class="c1">// pca-axis</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">::</span><span class="n">EigenVectors</span> <span class="n">e_v</span><span class="p">;</span>
+      <span class="c1">// just std::vector&lt; std::vector&lt;double&gt; &gt;</span>
+      <span class="c1">// we store axes (3) and then the 1st axis end points. So five vectors.</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">a_v</span> <span class="p">:</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_axis_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">da_v</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">a_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">a_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span> <span class="n">a_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+        <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">da_v</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="c1">// start and end points</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">p_v</span> <span class="p">:</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_ends_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dp_v</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+        <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">dp_v</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="kt">double</span> <span class="n">eigenval</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="kt">double</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">llpca</span><span class="p">(</span> <span class="nb">true</span><span class="p">,</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pt_pos_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">eigenval</span><span class="p">,</span> <span class="n">e_v</span><span class="p">,</span> <span class="n">centroid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cidx</span><span class="p">);</span>
+
+      <span class="n">evout_keypoint</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">evout_pcaxis</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">llpca</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">cidx</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">input_lfhits</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">output_pt_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="n">_make_initial_pt_data</span><span class="p">(</span> <span class="n">input_lfhits</span><span class="p">,</span> <span class="n">_keypoint_score_threshold_v</span><span class="p">.</span><span class="n">front</span><span class="p">(),</span> <span class="n">_larmatch_score_threshold</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_num_passes</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[KeypointReco::process] Pass &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">_make_kpclusters</span><span class="p">(</span> <span class="n">_keypoint_score_threshold_v</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_min_cluster_size_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[KeypointReco::process] Pass &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, clusters formed: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">output_pt_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">nabove</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="nl">posv</span> <span class="p">:</span> <span class="n">_initial_pt_pos_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">posv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">&gt;</span><span class="n">_keypoint_score_threshold_v</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="n">nabove</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[KeypointReco::process] Pass &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, points remaining above threshold&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nabove</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;/&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">printAllKPClusterInfo</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ KeypointReco::process ] num kpclusters = &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">output_pt_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">_make_initial_pt_data</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">lfhits</span><span class="p">,</span>
+                                            <span class="k">const</span> <span class="kt">float</span> <span class="n">keypoint_score_threshold</span><span class="p">,</span>
+                                            <span class="k">const</span> <span class="kt">float</span> <span class="n">larmatch_score_threshold</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_initial_pt_used_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">lfhits</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">const</span> <span class="kt">float</span><span class="o">&amp;</span> <span class="n">kp_score</span> <span class="o">=</span> <span class="n">lfhit</span><span class="p">[</span><span class="n">_lfhit_score_index</span><span class="p">];</span>
+      <span class="k">const</span> <span class="kt">float</span><span class="o">&amp;</span> <span class="n">lm_score</span> <span class="o">=</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kp_score</span><span class="o">&gt;</span><span class="n">keypoint_score_threshold</span> <span class="o">&amp;&amp;</span> <span class="n">lm_score</span><span class="o">&gt;</span><span class="n">larmatch_score_threshold</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos3d</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">pos3d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfhit</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="c1">//pos3d[3] = (kp_score&lt;1.0) ? kp_score : 1.0;</span>
+        <span class="n">pos3d</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">kp_score</span><span class="p">;</span>
+        <span class="n">pos3d</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">lm_score</span><span class="p">;</span>
+        <span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pos3d</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">_initial_pt_used_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[larflow::reco::KeypointReco::_make_initial_pt_data] number of points stored for keypoint reco: &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;/&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">lfhits</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">_make_kpclusters</span><span class="p">(</span> <span class="kt">float</span> <span class="n">keypoint_score_threshold</span><span class="p">,</span> <span class="kt">int</span> <span class="n">min_cluster_size</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">skimmed_pt_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">skimmed_index_v</span><span class="p">;</span>
+
+    <span class="n">_skim_remaining_points</span><span class="p">(</span> <span class="n">keypoint_score_threshold</span><span class="p">,</span>
+                            <span class="n">skimmed_pt_v</span><span class="p">,</span>
+                            <span class="n">skimmed_index_v</span> <span class="p">);</span>
+
+
+    <span class="c1">// cluster the points</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">cluster_v</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">maxdist</span> <span class="o">=</span> <span class="n">_max_dbscan_dist</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">maxkd</span>     <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;finding keypoint clusters using &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">skimmed_pt_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; points&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  clustering pars: maxdist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_max_dbscan_dist</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; minsize=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">min_cluster_size</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; maxkd=&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">maxkd</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">cluster_spacepoint_v</span><span class="p">(</span> <span class="n">skimmed_pt_v</span><span class="p">,</span> <span class="n">cluster_v</span><span class="p">,</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">min_cluster_size</span><span class="p">,</span> <span class="n">maxkd</span> <span class="p">);</span>
+
+    <span class="kt">float</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">_sigma</span><span class="p">;</span> <span class="c1">// bandwidth</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// make kpcluster</span>
+      <span class="n">KPCluster</span> <span class="n">kpc</span> <span class="o">=</span> <span class="n">_characterize_cluster</span><span class="p">(</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">skimmed_pt_v</span><span class="p">,</span> <span class="n">skimmed_index_v</span> <span class="p">);</span>
+      <span class="n">kpc</span><span class="p">.</span><span class="n">_cluster_type</span> <span class="o">=</span> <span class="n">_keypoint_type</span><span class="p">;</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">kpc_cluster</span> <span class="o">=</span> <span class="n">_cluster_v</span><span class="p">[</span> <span class="n">kpc</span><span class="p">.</span><span class="n">_cluster_idx</span> <span class="p">];</span>
+
+      <span class="c1">// We now subtract the point score from nearby points</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">kpc_cluster</span><span class="p">.</span><span class="n">hitidx_v</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+
+        <span class="kt">float</span> <span class="n">current_score</span> <span class="o">=</span> <span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">3</span><span class="p">];</span>
+
+        <span class="c1">// suppress score based on distance from cluster centroid</span>
+        <span class="kt">float</span> <span class="n">newscore</span> <span class="o">=</span> <span class="n">current_score</span> <span class="o">-</span> <span class="n">kpc</span><span class="p">.</span><span class="n">max_score</span><span class="o">*</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dist</span><span class="o">/</span><span class="p">(</span><span class="n">sigma</span><span class="o">*</span><span class="n">sigma</span><span class="p">));</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">newscore</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">newscore</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+          <span class="n">_initial_pt_used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">newscore</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// does nothing right now</span>
+      <span class="n">_expand_kpcluster</span><span class="p">(</span> <span class="n">kpc</span> <span class="p">);</span>
+
+      <span class="n">output_pt_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpc</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[larflow::KeypointReco::_make_kpclusters] number of clusters=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">output_pt_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">_skim_remaining_points</span><span class="p">(</span> <span class="kt">float</span> <span class="n">keypoint_score_threshold</span><span class="p">,</span>
+                                             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_pt_v</span><span class="p">,</span>
+                                             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">skimmed_index_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_initial_pt_pos_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">&gt;</span><span class="n">keypoint_score_threshold</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">skimmed_pt_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">_initial_pt_pos_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">skimmed_index_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">KPCluster</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">_characterize_cluster</span><span class="p">(</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_pt_v</span><span class="p">,</span>
+                                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_index_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// run pca</span>
+    <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">cluster</span> <span class="p">);</span>
+
+    <span class="n">KPCluster</span> <span class="n">kpc</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">max_pt_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+
+    <span class="kt">float</span> <span class="n">totw</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">max_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">max_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">int</span> <span class="n">skimidx</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="kt">float</span> <span class="n">w</span> <span class="o">=</span> <span class="n">skimmed_pt_v</span><span class="p">[</span> <span class="n">skimidx</span> <span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="n">skimmed_pt_v</span><span class="p">[</span> <span class="n">skimidx</span> <span class="p">][</span><span class="mi">4</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">w</span><span class="o">&gt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="n">w</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">w</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="n">w</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span><span class="o">*</span><span class="n">w</span><span class="o">*</span><span class="n">skimmed_pt_v</span><span class="p">[</span> <span class="n">skimidx</span> <span class="p">][</span><span class="n">v</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="n">totw</span> <span class="o">+=</span> <span class="n">w</span><span class="o">*</span><span class="n">w</span><span class="p">;</span>
+
+      <span class="c1">// load up the cluster</span>
+      <span class="n">kpc</span><span class="p">.</span><span class="n">pt_pos_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>   <span class="n">skimmed_pt_v</span><span class="p">[</span> <span class="n">skimidx</span> <span class="p">]</span> <span class="p">);</span>
+      <span class="n">kpc</span><span class="p">.</span><span class="n">pt_score_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">skimmed_pt_v</span><span class="p">[</span> <span class="n">skimidx</span> <span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">skimmed_pt_v</span><span class="p">[</span><span class="n">skimidx</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">&gt;</span><span class="n">max_score</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="n">skimmed_pt_v</span><span class="p">[</span><span class="n">skimidx</span><span class="p">][</span><span class="mi">3</span><span class="p">];</span>
+        <span class="n">max_idx</span>   <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="n">kpc</span><span class="p">.</span><span class="n">max_pt_v</span> <span class="o">=</span> <span class="n">skimmed_pt_v</span><span class="p">[</span><span class="n">skimidx</span><span class="p">];</span>
+      <span class="p">}</span>
+
+      <span class="c1">// update the hitindex to use the total-set indexing</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span>  <span class="n">skimmed_index_v</span><span class="p">[</span><span class="n">skimidx</span><span class="p">];</span>
+
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">totw</span><span class="o">&gt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">/=</span> <span class="n">totw</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="c1">//kpc.cluster = cluster; // this seems dumb. just for now/development.</span>
+
+    <span class="c1">// copy pca info</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_axis_v</span>      <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_center</span>      <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_eigenvalues</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_ends_v</span>      <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">bbox_v</span>          <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_max_r</span>       <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_max_r</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_ave_r2</span>      <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ave_r2</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">pca_len</span>         <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_len</span><span class="p">;</span>
+
+    <span class="c1">// store max info</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">max_score</span>       <span class="o">=</span> <span class="n">max_score</span><span class="p">;</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">max_idx</span>         <span class="o">=</span> <span class="n">max_idx</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[KeypointReco::_characterize_cluster]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  center: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  pca: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// insert cluster into class continer</span>
+    <span class="n">_cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="n">kpc</span><span class="p">.</span><span class="n">_cluster_idx</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+
+    <span class="k">return</span> <span class="n">kpc</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">_expand_kpcluster</span><span class="p">(</span> <span class="n">KPCluster</span><span class="o">&amp;</span> <span class="n">kp</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// to do</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">dump2json</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfilename</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">j</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="o">&gt;</span> <span class="n">jcluster_v</span><span class="p">;</span>
+    <span class="n">j</span><span class="p">[</span><span class="s">&quot;keypoints&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jcluster_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpc</span> <span class="p">:</span> <span class="n">output_pt_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//std::cout &lt;&lt; &quot;cluster: nhits=&quot; &lt;&lt; cluster.points_v.size() &lt;&lt; std::endl;</span>
+      <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">jkpc</span><span class="p">;</span>
+      <span class="n">jkpc</span><span class="p">[</span><span class="s">&quot;center&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">center_pt_v</span><span class="p">;</span>
+      <span class="n">jkpc</span><span class="p">[</span><span class="s">&quot;maxpt&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">max_pt_v</span><span class="p">;</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">clust</span> <span class="o">=</span> <span class="n">_cluster_v</span><span class="p">[</span> <span class="n">kpc</span><span class="p">.</span><span class="n">_cluster_idx</span> <span class="p">];</span>
+      <span class="n">jkpc</span><span class="p">[</span><span class="s">&quot;clusters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_json</span><span class="p">(</span><span class="n">clust</span><span class="p">);</span>
+      <span class="n">j</span><span class="p">[</span><span class="s">&quot;keypoints&quot;</span><span class="p">].</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">jkpc</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">o</span><span class="p">(</span><span class="n">outfilename</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+    <span class="n">j</span> <span class="o">&gt;&gt;</span> <span class="n">o</span><span class="p">;</span>
+    <span class="n">o</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">printAllKPClusterInfo</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kp</span> <span class="p">:</span> <span class="n">output_pt_v</span> <span class="p">)</span>
+      <span class="n">kp</span><span class="p">.</span><span class="n">printInfo</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">bindKPClusterContainerToTree</span><span class="p">(</span> <span class="n">TTree</span><span class="o">*</span> <span class="n">out</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">out</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span> <span class="s">&quot;kpcluster_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">output_pt_v</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">KeypointReco</span><span class="o">::</span><span class="n">setupOwnTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_output_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;larflow_keypointreco&quot;</span><span class="p">,</span> <span class="s">&quot;Reconstructed keypoint clusters&quot;</span><span class="p">);</span>
+    <span class="n">bindKPClusterContainerToTree</span><span class="p">(</span> <span class="n">_output_tree</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

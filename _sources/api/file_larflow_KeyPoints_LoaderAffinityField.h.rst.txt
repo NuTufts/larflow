@@ -1,0 +1,78 @@
+
+.. _file_larflow_KeyPoints_LoaderAffinityField.h:
+
+File LoaderAffinityField.h
+==========================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_KeyPoints>` (``larflow/KeyPoints``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/KeyPoints/LoaderAffinityField.h``)
+--------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_KeyPoints_LoaderAffinityField.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``Python.h``
+
+- ``TChain.h``
+
+- ``bytesobject.h``
+
+- ``larflow/PrepFlowMatchData/PrepMatchTriplets.h`` (:ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`)
+
+- ``numpy/ndarrayobject.h``
+
+- ``string``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_KeyPoints_LoaderAffinityField.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__keypoints`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1LoaderAffinityField`
+
+
+Defines
+-------
+
+
+- :ref:`exhale_define_LoaderAffinityField_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a`
+

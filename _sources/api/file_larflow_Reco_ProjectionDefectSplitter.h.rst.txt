@@ -1,0 +1,75 @@
+
+.. _file_larflow_Reco_ProjectionDefectSplitter.h:
+
+File ProjectionDefectSplitter.h
+===============================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/ProjectionDefectSplitter.h``)
+--------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_ProjectionDefectSplitter.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflowcluster.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``larcv/core/DataFormat/Image2D.h``
+
+- ``string``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_KPSRecoManager.h`
+
+- :ref:`file_larflow_Reco_ProjectionDefectSplitter.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1ProjectionDefectSplitter`
+

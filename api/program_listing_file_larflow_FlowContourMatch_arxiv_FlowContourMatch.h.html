@@ -1,0 +1,581 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File FlowContourMatch.h &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File FlowContourMatch.h</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_FlowContourMatch_arxiv_FlowContourMatch.h.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-flowcontourmatch-h">
+<span id="program-listing-file-larflow-flowcontourmatch-arxiv-flowcontourmatch-h"></span><h1>Program Listing for File FlowContourMatch.h<a class="headerlink" href="#program-listing-for-file-flowcontourmatch-h" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_FlowContourMatch_arxiv_FlowContourMatch.h.html#file-larflow-flowcontourmatch-arxiv-flowcontourmatch-h"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/FlowContourMatch/arxiv/FlowContourMatch.h</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#ifndef __FLOWCONTOURMATCH__</span>
+<span class="cp">#define __FLOWCONTOURMATCH__</span>
+
+
+
+<span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;map&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;set&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;array&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;algorithm&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;opencv2/opencv.hpp&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;opencv2/core/core.hpp&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TH2D.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite</span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/hit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/chstatus.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctrack.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/SpaceChargeMicroBooNE.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/TimeService.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larcv</span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/Image2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventChStatus.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// ublarcvapp</span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/ContourTools/ContourShapeMeta.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/ContourTools/ContourClusterAlgo.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite data product</span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+
+
+  <span class="k">class</span> <span class="nc">FlowMatchData_t</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+
+
+    <span class="n">FlowMatchData_t</span><span class="p">(</span> <span class="kt">int</span> <span class="n">srcid</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">tarid</span><span class="o">=-</span><span class="mi">1</span> <span class="p">);</span>
+
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">FlowMatchData_t</span><span class="p">()</span> <span class="p">{</span> <span class="n">matchingflow_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span> <span class="p">}</span>
+
+    <span class="n">FlowMatchData_t</span><span class="p">(</span> <span class="k">const</span> <span class="n">FlowMatchData_t</span><span class="o">&amp;</span> <span class="n">s</span> <span class="p">);</span>          <span class="c1">// copy constructor</span>
+
+    <span class="kt">int</span> <span class="n">src_ctr_id</span><span class="p">;</span> <span class="c1">// source contour id</span>
+    <span class="kt">int</span> <span class="n">tar_ctr_id</span><span class="p">;</span> <span class="c1">// target contour id</span>
+    <span class="kt">float</span> <span class="n">score</span><span class="p">;</span>    <span class="c1">// score for this connection</span>
+
+    <span class="kt">bool</span> <span class="k">operator</span> <span class="o">&lt;</span> <span class="p">(</span> <span class="k">const</span> <span class="n">FlowMatchData_t</span><span class="o">&amp;</span> <span class="n">rhs</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">score</span> <span class="o">&lt;</span> <span class="n">rhs</span><span class="p">.</span><span class="n">score</span> <span class="p">)</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="c1">// flow data that contributed to the match</span>
+    <span class="c1">// i.e. the pixel or hit data within the contour</span>
+    <span class="k">struct</span> <span class="n">FlowPixel_t</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">src_wire</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">tar_wire</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">tick</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">row</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">pred_miss</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">FlowPixel_t</span> <span class="o">&gt;</span> <span class="n">matchingflow_v</span><span class="p">;</span>
+
+  <span class="p">};</span>
+
+  <span class="k">class</span> <span class="nc">FlowContourMatch</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="c1">// internal data structures and types</span>
+    <span class="c1">// ----------------------------------</span>
+    <span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span> <span class="n">kY2U</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">kY2V</span><span class="p">,</span> <span class="n">kNumFlowDirs</span> <span class="p">}</span> <span class="n">FlowDirection_t</span><span class="p">;</span> <span class="c1">// indicates flow pattern</span>
+    <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">kSourcePlane</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span><span class="c1">// = { 2, 2 };</span>
+    <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">kTargetPlane</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span><span class="c1">// = { 0, 1 };</span>
+
+    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">SrcTarPair_t</span><span class="p">;</span>        <span class="c1">// pair of source and target contour indices</span>
+
+    <span class="k">struct</span> <span class="n">HitFlowData_t</span> <span class="p">{</span>
+      <span class="c1">// information about a hit&#39;s match from source to target plane</span>
+      <span class="c1">// filled in _make3Dhits function</span>
+      <span class="n">HitFlowData_t</span><span class="p">()</span>
+      <span class="o">:</span> <span class="n">hitidx</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">maxamp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">srcwire</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">targetwire</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">pixtick</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">matchquality</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">dist2center</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">src_ctr_idx</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">tar_ctr_idx</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">endpt_score</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">track_score</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">shower_score</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">renormed_track_score</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">renormed_shower_score</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">trackid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">truthflag</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+    <span class="n">dWall</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="p">{</span>
+    <span class="n">X_truth</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+      <span class="p">};</span>
+      <span class="kt">int</span> <span class="n">hitidx</span><span class="p">;</span>       <span class="c1">// index of hit in event_hit vector</span>
+      <span class="kt">float</span> <span class="n">maxamp</span><span class="p">;</span>     <span class="c1">// maximum amplitude</span>
+      <span class="kt">int</span> <span class="n">srcwire</span><span class="p">;</span>      <span class="c1">// source image pixel: column</span>
+      <span class="kt">int</span> <span class="n">targetwire</span><span class="p">;</span>   <span class="c1">// target image pixel: column</span>
+      <span class="kt">int</span> <span class="n">pixtick</span><span class="p">;</span>      <span class="c1">// image pixel: row</span>
+      <span class="kt">int</span> <span class="n">matchquality</span><span class="p">;</span> <span class="c1">// match quality (1,2,3)</span>
+      <span class="kt">int</span> <span class="n">dist2center</span><span class="p">;</span>  <span class="c1">// distance of source pixel to center of y</span>
+      <span class="kt">int</span> <span class="n">dist2charge</span><span class="p">;</span>  <span class="c1">// distance in columns from target pixel to matched charge pixel</span>
+      <span class="kt">int</span> <span class="n">src_ctr_idx</span><span class="p">;</span>  <span class="c1">// this becomes outdated once image changes up</span>
+      <span class="kt">int</span> <span class="n">tar_ctr_idx</span><span class="p">;</span>  <span class="c1">// this becomes outdated once image changes up</span>
+      <span class="kt">float</span> <span class="n">endpt_score</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">track_score</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">shower_score</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">renormed_track_score</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">renormed_shower_score</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="n">src_infill</span><span class="p">;</span> <span class="c1">// source infill</span>
+      <span class="kt">bool</span> <span class="n">tar_infill</span><span class="p">;</span> <span class="c1">// target infill</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">X</span><span class="p">;</span> <span class="c1">// 3D coordinates from larlite::geo</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">X_truth</span><span class="p">;</span> <span class="c1">// from mctrack projection</span>
+      <span class="kt">int</span> <span class="n">trackid</span><span class="p">;</span> <span class="c1">// from mctrack projection</span>
+      <span class="kt">int</span> <span class="n">truthflag</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dWall</span><span class="p">;</span> <span class="c1">//min dist to detector boundary</span>
+    <span class="p">};</span>
+    <span class="k">struct</span> <span class="n">ClosestContourPix_t</span> <span class="p">{</span>
+      <span class="c1">// stores info about the contours nearby to the point where</span>
+      <span class="c1">// the flow prediction lands in the target plane.</span>
+      <span class="c1">// we use this info to sort</span>
+      <span class="c1">// and choose the contour to build a 3D hit with</span>
+      <span class="kt">int</span> <span class="n">ctridx</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">dist</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">col</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">scorematch</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">adc</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="k">struct</span> <span class="n">PlaneHitFlowData_t</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;</span> <span class="n">Y2U</span><span class="p">;</span> <span class="c1">// hitflow vector Y2U</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;</span> <span class="n">Y2V</span><span class="p">;</span> <span class="c1">// hitflow vector Y2V</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">consistency3d</span><span class="p">;</span> <span class="c1">// 3D consistency estimator (1,2,3,no)</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">dy</span><span class="p">;</span> <span class="c1">// sqrt(y1-y0)^2</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">dz</span><span class="p">;</span> <span class="c1">// sqrt(z1-z0)^2</span>
+      <span class="kt">bool</span> <span class="n">ranY2U</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="n">ranY2V</span><span class="p">;</span>
+      <span class="kt">void</span> <span class="nf">clear</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">Y2U</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">Y2V</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">consistency3d</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">dy</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">dz</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">ranY2U</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">ranY2V</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+
+    <span class="c1">// ------------------------------------------------</span>
+
+    <span class="n">FlowContourMatch</span><span class="p">();</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">FlowContourMatch</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">clear</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">clear2d</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">clear3d</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flowdir</span><span class="o">=-</span><span class="mi">1</span> <span class="p">);</span> <span class="c1">// clear2d and clear3d</span>
+
+    <span class="c1">// -----------------------------</span>
+    <span class="c1">// Main algorithms</span>
+    <span class="c1">// -----------------------------</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;</span> <span class="n">makeFlowPixels</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_crop_v</span><span class="p">,</span>
+                                                       <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">SparseImage</span><span class="o">&gt;&amp;</span> <span class="n">flowy2u</span><span class="p">,</span>
+                                                       <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">SparseImage</span><span class="o">&gt;&amp;</span> <span class="n">flowy2v</span><span class="p">,</span>
+                                                       <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span> <span class="p">);</span>
+
+
+
+    <span class="c1">// algorithm functions for User</span>
+    <span class="c1">// -----------------------------</span>
+
+    <span class="c1">// use this to turn pixels into hits. can use output in next function.</span>
+    <span class="c1">// (use at beginning of event)</span>
+    <span class="kt">void</span> <span class="nf">makeHitsFromWholeImagePixels</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_hit</span><span class="o">&amp;</span> <span class="n">evhit_v</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span> <span class="p">);</span>
+
+    <span class="c1">//use this to stitch infill crops together</span>
+    <span class="kt">void</span> <span class="nf">stitchInfill</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">infill_crop</span><span class="p">,</span>
+               <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">trusted</span><span class="p">,</span>
+               <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">infill_whole</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">&amp;</span> <span class="n">ev_chstatus</span><span class="p">);</span>
+
+    <span class="c1">// use this to mask and threshold infill image pixels. can use output in next function.</span>
+    <span class="kt">void</span> <span class="nf">maskInfill</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">infill</span><span class="p">,</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">&amp;</span> <span class="n">ev_chstatus</span><span class="p">,</span>
+             <span class="k">const</span> <span class="kt">float</span> <span class="n">score_thresh</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">masked_infill</span> <span class="p">);</span>
+
+    <span class="c1">// use this to add thresholded infill images to adc. can use output in next function.</span>
+    <span class="kt">void</span> <span class="nf">addInfill</span><span class="p">(</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">masked_infill</span><span class="p">,</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">EventChStatus</span><span class="o">&amp;</span> <span class="n">ev_chstatus</span><span class="p">,</span>
+            <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">img_fill_v</span> <span class="p">);</span>
+
+    <span class="c1">// update the information for making 3D hits</span>
+    <span class="c1">// -----------------------------------------</span>
+    <span class="c1">// call once per subimage</span>
+    <span class="kt">void</span> <span class="nf">fillPlaneHitFlow</span><span class="p">(</span> <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contour_data</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">tar_adc</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">flow_img</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_hit</span><span class="o">&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+               <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span>
+               <span class="kt">bool</span> <span class="n">runY2U</span> <span class="o">=</span> <span class="nb">true</span><span class="p">,</span>
+               <span class="kt">bool</span> <span class="n">runY2V</span> <span class="o">=</span> <span class="nb">false</span><span class="p">);</span>
+
+    <span class="c1">// match mctrack truth info to hits</span>
+    <span class="c1">// ----------------------------------</span>
+    <span class="c1">// call once per end of event (after all subimages have been processed)</span>
+    <span class="kt">void</span> <span class="nf">mctrack_match</span><span class="p">(</span><span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span> <span class="n">evtrack</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">mctrack_match</span><span class="p">(</span><span class="n">PlaneHitFlowData_t</span><span class="o">&amp;</span> <span class="n">plhit2flowdata</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span> <span class="n">evtrack</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+               <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span><span class="o">=</span><span class="nb">NULL</span><span class="p">,</span>
+               <span class="k">const</span> <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">TimeService</span><span class="o">*</span> <span class="n">ptsv</span><span class="o">=</span><span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">label_mcid_w_ancestor_img</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">ancestor_v</span><span class="p">,</span>
+                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adcimg_v</span><span class="p">);</span>
+
+
+    <span class="c1">// Get final output: larflow3dhit</span>
+    <span class="c1">// -------------------------------</span>
+    <span class="c1">// call once per end of event (after all subimages have been processed)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="o">&gt;</span> <span class="n">get3Dhits_1pl</span><span class="p">(</span> <span class="n">FlowDirection_t</span> <span class="n">flowdir</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">makehits_for_nonmatches</span><span class="o">=</span><span class="nb">true</span>  <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="o">&gt;</span> <span class="n">get3Dhits_1pl</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;&amp;</span> <span class="n">hit2flowdata</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">makehits_for_nonmatches</span><span class="o">=</span><span class="nb">true</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="o">&gt;</span> <span class="n">get3Dhits_2pl</span><span class="p">(</span> <span class="kt">bool</span> <span class="n">makehits_for_nonmatches</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">require_3Dconsistency</span><span class="o">=</span><span class="nb">false</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="o">&gt;</span> <span class="n">get3Dhits_2pl</span><span class="p">(</span> <span class="k">const</span> <span class="n">PlaneHitFlowData_t</span><span class="o">&amp;</span> <span class="n">plhit2flowdata</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">makehits_for_nonmatches</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">require_3Dconsistency</span><span class="o">=</span><span class="nb">false</span> <span class="p">);</span>
+
+    <span class="c1">// integrate endpoint/ssnet output</span>
+    <span class="c1">// (call before getting 3d hits)</span>
+    <span class="c1">// -------------------------------</span>
+    <span class="kt">void</span> <span class="nf">integrateSSNetEndpointOutput</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">track_scoreimgs</span><span class="p">,</span>
+                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">shower_scoreimgs</span><span class="p">,</span>
+                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">endpt_scoreimgs</span> <span class="p">);</span>
+
+    <span class="c1">// integrate infill output</span>
+    <span class="c1">// (call before getting 3d hits)</span>
+    <span class="c1">//------------------------------</span>
+    <span class="kt">void</span> <span class="nf">labelInfillHits</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">masked_infill</span><span class="p">);</span>
+
+    <span class="c1">// diagnostic image</span>
+    <span class="c1">// make stitched flow image using same information</span>
+    <span class="c1">// that forms the 3d hits</span>
+    <span class="c1">// --------------------------------------</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">makeStitchedFlowImages</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span> <span class="p">);</span>
+
+    <span class="c1">// algorithm sub-functions</span>
+    <span class="c1">// ------------------------</span>
+
+  <span class="k">protected</span><span class="o">:</span>
+    <span class="kt">void</span> <span class="n">_match</span><span class="p">(</span> <span class="n">FlowDirection_t</span> <span class="n">flowdir</span><span class="p">,</span>
+         <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contour_data</span><span class="p">,</span>
+         <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc</span><span class="p">,</span>
+         <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">tar_adc</span><span class="p">,</span>
+         <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">flow_img</span><span class="p">,</span>
+         <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_hit</span><span class="o">&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+         <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">_createMatchData</span><span class="p">(</span> <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contour_data</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">flow_img</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">src_adc</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">tar_adc</span><span class="p">,</span>
+               <span class="k">const</span> <span class="n">FlowDirection_t</span> <span class="n">kflowdir</span> <span class="p">);</span>
+    <span class="kt">float</span> <span class="nf">_scoreMatch</span><span class="p">(</span> <span class="k">const</span> <span class="n">FlowMatchData_t</span><span class="o">&amp;</span> <span class="n">matchdata</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">_scoreMatches</span><span class="p">(</span> <span class="k">const</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span><span class="o">&amp;</span> <span class="n">contour_data</span><span class="p">,</span> <span class="kt">int</span> <span class="n">src_planeid</span><span class="p">,</span> <span class="kt">int</span> <span class="n">tar_planeid</span><span class="p">,</span> <span class="k">const</span> <span class="n">FlowDirection_t</span> <span class="n">kflowdir</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">_greedyMatch</span><span class="p">(</span><span class="k">const</span> <span class="n">FlowDirection_t</span> <span class="n">kflowdir</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">_make3Dhits</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_hit</span><span class="o">&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+              <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">srcimg_adc</span><span class="p">,</span>
+              <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">tar_adc</span><span class="p">,</span>
+              <span class="k">const</span> <span class="kt">int</span> <span class="n">src_plane</span><span class="p">,</span>
+              <span class="k">const</span> <span class="kt">int</span> <span class="n">tar_plane</span><span class="p">,</span>
+              <span class="k">const</span> <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;&amp;</span> <span class="n">hit2flowdata</span><span class="p">,</span>
+              <span class="k">const</span> <span class="n">FlowDirection_t</span> <span class="n">kflowdir</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_fill_consistency3d</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;&amp;</span> <span class="n">Y2U</span><span class="p">,</span>
+                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">HitFlowData_t</span><span class="o">&gt;&amp;</span> <span class="n">Y2V</span><span class="p">,</span>
+                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">consistency3d</span><span class="p">,</span>
+                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">dy</span><span class="p">,</span>
+                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">dz</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="nf">_calc_consistency3d</span><span class="p">(</span><span class="kt">float</span><span class="o">&amp;</span> <span class="n">dy</span><span class="p">,</span>
+                <span class="kt">float</span><span class="o">&amp;</span> <span class="n">dz</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_calc_coord3d</span><span class="p">(</span><span class="n">HitFlowData_t</span><span class="o">&amp;</span> <span class="n">hit_y2u</span><span class="p">,</span>
+               <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">X</span><span class="p">,</span>
+               <span class="n">FlowDirection_t</span> <span class="n">flowdir</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_calc_dist3d</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">X0</span><span class="p">,</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">X1</span><span class="p">,</span>
+              <span class="kt">float</span><span class="o">&amp;</span> <span class="n">dy</span><span class="p">,</span>
+              <span class="kt">float</span><span class="o">&amp;</span> <span class="n">dz</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_mctrack_to_tyz</span><span class="p">(</span><span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">mctrack</span><span class="o">&amp;</span> <span class="n">truthtrack</span><span class="p">,</span>
+             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&gt;&amp;</span> <span class="n">tyz</span><span class="p">,</span>
+             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">trackid</span><span class="p">,</span>
+             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">E</span><span class="p">,</span>
+             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">dWall</span><span class="p">,</span>
+             <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span><span class="p">,</span>
+             <span class="k">const</span> <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">TimeService</span><span class="o">*</span> <span class="n">ptsv</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_tyz_to_pixels</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&gt;&amp;</span> <span class="n">tyz</span><span class="p">,</span>
+            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">trackid</span><span class="p">,</span>
+            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">E</span><span class="p">,</span>
+            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">dWall</span><span class="p">,</span>
+            <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&amp;</span> <span class="n">adc</span><span class="p">,</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">trackimg</span><span class="p">);</span>
+
+
+  <span class="k">public</span><span class="o">:</span>
+    <span class="c1">// debug/visualization</span>
+    <span class="c1">// -------------------</span>
+    <span class="kt">void</span> <span class="n">dumpMatchData</span><span class="p">();</span>
+    <span class="n">TH2D</span><span class="o">&amp;</span> <span class="n">plotScoreMatrix</span><span class="p">(</span><span class="k">const</span> <span class="n">FlowDirection_t</span> <span class="n">kflowdir</span><span class="p">);</span>
+
+    <span class="c1">// edited copy of UBWireTool::getProjectedImagePixels</span>
+    <span class="c1">// --------------------------------------------------</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">getProjectedPixel</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pos3d</span><span class="p">,</span>
+                    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">&amp;</span> <span class="n">meta</span><span class="p">,</span>
+                    <span class="k">const</span> <span class="kt">int</span> <span class="n">nplanes</span><span class="p">,</span>
+                    <span class="k">const</span> <span class="kt">float</span> <span class="n">fracpixborder</span><span class="o">=</span><span class="mf">1.5</span> <span class="p">);</span>
+
+  <span class="k">public</span><span class="o">:</span>
+    <span class="c1">// algorithm parameters</span>
+    <span class="c1">// --------------------</span>
+    <span class="kt">int</span> <span class="n">kTargetChargeRadius</span><span class="p">;</span> <span class="c1">// number of pixels around flow prediction to look for charge pixel</span>
+
+    <span class="c1">// internal data members</span>
+    <span class="c1">// ----------------------</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="n">SrcTarPair_t</span><span class="p">,</span> <span class="kt">int</span> <span class="o">&gt;</span>  <span class="n">m_flowdata_indexmap</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">FlowMatchData_t</span> <span class="o">&gt;</span> <span class="n">m_flowdata</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">//&lt; for each source,target contour pair, data about their connects using flow info</span>
+
+    <span class="c1">//std::map&lt; SrcTarPair_t, FlowMatchData_t &gt; m_flowdata[2]; //&lt; for each source,target contour pair, data about their connects using flow info</span>
+
+    <span class="kt">int</span> <span class="n">m_src_ncontours</span><span class="p">;</span>      <span class="c1">//&lt; number of contours on source image</span>
+    <span class="kt">int</span> <span class="n">m_tar_ncontours</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>   <span class="c1">//&lt; number of contours on target image</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">m_score_matrix</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>   <span class="c1">//&lt; scores between source and target contours using flow information</span>
+    <span class="n">TH2D</span><span class="o">*</span> <span class="n">m_plot_scorematrix</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">//&lt; histogram of score matrix for visualization</span>
+
+    <span class="k">struct</span> <span class="n">TargetPix_t</span> <span class="p">{</span>
+      <span class="c1">//&lt; information to store target pixel information. target comes from flow predictions.</span>
+      <span class="kt">float</span> <span class="n">row</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">col</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">srccol</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TargetPix_t</span><span class="o">&gt;</span> <span class="n">ContourTargets_t</span><span class="p">;</span>   <span class="c1">//&lt; list of target pixel info</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="kt">int</span><span class="p">,</span> <span class="n">ContourTargets_t</span> <span class="o">&gt;</span> <span class="n">m_src_targets</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>  <span class="c1">//&lt; for each source contour, a list of pixels in the source+target views that have been matched (one for each flowdir)</span>
+
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span>   <span class="n">m_src_img</span><span class="p">;</span>     <span class="c1">// pointer to input source image</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">*</span> <span class="n">m_srcimg_meta</span><span class="p">;</span> <span class="c1">// pointer to source image meta</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span>   <span class="n">m_flo_img</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>     <span class="c1">// pointer to input flow prediction</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">*</span>   <span class="n">m_tar_img</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>     <span class="c1">// pointer to input target image</span>
+    <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">*</span> <span class="n">m_tarimg_meta</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">// pointer to target image meta</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">m_src_img2ctrindex</span><span class="p">;</span> <span class="c1">//&lt; array associating (row,col) to source contours</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">m_tar_img2ctrindex</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">//&lt; array associating (row,col) to target contours</span>
+
+    <span class="c1">// key datamember in algo</span>
+    <span class="c1">// stores info tying hits on source plane to flow determined after contour matching</span>
+    <span class="c1">// stores for both flowdirections, saving info to help decide which one</span>
+    <span class="c1">// should be used to set 3D position</span>
+    <span class="n">PlaneHitFlowData_t</span> <span class="n">m_plhit2flowdata</span><span class="p">;</span>
+
+    <span class="c1">//larutil</span>
+    <span class="k">const</span> <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">TimeService</span><span class="o">*</span> <span class="n">m_ptsv</span><span class="p">;</span>
+    <span class="o">::</span><span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">m_psce</span><span class="p">;</span>
+  <span class="p">};</span>
+
+
+
+<span class="p">}</span>
+
+<span class="cp">#endif</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

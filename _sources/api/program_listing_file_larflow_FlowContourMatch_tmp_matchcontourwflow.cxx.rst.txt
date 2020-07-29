@@ -1,0 +1,34 @@
+
+.. _program_listing_file_larflow_FlowContourMatch_tmp_matchcontourwflow.cxx:
+
+Program Listing for File matchcontourwflow.cxx
+==============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_FlowContourMatch_tmp_matchcontourwflow.cxx>` (``larflow/FlowContourMatch/tmp/matchcontourwflow.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #include "matchcontourwflow.h"
+   
+   namespace larflow {
+   
+     void makeContourMatches( ContourMatches_t& matches,
+                              const ublarcvapp::ContourClusterAlgo& contours,
+                              const larcv::Image2D& src_img,
+                              const larcv::Image2D& tar_img,
+                              const larcv::Image2D& src_crop,
+                              const larcv::Image2D& tar_crop,
+                              const larcv::SparseImage& flow,
+                              const float max_contour_dist ) {
+   
+       // we scan across the source image, use the flow to move to the target image
+       // and ask what the closest contour is
+   
+       
+     }
+     
+   
+   
+   }

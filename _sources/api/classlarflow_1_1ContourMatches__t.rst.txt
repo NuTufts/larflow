@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1ContourMatches__t:
+
+Class ContourMatches_t
+======================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_matchcontourwflow.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public std::map< SrcTarIndexPair_t, FlowMatchData_t >``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::ContourMatches_t
+   :members:
+   :protected-members:
+   :undoc-members:

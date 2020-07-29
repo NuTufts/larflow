@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1NuVertexMaker:
+
+Class NuVertexMaker
+===================
+
+- Defined in :ref:`file_larflow_Reco_NuVertexMaker.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larcv_base``
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::NuVertexMaker
+   :members:
+   :protected-members:
+   :undoc-members:

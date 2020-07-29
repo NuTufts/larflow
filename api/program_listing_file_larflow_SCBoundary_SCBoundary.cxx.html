@@ -1,0 +1,505 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File SCBoundary.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File SCBoundary.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_SCBoundary_SCBoundary.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-scboundary-cxx">
+<span id="program-listing-file-larflow-scboundary-scboundary-cxx"></span><h1>Program Listing for File SCBoundary.cxx<a class="headerlink" href="#program-listing-for-file-scboundary-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_SCBoundary_SCBoundary.cxx.html#file-larflow-scboundary-scboundary-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/SCBoundary/SCBoundary.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;SCBoundary.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;cmath&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">scb</span> <span class="p">{</span>
+
+
+
+  <span class="k">template</span> <span class="kt">float</span>  <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pos</span><span class="p">,</span> <span class="n">Boundary_t</span><span class="o">&amp;</span> <span class="n">boundary_type</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">template</span> <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">pos</span><span class="p">,</span> <span class="n">Boundary_t</span><span class="o">&amp;</span> <span class="n">boundary_type</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">template</span> <span class="kt">float</span>  <span class="n">SCBoundary</span><span class="o">::</span><span class="n">pointLineDistance</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">linept1</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">linept2</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">testpt</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">template</span> <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">pointLineDistance</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">linept1</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">linept2</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">testpt</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">template</span> <span class="kt">float</span>  <span class="n">SCBoundary</span><span class="o">::</span><span class="n">XatBoundary</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pos</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">template</span> <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">XatBoundary</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span> <span class="n">pos</span> <span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">YX_TOP_x1_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">150.00</span><span class="p">,</span> <span class="mf">132.56</span><span class="p">,</span> <span class="mf">122.86</span><span class="p">,</span> <span class="mf">119.46</span><span class="p">,</span> <span class="mf">114.22</span><span class="p">,</span> <span class="mf">110.90</span><span class="p">,</span> <span class="mf">115.85</span><span class="p">,</span> <span class="mf">113.48</span><span class="p">,</span> <span class="mf">126.36</span><span class="p">,</span> <span class="mf">144.21</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">YX_TOP_y2_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">110.00</span><span class="p">,</span> <span class="mf">108.14</span><span class="p">,</span> <span class="mf">106.77</span><span class="p">,</span> <span class="mf">105.30</span><span class="p">,</span> <span class="mf">103.40</span><span class="p">,</span> <span class="mf">102.18</span><span class="p">,</span> <span class="mf">101.76</span><span class="p">,</span> <span class="mf">102.27</span><span class="p">,</span> <span class="mf">102.75</span><span class="p">,</span> <span class="mf">105.10</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">YX_BOT_x1_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">115.71</span><span class="p">,</span> <span class="mf">98.05</span><span class="p">,</span> <span class="mf">92.42</span><span class="p">,</span> <span class="mf">91.14</span><span class="p">,</span> <span class="mf">92.25</span><span class="p">,</span> <span class="mf">85.38</span><span class="p">,</span> <span class="mf">78.19</span><span class="p">,</span> <span class="mf">74.46</span><span class="p">,</span> <span class="mf">78.86</span><span class="p">,</span> <span class="mf">108.90</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">YX_BOT_y2_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">-</span><span class="mf">101.72</span><span class="p">,</span> <span class="o">-</span><span class="mf">99.46</span><span class="p">,</span> <span class="o">-</span><span class="mf">99.51</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.43</span><span class="p">,</span> <span class="o">-</span><span class="mf">99.55</span><span class="p">,</span> <span class="o">-</span><span class="mf">98.56</span><span class="p">,</span> <span class="o">-</span><span class="mf">98.00</span><span class="p">,</span> <span class="o">-</span><span class="mf">98.30</span><span class="p">,</span> <span class="o">-</span><span class="mf">99.32</span><span class="p">,</span> <span class="o">-</span><span class="mf">104.20</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>  <span class="o">=</span> <span class="p">{</span><span class="mf">120.00</span><span class="p">,</span> <span class="mf">115.24</span><span class="p">,</span> <span class="mf">108.50</span><span class="p">,</span> <span class="mf">110.67</span><span class="p">,</span> <span class="mf">120.90</span><span class="p">,</span> <span class="mf">126.43</span><span class="p">,</span> <span class="mf">140.51</span><span class="p">,</span> <span class="mf">157.15</span><span class="p">,</span> <span class="mf">120.00</span><span class="p">,</span> <span class="mf">120.00</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">ZX_Dw_z2_array</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>  <span class="o">=</span> <span class="p">{</span><span class="mf">1029.00</span><span class="p">,</span> <span class="mf">1029.12</span><span class="p">,</span> <span class="mf">1027.21</span><span class="p">,</span> <span class="mf">1026.01</span><span class="p">,</span> <span class="mf">1024.91</span><span class="p">,</span> <span class="mf">1025.27</span><span class="p">,</span> <span class="mf">1025.32</span><span class="p">,</span> <span class="mf">1027.61</span><span class="p">,</span> <span class="mf">1026.00</span><span class="p">,</span> <span class="mf">1026.00</span><span class="p">};</span>
+
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>  <span class="n">T</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">pos</span><span class="p">,</span>
+                                                   <span class="n">Boundary_t</span><span class="o">&amp;</span> <span class="n">boundary_type</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="c1">// first calculate the dist to the TPC boundaries</span>
+    <span class="n">T</span> <span class="n">dx1</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">T</span> <span class="n">dx2</span> <span class="o">=</span> <span class="mi">256</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">T</span> <span class="n">dy1</span> <span class="o">=</span> <span class="mf">116.0</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">T</span> <span class="n">dy2</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">115.0</span><span class="p">;</span>
+    <span class="n">T</span> <span class="n">dz1</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">T</span> <span class="n">dz2</span> <span class="o">=</span> <span class="mf">1037.0</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+    <span class="n">T</span> <span class="n">dwall</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+    <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kNumBoundaries</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dy1</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dy1</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kTop</span><span class="p">;</span> <span class="c1">// top</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dy2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dy2</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kBottom</span><span class="p">;</span> <span class="c1">// bottom</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dz1</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dz1</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kUpstream</span><span class="p">;</span> <span class="c1">// upstream</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dz2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dz2</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kDownstream</span><span class="p">;</span> <span class="c1">// downstream</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dx1</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dx1</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kAnode</span><span class="p">;</span> <span class="c1">// anode</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fabs</span><span class="p">(</span><span class="n">dx2</span><span class="p">)</span><span class="o">&lt;</span><span class="n">fabs</span><span class="p">(</span><span class="n">dwall</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">dwall</span> <span class="o">=</span> <span class="n">dx2</span><span class="p">;</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kCathode</span><span class="p">;</span> <span class="c1">// cathode</span>
+    <span class="p">}</span>
+
+    <span class="c1">// if outside the box, we just return the distance from the TPC wall</span>
+    <span class="c1">// if ( dwall&lt;0 )</span>
+    <span class="c1">//   return dwall;</span>
+
+    <span class="kt">int</span> <span class="n">zbox</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mf">100.0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">zbox</span><span class="o">&gt;</span><span class="mi">9</span> <span class="p">)</span> <span class="n">zbox</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+
+    <span class="c1">// top SCE boundary in the XY-view</span>
+    <span class="kt">float</span> <span class="n">topxy</span> <span class="o">=</span> <span class="mf">1e3</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">YX_TOP_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="mf">0.0</span> <span class="p">)</span>  <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xyproj</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xy_topline1</span> <span class="o">=</span> <span class="p">{</span> <span class="n">YX_TOP_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">],</span> <span class="n">YX_TOP_y1_array</span><span class="p">,</span> <span class="mf">0.0</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xy_topline2</span> <span class="o">=</span> <span class="p">{</span> <span class="n">YX_TOP_x2_array</span><span class="p">,</span> <span class="n">YX_TOP_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">};</span>
+      <span class="c1">//double topxy = pointLineDistance&lt;double&gt;( xy_topline1, xy_topline2, xyproj ); //&lt; perpendicular distance to line</span>
+      <span class="c1">//float dtop = (pos[0]-YX_TOP_x1_array[zbox])*(YX_TOP_y2_array[zbox]-YX_TOP_y1_array)</span>
+      <span class="c1">//- (pos[1]-YX_TOP_y1_array)*(YX_TOP_x2_array-YX_TOP_x1_array[zbox]);</span>
+
+      <span class="kt">float</span> <span class="n">topline_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">xy_topline2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xy_topline1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">xy_topline2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xy_topline1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">xyproj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xy_topline1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">xy_topline1</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">//&lt; y-pos, given x of test point</span>
+      <span class="n">topxy</span> <span class="o">=</span> <span class="n">topline_y</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="c1">// bot SCE boundary in the XY-view</span>
+    <span class="kt">float</span> <span class="n">botxy</span> <span class="o">=</span> <span class="mf">1e3</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">YX_BOT_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&lt;</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xy_botline1</span> <span class="o">=</span> <span class="p">{</span> <span class="n">YX_BOT_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">],</span> <span class="n">YX_BOT_y1_array</span><span class="p">,</span> <span class="mf">0.0</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xy_botline2</span> <span class="o">=</span> <span class="p">{</span> <span class="n">YX_BOT_x2_array</span><span class="p">,</span> <span class="n">YX_BOT_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">};</span>
+      <span class="c1">// double botxy = pointLineDistance&lt;double&gt;( xy_botline1, xy_botline2, xyproj );</span>
+      <span class="c1">// float dbot = (pos[0]-YX_BOT_x1_array[zbox])*(YX_BOT_y2_array[zbox]-YX_BOT_y1_array)</span>
+      <span class="c1">//   - (pos[1]-YX_BOT_y1_array)*(YX_BOT_x2_array-YX_BOT_x1_array[zbox]);</span>
+      <span class="c1">// if ( dbot&gt;0 ) botxy *= -1.0; // outside boundary</span>
+      <span class="kt">float</span> <span class="n">botline_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">xy_botline2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xy_botline1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">xy_botline2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xy_botline1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xy_botline1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">xy_botline1</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">//&lt; y-pos, given x of test point</span>
+      <span class="n">botxy</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">botline_y</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// xz-view boundary dist</span>
+    <span class="kt">int</span> <span class="n">ybox</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="mf">116.0</span><span class="p">))</span><span class="o">/</span><span class="mf">24.0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ybox</span><span class="o">&gt;</span><span class="mi">9</span> <span class="p">)</span> <span class="n">ybox</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+
+    <span class="kt">float</span> <span class="n">dwnxz</span> <span class="o">=</span> <span class="mf">1e3</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1024</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">ZX_Dw_x2_array</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_proj</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_line1</span> <span class="o">=</span> <span class="p">{</span> <span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">ZX_Dw_z1_array</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_line2</span> <span class="o">=</span> <span class="p">{</span> <span class="n">ZX_Dw_x2_array</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">ZX_Dw_z2_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span> <span class="p">};</span>
+
+      <span class="c1">// double topxz = pointLineDistance&lt;double&gt;( xz_line1, xz_line2, xz_proj );</span>
+      <span class="c1">// double dtopxz = (pos[0]-ZX_Dw_x1_array[ybox])*(ZX_Dw_z2_array[ybox]-ZX_Dw_z1_array)</span>
+      <span class="c1">//   - (pos[2]-ZX_Dw_z1_array)*(ZX_Dw_x2_array-ZX_Dw_x1_array[ybox]);</span>
+      <span class="c1">// if ( dtopxz&lt;0.0 ) topxz *= -1.0;</span>
+      <span class="kt">float</span> <span class="n">dwnline_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">xz_line2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">xz_line2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">xz_line1</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">//&lt; y-pos, given x of test point</span>
+      <span class="kt">float</span> <span class="n">dwnxz</span> <span class="o">=</span> <span class="n">dwnline_z</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+      <span class="c1">// location of x, makes sce boundary irrelevant</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span> <span class="o">||</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">ZX_Dw_x2_array</span> <span class="p">)</span>
+        <span class="n">dwnxz</span> <span class="o">=</span> <span class="mf">1.0e3</span><span class="p">;</span>
+
+    <span class="p">}</span>
+
+    <span class="kt">float</span> <span class="n">upxz</span> <span class="o">=</span> <span class="mf">1e3</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">&lt;</span><span class="mf">11.0</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">ZX_Up_x1_array</span> <span class="o">&amp;&amp;</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">ZX_Up_x2_array</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_proj</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_line1</span> <span class="o">=</span> <span class="p">{</span> <span class="n">ZX_Up_x1_array</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">ZX_Up_z1_array</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">xz_line2</span> <span class="o">=</span> <span class="p">{</span> <span class="n">ZX_Up_x2_array</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">ZX_Up_z2_array</span> <span class="p">};</span>
+      <span class="c1">// double topxz = pointLineDistance&lt;double&gt;( xz_line1, xz_line2, xz_proj );</span>
+      <span class="c1">// double dtopxz = ( pos[0]-ZX_Up_x1_array )*( ZX_Up_z2_array-ZX_Up_z1_array )</span>
+      <span class="c1">//   - ( pos[2]-ZX_Up_z1_array )*( ZX_Up_x2_array-ZX_Up_x1_array );</span>
+      <span class="c1">// if ( dtopxz&gt;0.0 ) topxz *= -1.0;</span>
+      <span class="kt">float</span> <span class="n">upline_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">xz_line2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">xz_line2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">xz_proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xz_line1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">xz_line1</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">//&lt; y-pos, given x of test point</span>
+      <span class="n">upxz</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">upline_z</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// put it all together</span>
+    <span class="n">T</span> <span class="n">dists</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">dwall</span><span class="p">,</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">topxy</span><span class="p">,</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">botxy</span><span class="p">,</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">upxz</span><span class="p">,</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">dwnxz</span> <span class="p">};</span>
+    <span class="n">T</span> <span class="n">mindist</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">minidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">5</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;</span><span class="n">mindist</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">mindist</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">minidx</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">switch</span> <span class="p">(</span> <span class="n">minidx</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="mi">1</span><span class="o">:</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kTop</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="mi">2</span><span class="o">:</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kBottom</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="mi">3</span><span class="o">:</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kUpstream</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="mi">4</span><span class="o">:</span>
+      <span class="n">boundary_type</span> <span class="o">=</span> <span class="n">kDownstream</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">default</span><span class="o">:</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">dists</span><span class="p">[</span><span class="n">minidx</span><span class="p">];</span>
+  <span class="p">}</span>
+
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">pointLineDistance</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">linept1</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">linept2</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">pt</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">d1</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">d2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+
+    <span class="n">T</span> <span class="n">len1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="n">T</span> <span class="n">linelen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">linept1</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">d2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">linept2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len1</span> <span class="o">+=</span> <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">linelen</span> <span class="o">+=</span> <span class="p">(</span><span class="n">linept1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">linept2</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">linept1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">linept2</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+    <span class="n">len1</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1</span><span class="p">);</span>
+    <span class="n">linelen</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">linelen</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">linelen</span><span class="o">&lt;</span><span class="mf">1.0e-4</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// short cluster, use distance to end point</span>
+      <span class="k">return</span> <span class="n">len1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// cross-product</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">d1xd2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">T</span> <span class="n">len1x2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">len1x2</span> <span class="o">+=</span> <span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len1x2</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1x2</span><span class="p">);</span>
+    <span class="n">T</span> <span class="n">r</span> <span class="o">=</span> <span class="n">len1x2</span><span class="o">/</span><span class="n">linelen</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">r</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="kt">float</span> <span class="n">x</span><span class="p">,</span> <span class="kt">float</span> <span class="n">y</span><span class="p">,</span> <span class="kt">float</span> <span class="n">z</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+    <span class="n">Boundary_t</span> <span class="n">btype</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">btype</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">,</span> <span class="kt">double</span> <span class="n">z</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+    <span class="n">Boundary_t</span> <span class="n">btype</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">btype</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="kt">float</span> <span class="n">x</span><span class="p">,</span> <span class="kt">float</span> <span class="n">y</span><span class="p">,</span> <span class="kt">float</span> <span class="n">z</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">ibtype</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+    <span class="n">Boundary_t</span> <span class="n">btype</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">btype</span><span class="p">);</span>
+    <span class="n">ibtype</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">btype</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dist</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">dist2boundary</span><span class="p">(</span> <span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">,</span> <span class="kt">double</span> <span class="n">z</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">ibtype</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="p">};</span>
+    <span class="n">Boundary_t</span> <span class="n">btype</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">dist2boundary</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">btype</span><span class="p">);</span>
+    <span class="n">ibtype</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">btype</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dist</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+  <span class="n">T</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">XatBoundary</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">pos</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="n">T</span> <span class="n">z</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">z</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="n">z</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">z</span><span class="o">&gt;</span><span class="mf">1036.0</span> <span class="p">)</span> <span class="n">z</span> <span class="o">=</span> <span class="mf">1036.</span><span class="p">;</span>
+
+    <span class="n">T</span> <span class="n">y</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">y</span><span class="o">&lt;-</span><span class="mi">116</span> <span class="p">)</span> <span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">116.0</span><span class="p">;</span>
+    <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span> <span class="n">y</span><span class="o">&gt;</span><span class="mf">116.0</span> <span class="p">)</span> <span class="n">y</span> <span class="o">=</span> <span class="mf">116.0</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">zbox</span> <span class="o">=</span> <span class="n">z</span><span class="o">/</span><span class="mf">100.0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">zbox</span><span class="o">&gt;</span><span class="mi">9</span> <span class="p">)</span> <span class="n">zbox</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+
+    <span class="n">T</span> <span class="n">x_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">YX_TOP_x2_array</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">YX_TOP_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)(</span> <span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">YX_TOP_y1_array</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">YX_TOP_x2_array</span><span class="o">-</span><span class="n">YX_TOP_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">YX_TOP_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span><span class="o">-</span><span class="n">YX_TOP_y1_array</span><span class="p">)</span> <span class="o">+</span> <span class="n">YX_TOP_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">YX_BOT_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)(</span> <span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">YX_BOT_y1_array</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">YX_BOT_x2_array</span><span class="o">-</span><span class="n">YX_BOT_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">YX_BOT_y2_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span><span class="o">-</span><span class="n">YX_BOT_y1_array</span><span class="p">)</span> <span class="o">+</span> <span class="n">YX_BOT_x1_array</span><span class="p">[</span><span class="n">zbox</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">ybox</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="mf">116.0</span><span class="p">))</span><span class="o">/</span><span class="mf">24.0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ybox</span><span class="o">&gt;</span><span class="mi">9</span> <span class="p">)</span> <span class="n">ybox</span> <span class="o">=</span> <span class="mi">9</span><span class="p">;</span>
+
+    <span class="n">T</span> <span class="n">x_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">ZX_Dw_x2_array</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">z</span><span class="o">&gt;</span><span class="mf">1024.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)(</span> <span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="n">ZX_Dw_z1_array</span><span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">ZX_Dw_x2_array</span><span class="o">-</span><span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span> <span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">ZX_Dw_z2_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span><span class="o">-</span><span class="n">ZX_Dw_z1_array</span><span class="p">)</span> <span class="o">+</span> <span class="n">ZX_Dw_x1_array</span><span class="p">[</span><span class="n">ybox</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">z</span><span class="o">&lt;</span><span class="mf">11.0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">x_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)(</span> <span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="n">ZX_Up_z1_array</span><span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">ZX_Up_x2_array</span><span class="o">-</span><span class="n">ZX_Up_x1_array</span> <span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">ZX_Up_z2_array</span><span class="o">-</span><span class="n">ZX_Up_z1_array</span><span class="p">)</span> <span class="o">+</span> <span class="n">ZX_Up_x1_array</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">x_z</span><span class="o">&gt;</span><span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">ZX_Dw_x2_array</span> <span class="p">)</span> <span class="n">x_z</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="n">ZX_Dw_x2_array</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">x_y</span><span class="o">&lt;</span><span class="n">x_z</span> <span class="p">)</span>
+      <span class="k">return</span> <span class="n">x_y</span><span class="p">;</span>
+    <span class="k">else</span>
+      <span class="k">return</span> <span class="n">x_z</span><span class="p">;</span>
+
+    <span class="c1">// should not reach here</span>
+    <span class="k">return</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">XatBoundary</span><span class="p">(</span> <span class="kt">float</span> <span class="n">x</span><span class="p">,</span> <span class="kt">float</span> <span class="n">y</span><span class="p">,</span> <span class="kt">float</span> <span class="n">z</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">};</span>
+    <span class="k">return</span> <span class="n">XatBoundary</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">double</span> <span class="n">SCBoundary</span><span class="o">::</span><span class="n">XatBoundary</span><span class="p">(</span> <span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">,</span> <span class="kt">double</span> <span class="n">z</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">};</span>
+    <span class="k">return</span> <span class="n">XatBoundary</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

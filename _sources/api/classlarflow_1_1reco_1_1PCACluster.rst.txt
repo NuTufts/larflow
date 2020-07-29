@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1reco_1_1PCACluster:
+
+Class PCACluster
+================
+
+- Defined in :ref:`file_larflow_Reco_PCACluster.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::PCACluster
+   :members:
+   :protected-members:
+   :undoc-members:

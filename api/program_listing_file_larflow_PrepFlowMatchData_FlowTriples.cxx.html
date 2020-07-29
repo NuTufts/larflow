@@ -1,0 +1,543 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File FlowTriples.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File FlowTriples.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_FlowTriples.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-flowtriples-cxx">
+<span id="program-listing-file-larflow-prepflowmatchdata-flowtriples-cxx"></span><h1>Program Listing for File FlowTriples.cxx<a class="headerlink" href="#program-listing-for-file-flowtriples-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_FlowTriples.cxx.html#file-larflow-prepflowmatchdata-flowtriples-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/FlowTriples.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;FlowTriples.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;WireOverlap.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;sstream&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">prep</span> <span class="p">{</span>
+
+  <span class="n">FlowTriples</span><span class="o">::</span><span class="n">FlowTriples</span><span class="p">(</span> <span class="kt">int</span> <span class="n">source</span><span class="p">,</span> <span class="kt">int</span> <span class="n">target</span><span class="p">,</span>
+                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">badch_v</span><span class="p">,</span>
+                            <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">save_index</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">_sparseimg_vv</span> <span class="o">=</span> <span class="n">make_initial_sparse_image</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">threshold</span> <span class="p">);</span>
+    <span class="n">_makeTriples</span><span class="p">(</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">badch_v</span><span class="p">,</span> <span class="n">_sparseimg_vv</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">save_index</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">FlowTriples</span><span class="o">::</span><span class="n">FlowTriples</span><span class="p">(</span> <span class="kt">int</span> <span class="n">source</span><span class="p">,</span> <span class="kt">int</span> <span class="n">target</span><span class="p">,</span>
+                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">badch_v</span><span class="p">,</span>
+                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">sparseimg_vv</span><span class="p">,</span>
+                            <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">save_index</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">_makeTriples</span><span class="p">(</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">badch_v</span><span class="p">,</span> <span class="n">sparseimg_vv</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">save_index</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">_makeTriples</span><span class="p">(</span> <span class="kt">int</span> <span class="n">source</span><span class="p">,</span> <span class="kt">int</span> <span class="n">target</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">badch_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">sparseimg_vv</span><span class="p">,</span>
+                                  <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">save_index</span> <span class="p">)</span> <span class="p">{</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">start_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+    <span class="n">_source_plane</span> <span class="o">=</span> <span class="n">source</span><span class="p">;</span>
+    <span class="n">_target_plane</span> <span class="o">=</span> <span class="n">target</span><span class="p">;</span>
+    <span class="n">_other_plane</span>  <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">LArFlowConstants</span><span class="o">::</span><span class="n">getOtherPlane</span><span class="p">(</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="p">);</span>
+
+    <span class="c1">// allocate space for triples</span>
+    <span class="n">_triple_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_source_plane</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">ndeadch_added</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">int</span> <span class="o">&gt;</span> <span class="n">_added_dead_channel_pixels</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="n">_deadch_to_add</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// turn this on for a full dump</span>
+    <span class="kt">bool</span> <span class="n">for_debug</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="c1">// make possible triples based on going from source pixel to target pixels</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">srcpix</span> <span class="p">:</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_source_plane</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// activate conditional debug</span>
+      <span class="c1">// we puke for pixels above threshold, but sitting in dead channel.</span>
+      <span class="c1">// this is to trace effect of INFILL</span>
+      <span class="c1">// float badchval = badch_v[_source_plane].pixel( srcpix.row, srcpix.col );</span>
+      <span class="c1">// if ( badchval&gt;0 )</span>
+      <span class="c1">//   for_debug = true;</span>
+      <span class="c1">// else</span>
+      <span class="c1">//   for_debug = false;</span>
+
+      <span class="c1">// we get all the &#39;target&#39; and &#39;other&#39; plane wires this pixel overlaps with</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">overlap</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">WireOverlap</span><span class="o">::</span><span class="n">getOverlappingWires</span><span class="p">(</span> <span class="n">_source_plane</span><span class="p">,</span> <span class="n">_target_plane</span><span class="p">,</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;FlowTriples[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_source_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_target_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_other_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; srcwire=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; row=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; tar-overlap=[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">front</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">back</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; oth-overlap=[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">front</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">back</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; -- target no overlap&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// get iterator to overlap[0] vector: contains pixels in the target wire, the source wire overlaps with</span>
+      <span class="k">auto</span> <span class="n">it_overlap0</span> <span class="o">=</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">begin</span><span class="p">();</span>
+
+      <span class="c1">// get the lowerbound pixel for (row,col) in target sparse image container (assumes sorted properly sort worked)</span>
+      <span class="n">PixData_t</span> <span class="nf">lb</span><span class="p">(</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span> <span class="p">);</span>
+      <span class="k">auto</span> <span class="n">it_target</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_target_plane</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_target_plane</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">lb</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_target</span><span class="o">!=</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_target_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; target_pix_lb(row,col)=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; other=[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">front</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">back</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// iterator forward in target wire with charge, until we go to another row (different time)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">for_debug</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ... start of target pixel loop ...&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">while</span> <span class="p">(</span> <span class="n">it_target</span><span class="o">!=</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_target_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">row</span><span class="o">==</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// break if we out of range over the target wire</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span><span class="o">&gt;</span><span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">back</span><span class="p">()</span> <span class="o">||</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">row</span><span class="o">!=</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+
+        <span class="c1">// find position in overlap[0] in order to get overlap[1] element, i.e. the other wire the source+target wires intersect</span>
+        <span class="n">it_overlap0</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">it_overlap0</span><span class="p">,</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_overlap0</span><span class="o">==</span><span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; target col not in list: break&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">break</span><span class="p">;</span> <span class="c1">// didnt find the target column in the list</span>
+        <span class="p">}</span>
+
+        <span class="c1">// scan up until matches</span>
+        <span class="kt">int</span> <span class="n">ivec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">while</span> <span class="p">(</span> <span class="o">*</span><span class="n">it_overlap0</span><span class="o">&lt;=</span><span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&amp;&amp;</span> <span class="n">it_overlap0</span><span class="o">!=</span><span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+          <span class="n">ivec</span> <span class="o">=</span> <span class="n">it_overlap0</span><span class="o">-</span><span class="n">overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">begin</span><span class="p">();</span>
+          <span class="n">it_overlap0</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; .. target pixel: row=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; col=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ivec=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ivec</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+        <span class="kt">int</span> <span class="n">otherwire</span> <span class="o">=</span> <span class="n">overlap</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ivec</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... search for otherwire=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">otherwire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ivec=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ivec</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+        <span class="c1">// now find the other plane pixel in the sparse matrix.</span>
+        <span class="c1">// we allow for a little slop</span>
+        <span class="c1">// first search for pixel in other plane sparseimg vector (that is above threshold)</span>
+        <span class="k">auto</span> <span class="n">it_other</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lower_bound</span><span class="p">(</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">begin</span><span class="p">(),</span>
+                                          <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">(),</span>
+                                          <span class="n">PixData_t</span><span class="p">(</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span> <span class="n">otherwire</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">it_other</span><span class="o">!=</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ... otherlb(r,c)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c1">// now we scan through the pixels in the other plane</span>
+        <span class="kt">bool</span> <span class="n">found</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it_other</span><span class="o">!=</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">row</span><span class="o">==</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="o">&amp;&amp;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span><span class="o">&lt;=</span><span class="n">otherwire</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// pixels to search</span>
+          <span class="k">while</span> <span class="p">(</span> <span class="n">it_other</span><span class="o">!=</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">row</span><span class="o">==</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// if a pixel in the other plane is found close to the one we searched for,</span>
+            <span class="c1">//  we know it has charge, so we store the triple</span>
+            <span class="c1">//valid triple</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; .... looking for row=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; otherwire=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">otherwire</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; cols=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">abs</span><span class="p">(</span><span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span><span class="o">-</span><span class="n">otherwire</span><span class="p">)</span><span class="o">&lt;=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">for_debug</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... found triple with charge!!!&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+              <span class="p">}</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">save_index</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trip</span> <span class="o">=</span> <span class="p">{</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">idx</span><span class="p">,</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">idx</span><span class="p">,</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">};</span> <span class="c1">// store positions in sparsematrix</span>
+                <span class="n">_triple_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">trip</span> <span class="p">);</span>
+              <span class="p">}</span>
+              <span class="k">else</span> <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trip</span> <span class="o">=</span> <span class="p">{</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span><span class="p">,</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span><span class="p">,</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span><span class="p">,</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">};</span> <span class="c1">// store positions in sparsematrix</span>
+                <span class="n">_triple_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">trip</span> <span class="p">);</span>
+              <span class="p">}</span>
+              <span class="n">found</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+              <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="n">it_other</span><span class="o">++</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c1">// if we did not find a pixel in the other plane, then we check if it is in a bad region</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">found</span> <span class="o">&amp;&amp;</span> <span class="n">badch_v</span><span class="p">[</span> <span class="n">_other_plane</span> <span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span> <span class="n">otherwire</span> <span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// badchannel, other wire lands in dead channel</span>
+
+          <span class="c1">// check we have this pixel</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; ... looking for badch row=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span>
+                      <span class="o">&lt;&lt;</span> <span class="s">&quot; cols=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">otherwire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                      <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... found triple with dead channel&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="c1">// store this dead pixel to add to the sparsematrix after we complete the search method</span>
+          <span class="k">auto</span> <span class="n">it_dead_other</span> <span class="o">=</span> <span class="n">_added_dead_channel_pixels</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">find</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="n">otherwire</span><span class="p">)</span> <span class="p">);</span>
+          <span class="kt">int</span> <span class="n">otherplane_index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">it_dead_other</span><span class="o">==</span><span class="n">_added_dead_channel_pixels</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// was not in the creation set, create this pixel in the other plane sparse image</span>
+            <span class="n">otherplane_index</span> <span class="o">=</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">_deadch_to_add</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+            <span class="n">PixData_t</span> <span class="nf">badpix</span><span class="p">(</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span> <span class="n">otherwire</span><span class="p">,</span> <span class="mf">0.0</span> <span class="p">);</span>
+            <span class="n">badpix</span><span class="p">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">otherplane_index</span><span class="p">;</span>
+            <span class="c1">// this screws up the search, but at the end, so won&#39;t matter?</span>
+            <span class="n">_deadch_to_add</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">badpix</span> <span class="p">);</span>
+            <span class="n">_added_dead_channel_pixels</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">][</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">srcpix</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="n">otherwire</span><span class="p">)</span> <span class="p">]</span>  <span class="o">=</span> <span class="n">otherplane_index</span><span class="p">;</span>
+            <span class="n">ndeadch_added</span><span class="o">++</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="p">{</span>
+            <span class="n">otherplane_index</span> <span class="o">=</span> <span class="n">it_dead_other</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span><span class="n">save_index</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// store position in sparsematrix, omit last plane</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trip</span> <span class="o">=</span> <span class="p">{</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">idx</span><span class="p">,</span> <span class="n">otherplane_index</span><span class="p">,</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">};</span>
+            <span class="n">_triple_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">trip</span> <span class="p">);</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="p">{</span>
+            <span class="c1">// store position in image</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trip</span> <span class="o">=</span> <span class="p">{</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span><span class="p">,</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span><span class="p">,</span> <span class="n">otherwire</span><span class="p">,</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span> <span class="p">};</span>
+            <span class="n">_triple_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">trip</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">for_debug</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;looking for row=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">row</span>
+                      <span class="o">&lt;&lt;</span> <span class="s">&quot; cols=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">srcpix</span><span class="p">.</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_target</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">otherwire</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                      <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+            <span class="k">if</span> <span class="p">(</span> <span class="n">it_other</span><span class="o">==</span><span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">_other_plane</span><span class="p">].</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... no triple&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+            <span class="k">else</span>
+              <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ... lowerbound found, but no match? lowerbound otherpix=(&quot;</span> <span class="o">&lt;&lt;</span><span class="n">it_other</span><span class="o">-&gt;</span><span class="n">row</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it_other</span><span class="o">-&gt;</span><span class="n">col</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span>  <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span>
+
+        <span class="c1">// iterate the target pixel</span>
+        <span class="n">it_target</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span><span class="c1">//target while loop</span>
+    <span class="p">}</span>
+
+    <span class="c1">// for ( auto&amp; deadpix : _deadch_to_add[_other_plane] ) {</span>
+    <span class="c1">//   sparseimg_vv[_other_plane].push_back( deadpix );</span>
+    <span class="c1">// }</span>
+
+    <span class="n">_triple_v</span><span class="p">.</span><span class="n">shrink_to_fit</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[FlowTriples] for flow source[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_source_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;to target[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_target_plane</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] planes &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;found &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_triple_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; triples &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;ndeadch-added=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ndeadch_added</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;elasped=&quot;</span> <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_</span><span class="o">-</span><span class="n">start_</span><span class="p">)</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">CLOCKS_PER_SEC</span><span class="p">)</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+  <span class="p">}</span>
+
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">plot_triple_data</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">sparseimg_vv</span><span class="p">,</span>
+                                                   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hist_stem_name</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">out_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;htriples_plane&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;_&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hist_stem_name</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">();</span>
+      <span class="n">TH2D</span> <span class="nf">hist</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">cols</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_x</span><span class="p">(),</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">rows</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_y</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+      <span class="n">out_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hist</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">pl</span> <span class="o">=</span> <span class="p">{</span> <span class="n">_source_plane</span><span class="p">,</span> <span class="n">_target_plane</span><span class="p">,</span> <span class="n">_other_plane</span> <span class="p">};</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">trip</span> <span class="p">:</span> <span class="n">_triple_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">pix</span> <span class="o">=</span> <span class="n">sparseimg_vv</span><span class="p">[</span> <span class="n">pl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">][</span> <span class="n">trip</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">];</span>
+        <span class="n">out_v</span><span class="p">[</span> <span class="n">pl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">].</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">pix</span><span class="p">.</span><span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">val</span><span class="o">+</span><span class="mi">1</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">out_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">FlowTriples</span><span class="o">::</span><span class="n">plot_sparse_data</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">sparseimg_vv</span><span class="p">,</span>
+                                                   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hist_stem_name</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">out_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;htriples_plane&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;_&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hist_stem_name</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">();</span>
+      <span class="n">TH2D</span> <span class="nf">hist</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">cols</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_x</span><span class="p">(),</span>
+                 <span class="n">meta</span><span class="p">.</span><span class="n">rows</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">min_y</span><span class="p">(),</span> <span class="n">meta</span><span class="p">.</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pix</span> <span class="p">:</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">pix</span><span class="p">.</span><span class="n">val</span><span class="o">&gt;=</span><span class="mi">10</span> <span class="p">)</span>
+          <span class="n">hist</span><span class="p">.</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">pix</span><span class="p">.</span><span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">pix</span><span class="p">.</span><span class="n">val</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="n">out_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hist</span><span class="p">));</span>
+    <span class="p">}</span>
+
+
+    <span class="k">return</span> <span class="n">out_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;</span>
+  <span class="n">FlowTriples</span><span class="o">::</span><span class="n">make_initial_sparse_image</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                          <span class="kt">float</span> <span class="n">threshold</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// sparsify planes: pixels must be above threshold</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FlowTriples</span><span class="o">::</span><span class="n">PixData_t</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">sparseimg_vv</span><span class="p">(</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">reserve</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">as_vector</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">r</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">();</span> <span class="n">r</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">c</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">();</span> <span class="n">c</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">val</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">val</span><span class="o">&gt;=</span><span class="n">threshold</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">PixData_t</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">r</span><span class="p">,(</span><span class="kt">int</span><span class="p">)</span><span class="n">c</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="c1">// should be sorted in (r,c). do i pull the trigger and sort?</span>
+      <span class="c1">// std::sort( sparseimg_vv[p].begin(), sparseimg_vv[p].end() );</span>
+      <span class="kt">int</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">pix</span> <span class="p">:</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">pix</span><span class="p">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+        <span class="n">idx</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[FlowTriples] plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] has &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; (above threshold) pixels&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">sparseimg_vv</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

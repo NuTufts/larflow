@@ -1,0 +1,13 @@
+
+.. _program_listing_file_larflow_Reco_NuVertexCandidate.cxx:
+
+Program Listing for File NuVertexCandidate.cxx
+==============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_NuVertexCandidate.cxx>` (``larflow/Reco/NuVertexCandidate.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #include "NuVertexCandidate.h"

@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class SCBoundary &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class VoxelizeTriplets" href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html" />
+    <link rel="prev" title="Class TrackOTFit" href="classlarflow_1_1reco_1_1TrackOTFit.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class SCBoundary</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1scb_1_1SCBoundary.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-scboundary">
+<span id="exhale-class-classlarflow-1-1scb-1-1scboundary"></span><h1>Class SCBoundary<a class="headerlink" href="#class-scboundary" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_SCBoundary_SCBoundary.h.html#file-larflow-scboundary-scboundary-h"><span class="std std-ref">File SCBoundary.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow3scb10SCBoundaryE">
+<span id="_CPPv3N7larflow3scb10SCBoundaryE"></span><span id="_CPPv2N7larflow3scb10SCBoundaryE"></span><span id="larflow::scb::SCBoundary"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary"></span><em class="property">class </em><code class="descname">SCBoundary</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundaryE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Calculate Distances to Space Charge Boundary. </p>
+<p>Ions accumulating in the TPC volume create distortions in the electric field. This causes distortions in the reconstructed location of charge. For tracks entering the detector, instead of charge appearing at the edge of the TPC volume, space charge effects will make that track look as if it started some distance inside the TPC. Measurements of the space charge effect has allowed the experiment to define a “space charge boundary”. This is apparent boundary inside the detector where entering tracks appear to start. (Or where exiting tracks seem to stop.)</p>
+<p>More info on the boundary implemented can be found at: <a class="reference external" href="https://microboone-docdb.fnal.gov/cgi-bin/private/ShowDocument?docid=26423">https://microboone-docdb.fnal.gov/cgi-bin/private/ShowDocument?docid=26423</a> </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Types</p>
+<dl class="enum">
+<dt id="_CPPv4N7larflow3scb10SCBoundary10Boundary_tE">
+<span id="_CPPv3N7larflow3scb10SCBoundary10Boundary_tE"></span><span id="_CPPv2N7larflow3scb10SCBoundary10Boundary_tE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32"></span><em class="property">enum </em><code class="descname">Boundary_t</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary10Boundary_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Labels for the different boundaries of the TPC. </p>
+<p><em>Values:</em></p>
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary4kTopE">
+<span id="_CPPv3N7larflow3scb10SCBoundary4kTopE"></span><span id="_CPPv2N7larflow3scb10SCBoundary4kTopE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32a6e4e1964740309345ad53a18143f43ef"></span><code class="descname">kTop</code> = 0<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary4kTopE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary7kBottomE">
+<span id="_CPPv3N7larflow3scb10SCBoundary7kBottomE"></span><span id="_CPPv2N7larflow3scb10SCBoundary7kBottomE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32aa47b58c028f744b22eff7f84b1a922c1"></span><code class="descname">kBottom</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary7kBottomE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary9kUpstreamE">
+<span id="_CPPv3N7larflow3scb10SCBoundary9kUpstreamE"></span><span id="_CPPv2N7larflow3scb10SCBoundary9kUpstreamE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32a3e87f466514bb8742e2be593af3a19e2"></span><code class="descname">kUpstream</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary9kUpstreamE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary11kDownstreamE">
+<span id="_CPPv3N7larflow3scb10SCBoundary11kDownstreamE"></span><span id="_CPPv2N7larflow3scb10SCBoundary11kDownstreamE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32abc40a7c5be3de652cf60b1c7fd276654"></span><code class="descname">kDownstream</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary11kDownstreamE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary6kAnodeE">
+<span id="_CPPv3N7larflow3scb10SCBoundary6kAnodeE"></span><span id="_CPPv2N7larflow3scb10SCBoundary6kAnodeE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32a6ab29c1121a0ef00a6734c2170c2874a"></span><code class="descname">kAnode</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary6kAnodeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary8kCathodeE">
+<span id="_CPPv3N7larflow3scb10SCBoundary8kCathodeE"></span><span id="_CPPv2N7larflow3scb10SCBoundary8kCathodeE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32a64edd448a4d196109fb2977dab99b37e"></span><code class="descname">kCathode</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary8kCathodeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="enumerator">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14kNumBoundariesE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14kNumBoundariesE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14kNumBoundariesE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab5b861638974f7cd36b78159cf01ef32aef056da719f270225eb32ee68448ea61"></span><code class="descname">kNumBoundaries</code><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14kNumBoundariesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow3scb10SCBoundary10SCBoundaryEv">
+<span id="_CPPv3N7larflow3scb10SCBoundary10SCBoundaryEv"></span><span id="_CPPv2N7larflow3scb10SCBoundary10SCBoundaryEv"></span><span id="larflow::scb::SCBoundary::SCBoundary"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a05d2a8b3c742bb0d8d32878d80216cd6"></span><code class="descname">SCBoundary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary10SCBoundaryEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow3scb10SCBoundaryD0Ev">
+<span id="_CPPv3N7larflow3scb10SCBoundaryD0Ev"></span><span id="_CPPv2N7larflow3scb10SCBoundaryD0Ev"></span><span id="larflow::scb::SCBoundary::~SCBoundary"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a784955a045a6cd601d6fcbc0a415acde"></span><em class="property">virtual</em> <code class="descname">~SCBoundary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundaryD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4I0ENK7larflow3scb10SCBoundary13dist2boundaryE1TRKNSt6vectorI1TEER10Boundary_t">
+<span id="_CPPv3I0ENK7larflow3scb10SCBoundary13dist2boundaryERKNSt6vectorI1TEER10Boundary_t"></span><span id="_CPPv2I0ENK7larflow3scb10SCBoundary13dist2boundaryERKNSt6vectorI1TEER10Boundary_t"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1af0563c78631c85a168c9f6b6d52714ce"></span>template&lt;class <code class="descname">T</code>&gt;<br /><a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary13dist2boundaryE1TRKNSt6vectorI1TEER10Boundary_t" title="larflow::scb::SCBoundary::dist2boundary::T">T</a> <code class="descname">dist2boundary</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;<a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary13dist2boundaryE1TRKNSt6vectorI1TEER10Boundary_t" title="larflow::scb::SCBoundary::dist2boundary::T">T</a>&gt; &amp;<em>pos</em>, <a class="reference internal" href="#_CPPv4N7larflow3scb10SCBoundary10Boundary_tE" title="larflow::scb::SCBoundary::Boundary_t">Boundary_t</a> &amp;<em>btype</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4I0ENK7larflow3scb10SCBoundary13dist2boundaryE1TRKNSt6vectorI1TEER10Boundary_t" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calculate distance to boundary </p>
+<p>This function assumes the query point is inside the TPC. If a query point is given outside the TPC, the distance returned will be from the active volume TPC boundary.</p>
+<p>The active TPC boundary is assumed to be: <ul class="simple">
+<li>x: [0,256]</li>
+<li>y: [116,-115]</li>
+<li>z: [0.0,1037.0]</li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>distance in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">pos</span></code>: 3D test position in cm (assumed inside the TPC) </li>
+<li><code class="docutils literal notranslate"><span class="pre">boundary_type</span></code>: Returns Boundary_t label indicated boundary the test point was closest to and for which the calculation is made. </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEfff">
+<span id="_CPPv3NK7larflow3scb10SCBoundary13dist2boundaryEfff"></span><span id="_CPPv2NK7larflow3scb10SCBoundary13dist2boundaryEfff"></span><span id="larflow::scb::SCBoundary::dist2boundary__float.float.floatC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1aacca2dbfd94ed005644e9db1a9b60fe0"></span>float <code class="descname">dist2boundary</code><span class="sig-paren">(</span>float <em>x</em>, float <em>y</em>, float <em>z</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEfff" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit float implementation of dist2boundary without boundary type return </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEddd">
+<span id="_CPPv3NK7larflow3scb10SCBoundary13dist2boundaryEddd"></span><span id="_CPPv2NK7larflow3scb10SCBoundary13dist2boundaryEddd"></span><span id="larflow::scb::SCBoundary::dist2boundary__double.double.doubleC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a2867be941e638aa0fd21f9588a5dff62"></span>double <code class="descname">dist2boundary</code><span class="sig-paren">(</span>double <em>x</em>, double <em>y</em>, double <em>z</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEddd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit double implementation of dist2boundary without boundary type return </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEfffRi">
+<span id="_CPPv3NK7larflow3scb10SCBoundary13dist2boundaryEfffRi"></span><span id="_CPPv2NK7larflow3scb10SCBoundary13dist2boundaryEfffRi"></span><span id="larflow::scb::SCBoundary::dist2boundary__float.float.float.iRC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ae7b5232e7cbac2c51da3b12222dc1329"></span>float <code class="descname">dist2boundary</code><span class="sig-paren">(</span>float <em>x</em>, float <em>y</em>, float <em>z</em>, int &amp;<em>ibtype</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEfffRi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit float implementation of dist2boundary with boundary type return </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">ibtype</span></code>: boundary type as integer corresponding to Boundary_t </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEdddRi">
+<span id="_CPPv3NK7larflow3scb10SCBoundary13dist2boundaryEdddRi"></span><span id="_CPPv2NK7larflow3scb10SCBoundary13dist2boundaryEdddRi"></span><span id="larflow::scb::SCBoundary::dist2boundary__double.double.double.iRC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a82c856610948505b1034ddcfd5007af4"></span>double <code class="descname">dist2boundary</code><span class="sig-paren">(</span>double <em>x</em>, double <em>y</em>, double <em>z</em>, int &amp;<em>ibtype</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary13dist2boundaryEdddRi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit double implementation of dist2boundary with boundary type return </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">ibtype</span></code>: boundary type as integer corresponding to Boundary_t </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4I0ENK7larflow3scb10SCBoundary11XatBoundaryE1TRKNSt6vectorI1TEE">
+<span id="_CPPv3I0ENK7larflow3scb10SCBoundary11XatBoundaryERKNSt6vectorI1TEE"></span><span id="_CPPv2I0ENK7larflow3scb10SCBoundary11XatBoundaryERKNSt6vectorI1TEE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1acc4b6f2959ff1bb2bd0305ac0b8e93e8"></span>template&lt;class <code class="descname">T</code>&gt;<br /><a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary11XatBoundaryE1TRKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::XatBoundary::T">T</a> <code class="descname">XatBoundary</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;<a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary11XatBoundaryE1TRKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::XatBoundary::T">T</a>&gt; &amp;<em>pos</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4I0ENK7larflow3scb10SCBoundary11XatBoundaryE1TRKNSt6vectorI1TEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The x position if one pushes test point to space charge boundary. </p>
+<p>Given a test point (x,y,z) what is the x-position if we pushed the point to the space charge boundary along the x-direction only. In otherwords, given the (y,z) coordinages, what is the x position on the space charge boundary?</p>
+<p>This method will work as long as (y,z) are within bounds. <ul class="simple">
+<li><ul class="first">
+<li>y: [-115,116]</li>
+</ul>
+</li>
+<li><ul class="first">
+<li>z: [0,1036]</li>
+</ul>
+</li>
+<li></li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position at space charge boundary in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">pos</span></code>: 3D test point in cm </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary11XatBoundaryEfff">
+<span id="_CPPv3NK7larflow3scb10SCBoundary11XatBoundaryEfff"></span><span id="_CPPv2NK7larflow3scb10SCBoundary11XatBoundaryEfff"></span><span id="larflow::scb::SCBoundary::XatBoundary__float.float.floatC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1aa5a693a4efb535ba0c39b23a81e45b0d"></span>float <code class="descname">XatBoundary</code><span class="sig-paren">(</span>float <em>x</em>, float <em>y</em>, float <em>z</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary11XatBoundaryEfff" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit float implementation of XatBoundary </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow3scb10SCBoundary11XatBoundaryEddd">
+<span id="_CPPv3NK7larflow3scb10SCBoundary11XatBoundaryEddd"></span><span id="_CPPv2NK7larflow3scb10SCBoundary11XatBoundaryEddd"></span><span id="larflow::scb::SCBoundary::XatBoundary__double.double.doubleC"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a28a77d6e2b8af5fd91c5e76515671925"></span>double <code class="descname">XatBoundary</code><span class="sig-paren">(</span>double <em>x</em>, double <em>y</em>, double <em>z</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow3scb10SCBoundary11XatBoundaryEddd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>explicit double implementation of XatBoundary </p>
+<p>used for python bindings</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>x-position in cm </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">x</span></code>: x-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">y</span></code>: y-position in cm of test point </li>
+<li><code class="docutils literal notranslate"><span class="pre">z</span></code>: z-position in cm of test point </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Functions</p>
+<dl class="function">
+<dt id="_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE">
+<span id="_CPPv3I0ENK7larflow3scb10SCBoundary17pointLineDistanceERKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE"></span><span id="_CPPv2I0ENK7larflow3scb10SCBoundary17pointLineDistanceERKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a7e5028e985cf5202063b1f3b8399e118"></span>template&lt;class <code class="descname">T</code>&gt;<br /><a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::pointLineDistance::T">T</a> <code class="descname">pointLineDistance</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;<a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::pointLineDistance::T">T</a>&gt; &amp;<em>linept1</em>, <em class="property">const</em> std::vector&lt;<a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::pointLineDistance::T">T</a>&gt; &amp;<em>linept2</em>, <em class="property">const</em> std::vector&lt;<a class="reference internal" href="#_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE" title="larflow::scb::SCBoundary::pointLineDistance::T">T</a>&gt; &amp;<em>testpt</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4I0ENK7larflow3scb10SCBoundary17pointLineDistanceE1TRKNSt6vectorI1TEERKNSt6vectorI1TEERKNSt6vectorI1TEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>distance from line defined by two points </p>
+<p>formula from: <a class="reference external" href="http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html">http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html</a></p>
+<p>This will return the distance the line defined by two points.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>The distance from the line </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">linept1</span></code>: 3D position on one end of segment </li>
+<li><code class="docutils literal notranslate"><span class="pre">linept2</span></code>: 3D position on the other end of the segment </li>
+<li><code class="docutils literal notranslate"><span class="pre">pt</span></code>: 3D position of test point</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Static Attributes</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_TOP_y1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_TOP_y1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_TOP_y1_arrayE"></span><span id="larflow::scb::SCBoundary::YX_TOP_y1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ab65e6758e757f2b09deea2974570d37f"></span><em class="property">constexpr</em> double <code class="descname">YX_TOP_y1_array</code> = 116<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_TOP_y1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>y-position defining start of top space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_TOP_x1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_TOP_x1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_TOP_x1_arrayE"></span><span id="larflow::scb::SCBoundary::YX_TOP_x1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a96cac710ad79ec505a1638674c263aa3"></span>double <code class="descname">YX_TOP_x1_array</code> = {150.00, 132.56, 122.86, 119.46, 114.22, 110.90, 115.85, 113.48, 126.36, 144.21}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_TOP_x1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining start of top space charge boundary for 10 subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_TOP_y2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_TOP_y2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_TOP_y2_arrayE"></span><span id="larflow::scb::SCBoundary::YX_TOP_y2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1afcda40e10757d8a77b59ea47c6fe9192"></span>double <code class="descname">YX_TOP_y2_array</code> = {110.00, 108.14, 106.77, 105.30, 103.40, 102.18, 101.76, 102.27, 102.75, 105.10}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_TOP_y2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>y-position defining end of top space charge boundary for 10 subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_TOP_x2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_TOP_x2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_TOP_x2_arrayE"></span><span id="larflow::scb::SCBoundary::YX_TOP_x2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a24720a08406adfc02403f91990194d8c"></span><em class="property">constexpr</em> double <code class="descname">YX_TOP_x2_array</code> = 256<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_TOP_x2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining end of top space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_BOT_y1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_BOT_y1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_BOT_y1_arrayE"></span><span id="larflow::scb::SCBoundary::YX_BOT_y1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1abba949f5b1994b93d66b47520b58f9f5"></span><em class="property">constexpr</em> double <code class="descname">YX_BOT_y1_array</code> = -115<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_BOT_y1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>y-position defining start of bottom space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_BOT_x1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_BOT_x1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_BOT_x1_arrayE"></span><span id="larflow::scb::SCBoundary::YX_BOT_x1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ae31280a2ac70c46476ddd15ca20d16ce"></span>double <code class="descname">YX_BOT_x1_array</code> = {115.71, 98.05, 92.42, 91.14, 92.25, 85.38, 78.19, 74.46, 78.86, 108.90}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_BOT_x1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining start of bottom space charge boundary for 10 z-subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_BOT_y2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_BOT_y2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_BOT_y2_arrayE"></span><span id="larflow::scb::SCBoundary::YX_BOT_y2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a6722555d0616cade4d8887204efbbd8e"></span>double <code class="descname">YX_BOT_y2_array</code> = {-101.72, -99.46, -99.51, -100.43, -99.55, -98.56, -98.00, -98.30, -99.32, -104.20}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_BOT_y2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>y-position defining start of bottom space charge boundary for 10 z-subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary15YX_BOT_x2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary15YX_BOT_x2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary15YX_BOT_x2_arrayE"></span><span id="larflow::scb::SCBoundary::YX_BOT_x2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ad21bedefa765538604508b251210dc85"></span><em class="property">constexpr</em> double <code class="descname">YX_BOT_x2_array</code> = 256<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary15YX_BOT_x2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining end of bottom space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Up_z1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Up_z1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Up_z1_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Up_z1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1af8b4932b61cc9d43854e0dee4d969aa2"></span><em class="property">constexpr</em> double <code class="descname">ZX_Up_z1_array</code> = 0<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Up_z1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>ZX view has Y dependence: Y sub-range from -116 to 116cm per 24cm. </p>
+<p>z-position defining start of upstream space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Up_x1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Up_x1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Up_x1_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Up_x1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1abbf4df7cdd63be1242aa8865191920c0"></span><em class="property">constexpr</em> double <code class="descname">ZX_Up_x1_array</code> = 120<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Up_x1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining start of upstream space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Up_z2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Up_z2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Up_z2_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Up_z2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a0506618e65382076513afbbe201897f0"></span><em class="property">constexpr</em> double <code class="descname">ZX_Up_z2_array</code> = 10<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Up_z2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>z-position defining end of upstream space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Up_x2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Up_x2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Up_x2_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Up_x2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1ada2266af35fbafd677866838fdfdc867"></span><em class="property">constexpr</em> double <code class="descname">ZX_Up_x2_array</code> = 256<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Up_x2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining end of upstream space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_z1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Dw_z1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Dw_z1_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Dw_z1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a98236e909c442b88b11a2ace9d6875e6"></span><em class="property">constexpr</em> double <code class="descname">ZX_Dw_z1_array</code> = 1037<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_z1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>z-position defining start of downstream space charge boundary </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_x1_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Dw_x1_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Dw_x1_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Dw_x1_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a046d720b4e8f206989c555c43f453cb4"></span>double <code class="descname">ZX_Dw_x1_array</code> = {120.00, 115.24, 108.50, 110.67, 120.90, 126.43, 140.51, 157.15, 120.00, 120.00}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_x1_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining start of downstream space charge boundary in 10 y-subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_z2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Dw_z2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Dw_z2_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Dw_z2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a71f5ddd54a0eb1616349539187e6b471"></span>double <code class="descname">ZX_Dw_z2_array</code> = {1029.00, 1029.12, 1027.21, 1026.01, 1024.91, 1025.27, 1025.32, 1027.61, 1026.00, 1026.00}<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_z2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>z-position defining end of downstream space charge boundary in 10 y-subsections </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_x2_arrayE">
+<span id="_CPPv3N7larflow3scb10SCBoundary14ZX_Dw_x2_arrayE"></span><span id="_CPPv2N7larflow3scb10SCBoundary14ZX_Dw_x2_arrayE"></span><span id="larflow::scb::SCBoundary::ZX_Dw_x2_array__double"></span><span class="target" id="classlarflow_1_1scb_1_1SCBoundary_1a6cf3f6478d64c997f5c096d97a9bf926"></span><em class="property">constexpr</em> double <code class="descname">ZX_Dw_x2_array</code> = 256<a class="headerlink" href="#_CPPv4N7larflow3scb10SCBoundary14ZX_Dw_x2_arrayE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>x-position defining end of downstream space charge boundary </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html" class="btn btn-neutral float-right" title="Class VoxelizeTriplets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1reco_1_1TrackOTFit.html" class="btn btn-neutral float-left" title="Class TrackOTFit" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+.. _exhale_variable_test__otfit_8py_1ac924dfe413ee5a787966b391a0d2bfa1:
+
+Variable test_otfit::NPTS
+=========================
+
+- Defined in :ref:`file_larflow_Reco_test_test_otfit.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test_otfit::NPTS

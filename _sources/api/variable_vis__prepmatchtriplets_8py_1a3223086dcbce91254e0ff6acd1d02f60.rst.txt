@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__prepmatchtriplets_8py_1a3223086dcbce91254e0ff6acd1d02f60:
+
+Variable vis_prepmatchtriplets::detdata
+=======================================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_test_vis_prepmatchtriplets.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_prepmatchtriplets::detdata

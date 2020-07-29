@@ -1,0 +1,28 @@
+
+.. _program_listing_file_larflow_KeyPoints_LinkDef.h:
+
+Program Listing for File LinkDef.h
+==================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_KeyPoints_LinkDef.h>` (``larflow/KeyPoints/LinkDef.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   
+   #ifdef __CINT__
+   #pragma link off all globals;
+   #pragma link off all classes;
+   #pragma link off all functions;
+   
+   #pragma link C++ namespace larflow;
+   #pragma link C++ namespace larflow::keypoints;
+   #pragma link C++ class larflow::keypoints::KPdata+;
+   #pragma link C++ class larflow::keypoints::PrepKeypointData+;
+   #pragma link C++ class larflow::keypoints::PrepAffinityField+;
+   #pragma link C++ class larflow::keypoints::LoaderKeypointData+;
+   #pragma link C++ class larflow::keypoints::LoaderAffinityField+;
+   
+   //ADD_NEW_CLASS ... do not change this line
+   #endif

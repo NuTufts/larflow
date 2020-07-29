@@ -1,0 +1,527 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File vis_kpreco.py &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File vis_kpreco.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_test_vis_kpreco.py.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-vis-kpreco-py">
+<span id="program-listing-file-larflow-reco-test-vis-kpreco-py"></span><h1>Program Listing for File vis_kpreco.py<a class="headerlink" href="#program-listing-for-file-vis-kpreco-py" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_test_vis_kpreco.py.html#file-larflow-reco-test-vis-kpreco-py"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/test/vis_kpreco.py</span></code>)</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">argparse</span><span class="o">,</span><span class="nn">json</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;Plot Keypoint output&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-ll&quot;</span><span class="p">,</span><span class="s2">&quot;--input-larlite&quot;</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;kpsrecomanager larlite output file&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-ana&quot;</span><span class="p">,</span><span class="s2">&quot;--input-kpsana&quot;</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;kpsrecomanager ana output file&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-mc&quot;</span><span class="p">,</span><span class="s2">&quot;--input-mcinfo&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;dl merged or larlite mcinfo with truth info&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--draw-flash&quot;</span><span class="p">,</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;If true, draw in-time flash PMT data [default: false]&quot;</span><span class="p">)</span>
+<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">ROOT</span> <span class="k">as</span> <span class="nn">rt</span>
+<span class="kn">from</span> <span class="nn">larlite</span> <span class="kn">import</span> <span class="n">larlite</span>
+<span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+<span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+<span class="n">larcv</span><span class="o">.</span><span class="n">SetPyUtil</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">dash</span>
+<span class="kn">import</span> <span class="nn">dash_core_components</span> <span class="k">as</span> <span class="nn">dcc</span>
+<span class="kn">import</span> <span class="nn">dash_html_components</span> <span class="k">as</span> <span class="nn">html</span>
+<span class="kn">from</span> <span class="nn">dash.dependencies</span> <span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">State</span>
+<span class="kn">from</span> <span class="nn">dash.exceptions</span> <span class="kn">import</span> <span class="n">PreventUpdate</span>
+
+<span class="kn">import</span> <span class="nn">lardly</span>
+
+<span class="n">color_by_options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;larmatch&quot;</span><span class="p">,</span><span class="s2">&quot;keypoint&quot;</span><span class="p">]</span>
+<span class="n">colorscale</span> <span class="o">=</span> <span class="s2">&quot;Viridis&quot;</span>
+<span class="n">option_dict</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">color_by_options</span><span class="p">:</span>
+    <span class="n">option_dict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="n">opt</span><span class="p">,</span><span class="s2">&quot;value&quot;</span><span class="p">:</span><span class="n">opt</span><span class="p">}</span> <span class="p">)</span>
+
+<span class="c1"># OPEN LARLITE FILE</span>
+<span class="n">io</span> <span class="o">=</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">storage_manager</span><span class="o">.</span><span class="n">kREAD</span> <span class="p">)</span>
+<span class="n">io</span><span class="o">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">input_larlite</span> <span class="p">)</span>
+<span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">input_mcinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">io</span><span class="o">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">input_mcinfo</span> <span class="p">)</span>
+    <span class="n">HAS_MC</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">HAS_MC</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+
+<span class="c1"># OPEN VERTEX RECO FILE</span>
+<span class="n">anafile</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TFile</span><span class="p">(</span> <span class="n">args</span><span class="o">.</span><span class="n">input_kpsana</span> <span class="p">)</span>
+<span class="n">kpsanatree</span> <span class="o">=</span> <span class="n">anafile</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;KPSRecoManagerTree&quot;</span><span class="p">)</span>
+<span class="n">nentries</span> <span class="o">=</span> <span class="n">kpsanatree</span><span class="o">.</span><span class="n">GetEntries</span><span class="p">()</span>
+<span class="n">CURRENT_EVENT</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NENTRIES: &quot;</span><span class="p">,</span><span class="n">nentries</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">make_figures</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span><span class="n">vtxid</span><span class="p">,</span><span class="n">plotby</span><span class="o">=</span><span class="s2">&quot;larmatch&quot;</span><span class="p">,</span><span class="n">treename</span><span class="o">=</span><span class="s2">&quot;larmatch&quot;</span><span class="p">,</span><span class="n">minprob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+    <span class="n">larcv</span><span class="o">.</span><span class="n">load_pyutil</span><span class="p">()</span>
+    <span class="n">detdata</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">DetectorOutline</span><span class="p">()</span>
+
+    <span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+    <span class="n">larcv</span><span class="o">.</span><span class="n">SetPyUtil</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;making figures for entry=</span><span class="si">{}</span><span class="s2"> plot-by=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span><span class="n">plotby</span><span class="p">))</span>
+    <span class="k">global</span> <span class="n">io</span>
+    <span class="k">global</span> <span class="n">kpsanatree</span>
+    <span class="n">io</span><span class="o">.</span><span class="n">go_to</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+    <span class="n">nbytes</span> <span class="o">=</span> <span class="n">kpsanatree</span><span class="o">.</span><span class="n">GetEntry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nbytes</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">traces_v</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># GET THE VERTEX DATA</span>
+    <span class="n">plotall</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">vtxid</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span> <span class="ow">or</span> <span class="n">vtxid</span><span class="o">==</span><span class="s2">&quot;notloaded&quot;</span><span class="p">:</span>
+        <span class="n">plotall</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">vtxid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vtxid</span><span class="p">)</span>
+        <span class="n">plotall</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">draw_flash</span><span class="p">:</span>
+        <span class="n">ev_flash</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kOpFlash</span><span class="p">,</span><span class="s2">&quot;simpleFlashBeam&quot;</span><span class="p">)</span>
+        <span class="n">nflashes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">iflash</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ev_flash</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+            <span class="n">flash</span> <span class="o">=</span> <span class="n">ev_flash</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">iflash</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">flash</span><span class="o">.</span><span class="n">Time</span><span class="p">()</span><span class="o">&gt;</span><span class="mf">2.94</span> <span class="ow">and</span> <span class="n">flash</span><span class="o">.</span><span class="n">Time</span><span class="p">()</span><span class="o">&lt;</span><span class="mf">4.86</span><span class="p">:</span>
+                <span class="n">flash_trace_v</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_opflash_3d</span><span class="p">(</span> <span class="n">flash</span> <span class="p">)</span>
+                <span class="n">traces_v</span> <span class="o">+=</span> <span class="n">flash_trace_v</span>
+                <span class="n">nflashes</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">nflashes</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">traces_v</span> <span class="o">+=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_empty_opflash</span><span class="p">()</span>
+
+    <span class="n">vtxinfo</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ivtx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span> <span class="n">kpsanatree</span><span class="o">.</span><span class="n">nuvetoed_v</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="p">):</span>
+        <span class="n">vtxinfo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> (</span><span class="si">%.2f</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ivtx</span><span class="p">,</span><span class="n">kpsanatree</span><span class="o">.</span><span class="n">nuvetoed_v</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">ivtx</span><span class="p">)</span><span class="o">.</span><span class="n">score</span> <span class="p">),</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span><span class="n">ivtx</span><span class="p">}</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">plotall</span> <span class="ow">and</span> <span class="n">ivtx</span><span class="o">!=</span><span class="n">vtxid</span><span class="p">:</span>
+            <span class="c1"># skip if asked for specific vertex info</span>
+            <span class="k">continue</span>
+
+        <span class="n">vertexcand</span> <span class="o">=</span> <span class="n">kpsanatree</span><span class="o">.</span><span class="n">nuvetoed_v</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">ivtx</span><span class="p">)</span>
+        <span class="n">vertexcand_fit</span> <span class="o">=</span> <span class="n">kpsanatree</span><span class="o">.</span><span class="n">nufitted_v</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">ivtx</span><span class="p">)</span>
+        <span class="c1"># Get the keypoint data</span>
+
+        <span class="c1"># make vertex traces</span>
+        <span class="n">kptrace</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;scatter3d&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">vertexcand</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">vertexcand_fit</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">vertexcand</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">vertexcand_fit</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+            <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">vertexcand</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">vertexcand_fit</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+            <span class="s2">&quot;mode&quot;</span><span class="p">:</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;KP</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ivtx</span><span class="p">),</span>
+            <span class="s2">&quot;marker&quot;</span><span class="p">:{</span><span class="s2">&quot;color&quot;</span><span class="p">:[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">],</span><span class="s2">&quot;size&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="s2">&quot;opacity&quot;</span><span class="p">:</span><span class="mf">0.9</span><span class="p">,</span><span class="s2">&quot;colorscale&quot;</span><span class="p">:</span><span class="s2">&quot;Viridis&quot;</span><span class="p">},</span>
+        <span class="p">}</span>
+        <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">kptrace</span> <span class="p">)</span>
+
+
+        <span class="c1"># we want to plot the clusters associated with this</span>
+        <span class="c1"># if in all mode, we plot pca-axis only (else too messy)</span>
+        <span class="c1"># we plot hits by plot-by option?</span>
+        <span class="n">cluster_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">icluster</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">vertexcand</span><span class="o">.</span><span class="n">cluster_v</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+            <span class="n">clustinfo</span> <span class="o">=</span> <span class="n">vertexcand</span><span class="o">.</span><span class="n">cluster_v</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">icluster</span><span class="p">)</span>
+            <span class="n">lfcluster</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">clustinfo</span><span class="o">.</span><span class="n">producer</span> <span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span> <span class="n">clustinfo</span><span class="o">.</span><span class="n">index</span> <span class="p">)</span>
+
+            <span class="n">cluster_trace</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_larflowhits</span><span class="p">(</span> <span class="n">lfcluster</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;v[</span><span class="si">%d</span><span class="s2">]c[</span><span class="si">%d</span><span class="s2">]&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ivtx</span><span class="p">,</span><span class="n">icluster</span><span class="p">)</span> <span class="p">)</span>
+            <span class="k">if</span> <span class="n">clustinfo</span><span class="o">.</span><span class="n">type</span><span class="o">==</span><span class="n">larflow</span><span class="o">.</span><span class="n">reco</span><span class="o">.</span><span class="n">NuVertexCandidate</span><span class="o">.</span><span class="n">kTrack</span><span class="p">:</span>
+                <span class="n">cluster_trace</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rgb(0,255,0)&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cluster_trace</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rgb(255,0,0)&quot;</span>
+            <span class="n">cluster_trace</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">][</span><span class="s2">&quot;opacity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.3</span>
+            <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster_trace</span><span class="p">)</span>
+            <span class="n">cluster_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lfcluster</span><span class="p">)</span>
+
+            <span class="n">pcaxis</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">clustinfo</span><span class="o">.</span><span class="n">producer</span> <span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span> <span class="n">clustinfo</span><span class="o">.</span><span class="n">index</span> <span class="p">)</span>
+            <span class="n">pcatrace</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_pcaxis</span><span class="p">(</span> <span class="n">pcaxis</span> <span class="p">)</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;v[</span><span class="si">%d</span><span class="s2">]c[</span><span class="si">%d</span><span class="s2">]&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ivtx</span><span class="p">,</span><span class="n">icluster</span><span class="p">)</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rgb(0,0,0)&quot;</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;opacity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">pcatrace</span> <span class="p">)</span>
+
+    <span class="c1">#  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;cosmic&quot;</span><span class="p">,</span><span class="s2">&quot;trackprojsplit_full&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(150,150,150)&quot;</span><span class="p">,</span><span class="mf">0.15</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;wctrack&quot;</span><span class="p">,</span><span class="s2">&quot;trackprojsplit_wcfilter&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(125,200,125)&quot;</span><span class="p">,</span><span class="mf">0.05</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;wcshower&quot;</span><span class="p">,</span><span class="s2">&quot;showergoodhit&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(200,125,125)&quot;</span><span class="p">,</span><span class="mf">0.05</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">producer</span><span class="p">,</span><span class="n">rgbcolor</span><span class="p">,</span><span class="n">opa</span><span class="p">)</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">:</span>
+        <span class="n">ev_trackcluster</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">producer</span> <span class="p">)</span>
+        <span class="n">ev_pcacluster</span>   <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kPCAxis</span><span class="p">,</span>         <span class="n">producer</span> <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;plot pca clusters: &quot;</span><span class="p">,</span><span class="n">producer</span><span class="p">,</span><span class="n">ev_trackcluster</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">icluster</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ev_trackcluster</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+            <span class="n">lfcluster</span> <span class="o">=</span> <span class="n">ev_trackcluster</span><span class="o">.</span><span class="n">at</span><span class="p">(</span> <span class="n">icluster</span> <span class="p">)</span>
+            <span class="n">cluster_trace</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_larflowhits</span><span class="p">(</span> <span class="n">lfcluster</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">[</span><span class="si">%d</span><span class="s2">]&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">icluster</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">cluster_trace</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rgbcolor</span>
+            <span class="n">cluster_trace</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">][</span><span class="s2">&quot;opacity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opa</span>
+            <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster_trace</span><span class="p">)</span>
+
+            <span class="n">pcaxis</span> <span class="o">=</span> <span class="n">ev_pcacluster</span><span class="o">.</span><span class="n">at</span><span class="p">(</span> <span class="n">icluster</span> <span class="p">)</span>
+            <span class="n">pcatrace</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_pcaxis</span><span class="p">(</span> <span class="n">pcaxis</span> <span class="p">)</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">-pca[</span><span class="si">%d</span><span class="s2">]&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">icluster</span><span class="p">)</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rgb(0,0,0)&quot;</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">pcatrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;opacity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">pcatrace</span> <span class="p">)</span>
+
+    <span class="c1"># TRACK RECO</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span><span class="n">track_producer</span><span class="p">,</span><span class="n">zrgb</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;BTRK&quot;</span><span class="p">,</span><span class="s2">&quot;boundarycosmicnoshift&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(50,0,100)&quot;</span><span class="p">),</span>
+                                     <span class="p">(</span><span class="s2">&quot;CTRK&quot;</span><span class="p">,</span><span class="s2">&quot;containedcosmic&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(100,0,50)&quot;</span><span class="p">),</span>
+                                     <span class="p">(</span><span class="s2">&quot;NUTRK&quot;</span><span class="p">,</span><span class="s2">&quot;nutrack&quot;</span><span class="p">,</span><span class="s2">&quot;rgb(0,100,50)&quot;</span><span class="p">)]:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;NUTRK&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">ev_track</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kTrack</span><span class="p">,</span><span class="n">track_producer</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">itrack</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">ev_track</span><span class="o">.</span><span class="n">size</span><span class="p">()):</span>
+            <span class="n">trktrace</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_track</span><span class="p">(</span> <span class="n">ev_track</span><span class="p">[</span><span class="n">itrack</span><span class="p">]</span> <span class="p">)</span>
+            <span class="n">trktrace</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">[</span><span class="si">%d</span><span class="s2">]&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">itrack</span><span class="p">)</span>
+            <span class="n">trktrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">zrgb</span>
+            <span class="n">trktrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">trktrace</span><span class="p">[</span><span class="s2">&quot;line&quot;</span><span class="p">][</span><span class="s2">&quot;opacity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">traces_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">trktrace</span> <span class="p">)</span>
+
+
+    <span class="k">if</span> <span class="n">HAS_MC</span><span class="p">:</span>
+        <span class="n">mctrack_v</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_event_mctrack</span><span class="p">(</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kMCTrack</span><span class="p">,</span> <span class="s2">&quot;mcreco&quot;</span><span class="p">),</span> <span class="n">origin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">traces_v</span> <span class="o">+=</span> <span class="n">mctrack_v</span>
+
+        <span class="n">mcshower_v</span> <span class="o">=</span> <span class="n">lardly</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">visualize_larlite_event_mcshower</span><span class="p">(</span> <span class="n">io</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">kMCShower</span><span class="p">,</span> <span class="s2">&quot;mcreco&quot;</span><span class="p">),</span> <span class="n">return_dirplot</span><span class="o">=</span><span class="kc">True</span> <span class="p">)</span>
+        <span class="n">traces_v</span> <span class="o">+=</span> <span class="n">mcshower_v</span>
+
+
+    <span class="c1"># add detector outline</span>
+    <span class="n">traces_v</span> <span class="o">+=</span> <span class="n">detdata</span><span class="o">.</span><span class="n">getlines</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">traces_v</span><span class="p">,</span><span class="n">vtxinfo</span>
+
+<span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="k">pass</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">dash</span><span class="o">.</span><span class="n">Dash</span><span class="p">(</span>
+    <span class="vm">__name__</span><span class="p">,</span>
+    <span class="n">meta_tags</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;viewport&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;width=device-width, initial-scale=1&quot;</span><span class="p">}],</span>
+<span class="p">)</span>
+
+<span class="n">server</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">server</span>
+
+<span class="c1"># 3D PLOT WINDOW</span>
+<span class="n">axis_template</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;showbackground&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1">#&quot;backgroundcolor&quot;: &quot;#141414&quot;, # black</span>
+    <span class="c1">#&quot;gridcolor&quot;: &quot;rgba(255, 255, 255)&quot;,</span>
+    <span class="c1">#&quot;zerolinecolor&quot;: &quot;rgba(255, 255, 255)&quot;,</span>
+    <span class="s2">&quot;backgroundcolor&quot;</span><span class="p">:</span> <span class="s2">&quot;rgba(100, 100, 100,0.5)&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;gridcolor&quot;</span><span class="p">:</span> <span class="s2">&quot;rgb(50, 50, 50)&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;zerolinecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;rgb(0, 0, 0)&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">plot_layout</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;height&quot;</span><span class="p">:</span><span class="mi">800</span><span class="p">,</span>
+    <span class="s2">&quot;margin&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;t&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;l&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+    <span class="s2">&quot;font&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;black&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;showlegend&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1">#&quot;plot_bgcolor&quot;: &quot;#141414&quot;,</span>
+    <span class="c1">#&quot;paper_bgcolor&quot;: &quot;#141414&quot;,</span>
+    <span class="s2">&quot;plot_bgcolor&quot;</span><span class="p">:</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;paper_bgcolor&quot;</span><span class="p">:</span> <span class="s2">&quot;#ffffff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;scene&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;xaxis&quot;</span><span class="p">:</span> <span class="n">axis_template</span><span class="p">,</span>
+        <span class="s2">&quot;yaxis&quot;</span><span class="p">:</span> <span class="n">axis_template</span><span class="p">,</span>
+        <span class="s2">&quot;zaxis&quot;</span><span class="p">:</span> <span class="n">axis_template</span><span class="p">,</span>
+        <span class="s2">&quot;aspectratio&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+        <span class="s2">&quot;camera&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;eye&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+                   <span class="s2">&quot;up&quot;</span><span class="p">:</span><span class="nb">dict</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)},</span>
+        <span class="s2">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="c1"># INPUT FORM: EVENT NUM</span>
+<span class="n">eventinput</span> <span class="o">=</span> <span class="n">dcc</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;input_event&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;number&quot;</span><span class="p">,</span>
+    <span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;Input Event&quot;</span><span class="p">)</span>
+
+<span class="c1"># INPUT FORM: VERTEX</span>
+<span class="n">plottrack</span> <span class="o">=</span> <span class="n">dcc</span><span class="o">.</span><span class="n">Dropdown</span><span class="p">(</span>
+    <span class="n">options</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;notloaded&#39;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">:</span><span class="s1">&#39;Event not loaded&#39;</span><span class="p">},</span>
+    <span class="p">],</span>
+    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;notloaded&#39;</span><span class="p">,</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s1">&#39;plotvertexid&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># INPUT FORM: Score option (not used right now)</span>
+<span class="n">plotopt</span> <span class="o">=</span> <span class="n">dcc</span><span class="o">.</span><span class="n">Dropdown</span><span class="p">(</span>
+    <span class="n">options</span><span class="o">=</span><span class="n">option_dict</span><span class="p">,</span>
+    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;larmatch&#39;</span><span class="p">,</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s1">&#39;plotbyopt&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># PAGE  LAYOUT</span>
+<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span> <span class="p">[</span>
+    <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span> <span class="p">[</span> <span class="n">eventinput</span><span class="p">,</span>
+                <span class="n">plottrack</span><span class="p">,</span>
+                <span class="n">plotopt</span><span class="p">,</span>
+                <span class="n">html</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Plot&quot;</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;plot&quot;</span><span class="p">)</span>
+    <span class="p">]</span> <span class="p">),</span>
+    <span class="n">html</span><span class="o">.</span><span class="n">Hr</span><span class="p">(),</span>
+    <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span> <span class="p">[</span>
+        <span class="n">dcc</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;det3d&quot;</span><span class="p">,</span>
+            <span class="n">figure</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s2">&quot;layout&quot;</span><span class="p">:</span> <span class="n">plot_layout</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;editable&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;scrollZoom&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+        <span class="p">)],</span>
+              <span class="n">className</span><span class="o">=</span><span class="s2">&quot;graph__container&quot;</span><span class="p">),</span>
+    <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;out&quot;</span><span class="p">)</span>
+<span class="p">]</span> <span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">Output</span><span class="p">(</span><span class="s2">&quot;det3d&quot;</span><span class="p">,</span><span class="s2">&quot;figure&quot;</span><span class="p">),</span>
+     <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;plotvertexid&quot;</span><span class="p">,</span><span class="s2">&quot;options&quot;</span><span class="p">),</span>
+     <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;plotvertexid&quot;</span><span class="p">,</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+     <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span><span class="s2">&quot;children&quot;</span><span class="p">)],</span>
+    <span class="p">[</span><span class="n">Input</span><span class="p">(</span><span class="s2">&quot;plot&quot;</span><span class="p">,</span><span class="s2">&quot;n_clicks&quot;</span><span class="p">)],</span>
+    <span class="p">[</span><span class="n">State</span><span class="p">(</span><span class="s2">&quot;input_event&quot;</span><span class="p">,</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+     <span class="n">State</span><span class="p">(</span><span class="s2">&quot;plotvertexid&quot;</span><span class="p">,</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+     <span class="n">State</span><span class="p">(</span><span class="s2">&quot;plotbyopt&quot;</span><span class="p">,</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+     <span class="n">State</span><span class="p">(</span><span class="s2">&quot;det3d&quot;</span><span class="p">,</span><span class="s2">&quot;figure&quot;</span><span class="p">)],</span>
+    <span class="p">)</span>
+<span class="k">def</span> <span class="nf">cb_render</span><span class="p">(</span><span class="o">*</span><span class="n">vals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    runs when plot button is clicked</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">EVENT_DATA</span>
+    <span class="k">global</span> <span class="n">UNMATCHED_CLUSTERS</span>
+    <span class="k">global</span> <span class="n">io</span>
+    <span class="k">global</span> <span class="n">CURRENT_EVENT</span>
+    <span class="k">if</span> <span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Input event is none&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">PreventUpdate</span>
+    <span class="k">if</span> <span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;=</span><span class="n">nentries</span> <span class="ow">or</span> <span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Input event is out of range&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">PreventUpdate</span>
+    <span class="k">if</span> <span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Plot-by option is None&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">PreventUpdate</span>
+
+    <span class="n">vertexid</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">entry</span>    <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">entry</span><span class="o">!=</span><span class="n">CURRENT_EVENT</span><span class="p">:</span>
+        <span class="c1"># first time we access an entry, we default to the &quot;all&quot; view of the vertices</span>
+        <span class="n">CURRENT_EVENT</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="n">vertexid</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span>
+    <span class="n">cluster_traces_v</span><span class="p">,</span><span class="n">vtxoptions</span> <span class="o">=</span> <span class="n">make_figures</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">vertexid</span><span class="p">,</span><span class="n">plotby</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">vtxoptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s2">&quot;all&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">:</span><span class="s2">&quot;all&quot;</span><span class="p">}</span> <span class="p">)</span>
+
+    <span class="c1"># update the figure&#39;s traces</span>
+    <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_traces_v</span>
+    <span class="k">return</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">vtxoptions</span><span class="p">,</span><span class="n">vertexid</span><span class="p">,</span><span class="s2">&quot;event requested: </span><span class="si">{}</span><span class="s2">; vertexid: </span><span class="si">{}</span><span class="s2">; plot-option: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run_server</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

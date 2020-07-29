@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1PCATracker_1_1StartSeed__t:
+
+Struct PCATracker::StartSeed_t
+==============================
+
+- Defined in :ref:`file_larflow_Reco_PCATracker.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1PCATracker`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::PCATracker::StartSeed_t
+   :members:
+   :protected-members:
+   :undoc-members:

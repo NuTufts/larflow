@@ -1,0 +1,13 @@
+.. _exhale_variable_test__otfit_8py_1a58b774e2c41c62dbb45badb88d0911ff:
+
+Variable test_otfit::loss
+=========================
+
+- Defined in :ref:`file_larflow_Reco_test_test_otfit.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test_otfit::loss

@@ -1,0 +1,80 @@
+
+.. _file_larflow_Voxelizer_VoxelizeTriplets.h:
+
+File VoxelizeTriplets.h
+=======================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Voxelizer>` (``larflow/Voxelizer``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Voxelizer/VoxelizeTriplets.h``)
+-----------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Voxelizer_VoxelizeTriplets.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/storage_manager.h``
+
+- ``Python.h``
+
+- ``bytesobject.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``larflow/PrepFlowMatchData/PrepMatchTriplets.h`` (:ref:`file_larflow_PrepFlowMatchData_PrepMatchTriplets.h`)
+
+- ``numpy/ndarrayobject.h``
+
+- ``string``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Voxelizer_VoxelizeTriplets.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__voxelizer`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1voxelizer_1_1VoxelizeTriplets`
+
+
+Defines
+-------
+
+
+- :ref:`exhale_define_VoxelizeTriplets_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a`
+

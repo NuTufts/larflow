@@ -1,0 +1,49 @@
+
+.. _file__home_twongjirad_working_larbys_ubdl_testdata_test.py:
+
+File test.py
+============
+
+|exhale_lsh| :ref:`Parent directory <dir__home_twongjirad_working_larbys_ubdl_testdata>` (``/home/twongjirad/working/larbys/ubdl/testdata``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``/home/twongjirad/working/larbys/ubdl/testdata/test.py``)
+----------------------------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file__home_twongjirad_working_larbys_ubdl_testdata_test.py.rst
+
+
+
+
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_test`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_test_8py_1a1631b77eff1c0a6208f7309e679c7032`
+
+- :ref:`exhale_variable_test_8py_1a0ce1bf76d2c4650f8ff7028bd79516aa`
+
+- :ref:`exhale_variable_test_8py_1ae1b829f07e06c12315d53ea254bdd0c6`
+

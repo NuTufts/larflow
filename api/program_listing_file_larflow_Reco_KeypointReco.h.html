@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File KeypointReco.h &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File KeypointReco.h</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_KeypointReco.h.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-keypointreco-h">
+<span id="program-listing-file-larflow-reco-keypointreco-h"></span><h1>Program Listing for File KeypointReco.h<a class="headerlink" href="#program-listing-for-file-keypointreco-h" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_KeypointReco.h.html#file-larflow-reco-keypointreco-h"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/KeypointReco.h</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#ifndef __LARFLOW_RECO_KEYPOINTRECO_H__</span>
+<span class="cp">#define __LARFLOW_RECO_KEYPOINTRECO_H__</span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TTree.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larcv</span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/Base/larcv_base.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite</span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;cluster_functions.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;KPCluster.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="k">class</span> <span class="nc">KeypointReco</span> <span class="o">:</span> <span class="k">public</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span> <span class="p">{</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="n">KeypointReco</span><span class="p">()</span>
+      <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span><span class="p">(</span><span class="s">&quot;KeypointReco&quot;</span><span class="p">),</span>
+      <span class="n">_output_tree</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span>
+    <span class="p">{</span> <span class="n">set_param_defaults</span><span class="p">();</span> <span class="p">};</span>
+    <span class="k">virtual</span> <span class="o">~</span><span class="n">KeypointReco</span><span class="p">()</span>
+      <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">_output_tree</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">delete</span> <span class="n">_output_tree</span><span class="p">;</span>
+          <span class="n">_output_tree</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="p">};</span>
+
+    <span class="c1">// params</span>
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="kt">float</span> <span class="n">_sigma</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">_larmatch_score_threshold</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">_num_passes</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">_keypoint_score_threshold_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>   <span class="n">_min_cluster_size_v</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">_max_dbscan_dist</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">_max_clustering_points</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_input_larflowhit_tree_name</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">_output_tree_name</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">_keypoint_type</span><span class="p">;</span>
+    <span class="kt">int</span>   <span class="n">_lfhit_score_index</span><span class="p">;</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="kt">void</span> <span class="n">set_param_defaults</span><span class="p">();</span>
+
+    <span class="kt">void</span> <span class="nf">set_keypoint_threshold</span><span class="p">(</span> <span class="kt">float</span> <span class="n">threshold</span><span class="p">,</span> <span class="kt">int</span> <span class="n">pass</span><span class="o">=</span><span class="mi">0</span> <span class="p">)</span>    <span class="p">{</span> <span class="n">_keypoint_score_threshold_v</span><span class="p">[</span><span class="n">pass</span><span class="p">]</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_larmatch_threshold</span><span class="p">(</span> <span class="kt">float</span> <span class="n">threshold</span> <span class="p">)</span>    <span class="p">{</span> <span class="n">_larmatch_score_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_sigma</span><span class="p">(</span> <span class="kt">float</span> <span class="n">sigma</span> <span class="p">)</span>            <span class="p">{</span> <span class="n">_sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_min_cluster_size</span><span class="p">(</span> <span class="kt">int</span> <span class="n">minsize</span><span class="p">,</span> <span class="kt">int</span> <span class="n">pass</span><span class="o">=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_min_cluster_size_v</span><span class="p">[</span><span class="n">pass</span><span class="p">]</span> <span class="o">=</span> <span class="n">minsize</span><span class="p">;</span>  <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_num_passes</span><span class="p">(</span> <span class="kt">int</span> <span class="n">npasses</span> <span class="p">)</span>       <span class="p">{</span>
+      <span class="n">_num_passes</span> <span class="o">=</span> <span class="n">npasses</span><span class="p">;</span>
+      <span class="n">_keypoint_score_threshold_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">npasses</span><span class="p">,</span><span class="mf">0.5</span><span class="p">);</span>
+      <span class="n">_min_cluster_size_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">npasses</span><span class="p">,</span><span class="mi">50</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_max_dbscan_dist</span><span class="p">(</span> <span class="kt">float</span> <span class="n">dist</span> <span class="p">)</span>   <span class="p">{</span> <span class="n">_max_dbscan_dist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_max_clustering_points</span><span class="p">(</span> <span class="kt">int</span> <span class="n">maxpts</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_max_clustering_points</span> <span class="o">=</span> <span class="n">maxpts</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_keypoint_type</span> <span class="p">(</span><span class="kt">int</span> <span class="n">kptype</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_keypoint_type</span><span class="o">=</span><span class="n">kptype</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_input_larmatch_tree_name</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_input_larflowhit_tree_name</span><span class="o">=</span><span class="n">name</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_output_tree_name</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_output_tree_name</span><span class="o">=</span><span class="n">name</span><span class="p">;</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">set_lfhit_score_index</span><span class="p">(</span> <span class="kt">int</span> <span class="n">idx</span> <span class="p">)</span> <span class="p">{</span> <span class="n">_lfhit_score_index</span><span class="o">=</span><span class="n">idx</span><span class="p">;</span> <span class="p">};</span>
+
+
+    <span class="kt">void</span> <span class="nf">process</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">io_ll</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">process</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">input_lfhits</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">dump2json</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfilename</span><span class="o">=</span><span class="s">&quot;dump_keypointreco.json&quot;</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">KPCluster</span> <span class="o">&gt;</span> <span class="n">output_pt_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span>   <span class="n">_cluster_v</span><span class="p">;</span>
+
+    <span class="c1">// make initial points</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">_initial_pt_pos_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;</span>                <span class="n">_initial_pt_used_v</span><span class="p">;</span>
+
+    <span class="kt">void</span> <span class="nf">_make_initial_pt_data</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">lfhits</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="kt">float</span> <span class="n">keypoint_score_threshold</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="kt">float</span> <span class="n">larmatch_score_threshold</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_make_kpclusters</span><span class="p">(</span> <span class="kt">float</span> <span class="n">round_score_threshold</span><span class="p">,</span> <span class="kt">int</span> <span class="n">min_cluster_size</span> <span class="p">);</span>
+
+    <span class="c1">// algorithm steps</span>
+    <span class="kt">void</span> <span class="nf">_skim_remaining_points</span><span class="p">(</span> <span class="kt">float</span> <span class="n">score_threshold</span><span class="p">,</span>
+                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_pt_v</span><span class="p">,</span>
+                                 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">skimmed_index_v</span> <span class="p">);</span>
+
+    <span class="n">KPCluster</span> <span class="nf">_characterize_cluster</span><span class="p">(</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                     <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_pt_v</span><span class="p">,</span>
+                                     <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">int</span> <span class="o">&gt;&amp;</span> <span class="n">skimmed_index_v</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">_expand_kpcluster</span><span class="p">(</span> <span class="n">KPCluster</span><span class="o">&amp;</span> <span class="n">kp</span> <span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">printAllKPClusterInfo</span><span class="p">();</span>
+
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="n">TTree</span><span class="o">*</span> <span class="n">_output_tree</span><span class="p">;</span>
+
+  <span class="k">public</span><span class="o">:</span>
+
+    <span class="kt">void</span> <span class="n">bindKPClusterContainerToTree</span><span class="p">(</span> <span class="n">TTree</span><span class="o">*</span> <span class="n">out</span> <span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">setupOwnTree</span><span class="p">();</span>
+
+    <span class="kt">void</span> <span class="nf">writeTree</span><span class="p">()</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span> <span class="n">_output_tree</span> <span class="p">)</span> <span class="n">_output_tree</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span> <span class="p">};</span>
+
+    <span class="kt">void</span> <span class="nf">fillTree</span><span class="p">()</span> <span class="p">{</span>  <span class="k">if</span> <span class="p">(</span> <span class="n">_output_tree</span> <span class="p">)</span> <span class="n">_output_tree</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span> <span class="p">};</span>
+
+  <span class="p">};</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="cp">#endif</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

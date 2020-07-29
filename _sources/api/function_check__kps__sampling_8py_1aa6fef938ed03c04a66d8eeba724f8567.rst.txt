@@ -1,0 +1,13 @@
+.. _exhale_function_check__kps__sampling_8py_1aa6fef938ed03c04a66d8eeba724f8567:
+
+Function check_kps_sampling::load_larmatch_kps
+==============================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_check_kps_sampling.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: check_kps_sampling::load_larmatch_kps(loader, current_entry, batchsize, npairs, verbose, single_batch_mode)

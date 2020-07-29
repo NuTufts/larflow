@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1af37a0cd5747733258fc284ac482c3946:
+
+Function larflow::makeFlowHitsFromCrops
+=======================================
+
+- Defined in :ref:`file_larflow_FlowContourMatch_tmp_makeflowhits.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::makeFlowHitsFromCrops(const std::vector<larcv::Image2D>&, const std::vector<larcv::Image2D>&, const std::vector<larcv::SparseImage>&, const std::vector<larcv::SparseImage>&, const configMakeFlowHitsFromCrops&)

@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__trackbuilder_8py_1a503563a72e4054ef093b50acbc0d4cf3:
+
+Variable vis_trackbuilder::color_by_options
+===========================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trackbuilder.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_trackbuilder::color_by_options

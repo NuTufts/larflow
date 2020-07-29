@@ -1,0 +1,13 @@
+.. _exhale_function_bvhnode__t_8cxx_1aba3bad4344a64c8c7de63ecfde1611a2:
+
+Function larflow::keypoints::recurse_findleaf
+=============================================
+
+- Defined in :ref:`file_larflow_KeyPoints_arxiv_bvhnode_t.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::keypoints::recurse_findleaf(const std::vector<float>&, const bvhnode_t *)

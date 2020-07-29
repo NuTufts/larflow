@@ -1,0 +1,562 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class PrepKeypointData &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class LArFlowConstants" href="classlarflow_1_1LArFlowConstants.html" />
+    <link rel="prev" title="Class PrepAffinityField" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class PrepKeypointData</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1keypoints_1_1PrepKeypointData.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-prepkeypointdata">
+<span id="exhale-class-classlarflow-1-1keypoints-1-1prepkeypointdata"></span><h1>Class PrepKeypointData<a class="headerlink" href="#class-prepkeypointdata" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_KeyPoints_PrepKeypointData.h.html#file-larflow-keypoints-prepkeypointdata-h"><span class="std std-ref">File PrepKeypointData.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointDataE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointDataE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointDataE"></span><span id="larflow::keypoints::PrepKeypointData"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData"></span><em class="property">class </em><code class="descname">PrepKeypointData</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointDataE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Make the training data for the key-point+larmatch task. </p>
+<p>The job is to provide labels for the proposed matches for the network. It can either remake proposals or it can make labels for old proposals.</p>
+<p>The cases we are trying to label: <ul class="simple">
+<li>cosmic muon start and stop, primary ancestor only.</li>
+<li>cosmic proton start and stop, primary ancestor only.</li>
+<li>neutrino primary track start and stop</li>
+<li>neutrino primary shower start and stop</li>
+<li>cosmic shower start, primary ancestor only (hard)</li>
+</ul>
+</p>
+<p>maybe, depending on quality of truth data neutrino secondaries  scattering secondaries.</p>
+<p>The outputs we are trying to get the network to make are: <ol class="arabic simple">
+<li>for each space point (i.e. triplet) proposed, scores (one for each keypoint type)
+which come from a gaussian between the 3D position of the space point
+and the closest true keypoint of that class.</li>
+<li>If the closest true keypoint is greater than some distance, the score is set to 0.0</li>
+<li>The classes are { neutrino vertex, shower start, track ends }</li>
+</ol>
+ </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData16PrepKeypointDataEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData16PrepKeypointDataEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData16PrepKeypointDataEv"></span><span id="larflow::keypoints::PrepKeypointData::PrepKeypointData"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a3e9a0f5c46bc85a35a53e44f17f0590b"></span><code class="descname">PrepKeypointData</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData16PrepKeypointDataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>constructor </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointDataD0Ev">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointDataD0Ev"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointDataD0Ev"></span><span id="larflow::keypoints::PrepKeypointData::~PrepKeypointData"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1af2562d9913d2e99a8996cfaee0c37c45"></span><code class="descname">~PrepKeypointData</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointDataD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>deconstructor </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData7processERN5larcv9IOManagerERN7larlite15storage_managerE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="larflow::keypoints::PrepKeypointData::process__larcv::IOManagerR.larlite::storage_managerR"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1aadc020476fa4e2e6adc6014a2da9e202"></span>void <code class="descname">process</code><span class="sig-paren">(</span>larcv::IOManager &amp;<em>iolcv</em>, larlite::storage_manager &amp;<em>ioll</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData7processERN5larcv9IOManagerERN7larlite15storage_managerE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>process one event, given io managers</p>
+<p>expect the following inputs within the event data containers in IOManager:<ul class="simple">
+<li>charge image with tree name _adc_image_treename, specifiable using <code class="docutils literal notranslate"><span class="pre">setADCimageTreeName</span></code></li>
+<li>”segment” images indicating particle type at a given pixel</li>
+<li>”instance” images indicating MC ID of particle making charge at pixel</li>
+<li>”ancestor” images indicating ancestor track ID for particle making charge at pixel</li>
+</ul>
+</p>
+<p>in larlite:<ul class="simple">
+<li>”mcreco” MCTrack tree, holding truth info for track-like particles</li>
+<li>”mcreco” MCShower tree, holding truth info for shower-like particles</li>
+<li>”generator” MCTruth tree, holding truth about neutrino interaction in image (if exists)</li>
+</ul>
+</p>
+<p>important class data members produced by this method:<ul class="simple">
+<li>_kpd_v vector of <a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#classlarflow_1_1keypoints_1_1KPdata"><span class="std std-ref">KPdata</span></a> class which holds info on ground truth keypoints</li>
+<li>_match_proposal_labels_v[3] For each keypoint type (total 3), hold a vector of floats for every 3D spacepoint proposal There will be a vector&lt;float&gt; for each triplet in PrepMatchTriplet::_triplet_v</li>
+<li>_kppos_v[3] For each keypoint type (total 3), store 3D position for each ground truth keypoint identified</li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">iolcv</span></code>: LArCV IOManager containing event data </li>
+<li><code class="docutils literal notranslate"><span class="pre">ioll</span></code>: LArLite storage_manager containing event data </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData7processERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKN7larlite13event_mctruthE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData7processERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKN7larlite13event_mctruthE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData7processERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKN7larlite13event_mctruthE"></span><span id="larflow::keypoints::PrepKeypointData::process__std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.std::vector:larcv::Image2D:CR.larlite::event_mctrackCR.larlite::event_mcshowerCR.larlite::event_mctruthCR"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1ac44487d88d4eed06d68eb646816a7ef5"></span>void <code class="descname">process</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>adc_v</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>badch_v</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>segment_v</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>instance_v</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>ancestor_v</em>, <em class="property">const</em> larlite::event_mctrack &amp;<em>mctrack_v</em>, <em class="property">const</em> larlite::event_mcshower &amp;<em>mcshower_v</em>, <em class="property">const</em> larlite::event_mctruth &amp;<em>mctruth_v</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData7processERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackERKN7larlite14event_mcshowerERKN7larlite13event_mctruthE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>process one event, directly given input containers </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData20make_proposal_labelsERKN7larflow4prep17PrepMatchTripletsE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData20make_proposal_labelsERKN7larflow4prep17PrepMatchTripletsE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData20make_proposal_labelsERKN7larflow4prep17PrepMatchTripletsE"></span><span id="larflow::keypoints::PrepKeypointData::make_proposal_labels__larflow::prep::PrepMatchTripletsCR"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a3329f2fbc2ebf1e8248255165e02be19"></span>void <code class="descname">make_proposal_labels</code><span class="sig-paren">(</span><em class="property">const</em> larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> &amp;<em>match_proposals</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData20make_proposal_labelsERKN7larflow4prep17PrepMatchTripletsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>given a set of space point (i.e. triplet match) proposals, we define a vector&lt;float&gt; which we use to we make ground truth information</p>
+<p>vector elements: [0]: 1.0 if has true end-point with 0.3*50 cm, 0.0 if not. [1-3]: shift in 3D points from point to closest end-point [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData19setADCimageTreeNameENSt6stringE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData19setADCimageTreeNameENSt6stringE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData19setADCimageTreeNameENSt6stringE"></span><span id="larflow::keypoints::PrepKeypointData::setADCimageTreeName__ss"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a00794917efb9954e7cfb62ce73aa2f10"></span>void <code class="descname">setADCimageTreeName</code><span class="sig-paren">(</span>std::string <em>treename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData19setADCimageTreeNameENSt6stringE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>set the tree name used to get wire plane images </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">treename</span></code>: Name of tree in ROOT file following <code class="docutils literal notranslate"><span class="pre">image2d_[treename]_tree</span></code> </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9keypoints16PrepKeypointData9getKPdataEv">
+<span id="_CPPv3NK7larflow9keypoints16PrepKeypointData9getKPdataEv"></span><span id="_CPPv2NK7larflow9keypoints16PrepKeypointData9getKPdataEv"></span><span id="larflow::keypoints::PrepKeypointData::getKPdataC"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a4be73c56968e1b3fa16937a9c2dc6909"></span><em class="property">const</em> std::vector&lt;<a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#_CPPv4N7larflow9keypoints6KPdataE" title="larflow::keypoints::KPdata">KPdata</a>&gt; &amp;<code class="descname">getKPdata</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9keypoints16PrepKeypointData9getKPdataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the vector of true keypoints labeled in the image </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>vector of keypoints represented by <a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#classlarflow_1_1keypoints_1_1KPdata"><span class="std std-ref">KPdata</span></a> class </dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9keypoints16PrepKeypointData14printKeypointsEv">
+<span id="_CPPv3NK7larflow9keypoints16PrepKeypointData14printKeypointsEv"></span><span id="_CPPv2NK7larflow9keypoints16PrepKeypointData14printKeypointsEv"></span><span id="larflow::keypoints::PrepKeypointData::printKeypointsC"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a02bd019a30f92d4e2cdc10604059207d"></span>void <code class="descname">printKeypoints</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9keypoints16PrepKeypointData14printKeypointsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>dump keypoint locations to standard out </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9keypoints16PrepKeypointData18get_keypoint_arrayEi">
+<span id="_CPPv3NK7larflow9keypoints16PrepKeypointData18get_keypoint_arrayEi"></span><span id="_CPPv2NK7larflow9keypoints16PrepKeypointData18get_keypoint_arrayEi"></span><span id="larflow::keypoints::PrepKeypointData::get_keypoint_array__iC"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a27a89a701e1f2296e413668d6ee4b067"></span>PyObject *<code class="descname">get_keypoint_array</code><span class="sig-paren">(</span>int <em>ikpclass</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9keypoints16PrepKeypointData18get_keypoint_arrayEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>return a numpy array with keypoints for a given class</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Numpy array with columns [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid] </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">iclass</span></code>: <a class="reference internal" href="enum_namespacelarflow_1a5040311114b69686ad88fc8b58109c89.html#namespacelarflow_1a5040311114b69686ad88fc8b58109c89"><span class="std std-ref">larflow::KeyPoint_t</span></a> value, indicating keypoint type </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9keypoints16PrepKeypointData23get_triplet_score_arrayEf">
+<span id="_CPPv3NK7larflow9keypoints16PrepKeypointData23get_triplet_score_arrayEf"></span><span id="_CPPv2NK7larflow9keypoints16PrepKeypointData23get_triplet_score_arrayEf"></span><span id="larflow::keypoints::PrepKeypointData::get_triplet_score_array__floatC"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a6a1708b38150e21316bc33a2dc8b4ef2"></span>PyObject *<code class="descname">get_triplet_score_array</code><span class="sig-paren">(</span>float <em>sig</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9keypoints16PrepKeypointData23get_triplet_score_arrayEf" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>return a numpy array with keypoint class scores</p>
+<p>The score is calculated for each proposed spacepoint using a gaussian where the mean is the 3d position of the closest ground truth keypoint for the given class. For any point 50*0.3 cm away from a ground truth keypoint, the score is set to zero.</p>
+<p>Assumes that <code class="docutils literal notranslate"><span class="pre">process</span></code> has already been run.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Numpy array with shape [num space points, larflow::kNumKeyPoints classes ] </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">sig</span></code>: The sigma used in Gaussian to calculate keypoint class score </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData13defineAnaTreeEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData13defineAnaTreeEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData13defineAnaTreeEv"></span><span id="larflow::keypoints::PrepKeypointData::defineAnaTree"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a4669e60e167407c19c0128a41f7c5cf6"></span>void <code class="descname">defineAnaTree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData13defineAnaTreeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>define ROOT tree where we save the labels</p>
+<p>this TTree is intended to be used to save ground truth information we can load during training </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData12writeAnaTreeEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData12writeAnaTreeEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData12writeAnaTreeEv"></span><span id="larflow::keypoints::PrepKeypointData::writeAnaTree"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1aba7046c8196c3ea757095e4983dafd4a"></span>void <code class="descname">writeAnaTree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData12writeAnaTreeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>call the ana tree’s Write method </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData11fillAnaTreeEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData11fillAnaTreeEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData11fillAnaTreeEv"></span><span id="larflow::keypoints::PrepKeypointData::fillAnaTree"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a27d2854e2c2f65dc477ca567e6390a5c"></span>void <code class="descname">fillAnaTree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData11fillAnaTreeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>if analysis tree has been created, fill data to tree for current event </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData10writeHistsEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData10writeHistsEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData10writeHistsEv"></span><span id="larflow::keypoints::PrepKeypointData::writeHists"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1ab670dbd9de632c8ab4acca60c891c27d"></span>void <code class="descname">writeHists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData10writeHistsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>write tracking histograms </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9keypoints16PrepKeypointData14makeScoreImageEKiKfKNSt6stringERKN7larflow4prep17PrepMatchTripletsERKNSt6vectorIN5larcv7Image2DEEE">
+<span id="_CPPv3NK7larflow9keypoints16PrepKeypointData14makeScoreImageEKiKfKNSt6stringERKN7larflow4prep17PrepMatchTripletsERKNSt6vectorIN5larcv7Image2DEEE"></span><span id="_CPPv2NK7larflow9keypoints16PrepKeypointData14makeScoreImageEKiKfKNSt6stringERKN7larflow4prep17PrepMatchTripletsERKNSt6vectorIN5larcv7Image2DEEE"></span><span id="larflow::keypoints::PrepKeypointData::makeScoreImage__iC.floatC.ssC.larflow::prep::PrepMatchTripletsCR.std::vector:larcv::Image2D:CRC"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a137b93373d98601c10077a3a140c180b"></span>std::vector&lt;TH2D&gt; <code class="descname">makeScoreImage</code><span class="sig-paren">(</span><em class="property">const</em> int <em>ikpclass</em>, <em class="property">const</em> float <em>sigma</em>, <em class="property">const</em> std::string <em>histname</em>, <em class="property">const</em> larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> &amp;<em>tripmaker</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>adc_v</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9keypoints16PrepKeypointData14makeScoreImageEKiKfKNSt6stringERKN7larflow4prep17PrepMatchTripletsERKNSt6vectorIN5larcv7Image2DEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>dump out th2d of scores, for visualization and debugging</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>vector of TH2D, one for each </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">ikpclass</span></code>: KeyPoint_t type </li>
+<li><code class="docutils literal notranslate"><span class="pre">sigma</span></code>: Width of score Gaussian in cm </li>
+<li><code class="docutils literal notranslate"><span class="pre">histname</span></code>: Stem of name to use for TH2D </li>
+<li><code class="docutils literal notranslate"><span class="pre">tripmaker</span></code>: Instance of PrepMatchTriplet with prepared triplets </li>
+<li><code class="docutils literal notranslate"><span class="pre">adc_v</span></code>: vector of Image2D images, for meta </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Members</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData5hdistE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData5hdistE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData5hdistE"></span><span id="larflow::keypoints::PrepKeypointData::hdist__TH1FPA"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1ace5ce0900bb5109ada90fb92e88f0807"></span>TH1F *<code class="descname">hdist</code>[3]<a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData5hdistE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>histograms contaning distance to true keypoint for the spacepoints </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData5hdpixE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData5hdpixE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData5hdpixE"></span><span id="larflow::keypoints::PrepKeypointData::hdpix__TH1FPA"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a65a3176cf7635a507729a79a6dd90cd1"></span>TH1F *<code class="descname">hdpix</code>[4]<a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData5hdpixE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Don’t remember. </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData7_ncloseE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData7_ncloseE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData7_ncloseE"></span><span id="larflow::keypoints::PrepKeypointData::_nclose__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a49321d5a2cdf8d0b37ae50dec42610c9"></span>int <code class="descname">_nclose</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData7_ncloseE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>number of space point proposals within some radius of a true keypoint </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData5_nfarE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData5_nfarE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData5_nfarE"></span><span id="larflow::keypoints::PrepKeypointData::_nfar__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1aa870a1443196b685de01703118de29cd"></span>int <code class="descname">_nfar</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData5_nfarE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>number of space point proposals further than some radius of a true keypoint </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData16getMuonEndpointsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackEPN7larutil21SpaceChargeMicroBooNEE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData16getMuonEndpointsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackEPN7larutil21SpaceChargeMicroBooNEE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData16getMuonEndpointsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackEPN7larutil21SpaceChargeMicroBooNEE"></span><span id="larflow::keypoints::PrepKeypointData::getMuonEndpoints__ublarcvapp::mctools::MCPixelPGraphR.std::vector:larcv::Image2D:CR.larlite::event_mctrackCR.larutil::SpaceChargeMicroBooNEP"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a0db653dc937fc70fd4fc0a1812ddff69"></span>std::vector&lt;<a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#_CPPv4N7larflow9keypoints6KPdataE" title="larflow::keypoints::KPdata">KPdata</a>&gt; <code class="descname">getMuonEndpoints</code><span class="sig-paren">(</span>ublarcvapp::mctools::MCPixelPGraph &amp;<em>mcpg</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>adc_v</em>, <em class="property">const</em> larlite::event_mctrack &amp;<em>mctrack_v</em>, larutil::SpaceChargeMicroBooNE *<em>psce</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData16getMuonEndpointsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite13event_mctrackEPN7larutil21SpaceChargeMicroBooNEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>make list of end-points for track-like particles</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Vector of <a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#classlarflow_1_1keypoints_1_1KPdata"><span class="std std-ref">KPdata</span></a> instances, one for each ground truth track end </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">mcpg</span></code>: Instance of MCPixelPGraph, which organizes information true particle information into graph, while also associating to each truth particle, the pixels in the image (if any) </li>
+<li><code class="docutils literal notranslate"><span class="pre">adc_v</span></code>: Vector of wire charge image, one for each plane </li>
+<li><code class="docutils literal notranslate"><span class="pre">mctrack_v</span></code>: Event container (vector) of mctrack objects, containing truth information of track-like particles in the event </li>
+<li><code class="docutils literal notranslate"><span class="pre">psce</span></code>: Pointer to SpaceChargeMicroBooNE class. For converting true 3D trajectory information into the observed trajectory due to space charge effects </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData15getShowerStartsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite14event_mcshowerEPN7larutil21SpaceChargeMicroBooNEE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData15getShowerStartsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite14event_mcshowerEPN7larutil21SpaceChargeMicroBooNEE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData15getShowerStartsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite14event_mcshowerEPN7larutil21SpaceChargeMicroBooNEE"></span><span id="larflow::keypoints::PrepKeypointData::getShowerStarts__ublarcvapp::mctools::MCPixelPGraphR.std::vector:larcv::Image2D:CR.larlite::event_mcshowerCR.larutil::SpaceChargeMicroBooNEP"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1ab772025452128c64c4eabfc083f6c3d2"></span>std::vector&lt;<a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#_CPPv4N7larflow9keypoints6KPdataE" title="larflow::keypoints::KPdata">KPdata</a>&gt; <code class="descname">getShowerStarts</code><span class="sig-paren">(</span>ublarcvapp::mctools::MCPixelPGraph &amp;<em>mcpg</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>adc_v</em>, <em class="property">const</em> larlite::event_mcshower &amp;<em>mcshower_v</em>, larutil::SpaceChargeMicroBooNE *<em>psce</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData15getShowerStartsERN10ublarcvapp7mctools13MCPixelPGraphERKNSt6vectorIN5larcv7Image2DEEERKN7larlite14event_mcshowerEPN7larutil21SpaceChargeMicroBooNEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>make list of end-points for shower-like particles</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Vector of <a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#classlarflow_1_1keypoints_1_1KPdata"><span class="std std-ref">KPdata</span></a> instances, one for each ground truth shower start </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">mcpg</span></code>: Instance of MCPixelPGraph, which organizes information true particle information into graph, while also associating to each truth particle, the pixels in the image (if any). We get a list of showers using this graph, and only consider those who have at least 10 visible pixels in one of the planes. </li>
+<li><code class="docutils literal notranslate"><span class="pre">adc_v</span></code>: Vector of wire charge image, one for each plane </li>
+<li><code class="docutils literal notranslate"><span class="pre">mcshower_v</span></code>: Event container (vector) of mcshower objects, containing truth information of shower-like particles in the event </li>
+<li><code class="docutils literal notranslate"><span class="pre">psce</span></code>: Pointer to SpaceChargeMicroBooNE class. For converting true 3D trajectory information into the observed trajectory due to space charge effects </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData19_label_nu_keypointsERKN7larlite13event_mctruthERKNSt6vectorIN5larcv7Image2DEEEPN7larutil21SpaceChargeMicroBooNEERNSt6vectorI6KPdataEE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData19_label_nu_keypointsERKN7larlite13event_mctruthERKNSt6vectorIN5larcv7Image2DEEEPN7larutil21SpaceChargeMicroBooNEERNSt6vectorI6KPdataEE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData19_label_nu_keypointsERKN7larlite13event_mctruthERKNSt6vectorIN5larcv7Image2DEEEPN7larutil21SpaceChargeMicroBooNEERNSt6vectorI6KPdataEE"></span><span id="larflow::keypoints::PrepKeypointData::_label_nu_keypoints__larlite::event_mctruthCR.std::vector:larcv::Image2D:CR.larutil::SpaceChargeMicroBooNEP.std::vector:KPdata:R"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1af3de30ff850d37f36b00796b96212d31"></span>void <code class="descname">_label_nu_keypoints</code><span class="sig-paren">(</span><em class="property">const</em> larlite::event_mctruth &amp;<em>mctruth_v</em>, <em class="property">const</em> std::vector&lt;larcv::Image2D&gt; &amp;<em>adc_v</em>, larutil::SpaceChargeMicroBooNE *<em>psce</em>, std::vector&lt;<a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#_CPPv4N7larflow9keypoints6KPdataE" title="larflow::keypoints::KPdata">KPdata</a>&gt; &amp;<em>kpdata_v</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData19_label_nu_keypointsERKN7larlite13event_mctruthERKNSt6vectorIN5larcv7Image2DEEEPN7larutil21SpaceChargeMicroBooNEERNSt6vectorI6KPdataEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>loop through existing keypoints and change type to neutrino if close to neutrino vertex.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">mctruth_v</span></code>: Truth information about the neutrino interaction. </li>
+<li><code class="docutils literal notranslate"><span class="pre">img_v</span></code>: Wire Images, just for the meta </li>
+<li><code class="docutils literal notranslate"><span class="pre">psce</span></code>: Pointer to space-charge microboone instance </li>
+<li><code class="docutils literal notranslate"><span class="pre">kpdata_v</span></code>: Keypoint elements to potentially change </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData17filter_duplicatesEv">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData17filter_duplicatesEv"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData17filter_duplicatesEv"></span><span id="larflow::keypoints::PrepKeypointData::filter_duplicates"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a0f84f30cdb3a222bdebcf07b3efecbd4"></span>void <code class="descname">filter_duplicates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData17filter_duplicatesEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>filter out duplicates </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Attributes</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData19_adc_image_treenameE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData19_adc_image_treenameE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData19_adc_image_treenameE"></span><span id="larflow::keypoints::PrepKeypointData::_adc_image_treename__ss"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a72927b1c5b0be565f33954b6649e48d4"></span>std::string <code class="descname">_adc_image_treename</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData19_adc_image_treenameE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>name of tree storing charge image2d </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData6_kpd_vE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData6_kpd_vE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData6_kpd_vE"></span><span id="larflow::keypoints::PrepKeypointData::_kpd_v__std::vector:KPdata:"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1af026058e95d5a4e1564915a4ed0d017f"></span>std::vector&lt;<a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#_CPPv4N7larflow9keypoints6KPdataE" title="larflow::keypoints::KPdata">KPdata</a>&gt; <code class="descname">_kpd_v</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData6_kpd_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>info on true keypoints found using MC truth </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData24_match_proposal_labels_vE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData24_match_proposal_labels_vE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData24_match_proposal_labels_vE"></span><span id="larflow::keypoints::PrepKeypointData::_match_proposal_labels_v__std::vector:std::vector:float::A"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a743b99690caefde032a85cba94ee1219"></span>std::vector&lt;std::vector&lt;float&gt;&gt; <code class="descname">_match_proposal_labels_v</code>[3]<a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData24_match_proposal_labels_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>provides the labels for triplet proposals made by <a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#classlarflow_1_1prep_1_1PrepMatchTriplets"><span class="std std-ref">larflow::prep::PrepMatchTriplets</span></a> </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData4_runE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData4_runE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData4_runE"></span><span id="larflow::keypoints::PrepKeypointData::_run__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1aaf3a446e5d48709b612684fe3f162ea9"></span>int <code class="descname">_run</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData4_runE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>run ID number of event </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData7_subrunE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData7_subrunE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData7_subrunE"></span><span id="larflow::keypoints::PrepKeypointData::_subrun__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a8b8ed82ef7db1a6a6ffebf9319f77d87"></span>int <code class="descname">_subrun</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData7_subrunE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>subrun ID number of event </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData6_eventE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData6_eventE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData6_eventE"></span><span id="larflow::keypoints::PrepKeypointData::_event__i"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a9c2173f3fc605ec6b59060e6725a6afe"></span>int <code class="descname">_event</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData6_eventE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>event ID number </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData11_label_treeE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData11_label_treeE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData11_label_treeE"></span><span id="larflow::keypoints::PrepKeypointData::_label_tree__TTreeP"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a0b44cb810b8795c48ecf8884df3ba697"></span>TTree *<code class="descname">_label_tree</code><a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData11_label_treeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>ROOT TTree for storing labels. </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9keypoints16PrepKeypointData8_kppos_vE">
+<span id="_CPPv3N7larflow9keypoints16PrepKeypointData8_kppos_vE"></span><span id="_CPPv2N7larflow9keypoints16PrepKeypointData8_kppos_vE"></span><span id="larflow::keypoints::PrepKeypointData::_kppos_v__std::vector:std::vector:float::A"></span><span class="target" id="classlarflow_1_1keypoints_1_1PrepKeypointData_1a5c41bf2875da23f66712192c5975578d"></span>std::vector&lt;std::vector&lt;float&gt;&gt; <code class="descname">_kppos_v</code>[3]<a class="headerlink" href="#_CPPv4N7larflow9keypoints16PrepKeypointData8_kppos_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>container of true keypoint 3D positions in cm, for each of the 3 classes </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1LArFlowConstants.html" class="btn btn-neutral float-right" title="Class LArFlowConstants" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1keypoints_1_1PrepAffinityField.html" class="btn btn-neutral float-left" title="Class PrepAffinityField" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

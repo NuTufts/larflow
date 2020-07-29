@@ -1,0 +1,39 @@
+
+.. _program_listing_file_larflow_Reco_MCRecoTruthMatch.h:
+
+Program Listing for File MCRecoTruthMatch.h
+===========================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_Reco_MCRecoTruthMatch.h>` (``larflow/Reco/MCRecoTruthMatch.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __LARFLOW_MC_RECO_TRUTH_MATCH_H__
+   #define __LARFLOW_MC_RECO_TRUTH_MATCH_H__
+   
+   namespace larflow {
+   namespace reco {
+   
+     class MCRecoTruthMatch {
+     public:
+   
+       MCRecoTruthMatch( const MCPixelPGraph& mcpg )
+         : mcpgraph(mcpg)
+         MCPix{};
+       virtual ~MCRecoTruthMatch() {};
+   
+       const MCPixelPGraph& mcpgraph;
+   
+       void 
+   
+     };
+     
+   
+   }
+   }
+   
+   
+   
+   #endif

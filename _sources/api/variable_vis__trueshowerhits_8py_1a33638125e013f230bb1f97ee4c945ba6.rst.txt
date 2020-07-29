@@ -1,0 +1,13 @@
+.. _exhale_variable_vis__trueshowerhits_8py_1a33638125e013f230bb1f97ee4c945ba6:
+
+Variable vis_trueshowerhits::color_by_options
+=============================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trueshowerhits.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: vis_trueshowerhits::color_by_options

@@ -1,0 +1,19 @@
+
+.. _program_listing_file__home_twongjirad_working_larbys_ubdl_testdata_test.py:
+
+Program Listing for File test.py
+================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file__home_twongjirad_working_larbys_ubdl_testdata_test.py>` (``/home/twongjirad/working/larbys/ubdl/testdata/test.py``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: py
+
+   import os,sqlite3
+   
+   con=sqlite3.connect("run.db")
+   con.row_factory=sqlite3.Row
+   cur=con.cursor()
+   cur.execute("ATTACH DATABASE 'bnb_v2.db' AS bnb")
+   

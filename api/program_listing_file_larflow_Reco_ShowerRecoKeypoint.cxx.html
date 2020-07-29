@@ -1,0 +1,1021 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File ShowerRecoKeypoint.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File ShowerRecoKeypoint.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_ShowerRecoKeypoint.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-showerrecokeypoint-cxx">
+<span id="program-listing-file-larflow-reco-showerrecokeypoint-cxx"></span><h1>Program Listing for File ShowerRecoKeypoint.cxx<a class="headerlink" href="#program-listing-for-file-showerrecokeypoint-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_ShowerRecoKeypoint.cxx.html#file-larflow-reco-showerrecokeypoint-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/ShowerRecoKeypoint.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;ShowerRecoKeypoint.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;nlohmann/json.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;cilantro/principal_component_analysis.hpp&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflowcluster.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/pcaxis.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/LArFlowConstants/LArFlowConstants.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;geofuncs.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="kt">void</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span> <span class="p">{</span>
+
+
+    <span class="c1">// clear member containers</span>
+    <span class="n">_shower_cand_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// get shower larflow hits (use SplitHitsBySSNet)</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">shower_lfhit_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">_ssnet_lfhit_tree_name</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">begin_process</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;start&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num larflow hits from [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_ssnet_lfhit_tree_name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_lfhit_v</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// filter out shower pixels by larmatch score</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span> <span class="n">shower_goodhit_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="o">*</span><span class="n">shower_lfhit_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">track_score</span><span class="o">&gt;</span><span class="n">_larmatch_score_threshold</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">hit</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of above-threshold hits: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_lfhit_v</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// make shower clusters</span>
+    <span class="kt">float</span> <span class="n">maxdist</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">minsize</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">maxkd</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;</span> <span class="n">cluster_v</span><span class="p">;</span>
+    <span class="n">cluster_larflow3dhits</span><span class="p">(</span> <span class="n">shower_goodhit_v</span><span class="p">,</span> <span class="n">cluster_v</span><span class="p">,</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">minsize</span><span class="p">,</span> <span class="n">maxkd</span> <span class="p">);</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num shower clusters:  &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+
+    <span class="c1">// now for each shower cluster, we find some trunk candidates.</span>
+    <span class="c1">// can have any number of such candidates per shower cluster</span>
+    <span class="c1">// we only analyze clusters with a first pc-axis length &gt; 1.0 cm</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">showerhit_cluster_v</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>                <span class="n">cluster_used_v</span><span class="p">(</span> <span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">showercluster</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">idx</span><span class="o">++</span><span class="p">;</span>
+
+      <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">showercluster</span> <span class="p">);</span>
+
+      <span class="c1">// metrics to choose shower trunk candidates</span>
+      <span class="c1">// length</span>
+      <span class="kt">float</span> <span class="n">len</span> <span class="o">=</span>  <span class="n">showercluster</span><span class="p">.</span><span class="n">pca_len</span><span class="p">;</span>
+
+      <span class="c1">// pca eigenvalue [1]/[0] ratio -- to ensure straightness</span>
+      <span class="kt">float</span> <span class="n">eigenval_ratio</span> <span class="o">=</span> <span class="n">showercluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">showercluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;shower cluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; pca-len=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">len</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm,&quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; pca-eigenval-ratio=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">eigenval_ratio</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">len</span><span class="o">&lt;</span><span class="mf">1.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="c1">//if ( eigenval_ratio&lt;0.1 ) continue;</span>
+
+      <span class="n">cluster_used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="n">showerhit_cluster_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">showercluster</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// save shower cluster pca&#39;s</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">evout_goodhit_cluster_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;showergoodhit&quot;</span> <span class="p">);</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">evout_goodhit_pca_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="s">&quot;showergoodhit&quot;</span> <span class="p">);</span>
+    <span class="kt">int</span> <span class="n">pcidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfc</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">cluster</span><span class="p">.</span><span class="n">hitidx_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lfc</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower_goodhit_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">pca</span> <span class="o">=</span> <span class="n">cluster_make_pcaxis</span><span class="p">(</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">pcidx</span> <span class="p">);</span>
+      <span class="n">pcidx</span><span class="o">++</span><span class="p">;</span>
+      <span class="n">evout_goodhit_cluster_v</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfc</span><span class="p">)</span> <span class="p">);</span>
+      <span class="n">evout_goodhit_pca_v</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pca</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;num of trunk candidates: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">showerhit_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// GET KEYPOINT DATA</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">keypoint_v</span><span class="p">;</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_keypoint</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span><span class="s">&quot;keypoint&quot;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kp</span> <span class="p">:</span> <span class="o">*</span><span class="n">evout_keypoint</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">kp</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">==</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kShowerStart</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">keypoint_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">kp</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;number of shower keypoints: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">keypoint_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">evout_keypoint</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// MAKE TRUNK CANDIDATES FOR EACH SHOWER</span>
+    <span class="n">_reconstructClusterTrunks</span><span class="p">(</span> <span class="n">showerhit_cluster_v</span><span class="p">,</span> <span class="n">keypoint_v</span> <span class="p">);</span>
+
+    <span class="c1">// BUILD SHOWERS FROM CLUSTERS + TRUNK CANDIDATES</span>
+    <span class="n">_buildShowers</span><span class="p">(</span> <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="kt">clock_t</span> <span class="n">end_process</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">clock</span><span class="p">();</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ShowerRecoKeypoint::process] end; elapsed = &quot;</span>
+                 <span class="o">&lt;&lt;</span> <span class="kt">float</span><span class="p">(</span><span class="n">end_process</span><span class="o">-</span><span class="n">begin_process</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span>
+                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span> <span class="n">evout_shower_cluster_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="s">&quot;showerkp&quot;</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span> <span class="n">evout_shower_pca_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="s">&quot;showerkp&quot;</span> <span class="p">);</span>
+
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_shower_keypoint_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="s">&quot;showerkp&quot;</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_v</span><span class="p">(</span> <span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ireco</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ireco</span><span class="o">&lt;</span><span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ireco</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">recoshower</span> <span class="o">=</span> <span class="n">_recod_shower_v</span><span class="p">[</span><span class="n">ireco</span><span class="p">];</span>
+
+      <span class="c1">// make larflow3dhit cluster</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span> <span class="n">lfcluster</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">recoshower</span><span class="p">.</span><span class="n">hitidx_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lfcluster</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">evout_shower_cluster_v</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">lfcluster</span><span class="p">)</span> <span class="p">);</span>
+
+      <span class="c1">// we store the cluster&#39;s pca if we do not have trunk candidates, otherwise</span>
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">::</span><span class="n">EigenVectors</span> <span class="n">e_v</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">axis_v</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="n">axis_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">axis_v</span> <span class="p">);</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">axis_v</span> <span class="p">);</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">axis_v</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">startpt</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">endpt</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">startpt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">start_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">endpt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">startpt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="mf">50.0</span><span class="o">*</span><span class="n">axis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">startpt</span> <span class="p">);</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">endpt</span> <span class="p">);</span>
+
+      <span class="kt">double</span> <span class="n">eigenval</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+      <span class="kt">double</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">pca</span><span class="p">(</span> <span class="nb">true</span><span class="p">,</span>
+                           <span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">npts</span><span class="p">,</span>
+                           <span class="n">eigenval</span><span class="p">,</span>
+                           <span class="n">e_v</span><span class="p">,</span>
+                           <span class="n">centroid</span><span class="p">,</span>
+                           <span class="mi">0</span><span class="p">,</span>
+                           <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ireco</span> <span class="p">);</span>
+      <span class="n">evout_shower_pca_v</span><span class="o">-&gt;</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pca</span><span class="p">)</span> <span class="p">);</span>
+
+      <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span> <span class="n">shower_keypoint</span><span class="p">;</span>
+      <span class="n">shower_keypoint</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">shower_keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">evout_shower_keypoint_v</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower_keypoint</span> <span class="p">);</span>
+
+    <span class="p">}</span><span class="c1">//end of reco&#39;d shower loop</span>
+
+    <span class="c1">// save unused shower points</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span> <span class="n">evout_unused_hit_v</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="s">&quot;showerkpunused&quot;</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">used_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">evout_unused_hit_v</span><span class="o">-&gt;</span><span class="n">push_back</span><span class="p">(</span> <span class="n">shower_goodhit_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Unused hits: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">evout_unused_hit_v</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_reconstructClusterTrunks</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">cluster_t</span><span class="o">*&gt;&amp;</span> <span class="n">showercluster_v</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">*&gt;&amp;</span> <span class="n">keypoint_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">radii</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span> <span class="p">};</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ishower</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ishower</span><span class="o">&lt;</span><span class="n">showercluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ishower</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// get shower</span>
+      <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="n">pshower</span> <span class="o">=</span> <span class="n">showercluster_v</span><span class="p">[</span><span class="n">ishower</span><span class="p">];</span>
+
+      <span class="n">ShowerCandidate_t</span> <span class="n">shower_cand</span><span class="p">;</span>
+      <span class="n">shower_cand</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="o">=</span> <span class="n">ishower</span><span class="p">;</span>
+      <span class="n">shower_cand</span><span class="p">.</span><span class="n">cluster</span>     <span class="o">=</span> <span class="n">pshower</span><span class="p">;</span>
+
+      <span class="c1">// loop over keypoints, finding shower pixels within 5,3,1</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ikeypoint</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikeypoint</span><span class="o">&lt;</span><span class="n">keypoint_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ikeypoint</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&amp;</span> <span class="n">keypoint</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">keypoint_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">ikeypoint</span><span class="p">));</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">pcaxis_v</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">pca_center_v</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">pca_eigenval_ratio</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="kt">float</span> <span class="o">&gt;</span> <span class="n">impact_par_v</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+
+        <span class="kt">bool</span> <span class="n">inbbox</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">&lt;</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mf">10.0</span> <span class="o">||</span> <span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">&gt;</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">10.0</span> <span class="p">)</span>
+            <span class="n">inbbox</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">inbbox</span> <span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">inbbox</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;</span> <span class="n">trunk_v</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">mindist</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+
+          <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">irad</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">irad</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">irad</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="n">radii</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">pt</span> <span class="o">=</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">];</span>
+              <span class="n">trunk_v</span><span class="p">[</span><span class="n">irad</span><span class="p">].</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="p">{</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pt</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span> <span class="p">)</span> <span class="p">);</span>
+              <span class="n">trunk_v</span><span class="p">[</span><span class="n">irad</span><span class="p">].</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">ihit</span> <span class="p">);</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="n">mindist</span> <span class="p">)</span>
+            <span class="n">mindist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+
+        <span class="p">}</span><span class="c1">//end of hit loop</span>
+
+        <span class="c1">// get pca for each length, must have &gt;10 points</span>
+        <span class="c1">// we pick the best trunk by</span>
+        <span class="c1">//  (1) trunk must have pca-ratio&lt;0.15</span>
+        <span class="c1">//  (2) rank by smallest impact parameter</span>
+
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ shower cluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ishower</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] keypoint[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ikeypoint</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] ]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  keypoint pos: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  gap-dist: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">mindist</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">mindist</span><span class="o">&gt;</span><span class="mf">1.0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="kt">int</span> <span class="n">best_trunk</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">best_metric</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">best_trunk_impactpar</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">best_trunk_eratio</span>    <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trunk_best_pca_end_v</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">trunk_best_shower_end_v</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">irad</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">irad</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">irad</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">trunk_v</span><span class="p">[</span><span class="n">irad</span><span class="p">];</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+          <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">cluster</span> <span class="p">);</span>
+
+          <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot;  radius[&quot; &lt;&lt; radii[irad] &lt;&lt; &quot;] num points: &quot; &lt;&lt; trunk_v[irad].size() &lt;&lt; std::endl;</span>
+
+          <span class="kt">float</span> <span class="n">eratio</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">e_v</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">center_v</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">;</span>
+
+          <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_v</span><span class="p">;</span>
+          <span class="n">pca_center_v</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">center_v</span><span class="p">;</span>
+          <span class="n">pca_eigenval_ratio</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">eratio</span><span class="p">;</span>
+
+          <span class="c1">// find which trunk end is furthest from cluster center</span>
+          <span class="kt">float</span> <span class="n">max_end_dist</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">best_end</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iend</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iend</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">iend</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">distend</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">){</span>
+              <span class="n">distend</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_center</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span>  <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_center</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">distend</span><span class="o">&gt;</span><span class="n">max_end_dist</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">best_end</span> <span class="o">=</span> <span class="n">iend</span><span class="p">;</span>
+              <span class="n">max_end_dist</span> <span class="o">=</span> <span class="n">distend</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+          <span class="n">trunk_best_pca_end_v</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_end</span><span class="p">;</span>
+
+          <span class="c1">// we check if the trunk-pca and the cluster pca vary a lot</span>
+          <span class="c1">// we default to the shower pca if they do, treating the trunk pca as a refinement</span>
+          <span class="c1">// we find this is necessary as the KPS network&#39;s larmatch predictions are pretty noisy right now</span>
+          <span class="c1">// maybe if we get this to larmatch v1 performance (which is good), then we can go</span>
+          <span class="c1">// back to using the trunk pca.</span>
+          <span class="c1">// this is just a law of large numbers effect i think, i.e.</span>
+          <span class="c1">//  since the shower cluster is more points, there are more right 3d point predictions</span>
+          <span class="c1">//  still, shower clusters can have very weird shapes ...</span>
+          <span class="kt">float</span> <span class="n">cluster_trunk_cos</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">cluster_trunk_cos</span> <span class="o">+=</span> <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">irad</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+          <span class="p">}</span>
+          <span class="n">cluster_trunk_cos</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">cluster_trunk_cos</span><span class="p">);</span>
+
+          <span class="c1">// find closest shower cluster end</span>
+          <span class="kt">float</span> <span class="n">min_shower_end</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">best_shower_end</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iend</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iend</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">iend</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">distend</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+              <span class="n">distend</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">keypoint</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">distend</span><span class="o">&lt;</span><span class="n">min_shower_end</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">min_shower_end</span> <span class="o">=</span> <span class="n">distend</span><span class="p">;</span>
+              <span class="n">best_shower_end</span> <span class="o">=</span> <span class="n">iend</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+          <span class="n">trunk_best_shower_end_v</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_shower_end</span><span class="p">;</span>
+
+          <span class="c1">// distance from trunk axis to keypoint</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">kp</span> <span class="o">=</span> <span class="p">{</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keypoint</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pt2</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="n">pt2</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">center_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="n">e_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+          <span class="kt">float</span> <span class="n">impact</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">center_v</span><span class="p">,</span> <span class="n">e_v</span><span class="p">,</span> <span class="n">kp</span> <span class="p">);</span>
+          <span class="n">impact_par_v</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">=</span> <span class="n">impact</span><span class="p">;</span>
+
+          <span class="c1">// // closest cluster end</span>
+          <span class="c1">// int iend = 0;</span>
+          <span class="c1">// float enddist[2][3] = { 0 };</span>
+          <span class="c1">// for (int v=0; v&lt;3; v++) {</span>
+          <span class="c1">//   enddist[0][v] = ( kp[v]-</span>
+
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  radius[&quot;</span><span class="o">&lt;&lt;</span> <span class="n">radii</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm]: &quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; pca ratio=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pca_eigenval_ratio</span><span class="p">[</span><span class="n">irad</span><span class="p">]</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; pca-0=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">irad</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">irad</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">irad</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; impactpar=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">impact</span>
+                        <span class="o">&lt;&lt;</span> <span class="s">&quot; |trunk.shower|=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster_trunk_cos</span>
+                        <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+          <span class="c1">// [note] e-ratio an important parameter that needs configuration</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">eratio</span><span class="o">&lt;</span><span class="mf">0.3</span> <span class="o">&amp;&amp;</span> <span class="n">impact</span><span class="o">&lt;</span><span class="mf">5.0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span> <span class="n">cluster_trunk_cos</span><span class="o">&gt;</span><span class="n">best_metric</span> <span class="o">||</span> <span class="n">best_trunk</span><span class="o">==-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">best_trunk</span> <span class="o">=</span> <span class="n">irad</span><span class="p">;</span>
+            <span class="n">best_trunk_impactpar</span> <span class="o">=</span> <span class="n">impact</span><span class="p">;</span>
+            <span class="n">best_trunk_eratio</span> <span class="o">=</span> <span class="n">eratio</span><span class="p">;</span>
+            <span class="n">best_metric</span> <span class="o">=</span> <span class="n">cluster_trunk_cos</span><span class="p">;</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span><span class="c1">// loop over radius size, calculating radius</span>
+
+        <span class="c1">// define the best trunk candidate</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">best_trunk</span><span class="o">!=-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">ShowerTrunk_t</span> <span class="n">trunk</span><span class="p">;</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">idx_keypoint</span> <span class="o">=</span> <span class="n">ikeypoint</span><span class="p">;</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">keypoint</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">keypoint</span><span class="p">;</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">pcaxis_v</span> <span class="o">=</span> <span class="n">pcaxis_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">];</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span> <span class="o">=</span> <span class="n">pca_center_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">];</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">start_v</span>  <span class="o">=</span> <span class="n">trunk_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">].</span><span class="n">pca_ends_v</span><span class="p">[</span> <span class="n">trunk_best_pca_end_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">]</span> <span class="p">];</span>
+          <span class="c1">//trunk.start_v  = pshower-&gt;pca_ends_v[ trunk_best_shower_end_v[best_trunk] ];</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">pca_eigenval_ratio</span> <span class="o">=</span> <span class="n">pca_eigenval_ratio</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">];</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">npts</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">trunk_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">].</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">gapdist</span> <span class="o">=</span> <span class="n">mindist</span><span class="p">;</span>
+          <span class="n">trunk</span><span class="p">.</span><span class="n">impact_par</span> <span class="o">=</span> <span class="n">impact_par_v</span><span class="p">[</span><span class="n">best_trunk</span><span class="p">];</span>
+
+          <span class="c1">// we make sure the pca-axis is pointing to the rest of the cluster</span>
+          <span class="c1">// we use the distance of the trunk center to the whole shower cluster center</span>
+          <span class="kt">float</span> <span class="n">coscenter</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">coscenter</span> <span class="o">+=</span> <span class="n">trunk</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="p">(</span> <span class="n">pshower</span><span class="o">-&gt;</span><span class="n">pca_center</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">trunk</span><span class="p">.</span><span class="n">start_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+          <span class="p">}</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">coscenter</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// flip the axis dir</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+              <span class="n">trunk</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;define shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ishower</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] keypoint[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ikeypoint</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] trunk&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  gap-dist: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk</span><span class="p">.</span><span class="n">gapdist</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  eigenval ratio: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk</span><span class="p">.</span><span class="n">pca_eigenval_ratio</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  npts: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk</span><span class="p">.</span><span class="n">npts</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  impact-par: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk</span><span class="p">.</span><span class="n">impact_par</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+          <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">trunk</span><span class="p">)</span> <span class="p">);</span>
+
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of keypoint</span>
+
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Saving shower candidate with &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; trunk candidates&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="c1">// we will pick the best trunk candidate later when we expand the shower candidates with nearby clusters</span>
+
+      <span class="n">_shower_cand_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">shower_cand</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="p">}</span><span class="c1">//end of shower cluster loop</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_buildShowers</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">int</span> <span class="n">nbad_cands</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">shower_cand</span> <span class="p">:</span> <span class="n">_shower_cand_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="n">Shower_t</span> <span class="n">shower</span>  <span class="o">=</span> <span class="n">_buildShowerCandidate</span><span class="p">(</span> <span class="n">shower_cand</span><span class="p">,</span> <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">shower</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span>
+        <span class="n">nbad_cands</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of reco&#39;d shower candidates. &quot;</span>
+      <span class="o">&lt;&lt;</span> <span class="s">&quot;ngood=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+      <span class="o">&lt;&lt;</span> <span class="s">&quot; nbad=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">nbad_cands</span>
+      <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// now we deal with the clusters that were claimed by more than shower</span>
+    <span class="c1">// first we look for these by making a map from cluster index to a set with</span>
+    <span class="c1">// shower indices (following the _recod_shower_v container)</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span> <span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">claiming_shower_idx</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">shwr_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">shwr_idx</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">shwr_idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">shower</span> <span class="o">=</span> <span class="n">_recod_shower_v</span><span class="p">[</span><span class="n">shwr_idx</span><span class="p">];</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster_idx</span> <span class="p">:</span> <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">claiming_shower_idx</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">cluster_idx</span><span class="p">)</span><span class="o">==</span><span class="n">claiming_shower_idx</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// insert new index with empty set</span>
+          <span class="n">claiming_shower_idx</span><span class="p">[</span><span class="n">cluster_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+        <span class="p">}</span>
+        <span class="n">claiming_shower_idx</span><span class="p">[</span><span class="n">cluster_idx</span><span class="p">].</span><span class="n">insert</span><span class="p">(</span> <span class="n">shwr_idx</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// now we resolve the conflicts by pitting the showers together.</span>
+    <span class="c1">// the one with the lowest average least squares to the axis keeps the cluster.</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">claiming_shower_idx</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">claiming_shower_idx</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">cluster_idx</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">shower_idx_v</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">best_shower_idx</span> <span class="o">=</span> <span class="n">_chooseBestShowerForCluster</span><span class="p">(</span> <span class="o">*</span><span class="n">showerhit_cluster_v</span><span class="p">[</span><span class="n">cluster_idx</span><span class="p">],</span>
+                                                         <span class="n">shower_idx_v</span><span class="p">,</span>
+                                                         <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+
+      <span class="c1">// remove cluster index from shower&#39;s list</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">shwr_idx</span> <span class="p">:</span> <span class="n">shower_idx_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">best_shower_idx</span><span class="o">==</span><span class="n">shwr_idx</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shwr_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] keeps cluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">continue</span><span class="p">;</span> <span class="c1">// let the best shower keep the cluster index</span>
+        <span class="p">}</span>
+        <span class="k">auto</span><span class="o">&amp;</span> <span class="n">shower</span> <span class="o">=</span> <span class="n">_recod_shower_v</span><span class="p">[</span><span class="n">shwr_idx</span><span class="p">];</span>
+        <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shwr_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] removes cluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+        <span class="k">auto</span> <span class="n">it_remove</span> <span class="o">=</span> <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">cluster_idx</span> <span class="p">);</span>
+        <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span><span class="p">.</span><span class="n">erase</span><span class="p">(</span> <span class="n">it_remove</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// fill the shower objects with hits</span>
+    <span class="kt">int</span> <span class="n">sidx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">shower</span> <span class="p">:</span> <span class="n">_recod_shower_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_fillShowerObject</span><span class="p">(</span> <span class="n">shower</span><span class="p">,</span> <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;made shower[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">sidx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] with &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">sidx</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+  <span class="p">}</span>
+
+  <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">Shower_t</span>
+  <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_buildShowerCandidate</span><span class="p">(</span> <span class="k">const</span> <span class="n">ShowerCandidate_t</span><span class="o">&amp;</span> <span class="n">shower_cand</span><span class="p">,</span>
+                                             <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">trunk_cluster_idxset_v</span><span class="p">;</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Build shower candidate. showercluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// for each trunk candidate in the shower candidate, we let it absorb hits</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">trunk</span> <span class="p">:</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//std::set&lt;int&gt; clusters = _buildoutShowerTrunkCandidate( trunk, showerhit_cluster_v );</span>
+      <span class="c1">// just</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">clusters</span><span class="p">;</span>
+      <span class="n">clusters</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">clusters</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">trunk_cluster_idxset_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">clusters</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">trunk_cluster_idxset_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;shower candidate returns empty shower&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">return</span> <span class="nf">Shower_t</span><span class="p">();</span> <span class="c1">//empty</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">trunk_cluster_idxset_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// single trunk candidate case</span>
+      <span class="c1">// build the shower</span>
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;shower candidate with one trunk returns non-empty shower&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="n">Shower_t</span> <span class="n">shower</span><span class="p">;</span>
+      <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+      <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="o">=</span> <span class="n">_buildoutShowerTrunkCandidate</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span><span class="p">,</span> <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+      <span class="k">return</span> <span class="n">shower</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// now we have to evaluate which shower trunk is best</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">union_cluster_idx</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">idx_set</span> <span class="p">:</span> <span class="n">trunk_cluster_idxset_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">idx_set</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">union_cluster_idx</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;showercluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot;union cluster list size=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">union_cluster_idx</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// return least squares value for each shower over the entirety of the cluster set</span>
+    <span class="c1">// lowest value is considered the &quot;best&quot; cluster.</span>
+    <span class="kt">int</span> <span class="n">best_trunk_idx</span> <span class="o">=</span> <span class="n">_chooseBestTrunk</span><span class="p">(</span> <span class="n">shower_cand</span><span class="p">,</span>
+                                           <span class="n">union_cluster_idx</span><span class="p">,</span>
+                                           <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;returns best-fit trunk candidate&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">Shower_t</span> <span class="n">shower</span><span class="p">;</span>
+    <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">[</span><span class="n">best_trunk_idx</span><span class="p">];</span>
+
+    <span class="c1">// build out cluster after modifying direction to use pca-axis of cluster itself</span>
+    <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="o">=</span> <span class="n">_buildoutShowerTrunkCandidate</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span><span class="p">,</span> <span class="n">showerhit_cluster_v</span> <span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">shower</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_buildoutShowerTrunkCandidate</span><span class="p">(</span> <span class="k">const</span> <span class="n">ShowerTrunk_t</span><span class="o">&amp;</span> <span class="n">trunk_cand</span><span class="p">,</span>
+                                                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">ar_molier_rad_cm</span> <span class="o">=</span> <span class="mf">9.04</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">clusteridx_v</span><span class="p">;</span>
+
+    <span class="kt">float</span> <span class="n">pcalen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+      <span class="n">pcalen</span> <span class="o">+=</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+    <span class="n">pcalen</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pcalen</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">showerhit_cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="o">*</span><span class="n">showerhit_cluster_v</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+
+      <span class="c1">// make two points along axis</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">alongpca</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">alongpca</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="mf">10.0</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+
+      <span class="c1">// first test bounding box before going in and checking this</span>
+      <span class="kt">bool</span> <span class="n">testcluster</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="c1">// make bbox 3d points</span>
+      <span class="c1">// 2^3=8 bounding box vertex points</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">bbox_pt</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="c1">// make permutation vector</span>
+      <span class="kt">int</span> <span class="n">state</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">8</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// generate bounding box pt</span>
+        <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot;permutation-vector[&quot; &lt;&lt; i &lt;&lt; &quot;: (&quot; &lt;&lt; state[0] &lt;&lt; &quot;,&quot; &lt;&lt; state[1] &lt;&lt; &quot;,&quot; &lt;&lt; state[2] &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+          <span class="n">bbox_pt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">state</span><span class="p">[</span><span class="n">v</span><span class="p">]];</span>
+
+        <span class="c1">// test</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">center_v</span><span class="p">,</span> <span class="n">alongpca</span><span class="p">,</span> <span class="n">bbox_pt</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">proj</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">proj</span> <span class="o">+=</span> <span class="p">(</span><span class="n">bbox_pt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="n">proj</span> <span class="o">/=</span> <span class="n">pcalen</span><span class="p">;</span>
+
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">1.0</span><span class="o">*</span><span class="n">ar_molier_rad_cm</span> <span class="o">&amp;&amp;</span> <span class="n">fabs</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">50.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">testcluster</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// increment to next permutation</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">state</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">!=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">state</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">break</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="p">{</span>
+            <span class="n">state</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span><span class="c1">//end of loop over bbox pt permutations</span>
+
+      <span class="c1">// nothing close</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">testcluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">//LARCV_DEBUG() &lt;&lt; &quot;No bounding box points are close&quot; &lt;&lt; std::endl;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// if bbox pt close, we test to see if we absorb cluster</span>
+      <span class="c1">// defined as 10% of points inside molier radius (this needs tuning)</span>
+      <span class="kt">int</span> <span class="n">npts_inside</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npts_outside</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npts_threshold</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">npts_threshold</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">npts_threshold</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npts_reject</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="n">npts_threshold</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="n">accept</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">center_v</span><span class="p">,</span> <span class="n">alongpca</span><span class="p">,</span> <span class="n">hit</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">proj</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span><span class="n">v</span><span class="o">++</span><span class="p">)</span>
+          <span class="n">proj</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="p">)</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+        <span class="n">proj</span> <span class="o">/=</span> <span class="n">pcalen</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">proj</span><span class="o">&gt;</span><span class="mf">0.0</span> <span class="o">&amp;&amp;</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">0.5</span><span class="o">*</span><span class="n">ar_molier_rad_cm</span> <span class="o">&amp;&amp;</span> <span class="n">proj</span><span class="o">&lt;</span><span class="mf">50.0</span> <span class="p">)</span>
+             <span class="o">||</span> <span class="p">(</span><span class="n">proj</span><span class="o">&lt;=</span><span class="mf">0.0</span> <span class="o">&amp;&amp;</span> <span class="n">proj</span><span class="o">&gt;-</span><span class="mf">3.0</span> <span class="o">&amp;&amp;</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">3.0</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">npts_inside</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="n">npts_outside</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">npts_inside</span><span class="o">&gt;=</span><span class="n">npts_threshold</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">accept</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="n">npts_outside</span><span class="o">&gt;</span><span class="n">npts_reject</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Eval cluster: npt_inside=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npts_inside</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; npts_outside=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npts_outside</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; npts_threshold=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npts_threshold</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">accept</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">clusteridx_v</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">idx</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">clusteridx_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">Shower_t</span>
+  <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_fillShowerObject</span><span class="p">(</span> <span class="k">const</span> <span class="n">ShowerCandidate_t</span><span class="o">&amp;</span> <span class="n">shower_cand</span><span class="p">,</span>
+                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">cluster_idx_set</span><span class="p">,</span>
+                                         <span class="k">const</span> <span class="kt">int</span> <span class="n">trunk_idx</span><span class="p">,</span>
+                                         <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">Shower_t</span> <span class="n">recoshower</span><span class="p">;</span>
+    <span class="n">recoshower</span><span class="p">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">[</span><span class="n">trunk_idx</span><span class="p">];</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">cluster_idx_set</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="o">*</span><span class="n">showerhit_cluster_v</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">recoshower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">recoshower</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">recoshower</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_fillShowerObject</span><span class="p">(</span> <span class="n">Shower_t</span><span class="o">&amp;</span> <span class="n">shower</span><span class="p">,</span>
+                                              <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">shower</span><span class="p">.</span><span class="n">cluster_idx</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="o">*</span><span class="n">showerhit_cluster_v</span><span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">shower</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">shower</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">]</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_chooseBestTrunk</span><span class="p">(</span> <span class="k">const</span> <span class="n">ShowerCandidate_t</span><span class="o">&amp;</span> <span class="n">shower_cand</span><span class="p">,</span>
+                                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">cluster_idx_v</span><span class="p">,</span>
+                                            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">float</span> <span class="n">max_ll</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e9</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">best_trunk_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">trunk_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">trunk_idx</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">trunk_idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">trunk_cand</span> <span class="o">=</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">[</span><span class="n">trunk_idx</span><span class="p">];</span>
+
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">alongpca</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">alongpca</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="mf">10.0</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+
+      <span class="c1">// we pick by maximizing log-likelihood</span>
+      <span class="c1">// we build a likelihood via</span>
+      <span class="c1">// P(s,r) = exp(-r/r_M)*exp(-s/X_0)</span>
+      <span class="c1">//  where r_M is the molier radius</span>
+      <span class="c1">//  where X_0 is the radiation length</span>
+      <span class="kt">float</span> <span class="n">ll</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">npoints</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">w_tot</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">idx</span> <span class="p">:</span> <span class="n">cluster_idx_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">showerhit_cluster_v</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">points_v</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">center_v</span><span class="p">,</span> <span class="n">alongpca</span><span class="p">,</span> <span class="n">hit</span> <span class="p">);</span>
+          <span class="kt">float</span> <span class="n">proj</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">proj</span> <span class="o">+=</span> <span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">start_v</span><span class="p">[</span><span class="n">v</span><span class="p">])</span><span class="o">*</span><span class="n">trunk_cand</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+          <span class="p">}</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">proj</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span>
+            <span class="n">proj</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="n">ll</span> <span class="o">+=</span> <span class="o">-</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span><span class="o">/</span><span class="mf">9.0</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">proj</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+            <span class="n">ll</span> <span class="o">+=</span> <span class="o">-</span><span class="n">proj</span><span class="o">/</span><span class="mf">14.0</span><span class="p">;</span>
+          <span class="k">else</span>
+            <span class="n">ll</span> <span class="o">+=</span> <span class="n">proj</span><span class="p">;</span>
+
+          <span class="n">npoints</span><span class="o">++</span><span class="p">;</span>
+          <span class="n">w_tot</span> <span class="o">+=</span> <span class="mf">1.0</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">npoints</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">ll</span> <span class="o">/=</span> <span class="n">w_tot</span><span class="p">;</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;trunk cand[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; of &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_cand</span><span class="p">.</span><span class="n">trunk_candidates_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; kp=(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">trunk_cand</span><span class="p">.</span><span class="n">keypoint</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="o">&lt;&lt;</span> <span class="s">&quot;) &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; log(L)=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ll</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; for npoints=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npoints</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">best_trunk_idx</span><span class="o">==-</span><span class="mi">1</span> <span class="o">||</span> <span class="n">ll</span><span class="o">&gt;</span><span class="n">max_ll</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">max_ll</span> <span class="o">=</span> <span class="n">ll</span><span class="p">;</span>
+        <span class="n">best_trunk_idx</span> <span class="o">=</span> <span class="n">trunk_idx</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Choosing trunk index=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">best_trunk_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; with max_ll=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">max_ll</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">best_trunk_idx</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">ShowerRecoKeypoint</span><span class="o">::</span><span class="n">_chooseBestShowerForCluster</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">shower_idx_v</span><span class="p">,</span>
+                                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">*</span> <span class="o">&gt;&amp;</span> <span class="n">showerhit_cluster_v</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">float</span> <span class="n">min_least_sq</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">best_shower_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">shower_idx</span> <span class="p">:</span> <span class="n">shower_idx_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">shower</span> <span class="o">=</span> <span class="n">_recod_shower_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">shower_idx</span><span class="p">);</span>
+
+      <span class="kt">float</span> <span class="n">ls</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">alongpca</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">alongpca</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="mf">10.0</span><span class="o">*</span><span class="n">shower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">pcaxis_v</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+
+
+      <span class="kt">int</span> <span class="n">npoints</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">shower</span><span class="p">.</span><span class="n">trunk</span><span class="p">.</span><span class="n">center_v</span><span class="p">,</span> <span class="n">alongpca</span><span class="p">,</span> <span class="n">hit</span> <span class="p">);</span>
+        <span class="n">ls</span> <span class="o">+=</span> <span class="n">dist</span><span class="o">*</span><span class="n">dist</span><span class="p">;</span>
+        <span class="n">npoints</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">npoints</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+        <span class="n">ls</span> <span class="o">/=</span> <span class="kt">float</span><span class="p">(</span><span class="n">npoints</span><span class="p">);</span>
+
+      <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;reco shower cand[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_idx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                    <span class="o">&lt;&lt;</span> <span class="s">&quot; least-sq/npoints=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ls</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; for npoints=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">npoints</span>
+                    <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">min_least_sq</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">min_least_sq</span><span class="o">&gt;</span><span class="n">ls</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">min_least_sq</span> <span class="o">=</span> <span class="n">ls</span><span class="p">;</span>
+        <span class="n">best_shower_idx</span> <span class="o">=</span> <span class="n">shower_idx</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Choosing shower with index=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">best_shower_idx</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">best_shower_idx</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

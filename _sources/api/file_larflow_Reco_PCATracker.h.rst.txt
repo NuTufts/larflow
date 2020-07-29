@@ -1,0 +1,77 @@
+
+.. _file_larflow_Reco_PCATracker.h:
+
+File PCATracker.h
+=================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/PCATracker.h``)
+------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_PCATracker.h.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/storage_manager.h``
+
+- ``larcv/core/Base/larcv_base.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larcv/core/DataFormat/IOManager.h``
+
+- ``vector``
+
+
+
+Included By
+-----------
+
+
+- :ref:`file_larflow_Reco_KPSRecoManager.h`
+
+- :ref:`file_larflow_Reco_PCATracker.cxx`
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+
+
+Classes
+-------
+
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1PCATracker_1_1Segment__t`
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1PCATracker_1_1SegmentHit__t`
+
+- :ref:`exhale_struct_structlarflow_1_1reco_1_1PCATracker_1_1StartSeed__t`
+
+- :ref:`exhale_class_classlarflow_1_1reco_1_1PCATracker`
+

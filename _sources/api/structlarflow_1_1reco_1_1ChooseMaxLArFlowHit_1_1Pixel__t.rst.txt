@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t:
+
+Struct ChooseMaxLArFlowHit::Pixel_t
+===================================
+
+- Defined in :ref:`file_larflow_Reco_ChooseMaxLArFlowHit.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1ChooseMaxLArFlowHit`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::ChooseMaxLArFlowHit::Pixel_t
+   :members:
+   :protected-members:
+   :undoc-members:

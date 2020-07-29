@@ -1,0 +1,16 @@
+.. _exhale_struct_structlarflow_1_1spatialembed_1_1AncestorIDPix__t:
+
+Struct AncestorIDPix_t
+======================
+
+- Defined in :ref:`file_larflow_SpatialEmbed_PrepMatchEmbed.h`
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::spatialembed::AncestorIDPix_t
+   :members:
+   :protected-members:
+   :undoc-members:

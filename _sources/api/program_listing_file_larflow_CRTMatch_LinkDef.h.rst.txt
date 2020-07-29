@@ -1,0 +1,25 @@
+
+.. _program_listing_file_larflow_CRTMatch_LinkDef.h:
+
+Program Listing for File LinkDef.h
+==================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_CRTMatch_LinkDef.h>` (``larflow/CRTMatch/LinkDef.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   
+   #ifdef __CINT__
+   #pragma link off all globals;
+   #pragma link off all classes;
+   #pragma link off all functions;
+   
+   #pragma link C++ namespace larflow;
+   #pragma link C++ namespace larflow::crtmatch;
+   #pragma link C++ class larflow::crtmatch::CRTHitMatch+;
+   #pragma link C++ class larflow::crtmatch::CRTTrackMatch+;
+   #pragma link C++ class larflow::crtmatch::CRTMatch+;
+   //ADD_NEW_CLASS ... do not change this line
+   #endif

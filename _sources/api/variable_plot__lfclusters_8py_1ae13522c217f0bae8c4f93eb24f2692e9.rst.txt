@@ -1,0 +1,13 @@
+.. _exhale_variable_plot__lfclusters_8py_1ae13522c217f0bae8c4f93eb24f2692e9:
+
+Variable plot_lfclusters::axis_template
+=======================================
+
+- Defined in :ref:`file_larflow_Reco_test_plot_lfclusters.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: plot_lfclusters::axis_template

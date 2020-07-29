@@ -1,0 +1,868 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File PrepKeypointData.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File PrepKeypointData.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_KeyPoints_PrepKeypointData.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-prepkeypointdata-cxx">
+<span id="program-listing-file-larflow-keypoints-prepkeypointdata-cxx"></span><h1>Program Listing for File PrepKeypointData.cxx<a class="headerlink" href="#program-listing-for-file-prepkeypointdata-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_KeyPoints_PrepKeypointData.cxx.html#file-larflow-keypoints-prepkeypointdata-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/KeyPoints/PrepKeypointData.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;PrepKeypointData.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION</span>
+<span class="cp">#include</span> <span class="cpf">&lt;numpy/ndarrayobject.h&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;sstream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;algorithm&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;queue&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TH2D.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/MCPixelPGraph.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/crossingPointsAnaMethods.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/Image2D.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventImage2D.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// larlite</span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/SpaceChargeMicroBooNE.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctrack.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mcshower.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/mctruth.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">keypoints</span> <span class="p">{</span>
+
+
+  <span class="kt">bool</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+  <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">PrepKeypointData</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">_adc_image_treename</span><span class="p">(</span><span class="s">&quot;wire&quot;</span><span class="p">),</span>
+      <span class="n">_label_tree</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">_nclose</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">_nfar</span>   <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">hdist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdist_x&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">2002</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mf">500.0</span><span class="p">);</span>
+    <span class="n">hdist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdist_y&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">2002</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mf">500.0</span><span class="p">);</span>
+    <span class="n">hdist</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdist_z&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">2002</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mf">500.0</span><span class="p">);</span>
+
+    <span class="n">hdpix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdpix_dt&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">1001</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">hdpix</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdpix_du&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">1001</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">hdpix</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdpix_dv&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">1001</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">hdpix</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TH1F</span><span class="p">(</span><span class="s">&quot;hdpix_dy&quot;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">1001</span><span class="p">,</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mi">500</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">PrepKeypointData</span><span class="o">::~</span><span class="n">PrepKeypointData</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hdist</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span> <span class="k">delete</span> <span class="n">hdist</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">hdpix</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span> <span class="k">delete</span> <span class="n">hdpix</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_label_tree</span> <span class="p">)</span> <span class="k">delete</span> <span class="n">_label_tree</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">auto</span> <span class="n">ev_adc</span>      <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="n">_adc_image_treename</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="n">ev_segment</span>  <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;segment&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="n">ev_instance</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;instance&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="n">ev_ancestor</span> <span class="o">=</span> <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iolcv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;ancestor&quot;</span><span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">ev_mctrack</span>  <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span>  <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTrack</span><span class="p">,</span>  <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+    <span class="k">auto</span> <span class="n">ev_mcshower</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCShower</span><span class="p">,</span> <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+    <span class="k">auto</span> <span class="n">ev_mctruth</span>  <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span>  <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTruth</span><span class="p">,</span>  <span class="s">&quot;generator&quot;</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">badch_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span> <span class="n">blank</span><span class="p">(</span><span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">());</span>
+      <span class="n">blank</span><span class="p">.</span><span class="n">paint</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+      <span class="n">badch_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">blank</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepKeypointData Inputs]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  adc images: &quot;</span>      <span class="o">&lt;&lt;</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  badch images: &quot;</span>    <span class="o">&lt;&lt;</span> <span class="n">badch_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  segment images: &quot;</span>  <span class="o">&lt;&lt;</span> <span class="n">ev_segment</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  instance images: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_instance</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  ancestor images: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_ancestor</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  mctracks: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_mctrack</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  mcshowers: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_mcshower</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  mctruths: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_mctruth</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">_run</span>    <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">run</span><span class="p">();</span>
+    <span class="n">_subrun</span> <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">subrun</span><span class="p">();</span>
+    <span class="n">_event</span>  <span class="o">=</span> <span class="n">iolcv</span><span class="p">.</span><span class="n">event_id</span><span class="p">().</span><span class="n">event</span><span class="p">();</span>
+
+    <span class="n">process</span><span class="p">(</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+             <span class="n">badch_v</span><span class="p">,</span>
+             <span class="n">ev_segment</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+             <span class="n">ev_instance</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+             <span class="n">ev_ancestor</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">(),</span>
+             <span class="o">*</span><span class="n">ev_mctrack</span><span class="p">,</span>
+             <span class="o">*</span><span class="n">ev_mcshower</span><span class="p">,</span>
+             <span class="o">*</span><span class="n">ev_mctruth</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">adc_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">badch_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">segment_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">instance_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span>    <span class="n">ancestor_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span>  <span class="n">mctrack_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">&amp;</span> <span class="n">mcshower_v</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">&amp;</span>  <span class="n">mctruth_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// allocate space charge class</span>
+    <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span> <span class="n">sce</span><span class="p">;</span>
+
+    <span class="c1">// make particle graph</span>
+    <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span> <span class="n">mcpg</span><span class="p">;</span>
+    <span class="n">mcpg</span><span class="p">.</span><span class="n">buildgraph</span><span class="p">(</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">segment_v</span><span class="p">,</span> <span class="n">instance_v</span><span class="p">,</span> <span class="n">ancestor_v</span><span class="p">,</span>
+                     <span class="n">mcshower_v</span><span class="p">,</span> <span class="n">mctrack_v</span><span class="p">,</span> <span class="n">mctruth_v</span> <span class="p">);</span>
+    <span class="c1">//mcpg.printGraph();</span>
+
+    <span class="c1">// build key-points</span>
+    <span class="n">_kpd_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+      <span class="n">_kppos_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="c1">// build crossing points for muon track primaries</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">track_kpd</span>
+      <span class="o">=</span> <span class="n">getMuonEndpoints</span><span class="p">(</span> <span class="n">mcpg</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">mctrack_v</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sce</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[Track Endpoint Results]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpd</span> <span class="p">:</span> <span class="n">track_kpd</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">_kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpd</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// add points for shower starts</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">shower_kpd</span>
+      <span class="o">=</span> <span class="n">getShowerStarts</span><span class="p">(</span> <span class="n">mcpg</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="n">mcshower_v</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sce</span> <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[Shower Endpoint Results]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpd</span> <span class="p">:</span> <span class="n">shower_kpd</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">str</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">_kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpd</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// we change the kptype to neutrino vertex for those on it</span>
+    <span class="n">_label_nu_keypoints</span><span class="p">(</span> <span class="n">mctruth_v</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sce</span><span class="p">,</span> <span class="n">_kpd_v</span> <span class="p">);</span>
+
+    <span class="c1">// filter duplicates</span>
+    <span class="c1">//filter_duplicates();</span>
+
+    <span class="c1">// copy positions of keypoints into flat vector for storage</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpd</span> <span class="p">:</span> <span class="n">_kpd_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_kppos_v</span><span class="p">[</span> <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span> <span class="p">].</span><span class="n">push_back</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;unrecognized keypoint type&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span>
+  <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">getMuonEndpoints</span><span class="p">(</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">&amp;</span> <span class="n">mcpg</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctrack</span><span class="o">&amp;</span> <span class="n">mctrack_v</span><span class="p">,</span>
+                                      <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">bool</span> <span class="n">verbose</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="c1">// get list of primaries</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">::</span><span class="n">Node_t</span><span class="o">*&gt;</span> <span class="n">primaries</span>
+      <span class="o">=</span> <span class="n">mcpg</span><span class="p">.</span><span class="n">getPrimaryParticles</span><span class="p">();</span>
+
+    <span class="c1">// output vector of keypoint data</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">kpd_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pnode</span> <span class="p">:</span> <span class="n">primaries</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">)</span><span class="o">!=</span><span class="mi">13</span>
+           <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">)</span><span class="o">!=</span><span class="mi">2212</span>
+           <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">)</span><span class="o">!=</span><span class="mi">211</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">mctrk</span> <span class="o">=</span> <span class="n">mctrack_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">vidx</span> <span class="p">);</span>
+
+      <span class="kt">int</span> <span class="n">crossingtype</span> <span class="o">=</span>
+        <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">CrossingPointsAnaMethods</span><span class="o">::</span>
+        <span class="n">doesTrackCrossImageBoundary</span><span class="p">(</span> <span class="n">mctrk</span><span class="p">,</span>
+                                     <span class="n">adc_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">(),</span>
+                                     <span class="mf">4050.0</span><span class="p">,</span>
+                                     <span class="n">psce</span> <span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">crossingtype</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">crossingtype</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">crossingtype</span><span class="o">&lt;=</span><span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">KPdata</span> <span class="n">kpd</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">crossingtype</span> <span class="o">=</span> <span class="n">crossingtype</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">trackid</span> <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">tid</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">pid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">vid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">vidx</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">is_shower</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">origin</span>  <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">origin</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span>  <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kTrackEnds</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="o">=</span>
+            <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">CrossingPointsAnaMethods</span><span class="o">::</span><span class="n">getFirstStepPosInsideImage</span><span class="p">(</span> <span class="n">mctrk</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">(),</span>
+                                                                                       <span class="mf">4050.0</span><span class="p">,</span> <span class="nb">true</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span>
+                                                                                       <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">,</span> <span class="n">psce</span><span class="p">,</span> <span class="n">verbose</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpd</span><span class="p">)</span> <span class="p">);</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">crossingtype</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">crossingtype</span><span class="o">&lt;=</span><span class="mi">2</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">KPdata</span> <span class="n">kpd</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">crossingtype</span> <span class="o">=</span> <span class="n">crossingtype</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">trackid</span> <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">tid</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">pid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">vid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">vidx</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">is_shower</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">origin</span>  <span class="o">=</span> <span class="n">pnode</span><span class="o">-&gt;</span><span class="n">origin</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span>  <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kTrackEnds</span><span class="p">;</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="o">=</span>
+            <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">CrossingPointsAnaMethods</span><span class="o">::</span><span class="n">getFirstStepPosInsideImage</span><span class="p">(</span> <span class="n">mctrk</span><span class="p">,</span> <span class="n">adc_v</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">meta</span><span class="p">(),</span>
+                                                                                       <span class="mf">4050.0</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span>
+                                                                                       <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">,</span> <span class="n">psce</span><span class="p">,</span> <span class="n">verbose</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpd</span><span class="p">)</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+
+      <span class="p">}</span><span class="c1">//if track in image</span>
+
+    <span class="p">}</span><span class="c1">//end of primary loop</span>
+
+    <span class="k">return</span> <span class="n">kpd_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span>
+  <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">getShowerStarts</span><span class="p">(</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">MCPixelPGraph</span><span class="o">&amp;</span> <span class="n">mcpg</span><span class="p">,</span>
+                                     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span><span class="p">,</span>
+                                     <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mcshower</span><span class="o">&amp;</span> <span class="n">mcshower_v</span><span class="p">,</span>
+                                     <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// output vector of keypoint data</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">kpd_v</span><span class="p">;</span>
+
+    <span class="c1">// loop over nodes, look for electron/gamma pixels</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pnode</span> <span class="p">:</span> <span class="n">mcpg</span><span class="p">.</span><span class="n">node_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="p">.</span><span class="n">pid</span><span class="p">)</span><span class="o">!=</span><span class="mi">11</span>
+           <span class="o">&amp;&amp;</span> <span class="n">abs</span><span class="p">(</span><span class="n">pnode</span><span class="p">.</span><span class="n">pid</span><span class="p">)</span><span class="o">!=</span><span class="mi">22</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+
+      <span class="kt">int</span> <span class="n">max_plane_pixels</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pix_v</span> <span class="p">:</span> <span class="n">pnode</span><span class="p">.</span><span class="n">pix_vv</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">max_plane_pixels</span><span class="o">&lt;</span><span class="n">pix_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span>
+          <span class="n">max_plane_pixels</span> <span class="o">=</span> <span class="n">pix_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">max_plane_pixels</span><span class="o">&lt;</span><span class="mi">10</span> <span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>
+
+
+      <span class="c1">// start: pnode.start; //should be in apparent position already</span>
+      <span class="n">KPdata</span> <span class="n">kpd</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">crossingtype</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">trackid</span> <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">tid</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">pid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">pid</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">vid</span>     <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">vidx</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">origin</span>  <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">origin</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">is_shower</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span>  <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kShowerStart</span><span class="p">;</span>
+      <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>   <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">imgpos4</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dpos</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="n">dpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">imgpos4</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="k">try</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">)</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NearestWire</span><span class="p">(</span> <span class="n">dpos</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">catch</span> <span class="p">(...)</span> <span class="p">{</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="kt">float</span> <span class="n">tick</span> <span class="o">=</span> <span class="n">pnode</span><span class="p">.</span><span class="n">imgpos4</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tick</span><span class="o">&gt;</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">tick</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">tick</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">kpd</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="p">}</span><span class="c1">//end of node loop</span>
+
+    <span class="k">return</span> <span class="n">kpd_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_label_nu_keypoints</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">event_mctruth</span><span class="o">&amp;</span> <span class="n">mctruth_v</span><span class="p">,</span>
+                                              <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span><span class="p">,</span>
+                                              <span class="n">larutil</span><span class="o">::</span><span class="n">SpaceChargeMicroBooNE</span><span class="o">*</span> <span class="n">psce</span><span class="p">,</span>
+                                              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;&amp;</span> <span class="n">kpdata_v</span>  <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// loop over all interactions</span>
+    <span class="kt">int</span> <span class="n">inu</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">mct</span> <span class="p">:</span> <span class="n">mctruth_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">inu</span><span class="o">++</span><span class="p">;</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">nu</span> <span class="o">=</span> <span class="n">mct</span><span class="p">.</span><span class="n">GetNeutrino</span><span class="p">();</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">nutraj</span> <span class="o">=</span> <span class="n">nu</span><span class="p">.</span><span class="n">Nu</span><span class="p">().</span><span class="n">Trajectory</span><span class="p">();</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">nutraj</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// get the space-charge corrected neutrino vertex</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">nupos</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="n">nupos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nutraj</span><span class="p">.</span><span class="n">front</span><span class="p">().</span><span class="n">Position</span><span class="p">()[</span><span class="n">i</span><span class="p">];</span>
+
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">psce</span><span class="o">-&gt;</span><span class="n">GetPosOffsets</span><span class="p">(</span> <span class="n">nupos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nupos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">nupos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+        <span class="n">nupos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">nupos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.7</span><span class="p">;</span>
+        <span class="n">nupos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+        <span class="n">nupos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+        <span class="c1">// make a neutrino keypoint</span>
+        <span class="n">KPdata</span> <span class="n">kpd</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">crossingtype</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">trackid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">pid</span>     <span class="o">=</span> <span class="mi">12</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">vid</span>     <span class="o">=</span> <span class="n">inu</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">is_shower</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">origin</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span>  <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kNuVertex</span><span class="p">;</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nupos</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+
+        <span class="k">try</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">)</span>
+            <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NearestWire</span><span class="p">(</span> <span class="n">nupos</span><span class="p">,</span> <span class="n">p</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">catch</span> <span class="p">(...)</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kt">float</span> <span class="n">tick</span> <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">nupos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">tick</span><span class="o">&gt;</span><span class="n">img_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">tick</span><span class="o">&lt;</span><span class="n">img_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">img_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">tick</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">kpdata_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">kpd</span> <span class="p">);</span>
+
+      <span class="p">}</span><span class="c1">//end of if neutrino truth object has trajectory point for vertex</span>
+    <span class="p">}</span><span class="c1">//end of loop over mctruth elements</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">filter_duplicates</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="c1">// first count the number of unique points</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span>    <span class="n">unique_coords</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">kpd_index</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">npts</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ikpd</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikpd</span><span class="o">&lt;</span><span class="n">_kpd_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ikpd</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kpd</span> <span class="o">=</span> <span class="n">_kpd_v</span><span class="p">[</span><span class="n">ikpd</span><span class="p">];</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">unique_coords</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="p">)</span><span class="o">==</span><span class="n">unique_coords</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">kpd_index</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">{(</span><span class="kt">int</span><span class="p">)</span><span class="n">ikpd</span><span class="p">,</span><span class="mi">0</span><span class="p">}</span> <span class="p">);</span>
+          <span class="n">unique_coords</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="p">);</span>
+          <span class="n">npts</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KPdata</span><span class="o">&gt;</span> <span class="n">kpd_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpdidx</span> <span class="p">:</span> <span class="n">kpd_index</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">kpd_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span> <span class="n">_kpd_v</span><span class="p">[</span><span class="n">kpdidx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">kpd_v</span><span class="p">,</span><span class="n">_kpd_v</span><span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">get_keypoint_array</span><span class="p">(</span> <span class="kt">int</span> <span class="n">iclass</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// first count the number of unique points</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">set</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span>    <span class="n">unique_coords</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">kpd_index</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">npts</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ikpd</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikpd</span><span class="o">&lt;</span><span class="n">_kpd_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ikpd</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kpd</span> <span class="o">=</span> <span class="n">_kpd_v</span><span class="p">[</span><span class="n">ikpd</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">kptype</span><span class="o">!=</span><span class="p">(</span><span class="n">larflow</span><span class="o">::</span><span class="n">KeyPoint_t</span><span class="p">)</span><span class="n">iclass</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">unique_coords</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="p">)</span><span class="o">==</span><span class="n">unique_coords</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">kpd_index</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">{(</span><span class="kt">int</span><span class="p">)</span><span class="n">ikpd</span><span class="p">,</span><span class="mi">0</span><span class="p">}</span> <span class="p">);</span>
+          <span class="n">unique_coords</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span> <span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span> <span class="p">);</span>
+          <span class="n">npts</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">nd</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">npts</span><span class="p">,</span> <span class="mi">10</span> <span class="p">};</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_FLOAT</span> <span class="p">);</span>
+
+    <span class="kt">size_t</span> <span class="n">ipt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">kpdidx</span> <span class="p">:</span> <span class="n">kpd_index</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kpd</span> <span class="o">=</span> <span class="n">_kpd_v</span><span class="p">[</span><span class="n">kpdidx</span><span class="p">[</span><span class="mi">0</span><span class="p">]];</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">kpdidx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// start img coordinates</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="n">i</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">kpd</span><span class="p">.</span><span class="n">imgcoord</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="c1">// 3D point</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="mi">4</span><span class="o">+</span><span class="n">i</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="c1">// is shower</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">kpd</span><span class="p">.</span><span class="n">is_shower</span><span class="p">;</span>
+        <span class="c1">// origin</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">kpd</span><span class="p">.</span><span class="n">origin</span><span class="p">;</span>
+        <span class="c1">// PID</span>
+        <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="mi">9</span><span class="p">))</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">kpd</span><span class="p">.</span><span class="n">pid</span><span class="p">;</span>
+        <span class="n">ipt</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span><span class="c1">// end of loop over keypointdata structs</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">PyObject</span><span class="o">*</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">get_triplet_score_array</span><span class="p">(</span> <span class="kt">float</span> <span class="n">sig</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">import_array1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">_setup_numpy</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// get label info for each triplet proposal</span>
+    <span class="kt">int</span> <span class="n">npts</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">iclass</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iclass</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span><span class="p">;</span> <span class="n">iclass</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">iclass</span><span class="p">].</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="n">npts</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;number of triplet labels/scores for each class does not match!&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">int</span> <span class="n">nd</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">npy_intp</span> <span class="n">dims</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">npts</span><span class="p">,</span> <span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span> <span class="p">};</span>
+    <span class="n">PyArrayObject</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">PyArrayObject</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_SimpleNew</span><span class="p">(</span> <span class="n">nd</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">NPY_FLOAT</span> <span class="p">);</span>
+
+    <span class="kt">size_t</span> <span class="n">ipt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="n">npts</span><span class="p">;</span> <span class="n">ipt</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">iclass</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iclass</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span><span class="p">;</span> <span class="n">iclass</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">label_v</span> <span class="o">=</span> <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">iclass</span><span class="p">][</span><span class="n">ipt</span><span class="p">];</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">label_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mf">0.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="n">iclass</span><span class="p">))</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">dist</span> <span class="o">+=</span> <span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">];</span>
+          <span class="o">*</span><span class="p">((</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span><span class="n">PyArray_GETPTR2</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">ipt</span><span class="p">,</span><span class="n">iclass</span><span class="p">))</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dist</span><span class="o">/</span><span class="p">(</span><span class="n">sig</span><span class="o">*</span><span class="n">sig</span><span class="p">)</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span><span class="c1">// end of loop over keypointdata structs</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">PyObject</span><span class="o">*</span><span class="p">)</span><span class="n">array</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">make_proposal_labels</span><span class="p">(</span> <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">match_proposals</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">clear</span><span class="p">();</span>
+      <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">reserve</span><span class="p">(</span><span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">imatch</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">imatch</span><span class="o">&lt;</span><span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">imatch</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// triplet index (index of the sparse matrix coordinates)</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">triplet</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">imatch</span><span class="p">];</span>
+
+      <span class="c1">// 3D position formed by intersection of the wires</span>
+      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pos</span>   <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_pos_v</span><span class="p">[</span><span class="n">imatch</span><span class="p">];</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;[match &quot; &lt;&lt; imatch &lt;&lt; &quot;] &quot;</span>
+      <span class="c1">//           &lt;&lt; &quot;testpt=(&quot; &lt;&lt; pos[0] &lt;&lt; &quot;,&quot; &lt;&lt; pos[1] &lt;&lt; &quot;,&quot; &lt;&lt; pos[2] &lt;&lt; &quot;) &quot;</span>
+      <span class="c1">//           &lt;&lt; std::endl;</span>
+
+      <span class="c1">// make a score for each class</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ikpclass</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ikpclass</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">larflow</span><span class="o">::</span><span class="n">kNumKeyPoints</span><span class="p">;</span> <span class="n">ikpclass</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="c1">// store label values</span>
+        <span class="c1">// [0]: has a match to a true keypoint</span>
+        <span class="c1">// [1,2,3]: (dx,dy,dz) to closest keypoint</span>
+        <span class="c1">// [4,5,6,7]: (dr,du,dv,dy) shift in row and columns</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">label_v</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+
+        <span class="c1">// dumb assignment, loops over all truth keypoints</span>
+        <span class="c1">// seems fast enough</span>
+        <span class="k">const</span> <span class="n">KPdata</span><span class="o">*</span> <span class="n">kpd</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">leafpos</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">testkpd</span> <span class="p">:</span> <span class="n">_kpd_v</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// ignore those not in class</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">testkpd</span><span class="p">.</span><span class="n">kptype</span><span class="o">!=</span><span class="p">(</span><span class="n">larflow</span><span class="o">::</span><span class="n">KeyPoint_t</span><span class="p">)</span><span class="n">ikpclass</span> <span class="p">)</span>
+            <span class="k">continue</span><span class="p">;</span>
+
+          <span class="kt">float</span> <span class="n">testdist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span>
+            <span class="n">testdist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">testkpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">testkpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]);</span>
+          <span class="n">testdist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">testdist</span><span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="n">testdist</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// update the leadpos and kpd pointer</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">testdist</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span> <span class="p">)</span>
+              <span class="n">leafpos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">testkpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+            <span class="n">kpd</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">testkpd</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span><span class="c1">//end of loop over true points</span>
+
+        <span class="c1">// make label vector</span>
+
+        <span class="c1">// within 50 pixels/15 cm</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">0.3</span><span class="o">*</span><span class="mi">50</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">label_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+          <span class="n">_nclose</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="p">{</span>
+          <span class="n">label_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+          <span class="n">_nfar</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// make shift in 3D label</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">0.3</span><span class="o">*</span><span class="mi">50</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">leafpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+            <span class="n">hdist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">(</span><span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">]);</span>
+          <span class="p">}</span>
+
+          <span class="c1">// shift in imgcoords</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">imgcoords</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+          <span class="n">imgcoords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">triplet</span><span class="p">[</span><span class="mi">0</span><span class="p">]].</span><span class="n">row</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">imgcoords</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">match_proposals</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">triplet</span><span class="p">[</span><span class="n">p</span><span class="p">]].</span><span class="n">col</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">label_v</span><span class="p">[</span><span class="mi">4</span><span class="o">+</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">imgcoords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">kpd</span><span class="o">-&gt;</span><span class="n">imgcoord</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+            <span class="n">hdpix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">(</span> <span class="n">label_v</span><span class="p">[</span><span class="mi">4</span><span class="o">+</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">ikpclass</span><span class="p">].</span><span class="n">push_back</span><span class="p">(</span><span class="n">label_v</span><span class="p">);</span>
+      <span class="p">}</span><span class="c1">//end of keypoint class loop</span>
+    <span class="p">}</span><span class="c1">//end of match proposal loop</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">writeHists</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">hdist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">hdpix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">defineAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_label_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;keypointlabels&quot;</span><span class="p">,</span><span class="s">&quot;Key point Training Labels&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;run&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_run</span><span class="p">,</span><span class="s">&quot;run/I&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;subrun&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_subrun</span><span class="p">,</span><span class="s">&quot;subrun/I&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;event&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_event</span><span class="p">,</span><span class="s">&quot;event/I&quot;</span><span class="p">);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kplabel_nuvertex&quot;</span><span class="p">,</span>    <span class="o">&amp;</span><span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kplabel_trackends&quot;</span><span class="p">,</span>   <span class="o">&amp;</span><span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kplabel_showerstart&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kppos_nuvertex&quot;</span><span class="p">,</span>    <span class="o">&amp;</span><span class="n">_kppos_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kppos_trackends&quot;</span><span class="p">,</span>   <span class="o">&amp;</span><span class="n">_kppos_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;kppos_showerstart&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_kppos_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">writeAnaTree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">_label_tree</span><span class="p">)</span>
+      <span class="n">_label_tree</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">printKeypoints</span><span class="p">()</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[PrepKeypointData::printKeypoints] -----------------&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">_kpd_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kpd</span> <span class="o">=</span> <span class="n">_kpd_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                <span class="o">&lt;&lt;</span> <span class="s">&quot;(&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">kpd</span><span class="p">.</span><span class="n">keypt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span>
+                <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;----------------------------------------------------&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">PrepKeypointData</span><span class="o">::</span><span class="n">makeScoreImage</span><span class="p">(</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">ikpclass</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="n">sigma</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">histname</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">larflow</span><span class="o">::</span><span class="n">prep</span><span class="o">::</span><span class="n">PrepMatchTriplets</span><span class="o">&amp;</span> <span class="n">tripmaker</span><span class="p">,</span>
+                                                      <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">adc_v</span> <span class="p">)</span> <span class="k">const</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TH2D</span><span class="o">&gt;</span> <span class="n">hist_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">ss</span><span class="p">;</span>
+      <span class="n">ss</span> <span class="o">&lt;&lt;</span> <span class="n">histname</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;_p&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span><span class="p">;</span>
+      <span class="n">TH2D</span> <span class="nf">hist</span><span class="p">(</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="n">ss</span><span class="p">.</span><span class="n">str</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span>
+                 <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">(),</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_x</span><span class="p">(),</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_x</span><span class="p">(),</span>
+                 <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">(),</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">(),</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="n">tripmaker</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ipt</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">r</span> <span class="o">=</span> <span class="n">tripmaker</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span> <span class="n">tripmaker</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">ipt</span><span class="p">][</span><span class="n">p</span><span class="p">]</span> <span class="p">].</span><span class="n">row</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">tripmaker</span><span class="p">.</span><span class="n">_sparseimg_vv</span><span class="p">[</span><span class="n">p</span><span class="p">][</span> <span class="n">tripmaker</span><span class="p">.</span><span class="n">_triplet_v</span><span class="p">[</span><span class="n">ipt</span><span class="p">][</span><span class="n">p</span><span class="p">]</span> <span class="p">].</span><span class="n">col</span><span class="p">;</span>
+
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">label_v</span> <span class="o">=</span> <span class="n">_match_proposal_labels_v</span><span class="p">[</span><span class="n">ikpclass</span><span class="p">][</span><span class="n">ipt</span><span class="p">];</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">label_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mf">0.0</span> <span class="o">&amp;&amp;</span> <span class="n">hist</span><span class="p">.</span><span class="n">GetBinContent</span><span class="p">(</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.01</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">hist</span><span class="p">.</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.01</span> <span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">label_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="mf">0.0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">dist</span> <span class="o">+=</span> <span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">label_v</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">];</span>
+          <span class="kt">float</span> <span class="n">score</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dist</span><span class="o">/</span><span class="p">(</span><span class="n">sigma</span><span class="o">*</span><span class="n">sigma</span><span class="p">)</span> <span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">hist</span><span class="p">.</span><span class="n">GetBinContent</span><span class="p">(</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">&lt;</span><span class="n">score</span> <span class="p">)</span>
+            <span class="n">hist</span><span class="p">.</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">score</span> <span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="n">hist_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">hist_v</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

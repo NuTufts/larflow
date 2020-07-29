@@ -1,0 +1,58 @@
+
+.. _file_larflow_Reco_KeypointReco.cxx:
+
+File KeypointReco.cxx
+=====================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/KeypointReco.cxx``)
+----------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_KeypointReco.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/larflow3dhit.h``
+
+- ``DataFormat/pcaxis.h``
+
+- ``KeypointReco.h`` (:ref:`file_larflow_Reco_KeypointReco.h`)
+
+- ``cluster_functions.h`` (:ref:`file_larflow_Reco_cluster_functions.h`)
+
+- ``fstream``
+
+- ``iostream``
+
+- ``nlohmann/json.hpp``
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

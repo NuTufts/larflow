@@ -1,0 +1,24 @@
+
+.. _namespace_test:
+
+Namespace test
+==============
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_test_8py_1a1631b77eff1c0a6208f7309e679c7032`
+
+- :ref:`exhale_variable_test_8py_1a0ce1bf76d2c4650f8ff7028bd79516aa`
+
+- :ref:`exhale_variable_test_8py_1ae1b829f07e06c12315d53ea254bdd0c6`

@@ -1,0 +1,1285 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Library API &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Namespace larcv" href="namespace_larcv.html" />
+    <link rel="prev" title="LArFlow Documentation" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Library API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#class-hierarchy">Class Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#file-hierarchy">File Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-api">Full API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#namespaces">Namespaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larcv.html">Namespace larcv</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow.html">Namespace larflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__crtmatch.html">Namespace larflow::crtmatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__keypoints.html">Namespace larflow::keypoints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__prep.html">Namespace larflow::prep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__prepdata.html">Namespace larflow::prepdata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__reco.html">Namespace larflow::reco</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__scb.html">Namespace larflow::scb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larflow__voxelizer.html">Namespace larflow::voxelizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larlite.html">Namespace larlite</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_larutil.html">Namespace larutil</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_ublarcvapp.html">Namespace ublarcvapp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_ublarcvapp__mctools.html">Namespace ublarcvapp::mctools</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t.html">Struct CRTHitMatch::match_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTTrackMatch_1_1crttrack__t.html">Struct CRTTrackMatch::crttrack_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t.html">Struct FlowMatchHitMaker::match_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t.html">Struct FlowTriples::PixData_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t.html">Struct ChooseMaxLArFlowHit::Pixel_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1cluster__t.html">Struct cluster_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t.html">Struct NuVertexCandidate::VtxCluster_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t.html">Struct NuVertexFitter::Prong_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1Shower__t.html">Struct ShowerRecoKeypoint::Shower_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerCandidate__t.html">Struct ShowerRecoKeypoint::ShowerCandidate_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t.html">Struct ShowerRecoKeypoint::ShowerTrunk_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Connection__t.html">Struct TrackClusterBuilder::Connection_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t.html">Struct TrackClusterBuilder::NodePos_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Segment__t.html">Struct TrackClusterBuilder::Segment_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html">Class CRTHitMatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTMatch.html">Class CRTMatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html">Class CRTTrackMatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html">Class KPdata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderAffinityField.html">Class LoaderAffinityField</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html">Class LoaderKeypointData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html">Class PrepAffinityField</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepKeypointData.html">Class PrepKeypointData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1LArFlowConstants.html">Class LArFlowConstants</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html">Class FlowMatchHitMaker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowTriples.html">Class FlowTriples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html">Class PrepMatchTriplets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1prep_1_1WireOverlap.html">Class WireOverlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html">Class ChooseMaxLArFlowHit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1ClusterFunctions.html">Class ClusterFunctions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html">Class CosmicTrackBuilder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html">Class DBScanLArMatchHits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html">Class KeypointFilterByClusterSize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html">Class KeypointFilterByWCTagger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointReco.html">Class KeypointReco</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1KPCluster.html">Class KPCluster</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1KPSRecoManager.html">Class KPSRecoManager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1NuTrackBuilder.html">Class NuTrackBuilder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexCandidate.html">Class NuVertexCandidate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html">Class NuVertexFitter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexMaker.html">Class NuVertexMaker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html">Class ProjectionDefectSplitter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1PyLArFlow.html">Class PyLArFlow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder.html">Class ShowerLikelihoodBuilder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html">Class ShowerRecoKeypoint</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html">Class SplitHitsBySSNet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html">Class TrackClusterBuilder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackOTFit.html">Class TrackOTFit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1scb_1_1SCBoundary.html">Class SCBoundary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html">Class VoxelizeTriplets</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#enums">Enums</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html">Enum FlowDir_t</a></li>
+<li class="toctree-l4"><a class="reference internal" href="enum_namespacelarflow_1a5040311114b69686ad88fc8b58109c89.html">Enum KeyPoint_t</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_KPdata_8cxx_1a5036487d128dae528d1f68ee3e90773a.html">Function larflow::keypoints::kpdata_compare_x</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_KPdata_8cxx_1a59dfbdb4a712cd81ab43ff41d7b82a07.html">Function larflow::keypoints::kpdata_compare_y</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a.html">Function larflow::keypoints::kpdata_compare_z</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d.html">Function larflow::prepdata::calculate_weight_from_mc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a2af2adbf3256e22e8da39389813518f5.html">Function larflow::reco::cluster_closest_endpt_dist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a6711910cbcd13177ea71333a6296d86b.html">Function larflow::reco::cluster_cospca</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1af4c87d0da6976c8080fdbfc2d44f7d0c.html">Function larflow::reco::cluster_dist_from_pcaline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a070d734e823394c1276c0f350b87f56b.html">Function larflow::reco::cluster_dump2jsonfile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1ac637f92dc4692b32cf1917cc8ec26f06.html">Function larflow::reco::cluster_endpt_in_bbox</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1ac3c63c809a3bd91464f25586a3e5962e.html">Function larflow::reco::cluster_from_larflowcluster</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1aad8f94efa820dadfdac624392245db10.html">Function larflow::reco::cluster_getcontours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a91a84c45239a45c358675450507e63f6.html">Function larflow::reco::cluster_imageprojection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a20c54371ccb8466527f47417b6a92a38.html">Function larflow::reco::cluster_json</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a3bef61d5af71821f035d5798ac7ec26a.html">Function larflow::reco::cluster_larflow3dhits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1aaedd7ccaa61d01ad413aa256137a853a.html">Function larflow::reco::cluster_make_pcaxis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1ae206e0ae92eb6748b07fce3c6b63772f.html">Function larflow::reco::cluster_merge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a34eae243b95f52118b044909c47dc42f.html">Function larflow::reco::cluster_pca</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a8aea470a72a95e2ed297f7cd8674e00c.html">Function larflow::reco::cluster_pixelsum</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a6adc4db062f25bd7366a36b1e20ffe53.html">Function larflow::reco::cluster_runpca</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a33e2d503e7f5fae9bb0c6eb7daa46ff9.html">Function larflow::reco::cluster_sdbscan_larflow3dhits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a1fcd109e4a3a36a31b80b5c70b810c11.html">Function larflow::reco::cluster_sdbscan_spacepoints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a6e699bb5c67caab8f3c0550185757b21.html">Function larflow::reco::cluster_spacepoint_v</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_cluster__functions_8cxx_1a1b9a836cfe812bfdcc676b16754b95a7.html">Function larflow::reco::cluster_splitbytrackshower</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1ac3981d124dea17b5ec5710dfe33fedd3.html">Template Function larflow::reco::pointLineDistance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1a3ef958134816174cc7013bfd7cf99c34.html">Function larflow::reco::pointLineDistance3d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1a165747e0e3fde0ecc4fad5ccf3f9aa23.html">Function larflow::reco::pointLineDistance3f</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1ae97dd9a80b534d842eaf44e2fc6ad49e.html">Template Function larflow::reco::pointRayProjection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1a3357a462ab11c6269260fbcce3187e2d.html">Function larflow::reco::pointRayProjection3d</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_geofuncs_8cxx_1af11a0681ddbe1ea883eba4696376aeec.html">Function larflow::reco::pointRayProjection3f</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_ana__showercluster_8cxx_1a35c6e1168bc196e590decc74970ae20e.html">Function main</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#defines">Defines</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="define_LoaderAffinityField_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="define_LoaderKeypointData_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="define_PrepKeypointData_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="define_FlowMatchHitMaker_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="define_PrepMatchTriplets_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="define_VoxelizeTriplets_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Library API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/library_root.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="library-api">
+<h1>Library API<a class="headerlink" href="#library-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="class-hierarchy">
+<h2>Class Hierarchy<a class="headerlink" href="#class-hierarchy" title="Permalink to this headline">¶</a></h2>
+<ul class="treeView" id="class-treeView">
+  <li>
+    <ul class="collapsibleList">
+      <li>Namespace <a href="namespace_larflow.html#namespace-larflow">larflow</a><ul><li>Namespace <a href="namespace_larflow__crtmatch.html#namespace-larflow-crtmatch">larflow::crtmatch</a><ul><li>Class <a href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#exhale-class-classlarflow-1-1crtmatch-1-1CRTHitMatch">CRTHitMatch</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t.html#exhale-struct-structlarflow-1-1crtmatch-1-1CRTHitMatch-1-1match-t">CRTHitMatch::match_t</a></li></ul></li><li>Class <a href="classlarflow_1_1crtmatch_1_1CRTMatch.html#exhale-class-classlarflow-1-1crtmatch-1-1CRTMatch">CRTMatch</a></li><li class="lastChild">Class <a href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#exhale-class-classlarflow-1-1crtmatch-1-1CRTTrackMatch">CRTTrackMatch</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1crtmatch_1_1CRTTrackMatch_1_1crttrack__t.html#exhale-struct-structlarflow-1-1crtmatch-1-1CRTTrackMatch-1-1crttrack-t">CRTTrackMatch::crttrack_t</a></li></ul></li></ul></li><li>Namespace <a href="namespace_larflow__keypoints.html#namespace-larflow-keypoints">larflow::keypoints</a><ul><li>Class <a href="classlarflow_1_1keypoints_1_1KPdata.html#exhale-class-classlarflow-1-1keypoints-1-1KPdata">KPdata</a></li><li>Class <a href="classlarflow_1_1keypoints_1_1LoaderAffinityField.html#exhale-class-classlarflow-1-1keypoints-1-1LoaderAffinityField">LoaderAffinityField</a></li><li>Class <a href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html#exhale-class-classlarflow-1-1keypoints-1-1LoaderKeypointData">LoaderKeypointData</a></li><li>Class <a href="classlarflow_1_1keypoints_1_1PrepAffinityField.html#exhale-class-classlarflow-1-1keypoints-1-1PrepAffinityField">PrepAffinityField</a></li><li class="lastChild">Class <a href="classlarflow_1_1keypoints_1_1PrepKeypointData.html#exhale-class-classlarflow-1-1keypoints-1-1PrepKeypointData">PrepKeypointData</a></li></ul></li><li>Namespace <a href="namespace_larflow__prep.html#namespace-larflow-prep">larflow::prep</a><ul><li>Class <a href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html#exhale-class-classlarflow-1-1prep-1-1FlowMatchHitMaker">FlowMatchHitMaker</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t.html#exhale-struct-structlarflow-1-1prep-1-1FlowMatchHitMaker-1-1match-t">FlowMatchHitMaker::match_t</a></li></ul></li><li>Class <a href="classlarflow_1_1prep_1_1FlowTriples.html#exhale-class-classlarflow-1-1prep-1-1FlowTriples">FlowTriples</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t.html#exhale-struct-structlarflow-1-1prep-1-1FlowTriples-1-1PixData-t">FlowTriples::PixData_t</a></li></ul></li><li>Class <a href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#exhale-class-classlarflow-1-1prep-1-1PrepMatchTriplets">PrepMatchTriplets</a></li><li class="lastChild">Class <a href="classlarflow_1_1prep_1_1WireOverlap.html#exhale-class-classlarflow-1-1prep-1-1WireOverlap">WireOverlap</a></li></ul></li><li>Namespace <a href="namespace_larflow__reco.html#namespace-larflow-reco">larflow::reco</a><ul><li>Struct <a href="structlarflow_1_1reco_1_1cluster__t.html#exhale-struct-structlarflow-1-1reco-1-1cluster-t">cluster_t</a></li><li>Class <a href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#exhale-class-classlarflow-1-1reco-1-1ChooseMaxLArFlowHit">ChooseMaxLArFlowHit</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t.html#exhale-struct-structlarflow-1-1reco-1-1ChooseMaxLArFlowHit-1-1Pixel-t">ChooseMaxLArFlowHit::Pixel_t</a></li></ul></li><li>Class <a href="classlarflow_1_1reco_1_1ClusterFunctions.html#exhale-class-classlarflow-1-1reco-1-1ClusterFunctions">ClusterFunctions</a></li><li>Class <a href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html#exhale-class-classlarflow-1-1reco-1-1CosmicTrackBuilder">CosmicTrackBuilder</a></li><li>Class <a href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html#exhale-class-classlarflow-1-1reco-1-1DBScanLArMatchHits">DBScanLArMatchHits</a></li><li>Class <a href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html#exhale-class-classlarflow-1-1reco-1-1KeypointFilterByClusterSize">KeypointFilterByClusterSize</a></li><li>Class <a href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html#exhale-class-classlarflow-1-1reco-1-1KeypointFilterByWCTagger">KeypointFilterByWCTagger</a></li><li>Class <a href="classlarflow_1_1reco_1_1KeypointReco.html#exhale-class-classlarflow-1-1reco-1-1KeypointReco">KeypointReco</a></li><li>Class <a href="classlarflow_1_1reco_1_1KPCluster.html#exhale-class-classlarflow-1-1reco-1-1KPCluster">KPCluster</a></li><li>Class <a href="classlarflow_1_1reco_1_1KPSRecoManager.html#exhale-class-classlarflow-1-1reco-1-1KPSRecoManager">KPSRecoManager</a></li><li>Class <a href="classlarflow_1_1reco_1_1NuTrackBuilder.html#exhale-class-classlarflow-1-1reco-1-1NuTrackBuilder">NuTrackBuilder</a></li><li>Class <a href="classlarflow_1_1reco_1_1NuVertexCandidate.html#exhale-class-classlarflow-1-1reco-1-1NuVertexCandidate">NuVertexCandidate</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t.html#exhale-struct-structlarflow-1-1reco-1-1NuVertexCandidate-1-1VtxCluster-t">NuVertexCandidate::VtxCluster_t</a></li></ul></li><li>Class <a href="classlarflow_1_1reco_1_1NuVertexFitter.html#exhale-class-classlarflow-1-1reco-1-1NuVertexFitter">NuVertexFitter</a><ul><li class="lastChild">Struct <a href="structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t.html#exhale-struct-structlarflow-1-1reco-1-1NuVertexFitter-1-1Prong-t">NuVertexFitter::Prong_t</a></li></ul></li><li>Class <a href="classlarflow_1_1reco_1_1NuVertexMaker.html#exhale-class-classlarflow-1-1reco-1-1NuVertexMaker">NuVertexMaker</a></li><li>Class <a href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html#exhale-class-classlarflow-1-1reco-1-1ProjectionDefectSplitter">ProjectionDefectSplitter</a></li><li>Class <a href="classlarflow_1_1reco_1_1PyLArFlow.html#exhale-class-classlarflow-1-1reco-1-1PyLArFlow">PyLArFlow</a></li><li>Class <a href="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder.html#exhale-class-classlarflow-1-1reco-1-1ShowerLikelihoodBuilder">ShowerLikelihoodBuilder</a></li><li>Class <a href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#exhale-class-classlarflow-1-1reco-1-1ShowerRecoKeypoint">ShowerRecoKeypoint</a><ul><li>Struct <a href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1Shower__t.html#exhale-struct-structlarflow-1-1reco-1-1ShowerRecoKeypoint-1-1Shower-t">ShowerRecoKeypoint::Shower_t</a></li><li>Struct <a href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerCandidate__t.html#exhale-struct-structlarflow-1-1reco-1-1ShowerRecoKeypoint-1-1ShowerCandidate-t">ShowerRecoKeypoint::ShowerCandidate_t</a></li><li class="lastChild">Struct <a href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t.html#exhale-struct-structlarflow-1-1reco-1-1ShowerRecoKeypoint-1-1ShowerTrunk-t">ShowerRecoKeypoint::ShowerTrunk_t</a></li></ul></li><li>Class <a href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html#exhale-class-classlarflow-1-1reco-1-1SplitHitsBySSNet">SplitHitsBySSNet</a></li><li>Class <a href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#exhale-class-classlarflow-1-1reco-1-1TrackClusterBuilder">TrackClusterBuilder</a><ul><li>Struct <a href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Connection__t.html#exhale-struct-structlarflow-1-1reco-1-1TrackClusterBuilder-1-1Connection-t">TrackClusterBuilder::Connection_t</a></li><li>Struct <a href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t.html#exhale-struct-structlarflow-1-1reco-1-1TrackClusterBuilder-1-1NodePos-t">TrackClusterBuilder::NodePos_t</a></li><li class="lastChild">Struct <a href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Segment__t.html#exhale-struct-structlarflow-1-1reco-1-1TrackClusterBuilder-1-1Segment-t">TrackClusterBuilder::Segment_t</a></li></ul></li><li class="lastChild">Class <a href="classlarflow_1_1reco_1_1TrackOTFit.html#exhale-class-classlarflow-1-1reco-1-1TrackOTFit">TrackOTFit</a></li></ul></li><li>Namespace <a href="namespace_larflow__scb.html#namespace-larflow-scb">larflow::scb</a><ul><li class="lastChild">Class <a href="classlarflow_1_1scb_1_1SCBoundary.html#exhale-class-classlarflow-1-1scb-1-1SCBoundary">SCBoundary</a></li></ul></li><li>Namespace <a href="namespace_larflow__voxelizer.html#namespace-larflow-voxelizer">larflow::voxelizer</a><ul><li class="lastChild">Class <a href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html#exhale-class-classlarflow-1-1voxelizer-1-1VoxelizeTriplets">VoxelizeTriplets</a></li></ul></li><li>Class <a href="classlarflow_1_1LArFlowConstants.html#exhale-class-classlarflow-1-1LArFlowConstants">LArFlowConstants</a></li><li>Enum <a href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html#exhale-enum-namespacelarflow-1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c">FlowDir_t</a></li><li class="lastChild">Enum <a href="enum_namespacelarflow_1a5040311114b69686ad88fc8b58109c89.html#exhale-enum-namespacelarflow-1a5040311114b69686ad88fc8b58109c89">KeyPoint_t</a></li></ul></li>
+    </ul>
+  </li><!-- only tree view element -->
+</ul><!-- /treeView class-treeView --></div>
+<div class="section" id="file-hierarchy">
+<h2>File Hierarchy<a class="headerlink" href="#file-hierarchy" title="Permalink to this headline">¶</a></h2>
+<ul class="treeView" id="file-treeView">
+  <li>
+    <ul class="collapsibleList">
+      <li class="lastChild">Directory <a href="dir_larflow.html#dir-larflow">larflow</a><ul><li>Directory <a href="dir_larflow_CRTMatch.html#dir-larflow-CRTMatch">CRTMatch</a><ul><li>File <a href="file_larflow_CRTMatch_CRTHitMatch.cxx.html#file-larflow-CRTMatch-CRTHitMatch.cxx">CRTHitMatch.cxx</a></li><li>File <a href="file_larflow_CRTMatch_CRTHitMatch.h.html#file-larflow-CRTMatch-CRTHitMatch.h">CRTHitMatch.h</a></li><li>File <a href="file_larflow_CRTMatch_CRTMatch.cxx.html#file-larflow-CRTMatch-CRTMatch.cxx">CRTMatch.cxx</a></li><li>File <a href="file_larflow_CRTMatch_CRTMatch.h.html#file-larflow-CRTMatch-CRTMatch.h">CRTMatch.h</a></li><li>File <a href="file_larflow_CRTMatch_CRTTrackMatch.cxx.html#file-larflow-CRTMatch-CRTTrackMatch.cxx">CRTTrackMatch.cxx</a></li><li>File <a href="file_larflow_CRTMatch_CRTTrackMatch.h.html#file-larflow-CRTMatch-CRTTrackMatch.h">CRTTrackMatch.h</a></li><li>File <a href="file_larflow_CRTMatch_LinkDef.h.html#file-larflow-CRTMatch-LinkDef.h">LinkDef.h</a></li><li class="lastChild">File <a href="file_larflow_CRTMatch_README.md.html#file-larflow-CRTMatch-README.md">README.md</a></li></ul></li><li>Directory <a href="dir_larflow_KeyPoints.html#dir-larflow-KeyPoints">KeyPoints</a><ul><li>File <a href="file_larflow_KeyPoints_KPdata.cxx.html#file-larflow-KeyPoints-KPdata.cxx">KPdata.cxx</a></li><li>File <a href="file_larflow_KeyPoints_KPdata.h.html#file-larflow-KeyPoints-KPdata.h">KPdata.h</a></li><li>File <a href="file_larflow_KeyPoints_LinkDef.h.html#file-larflow-KeyPoints-LinkDef.h">LinkDef.h</a></li><li>File <a href="file_larflow_KeyPoints_LoaderAffinityField.cxx.html#file-larflow-KeyPoints-LoaderAffinityField.cxx">LoaderAffinityField.cxx</a></li><li>File <a href="file_larflow_KeyPoints_LoaderAffinityField.h.html#file-larflow-KeyPoints-LoaderAffinityField.h">LoaderAffinityField.h</a></li><li>File <a href="file_larflow_KeyPoints_LoaderKeypointData.cxx.html#file-larflow-KeyPoints-LoaderKeypointData.cxx">LoaderKeypointData.cxx</a></li><li>File <a href="file_larflow_KeyPoints_LoaderKeypointData.h.html#file-larflow-KeyPoints-LoaderKeypointData.h">LoaderKeypointData.h</a></li><li>File <a href="file_larflow_KeyPoints_PrepAffinityField.cxx.html#file-larflow-KeyPoints-PrepAffinityField.cxx">PrepAffinityField.cxx</a></li><li>File <a href="file_larflow_KeyPoints_PrepAffinityField.h.html#file-larflow-KeyPoints-PrepAffinityField.h">PrepAffinityField.h</a></li><li>File <a href="file_larflow_KeyPoints_PrepKeypointData.cxx.html#file-larflow-KeyPoints-PrepKeypointData.cxx">PrepKeypointData.cxx</a></li><li>File <a href="file_larflow_KeyPoints_PrepKeypointData.h.html#file-larflow-KeyPoints-PrepKeypointData.h">PrepKeypointData.h</a></li><li class="lastChild">File <a href="file_larflow_KeyPoints_README.md.html#file-larflow-KeyPoints-README.md">README.md</a></li></ul></li><li>Directory <a href="dir_larflow_LArFlowConstants.html#dir-larflow-LArFlowConstants">LArFlowConstants</a><ul><li>File <a href="file_larflow_LArFlowConstants_LArFlowConstants.cxx.html#file-larflow-LArFlowConstants-LArFlowConstants.cxx">LArFlowConstants.cxx</a></li><li>File <a href="file_larflow_LArFlowConstants_LArFlowConstants.h.html#file-larflow-LArFlowConstants-LArFlowConstants.h">LArFlowConstants.h</a></li><li class="lastChild">File <a href="file_larflow_LArFlowConstants_LinkDef.h.html#file-larflow-LArFlowConstants-LinkDef.h">LinkDef.h</a></li></ul></li><li>Directory <a href="dir_larflow_PrepFlowMatchData.html#dir-larflow-PrepFlowMatchData">PrepFlowMatchData</a><ul><li>File <a href="file_larflow_PrepFlowMatchData_FlowMatchHitMaker.cxx.html#file-larflow-PrepFlowMatchData-FlowMatchHitMaker.cxx">FlowMatchHitMaker.cxx</a></li><li>File <a href="file_larflow_PrepFlowMatchData_FlowMatchHitMaker.h.html#file-larflow-PrepFlowMatchData-FlowMatchHitMaker.h">FlowMatchHitMaker.h</a></li><li>File <a href="file_larflow_PrepFlowMatchData_FlowTriples.cxx.html#file-larflow-PrepFlowMatchData-FlowTriples.cxx">FlowTriples.cxx</a></li><li>File <a href="file_larflow_PrepFlowMatchData_FlowTriples.h.html#file-larflow-PrepFlowMatchData-FlowTriples.h">FlowTriples.h</a></li><li>File <a href="file_larflow_PrepFlowMatchData_LinkDef.h.html#file-larflow-PrepFlowMatchData-LinkDef.h">LinkDef.h</a></li><li>File <a href="file_larflow_PrepFlowMatchData_PrepMatchTriplets.cxx.html#file-larflow-PrepFlowMatchData-PrepMatchTriplets.cxx">PrepMatchTriplets.cxx</a></li><li>File <a href="file_larflow_PrepFlowMatchData_PrepMatchTriplets.h.html#file-larflow-PrepFlowMatchData-PrepMatchTriplets.h">PrepMatchTriplets.h</a></li><li>File <a href="file_larflow_PrepFlowMatchData_TripletWeights.h.html#file-larflow-PrepFlowMatchData-TripletWeights.h">TripletWeights.h</a></li><li>File <a href="file_larflow_PrepFlowMatchData_WireOverlap.cxx.html#file-larflow-PrepFlowMatchData-WireOverlap.cxx">WireOverlap.cxx</a></li><li class="lastChild">File <a href="file_larflow_PrepFlowMatchData_WireOverlap.h.html#file-larflow-PrepFlowMatchData-WireOverlap.h">WireOverlap.h</a></li></ul></li><li>Directory <a href="dir_larflow_Reco.html#dir-larflow-Reco">Reco</a><ul><li>Directory <a href="dir_larflow_Reco_ana.html#dir-larflow-Reco-ana">ana</a><ul><li class="lastChild">File <a href="file_larflow_Reco_ana_ana_showercluster.cxx.html#file-larflow-Reco-ana-ana-showercluster.cxx">ana_showercluster.cxx</a></li></ul></li><li>File <a href="file_larflow_Reco_ChooseMaxLArFlowHit.cxx.html#file-larflow-Reco-ChooseMaxLArFlowHit.cxx">ChooseMaxLArFlowHit.cxx</a></li><li>File <a href="file_larflow_Reco_ChooseMaxLArFlowHit.h.html#file-larflow-Reco-ChooseMaxLArFlowHit.h">ChooseMaxLArFlowHit.h</a></li><li>File <a href="file_larflow_Reco_cluster_functions.cxx.html#file-larflow-Reco-cluster-functions.cxx">cluster_functions.cxx</a></li><li>File <a href="file_larflow_Reco_cluster_functions.h.html#file-larflow-Reco-cluster-functions.h">cluster_functions.h</a></li><li>File <a href="file_larflow_Reco_CosmicTrackBuilder.cxx.html#file-larflow-Reco-CosmicTrackBuilder.cxx">CosmicTrackBuilder.cxx</a></li><li>File <a href="file_larflow_Reco_CosmicTrackBuilder.h.html#file-larflow-Reco-CosmicTrackBuilder.h">CosmicTrackBuilder.h</a></li><li>File <a href="file_larflow_Reco_DBScanLArMatchHits.cxx.html#file-larflow-Reco-DBScanLArMatchHits.cxx">DBScanLArMatchHits.cxx</a></li><li>File <a href="file_larflow_Reco_DBScanLArMatchHits.h.html#file-larflow-Reco-DBScanLArMatchHits.h">DBScanLArMatchHits.h</a></li><li>File <a href="file_larflow_Reco_geofuncs.cxx.html#file-larflow-Reco-geofuncs.cxx">geofuncs.cxx</a></li><li>File <a href="file_larflow_Reco_geofuncs.h.html#file-larflow-Reco-geofuncs.h">geofuncs.h</a></li><li>File <a href="file_larflow_Reco_KeypointFilterByClusterSize.cxx.html#file-larflow-Reco-KeypointFilterByClusterSize.cxx">KeypointFilterByClusterSize.cxx</a></li><li>File <a href="file_larflow_Reco_KeypointFilterByClusterSize.h.html#file-larflow-Reco-KeypointFilterByClusterSize.h">KeypointFilterByClusterSize.h</a></li><li>File <a href="file_larflow_Reco_KeypointFilterByWCTagger.cxx.html#file-larflow-Reco-KeypointFilterByWCTagger.cxx">KeypointFilterByWCTagger.cxx</a></li><li>File <a href="file_larflow_Reco_KeypointFilterByWCTagger.h.html#file-larflow-Reco-KeypointFilterByWCTagger.h">KeypointFilterByWCTagger.h</a></li><li>File <a href="file_larflow_Reco_KeypointReco.cxx.html#file-larflow-Reco-KeypointReco.cxx">KeypointReco.cxx</a></li><li>File <a href="file_larflow_Reco_KeypointReco.h.html#file-larflow-Reco-KeypointReco.h">KeypointReco.h</a></li><li>File <a href="file_larflow_Reco_KPCluster.cxx.html#file-larflow-Reco-KPCluster.cxx">KPCluster.cxx</a></li><li>File <a href="file_larflow_Reco_KPCluster.h.html#file-larflow-Reco-KPCluster.h">KPCluster.h</a></li><li>File <a href="file_larflow_Reco_KPSRecoManager.cxx.html#file-larflow-Reco-KPSRecoManager.cxx">KPSRecoManager.cxx</a></li><li>File <a href="file_larflow_Reco_KPSRecoManager.h.html#file-larflow-Reco-KPSRecoManager.h">KPSRecoManager.h</a></li><li>File <a href="file_larflow_Reco_LinkDef.h.html#file-larflow-Reco-LinkDef.h">LinkDef.h</a></li><li>File <a href="file_larflow_Reco_NuTrackBuilder.cxx.html#file-larflow-Reco-NuTrackBuilder.cxx">NuTrackBuilder.cxx</a></li><li>File <a href="file_larflow_Reco_NuTrackBuilder.h.html#file-larflow-Reco-NuTrackBuilder.h">NuTrackBuilder.h</a></li><li>File <a href="file_larflow_Reco_NuVertexCandidate.cxx.html#file-larflow-Reco-NuVertexCandidate.cxx">NuVertexCandidate.cxx</a></li><li>File <a href="file_larflow_Reco_NuVertexCandidate.h.html#file-larflow-Reco-NuVertexCandidate.h">NuVertexCandidate.h</a></li><li>File <a href="file_larflow_Reco_NuVertexFitter.cxx.html#file-larflow-Reco-NuVertexFitter.cxx">NuVertexFitter.cxx</a></li><li>File <a href="file_larflow_Reco_NuVertexFitter.h.html#file-larflow-Reco-NuVertexFitter.h">NuVertexFitter.h</a></li><li>File <a href="file_larflow_Reco_NuVertexMaker.cxx.html#file-larflow-Reco-NuVertexMaker.cxx">NuVertexMaker.cxx</a></li><li>File <a href="file_larflow_Reco_NuVertexMaker.h.html#file-larflow-Reco-NuVertexMaker.h">NuVertexMaker.h</a></li><li>File <a href="file_larflow_Reco_ProjectionDefectSplitter.cxx.html#file-larflow-Reco-ProjectionDefectSplitter.cxx">ProjectionDefectSplitter.cxx</a></li><li>File <a href="file_larflow_Reco_ProjectionDefectSplitter.h.html#file-larflow-Reco-ProjectionDefectSplitter.h">ProjectionDefectSplitter.h</a></li><li>File <a href="file_larflow_Reco_PyLArFlow.cxx.html#file-larflow-Reco-PyLArFlow.cxx">PyLArFlow.cxx</a></li><li>File <a href="file_larflow_Reco_PyLArFlow.h.html#file-larflow-Reco-PyLArFlow.h">PyLArFlow.h</a></li><li>File <a href="file_larflow_Reco_README.md.html#file-larflow-Reco-README.md">README.md</a></li><li>File <a href="file_larflow_Reco_ShowerLikelihoodBuilder.cxx.html#file-larflow-Reco-ShowerLikelihoodBuilder.cxx">ShowerLikelihoodBuilder.cxx</a></li><li>File <a href="file_larflow_Reco_ShowerLikelihoodBuilder.h.html#file-larflow-Reco-ShowerLikelihoodBuilder.h">ShowerLikelihoodBuilder.h</a></li><li>File <a href="file_larflow_Reco_ShowerRecoKeypoint.cxx.html#file-larflow-Reco-ShowerRecoKeypoint.cxx">ShowerRecoKeypoint.cxx</a></li><li>File <a href="file_larflow_Reco_ShowerRecoKeypoint.h.html#file-larflow-Reco-ShowerRecoKeypoint.h">ShowerRecoKeypoint.h</a></li><li>File <a href="file_larflow_Reco_SplitHitsBySSNet.cxx.html#file-larflow-Reco-SplitHitsBySSNet.cxx">SplitHitsBySSNet.cxx</a></li><li>File <a href="file_larflow_Reco_SplitHitsBySSNet.h.html#file-larflow-Reco-SplitHitsBySSNet.h">SplitHitsBySSNet.h</a></li><li>File <a href="file_larflow_Reco_TrackClusterBuilder.cxx.html#file-larflow-Reco-TrackClusterBuilder.cxx">TrackClusterBuilder.cxx</a></li><li>File <a href="file_larflow_Reco_TrackClusterBuilder.h.html#file-larflow-Reco-TrackClusterBuilder.h">TrackClusterBuilder.h</a></li><li>File <a href="file_larflow_Reco_TrackOTFit.cxx.html#file-larflow-Reco-TrackOTFit.cxx">TrackOTFit.cxx</a></li><li class="lastChild">File <a href="file_larflow_Reco_TrackOTFit.h.html#file-larflow-Reco-TrackOTFit.h">TrackOTFit.h</a></li></ul></li><li>Directory <a href="dir_larflow_SCBoundary.html#dir-larflow-SCBoundary">SCBoundary</a><ul><li>File <a href="file_larflow_SCBoundary_LinkDef.h.html#file-larflow-SCBoundary-LinkDef.h">LinkDef.h</a></li><li>File <a href="file_larflow_SCBoundary_SCBoundary.cxx.html#file-larflow-SCBoundary-SCBoundary.cxx">SCBoundary.cxx</a></li><li class="lastChild">File <a href="file_larflow_SCBoundary_SCBoundary.h.html#file-larflow-SCBoundary-SCBoundary.h">SCBoundary.h</a></li></ul></li><li class="lastChild">Directory <a href="dir_larflow_Voxelizer.html#dir-larflow-Voxelizer">Voxelizer</a><ul><li>File <a href="file_larflow_Voxelizer_LinkDef.h.html#file-larflow-Voxelizer-LinkDef.h">LinkDef.h</a></li><li>File <a href="file_larflow_Voxelizer_README.md.html#file-larflow-Voxelizer-README.md">README.md</a></li><li>File <a href="file_larflow_Voxelizer_VoxelizeTriplets.cxx.html#file-larflow-Voxelizer-VoxelizeTriplets.cxx">VoxelizeTriplets.cxx</a></li><li class="lastChild">File <a href="file_larflow_Voxelizer_VoxelizeTriplets.h.html#file-larflow-Voxelizer-VoxelizeTriplets.h">VoxelizeTriplets.h</a></li></ul></li></ul></li>
+    </ul>
+  </li><!-- only tree view element -->
+</ul><!-- /treeView file-treeView --></div>
+<div class="section" id="full-api">
+<h2>Full API<a class="headerlink" href="#full-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="namespaces">
+<h3>Namespaces<a class="headerlink" href="#namespaces" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larcv.html">Namespace larcv</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow.html">Namespace larflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow.html#detailed-description">Detailed Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow.html#namespaces">Namespaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow.html#enums">Enums</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__crtmatch.html">Namespace larflow::crtmatch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__crtmatch.html#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__keypoints.html">Namespace larflow::keypoints</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__keypoints.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__keypoints.html#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__prep.html">Namespace larflow::prep</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__prep.html#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__prepdata.html">Namespace larflow::prepdata</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__prepdata.html#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__reco.html">Namespace larflow::reco</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__reco.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__reco.html#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__scb.html">Namespace larflow::scb</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__scb.html#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larflow__voxelizer.html">Namespace larflow::voxelizer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_larflow__voxelizer.html#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larlite.html">Namespace larlite</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_larutil.html">Namespace larutil</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_ublarcvapp.html">Namespace ublarcvapp</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namespace_ublarcvapp.html#namespaces">Namespaces</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_ublarcvapp__mctools.html">Namespace ublarcvapp::mctools</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="classes-and-structs">
+<h3>Classes and Structs<a class="headerlink" href="#classes-and-structs" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t.html">Struct CRTHitMatch::match_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTHitMatch_1_1match__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTTrackMatch_1_1crttrack__t.html">Struct CRTTrackMatch::crttrack_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTTrackMatch_1_1crttrack__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1crtmatch_1_1CRTTrackMatch_1_1crttrack__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t.html">Struct FlowMatchHitMaker::match_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowMatchHitMaker_1_1match__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t.html">Struct FlowTriples::PixData_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1prep_1_1FlowTriples_1_1PixData__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t.html">Struct ChooseMaxLArFlowHit::Pixel_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ChooseMaxLArFlowHit_1_1Pixel__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1cluster__t.html">Struct cluster_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1cluster__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t.html">Struct NuVertexCandidate::VtxCluster_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexCandidate_1_1VtxCluster__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t.html">Struct NuVertexFitter::Prong_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1NuVertexFitter_1_1Prong__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1Shower__t.html">Struct ShowerRecoKeypoint::Shower_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1Shower__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1Shower__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerCandidate__t.html">Struct ShowerRecoKeypoint::ShowerCandidate_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerCandidate__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerCandidate__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t.html">Struct ShowerRecoKeypoint::ShowerTrunk_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1ShowerRecoKeypoint_1_1ShowerTrunk__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Connection__t.html">Struct TrackClusterBuilder::Connection_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Connection__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Connection__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t.html">Struct TrackClusterBuilder::NodePos_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1NodePos__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Segment__t.html">Struct TrackClusterBuilder::Segment_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Segment__t.html#nested-relationships">Nested Relationships</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structlarflow_1_1reco_1_1TrackClusterBuilder_1_1Segment__t.html#struct-documentation">Struct Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html">Class CRTHitMatch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTMatch.html">Class CRTMatch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTMatch.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html">Class CRTTrackMatch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html">Class KPdata</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1KPdata.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderAffinityField.html">Class LoaderAffinityField</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderAffinityField.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html">Class LoaderKeypointData</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1LoaderKeypointData.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html">Class PrepAffinityField</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepAffinityField.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepKeypointData.html">Class PrepKeypointData</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1keypoints_1_1PrepKeypointData.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1LArFlowConstants.html">Class LArFlowConstants</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1LArFlowConstants.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html">Class FlowMatchHitMaker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowMatchHitMaker.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowTriples.html">Class FlowTriples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowTriples.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowTriples.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1FlowTriples.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html">Class PrepMatchTriplets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1prep_1_1WireOverlap.html">Class WireOverlap</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1prep_1_1WireOverlap.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html">Class ChooseMaxLArFlowHit</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ChooseMaxLArFlowHit.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1ClusterFunctions.html">Class ClusterFunctions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ClusterFunctions.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html">Class CosmicTrackBuilder</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1CosmicTrackBuilder.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html">Class DBScanLArMatchHits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1DBScanLArMatchHits.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html">Class KeypointFilterByClusterSize</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByClusterSize.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html">Class KeypointFilterByWCTagger</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointFilterByWCTagger.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointReco.html">Class KeypointReco</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointReco.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointReco.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KeypointReco.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1KPCluster.html">Class KPCluster</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KPCluster.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1KPSRecoManager.html">Class KPSRecoManager</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KPSRecoManager.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1KPSRecoManager.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1KPSRecoManager.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1NuTrackBuilder.html">Class NuTrackBuilder</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuTrackBuilder.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1NuTrackBuilder.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuTrackBuilder.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexCandidate.html">Class NuVertexCandidate</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexCandidate.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexCandidate.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexCandidate.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html">Class NuVertexFitter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexFitter.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexMaker.html">Class NuVertexMaker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexMaker.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexMaker.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1NuVertexMaker.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html">Class ProjectionDefectSplitter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ProjectionDefectSplitter.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1PyLArFlow.html">Class PyLArFlow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1PyLArFlow.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder.html">Class ShowerLikelihoodBuilder</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerLikelihoodBuilder.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html">Class ShowerRecoKeypoint</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1ShowerRecoKeypoint.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html">Class SplitHitsBySSNet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html#base-type">Base Type</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1SplitHitsBySSNet.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html">Class TrackClusterBuilder</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#nested-relationships">Nested Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#nested-types">Nested Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#inheritance-relationships">Inheritance Relationships</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#base-type">Base Type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#derived-types">Derived Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackOTFit.html">Class TrackOTFit</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1reco_1_1TrackOTFit.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1scb_1_1SCBoundary.html">Class SCBoundary</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1scb_1_1SCBoundary.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html">Class VoxelizeTriplets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classlarflow_1_1voxelizer_1_1VoxelizeTriplets.html#class-documentation">Class Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="enums">
+<h3>Enums<a class="headerlink" href="#enums" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html">Enum FlowDir_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html#enum-documentation">Enum Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="enum_namespacelarflow_1a5040311114b69686ad88fc8b58109c89.html">Enum KeyPoint_t</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enum_namespacelarflow_1a5040311114b69686ad88fc8b58109c89.html#enum-documentation">Enum Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_KPdata_8cxx_1a5036487d128dae528d1f68ee3e90773a.html">Function larflow::keypoints::kpdata_compare_x</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_KPdata_8cxx_1a5036487d128dae528d1f68ee3e90773a.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_KPdata_8cxx_1a59dfbdb4a712cd81ab43ff41d7b82a07.html">Function larflow::keypoints::kpdata_compare_y</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_KPdata_8cxx_1a59dfbdb4a712cd81ab43ff41d7b82a07.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a.html">Function larflow::keypoints::kpdata_compare_z</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d.html">Function larflow::prepdata::calculate_weight_from_mc</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_TripletWeights_8h_1a89ddd0ac57b6363365e004201d5c902d.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a2af2adbf3256e22e8da39389813518f5.html">Function larflow::reco::cluster_closest_endpt_dist</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a2af2adbf3256e22e8da39389813518f5.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a6711910cbcd13177ea71333a6296d86b.html">Function larflow::reco::cluster_cospca</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a6711910cbcd13177ea71333a6296d86b.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1af4c87d0da6976c8080fdbfc2d44f7d0c.html">Function larflow::reco::cluster_dist_from_pcaline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1af4c87d0da6976c8080fdbfc2d44f7d0c.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a070d734e823394c1276c0f350b87f56b.html">Function larflow::reco::cluster_dump2jsonfile</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a070d734e823394c1276c0f350b87f56b.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1ac637f92dc4692b32cf1917cc8ec26f06.html">Function larflow::reco::cluster_endpt_in_bbox</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1ac637f92dc4692b32cf1917cc8ec26f06.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1ac3c63c809a3bd91464f25586a3e5962e.html">Function larflow::reco::cluster_from_larflowcluster</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1ac3c63c809a3bd91464f25586a3e5962e.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1aad8f94efa820dadfdac624392245db10.html">Function larflow::reco::cluster_getcontours</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1aad8f94efa820dadfdac624392245db10.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a91a84c45239a45c358675450507e63f6.html">Function larflow::reco::cluster_imageprojection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a91a84c45239a45c358675450507e63f6.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a20c54371ccb8466527f47417b6a92a38.html">Function larflow::reco::cluster_json</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a20c54371ccb8466527f47417b6a92a38.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a3bef61d5af71821f035d5798ac7ec26a.html">Function larflow::reco::cluster_larflow3dhits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a3bef61d5af71821f035d5798ac7ec26a.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1aaedd7ccaa61d01ad413aa256137a853a.html">Function larflow::reco::cluster_make_pcaxis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1aaedd7ccaa61d01ad413aa256137a853a.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1ae206e0ae92eb6748b07fce3c6b63772f.html">Function larflow::reco::cluster_merge</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1ae206e0ae92eb6748b07fce3c6b63772f.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a34eae243b95f52118b044909c47dc42f.html">Function larflow::reco::cluster_pca</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a34eae243b95f52118b044909c47dc42f.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a8aea470a72a95e2ed297f7cd8674e00c.html">Function larflow::reco::cluster_pixelsum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a8aea470a72a95e2ed297f7cd8674e00c.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a6adc4db062f25bd7366a36b1e20ffe53.html">Function larflow::reco::cluster_runpca</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a6adc4db062f25bd7366a36b1e20ffe53.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a33e2d503e7f5fae9bb0c6eb7daa46ff9.html">Function larflow::reco::cluster_sdbscan_larflow3dhits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a33e2d503e7f5fae9bb0c6eb7daa46ff9.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a1fcd109e4a3a36a31b80b5c70b810c11.html">Function larflow::reco::cluster_sdbscan_spacepoints</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a1fcd109e4a3a36a31b80b5c70b810c11.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a6e699bb5c67caab8f3c0550185757b21.html">Function larflow::reco::cluster_spacepoint_v</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a6e699bb5c67caab8f3c0550185757b21.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_cluster__functions_8cxx_1a1b9a836cfe812bfdcc676b16754b95a7.html">Function larflow::reco::cluster_splitbytrackshower</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_cluster__functions_8cxx_1a1b9a836cfe812bfdcc676b16754b95a7.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1ac3981d124dea17b5ec5710dfe33fedd3.html">Template Function larflow::reco::pointLineDistance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1ac3981d124dea17b5ec5710dfe33fedd3.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1a3ef958134816174cc7013bfd7cf99c34.html">Function larflow::reco::pointLineDistance3d</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1a3ef958134816174cc7013bfd7cf99c34.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1a165747e0e3fde0ecc4fad5ccf3f9aa23.html">Function larflow::reco::pointLineDistance3f</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1a165747e0e3fde0ecc4fad5ccf3f9aa23.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1ae97dd9a80b534d842eaf44e2fc6ad49e.html">Template Function larflow::reco::pointRayProjection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1ae97dd9a80b534d842eaf44e2fc6ad49e.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1a3357a462ab11c6269260fbcce3187e2d.html">Function larflow::reco::pointRayProjection3d</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1a3357a462ab11c6269260fbcce3187e2d.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_geofuncs_8cxx_1af11a0681ddbe1ea883eba4696376aeec.html">Function larflow::reco::pointRayProjection3f</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_geofuncs_8cxx_1af11a0681ddbe1ea883eba4696376aeec.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="function_ana__showercluster_8cxx_1a35c6e1168bc196e590decc74970ae20e.html">Function main</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="function_ana__showercluster_8cxx_1a35c6e1168bc196e590decc74970ae20e.html#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="defines">
+<h3>Defines<a class="headerlink" href="#defines" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_LoaderAffinityField_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_LoaderAffinityField_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_LoaderKeypointData_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_LoaderKeypointData_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_PrepKeypointData_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_PrepKeypointData_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_FlowMatchHitMaker_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_FlowMatchHitMaker_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_PrepMatchTriplets_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_PrepMatchTriplets_8cxx_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="define_VoxelizeTriplets_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html">Define NPY_NO_DEPRECATED_API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define_VoxelizeTriplets_8h_1ab6e6ee86736f9ebb56e74ae21bf3ff8a.html#define-documentation">Define Documentation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="namespace_larcv.html" class="btn btn-neutral float-right" title="Namespace larcv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../index.html" class="btn btn-neutral float-left" title="LArFlow Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+.. _exhale_function_bvhnode__t_8cxx_1a06d2b91f282036333db0c541226511ae:
+
+Function larflow::keypoints::compare_x
+======================================
+
+- Defined in :ref:`file_larflow_KeyPoints_arxiv_bvhnode_t.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::keypoints::compare_x(const bvhnode_t *, const bvhnode_t *)

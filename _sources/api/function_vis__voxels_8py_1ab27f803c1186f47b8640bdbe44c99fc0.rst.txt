@@ -1,0 +1,13 @@
+.. _exhale_function_vis__voxels_8py_1ab27f803c1186f47b8640bdbe44c99fc0:
+
+Function vis_voxels::make_figures
+=================================
+
+- Defined in :ref:`file_larflow_Voxelizer_test_vis_voxels.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_voxels::make_figures(entry, plotby, minprob)

@@ -1,0 +1,911 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File cluster_functions.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File cluster_functions.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_cluster_functions.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-cluster-functions-cxx">
+<span id="program-listing-file-larflow-reco-cluster-functions-cxx"></span><h1>Program Listing for File cluster_functions.cxx<a class="headerlink" href="#program-listing-for-file-cluster-functions-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_cluster_functions.cxx.html#file-larflow-reco-cluster-functions-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/cluster_functions.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;cluster_functions.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/dbscan/DBScan.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/dbscan/sDBScan.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/ContourTools/ContourClusterAlgo.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;cilantro/principal_component_analysis.hpp&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+  <span class="n">ClusterFunctions</span><span class="o">::</span><span class="n">ClusterFunctions</span><span class="p">()</span> <span class="p">{}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_larflow3dhits</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                              <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                              <span class="k">const</span> <span class="kt">float</span> <span class="n">maxdist</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">minsize</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">maxkd</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// convert points into list of floats</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">points_v</span><span class="p">;</span>
+    <span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">hit_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span> <span class="o">&gt;</span> <span class="n">hit</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">lfhit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">lfhit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+
+    <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">dbCluster</span> <span class="o">&gt;</span> <span class="n">dbcluster_v</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">DBScan</span><span class="o">::</span><span class="n">makeCluster3f</span><span class="p">(</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">minsize</span><span class="p">,</span> <span class="n">maxkd</span><span class="p">,</span> <span class="n">points_v</span> <span class="p">);</span>
+
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ic</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ic</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="n">ic</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// skip the last cluster, which are noise points</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">dbcluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">];</span>
+      <span class="n">cluster_t</span> <span class="n">c</span><span class="p">;</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hitidx</span> <span class="p">:</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// store 3d position and 2D image coordinates</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">points_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">hitidx</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">coord</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">tick</span><span class="p">;</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="c1">// U-plane</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// V-plane</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">srcwire</span><span class="p">;</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord</span> <span class="p">);</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">hitidx</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_larflow3dhit] made clusters: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; elpased=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_spacepoint_v</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">points_v</span><span class="p">,</span>
+                             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                             <span class="k">const</span> <span class="kt">float</span> <span class="n">maxdist</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">minsize</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">maxkd</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">dbCluster</span> <span class="o">&gt;</span> <span class="n">dbcluster_v</span>
+      <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">DBScan</span><span class="o">::</span><span class="n">makeCluster3f</span><span class="p">(</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">minsize</span><span class="p">,</span> <span class="n">maxkd</span><span class="p">,</span> <span class="n">points_v</span> <span class="p">);</span>
+
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ic</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ic</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="n">ic</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// skip the last cluster, which are noise points</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">dbcluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">];</span>
+      <span class="n">cluster_t</span> <span class="n">c</span><span class="p">;</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="c1">//c.imgcoord_v.reserve(cluster.size());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hitidx</span> <span class="p">:</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// store 3d position and 2D image coordinates</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">points_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">hitidx</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">hitidx</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_spacepoint] made clusters: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; elpased=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">cluster_sdbscan_larflow3dhits</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                                      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                                      <span class="k">const</span> <span class="kt">float</span> <span class="n">maxdist</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">minsize</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">maxkd</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+    <span class="c1">// convert points into list of floats</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">points_v</span><span class="p">;</span>
+    <span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">hit_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">hit</span> <span class="o">=</span> <span class="p">{</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">auto</span> <span class="n">sdbscan</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">SDBSCAN</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">float</span> <span class="o">&gt;</span><span class="p">();</span>
+    <span class="n">sdbscan</span><span class="p">.</span><span class="n">Run</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">points_v</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">minsize</span> <span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">noise</span> <span class="o">=</span> <span class="n">sdbscan</span><span class="p">.</span><span class="n">Noise</span><span class="p">;</span>
+    <span class="k">auto</span> <span class="n">dbcluster_v</span> <span class="o">=</span> <span class="n">sdbscan</span><span class="p">.</span><span class="n">Clusters</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ic</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ic</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="n">ic</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// skip the last cluster, which are noise points</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">dbcluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">];</span>
+      <span class="n">cluster_t</span> <span class="n">c</span><span class="p">;</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hitidx</span> <span class="p">:</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// store 3d position and 2D image coordinates</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">points_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">hitidx</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">coord</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">tick</span><span class="p">;</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="c1">// U-plane</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// V-plane</span>
+        <span class="n">coord</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hit_v</span><span class="p">[</span><span class="n">hitidx</span><span class="p">].</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">// Y-plane</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord</span> <span class="p">);</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">hitidx</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_simple_larflow3dhits] made clusters: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; elpased=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_sdbscan_spacepoints</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                                    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">cluster_t</span> <span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span>
+                                    <span class="k">const</span> <span class="kt">float</span> <span class="n">maxdist</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">minsize</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">maxkd</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+    <span class="c1">// convert points into list of floats</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">points_v</span><span class="p">;</span>
+    <span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">hit_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">hit</span> <span class="o">=</span> <span class="p">{</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">auto</span> <span class="n">sdbscan</span> <span class="o">=</span> <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">dbscan</span><span class="o">::</span><span class="n">SDBSCAN</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">float</span> <span class="o">&gt;</span><span class="p">();</span>
+    <span class="n">sdbscan</span><span class="p">.</span><span class="n">Run</span><span class="p">(</span> <span class="o">&amp;</span><span class="n">points_v</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">maxdist</span><span class="p">,</span> <span class="n">minsize</span> <span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">noise</span> <span class="o">=</span> <span class="n">sdbscan</span><span class="p">.</span><span class="n">Noise</span><span class="p">;</span>
+    <span class="k">auto</span> <span class="n">dbcluster_v</span> <span class="o">=</span> <span class="n">sdbscan</span><span class="p">.</span><span class="n">Clusters</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ic</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ic</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="n">ic</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// skip the last cluster, which are noise points</span>
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">dbcluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">];</span>
+      <span class="n">cluster_t</span> <span class="n">c</span><span class="p">;</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hitidx</span> <span class="p">:</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// store 3d position and 2D image coordinates</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">points_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">hitidx</span><span class="p">)</span> <span class="p">);</span>
+        <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">hitidx</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+    <span class="p">}</span>
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_sdbscan_spacepoints] made clusters: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dbcluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; elpased=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">//std::cout &lt;&lt; &quot;[cluster_pca]&quot; &lt;&lt; std::endl;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>  <span class="c1">// initial min value</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0e9</span><span class="p">;</span> <span class="c1">// initial max value</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">Eigen</span><span class="o">::</span><span class="n">Vector3f</span> <span class="o">&gt;</span> <span class="n">eigen_v</span><span class="p">;</span>
+    <span class="n">eigen_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// store values for PCA</span>
+      <span class="n">eigen_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">Eigen</span><span class="o">::</span><span class="n">Vector3f</span><span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">)</span> <span class="p">);</span>
+      <span class="c1">// also determine axis-aligned bounding box values</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span> <span class="n">cluster</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">hit</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+
+    <span class="n">cilantro</span><span class="o">::</span><span class="n">PrincipalComponentAnalysis3f</span> <span class="n">pca</span><span class="p">(</span> <span class="n">eigen_v</span> <span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pca</span><span class="p">.</span><span class="n">getDataMean</span><span class="p">()(</span><span class="n">i</span><span class="p">);</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pca</span><span class="p">.</span><span class="n">getEigenValues</span><span class="p">()(</span><span class="n">i</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">e_v</span> <span class="o">=</span> <span class="p">{</span> <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()(</span><span class="mi">0</span><span class="p">,</span><span class="n">i</span><span class="p">),</span>
+                                 <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()(</span><span class="mi">1</span><span class="p">,</span><span class="n">i</span><span class="p">),</span>
+                                 <span class="n">pca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()(</span><span class="mi">2</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="p">};</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">e_v</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="c1">// we provide a way to order the points</span>
+    <span class="k">struct</span> <span class="n">pca_coord</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">s</span><span class="p">;</span>
+      <span class="kt">bool</span> <span class="k">operator</span><span class="o">&lt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">pca_coord</span><span class="o">&amp;</span> <span class="n">rhs</span> <span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&lt;</span><span class="n">rhs</span><span class="p">.</span><span class="n">s</span><span class="p">)</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+
+    <span class="c1">// normalize first axis (should be though)</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">ipca</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipca</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">ipca</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">lenpc</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lenpc</span> <span class="o">+=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="n">ipca</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="n">ipca</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">lenpc</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">lenpc</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">lenpc</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+          <span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="n">ipca</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">lenpc</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">pca_coord</span> <span class="o">&gt;</span> <span class="n">ordered_v</span><span class="p">;</span>
+    <span class="n">ordered_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">idx</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">idx</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">s</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="n">pca_coord</span> <span class="n">coord</span><span class="p">;</span>
+      <span class="n">coord</span><span class="p">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+      <span class="n">coord</span><span class="p">.</span><span class="n">s</span>   <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+      <span class="n">ordered_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">ordered_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">ordered_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">ordered_idx_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">ordered_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_proj_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">ordered_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">ordered_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">ordered_idx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ordered_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">idx</span><span class="p">;</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_proj_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>    <span class="o">=</span> <span class="n">ordered_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">s</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// define ends</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_proj_v</span><span class="p">.</span><span class="n">front</span><span class="p">()</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_proj_v</span><span class="p">.</span><span class="n">back</span><span class="p">()</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="kt">float</span> <span class="n">len3</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d3</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">d3</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len3</span> <span class="o">+=</span> <span class="n">d3</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d3</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len3</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len3</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_len</span> <span class="o">=</span> <span class="n">len3</span><span class="p">;</span>
+
+    <span class="c1">// define radius of each point to the pca-axis</span>
+    <span class="kt">float</span> <span class="n">max_r</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">ave_r2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span> <span class="n">ordered_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">ordered_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// get distance of point from pca-axis</span>
+      <span class="c1">// http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pt</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span> <span class="n">ordered_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">idx</span> <span class="p">];</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d1</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+
+      <span class="kt">float</span> <span class="n">len1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">d2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">len1</span> <span class="o">+=</span> <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="n">len1</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">len3</span><span class="o">&lt;</span><span class="mf">1.0e-4</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">len1</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+
+        <span class="c1">// cross-product</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d1xd2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+        <span class="n">d1xd2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+        <span class="n">d1xd2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+        <span class="n">d1xd2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+        <span class="kt">float</span> <span class="n">len1x2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">len1x2</span> <span class="o">+=</span> <span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="n">len1x2</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1x2</span><span class="p">);</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">=</span> <span class="n">len1x2</span><span class="o">/</span><span class="n">len3</span><span class="p">;</span> <span class="c1">// distance of point from PCA-axis</span>
+      <span class="p">}</span>
+      <span class="n">ave_r2</span> <span class="o">+=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">max_r</span> <span class="o">&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span>
+        <span class="n">max_r</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+    <span class="p">}</span><span class="c1">//end of loop over ordered points</span>
+
+    <span class="n">ave_r2</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span> <span class="n">ave_r2</span><span class="o">/</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_radius_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_max_r</span>  <span class="o">=</span> <span class="n">max_r</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ave_r2</span> <span class="o">=</span> <span class="n">ave_r2</span><span class="p">;</span>
+
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_runpca</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">cluster</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ cluster_runpca ] elapsed=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_dump2jsonfile</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cluster_t</span><span class="o">&gt;&amp;</span> <span class="n">cluster_v</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfilename</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">j</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="o">&gt;</span> <span class="n">jcluster_v</span><span class="p">;</span>
+    <span class="n">j</span><span class="p">[</span><span class="s">&quot;clusters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jcluster_v</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//std::cout &lt;&lt; &quot;cluster: nhits=&quot; &lt;&lt; cluster.points_v.size() &lt;&lt; std::endl;</span>
+      <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">jcluster</span> <span class="o">=</span> <span class="n">cluster_json</span><span class="p">(</span><span class="n">cluster</span><span class="p">);</span>
+      <span class="n">j</span><span class="p">[</span><span class="s">&quot;clusters&quot;</span><span class="p">].</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">jcluster</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">o</span><span class="p">(</span><span class="n">outfilename</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+    <span class="n">j</span> <span class="o">&gt;&gt;</span> <span class="n">o</span><span class="p">;</span>
+    <span class="n">o</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">cluster_json</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span> <span class="n">jcluster</span><span class="p">;</span>
+    <span class="n">jcluster</span><span class="p">[</span><span class="s">&quot;hits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">points_v</span><span class="p">;</span>
+
+    <span class="c1">// save start, center, end of pca to make line</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">pca_points</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">pca_points</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">pca_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span><span class="c1">// - 5.0*cluster.pca_axis_v[0][i];</span>
+      <span class="n">pca_points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">pca_points</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">];</span><span class="c1">// + 5.0*cluster.pca_axis_v[0][i];</span>
+    <span class="p">}</span>
+    <span class="n">jcluster</span><span class="p">[</span><span class="s">&quot;pca&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pca_points</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">jcluster</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">cluster_splitbytrackshower</span><span class="p">(</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">hit_v</span><span class="p">,</span>
+                                   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">ssnettrack_image_v</span><span class="p">,</span>
+                                   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">track_hit_v</span><span class="p">,</span>
+                                   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larlite</span><span class="o">::</span><span class="n">larflow3dhit</span><span class="o">&gt;&amp;</span> <span class="n">shower_hit_v</span><span class="p">,</span>
+                                   <span class="kt">float</span> <span class="n">min_larmatch_score</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="kt">clock_t</span> <span class="n">begin</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+    <span class="n">track_hit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">shower_hit_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">track_hit_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span>  <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">shower_hit_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="k">const</span> <span class="n">larcv</span><span class="o">::</span><span class="n">ImageMeta</span><span class="o">*</span> <span class="o">&gt;</span> <span class="n">meta_v</span><span class="p">(</span> <span class="n">ssnettrack_image_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">ssnettrack_image_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span>
+      <span class="n">meta_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="p">(</span><span class="n">ssnettrack_image_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">());</span>
+
+    <span class="kt">int</span> <span class="n">below_threshold</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span> <span class="o">&amp;</span> <span class="nl">hit</span> <span class="p">:</span> <span class="n">hit_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">//std::cout &lt;&lt; &quot;hit[9]=&quot; &lt;&lt; hit[9] &lt;&lt; std::endl;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">min_larmatch_score</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">hit</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;=</span><span class="mi">10</span> <span class="o">&amp;&amp;</span> <span class="n">hit</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span><span class="o">&lt;</span><span class="n">min_larmatch_score</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">below_threshold</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">scores</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnettrack_image_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnettrack_image_v</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="n">scores</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssnettrack_image_v</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span> <span class="n">meta_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">row</span><span class="p">(</span> <span class="n">hit</span><span class="p">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span> <span class="n">hit</span><span class="p">.</span><span class="n">srcwire</span><span class="p">,</span>       <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+
+      <span class="c1">// condition ... gather metrics</span>
+      <span class="kt">int</span> <span class="n">n_w_score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">tot_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">max_score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">min_non_zero</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="nl">s</span> <span class="p">:</span> <span class="n">scores</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="n">n_w_score</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">tot_score</span> <span class="o">+=</span> <span class="n">s</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">max_score</span><span class="o">&lt;</span><span class="n">s</span> <span class="p">)</span>
+          <span class="n">max_score</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&gt;</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">s</span><span class="o">&lt;</span><span class="n">min_non_zero</span> <span class="p">)</span>
+          <span class="n">min_non_zero</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">n_w_score</span><span class="o">&gt;</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">tot_score</span><span class="o">/</span><span class="kt">float</span><span class="p">(</span><span class="n">n_w_score</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">0.5</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">track_hit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span>
+        <span class="n">shower_hit_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">hit</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kt">clock_t</span> <span class="n">end</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">begin</span><span class="p">)</span><span class="o">/</span><span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_split_by_trackshower]: &quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot;original=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; into track=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">track_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; and shower=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">shower_hit_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; below-threshold=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">below_threshold</span>
+              <span class="o">&lt;&lt;</span> <span class="s">&quot; elasped=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; secs&quot;</span>
+              <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_imageprojection</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">clust2d_images_v</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// zero the images</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">clust2d_images_v</span> <span class="p">)</span>
+      <span class="n">img</span><span class="p">.</span><span class="n">paint</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">imgcoord</span> <span class="p">:</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">clust2d_images_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">img</span><span class="p">.</span><span class="n">set_pixel</span><span class="p">(</span> <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">imgcoord</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span>
+                       <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">imgcoord</span><span class="p">[</span><span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">()],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">),</span>
+                       <span class="mf">50.0</span> <span class="cm">/* dummy value */</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">cluster_getcontours</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">clust2d_images_v</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">ContourClusterAlgo</span> <span class="n">contour_algo</span><span class="p">;</span>
+    <span class="n">contour_algo</span><span class="p">.</span><span class="n">analyzeImages</span><span class="p">(</span> <span class="n">clust2d_images_v</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">2</span> <span class="p">);</span>
+
+    <span class="c1">// contours made. now what.</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">ncontours</span> <span class="o">=</span> <span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomics_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">size</span><span class="p">();</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_getcontours] ncontours plane[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] = &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ncontours</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ictr</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ictr</span><span class="o">&lt;</span><span class="n">ncontours</span><span class="p">;</span> <span class="n">ictr</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">ictr</span><span class="p">].</span><span class="n">hasValidPCA</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  icontour[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ictr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] pca not valid&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">// dist from start-end of pca-axis</span>
+        <span class="kt">float</span> <span class="n">pca_dist</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">dx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span> <span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">ictr</span><span class="p">].</span><span class="n">getPCAEndPos</span><span class="p">()[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span>
+                 <span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">ictr</span><span class="p">].</span><span class="n">getPCAStartPos</span><span class="p">()[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">pca_dist</span> <span class="o">+=</span> <span class="n">dx</span><span class="o">*</span><span class="n">dx</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">pca_dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pca_dist</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  icontour[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ictr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; pca-dist=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pca_dist</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; eigenvals [0]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">ictr</span><span class="p">].</span><span class="n">getPCAeigenvalue</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                  <span class="o">&lt;&lt;</span> <span class="s">&quot; [1]=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">contour_algo</span><span class="p">.</span><span class="n">m_plane_atomicmeta_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">ictr</span><span class="p">].</span><span class="n">getPCAeigenvalue</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">cluster_closest_endpt_dist</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_a</span><span class="p">,</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_b</span><span class="p">,</span>
+                                    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">endpts</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// 2x2 calculation</span>
+
+    <span class="kt">float</span> <span class="n">dist</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">k</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">dist</span><span class="p">[</span> <span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="n">j</span> <span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">clust_a</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">clust_a</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">]);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">float</span> <span class="n">mindist</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">mini</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">minj</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">k</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">&lt;</span><span class="n">mindist</span> <span class="o">||</span> <span class="n">mindist</span><span class="o">&lt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">mindist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
+        <span class="n">mini</span> <span class="o">=</span> <span class="n">k</span><span class="o">/</span><span class="mi">2</span><span class="p">;</span>
+        <span class="n">minj</span> <span class="o">=</span> <span class="n">k</span><span class="o">%</span><span class="mi">2</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">endpts</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+    <span class="n">endpts</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">endpts</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">k</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">endpts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">clust_a</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">mini</span><span class="p">][</span><span class="n">k</span><span class="p">];</span>
+      <span class="n">endpts</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">minj</span><span class="p">][</span><span class="n">k</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">mindist</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span>
+      <span class="n">mindist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">mindist</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">mindist</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">cluster_endpt_in_bbox</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_a</span><span class="p">,</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_b</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="kt">bool</span> <span class="n">a_in_b</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">b_in_a</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iend</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">iend</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">;</span> <span class="n">iend</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">dims_inside</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">clust_a</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;=</span><span class="n">clust_b</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">clust_a</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;=</span><span class="n">clust_b</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span>
+          <span class="n">dims_inside</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dims_inside</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+        <span class="n">a_in_b</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+
+      <span class="n">dims_inside</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;=</span><span class="n">clust_a</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="n">iend</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;=</span><span class="n">clust_a</span><span class="p">.</span><span class="n">bbox_v</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span>
+          <span class="n">dims_inside</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">dims_inside</span><span class="o">==</span><span class="mi">3</span> <span class="p">)</span>
+        <span class="n">b_in_a</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">a_in_b</span> <span class="o">||</span> <span class="n">b_in_a</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">cluster_cospca</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_a</span><span class="p">,</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_b</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="kt">float</span> <span class="n">cospca</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">lena</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">lenb</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">k</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">cospca</span> <span class="o">+=</span> <span class="n">clust_a</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">*</span><span class="n">clust_b</span><span class="p">.</span><span class="n">pca_axis_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">cospca</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">cluster_t</span> <span class="n">cluster_merge</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_a</span><span class="p">,</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">clust_b</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// copy first</span>
+    <span class="n">cluster_t</span> <span class="n">merge</span> <span class="o">=</span> <span class="n">clust_a</span><span class="p">;</span>
+
+    <span class="n">merge</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span>   <span class="n">merge</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">+</span><span class="n">clust_b</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">merge</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">merge</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">+</span><span class="n">clust_b</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">merge</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">merge</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">+</span><span class="n">clust_b</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">clust_b</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">merge</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>   <span class="n">clust_b</span><span class="p">.</span><span class="n">points_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">merge</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">merge</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">clust_b</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">merge</span> <span class="p">);</span>
+    <span class="k">return</span> <span class="n">merge</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">cluster_make_pcaxis</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">c</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cidx</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// pca-axis</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">::</span><span class="n">EigenVectors</span> <span class="n">e_v</span><span class="p">;</span>
+    <span class="c1">// just std::vector&lt; std::vector&lt;double&gt; &gt;</span>
+    <span class="c1">// we store axes (3) and then the 1st axis end points. So five vectors.</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">a_v</span> <span class="p">:</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_axis_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">da_v</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">a_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">a_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span> <span class="n">a_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+        <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">da_v</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="c1">// start and end points</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">p_v</span> <span class="p">:</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_ends_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dp_v</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">p_v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">e_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">dp_v</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="kt">double</span> <span class="n">eigenval</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_eigenvalues</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+    <span class="kt">double</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">.</span><span class="n">pca_center</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span> <span class="n">llpca</span><span class="p">(</span> <span class="nb">true</span><span class="p">,</span> <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">eigenval</span><span class="p">,</span> <span class="n">e_v</span><span class="p">,</span> <span class="n">centroid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cidx</span> <span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">llpca</span><span class="p">;</span>
+  <span class="p">}</span>
+
+
+  <span class="n">cluster_t</span> <span class="n">cluster_from_larflowcluster</span><span class="p">(</span> <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span><span class="o">&amp;</span> <span class="n">lfcluster</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[cluster_from_larflowcluster] input cluster size=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">lfcluster</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">cluster_t</span> <span class="n">c</span><span class="p">;</span>
+    <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">2</span><span class="o">*</span><span class="n">lfcluster</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">2</span><span class="o">*</span><span class="n">lfcluster</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="mi">2</span><span class="o">*</span><span class="n">lfcluster</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">lfhit</span> <span class="p">:</span> <span class="n">lfcluster</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">//if ( lfhit.size()&lt;3 ) continue;</span>
+      <span class="c1">//if ( lfhit.targetwire.size()&lt;3 ) continue;</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;lfhit: &quot; &lt;&lt; lfhit[0] &lt;&lt; &quot;,&quot; &lt;&lt; lfhit[1] &lt;&lt; &quot;,&quot; &lt;&lt; lfhit[2] &lt;&lt; std::endl;</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;   coord=(&quot; &lt;&lt; lfhit.targetwire[0] &lt;&lt; &quot;,&quot; &lt;&lt; lfhit.targetwire[1] &lt;&lt; &quot;,&quot; &lt;&lt; lfhit.targetwire[2] &lt;&lt; &quot;)&quot; &lt;&lt; std::endl;</span>
+      <span class="c1">// std::cout &lt;&lt; &quot;   tick=&quot; &lt;&lt; lfhit.tick &lt;&lt; std::endl;</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pos</span>   <span class="o">=</span> <span class="p">{</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lfhit</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>   <span class="n">coord</span> <span class="o">=</span> <span class="p">{</span> <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                   <span class="n">lfhit</span><span class="p">.</span><span class="n">targetwire</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                   <span class="n">lfhit</span><span class="p">.</span><span class="n">tick</span> <span class="p">};</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">pos</span> <span class="p">);</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">coord</span> <span class="p">);</span>
+      <span class="n">c</span><span class="p">.</span><span class="n">hitidx_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">c</span><span class="p">.</span><span class="n">points_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">cluster_pca</span><span class="p">(</span> <span class="n">c</span> <span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">c</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="cm">/*</span>
+<span class="cm">   * @brief project hits into the ADC image and get the total pixel sum for each plane</span>
+<span class="cm">   *</span>
+<span class="cm">   * @param[in] cluster Cluster whose hits we project. (Note we use cluster_t::imgcoord).</span>
+<span class="cm">   * @param[in] img_v   Wire plane image to get the charge sum from.</span>
+<span class="cm">   * @return charge sum on each plane.</span>
+<span class="cm">   *</span>
+<span class="cm">   */</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">cluster_pixelsum</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;&amp;</span> <span class="n">img_v</span>  <span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">cluster_adc</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">0.0</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span><span class="o">&gt;</span> <span class="n">blank_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">img_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">larcv</span><span class="o">::</span><span class="n">Image2D</span> <span class="n">blank</span><span class="p">(</span><span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">());</span>
+      <span class="n">blank</span><span class="p">.</span><span class="n">paint</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="n">blank_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">blank</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">ihit</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ihit</span><span class="o">&lt;</span><span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ihit</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">img_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="n">img_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">img_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">imgcoord_v</span><span class="p">[</span><span class="n">ihit</span><span class="p">][</span><span class="n">p</span><span class="p">],</span> <span class="n">__FILE__</span><span class="p">,</span> <span class="n">__LINE__</span> <span class="p">);</span>
+        <span class="kt">float</span> <span class="n">used</span>   <span class="o">=</span> <span class="n">blank_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used</span><span class="o">&lt;</span><span class="mf">1.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">pixval</span> <span class="o">=</span> <span class="n">img_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">);</span>
+          <span class="n">cluster_adc</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pixval</span><span class="p">;</span>
+          <span class="c1">// mark it to not be reused</span>
+          <span class="n">blank_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">set_pixel</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">,</span><span class="mf">10.0</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">cluster_adc</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">float</span> <span class="n">cluster_dist_from_pcaline</span><span class="p">(</span> <span class="k">const</span> <span class="n">cluster_t</span><span class="o">&amp;</span> <span class="n">cluster</span><span class="p">,</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&amp;</span> <span class="n">pt</span> <span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">//</span>
+    <span class="c1">// http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d1</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+
+    <span class="kt">float</span> <span class="n">len1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">d2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_ends_v</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">len1</span> <span class="o">+=</span> <span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len1</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">pca_len</span><span class="o">&lt;</span><span class="mf">1.0e-4</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// short cluster, use distance to end point</span>
+      <span class="k">return</span> <span class="n">len1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// cross-product</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">d1xd2</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">d1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">d1xd2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span>  <span class="n">d1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">len1x2</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">len1x2</span> <span class="o">+=</span> <span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">d1xd2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">len1x2</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">len1x2</span><span class="p">);</span>
+    <span class="kt">float</span> <span class="n">r</span> <span class="o">=</span> <span class="n">len1x2</span><span class="o">/</span><span class="n">cluster</span><span class="p">.</span><span class="n">pca_len</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">r</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

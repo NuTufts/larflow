@@ -1,0 +1,22 @@
+.. _exhale_struct_structlarflow_1_1reco_1_1VertexReco_1_1Candidate__t:
+
+Struct VertexReco::Candidate_t
+==============================
+
+- Defined in :ref:`file_larflow_Reco_VertexReco.h`
+
+
+Nested Relationships
+--------------------
+
+This struct is a nested type of :ref:`exhale_class_classlarflow_1_1reco_1_1VertexReco`.
+
+
+Struct Documentation
+--------------------
+
+
+.. doxygenstruct:: larflow::reco::VertexReco::Candidate_t
+   :members:
+   :protected-members:
+   :undoc-members:

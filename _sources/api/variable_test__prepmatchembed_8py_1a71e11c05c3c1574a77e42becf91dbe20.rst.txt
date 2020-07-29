@@ -1,0 +1,13 @@
+.. _exhale_variable_test__prepmatchembed_8py_1a71e11c05c3c1574a77e42becf91dbe20:
+
+Variable test_prepmatchembed::preptriplet
+=========================================
+
+- Defined in :ref:`file_larflow_SpatialEmbed_test_test_prepmatchembed.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: test_prepmatchembed::preptriplet

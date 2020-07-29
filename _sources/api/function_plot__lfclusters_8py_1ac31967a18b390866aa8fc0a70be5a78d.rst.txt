@@ -1,0 +1,13 @@
+.. _exhale_function_plot__lfclusters_8py_1ac31967a18b390866aa8fc0a70be5a78d:
+
+Function plot_lfclusters::cb_render
+===================================
+
+- Defined in :ref:`file_larflow_Reco_test_plot_lfclusters.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: plot_lfclusters::cb_render(vals)

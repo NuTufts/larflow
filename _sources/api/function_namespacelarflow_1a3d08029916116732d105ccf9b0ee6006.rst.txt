@@ -1,0 +1,13 @@
+.. _exhale_function_namespacelarflow_1a3d08029916116732d105ccf9b0ee6006:
+
+Function larflow::make_larflow_hits_with_deadchs
+================================================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_arxiv_PyFlowMatchData.cxx`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: larflow::make_larflow_hits_with_deadchs(PyObject *, PyObject *, PyObject *, PyObject *, const int, const int, const larcv::ImageMeta&, const std::vector<larcv::Image2D>&, const larcv::EventChStatus&, larlite::event_larflow3dhit&)

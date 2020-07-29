@@ -1,0 +1,13 @@
+.. _exhale_function_vis__affinityfield_8py_1af395f4b7694279e72ea903ffd5db6868:
+
+Function vis_affinityfield::cb_render
+=====================================
+
+- Defined in :ref:`file_larflow_KeyPoints_test_vis_affinityfield.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_affinityfield::cb_render(vals)

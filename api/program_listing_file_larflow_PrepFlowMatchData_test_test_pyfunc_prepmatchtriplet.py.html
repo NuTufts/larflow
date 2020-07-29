@@ -1,0 +1,270 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File test_pyfunc_prepmatchtriplet.py &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File test_pyfunc_prepmatchtriplet.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_PrepFlowMatchData_test_test_pyfunc_prepmatchtriplet.py.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-test-pyfunc-prepmatchtriplet-py">
+<span id="program-listing-file-larflow-prepflowmatchdata-test-test-pyfunc-prepmatchtriplet-py"></span><h1>Program Listing for File test_pyfunc_prepmatchtriplet.py<a class="headerlink" href="#program-listing-for-file-test-pyfunc-prepmatchtriplet-py" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_PrepFlowMatchData_test_test_pyfunc_prepmatchtriplet.py.html#file-larflow-prepflowmatchdata-test-test-pyfunc-prepmatchtriplet-py"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/PrepFlowMatchData/test/test_pyfunc_prepmatchtriplet.py</span></code>)</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">ROOT</span> <span class="k">as</span> <span class="nn">rt</span>
+<span class="kn">from</span> <span class="nn">ROOT</span> <span class="kn">import</span> <span class="n">std</span>
+<span class="kn">from</span> <span class="nn">larcv</span> <span class="kn">import</span> <span class="n">larcv</span>
+<span class="n">larcv</span><span class="o">.</span><span class="n">load_rootutil</span><span class="p">()</span>
+<span class="kn">from</span> <span class="nn">larflow</span> <span class="kn">import</span> <span class="n">larflow</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">c_int</span>
+
+<span class="c1"># test file</span>
+<span class="n">infile</span> <span class="o">=</span> <span class="s2">&quot;out.root&quot;</span>
+<span class="n">PLOT</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">if</span> <span class="n">PLOT</span><span class="p">:</span>
+    <span class="n">rt</span><span class="o">.</span><span class="n">gStyle</span><span class="o">.</span><span class="n">SetOptStat</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">tree</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TChain</span><span class="p">(</span><span class="s2">&quot;larmatchtriplet&quot;</span><span class="p">)</span>
+<span class="n">tree</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+<span class="n">nentries</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">GetEntries</span><span class="p">()</span>
+
+<span class="nb">print</span> <span class="s2">&quot;num of entries in the tree: &quot;</span><span class="p">,</span><span class="n">nentries</span>
+
+<span class="n">nfilled</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">()</span>
+<span class="n">nmax_samples</span> <span class="o">=</span> <span class="mi">50000</span>
+
+<span class="n">dt_load</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="k">for</span> <span class="n">ientry</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nentries</span><span class="p">):</span>
+
+    <span class="n">io_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">tree</span><span class="o">.</span><span class="n">GetEntry</span><span class="p">(</span><span class="n">ientry</span><span class="p">)</span>
+    <span class="n">sparse_v</span> <span class="o">=</span> <span class="p">[</span> <span class="n">tree</span><span class="o">.</span><span class="n">triplet_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">make_sparse_image</span><span class="p">(</span> <span class="n">p</span> <span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="p">]</span>
+    <span class="n">index_array</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">triplet_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sample_triplet_matches</span><span class="p">(</span> <span class="n">nmax_samples</span><span class="p">,</span> <span class="n">nfilled</span><span class="p">,</span> <span class="kc">True</span> <span class="p">)</span>
+    <span class="nb">print</span> <span class="s2">&quot;[entry </span><span class="si">{}</span><span class="s2">] nfilled=</span><span class="si">{}</span><span class="s2"> index array returned </span><span class="si">{}</span><span class="s2"> for sparse image </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span> <span class="n">ientry</span><span class="p">,</span> <span class="n">nfilled</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                                                                      <span class="n">index_array</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                                                                      <span class="p">[</span><span class="n">sparse_v</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span> <span class="p">)</span>
+    <span class="n">dt_load</span> <span class="o">+=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">io_start</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">PLOT</span><span class="p">:</span>
+
+        <span class="n">hist_v</span> <span class="o">=</span> <span class="p">[</span> <span class="n">rt</span><span class="o">.</span><span class="n">TH2D</span><span class="p">(</span> <span class="s2">&quot;htest_entry</span><span class="si">%d</span><span class="s2">_p</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ientry</span><span class="p">,</span><span class="n">p</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">3456</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3456</span><span class="p">,</span> <span class="mi">1008</span><span class="p">,</span> <span class="mi">2400</span><span class="p">,</span> <span class="mi">2400</span><span class="o">+</span><span class="mi">6</span><span class="o">*</span><span class="mi">1008</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="p">]</span>
+        <span class="k">for</span> <span class="n">ipt</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">index_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">index_array</span><span class="p">[</span><span class="n">ipt</span><span class="p">,</span><span class="n">p</span><span class="p">]</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sparse_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">idx</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sparse_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">idx</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">adc</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sparse_v</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">idx</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">hist_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">SetBinContent</span><span class="p">(</span> <span class="n">col</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">adc</span> <span class="p">)</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">TCanvas</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span><span class="s2">&quot;c&quot;</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">1500</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">Divide</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">cd</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">hist_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="s2">&quot;colz&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">hist_v</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">GetXaxis</span><span class="p">()</span><span class="o">.</span><span class="n">SetRangeUser</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2400</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">Update</span><span class="p">()</span>
+        <span class="nb">print</span> <span class="s2">&quot;[plotted output] ENTER to continue.&quot;</span>
+        <span class="n">raw_input</span><span class="p">()</span>
+
+<span class="n">io_end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span> <span class="s2">&quot;Time to sample each event: &quot;</span><span class="p">,</span><span class="n">dt_load</span><span class="p">,</span><span class="s2">&quot; secs total, &quot;</span><span class="p">,(</span><span class="n">dt_load</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">nentries</span><span class="p">),</span><span class="s2">&quot; sec/event&quot;</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

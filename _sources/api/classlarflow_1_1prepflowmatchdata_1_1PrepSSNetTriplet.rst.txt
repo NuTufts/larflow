@@ -1,0 +1,16 @@
+.. _exhale_class_classlarflow_1_1prepflowmatchdata_1_1PrepSSNetTriplet:
+
+Class PrepSSNetTriplet
+======================
+
+- Defined in :ref:`file_larflow_PrepFlowMatchData_arxiv_PrepSSNetTriplet.h`
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::prepflowmatchdata::PrepSSNetTriplet
+   :members:
+   :protected-members:
+   :undoc-members:

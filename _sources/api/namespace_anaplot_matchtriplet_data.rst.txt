@@ -1,0 +1,38 @@
+
+.. _namespace_anaplot_matchtriplet_data:
+
+Namespace anaplot_matchtriplet_data
+===================================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a9d82e2fc26f030532761663e4f8de032`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1ac0716380191c2597ff04859c14dd4a8e`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a08892e99d732d862487ae1b65cdfb95e`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a96873a3a15c872d1824462446d6cf0f1`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a80666080fe5061fb3dc1e4a878a01dbf`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a1c907e2ace608396485872a0420f9d02`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a2ea077c16fab6bf1fd98c3ccd2ee4f66`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a38204305b048cbe4e9958a2a3efe002a`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a0e2a6f06a308bec6edd6baec7f111a5a`
+
+- :ref:`exhale_variable_anaplot__matchtriplet__data_8py_1a0f54f41a74c8ba009115fe233bc694b0`

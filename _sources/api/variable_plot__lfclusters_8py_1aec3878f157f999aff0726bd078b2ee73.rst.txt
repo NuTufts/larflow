@@ -1,0 +1,13 @@
+.. _exhale_variable_plot__lfclusters_8py_1aec3878f157f999aff0726bd078b2ee73:
+
+Variable plot_lfclusters::type
+==============================
+
+- Defined in :ref:`file_larflow_Reco_test_plot_lfclusters.py`
+
+
+Variable Documentation
+----------------------
+
+
+.. doxygenvariable:: plot_lfclusters::type

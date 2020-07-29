@@ -1,0 +1,758 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File NuVertexMaker.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File NuVertexMaker.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Reco_NuVertexMaker.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-nuvertexmaker-cxx">
+<span id="program-listing-file-larflow-reco-nuvertexmaker-cxx"></span><h1>Program Listing for File NuVertexMaker.cxx<a class="headerlink" href="#program-listing-for-file-nuvertexmaker-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Reco_NuVertexMaker.cxx.html#file-larflow-reco-nuvertexmaker-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Reco/NuVertexMaker.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;NuVertexMaker.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;geofuncs.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/track.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;NuVertexFitter.h&quot;</span><span class="cp"></span>
+
+<span class="k">namespace</span> <span class="n">larflow</span> <span class="p">{</span>
+<span class="k">namespace</span> <span class="n">reco</span> <span class="p">{</span>
+
+
+  <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">NuVertexMaker</span><span class="p">()</span>
+    <span class="o">:</span> <span class="n">larcv</span><span class="o">::</span><span class="n">larcv_base</span><span class="p">(</span><span class="s">&quot;NuVertexMaker&quot;</span><span class="p">),</span>
+    <span class="n">_ana_tree</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">_set_defaults</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">process</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                               <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// load keypoints</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of keypoint producers: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Load keypoint data with tree name[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflow3dhit</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlow3DHit</span><span class="p">,</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="k">auto</span> <span class="n">it_pca</span> <span class="o">=</span> <span class="n">_keypoint_pca_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it_pca</span><span class="o">==</span><span class="n">_keypoint_pca_producers</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_keypoint_pca_producers</span><span class="p">[</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">]</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="n">it_pca</span> <span class="o">=</span> <span class="n">_keypoint_pca_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">it_pca</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;keypoints from [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; keypoints&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// load clusters</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Number of cluster producers: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_cluster_producers</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">_cluster_producers</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">_cluster_producers</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Load cluster data with tree name[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_larflowcluster</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kLArFlowCluster</span><span class="p">,</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="k">auto</span> <span class="n">it_pca</span> <span class="o">=</span> <span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it_pca</span><span class="o">==</span><span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_cluster_pca_producers</span><span class="p">[</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">]</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+        <span class="n">it_pca</span> <span class="o">=</span> <span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">it_pca</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_pcaxis</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kPCAxis</span><span class="p">,</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="p">);</span>
+      <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;clusters from [&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; clusters&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">_createCandidates</span><span class="p">();</span>
+    <span class="n">_merge_candidates</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_apply_cosmic_veto</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_cosmic_veto_candidates</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Num NuVertexCandidates: created=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_vertex_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot;  after-merging=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_merged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="s">&quot;  after-veto=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_vetoed_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="n">_refine_position</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span> <span class="p">);</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_createCandidates</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Associate clusters to vertices via impact par and gap distance&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+    <span class="c1">// loop over vertices, calculate impact parameters to all clusters, keep if close enough.</span>
+    <span class="c1">// limit pairings by gap distance (different for shower and track)</span>
+
+    <span class="c1">// make vertex objects</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NuVertexCandidate</span><span class="o">&gt;</span> <span class="n">seed_v</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">==</span><span class="k">nullptr</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">vtxid</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">vtxid</span><span class="o">&lt;</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">vtxid</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">lf_vertex</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">vtxid</span><span class="p">);</span>
+
+        <span class="n">NuVertexCandidate</span> <span class="n">vertex</span><span class="p">;</span>
+        <span class="n">vertex</span><span class="p">.</span><span class="n">keypoint_producer</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">;</span>
+        <span class="n">vertex</span><span class="p">.</span><span class="n">keypoint_index</span> <span class="o">=</span> <span class="n">vtxid</span><span class="p">;</span>
+        <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+          <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lf_vertex</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">vertex</span><span class="p">.</span><span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+        <span class="n">seed_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// associate to cluster objects</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">vtxid</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">vtxid</span><span class="o">&lt;</span><span class="n">seed_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">vtxid</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">vertex</span> <span class="o">=</span> <span class="n">seed_v</span><span class="p">[</span><span class="n">vtxid</span><span class="p">];</span>
+
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="n">it</span><span class="o">=</span><span class="n">_cluster_producers</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span><span class="o">!=</span><span class="n">_cluster_producers</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="n">it</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">==</span><span class="k">nullptr</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="k">for</span> <span class="p">(</span> <span class="kt">size_t</span> <span class="n">icluster</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">icluster</span><span class="o">&lt;</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">icluster</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">lfcluster</span> <span class="o">=</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">icluster</span><span class="p">);</span>
+          <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">lfpca</span>     <span class="o">=</span> <span class="n">_cluster_pca_producers</span><span class="p">[</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">icluster</span><span class="p">);</span>
+          <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">ClusterType_t</span> <span class="n">ctype</span>   <span class="o">=</span> <span class="n">_cluster_type</span><span class="p">[</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">];</span>
+
+          <span class="kt">bool</span> <span class="n">attached</span> <span class="o">=</span> <span class="n">_attachClusterToCandidate</span><span class="p">(</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">lfcluster</span><span class="p">,</span> <span class="n">lfpca</span><span class="p">,</span>
+                                                     <span class="n">ctype</span><span class="p">,</span> <span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">,</span> <span class="n">icluster</span><span class="p">,</span> <span class="nb">true</span> <span class="p">);</span>
+
+
+        <span class="p">}</span><span class="c1">//end of cluster loop</span>
+      <span class="p">}</span><span class="c1">//end of cluster container loop</span>
+
+      <span class="n">_score_vertex</span><span class="p">(</span> <span class="n">vertex</span> <span class="p">);</span>
+
+    <span class="p">}</span><span class="c1">//end of vertex loop</span>
+
+
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">seed_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">seed_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">vertex</span> <span class="p">:</span> <span class="n">seed_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_vertex_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">logger</span><span class="p">().</span><span class="n">debug</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Vertex[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">keypoint_producer</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;, &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">keypoint_index</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of clusters: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  producer: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">keypoint_producer</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  pos: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  score: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">score</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">ic</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ic</span><span class="o">&lt;</span><span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">ic</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  cluster[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ic</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] &quot;</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; prod=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">].</span><span class="n">producer</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; idx=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">].</span><span class="n">index</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; impact=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">].</span><span class="n">impact</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; gap=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">].</span><span class="n">gap</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span>
+                          <span class="o">&lt;&lt;</span> <span class="s">&quot; npts=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">[</span><span class="n">ic</span><span class="p">].</span><span class="n">npts</span>
+                          <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span><span class="c1">//end of if debug</span>
+      <span class="p">}</span><span class="c1">//end of if has clusters</span>
+    <span class="p">}</span><span class="c1">//end of vertex loop</span>
+
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">clear</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="n">_vertex_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_merged_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_keypoint_producers</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_keypoint_pca_producers</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_cluster_producers</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_set_defaults</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="c1">// Track</span>
+    <span class="n">_cluster_type_max_impact_radius</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kTrack</span> <span class="p">]</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span>
+    <span class="n">_cluster_type_max_gap</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kTrack</span> <span class="p">]</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span>
+
+    <span class="c1">// ShowerKP</span>
+    <span class="n">_cluster_type_max_impact_radius</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShowerKP</span> <span class="p">]</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">;</span>
+    <span class="n">_cluster_type_max_gap</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShowerKP</span> <span class="p">]</span>           <span class="o">=</span> <span class="mf">50.0</span><span class="p">;</span>
+
+    <span class="c1">// Shower</span>
+    <span class="n">_cluster_type_max_impact_radius</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShower</span> <span class="p">]</span> <span class="o">=</span> <span class="mf">50.0</span><span class="p">;</span>
+    <span class="n">_cluster_type_max_gap</span><span class="p">[</span> <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShower</span> <span class="p">]</span>           <span class="o">=</span> <span class="mf">100.0</span><span class="p">;</span>
+
+    <span class="n">_apply_cosmic_veto</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_score_vertex</span><span class="p">(</span> <span class="n">NuVertexCandidate</span><span class="o">&amp;</span> <span class="n">vtx</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">vtx</span><span class="p">.</span><span class="n">score</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">tau_gap_shower</span>    <span class="o">=</span> <span class="mf">20.0</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">tau_impact_shower</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">tau_ratio_shower</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">tau_gap_track</span>    <span class="o">=</span> <span class="mf">3.0</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">float</span> <span class="n">tau_impact_track</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">cluster</span> <span class="p">:</span> <span class="n">vtx</span><span class="p">.</span><span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="kt">float</span> <span class="n">clust_score</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">type</span><span class="o">==</span><span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kTrack</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">gap</span><span class="o">&gt;</span><span class="mf">3.0</span> <span class="p">)</span>
+          <span class="n">clust_score</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">tau_gap_track</span><span class="p">)</span><span class="o">*</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">cluster</span><span class="p">.</span><span class="n">gap</span><span class="o">/</span><span class="n">tau_gap_track</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">impact</span><span class="o">&gt;</span><span class="mf">3.0</span> <span class="p">)</span>
+          <span class="n">clust_score</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">tau_impact_track</span><span class="p">)</span><span class="o">*</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">cluster</span><span class="p">.</span><span class="n">impact</span><span class="o">/</span><span class="n">tau_impact_track</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">ratio</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="n">impact</span><span class="o">/</span><span class="n">cluster</span><span class="p">.</span><span class="n">gap</span><span class="p">;</span>
+        <span class="n">clust_score</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">tau_ratio_shower</span><span class="p">)</span><span class="o">*</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ratio</span><span class="o">/</span><span class="n">tau_ratio_shower</span> <span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">cluster</span><span class="p">.</span><span class="n">impact</span><span class="o">&gt;</span><span class="mf">3.0</span> <span class="p">)</span>
+          <span class="n">clust_score</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">tau_impact_shower</span><span class="p">)</span><span class="o">*</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">cluster</span><span class="p">.</span><span class="n">impact</span><span class="o">/</span><span class="n">tau_impact_shower</span> <span class="p">);</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;cluster[type=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">type</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] impact=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">impact</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; gap=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">cluster</span><span class="p">.</span><span class="n">gap</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; score=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">clust_score</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+      <span class="n">vtx</span><span class="p">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">clust_score</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">add_nuvertex_branch</span><span class="p">(</span> <span class="n">TTree</span><span class="o">*</span> <span class="n">tree</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">_ana_tree</span> <span class="o">=</span> <span class="n">tree</span><span class="p">;</span>
+    <span class="n">_own_tree</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nuvertex_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_vertex_v</span> <span class="p">);</span>
+    <span class="n">tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;numerged_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_merged_v</span> <span class="p">);</span>
+    <span class="n">tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nuvetoed_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_vetoed_v</span> <span class="p">);</span>
+    <span class="n">tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nufitted_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">_fitted_v</span> <span class="p">);</span>
+  <span class="p">}</span>
+
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">make_ana_tree</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">_ana_tree</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">_ana_tree</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;NuVertexMakerTree&quot;</span><span class="p">,</span><span class="s">&quot;output of NuVertexMaker Class&quot;</span><span class="p">);</span>
+
+      <span class="c1">// since we own this tree, we will add the run,subrun,event to it</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;run&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_run</span><span class="p">,</span><span class="s">&quot;run/I&quot;</span><span class="p">);</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;subrun&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_run</span><span class="p">,</span><span class="s">&quot;subrun/I&quot;</span><span class="p">);</span>
+      <span class="n">_ana_tree</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;event&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">_ana_run</span><span class="p">,</span><span class="s">&quot;event/I&quot;</span><span class="p">);</span>
+      <span class="c1">// add the vertex container</span>
+      <span class="n">add_nuvertex_branch</span><span class="p">(</span> <span class="n">_ana_tree</span> <span class="p">);</span>
+      <span class="c1">// mark that we own it, so we destroy it later</span>
+      <span class="n">_own_tree</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_merge_candidates</span><span class="p">()</span>
+  <span class="p">{</span>
+
+    <span class="c1">// sort by score</span>
+    <span class="c1">// start with best score, absorb others, (so N^2 algorithm)</span>
+
+    <span class="c1">// clear existing merged</span>
+    <span class="n">_merged_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_vertex_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span>
+      <span class="k">return</span><span class="p">;</span>
+
+    <span class="n">_merged_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">_vertex_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="c1">// struct for us to sort by score</span>
+    <span class="k">struct</span> <span class="n">NuScore_t</span> <span class="p">{</span>
+      <span class="k">const</span> <span class="n">NuVertexCandidate</span><span class="o">*</span> <span class="n">nu</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">score</span><span class="p">;</span>
+      <span class="n">NuScore_t</span><span class="p">(</span> <span class="k">const</span> <span class="n">NuVertexCandidate</span><span class="o">*</span> <span class="n">the_nu</span><span class="p">,</span> <span class="kt">float</span> <span class="n">s</span> <span class="p">)</span>
+        <span class="o">:</span> <span class="n">nu</span><span class="p">(</span><span class="n">the_nu</span><span class="p">),</span>
+          <span class="n">score</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+      <span class="p">{};</span>
+      <span class="kt">bool</span> <span class="k">operator</span><span class="o">&lt;</span><span class="p">(</span> <span class="k">const</span> <span class="n">NuScore_t</span><span class="o">&amp;</span> <span class="n">rhs</span> <span class="p">)</span> <span class="k">const</span>
+      <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">score</span><span class="o">&gt;</span><span class="n">rhs</span><span class="p">.</span><span class="n">score</span> <span class="p">)</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">};</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">NuScore_t</span> <span class="o">&gt;</span> <span class="n">nu_v</span><span class="p">;</span>
+    <span class="n">nu_v</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span> <span class="n">_vertex_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">nucand</span> <span class="p">:</span> <span class="n">_vertex_v</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">nu_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">NuScore_t</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nucand</span><span class="p">,</span> <span class="n">nucand</span><span class="p">.</span><span class="n">score</span><span class="p">)</span> <span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span> <span class="n">nu_v</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">nu_v</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">used_v</span><span class="p">(</span> <span class="n">nu_v</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mi">0</span> <span class="p">);</span>
+
+    <span class="c1">// seed first merger candidate</span>
+    <span class="n">_merged_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="p">(</span><span class="n">nu_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">nu</span><span class="p">)</span> <span class="p">);</span>
+    <span class="n">used_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_vertex_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="k">return</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">nused</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">current_cand_index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// index of candidate in _merged_v, for whom we are currently looking for mergers</span>
+    <span class="k">while</span> <span class="p">(</span> <span class="n">nused</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">nu_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">current_cand_index</span><span class="o">&lt;</span><span class="n">_merged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">cand</span> <span class="o">=</span> <span class="n">_merged_v</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">current_cand_index</span><span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">nu_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="c1">// test vertex</span>
+        <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">test_vtx</span> <span class="o">=</span> <span class="o">*</span><span class="n">nu_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">nu</span><span class="p">;</span>
+
+        <span class="c1">// test vertex distance</span>
+        <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">test_vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">cand</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">test_vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">cand</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]);</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&gt;</span><span class="mf">5.0</span> <span class="p">)</span>
+          <span class="k">continue</span><span class="p">;</span> <span class="c1">// too far to merge (or the same)</span>
+
+        <span class="c1">// if within distance, absorb clusters to make union</span>
+        <span class="c1">// set the pos, keypoint producer based on best score</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+        <span class="c1">// loop over clusters inside test vertex we are merging with</span>
+        <span class="kt">int</span> <span class="n">nclust_before</span> <span class="o">=</span> <span class="n">cand</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">test_clust</span> <span class="p">:</span> <span class="n">test_vtx</span><span class="p">.</span><span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="c1">// check the clusters against the current candidate&#39;s clusters</span>
+          <span class="kt">bool</span> <span class="n">is_found</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">curr_clust</span> <span class="p">:</span> <span class="n">cand</span><span class="p">.</span><span class="n">cluster_v</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">curr_clust</span><span class="p">.</span><span class="n">index</span><span class="o">==</span><span class="n">test_clust</span><span class="p">.</span><span class="n">index</span> <span class="o">&amp;&amp;</span> <span class="n">curr_clust</span><span class="p">.</span><span class="n">producer</span><span class="o">==</span><span class="n">test_clust</span><span class="p">.</span><span class="n">producer</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">is_found</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+              <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">is_found</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// if not found, add it to the current candidate vertex</span>
+            <span class="k">auto</span> <span class="n">it_clust</span> <span class="o">=</span> <span class="n">_cluster_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">test_clust</span><span class="p">.</span><span class="n">producer</span> <span class="p">);</span>
+            <span class="k">auto</span> <span class="n">it_pca</span>   <span class="o">=</span> <span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">test_clust</span><span class="p">.</span><span class="n">producer</span> <span class="p">);</span>
+            <span class="k">auto</span> <span class="n">it_ctype</span> <span class="o">=</span> <span class="n">_cluster_type</span><span class="p">.</span><span class="n">find</span><span class="p">(</span> <span class="n">test_clust</span><span class="p">.</span><span class="n">producer</span> <span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">it_clust</span><span class="o">==</span><span class="n">_cluster_producers</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="o">||</span> <span class="n">it_pca</span><span class="o">==</span><span class="n">_cluster_pca_producers</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;ERROR NuVertexMaker. could not find cluster/pca producer in dict&quot;</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">lfcluster</span> <span class="o">=</span> <span class="n">it_clust</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">test_clust</span><span class="p">.</span><span class="n">index</span><span class="p">);</span>
+            <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">lfpca</span>     <span class="o">=</span> <span class="n">it_pca</span><span class="o">-&gt;</span><span class="n">second</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">test_clust</span><span class="p">.</span><span class="n">index</span><span class="p">);</span>
+            <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">clust_t</span>   <span class="o">=</span> <span class="n">it_ctype</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+            <span class="n">_attachClusterToCandidate</span><span class="p">(</span> <span class="n">cand</span><span class="p">,</span> <span class="n">lfcluster</span><span class="p">,</span> <span class="n">lfpca</span><span class="p">,</span> <span class="n">clust_t</span><span class="p">,</span>
+                                       <span class="n">test_clust</span><span class="p">.</span><span class="n">producer</span><span class="p">,</span> <span class="n">test_clust</span><span class="p">.</span><span class="n">index</span><span class="p">,</span> <span class="nb">false</span> <span class="p">);</span>
+          <span class="p">}</span>
+
+        <span class="p">}</span><span class="c1">//after test cluster loop</span>
+
+        <span class="c1">// score the current candidate</span>
+        <span class="n">_score_vertex</span><span class="p">(</span> <span class="n">cand</span> <span class="p">);</span>
+
+        <span class="c1">// here we create a duplicate,</span>
+        <span class="c1">// but with the vertex moved to the pos of the test_vtx</span>
+        <span class="c1">// then we decide which one to keep based on highest score</span>
+
+      <span class="p">}</span><span class="c1">//end of loop to absorb vertices</span>
+
+      <span class="c1">// get the next unused absorbed vertex, to seed as merger</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">nu_v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">used_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+        <span class="n">_merged_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="o">*</span><span class="n">nu_v</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">nu</span> <span class="p">);</span>
+        <span class="n">used_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">current_cand_index</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+  <span class="p">}</span>
+
+  <span class="kt">bool</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_attachClusterToCandidate</span><span class="p">(</span> <span class="n">NuVertexCandidate</span><span class="o">&amp;</span> <span class="n">vertex</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">larflowcluster</span><span class="o">&amp;</span> <span class="n">lfcluster</span><span class="p">,</span>
+                                                 <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">pcaxis</span><span class="o">&amp;</span> <span class="n">lfpca</span><span class="p">,</span>
+                                                 <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">ClusterType_t</span> <span class="n">ctype</span><span class="p">,</span>
+                                                 <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">producer</span><span class="p">,</span>
+                                                 <span class="kt">int</span> <span class="n">icluster</span><span class="p">,</span>
+                                                 <span class="kt">bool</span> <span class="n">apply_cut</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">pcadir</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">start</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">end</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="kt">float</span> <span class="n">dist</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">};</span>
+    <span class="kt">float</span> <span class="n">pcalen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">v</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">v</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">pcadir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfpca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+      <span class="n">start</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>  <span class="o">=</span> <span class="n">lfpca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">3</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+      <span class="n">end</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>    <span class="o">=</span> <span class="n">lfpca</span><span class="p">.</span><span class="n">getEigenVectors</span><span class="p">()[</span><span class="mi">4</span><span class="p">][</span><span class="n">v</span><span class="p">];</span>
+      <span class="n">dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">start</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">start</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">dist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">end</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">end</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">-</span><span class="n">vertex</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="p">);</span>
+      <span class="n">pcalen</span> <span class="o">+=</span> <span class="n">pcadir</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">*</span><span class="n">pcadir</span><span class="p">[</span><span class="n">v</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="n">pcalen</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pcalen</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pcalen</span><span class="o">&lt;</span><span class="mf">0.1</span> <span class="o">||</span> <span class="n">std</span><span class="o">::</span><span class="n">isnan</span><span class="p">(</span><span class="n">pcalen</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">dist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="kt">int</span> <span class="n">closestend</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">dist</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">gapdist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">closestend</span><span class="p">];</span>
+    <span class="kt">float</span> <span class="n">r</span> <span class="o">=</span> <span class="n">pointLineDistance</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span> <span class="p">);</span>
+
+    <span class="n">LARCV_DEBUG</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;pcadir-len=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">pcalen</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">projs</span> <span class="o">=</span> <span class="n">pointRayProjection</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">pcadir</span><span class="p">,</span> <span class="n">vertex</span><span class="p">.</span><span class="n">pos</span> <span class="p">);</span>
+    <span class="kt">float</span> <span class="n">ends</span>  <span class="o">=</span> <span class="n">pointRayProjection</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">start</span><span class="p">,</span> <span class="n">pcadir</span><span class="p">,</span> <span class="n">end</span> <span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">apply_cut</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// wide association for now</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">gapdist</span><span class="o">&gt;</span><span class="n">_cluster_type_max_gap</span><span class="p">[</span><span class="n">ctype</span><span class="p">]</span> <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">r</span><span class="o">&gt;</span><span class="n">_cluster_type_max_impact_radius</span><span class="p">[</span><span class="n">ctype</span><span class="p">]</span> <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ctype</span><span class="o">==</span><span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShowerKP</span> <span class="o">||</span> <span class="n">ctype</span><span class="o">==</span><span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">kShower</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">projs</span><span class="o">&gt;</span><span class="mf">2.0</span> <span class="o">&amp;&amp;</span> <span class="n">projs</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">ends</span><span class="o">-</span><span class="mf">2.0</span><span class="p">)</span> <span class="p">)</span>
+          <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// else attach</span>
+    <span class="n">NuVertexCandidate</span><span class="o">::</span><span class="n">VtxCluster_t</span> <span class="n">cluster</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">producer</span> <span class="o">=</span> <span class="n">producer</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">icluster</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">dir</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">pos</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">closestend</span><span class="o">==</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pcadir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">dir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">pcadir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="n">cluster</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">gap</span> <span class="o">=</span> <span class="n">gapdist</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">impact</span> <span class="o">=</span> <span class="n">r</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">ctype</span><span class="p">;</span>
+    <span class="n">cluster</span><span class="p">.</span><span class="n">npts</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">lfcluster</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="n">vertex</span><span class="p">.</span><span class="n">cluster_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_cosmic_veto_candidates</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="c1">// get cosmic tracks</span>
+    <span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span> <span class="n">ev_cosmic</span>
+      <span class="o">=</span> <span class="p">(</span><span class="n">larlite</span><span class="o">::</span><span class="n">event_track</span><span class="o">*</span><span class="p">)</span><span class="n">ioll</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kTrack</span><span class="p">,</span> <span class="s">&quot;boundarycosmicnoshift&quot;</span> <span class="p">);</span>
+
+    <span class="c1">// loop over vertices</span>
+    <span class="n">_vetoed_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">vtx</span> <span class="p">:</span> <span class="n">_merged_v</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">bool</span> <span class="n">close2cosmic</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">itrack</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">itrack</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span> <span class="n">itrack</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">const</span> <span class="n">larlite</span><span class="o">::</span><span class="n">track</span><span class="o">&amp;</span> <span class="n">cosmictrack</span> <span class="o">=</span> <span class="n">ev_cosmic</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">itrack</span><span class="p">);</span>
+
+        <span class="kt">float</span> <span class="n">mindist_segment</span> <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+        <span class="kt">float</span> <span class="n">mindist_point</span>   <span class="o">=</span> <span class="mf">1.0e9</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ipt</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ipt</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">cosmictrack</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">ipt</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="k">const</span> <span class="n">TVector3</span><span class="o">&amp;</span> <span class="n">pos</span>  <span class="o">=</span> <span class="n">cosmictrack</span><span class="p">.</span><span class="n">LocationAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="p">);</span>
+          <span class="k">const</span> <span class="n">TVector3</span><span class="o">&amp;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">cosmictrack</span><span class="p">.</span><span class="n">LocationAtPoint</span><span class="p">(</span><span class="n">ipt</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">fpos</span>  <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">pos</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>  <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">pos</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>  <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">pos</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="p">};</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">fnext</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">next</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">next</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">next</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="p">};</span>
+
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">fdir</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+          <span class="kt">float</span> <span class="n">flen</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">fdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fnext</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">fpos</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+            <span class="n">flen</span> <span class="o">+=</span> <span class="n">fdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">fdir</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+          <span class="p">}</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">flen</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">flen</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">flen</span><span class="p">);</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+              <span class="n">fdir</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">flen</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">else</span> <span class="p">{</span>
+            <span class="k">continue</span><span class="p">;</span>
+          <span class="p">}</span>
+
+
+          <span class="kt">float</span> <span class="n">r</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">pointLineDistance3f</span><span class="p">(</span> <span class="n">fpos</span><span class="p">,</span> <span class="n">fnext</span><span class="p">,</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span> <span class="p">);</span>
+          <span class="kt">float</span> <span class="n">s</span> <span class="o">=</span> <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">pointRayProjection3f</span><span class="p">(</span> <span class="n">fpos</span><span class="p">,</span> <span class="n">fdir</span><span class="p">,</span> <span class="n">vtx</span><span class="p">.</span><span class="n">pos</span> <span class="p">);</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">s</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">s</span><span class="o">&lt;=</span><span class="n">flen</span> <span class="o">&amp;&amp;</span> <span class="n">mindist_segment</span><span class="o">&gt;</span><span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">mindist_segment</span> <span class="o">=</span> <span class="n">r</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="kt">float</span> <span class="n">pt1dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">pt1dist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">fpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">fpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+          <span class="p">}</span>
+          <span class="n">pt1dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pt1dist</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">pt1dist</span><span class="o">&lt;</span><span class="n">mindist_point</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">mindist_point</span> <span class="o">=</span> <span class="n">pt1dist</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">ipt</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">cosmictrack</span><span class="p">.</span><span class="n">NumberTrajectoryPoints</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">pt1dist</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+              <span class="n">pt1dist</span> <span class="o">+=</span> <span class="p">(</span><span class="n">fnext</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">fnext</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">vtx</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+            <span class="p">}</span>
+            <span class="n">pt1dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pt1dist</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">pt1dist</span><span class="o">&lt;</span><span class="n">mindist_point</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="n">mindist_point</span> <span class="o">=</span> <span class="n">pt1dist</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">}</span><span class="c1">//end of loop over cosmic points</span>
+
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">mindist_segment</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="o">||</span> <span class="n">mindist_point</span><span class="o">&lt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">close2cosmic</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="p">}</span>
+
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">close2cosmic</span> <span class="p">)</span>
+          <span class="k">break</span><span class="p">;</span>
+      <span class="p">}</span><span class="c1">//end of loop over tracks</span>
+
+
+      <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">close2cosmic</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">_vetoed_v</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span> <span class="n">vtx</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span><span class="c1">//end of vertex loop</span>
+
+    <span class="n">LARCV_INFO</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Vertices after cosmic veto: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_vetoed_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; (from &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">_merged_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="n">NuVertexMaker</span><span class="o">::</span><span class="n">_refine_position</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">&amp;</span> <span class="n">iolcv</span><span class="p">,</span>
+                                        <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">&amp;</span> <span class="n">ioll</span> <span class="p">)</span>
+  <span class="p">{</span>
+
+    <span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">NuVertexFitter</span> <span class="n">fitter</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_apply_cosmic_veto</span> <span class="p">)</span>
+      <span class="n">fitter</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span><span class="p">,</span> <span class="n">get_vetoed_candidates</span><span class="p">()</span> <span class="p">);</span>
+    <span class="k">else</span>
+      <span class="n">fitter</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">iolcv</span><span class="p">,</span> <span class="n">ioll</span><span class="p">,</span> <span class="n">get_merged_candidates</span><span class="p">()</span> <span class="p">);</span>
+
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">fitted_pos_v</span>
+      <span class="o">=</span> <span class="n">fitter</span><span class="p">.</span><span class="n">get_fitted_pos</span><span class="p">();</span>
+
+    <span class="n">_fitted_v</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">_apply_cosmic_veto</span> <span class="p">)</span> <span class="p">{</span>
+
+      <span class="kt">int</span> <span class="n">ivtx</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">vtx</span> <span class="p">:</span> <span class="n">_vetoed_v</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">NuVertexCandidate</span> <span class="n">fitcand</span> <span class="o">=</span> <span class="n">vtx</span><span class="p">;</span>
+        <span class="n">fitcand</span><span class="p">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">fitted_pos_v</span><span class="p">[</span><span class="n">ivtx</span><span class="p">];</span>
+        <span class="n">ivtx</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">_fitted_v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">fitcand</span><span class="p">)</span> <span class="p">);</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span>
+
+  <span class="p">}</span>
+
+
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

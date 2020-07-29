@@ -1,0 +1,54 @@
+
+.. _file_larflow_Reco_KPSRecoManager.cxx:
+
+File KPSRecoManager.cxx
+=======================
+
+|exhale_lsh| :ref:`Parent directory <dir_larflow_Reco>` (``larflow/Reco``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+Definition (``larflow/Reco/KPSRecoManager.cxx``)
+------------------------------------------------
+
+
+.. toctree::
+   :maxdepth: 1
+
+   program_listing_file_larflow_Reco_KPSRecoManager.cxx.rst
+
+
+
+
+
+Includes
+--------
+
+
+- ``DataFormat/opflash.h``
+
+- ``KPSRecoManager.h`` (:ref:`file_larflow_Reco_KPSRecoManager.h`)
+
+- ``larcv/core/DataFormat/EventChStatus.h``
+
+- ``larcv/core/DataFormat/EventImage2D.h``
+
+- ``larflow/LArFlowConstants/LArFlowConstants.h`` (:ref:`file_larflow_LArFlowConstants_LArFlowConstants.h`)
+
+
+
+
+
+
+Namespaces
+----------
+
+
+- :ref:`namespace_larflow`
+
+- :ref:`namespace_larflow__reco`
+

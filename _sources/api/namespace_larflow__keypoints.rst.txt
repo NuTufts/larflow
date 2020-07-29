@@ -1,0 +1,39 @@
+
+.. _namespace_larflow__keypoints:
+
+Namespace larflow::keypoints
+============================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Classes
+-------
+
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1KPdata`
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1LoaderAffinityField`
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1LoaderKeypointData`
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1PrepAffinityField`
+
+- :ref:`exhale_class_classlarflow_1_1keypoints_1_1PrepKeypointData`
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_KPdata_8cxx_1a5036487d128dae528d1f68ee3e90773a`
+
+- :ref:`exhale_function_KPdata_8cxx_1a59dfbdb4a712cd81ab43ff41d7b82a07`
+
+- :ref:`exhale_function_KPdata_8cxx_1ad4b62768370383c47acfc2779f154e1a`

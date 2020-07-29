@@ -1,0 +1,65 @@
+
+.. _namespace_vis_trueshowerhits:
+
+Namespace vis_trueshowerhits
+============================
+
+
+.. contents:: Contents
+   :local:
+   :backlinks: none
+
+
+
+
+
+Functions
+---------
+
+
+- :ref:`exhale_function_vis__trueshowerhits_8py_1a254f883b8957a78de2beeb23d78cfc16`
+
+- :ref:`exhale_function_vis__trueshowerhits_8py_1ad69e2aa4d7f4d5ad12ef15496fdd1ff4`
+
+- :ref:`exhale_function_vis__trueshowerhits_8py_1a9e4d3a2bb5f21c7f5ebcc6950907ca54`
+
+
+Variables
+---------
+
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1af3a726281ff0ccb2db42362a220b5586`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1ab10ced7f0e9001454992e27e97f3b5d2`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a662794b1ee25ff4d7f2e22221dc310d3`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a33638125e013f230bb1f97ee4c945ba6`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a5c35f358b90a986d64d226ecd958e31c`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a93bc8f097dfdf6b3964d2f5d0683750d`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a64f53bbfbcef2549f63e9b055a666e9f`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1ad2ce56d15d0d4566f571a5cd245d2bcd`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a2dbe1a7b98a8dd5937c07c667607687a`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a7744560831e6ac6fda399e2a26f005e0`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a72689b1805ae66737d554f9fb723ee42`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a3faef7a80acb1c9db40b740782ec947f`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1ab2b5a15b794a9a5f1e132d4f39e30977`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1aece68d8503af5cdf38e4299b063ed1b2`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a30b9838d9ea79b77b913d69395ee73de`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a960c0f322752a7c99b3fa094808d7257`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a9e1817e49d01c69214bd2d1bca89af8c`
+
+- :ref:`exhale_variable_vis__trueshowerhits_8py_1a897ea38dd26ee429c8fa9d926b78d8f3`

@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class CRTMatch &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class CRTTrackMatch" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html" />
+    <link rel="prev" title="Class CRTHitMatch" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class CRTMatch</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1crtmatch_1_1CRTMatch.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-crtmatch">
+<span id="exhale-class-classlarflow-1-1crtmatch-1-1crtmatch"></span><h1>Class CRTMatch<a class="headerlink" href="#class-crtmatch" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_CRTMatch_CRTMatch.h.html#file-larflow-crtmatch-crtmatch-h"><span class="std std-ref">File CRTMatch.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatchE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatchE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatchE"></span><span id="larflow::crtmatch::CRTMatch"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch"></span><em class="property">class </em><code class="descname">CRTMatch</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatchE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Perform track matching to CRT tracks and CRT hits. </p>
+<p>Class that runs both <a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#classlarflow_1_1crtmatch_1_1CRTTrackMatch"><span class="std std-ref">CRTTrackMatch</span></a> and <a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#classlarflow_1_1crtmatch_1_1CRTHitMatch"><span class="std std-ref">CRTHitMatch</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch8CRTMatchEv">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch8CRTMatchEv"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch8CRTMatchEv"></span><span id="larflow::crtmatch::CRTMatch::CRTMatch"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1af5263534bfba9a7288ccf02f0806c311"></span><code class="descname">CRTMatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch8CRTMatchEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatchD0Ev">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatchD0Ev"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatchD0Ev"></span><span id="larflow::crtmatch::CRTMatch::~CRTMatch"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a039115521252412ce7cced80c8fd62dd"></span><em class="property">virtual</em> <code class="descname">~CRTMatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatchD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch7processERN5larcv9IOManagerERN7larlite15storage_managerE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch7processERN5larcv9IOManagerERN7larlite15storage_managerE"></span><span id="larflow::crtmatch::CRTMatch::process__larcv::IOManagerR.larlite::storage_managerR"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1addddde6ef0d5d51dbf44d63a7a7218b5"></span>void <code class="descname">process</code><span class="sig-paren">(</span>larcv::IOManager &amp;<em>iolcv</em>, larlite::storage_manager &amp;<em>ioll</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch7processERN5larcv9IOManagerERN7larlite15storage_managerE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Process data for one event. </p>
+<p>iomanager inputs: <ul class="simple">
+<li>adc images (typicall ‘wire’)</li>
+</ul>
+</p>
+<p>larlite inputs: <ul class="simple">
+<li>opflash: typically ‘simpleflashbeam’ and ‘simpleflashcosmic’</li>
+<li>crttrack: typically ‘crttrack’</li>
+<li>crthit: typically ‘crthit’</li>
+<li>larflowcluster (typically) pcacluster</li>
+<li>pcaxis for larflow cluster: typically ‘pcacluster’</li>
+</ul>
+</p>
+<p>larlite output: correlated among the following <ul class="simple">
+<li>crttrack: records crt info, including crttrack matches AND crthit. For crt hit, only first hit information listed.</li>
+<li>larflowcluster: list of larflow3dhits that relate space point to image coordinates</li>
+<li>opflash: matching opflash to crt track (empty flash with totpe=0.0 if no flash matched)</li>
+</ul>
+</p>
+<p>larcv output: <ul class="simple">
+<li>image2d: with matched CRT pixels masked out</li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">iocv</span></code>: larcv::IOManager from which data will be retrieved and output to </li>
+<li><code class="docutils literal notranslate"><span class="pre">ioll</span></code>: larlite::storage_manager from which data will be retrieved and output to </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch12store_outputERN5larcv9IOManagerERN7larlite15storage_managerEb">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch12store_outputERN5larcv9IOManagerERN7larlite15storage_managerEb"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch12store_outputERN5larcv9IOManagerERN7larlite15storage_managerEb"></span><span id="larflow::crtmatch::CRTMatch::store_output__larcv::IOManagerR.larlite::storage_managerR.b"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a0cbcf2299eee328b4976379c9c69b0cc"></span>void <code class="descname">store_output</code><span class="sig-paren">(</span>larcv::IOManager &amp;<em>outlcv</em>, larlite::storage_manager &amp;<em>outll</em>, bool <em>remove_if_no_flash</em> = true<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch12store_outputERN5larcv9IOManagerERN7larlite15storage_managerEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Copy output in algo containers to larcv and larlite IO managers. </p>
+<p>larlite output: correlated among the following <ul class="simple">
+<li>crttrack: records crt info, including crttrack matches AND crthit. For crt hit, only first hit information listed.</li>
+<li>larflowcluster: list of larflow3dhits that relate space point to image coordinates</li>
+<li>opflash: matching opflash to crt track (empty flash with totpe=0.0 if no flash matched)</li>
+</ul>
+</p>
+<p>larcv output: <ul class="simple">
+<li>image2d: with matched CRT pixels masked out</li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">outlcv</span></code>: Output larcv::IOManager </li>
+<li><code class="docutils literal notranslate"><span class="pre">outll</span></code>: Output larlite::storage_manager </li>
+<li><code class="docutils literal notranslate"><span class="pre">remove_if_no_flash</span></code>: If true, for both CRT hit and CRT track matcher, TPC track to CRT object matches are skipped when no optical flash could be associated to the pair. </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Members</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch14_track_matcherE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch14_track_matcherE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch14_track_matcherE"></span><span id="larflow::crtmatch::CRTMatch::_track_matcher__CRTTrackMatch"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a0ac6173122a9fa73e5dfd82260981318"></span><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html#_CPPv4N7larflow8crtmatch13CRTTrackMatchE" title="larflow::crtmatch::CRTTrackMatch">CRTTrackMatch</a> <code class="descname">_track_matcher</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch14_track_matcherE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Algo for CRT-track to wire image ionization matching. </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch12_hit_matcherE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch12_hit_matcherE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch12_hit_matcherE"></span><span id="larflow::crtmatch::CRTMatch::_hit_matcher__CRTHitMatch"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a4de6320fde131270c343f9448399142b"></span><a class="reference internal" href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html#_CPPv4N7larflow8crtmatch11CRTHitMatchE" title="larflow::crtmatch::CRTHitMatch">CRTHitMatch</a> <code class="descname">_hit_matcher</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch12_hit_matcherE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Algo for CRT-hit to spacepoint cluster matching. </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch10untagged_vE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch10untagged_vE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch10untagged_vE"></span><span id="larflow::crtmatch::CRTMatch::untagged_v__std::vector:larcv::Image2D:"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a37bb5e0298df4d3600108ef95ece4a75"></span>std::vector&lt;larcv::Image2D&gt; <code class="descname">untagged_v</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch10untagged_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>image where matched pixels are removed </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch13track_index_vE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch13track_index_vE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch13track_index_vE"></span><span id="larflow::crtmatch::CRTMatch::track_index_v__std::vector:larcv::Image2D:"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a662564a13aa3cc9712e1ba3949179b34"></span>std::vector&lt;larcv::Image2D&gt; <code class="descname">track_index_v</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch13track_index_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>image where crt track index labels image, so we can match larflow clusters to it </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow8crtmatch8CRTMatch21_unmatched_clusters_vE">
+<span id="_CPPv3N7larflow8crtmatch8CRTMatch21_unmatched_clusters_vE"></span><span id="_CPPv2N7larflow8crtmatch8CRTMatch21_unmatched_clusters_vE"></span><span id="larflow::crtmatch::CRTMatch::_unmatched_clusters_v__std::vector:larlite::larflowcluster:"></span><span class="target" id="classlarflow_1_1crtmatch_1_1CRTMatch_1a36bce8659f889a6821f4f5b2f3ca4aea"></span>std::vector&lt;larlite::larflowcluster&gt; <code class="descname">_unmatched_clusters_v</code><a class="headerlink" href="#_CPPv4N7larflow8crtmatch8CRTMatch21_unmatched_clusters_vE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>clusters not matched to crthit or crttracks </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1crtmatch_1_1CRTTrackMatch.html" class="btn btn-neutral float-right" title="Class CRTTrackMatch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1crtmatch_1_1CRTHitMatch.html" class="btn btn-neutral float-left" title="Class CRTHitMatch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

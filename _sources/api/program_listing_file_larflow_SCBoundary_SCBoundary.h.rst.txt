@@ -1,0 +1,80 @@
+
+.. _program_listing_file_larflow_SCBoundary_SCBoundary.h:
+
+Program Listing for File SCBoundary.h
+=====================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_SCBoundary_SCBoundary.h>` (``larflow/SCBoundary/SCBoundary.h``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #ifndef __LARFLOW_SCB_SCBOUNDARY_H__
+   #define __LARFLOW_SCB_SCBOUNDARY_H__
+   
+   #include <vector>
+   
+   namespace larflow {
+   namespace scb {
+   
+     class SCBoundary {
+   
+     public:
+   
+       typedef enum { kTop=0, kBottom, kUpstream, kDownstream, kAnode, kCathode, kNumBoundaries } Boundary_t;
+       
+       SCBoundary() {};
+       virtual ~SCBoundary() {};
+   
+       template <class T>
+         T dist2boundary( const std::vector<T>& pos, Boundary_t& btype ) const;
+   
+       float  dist2boundary( float  x, float y, float z ) const;
+       double dist2boundary( double x, double y, double z ) const;
+       float  dist2boundary(  float x,  float y,  float z, int& ibtype ) const;
+       double dist2boundary( double x, double y, double z, int& ibtype ) const;        
+   
+       template <class T>
+         T XatBoundary( const std::vector<T>& pos ) const; 
+       float  XatBoundary( float x,  float y,  float z ) const;
+       double XatBoundary( double x, double y, double z ) const;
+   
+     protected:
+       
+       // The units are cm
+       // index from 1 to 10 for position dependece. See the talk
+       /* https://microboone-docdb.fnal.gov/cgi-bin/private/ShowDocument?docid=26423 */
+       
+       static constexpr double YX_TOP_y1_array     = 116; 
+       static double YX_TOP_x1_array[10]; 
+       static double YX_TOP_y2_array[10]; 
+       static constexpr double YX_TOP_x2_array = 256; 
+       
+       static constexpr double YX_BOT_y1_array     = -115; 
+       static double YX_BOT_x1_array[10];                  
+       static double YX_BOT_y2_array[10];                  
+       static constexpr double YX_BOT_x2_array = 256;      
+       
+       static constexpr double ZX_Up_z1_array = 0;   
+       static constexpr double ZX_Up_x1_array = 120; 
+       static constexpr double ZX_Up_z2_array = 10;  
+       static constexpr double ZX_Up_x2_array = 256; 
+       
+       static constexpr double ZX_Dw_z1_array     = 1037; 
+       static double ZX_Dw_x1_array[10];                  
+       static double ZX_Dw_z2_array[10];                  
+       static constexpr double ZX_Dw_x2_array     = 256;  
+   
+       template <class T>
+         T pointLineDistance( const std::vector<T>& linept1,
+                              const std::vector<T>& linept2,
+                              const std::vector<T>& testpt ) const;
+       
+     };
+     
+     
+   }
+   }
+   
+   #endif

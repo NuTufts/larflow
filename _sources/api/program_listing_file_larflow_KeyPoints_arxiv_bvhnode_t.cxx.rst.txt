@@ -1,0 +1,98 @@
+
+.. _program_listing_file_larflow_KeyPoints_arxiv_bvhnode_t.cxx:
+
+Program Listing for File bvhnode_t.cxx
+======================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_larflow_KeyPoints_arxiv_bvhnode_t.cxx>` (``larflow/KeyPoints/arxiv/bvhnode_t.cxx``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   #include "bvhnode_t.h"
+   #include <iostream>
+   #include <sstream>
+   
+   namespace larflow {
+   namespace keypoints {
+   
+     bool compare_x( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+       if ( lhs->bounds[0][0] < rhs->bounds[0][0] )
+         return true;
+       return false;
+     }
+   
+     bool compare_y( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+       if ( lhs->bounds[1][0] < rhs->bounds[1][0] )
+           return true;
+       return false;
+     }
+   
+     bool compare_z( const bvhnode_t* lhs, const bvhnode_t* rhs ) {
+       if ( lhs->bounds[2][0] < rhs->bounds[2][0] )
+           return true;
+       return false;
+     }
+   
+     std::string strnode( const bvhnode_t* node ) {
+       std::stringstream ss;
+       if ( node->children.size()>0 ) {
+         ss << "node: x[" << node->bounds[0][0] << "," << node->bounds[0][1] << "] "
+            << "y[" << node->bounds[1][0] << "," << node->bounds[1][1] << "] "
+            << "z[" << node->bounds[2][0] << "," << node->bounds[2][1] << "] "
+            << "splitdim=" << node->splitdim;
+         
+       }
+       else {
+         ss << "LEAF: "
+            << "x[" << node->bounds[0][0] << "] "
+            << "y[" << node->bounds[1][0] << "] " 
+            << "z[" << node->bounds[2][0] << "] "
+            << "kpdata-index=" << node->kpdidx;
+       }
+       return ss.str();
+     }
+   
+     void print_graph( const bvhnode_t* node ) {
+       int depth=0;
+       _recurse_printgraph( node, depth );
+     }
+   
+     void _recurse_printgraph( const bvhnode_t* node, int& depth ) {
+       std::string info =  strnode(node);
+       std::string branch = "";
+       for (int i=0; i<depth; i++)
+         branch += " |";
+       if ( depth>0 ) 
+         branch += "-- ";
+   
+       std::cout << branch << info << std::endl;
+   
+       // we loop through our daughters
+       for ( auto& child : node->children ) {
+         ++depth;
+         _recurse_printgraph( child, depth );
+       }
+       --depth;
+     }
+   
+     const bvhnode_t* recurse_findleaf( const std::vector<float>& testpt,
+                                        const bvhnode_t* node ) {
+   
+       // is leaf?
+       if ( node->children.size()==0 ) return node;
+       // if child leaf?
+       if ( node->children.size()==1 ) return node->children[0];
+   
+       // choose child to descend into
+       if ( testpt[node->splitdim] < node->children[0]->bounds[node->splitdim][1] )
+         return recurse_findleaf( testpt, node->children[0] );
+       else
+         return recurse_findleaf( testpt, node->children[1] );
+       
+     }
+     
+     
+   }
+   }

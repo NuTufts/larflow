@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class TrackOTFit &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class SCBoundary" href="classlarflow_1_1scb_1_1SCBoundary.html" />
+    <link rel="prev" title="Class TrackClusterBuilder" href="classlarflow_1_1reco_1_1TrackClusterBuilder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class TrackOTFit</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1reco_1_1TrackOTFit.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-trackotfit">
+<span id="exhale-class-classlarflow-1-1reco-1-1trackotfit"></span><h1>Class TrackOTFit<a class="headerlink" href="#class-trackotfit" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_Reco_TrackOTFit.h.html#file-larflow-reco-trackotfit-h"><span class="std std-ref">File TrackOTFit.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow4reco10TrackOTFitE">
+<span id="_CPPv3N7larflow4reco10TrackOTFitE"></span><span id="_CPPv2N7larflow4reco10TrackOTFitE"></span><span id="larflow::reco::TrackOTFit"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit"></span><em class="property">class </em><code class="descname">TrackOTFit</code><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFitE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Least squares fit of vertex location to prong clusters. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit10TrackOTFitEv">
+<span id="_CPPv3N7larflow4reco10TrackOTFit10TrackOTFitEv"></span><span id="_CPPv2N7larflow4reco10TrackOTFit10TrackOTFitEv"></span><span id="larflow::reco::TrackOTFit::TrackOTFit"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1a7cda75b2738d391e6bc3aa4750670a00"></span><code class="descname">TrackOTFit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit10TrackOTFitEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFitD0Ev">
+<span id="_CPPv3N7larflow4reco10TrackOTFitD0Ev"></span><span id="_CPPv2N7larflow4reco10TrackOTFitD0Ev"></span><span id="larflow::reco::TrackOTFit::~TrackOTFit"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1ae550a3506dd8a443c56dc02ef19ef1fa"></span><em class="property">virtual</em> <code class="descname">~TrackOTFit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFitD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit3fitERNSt6vectorINSt6vectorIfEEEERNSt6vectorINSt6vectorIfEEEE">
+<span id="_CPPv3N7larflow4reco10TrackOTFit3fitERNSt6vectorINSt6vectorIfEEEERNSt6vectorINSt6vectorIfEEEE"></span><span id="_CPPv2N7larflow4reco10TrackOTFit3fitERNSt6vectorINSt6vectorIfEEEERNSt6vectorINSt6vectorIfEEEE"></span><span id="larflow::reco::TrackOTFit::fit__std::vector:std::vector:float::R.std::vector:std::vector:float::R"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1a11c0ba201e3f3c3d4ca67e228a519331"></span>void <code class="descname">fit</code><span class="sig-paren">(</span>std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>initial_track</em>, std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>track_pts_w_feat_v</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit3fitERNSt6vectorINSt6vectorIfEEEERNSt6vectorINSt6vectorIfEEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>fit points [unfinished function right now] </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">initial_track</span></code>: Initial track points, consisting of a start and end point </li>
+<li><code class="docutils literal notranslate"><span class="pre">track_pts_w_feat_v</span></code>: vector of space points (vector&lt;float&gt;) to fit to </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Static Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit16d2_segment_pointERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco10TrackOTFit16d2_segment_pointERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco10TrackOTFit16d2_segment_pointERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE"></span><span id="larflow::reco::TrackOTFit::d2_segment_point__std::vector:float:CR.std::vector:float:CR.std::vector:float:CR"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1ae7329834c9a2f2cdd0c370a5cec1d6ac"></span>float <code class="descname">d2_segment_point</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;float&gt; &amp;<em>seg_start</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>seg_end</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>testpt</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit16d2_segment_pointERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calculate the squared-distance from a line segment </p>
+<p>Use line-distance formala if test point projects onto the segment. Use point-point distance if projects outside the segment</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">seg_start</span></code>: Start spacepoint defining segment </li>
+<li><code class="docutils literal notranslate"><span class="pre">seg_end</span></code>: End spacepoint defining segment </li>
+<li><code class="docutils literal notranslate"><span class="pre">testpt</span></code>: Test spacepoint </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit18grad_d2_wrt_segendERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco10TrackOTFit18grad_d2_wrt_segendERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco10TrackOTFit18grad_d2_wrt_segendERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE"></span><span id="larflow::reco::TrackOTFit::grad_d2_wrt_segend__std::vector:float:CR.std::vector:float:CR.std::vector:float:CR"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1a18a195c3a34be12cfb1e7d0d2b92a504"></span>std::vector&lt;float&gt; <code class="descname">grad_d2_wrt_segend</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;float&gt; &amp;<em>seg_start</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>seg_end</em>, <em class="property">const</em> std::vector&lt;float&gt; &amp;<em>testpt</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit18grad_d2_wrt_segendERKNSt6vectorIfEERKNSt6vectorIfEERKNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calculate gradient of squared distance with respect to end-point position </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">seg_start</span></code>: Segment start point </li>
+<li><code class="docutils literal notranslate"><span class="pre">seg_end</span></code>: Segment end point </li>
+<li><code class="docutils literal notranslate"><span class="pre">testpt</span></code>: Test point </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit18getLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco10TrackOTFit18getLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco10TrackOTFit18getLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRNSt6vectorIfEE"></span><span id="larflow::reco::TrackOTFit::getLossAndGradient__std::vector:std::vector:float::CR.std::vector:std::vector:float::CR.floatR.std::vector:float:R"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1a55e20358f0f9f44003c82a4273466d9f"></span>void <code class="descname">getLossAndGradient</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>initial_track</em>, <em class="property">const</em> std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>track_pts_w_feat_v</em>, float &amp;<em>loss</em>, std::vector&lt;float&gt; &amp;<em>grad</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit18getLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calculate loss and gradient without weighting points </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">initial_track</span></code>: Initial track points, consisting of a start and end point </li>
+<li><code class="docutils literal notranslate"><span class="pre">track_pts_w_feat_v</span></code>: vector of space points (vector&lt;float&gt;) to fit to </li>
+<li><code class="docutils literal notranslate"><span class="pre">loss</span></code>: The final total loss which is the average squared-distance </li>
+<li><code class="docutils literal notranslate"><span class="pre">grad</span></code>: The average gradient for all points </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow4reco10TrackOTFit26getWeightedLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRfRNSt6vectorIfEE">
+<span id="_CPPv3N7larflow4reco10TrackOTFit26getWeightedLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRfRNSt6vectorIfEE"></span><span id="_CPPv2N7larflow4reco10TrackOTFit26getWeightedLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRfRNSt6vectorIfEE"></span><span id="larflow::reco::TrackOTFit::getWeightedLossAndGradient__std::vector:std::vector:float::CR.std::vector:std::vector:float::CR.floatR.floatR.std::vector:float:R"></span><span class="target" id="classlarflow_1_1reco_1_1TrackOTFit_1a9f52e45812c603e91af8d411a6c88f42"></span>void <code class="descname">getWeightedLossAndGradient</code><span class="sig-paren">(</span><em class="property">const</em> std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>initial_track</em>, <em class="property">const</em> std::vector&lt;std::vector&lt;float&gt;&gt; &amp;<em>track_pts_w_feat_v</em>, float &amp;<em>loss</em>, float &amp;<em>totweight</em>, std::vector&lt;float&gt; &amp;<em>grad</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow4reco10TrackOTFit26getWeightedLossAndGradientERKNSt6vectorINSt6vectorIfEEEERKNSt6vectorINSt6vectorIfEEEERfRfRNSt6vectorIfEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calculate loss and gradient with weights </p>
+<p>For the vectors in track_pts_w_feat_v, the first 3 entries are (x,y,z). The weight for a given spacepoint is calculated by multiplying all vector values for entries [3:] and above.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">initial_track</span></code>: Initial track points, consisting of a start and end point </li>
+<li><code class="docutils literal notranslate"><span class="pre">track_pts_w_feat_v</span></code>: vector of space points (vector&lt;float&gt;) to fit to </li>
+<li><code class="docutils literal notranslate"><span class="pre">loss</span></code>: The final total loss which is the average squared-distance </li>
+<li><code class="docutils literal notranslate"><span class="pre">tot_weight</span></code>: The total weight </li>
+<li><code class="docutils literal notranslate"><span class="pre">grad</span></code>: The weighted average gradient for all points </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="classlarflow_1_1scb_1_1SCBoundary.html" class="btn btn-neutral float-right" title="Class SCBoundary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1reco_1_1TrackClusterBuilder.html" class="btn btn-neutral float-left" title="Class TrackClusterBuilder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

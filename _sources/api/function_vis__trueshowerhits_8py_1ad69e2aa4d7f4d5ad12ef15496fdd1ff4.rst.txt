@@ -1,0 +1,13 @@
+.. _exhale_function_vis__trueshowerhits_8py_1ad69e2aa4d7f4d5ad12ef15496fdd1ff4:
+
+Function vis_trueshowerhits::make_figures
+=========================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_trueshowerhits.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_trueshowerhits::make_figures(entry, plotby, treename, minprob)

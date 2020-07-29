@@ -1,0 +1,599 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Program Listing for File kpsreco_vertexana.cxx &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Program Listing for File kpsreco_vertexana.cxx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/program_listing_file_larflow_Ana_kpsreco_vertexana.cxx.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="program-listing-for-file-kpsreco-vertexana-cxx">
+<span id="program-listing-file-larflow-ana-kpsreco-vertexana-cxx"></span><h1>Program Listing for File kpsreco_vertexana.cxx<a class="headerlink" href="#program-listing-for-file-kpsreco-vertexana-cxx" title="Permalink to this headline">¶</a></h1>
+<p>↰ <a class="reference internal" href="file_larflow_Ana_kpsreco_vertexana.cxx.html#file-larflow-ana-kpsreco-vertexana-cxx"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">larflow/Ana/kpsreco_vertexana.cxx</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;TTree.h&quot;</span><span class="cp"></span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/IOManager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larcv/core/DataFormat/EventPGraph.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/storage_manager.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;DataFormat/larflow3dhit.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/LArProperties.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;LArUtil/Geometry.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;ublarcvapp/MCTools/LArbysMC.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/KeyPoints/PrepKeypointData.h&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;larflow/Reco/NuVertexCandidate.h&quot;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">nargs</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span> <span class="p">)</span>
+<span class="p">{</span>
+
+  <span class="c1">// keypoint reco analysis</span>
+  <span class="c1">// output:</span>
+  <span class="c1">//  1) ttree per event storing</span>
+  <span class="c1">//     - mc event info</span>
+  <span class="c1">//     - number of reco vertices near true neutrino vertex</span>
+  <span class="c1">//     - number of reco vertices near true track keypoint</span>
+  <span class="c1">//     - number of reco vertices that are false</span>
+  <span class="c1">//  2) if wire-cell cosmic tagger info available, ttree per event storing</span>
+  <span class="c1">//     - number of reco vertices near true neutrino vertex w/ wirecell mask</span>
+  <span class="c1">//     - number of reco vertices near true track keypoint w/ wirecell mask</span>
+  <span class="c1">//     - number of reco vertices that are false w/ wirecell mask</span>
+
+  <span class="c1">// inputs</span>
+  <span class="c1">// ------</span>
+
+  <span class="c1">// 1) dlmerged file</span>
+  <span class="c1">// 2) keypoint reco output</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">dlmerged_file</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">kpreco_file</span>   <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+  <span class="c1">// outputs</span>
+  <span class="c1">// 1) ana tfile with ana ttree</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">outfilename</span>   <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+
+  <span class="kt">int</span> <span class="n">ismc</span>                  <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]);</span>
+
+  <span class="c1">// Load inputs</span>
+  <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span> <span class="n">iocv</span><span class="p">(</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kREAD</span><span class="p">,</span> <span class="s">&quot;larcv&quot;</span><span class="p">,</span> <span class="n">larcv</span><span class="o">::</span><span class="n">IOManager</span><span class="o">::</span><span class="n">kTickBackward</span> <span class="p">);</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">add_in_file</span><span class="p">(</span> <span class="n">dlmerged_file</span> <span class="p">);</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">reverse_all_products</span><span class="p">();</span>
+  <span class="n">iocv</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+
+  <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span> <span class="n">ioll</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">storage_manager</span><span class="o">::</span><span class="n">kREAD</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">add_in_filename</span><span class="p">(</span> <span class="n">dlmerged_file</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">set_data_to_read</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTruth</span><span class="p">,</span>  <span class="s">&quot;generator&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">set_data_to_read</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCTrack</span><span class="p">,</span>  <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">set_data_to_read</span><span class="p">(</span> <span class="n">larlite</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">kMCShower</span><span class="p">,</span> <span class="s">&quot;mcreco&quot;</span> <span class="p">);</span>
+  <span class="n">ioll</span><span class="p">.</span><span class="n">open</span><span class="p">();</span>
+
+  <span class="n">TFile</span> <span class="n">kpreco_tfile</span><span class="p">(</span><span class="n">kpreco_file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="s">&quot;open&quot;</span><span class="p">);</span>
+  <span class="n">TTree</span><span class="o">*</span> <span class="n">kpreco_ttree</span> <span class="o">=</span> <span class="p">(</span><span class="n">TTree</span><span class="o">*</span><span class="p">)</span><span class="n">kpreco_tfile</span><span class="p">.</span><span class="n">Get</span><span class="p">(</span><span class="s">&quot;KPSRecoManagerTree&quot;</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">NuVertexCandidate</span><span class="o">&gt;*</span> <span class="n">ev_kpreco</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">larflow</span><span class="o">::</span><span class="n">reco</span><span class="o">::</span><span class="n">NuVertexCandidate</span><span class="o">&gt;*</span> <span class="n">ev_kpreco_fitted</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">kpreco_ttree</span><span class="o">-&gt;</span><span class="n">SetBranchAddress</span><span class="p">(</span> <span class="s">&quot;nuvetoed_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ev_kpreco</span> <span class="p">);</span>
+  <span class="n">kpreco_ttree</span><span class="o">-&gt;</span><span class="n">SetBranchAddress</span><span class="p">(</span> <span class="s">&quot;nufitted_v&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ev_kpreco_fitted</span> <span class="p">);</span>
+
+  <span class="c1">// load outputs</span>
+  <span class="n">TFile</span><span class="o">*</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TFile</span><span class="p">(</span><span class="n">outfilename</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="s">&quot;new&quot;</span><span class="p">);</span>
+
+  <span class="c1">// define output trees</span>
+
+  <span class="c1">// per-event analysis tree</span>
+  <span class="n">TTree</span><span class="o">*</span> <span class="n">ev_ana</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;nuvertexana_event&quot;</span><span class="p">,</span><span class="s">&quot;Nu Vertex Reco Ana Event tree&quot;</span><span class="p">);</span>
+
+  <span class="kt">int</span> <span class="n">run</span><span class="p">,</span><span class="n">subrun</span><span class="p">,</span><span class="n">event</span><span class="p">;</span>
+
+  <span class="kt">int</span> <span class="n">n_reco</span><span class="p">;</span>               <span class="c1">//&lt; total number of candidates per event</span>
+  <span class="kt">int</span> <span class="n">n_near_true_vtx</span><span class="p">;</span>      <span class="c1">//&lt; number near true vertex (within 5 cm)</span>
+  <span class="kt">int</span> <span class="n">n_false</span><span class="p">;</span>              <span class="c1">//&lt; number of false vertices</span>
+
+  <span class="kt">int</span> <span class="n">n_reco_wct</span><span class="p">;</span>           <span class="c1">//&lt; total vertices if we exclude those on the WC tagged pixels</span>
+  <span class="kt">int</span> <span class="n">n_near_true_vtx_wct</span><span class="p">;</span>  <span class="c1">//&lt; num near true vertex (within 5 cm)</span>
+  <span class="kt">int</span> <span class="n">n_false_wct</span><span class="p">;</span>          <span class="c1">//&lt; number false after wire cell filter</span>
+
+  <span class="kt">int</span> <span class="n">n_reco_dl</span><span class="p">;</span>            <span class="c1">//&lt; number of DL vertices</span>
+  <span class="kt">int</span> <span class="n">n_near_true_vtx_dl</span><span class="p">;</span>  <span class="c1">//&lt; num dl vertices near truth vertex</span>
+  <span class="kt">int</span> <span class="n">n_false_dl</span><span class="p">;</span>           <span class="c1">//&lt; number of false dl vertices</span>
+
+  <span class="kt">float</span> <span class="n">truth_vtx_qsum</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span> <span class="p">};</span>  <span class="c1">// truth of charge near the vertex</span>
+  <span class="kt">float</span> <span class="n">min_dist_to_vtx</span>     <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>            <span class="c1">// min distance to closest reco vtx</span>
+  <span class="kt">float</span> <span class="n">min_dist_to_vtx_wct</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>            <span class="c1">// min distance to closest reco vtx not on tagged pixel</span>
+  <span class="kt">float</span> <span class="n">min_dist_to_vtx_dl</span>  <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>            <span class="c1">// min distance to closest reco DL vtx</span>
+  <span class="kt">float</span> <span class="n">min_dist_to_vtx_fit</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>            <span class="c1">// min distance to closest reco vtx after fitting prongs</span>
+
+  <span class="kt">float</span> <span class="n">difftrue_after_fit_cm</span>   <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>        <span class="c1">// relative distance to true vtx before and after fit</span>
+  <span class="kt">float</span> <span class="n">diffreco_after_fit_cm</span>   <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>        <span class="c1">// diff of vertex pos before and after fit</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;run&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">run</span><span class="p">,</span><span class="s">&quot;run/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;subrun&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">subrun</span><span class="p">,</span><span class="s">&quot;subrun/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;event&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">event</span><span class="p">,</span><span class="s">&quot;event/I&quot;</span><span class="p">);</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_reco&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_reco</span><span class="p">,</span><span class="s">&quot;n_reco/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_near_true_vtx&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_near_true_vtx</span><span class="p">,</span><span class="s">&quot;n_near_true_vtx/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_false&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_false</span><span class="p">,</span><span class="s">&quot;n_false/I&quot;</span><span class="p">);</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_reco_wct&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_reco_wct</span><span class="p">,</span><span class="s">&quot;n_reco_wct/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_near_true_vtx_wct&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_near_true_vtx_wct</span><span class="p">,</span><span class="s">&quot;n_near_true_vtx_wct/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_false_wct&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_false_wct</span><span class="p">,</span><span class="s">&quot;n_false_wct/I&quot;</span><span class="p">);</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_reco_dl&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_reco_dl</span><span class="p">,</span><span class="s">&quot;n_reco_dl/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_near_true_vtx_dl&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_near_true_vtx_dl</span><span class="p">,</span><span class="s">&quot;n_near_true_vtx_dl/I&quot;</span><span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;n_false_dl&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">n_false_dl</span><span class="p">,</span><span class="s">&quot;n_false_dl/I&quot;</span><span class="p">);</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;min_dist_to_vtx&quot;</span><span class="p">,</span>     <span class="o">&amp;</span><span class="n">min_dist_to_vtx</span><span class="p">,</span>     <span class="s">&quot;min_dist_to_vtx/F&quot;</span> <span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;min_dist_to_vtx_dl&quot;</span><span class="p">,</span>  <span class="o">&amp;</span><span class="n">min_dist_to_vtx_dl</span><span class="p">,</span>  <span class="s">&quot;min_dist_to_vtx_dl/F&quot;</span> <span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;min_dist_to_vtx_wct&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">min_dist_to_vtx_wct</span><span class="p">,</span> <span class="s">&quot;min_dist_to_vtx_wct/F&quot;</span> <span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;min_dist_to_vtx_fit&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">min_dist_to_vtx_fit</span><span class="p">,</span> <span class="s">&quot;min_dist_to_vtx_fit/F&quot;</span> <span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;true_vtx_qsum&quot;</span><span class="p">,</span><span class="n">truth_vtx_qsum</span><span class="p">,</span> <span class="s">&quot;true_vtx_qsum[3]/F&quot;</span> <span class="p">);</span>
+
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;difftrue_after_fit_cm&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">difftrue_after_fit_cm</span><span class="p">,</span> <span class="s">&quot;difftrue_after_fit_cm/F&quot;</span> <span class="p">);</span>
+  <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;diffreco_after_fit_cm&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">diffreco_after_fit_cm</span><span class="p">,</span> <span class="s">&quot;diffreco_after_fit_cm/F&quot;</span> <span class="p">);</span>
+
+  <span class="c1">// per reco vertex analysis tree</span>
+  <span class="n">TTree</span><span class="o">*</span> <span class="n">kp_ana</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TTree</span><span class="p">(</span><span class="s">&quot;vertexana_recovertex&quot;</span><span class="p">,</span><span class="s">&quot;Ana per reco vertex&quot;</span><span class="p">);</span>
+  <span class="c1">// int   nshower;</span>
+  <span class="c1">// int   ntrack;</span>
+  <span class="c1">// int   nshower_true;</span>
+  <span class="c1">// int   ntrack_true;</span>
+  <span class="kt">float</span> <span class="n">pos</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+  <span class="kt">float</span> <span class="n">score</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">dist_to_vertex</span><span class="p">;</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;pos&quot;</span><span class="p">,</span><span class="n">pos</span><span class="p">,</span><span class="s">&quot;pos[3]/F&quot;</span><span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;score&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">score</span><span class="p">,</span><span class="s">&quot;score/F&quot;</span><span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;dist_to_vertex&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dist_to_vertex</span><span class="p">,</span><span class="s">&quot;dist_to_vertex/F&quot;</span><span class="p">);</span>
+
+
+  <span class="k">const</span> <span class="kt">float</span> <span class="n">cut_off_dist</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="c1">// cm</span>
+  <span class="k">const</span> <span class="kt">float</span> <span class="n">cut_off_distsq</span> <span class="o">=</span> <span class="n">cut_off_dist</span><span class="o">*</span><span class="n">cut_off_dist</span><span class="p">;</span>
+
+  <span class="c1">// Keypoint Truth Data Maker</span>
+  <span class="c1">//larflow::keypoints::PrepKeypointData kpdata; //truth key points</span>
+  <span class="n">ublarcvapp</span><span class="o">::</span><span class="n">mctools</span><span class="o">::</span><span class="n">LArbysMC</span> <span class="n">lmc</span><span class="p">;</span>
+  <span class="n">lmc</span><span class="p">.</span><span class="n">bindAnaVariables</span><span class="p">(</span> <span class="n">ev_ana</span> <span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nlepton_35mev&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">lmc</span><span class="p">.</span><span class="n">_nlepton_35mev</span><span class="p">,</span><span class="s">&quot;nlepton_35mev/I&quot;</span><span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nproton_60mev&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">lmc</span><span class="p">.</span><span class="n">_nproton_60mev</span><span class="p">,</span><span class="s">&quot;nproton_60mev/I&quot;</span><span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nmeson_35mev&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">lmc</span><span class="p">.</span><span class="n">_nmeson_35mev</span><span class="p">,</span><span class="s">&quot;nmeson_35mev/I&quot;</span><span class="p">);</span>
+  <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Branch</span><span class="p">(</span><span class="s">&quot;nshower&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">lmc</span><span class="p">.</span><span class="n">_nshower</span><span class="p">,</span><span class="s">&quot;nshower/I&quot;</span><span class="p">);</span>
+
+  <span class="kt">int</span> <span class="n">nentries</span> <span class="o">=</span> <span class="n">iocv</span><span class="p">.</span><span class="n">get_n_entries</span><span class="p">();</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ientry</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">ientry</span><span class="o">&lt;</span><span class="n">nentries</span><span class="p">;</span> <span class="n">ientry</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// load trees</span>
+    <span class="n">iocv</span><span class="p">.</span><span class="n">read_entry</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+    <span class="n">ioll</span><span class="p">.</span><span class="n">go_to</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+    <span class="n">kpreco_ttree</span><span class="o">-&gt;</span><span class="n">GetEntry</span><span class="p">(</span><span class="n">ientry</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ev_kpreco</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span><span class="o">!=</span><span class="n">ev_kpreco_fitted</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Differnet number of prefit and postfit vertices!&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Get neutrino interaction truth</span>
+    <span class="kt">float</span> <span class="n">true_vtx</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ismc</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">lmc</span><span class="p">.</span><span class="n">process</span><span class="p">(</span> <span class="n">ioll</span> <span class="p">);</span>
+
+      <span class="c1">// true vertex after space charge correction</span>
+      <span class="n">true_vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_x</span><span class="p">;</span>
+      <span class="n">true_vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_y</span><span class="p">;</span>
+      <span class="n">true_vtx</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_sce_z</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// truth keypoints</span>
+    <span class="c1">//kpdata.process( iocv, ioll );</span>
+
+    <span class="c1">// wirecell cosmic pixel image</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_thrumu</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iocv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;thrumu&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">thrumu_v</span> <span class="o">=</span> <span class="n">ev_thrumu</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// ADC images</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span> <span class="n">ev_adc</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventImage2D</span><span class="o">*</span><span class="p">)</span><span class="n">iocv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductImage2D</span><span class="p">,</span><span class="s">&quot;wire&quot;</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">adc_v</span> <span class="o">=</span> <span class="n">ev_adc</span><span class="o">-&gt;</span><span class="n">Image2DArray</span><span class="p">();</span>
+
+    <span class="c1">// DL Vertex</span>
+    <span class="n">larcv</span><span class="o">::</span><span class="n">EventPGraph</span><span class="o">*</span> <span class="n">ev_pgraph</span> <span class="o">=</span>
+      <span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">EventPGraph</span><span class="o">*</span><span class="p">)</span><span class="n">iocv</span><span class="p">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">larcv</span><span class="o">::</span><span class="n">kProductPGraph</span><span class="p">,</span><span class="s">&quot;test&quot;</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;[ENTRY &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ientry</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;]&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="c1">//std::cout &lt;&lt; &quot;  number of truth keypoints: &quot; &lt;&lt; kpdata.getKPdata().size() &lt;&lt; std::endl;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of reco keypoints: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_kpreco</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of Wirecell images: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">thrumu_v</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  number of DL reco vertices: &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ev_pgraph</span><span class="o">-&gt;</span><span class="n">PGraphArray</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;  true neutrino vertex: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">true_vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">true_vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">true_vtx</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ismc</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">lmc</span><span class="p">.</span><span class="n">printInteractionInfo</span><span class="p">();</span>
+      <span class="c1">//kpdata.printKeypoints();</span>
+    <span class="p">}</span>
+
+    <span class="c1">// number of reco vertices</span>
+    <span class="n">n_reco</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_kpreco</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span>
+
+    <span class="c1">// KP Reco loop</span>
+    <span class="n">n_near_true_vtx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">n_false</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">n_reco_wct</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">n_near_true_vtx_wct</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">n_false_wct</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">n_reco_dl</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">ev_pgraph</span><span class="o">-&gt;</span><span class="n">PGraphArray</span><span class="p">().</span><span class="n">size</span><span class="p">();</span>
+    <span class="n">n_near_true_vtx_dl</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">n_false_dl</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="c1">// characterize vertex</span>
+    <span class="n">min_dist_to_vtx</span>     <span class="o">=</span> <span class="mi">1110</span><span class="p">;</span>
+    <span class="n">min_dist_to_vtx_wct</span> <span class="o">=</span> <span class="mi">1110</span><span class="p">;</span>
+    <span class="n">min_dist_to_vtx_dl</span>  <span class="o">=</span> <span class="mi">1110</span><span class="p">;</span>
+    <span class="n">min_dist_to_vtx_fit</span> <span class="o">=</span> <span class="mi">1110</span><span class="p">;</span>
+
+    <span class="c1">// get vertex activity</span>
+    <span class="c1">// sum charge on the three planes</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ismc</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">)</span> <span class="n">truth_vtx_qsum</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_tick</span><span class="o">&gt;</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_tick</span><span class="o">&lt;</span><span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_tick</span> <span class="p">);</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">p</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_wire</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">&gt;=</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_x</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_wire</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_x</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">(</span> <span class="n">lmc</span><span class="p">.</span><span class="n">_vtx_wire</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="p">);</span>
+
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dr</span><span class="o">=-</span><span class="mi">3</span><span class="p">;</span> <span class="n">dr</span><span class="o">&lt;=</span><span class="mi">3</span><span class="p">;</span> <span class="n">dr</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+              <span class="kt">int</span> <span class="n">r</span><span class="o">=</span><span class="n">row</span><span class="o">+</span><span class="n">dr</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">r</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">r</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+              <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dc</span><span class="o">=-</span><span class="mi">3</span><span class="p">;</span> <span class="n">dc</span><span class="o">&lt;=</span><span class="mi">3</span><span class="p">;</span> <span class="n">dc</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+                <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">col</span><span class="o">+</span><span class="n">dc</span><span class="p">;</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">c</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">c</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">10.0</span> <span class="p">)</span>
+                  <span class="n">truth_vtx_qsum</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">adc_v</span><span class="p">[</span><span class="n">p</span><span class="p">].</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">);</span>
+              <span class="p">}</span><span class="c1">//end of col loop</span>
+            <span class="p">}</span><span class="c1">//end of row loop</span>
+          <span class="p">}</span><span class="c1">//end of if valid wire</span>
+        <span class="p">}</span><span class="c1">//end of plane loop</span>
+      <span class="p">}</span><span class="c1">//end of if valid tick</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ismc</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// get dl vertex info</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">pgraph</span> <span class="p">:</span> <span class="n">ev_pgraph</span><span class="o">-&gt;</span><span class="n">PGraphArray</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">roi</span> <span class="p">:</span> <span class="n">pgraph</span><span class="p">.</span><span class="n">ParticleArray</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="kt">float</span> <span class="n">dist</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">X</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">X</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">Y</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">Y</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dist</span> <span class="o">+=</span> <span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">Z</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">roi</span><span class="p">.</span><span class="n">Z</span><span class="p">()</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">);</span>
+          <span class="n">dist</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">);</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;dl vtx: (&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">roi</span><span class="p">.</span><span class="n">X</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">roi</span><span class="p">.</span><span class="n">Y</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;,&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">roi</span><span class="p">.</span><span class="n">Z</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;) dist2vtx=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dist</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; cm&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">min_dist_to_vtx_dl</span><span class="o">&gt;</span><span class="n">dist</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">min_dist_to_vtx_dl</span> <span class="o">=</span> <span class="n">dist</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist</span><span class="o">&lt;</span><span class="mf">5.0</span> <span class="p">)</span>
+            <span class="n">n_near_true_vtx_dl</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// analysis for reco keypoints</span>
+    <span class="kt">int</span> <span class="n">ivtx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">kpc</span> <span class="p">:</span> <span class="o">*</span><span class="n">ev_kpreco</span> <span class="p">)</span> <span class="p">{</span>
+      <span class="n">ivtx</span><span class="o">++</span><span class="p">;</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+      <span class="n">score</span> <span class="o">=</span> <span class="n">kpc</span><span class="p">.</span><span class="n">score</span><span class="p">;</span>
+
+      <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">kpc_fit</span> <span class="o">=</span> <span class="n">ev_kpreco_fitted</span><span class="o">-&gt;</span><span class="n">at</span><span class="p">(</span><span class="n">ivtx</span><span class="p">);</span>
+
+
+      <span class="c1">// determine if on Wirecell-tagged cosmic</span>
+      <span class="c1">// requirement: be on tagged pixel for 2/3 planes</span>
+      <span class="kt">bool</span> <span class="n">iscosmic</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+
+      <span class="kt">float</span> <span class="n">tick</span> <span class="o">=</span> <span class="mi">3200</span> <span class="o">+</span> <span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">larutil</span><span class="o">::</span><span class="n">LArProperties</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">DriftVelocity</span><span class="p">()</span><span class="o">/</span><span class="mf">0.5</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">tick</span><span class="o">&lt;=</span><span class="n">thrumu_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">min_y</span><span class="p">()</span> <span class="o">||</span> <span class="n">tick</span><span class="o">&gt;=</span><span class="n">thrumu_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">max_y</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="n">iscosmic</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">thrumu_v</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">meta</span><span class="p">().</span><span class="n">row</span><span class="p">(</span> <span class="n">tick</span> <span class="p">);</span>
+        <span class="kt">int</span> <span class="n">nplanes_on_wctpixel</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span> <span class="p">(</span> <span class="k">auto</span> <span class="k">const</span><span class="o">&amp;</span> <span class="nl">img</span> <span class="p">:</span> <span class="n">thrumu_v</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// out of image?  we remove it implicitly by adding to counter</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dpos</span> <span class="o">=</span> <span class="p">{</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                       <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                       <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">};</span>
+          <span class="kt">int</span> <span class="n">nearestwire</span> <span class="o">=</span> <span class="n">larutil</span><span class="o">::</span><span class="n">Geometry</span><span class="o">::</span><span class="n">GetME</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NearestWire</span><span class="p">(</span> <span class="n">dpos</span><span class="p">,</span> <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">plane</span><span class="p">()</span> <span class="p">);</span>
+          <span class="kt">int</span> <span class="n">col</span> <span class="o">=</span> <span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">col</span><span class="p">((</span><span class="kt">float</span><span class="p">)</span><span class="n">nearestwire</span><span class="p">);</span>
+
+          <span class="kt">bool</span> <span class="n">onpixel</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dr</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span> <span class="n">dr</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">;</span> <span class="n">dr</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">r</span> <span class="o">=</span> <span class="n">row</span><span class="o">+</span><span class="n">dr</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">r</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">r</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">rows</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dc</span><span class="o">=-</span><span class="mi">1</span><span class="p">;</span> <span class="n">dc</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">;</span> <span class="n">dc</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+              <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">col</span><span class="o">+</span><span class="n">dc</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">c</span><span class="o">&lt;</span><span class="mi">0</span> <span class="o">||</span> <span class="n">c</span><span class="o">&gt;=</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">img</span><span class="p">.</span><span class="n">meta</span><span class="p">().</span><span class="n">cols</span><span class="p">()</span> <span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">img</span><span class="p">.</span><span class="n">pixel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">10.0</span> <span class="p">)</span> <span class="n">onpixel</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+              <span class="k">if</span> <span class="p">(</span> <span class="n">onpixel</span> <span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">onpixel</span> <span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span> <span class="p">(</span> <span class="n">onpixel</span> <span class="p">)</span> <span class="n">nplanes_on_wctpixel</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">nplanes_on_wctpixel</span><span class="o">&gt;=</span><span class="mi">3</span> <span class="p">)</span> <span class="n">iscosmic</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// dist to vtx</span>
+      <span class="n">dist_to_vertex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="kt">float</span> <span class="n">dist_to_fitvtx</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ismc</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">dist_to_vertex</span> <span class="o">+=</span> <span class="p">(</span><span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">kpc</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+          <span class="n">dist_to_fitvtx</span> <span class="o">+=</span> <span class="p">(</span><span class="n">kpc_fit</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">kpc_fit</span><span class="p">.</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">true_vtx</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+        <span class="p">}</span>
+        <span class="n">dist_to_vertex</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist_to_vertex</span><span class="p">);</span>
+        <span class="n">dist_to_fitvtx</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dist_to_fitvtx</span><span class="p">);</span>
+
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist_to_vertex</span> <span class="o">&lt;</span> <span class="n">min_dist_to_vtx</span> <span class="p">)</span>
+          <span class="n">min_dist_to_vtx</span> <span class="o">=</span> <span class="n">dist_to_vertex</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist_to_fitvtx</span> <span class="o">&lt;</span> <span class="n">min_dist_to_vtx_fit</span> <span class="p">)</span>
+          <span class="n">min_dist_to_vtx_fit</span> <span class="o">=</span> <span class="n">dist_to_fitvtx</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">iscosmic</span> <span class="o">&amp;&amp;</span> <span class="n">dist_to_vertex</span><span class="o">&lt;</span><span class="n">min_dist_to_vtx_wct</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="n">min_dist_to_vtx_wct</span> <span class="o">=</span> <span class="n">dist_to_vertex</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">dist_to_vertex</span><span class="o">&gt;</span><span class="mf">5.0</span> <span class="p">)</span>
+          <span class="n">n_false</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">else</span>
+          <span class="n">n_near_true_vtx</span><span class="o">++</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">iscosmic</span> <span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">dist_to_vertex</span><span class="o">&gt;</span><span class="mf">5.0</span> <span class="p">)</span>
+            <span class="n">n_false_wct</span><span class="o">++</span><span class="p">;</span>
+          <span class="k">else</span>
+            <span class="n">n_near_true_vtx_wct</span><span class="o">++</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">dist_to_vertex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;RecoVtx[&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">ivtx</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;] score=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">score</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; dist-to-vertex=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">dist_to_vertex</span>  <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+      <span class="c1">// compare pre and post fit</span>
+
+
+      <span class="n">kp_ana</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+
+    <span class="p">}</span><span class="c1">//end of reco vertex loop</span>
+
+
+
+    <span class="c1">// for ( auto const&amp; kpd : kpdata.getKPdata() ) {</span>
+    <span class="c1">//   // for each truth keypoint, we save max triplet within certain distance</span>
+    <span class="c1">//   max_score_dist = 1.0e9;</span>
+    <span class="c1">//   max_score = -1.0;</span>
+    <span class="c1">//   float dist = 0.;</span>
+    <span class="c1">//   for ( auto const&amp; hit : *ev_lmhit ) {</span>
+    <span class="c1">//     dist = 0.;</span>
+    <span class="c1">//     for (int i=0; i&lt;3; i++) {</span>
+    <span class="c1">//       dist += (hit[i]-kpd.keypt[i])*(hit[i]-kpd.keypt[i]);</span>
+    <span class="c1">//       vtx_sce[i] = kpd.keypt[i];</span>
+    <span class="c1">//     }</span>
+    <span class="c1">//     if ( dist&lt;cut_off_distsq ) {</span>
+    <span class="c1">//       if ( hit[13]&gt;max_score ) {</span>
+    <span class="c1">//         max_score = hit[13];</span>
+    <span class="c1">//         max_score_dist = sqrt(dist);</span>
+    <span class="c1">//       }</span>
+    <span class="c1">//     }</span>
+    <span class="c1">//   }</span>
+
+    <span class="n">ev_ana</span><span class="o">-&gt;</span><span class="n">Fill</span><span class="p">();</span>
+
+
+  <span class="p">}</span><span class="c1">//end of event loop</span>
+
+  <span class="n">out</span><span class="o">-&gt;</span><span class="n">Write</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+.. _exhale_function_vis__primitives_8py_1a055e7a4a6277723c17c42e5a30f6fe1d:
+
+Function vis_primitives::make_figures
+=====================================
+
+- Defined in :ref:`file_larflow_Reco_test_vis_primitives.py`
+
+
+Function Documentation
+----------------------
+
+
+.. doxygenfunction:: vis_primitives::make_figures(entry, vtxid, plotby, treename, minprob)

@@ -1,0 +1,25 @@
+.. _exhale_class_classlarflow_1_1reco_1_1CosmicTrackBuilder:
+
+Class CosmicTrackBuilder
+========================
+
+- Defined in :ref:`file_larflow_Reco_CosmicTrackBuilder.h`
+
+
+Inheritance Relationships
+-------------------------
+
+Base Type
+*********
+
+- ``public larflow::reco::TrackClusterBuilder`` (:ref:`exhale_class_classlarflow_1_1reco_1_1TrackClusterBuilder`)
+
+
+Class Documentation
+-------------------
+
+
+.. doxygenclass:: larflow::reco::CosmicTrackBuilder
+   :members:
+   :protected-members:
+   :undoc-members:

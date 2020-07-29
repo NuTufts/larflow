@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Class VoxelizeTriplets &mdash; larflow 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/collapsible-lists/css/tree_view.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js"></script>
+        <script type="text/javascript" src="../_static/collapsible-lists/js/apply-collapsible-lists.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Enum FlowDir_t" href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html" />
+    <link rel="prev" title="Class SCBoundary" href="classlarflow_1_1scb_1_1SCBoundary.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> larflow
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="library_root.html">Library API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">larflow</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="library_root.html">Library API</a> &raquo;</li>
+        
+      <li>Class VoxelizeTriplets</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/classlarflow_1_1voxelizer_1_1VoxelizeTriplets.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="class-voxelizetriplets">
+<span id="exhale-class-classlarflow-1-1voxelizer-1-1voxelizetriplets"></span><h1>Class VoxelizeTriplets<a class="headerlink" href="#class-voxelizetriplets" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Defined in <a class="reference internal" href="file_larflow_Voxelizer_VoxelizeTriplets.h.html#file-larflow-voxelizer-voxelizetriplets-h"><span class="std std-ref">File VoxelizeTriplets.h</span></a></li>
+</ul>
+<div class="section" id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTripletsE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTripletsE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTripletsE"></span><span id="larflow::voxelizer::VoxelizeTriplets"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets"></span><em class="property">class </em><code class="descname">VoxelizeTriplets</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTripletsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Take spacepoint proposals from <a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#classlarflow_1_1prep_1_1PrepMatchTriplets"><span class="std std-ref">larflow::prep::PrepMatchTriplets</span></a> and convert into voxels. </p>
+<p>This class takes in space point proposals in the form of (U,V,Y) wire combinations from <a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#classlarflow_1_1prep_1_1PrepMatchTriplets"><span class="std std-ref">larflow::prep::PrepMatchTriplets</span></a>. It assigns those space points to a location in a sparse voxel array defined in the constructor. The class also provides tools to get numpy arrays that help to make associations between spacepoints and voxels. Namely, a map from space point to occupied voxel index and a map from occupied voxel to a list of spacepoint indices that lie within the voxel. This information is intended for use in training sparse convolutional neural networks whose inputs are the voxels.</p>
+<p>The voxel grid can be defined using the constructor with arguments. If the default constructor is used, a default grid is setup whose values are relevant for the MicroBooNE LArTPC. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsEv">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsEv"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::VoxelizeTriplets"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1acdc10ab9921d96a95975bc6f08960238"></span><code class="descname">VoxelizeTriplets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>construct where default dimensions are used to define voxel grid </p>
+<p>Origin is set to: <ul class="simple">
+<li>x: (-801 ticks)*(0.5 usec/tick)*(drift velocity cm/usec) cm</li>
+<li>y: -120.0 cm</li>
+<li>z: 0.0 cm</li>
+</ul>
+</p>
+<p>The drift velocity is retrieved from larlite::LArProperties.</p>
+<p>The length is set to: <ul class="simple">
+<li>x: (1010 pixel rows)*(6 ticks/pixel)*(0.5 usec/tick)*(drift velocity cm/usec) cm</li>
+<li>y: 240.0 cm</li>
+<li>z: 1037.0 cm</li>
+</ul>
+</p>
+<p>The voxel size is set to 0.3 cm. This is the wire pitch in MicroBoone. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsENSt6vectorIfEENSt6vectorIfEEf">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsENSt6vectorIfEENSt6vectorIfEEf"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsENSt6vectorIfEENSt6vectorIfEEf"></span><span id="larflow::voxelizer::VoxelizeTriplets::VoxelizeTriplets__std::vector:float:.std::vector:float:.float"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a604280c06b6f86df169a887e78547909"></span><code class="descname">VoxelizeTriplets</code><span class="sig-paren">(</span>std::vector&lt;float&gt; <em>origin</em>, std::vector&lt;float&gt; <em>dim_len</em>, float <em>voxel_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets16VoxelizeTripletsENSt6vectorIfEENSt6vectorIfEEf" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>constructor where voxel grid can be specified </p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">origin</span></code>: Position in 3D where origin of the voxel grid is located (in cm). </li>
+<li><code class="docutils literal notranslate"><span class="pre">dim_len</span></code>: Total length of each dimension (should be 3) in cm. </li>
+<li><code class="docutils literal notranslate"><span class="pre">voxel_size</span></code>: Length of height, width, and depth of an individual voxel in cm. </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTripletsD0Ev">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTripletsD0Ev"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTripletsD0Ev"></span><span id="larflow::voxelizer::VoxelizeTriplets::~VoxelizeTriplets"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1ac618e9b3199d898a4c827474ccb02da6"></span><code class="descname">~VoxelizeTriplets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTripletsD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets17process_fullchainERN5larcv9IOManagerENSt6stringENSt6stringEb">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets17process_fullchainERN5larcv9IOManagerENSt6stringENSt6stringEb"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets17process_fullchainERN5larcv9IOManagerENSt6stringENSt6stringEb"></span><span id="larflow::voxelizer::VoxelizeTriplets::process_fullchain__larcv::IOManagerR.ss.ss.b"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1af86c8bfc813ea53eb4e8f55d2b5081e2"></span>void <code class="descname">process_fullchain</code><span class="sig-paren">(</span>larcv::IOManager &amp;<em>iolcv</em>, std::string <em>adc_producer</em>, std::string <em>chstatus_producer</em>, bool <em>has_mc</em> = false<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets17process_fullchainERN5larcv9IOManagerENSt6stringENSt6stringEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>process data from image to make triplet and voxel data </p>
+<p>This method uses an internal instance of <a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#classlarflow_1_1prep_1_1PrepMatchTriplets"><span class="std std-ref">larflow::prep::PrepMatchTriplets</span></a>, _triplet_maker. The internal instance is used to extract spacepoint proposals from the wire plane images and then pass that info to <a class="reference internal" href="#classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a544baa1e1b67e7c30e27a73809c2f83e"><span class="std std-ref">make_voxeldata()</span></a>.</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">iolcv</span></code>: LArCV IOManager containing event data </li>
+<li><code class="docutils literal notranslate"><span class="pre">adc_producer</span></code>: Root tree name containing wire images for event </li>
+<li><code class="docutils literal notranslate"><span class="pre">chstatus_producer</span></code>: Root tree name containing channel status info for event </li>
+<li><code class="docutils literal notranslate"><span class="pre">has_mc</span></code>: The IOManager is expected to contain truth information from Monte Carlo simulations </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9voxelizer16VoxelizeTriplets14get_axis_voxelEif">
+<span id="_CPPv3NK7larflow9voxelizer16VoxelizeTriplets14get_axis_voxelEif"></span><span id="_CPPv2NK7larflow9voxelizer16VoxelizeTriplets14get_axis_voxelEif"></span><span id="larflow::voxelizer::VoxelizeTriplets::get_axis_voxel__i.floatC"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a867a11d57304143c41630569696b32c3"></span>int <code class="descname">get_axis_voxel</code><span class="sig-paren">(</span>int <em>axis</em>, float <em>coord</em><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9voxelizer16VoxelizeTriplets14get_axis_voxelEif" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the voxel bin along one of the dimensions </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>voxel bin index along the given dimension </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">axis</span></code>: Dimension we want </li>
+<li><code class="docutils literal notranslate"><span class="pre">coord</span></code>: Coordinate in the dimension we want </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets14make_voxeldataERKN7larflow4prep17PrepMatchTripletsE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets14make_voxeldataERKN7larflow4prep17PrepMatchTripletsE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets14make_voxeldataERKN7larflow4prep17PrepMatchTripletsE"></span><span id="larflow::voxelizer::VoxelizeTriplets::make_voxeldata__larflow::prep::PrepMatchTripletsCR"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a544baa1e1b67e7c30e27a73809c2f83e"></span>void <code class="descname">make_voxeldata</code><span class="sig-paren">(</span><em class="property">const</em> larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> &amp;<em>triplet_data</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets14make_voxeldataERKN7larflow4prep17PrepMatchTripletsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>takes in precomputed triplet data and saves filled voxels and maps between voxels and triplets </p>
+<p>populates the following data members: <ul class="simple">
+<li><ul class="first">
+<li>_voxel_set</li>
+</ul>
+</li>
+<li><ul class="first">
+<li>_voxel_list</li>
+</ul>
+</li>
+<li><ul class="first">
+<li>_voxelidx_to_tripidxlist</li>
+</ul>
+</li>
+<li><ul class="first">
+<li>_trip2voxelidx</li>
+</ul>
+</li>
+<li></li>
+</ul>
+</p>
+<p><dl class="docutils">
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">triplet_data</span></code>: Instance of triplet data, assumed to be filled already </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictERKN7larflow4prep17PrepMatchTripletsE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictERKN7larflow4prep17PrepMatchTripletsE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictERKN7larflow4prep17PrepMatchTripletsE"></span><span id="larflow::voxelizer::VoxelizeTriplets::make_voxeldata_dict__larflow::prep::PrepMatchTripletsCR"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1aa81f4e1f7399f612805d59d9e03003d6"></span>PyObject *<code class="descname">make_voxeldata_dict</code><span class="sig-paren">(</span><em class="property">const</em> larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> &amp;<em>triplet_data</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictERKN7larflow4prep17PrepMatchTripletsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>takes in precomputed triplet data and outputs voxel data in the form of a python dict </p>
+<p>Contents of the dictionary: <ul class="simple">
+<li>dict[“voxcoord”] = (Nv,3) numpy int array; Nv (x,y,z) voxel coordinate</li>
+<li>dict[“voxlabel”]  = (Nv) numpy int array; 1 if truth voxel, 0 otherwise.</li>
+<li>dict[“trip2vidx”] = (Nt) numpy int array; Nt voxel indices referencing the “coord” array</li>
+<li>dict[“vox2trips_list”] = List of length Nv with (Mi) numpy int arrays. Each array contains triplet index list to combine into the voxel.</li>
+</ul>
+</p>
+<p>Uses member containers filled in <a class="reference internal" href="#classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a544baa1e1b67e7c30e27a73809c2f83e"><span class="std std-ref">make_voxeldata()</span></a>.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Python dictionary as described above. Ownership is transferred to calling namespace. </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">triplet_data</span></code>: larlite::prep::PrepMatchTriplets class containing spacepoint proposals </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictEv">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictEv"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::make_voxeldata_dict"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a984a93190eaf222b0ed85161ca07c28a"></span>PyObject *<code class="descname">make_voxeldata_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets19make_voxeldata_dictEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>calls make_voxeldata_dict with internal triplet maker data </p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>Python dictionary as described above. Ownership is transferred to calling namespace. </dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9voxelizer16VoxelizeTriplets11get_nvoxelsEv">
+<span id="_CPPv3NK7larflow9voxelizer16VoxelizeTriplets11get_nvoxelsEv"></span><span id="_CPPv2NK7larflow9voxelizer16VoxelizeTriplets11get_nvoxelsEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::get_nvoxelsC"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1aea6f8118f67441beadd8f8e9146f32ed"></span><em class="property">const</em> std::vector&lt;int&gt; &amp;<code class="descname">get_nvoxels</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9voxelizer16VoxelizeTriplets11get_nvoxelsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the number of total voxels </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9voxelizer16VoxelizeTriplets10get_originEv">
+<span id="_CPPv3NK7larflow9voxelizer16VoxelizeTriplets10get_originEv"></span><span id="_CPPv2NK7larflow9voxelizer16VoxelizeTriplets10get_originEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::get_originC"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1af35596f24f971d046e0a84863b788c87"></span><em class="property">const</em> std::vector&lt;float&gt; &amp;<code class="descname">get_origin</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9voxelizer16VoxelizeTriplets10get_originEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the origin of the voxel grid </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9voxelizer16VoxelizeTriplets11get_dim_lenEv">
+<span id="_CPPv3NK7larflow9voxelizer16VoxelizeTriplets11get_dim_lenEv"></span><span id="_CPPv2NK7larflow9voxelizer16VoxelizeTriplets11get_dim_lenEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::get_dim_lenC"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a1b4f0bb2fa221b90472b7732f59536f6"></span><em class="property">const</em> std::vector&lt;float&gt; &amp;<code class="descname">get_dim_len</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9voxelizer16VoxelizeTriplets11get_dim_lenEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the lengths of each dimension of the voxel grid </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4NK7larflow9voxelizer16VoxelizeTriplets14get_voxel_sizeEv">
+<span id="_CPPv3NK7larflow9voxelizer16VoxelizeTriplets14get_voxel_sizeEv"></span><span id="_CPPv2NK7larflow9voxelizer16VoxelizeTriplets14get_voxel_sizeEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::get_voxel_sizeC"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a8fbe7c218579e50faea0e4f21bf44a18"></span>float <code class="descname">get_voxel_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK7larflow9voxelizer16VoxelizeTriplets14get_voxel_sizeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>get the voxel edge length </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Functions</p>
+<dl class="function">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_define_voxelsEv">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets14_define_voxelsEv"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets14_define_voxelsEv"></span><span id="larflow::voxelizer::VoxelizeTriplets::_define_voxels"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a38926029ac2a70677552054923f936dc"></span>void <code class="descname">_define_voxels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_define_voxelsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>using the origin, grid length, and voxel size define the voxel grid </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Protected Attributes</p>
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets6_ndimsE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets6_ndimsE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets6_ndimsE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_ndims__i"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1af131e44fe3debe0af9457bd6572dc1e7"></span>int <code class="descname">_ndims</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets6_ndimsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>number of dimensions of the voxel grid (really only works in 3D) </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets7_originE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets7_originE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets7_originE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_origin__std::vector:float:"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1abadadd07bcc82f58e8f63aa5fd5f8cf9"></span>std::vector&lt;float&gt; <code class="descname">_origin</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets7_originE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>origin of the voxel grid in cm </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets4_lenE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets4_lenE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets4_lenE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_len__std::vector:float:"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1af7bb3e06c0166217985323b87d7e6f11"></span>std::vector&lt;float&gt; <code class="descname">_len</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets4_lenE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>length of the voxel grid in each dimension in cvm </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets11_voxel_sizeE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets11_voxel_sizeE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets11_voxel_sizeE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_voxel_size__float"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a41b6650a6028bae5426fa2d42d9bf46b"></span>float <code class="descname">_voxel_size</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets11_voxel_sizeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>voxel edge length in cm </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets8_nvoxelsE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets8_nvoxelsE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets8_nvoxelsE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_nvoxels__std::vector:i:"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1a0bf54f680d085e6bb21cac0d94f873db"></span>std::vector&lt;int&gt; <code class="descname">_nvoxels</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets8_nvoxelsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>number of voxels in each dimension </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets10_voxel_setE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets10_voxel_setE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets10_voxel_setE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_voxel_set__std::set:std::array:i.3::"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1af0b21c3da5d95069cf3de040072446b5"></span>std::set&lt;std::array&lt;int, 3&gt;&gt; <code class="descname">_voxel_set</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets10_voxel_setE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>set of occupied voxels </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets11_voxel_listE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets11_voxel_listE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets11_voxel_listE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_voxel_list__std::map:std::array:i.3:.i:"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1ab5d7cf069571061626c18fcb37162740"></span>std::map&lt;std::array&lt;int, 3&gt;, int&gt; <code class="descname">_voxel_list</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets11_voxel_listE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>map from voxel coordinate to voxel index </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets24_voxelidx_to_tripidxlistE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets24_voxelidx_to_tripidxlistE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets24_voxelidx_to_tripidxlistE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_voxelidx_to_tripidxlist__std::vector:std::vector:i::"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1ab26bb60155ccf5ea96ef4ee34bc48180"></span>std::vector&lt;std::vector&lt;int&gt;&gt; <code class="descname">_voxelidx_to_tripidxlist</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets24_voxelidx_to_tripidxlistE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>voxel index to vector of triplet indices </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_trip2voxelidxE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets14_trip2voxelidxE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets14_trip2voxelidxE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_trip2voxelidx__std::vector:i:"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1ae6644c1a6090b9bae2bc8b16b35e34d4"></span>std::vector&lt;int&gt; <code class="descname">_trip2voxelidx</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_trip2voxelidxE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>triplet index to voxel index map </p>
+</dd></dl>
+
+<dl class="member">
+<dt id="_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_triplet_makerE">
+<span id="_CPPv3N7larflow9voxelizer16VoxelizeTriplets14_triplet_makerE"></span><span id="_CPPv2N7larflow9voxelizer16VoxelizeTriplets14_triplet_makerE"></span><span id="larflow::voxelizer::VoxelizeTriplets::_triplet_maker__larflow::prep::PrepMatchTriplets"></span><span class="target" id="classlarflow_1_1voxelizer_1_1VoxelizeTriplets_1acbb00aa5d6e352d08ddd0d7585a5e7fa"></span>larflow::prep::<a class="reference internal" href="classlarflow_1_1prep_1_1PrepMatchTriplets.html#_CPPv4N7larflow4prep17PrepMatchTripletsE" title="larflow::prep::PrepMatchTriplets">PrepMatchTriplets</a> <code class="descname">_triplet_maker</code><a class="headerlink" href="#_CPPv4N7larflow9voxelizer16VoxelizeTriplets14_triplet_makerE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>internal triplet maker, used if making from images only </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="enum_namespacelarflow_1a8bdbb4a5bc13c5cbbf3edf6c8bfb6b8c.html" class="btn btn-neutral float-right" title="Enum FlowDir_t" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="classlarflow_1_1scb_1_1SCBoundary.html" class="btn btn-neutral float-left" title="Class SCBoundary" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, NuTufts
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
