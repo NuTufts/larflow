@@ -20,11 +20,31 @@
 #include "TRandom3.h"
 
 namespace larflow {
+namespace prep {
 
-
+  bool PrepMatchTriplets::_setup_numpy = false;
+  
   /**
-   * convenience function that gets the data needed from an larcv::IOManager instance
-   * and runs the process method.
+   * clear the containers we fill when we run process
+   *
+   */
+  void PrepMatchTriplets::clear()
+  {
+
+    _imgmeta_v.clear();
+    _sparseimg_vv.clear();
+    _triplet_v.clear();
+    _truth_v.clear();
+    _truth_2plane_v.clear();
+    _weight_v.clear();
+    _flowdir_v.clear();
+    _triarea_v.clear();
+    _pos_v.clear();
+    
+  }
+  
+  /**
+   * @brief convenience function that gets the data needed from an larcv::IOManager instance and runs the process method.
    *
    *
    * @param[in] iolcv   larcv::IOManager instance containing needed data objects
@@ -59,7 +79,7 @@ namespace larflow {
   } 
   
   /**
-   * make the possible hit triplets from all the wire plane images
+   * @brief make the possible hit triplets from all the wire plane images
    *
    * this function is expected to populate the following data members:
    *  _sparseimg_vv
@@ -82,7 +102,7 @@ namespace larflow {
     std::clock_t start = std::clock();
     
     // first we make a common sparse image
-    _sparseimg_vv = larflow::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
+    _sparseimg_vv = larflow::prep::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
     _imgmeta_v.clear();
     for ( auto const& img : adc_v )
       _imgmeta_v.push_back( img.meta() );
@@ -93,7 +113,7 @@ namespace larflow {
     
     FlowDir_t flow_order[] = { kY2V, kY2U, kV2Y, kU2Y, kU2V, kV2U };
     
-    std::vector< larflow::FlowTriples > triplet_v( larflow::kNumFlows );
+    std::vector< larflow::prep::FlowTriples > triplet_v( larflow::kNumFlows );
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
 
       // if ( flowindex!=kV2Y )
@@ -135,7 +155,7 @@ namespace larflow {
       }
     }
     
-    std::cout << "sparse pixel totals before deadch additions: "
+    std::cout << "sparse pixel totals after deadch additions: "
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
     
@@ -243,15 +263,6 @@ namespace larflow {
           intersection[1] = y;
           intersection[2] = z;
           
-          // std::vector<float> zy;
-          // ublarcvapp::UBWireTool::wireIntersection( imgcoord_v, zy, tri_area, crosses );
-          // if ( crosses==0 ) {
-          //   n_not_crosses++;
-          //   continue;
-          // }
-          // intersection[1] = zy[1];
-          // intersection[2] = zy[0];
-          // intersection[0] = (adc_v[0].meta().pos_y( imgcoord_v[3] )-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
         }
         
         
@@ -286,7 +297,7 @@ namespace larflow {
   }//end of process method
 
   /**
-   * plot the sparse image pixels in a th2d
+   * @brief plot the sparse image pixels in a th2d
    *
    * @param[in] hist_stem_name Stem of name given to generated histograms.
    * @return    vector of TH2D that visualize the sparse images.
@@ -313,7 +324,7 @@ namespace larflow {
   }
 
   /**
-   * use larflow truth images to assign good versus bad match for triplets
+   * @brief use larflow truth images to assign good versus bad match for triplets
    *
    * this method populates the values for:
    * _truth_v: 1 or 0 if triplet is a correct match
@@ -391,7 +402,7 @@ namespace larflow {
   }
 
   /**
-   * plot truth image for debug
+   * @brief plot truth image for debug
    *
    * @param[in] hist_stem_name Stem of name given to histograms made.
    * @return Vector of TH2D that plots the information.
@@ -428,7 +439,7 @@ namespace larflow {
   }
 
   /**
-   * return a numpy array containing the sparse image information
+   * @brief return a numpy array containing the sparse image information
    *
    * @param[in] plane Plane index for sparse image requested.
    * @return numpy array with shape (N,3) containing info from sparse matrix. each row contains (row,col,pixel value).
@@ -460,7 +471,7 @@ namespace larflow {
   }
 
   /**
-   * return a numpy array with indices to the sparse matrix object.
+   * @brief return a numpy array with indices to the sparse matrix object.
    *
    * use a vector with index of match pair to choose matches.   
    *
@@ -531,7 +542,7 @@ namespace larflow {
 
   /**
    *
-   * randomly select a set of 2 plane indices
+   * @brief randomly select a set of 2 plane indices
    *
    */
   PyObject* PrepMatchTriplets::sample_2plane_matches( larflow::FlowDir_t kdir,
@@ -550,7 +561,7 @@ namespace larflow {
 
   /**
    *
-   * get sequential set of matches
+   * @brief get sequential set of matches
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_2plane_matches( larflow::FlowDir_t kdir,
@@ -573,7 +584,7 @@ namespace larflow {
   }
 
   /**
-   * return a numpy array with indices to the sparse matrix ADC array
+   * @brief return a numpy array with indices to the sparse matrix ADC array
    *
    * @param[in] max_num_samples Maximum number of samples to return. Dim[0] of returned array.
    * @param[in] idx_v List of triplet_v indices to use
@@ -652,7 +663,7 @@ namespace larflow {
 
   /**
    *
-   * randomly select a set of triplet matches
+   * @brief randomly select a set of triplet matches
    *
    */
   PyObject* PrepMatchTriplets::sample_triplet_matches( const int& nsamples,
@@ -670,7 +681,7 @@ namespace larflow {
   
   /**
    *
-   * get sequential set of triplet indices
+   * @brief get sequential set of triplet indices
    *
    */
   PyObject* PrepMatchTriplets::get_chunk_triplet_matches( const int& start_index,
@@ -694,9 +705,9 @@ namespace larflow {
 
   /**
    *
-   * select sample biased towards triplets that score poorly in past iteration of network.
+   * @brief select sample biased towards triplets that score poorly in past iteration of network.
    * 
-   * for hard-example training.
+   * For hard-example training.
    *
    */
   PyObject* PrepMatchTriplets::sample_hard_example_matches( const int& nsamples,
@@ -763,6 +774,6 @@ namespace larflow {
 
   }
   
-  
-  
+ 
+}  
 }

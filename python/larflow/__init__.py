@@ -26,4 +26,4 @@ for l in [x for x in os.listdir(lib_dir) if x.endswith('.so')]:
     ROOT.gSystem.Load(l)
 
 import ROOT.larflow as larflow
-larflow.load_flow_contour_match()
+#larflow.load_flow_contour_match()

@@ -33,6 +33,7 @@ from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
 from larmatch_keypoint_classifier import LArMatchKeypointClassifier
 from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 
 print(larutil.Geometry.GetME())
 driftv = larutil.LArProperties.GetME().DriftVelocity()
@@ -58,7 +59,8 @@ preplarmatch = larflow.PrepMatchTriplets()
 model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
               "ssnet":LArMatchSSNetClassifier().to(DEVICE),
               "kplabel":LArMatchKeypointClassifier().to(DEVICE),
-              "kpshift":LArMatchKPShiftRegressor().to(DEVICE)}
+              "kpshift":LArMatchKPShiftRegressor().to(DEVICE),
+              "paf":LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64]).to(DEVICE)}
 
 # hack: for runnning with newer version of SCN where group-convolutions are possible
 for name,arr in checkpoint["state_larmatch"].items():
@@ -249,14 +251,23 @@ for ientry in range(NENTRIES):
         with torch.no_grad():
             ssnet_pred_t = model_dict['ssnet'].forward( feat_triplet_t )
         ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+        ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
         print("  ssnet out: ",ssnet_pred_t.shape)
         ssnet_pred_t = ssnet_softmax( ssnet_pred_t )
 
         # EVALUATE KP-LABEL SCORES
         with torch.no_grad():
             kplabel_pred_t = model_dict['kplabel'].forward( feat_triplet_t )
-        kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+        kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1],kplabel_pred_t.shape[2]) )
+        kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
         print("  kplabel-pred: ",kplabel_pred_t.shape)
+
+        # EVALUATE PAF SCORES
+        with torch.no_grad():
+            paf_pred_t = model_dict['paf'].forward( feat_triplet_t )
+        paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
+        paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
+        print("  paf-pred: ",paf_pred_t.shape)
         
 
         tstart = time.time()
@@ -289,6 +300,15 @@ for ientry in range(NENTRIES):
                                                sparse_np_v[2],
                                                adc_v.front().meta(),
                                                kplabel_np[:int(npairs.value)] )
+
+        print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
+        paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
+        hitmaker.add_triplet_affinity_field(  matchpair_np[:int(npairs.value),:],
+                                              sparse_np_v[0],
+                                              sparse_np_v[1],
+                                              sparse_np_v[2],
+                                              adc_v.front().meta(),
+                                              paf_np[:int(npairs.value)] )
         
         dt_make_hits = time.time()-tstart
         dt_save += dt_make_hits

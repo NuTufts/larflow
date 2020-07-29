@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser("Plot Keypoint output")
 parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsrecomanager larlite output file")
 parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
+parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 args = parser.parse_args()
 
 import numpy as np
@@ -71,26 +72,39 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         vtxid = int(vtxid)
         plotall = False
 
+    if args.draw_flash:
+        ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        nflashes = 0
+        for iflash in range(ev_flash.size()):
+            flash = ev_flash.at(iflash)
+            if flash.Time()>2.94 and flash.Time()<4.86:            
+                flash_trace_v = lardly.data.visualize_larlite_opflash_3d( flash )
+                traces_v += flash_trace_v
+                nflashes += 1
+                break
+        if nflashes==0:
+            traces_v += lardly.data.visualize_empty_opflash()        
+
     vtxinfo = []
-    for ivtx in range( kpsanatree.nuvertex_v.size() ):
-        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvertex_v.at(ivtx).score ), "value":ivtx} )
+    for ivtx in range( kpsanatree.nuvetoed_v.size() ):
+        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvetoed_v.at(ivtx).score ), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
 
-        vertexcand = kpsanatree.nuvertex_v.at(ivtx)
+        vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
+        vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
         # Get the keypoint data
-        kpvertex = io.get_data( larlite.data.kLArFlow3DHit, vertexcand.keypoint_producer ).at( vertexcand.keypoint_index )
         
         # make vertex traces
         kptrace = {
             "type":"scatter3d",
-	    "x": [kpvertex[0]],
-            "y": [kpvertex[1]],
-            "z": [kpvertex[2]],
+	    "x": [vertexcand.pos[0],vertexcand_fit.pos[0]],
+            "y": [vertexcand.pos[1],vertexcand_fit.pos[1]],
+            "z": [vertexcand.pos[2],vertexcand_fit.pos[2]],
             "mode":"markers",
 	    "name":"KP%d"%(ivtx),
-            "marker":{"color":[vertexcand.score],"size":5,"opacity":0.5},
+            "marker":{"color":[0.0,1.0],"size":5,"opacity":0.9,"colorscale":"Viridis"},
         }
         traces_v.append( kptrace )
         
@@ -120,19 +134,44 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
 
-    # show the clusters we didnt include
-    ev_maxtrackhit  = io.get_data( larlite.data.kLArFlow3DHit, "maxtrackhit" )
-    ev_maxshowerhit = io.get_data( larlite.data.kLArFlow3DHit, "maxshowerhit" )
+    #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
+    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.05),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.05)]
+    for (name,producer,rgbcolor,opa) in clusters:
+        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
+        ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
+        print("plot pca clusters: ",producer,ev_trackcluster)
+        for icluster in range(ev_trackcluster.size()):
+            lfcluster = ev_trackcluster.at( icluster )
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
+            cluster_trace["marker"]["color"] = rgbcolor
+            cluster_trace["marker"]["opacity"] = opa
+            traces_v.append(cluster_trace)            
 
-    trackhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxtrackhit, name="trackhit" )
-    trackhit_trace["marker"]["color"] = "rgb(125,200,125)"
-    trackhit_trace["marker"]["opacity"] = 0.05
-    traces_v.append(trackhit_trace)
-
-    showerhit_trace = lardly.data.visualize_larlite_larflowhits( ev_maxshowerhit, name="showerhit" )
-    showerhit_trace["marker"]["color"] = "rgb(200,125,125)"
-    showerhit_trace["marker"]["opacity"] = 0.05
-    traces_v.append(showerhit_trace)
+            pcaxis = ev_pcacluster.at( icluster )
+            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
+            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
+            pcatrace["line"]["color"] = "rgb(0,0,0)"
+            pcatrace["line"]["width"] = 1
+            pcatrace["line"]["opacity"] = 1.0            
+            traces_v.append( pcatrace )
+            
+    # TRACK RECO
+    for name,track_producer,zrgb in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)"),
+                                     ("CTRK","containedcosmic","rgb(100,0,50)"),
+                                     ("NUTRK","nutrack","rgb(0,100,50)")]:
+        if name in ["NUTRK"]:
+            continue
+        ev_track = io.get_data(larlite.data.kTrack,track_producer)
+        for itrack in xrange(ev_track.size()):
+            trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
+            trktrace["name"] = "%s[%d]"%(name,itrack)
+            trktrace["line"]["color"] = zrgb
+            trktrace["line"]["width"] = 5
+            trktrace["line"]["opacity"] = 1.0
+            traces_v.append( trktrace )
+    
 
     if HAS_MC:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
@@ -143,7 +182,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         
     
     # add detector outline
-    traces_v += detdata.getlines()
+    traces_v += detdata.getlines(color=(10,10,10))
     
     return traces_v,vtxinfo
 

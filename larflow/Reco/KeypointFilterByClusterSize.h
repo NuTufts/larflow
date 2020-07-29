@@ -9,10 +9,20 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @ingroup Reco
+   * @class KeypointFilterByClusterSize
+   * @brief Filter out keypoints if the cluster they are nearest to is small
+   *
+   * For each keypoint, determine the closest cluster they are on. 
+   * If the cluster is too small, remove the keypoint.
+   *
+   */
   class KeypointFilterByClusterSize : public larcv::larcv_base {
 
   public:
 
+    /** brief default constructor **/
     KeypointFilterByClusterSize()
       : larcv::larcv_base("KeypointFilterByClusterSize")
       {
@@ -26,12 +36,15 @@ namespace reco {
 
   protected:
 
-    std::string _input_keypoint_tree_name;
-    std::string _input_larflowhits_tree_name;
+    std::string _input_keypoint_tree_name;     ///< tree name containing keypoints to filter
+    std::string _input_larflowhits_tree_name;  ///< tree name containing input larflow3dhit objects
 
   public:
 
+    /** @brief set the keypoint input tree name */
     void set_input_keypoint_tree_name( std::string keypoint ) { _input_keypoint_tree_name=keypoint; };
+
+    /** @brief set the larflow hit tree name */
     void set_input_larflowhits_tree_name( std::string hit ) { _input_larflowhits_tree_name=hit; };
     
   };

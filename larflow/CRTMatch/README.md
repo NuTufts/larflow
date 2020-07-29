@@ -1,3 +1,20 @@
+# CRTMatch
+
+Tools to match CRT hit and track objects to TPC tracks and PMT flashes.
+
+# Contents
+
+## `larflow::crtmatch::CRTTrackMach`
+
+In `CRTTrackMatch.cxx/.h`
+
+Use CRT Track objects to find path through images with charge. Produces though-going muon candidates.
+
+### Configuring
+
+# Guide
+
+
 # To do
 
 * use pca-cluster output to match to CRT hit [done]

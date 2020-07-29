@@ -28,6 +28,12 @@ option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
+# colors for the keypoints
+keypoint_colors = { -1:"rgb(50,50,50)",
+                    0:"rgb(255,0,0)",
+                    1:"rgb(0,255,0)",
+                    2:"rgb(0,0,255)"}
+
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
 io.add_in_filename( args.input_kpreco )
@@ -37,7 +43,7 @@ nentries = io.get_entries()
 
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keypoint", minprob=0.3):
+def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keypoint", minprob=0.1):
     from larcv import larcv
     larcv.load_pyutil()
     detdata = lardly.DetectorOutline()
@@ -47,17 +53,24 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
     io.go_to(entry)
-    
-    ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, treename )
+
+    lfname = treename
+    #lfname = "taggerfilterhit" # output of WC filter
+    #lfname = "ssnetsplit_wcfilter_trackhit" # SSNet split
+    #lfname = "maxtrackhit_wcfilter"
+        
+    ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, lfname )
     npoints = ev_lfhits.size()
 
     ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, keypoint_tree )
     ev_kpaxis    = io.get_data( larlite.data.kPCAxis, keypoint_tree )    
     
-    traces_v = []        
+    traces_v = []
+
 
     if plotby=="larmatch":
-        lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
+        print("Plotting Hits: produername=",lfname)
+        lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, lfname, score_threshold=minprob) ]
         traces_v += lfhit_v
     elif plotby in ["keypoint"]:
         hitindex=13
@@ -95,10 +108,11 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
         traces_v.append( larflowhits )
         
 
-    # KEYPOINT PLOT
+    # KEYPOINT PLOT: WCFILTER KEYPOINTS
     nkp = ev_keypoints.size()
-    print("Number of reco'd Keypoints in event: ",nkp)
+    print("Number of reco'd WC-FILTERED Keypoints in event: ",nkp)
     for ikp in range(nkp):
+        kptype = int(ev_keypoints.at(ikp).at(3))
         kptrace = {
             "type":"scatter3d",
 	    "x": [ev_keypoints[ikp][0]],
@@ -106,7 +120,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
             "z": [ev_keypoints[ikp][2]],
             "mode":"markers",
 	    "name":"KP%d"%(ikp),
-            "marker":{"color":"rgb(255,0,0)","size":5,"opacity":0.5},
+            "marker":{"color":keypoint_colors[kptype],"size":5,"opacity":0.5},
         }
         traces_v.append(kptrace)
         
@@ -114,6 +128,29 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     pca_traces_v = lardly.data.visualize_event_pcaxis( ev_kpaxis, color="rgb(50,50,50)" )
     traces_v += pca_traces_v
 
+    # KEYPOINT PLOT: COSMIC TRACK KEYPOINT
+    ev_cosmic_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypointcosmic" )
+    ev_cosmic_kpaxis    = io.get_data( larlite.data.kPCAxis, "keypointcosmic" )    
+    
+    nkp = ev_cosmic_keypoints.size()
+    print("Number of reco'd COSMIC Keypoints in event: ",nkp)
+    for ikp in range(nkp):
+        kptype = int(ev_cosmic_keypoints.at(ikp).at(3))
+        kptrace = {
+            "type":"scatter3d",
+	    "x": [ev_cosmic_keypoints[ikp][0]],
+            "y": [ev_cosmic_keypoints[ikp][1]],
+            "z": [ev_cosmic_keypoints[ikp][2]],
+            "mode":"markers",
+	    "name":"KP%d"%(ikp),
+            "marker":{"color":"rgb(150,150,150)","size":5,"opacity":0.5},
+        }
+        traces_v.append(kptrace)
+        
+    # COSMIC PCA-AXIS PLOTS
+    pca_traces_v = lardly.data.visualize_event_pcaxis( ev_cosmic_kpaxis, color="rgb(50,50,50)" )
+    traces_v += pca_traces_v
+    
 
     # end of loop over treenames
     traces_v += detdata.getlines()

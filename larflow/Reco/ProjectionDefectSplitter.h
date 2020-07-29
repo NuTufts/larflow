@@ -14,17 +14,26 @@
 
 namespace larflow {
 namespace reco {
-  
+
+  /**
+   * @ingroup Reco
+   * @class ProjectionDefectSplitter
+   * @brief Splits 3D clusters by projecting into 2D and breaking cluster based on cluster defect points
+   *
+   * This is a way to try and produce very straight clusters, which we can then piece 
+   * back together to make tracks.
+   *
+   */
   class ProjectionDefectSplitter : public larcv::larcv_base {
     
   public:
 
+    /** @brief default construct */
     ProjectionDefectSplitter()
       : larcv::larcv_base("ProjectionDefectSplitter"),
       _input_lfhit_tree_name("larmatch"),
       _output_cluster_tree_name("projsplit"),
       _min_larmatch_score(0.0),
-      _downsample_fraction(1.0),
       _maxdist(2.0),
       _minsize(20),
       _maxkd(30)
@@ -59,20 +68,31 @@ namespace reco {
     // PARAMETER NAMES
   protected:
     
-    std::string _input_lfhit_tree_name;
-    std::string _output_cluster_tree_name;
-    float _min_larmatch_score;
-    float _downsample_fraction;
-    float _maxdist;
-    int   _minsize;
-    int   _maxkd;
+    std::string _input_lfhit_tree_name;     ///< name of tree to get larflow hits to cluster
+    std::string _output_cluster_tree_name;  ///< name of tree to store output clusters
+    float _min_larmatch_score;              ///< minimum larmatch score spacepoint must have to be included
+    float _maxdist;                         ///< maximum distance two spacepoints can be connected for dbscan
+    int   _minsize;                         ///< minimum cluster size for dbscan
+    int   _maxkd;                           ///< max number of neighbors per spaecepoint for dbscan
 
   public:
-     
+
+    /** @brief set name of tree with larflow3dhit instnces to cluster */
     void set_input_larmatchhit_tree_name( std::string name ) { _input_lfhit_tree_name=name; };
-    void set_output_tree_name( std::string name ) { _output_cluster_tree_name=name; };    
+
+    /** @brief set name of the tree to write output clusters */
+    void set_output_tree_name( std::string name ) { _output_cluster_tree_name=name; };
+
+    /** @brief set minimum larmatch score must have to be included in clusters */
     void set_min_larmatch_score( float min_score ) { _min_larmatch_score = min_score; };
-    void set_downsample_fraction( float keepfrac ) { _downsample_fraction = keepfrac; };
+
+
+    /** 
+     * @brief set the dbscan parameters for clustering 
+     * @param[in] maxdist maximum distance two spacepoints can be connected for dbscan
+     * @param[in] minsize minimum cluster size for dbscan
+     * @param[in] maxkd   max number of neighbors per spaecepoint for dbscan
+     */
     void set_dbscan_pars( float maxdist, int minsize, int maxkd ) {
       _maxdist = maxdist;
       _minsize = minsize;

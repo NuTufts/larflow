@@ -57,7 +57,7 @@ BATCHSIZE = 1
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
-preplarmatch = larflow.PrepMatchTriplets()
+preplarmatch = larflow.prep.PrepMatchTriplets()
 
 model = LArMatch(use_unet=False,stem_nfeatures=32).to(DEVICE)
 model.load_state_dict(checkpoint["state_dict"])
@@ -104,7 +104,7 @@ dt_net   = 0.
 dt_save  = 0.
 
 # setup the hit maker
-hitmaker = larflow.FlowMatchHitMaker()
+hitmaker = larflow.prep.FlowMatchHitMaker()
 hitmaker.set_score_threshold( args.min_score )
 
 # setup badch maker

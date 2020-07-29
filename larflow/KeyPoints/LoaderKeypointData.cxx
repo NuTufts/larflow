@@ -5,8 +5,10 @@
 namespace larflow {
 namespace keypoints {
 
+  bool LoaderKeypointData::_setup_numpy = false;
+  
   /**
-   * constructor
+   * @brief constructor given list of input files
    *
    * @param[in] input_v List of paths to input ROOT files containing ground truth data
    *
@@ -14,8 +16,7 @@ namespace keypoints {
   LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
     : ttriplet(nullptr),
       tkeypoint(nullptr),
-      tssnet(nullptr),
-      _setup_numpy(false)
+      tssnet(nullptr)
   {
     input_files.clear();
     input_files = input_v;
@@ -30,7 +31,7 @@ namespace keypoints {
   }
 
   /**
-   * load TTree class data members and define TBranch's
+   * @brief load TTree class data members and define TBranch variables
    *
    */
   void LoaderKeypointData::load_tree() {
@@ -47,19 +48,25 @@ namespace keypoints {
     }
     
     triplet_v = 0;
-    kplabel_v = 0;
+    kplabel_v[0] = 0;
+    kplabel_v[1] = 0;
+    kplabel_v[2] = 0;    
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
     
-    ttriplet->SetBranchAddress(  "triplet_v", &triplet_v );
-    tkeypoint->SetBranchAddress( "kplabel",   &kplabel_v );
-    tssnet->SetBranchAddress( "trackshower_label_v",  &ssnet_label_v );
-    tssnet->SetBranchAddress( "trackshower_weight_v", &ssnet_weight_v );
+    ttriplet->SetBranchAddress(  "triplet_v",           &triplet_v );
+    tkeypoint->SetBranchAddress( "kplabel_nuvertex",    &kplabel_v[0] );
+    tkeypoint->SetBranchAddress( "kplabel_trackends",   &kplabel_v[1] );
+    tkeypoint->SetBranchAddress( "kplabel_showerstart", &kplabel_v[2] );    
+    tssnet->SetBranchAddress( "trackshower_label_v",    &ssnet_label_v );
+    tssnet->SetBranchAddress( "trackshower_weight_v",   &ssnet_weight_v );
   }
 
   /**
-   * load data for the different trees
+   * @brief load event data for the different trees
    *
+   * @param[in] entry number
+   * @return number of bytes loaded from the tkeypoint tree data. returns 0 if end of file or error.
    */
   unsigned long LoaderKeypointData::load_entry( int entry )
   {
@@ -70,8 +77,9 @@ namespace keypoints {
   }
 
   /**
-   * get total entries
+   * @brief get total entries
    *
+   * @return number of entries in the ttrplet ROOT tree (chain)
    */
   unsigned long LoaderKeypointData::GetEntries()
   {
@@ -79,24 +87,24 @@ namespace keypoints {
   }
 
   /**
-   * return a ground truth data, return a subsample of all truth matches
+   * @brief return a ground truth data, return a subsample of all truth matches
    *
-   * returns a python dictionary. Contents include
-   * {"matchtriplet":numpy array with sparse image indices for each place, representing pixels
-   *                 a candidate space point project into,
-   *  "match_weight":weight of "matchtriplet" examples,
-   *  "positive_indices":indices of entries in "matchtriplet" array that correspond to good/true spacepoints,
-   *  "ssnet_label":class label for space point,
-   *  "ssnet_top_weight":weight based on topology (i.e. on boundary, near nu-vertex),
-   *  "ssnet_class_weight":weight based on class frequency,
-   *  "kplabel":keypoint score numpy array,
-   *  "kplabel_weight":weight for keypoint label,
-   *  "kpshift":shift in 3D from space point position to nearest keypoint}
+   * returns a python dictionary. The dictionary contents are:
+   * \verbatim embed:rst:leading-asterisk
+   *  * "matchtriplet":numpy array with sparse image indices for each place, representing pixels a candidate space point project into
+   *  * "match_weight":weight of "matchtriplet" examples
+   *  * "positive_indices":indices of entries in "matchtriplet" array that correspond to good/true spacepoints
+   *  * "ssnet_label":class label for space point
+   *  * "ssnet_top_weight":weight based on topology (i.e. on boundary, near nu-vertex)
+   *  * "ssnet_class_weight":weight based on class frequency
+   *  * "kplabel":keypoint score numpy array
+   *  * "kplabel_weight":weight for keypoint label
+   *  * "kpshift":shift in 3D from space point position to nearest keypoint
+   * \endverbatim
    *
-   *
-   * @param[in] maximum number of space points for which we return ground truth data
-   * @param[out] The number of space points, for which we actually return data
-   * @param[in] withtruth If true, return info on whether space point is true (i.e. good)
+   * @param[in]  num_max_samples maximum number of space points for which we return ground truth data
+   * @param[out] nfilled The number of space points, for which we actually return data
+   * @param[in]  withtruth withtruth If true, return info on whether space point is true (i.e. good)
    * @return Python dictionary object with various numpy arrays
    *                        
    */
@@ -219,16 +227,16 @@ namespace keypoints {
   }
 
   /**
-   * make the ssnet numpy arrays 
+   * @brief make the ssnet numpy arrays 
    *
-   * @param[in] Max number of samples to return
-   * @param[out] number of samples actually returned
-   * @param[in]  if true, return flag indicating if true/good space point
-   * @param[out] vector index in return samples for space points which are true/good
-   * @param[in]  numpy array containing indices to sparse image for each spacepoint
-   * @param[out] numpy array containing ssnet class labels for each spacepoint
-   * @param[out] numpy array containing topological weight
-   * @param[out] numpy array containing class weights
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[out] pos_match_index vector index in return samples for space points which are true/good
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] ssnet_label numpy array containing ssnet class labels for each spacepoint
+   * @param[out] ssnet_top_weight numpy array containing topological weight
+   * @param[out] ssnet_class_weight numpy array containing class weights
    * @return always returns 0
    *
    */
@@ -303,7 +311,7 @@ namespace keypoints {
   }
 
   /**
-   * make keypoint ground truth numpy arrays
+   * @brief make keypoint ground truth numpy arrays
    *
    * @param[in]  num_max_samples Max number of samples to return
    * @param[out] nfilled number of samples actually returned
@@ -326,8 +334,9 @@ namespace keypoints {
     int index_col = (withtruth) ? 4 : 3;
     float sigma = 10.0; // cm
 
-    int kplabel_nd = 1;
-    npy_intp kplabel_dims[] = { (long)pos_match_index.size() };
+    int kplabel_nd = 2;
+    int nclasses = 3;
+    npy_intp kplabel_dims[] = { (long)pos_match_index.size(), (long)nclasses };
 
     if ( !_exclude_neg_examples ) {
       kplabel_dims[0] = num_max_samples;
@@ -336,65 +345,72 @@ namespace keypoints {
     //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
-    int npos = 0;
-    int nneg = 0;
+    std::vector<int> npos(nclasses,0);
+    std::vector<int> nneg(nclasses,0);
 
     for (int i=0; i<(int)kplabel_dims[0]; i++ ) {
       // sample array index
       int idx = (_exclude_neg_examples) ? pos_match_index[i] : (int)i;
+
       // triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-      // hard label
-      long label = kplabel_v->at( index )[0];
-      if (label==1) {
-        // make soft label
-        float dist = 0.;
-        for (int j=0; j<3; j++) {
-          float dx = kplabel_v->at( index )[1+j];
-          dist += dx*dx;
+      
+      for (int c=0; c<nclasses; c++) {
+        // hard label
+        long label = kplabel_v[c]->at( index )[0];
+        if (label==1) {
+          // make soft label
+          float dist = 0.;
+          for (int j=0; j<3; j++) {
+            float dx = kplabel_v[c]->at( index )[1+j];
+            dist += dx*dx;
+          }
+          *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = exp( -dist/(sigma*sigma) );
+          npos[c]++;
         }
-        *((float*)PyArray_GETPTR1(kplabel_label,i)) = exp( -dist/(sigma*sigma) );
-        npos++;
-      }
-      else {
-        *((float*)PyArray_GETPTR1(kplabel_label,i)) = 0.0;
-        nneg++;
+        else {
+          // zero label
+          *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = 0.0;
+          nneg[c]++;
+        }
       }
     }
 
-    // weights for positive and negative examples
-    int kpweight_nd = 1;
-    npy_intp kpweight_dims[] = { (long)pos_match_index.size() };
+    // weights to balance positive and negative examples
+    int kpweight_nd = 2;
+    npy_intp kpweight_dims[] = { (long)pos_match_index.size(), nclasses };
     if ( !_exclude_neg_examples )
       kpweight_dims[0] = num_max_samples;
     kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
-    float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.0;
-    float w_neg = (nneg) ? float(npos+nneg)/float(nneg) : 0.0;
-    float w_norm = w_pos*npos + w_neg*nneg;
+    for (int c=0; c<nclasses; c++ ) {
+      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+      float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
-    std::cout << "KPWEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+      std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
     
-    for (int i=0; i<kpweight_dims[0]; i++ ) {
-      // sample array index
-      int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
-      // triplet index
-      long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-      // hard label
-      long label = kplabel_v->at( index )[0];
-      if (label==1) {
-        *((float*)PyArray_GETPTR1(kplabel_weight,i)) = w_pos/w_norm;
+      for (int i=0; i<kpweight_dims[0]; i++ ) {
+        // sample array index
+        int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
+        // triplet index
+        long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
+        // hard label
+        long label = kplabel_v[c]->at( index )[0];
+        if (label==1) {
+          *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
+        }
+        else {
+          *((float*)PyArray_GETPTR2(kplabel_weight,i,c))  = w_neg/w_norm;
+        }
       }
-      else {
-        *((float*)PyArray_GETPTR1(kplabel_weight,i))  = w_neg/w_norm;
-      }
-    }
+    }//end of class loop
 
     return 0;
   }
 
   /**
-   * make keypoint shift ground truth numpy arrays
+   * @brief make keypoint shift ground truth numpy arrays
    *
    * @param[in]  num_max_samples Max number of samples to return
    * @param[out] nfilled number of samples actually returned
@@ -413,20 +429,23 @@ namespace keypoints {
     int index_col = (withtruth) ? 4 : 3;
 
     // make keypoint shift array
-    int kpshift_nd = 2;
-    npy_intp kpshift_dims[] = { num_max_samples, 3 };
+    int kpshift_nd = 3;
+    int nclasses = 3;
+    npy_intp kpshift_dims[] = { num_max_samples, nclasses, 3 };
     //std::cout << "make kpshift: " << kpshift_dims[0] << "," << kpshift_dims[1] << std::endl;    
     kpshift_label = (PyArrayObject*)PyArray_SimpleNew( kpshift_nd, kpshift_dims, NPY_FLOAT );
 
     for (int i=0; i<num_max_samples; i++ ) {
       long index = *((long*)PyArray_GETPTR2(match_array,i,index_col));
-      if ( i<nfilled ) {
-        for (int j=0; j<3; j++ )
-          *((float*)PyArray_GETPTR2(kpshift_label,i,j)) = kplabel_v->at( index )[1+j];
-      }
-      else{
-        for (int j=0; j<3; j++ )
-          *((float*)PyArray_GETPTR2(kpshift_label,i,j)) = 0.;
+      for (int c=0; c<nclasses; c++ ) {
+        if ( i<nfilled ) {
+          for (int j=0; j<3; j++ )
+            *((float*)PyArray_GETPTR3(kpshift_label,i,c,j)) = kplabel_v[c]->at( index )[1+j];
+        }
+        else{
+          for (int j=0; j<3; j++ )
+            *((float*)PyArray_GETPTR3(kpshift_label,i,c,j)) = 0.;
+        }
       }
     }
     

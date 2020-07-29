@@ -7,6 +7,39 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief Filter keypoints from the event containers
+   *
+   * For eack keypoint, all larmatch spacepoints are kept which are
+   * within 20 cm of each keypoint is kept. These spacepoints
+   * are assigned to that keypoint.
+   *
+   * The closest larmatch spacepoint to the keypoint is saved.
+   *
+   * Next for each keypoint, the assigned hits are clustered using cluster_spacepoint_v().
+   * The cluster which contains the closest space point to the given keypoint
+   * is chosen. This cluster must then be above 50 in number.
+   * If not, the vertex is filtered out.
+   *
+   * Input data consists of:
+   * @verbatim embed:rst:leading-asterisk
+   *   * keypoints, represented as larflow3dhit
+   *   * pcaxis of keypoints, stored in larlite::pcaxis
+   *   * spacepoints to consider, a collection of larflow3dhit
+   * @endverbatim
+   *
+   * Outputs, stored in the IO managers are:
+   *  @verbatim embed:rst:leading-asterisk
+   *   * "keypoint_bigcluster": keypoints stored as larflow3dhit that pass filter
+   *   * "keypoint_bigcluster": pcaxis for the keypoints that pass and are stored in above
+   *   * "keypoint_smallcluster": keypoints stored as larflow3dhit that fail filter
+   *   * "keypoint_smallcluster": pcaxis for the keypoints that fail
+   *  @endverbatim
+   *
+   * @param[in] iolcv LArCV IO manager with the data we need
+   * @param[in] io_ll larlite storage_manager with the data we need
+   *
+   */  
   void KeypointFilterByClusterSize::process( larcv::IOManager& iolcv, larlite::storage_manager& io_ll )
   {
 

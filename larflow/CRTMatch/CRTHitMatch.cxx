@@ -8,6 +8,10 @@
 namespace larflow {
 namespace crtmatch {
 
+  /**
+   * @brief clear all input and output data containers
+   *
+   */
   void CRTHitMatch::clear() {
 
     // input containers
@@ -30,29 +34,67 @@ namespace crtmatch {
     _used_tracks_v.clear();
     
   }
-  
+
+  /**
+   * @brief copy flashes from input event container into container holding INTIME flashes
+   *
+   * Fills `_intime_opflash_v`.
+   * 
+   * @param[in] opflash_v Input event container of optical flashes
+   */
   void CRTHitMatch::addIntimeOpFlashes( const larlite::event_opflash& opflash_v ) {
     for ( auto const& opf : opflash_v )
       _intime_opflash_v.push_back( opf );
   }
 
+  /**
+   * @brief copy flashes from input event container into container holding OUT-OF-TIME flashes
+   *
+   * Fills `_outtime_opflash_v`.
+   * 
+   * @param[in] opflash_v Input event container of optical flashes
+   */  
   void CRTHitMatch::addCosmicOpFlashes( const larlite::event_opflash& opflash_v ) {
     for ( auto const& opf : opflash_v )
       _outtime_opflash_v.push_back( opf );
   }
 
+  /**
+   * @brief copy crt hits from input event container into member container
+   *
+   * Fills `_crthit_v`.
+   * 
+   * @param[in] crthit_v Input event container of CRT hits
+   */    
   void CRTHitMatch::addCRThits( const larlite::event_crthit& crthit_v ) {
     for ( auto const& hit : crthit_v )
       _crthit_v.push_back( hit );
   }
-  
+
+  /**
+   * @brief copy crt tracks from input event container into member container
+   *
+   * Fills `_crttrack_v`.
+   * 
+   * @param[in] crttrack_v Input event container of CRT hits
+   */      
   void CRTHitMatch::addCRTtracks( const larlite::event_crttrack& crttrack_v ) {
     for ( auto const& track : _crttrack_v )
       _crttrack_v.push_back( track );
   }
-  
+
+  /**
+   * @brief copy track hit clusters and associated pcaxis into member container
+   *
+   * Fills _lfcluster_v and _pcaxis_v.
+   * 
+   * @param[in] lfcluster_v Input event container of track cluster spacepoints
+   * @param[in] pcaxis_v    Input event container of track cluster principle component axes
+   *
+   */        
   void CRTHitMatch::addLArFlowClusters( const larlite::event_larflowcluster& lfcluster_v,
                                         const larlite::event_pcaxis& pcaxis_v ) {
+    
     for ( auto const& cluster : lfcluster_v ) {
       _lfcluster_v.push_back( &cluster );
     }
@@ -60,8 +102,30 @@ namespace crtmatch {
     for ( auto const& pca : pcaxis_v ) {
       _pcaxis_v.push_back( &pca );
     }
+    
   }
 
+  /**
+   * @brief process event using data in larcv and larlite IO managers
+   *
+   * This routine expects the IO managers to contain the following.
+   *
+   * For the larcv IOManager:
+   * \verbatim embed:rst:leading-asterisks
+   *  * None
+   * \endverbatim
+   *
+   * For the larlite storage_manager:
+   * \verbatim embed:rst:leading-asterisks
+   *  * larlite::opflash objects from containers { "simpleFlashBeam", "simpleFlashCosmic" }
+   *  * larlite::larflowcluster objects from container: "pcacluster" -- Need to change this to be settable
+   *  * larlite::pcaxis objects from continer: "pcacluster"
+   * \endverbatim
+   * 
+   * @param[in] iolcv larcv::IOManager with event data
+   * @param[in] llio  larlite::storage_manager with event data
+   *
+   */
   bool CRTHitMatch::process( larcv::IOManager& iolcv, larlite::storage_manager& llio ) {
 
     clear();
@@ -80,9 +144,11 @@ namespace crtmatch {
 
     // get clusters
     larlite::event_larflowcluster* lfclusters_v
-      = (larlite::event_larflowcluster*)llio.get_data( larlite::data::kLArFlowCluster, "pcacluster" );
+      = (larlite::event_larflowcluster*)llio.get_data( larlite::data::kLArFlowCluster,
+                                                       _input_cluster_treename );
     larlite::event_pcaxis* pcaxis_v
-      = (larlite::event_pcaxis*)llio.get_data( larlite::data::kPCAxis, "pcacluster" );
+      = (larlite::event_pcaxis*)llio.get_data( larlite::data::kPCAxis,
+                                               _input_pcaxis_treename );
     addLArFlowClusters( *lfclusters_v, *pcaxis_v );
 
     std::vector< larflow::reco::cluster_t > test_v;
@@ -97,7 +163,20 @@ namespace crtmatch {
     
     return makeMatches();
   }
-  
+
+  /**
+   * @brief make CRT hit matches to tracks and flashes using data already passed to class
+   *
+   *  Uses data from
+   *  \verbatim embed:rst:leading-asterisks
+   *   * _crthit_v
+   *   * _lfcluster_v
+   *   * _pcaxis_v
+   *   * _intime_opflash_v
+   *   * _outtime_opflash_v
+   *  \endverbatim
+   *
+   */
   bool CRTHitMatch::makeMatches() {
 
     // compile matches
@@ -324,6 +403,10 @@ namespace crtmatch {
     return;
   }
 
+  /**
+   * @brief Dump CRT Hit info, including match information to std out
+   *
+   */
   void CRTHitMatch::printHitInfo() {
     
     LARCV_NORMAL() << "===============================================" << std::endl;
@@ -346,6 +429,17 @@ namespace crtmatch {
     
   }
 
+  /**
+   * @brief Calculate match info between one track cluster and one CRT hit
+   *
+   * The path from the intersection point to the CRT is constrained to
+   * follow the surface of the CRT.
+   *
+   * @param[in] lfcluster_axis The principle components of the cluster
+   * @param[in] hit The CRT hit to be test with
+   * @param[out] panel_pos position on CRT panel where first PC axis intersects
+   * @return distance from intersection point to CRT hit position
+   */
   float CRTHitMatch::makeOneMatch( const larlite::pcaxis& lfcluster_axis,
                                    const larlite::crthit& hit,
                                    std::vector<float>& panel_pos ) {
@@ -415,7 +509,10 @@ namespace crtmatch {
   }
 
   /**
-   * get length of pc axis for cluster
+   * @brief calculates length of pc axis for cluster
+   *
+   * @param[in] pca Principle component data for one track
+   * @return the length of the PC axis
    *
    */
   float CRTHitMatch::getLength( const larlite::pcaxis& pca ) {
@@ -428,11 +525,18 @@ namespace crtmatch {
   }
 
   /**
-   * match opflashes to crttrack_t using closest time
+   * @brief match opflashes to crttrack_t using closest time
    *
    * ties are broken based on closest centroids based 
    *   on pca-center of tracks and charge-weighted mean of flashes
    * the crttrack_t objects are assumed to have been made in _find_optimal_track(...)
+   *
+   * @param[in]  flash_v   list of optical flashes to match to
+   * @param[in]  hit_v     list of crt hits to match with
+   * @param[in]  cluster_v list of clusters to match with
+   * @param[out] matched_opflash_v list of flashes matched to hit_v+cluster_v. 
+   *             If no match found, a blank flash with PE=0 is stored for that hit-track pair.
+   * 
    */
   void CRTHitMatch::_matchOpflashes( const std::vector< const larlite::opflash* >& flash_v,
                                      const std::vector< const larlite::crthit* >&  hit_v,
@@ -551,7 +655,13 @@ namespace crtmatch {
   }
 
   /**
-   * using sorted match list per hit, we determine if we should merge the clusters
+   * @brief using sorted match list per hit, we determine if we should merge the clusters
+   *
+   *  We merge clusters that point to the same hit. If the clusters are end-to-end, we merge.
+   *
+   * @param[in] hit_match_v list of potential match candidates represented as match_t instances
+   * @param[out] used_in_merge One entry per hit_match_v entry. Set to 1 if assigned to matched hit.
+   * @param[out] merged True if any clusters are merged together.
    *
    */
   larlite::larflowcluster CRTHitMatch::_merge_matched_cluster( const std::vector< CRTHitMatch::match_t >& hit_match_v,
@@ -614,16 +724,21 @@ namespace crtmatch {
   }
 
   /**
-   * save products to storage_manager
+   * @brief save products to storage_manager
+   *
+   * Stores:
+   * \verbatim embed:rst:leading-asterisks
+   * * new crt object with updated hit positions (and old hit positions as well)
+   * * matched opflash objects
+   * * larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
+   * \endverbatim
+   *
+   * @param[out] outll larlite storage_manager where output products will be copied
+   * @param[in]  remove_if_no_flash If true, crt hit-track matches without a match to a flash are not stored.
    *
    */
   void CRTHitMatch::save_to_file( larlite::storage_manager& outll, bool remove_if_no_flash ) {
 
-    // now store data
-    // --------------
-    // (1) new crt object with updated hit positions (and old hit positions as well)
-    // (2) matched opflash objects
-    // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
     // larlite::event_crthit* out_crthit
     //   = (larlite::event_crthit*)outll.get_data( larlite::data::kCRTHit, "matchcrthit" );
     larlite::event_crttrack* out_crttrack
@@ -695,6 +810,14 @@ namespace crtmatch {
     
   }
 
+  /**
+   * @brief Check if track cluster was used
+   * 
+   * Checks the value of _used_tracks_v
+   *
+   * @param[in] idx Index of track to check
+   *
+   */
   bool CRTHitMatch::was_cluster_used( int idx ) {
     if (idx<0 || idx>=_used_tracks_v.size() )
       return false;
