@@ -1,12 +1,6 @@
 #ifndef __KPdata_h__
 #define __KPdata_h__
 
-/**
- * Struct representing true keypoints in the images
- *
- * Produced by PrepKeypointData class
- * 
- */
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
@@ -16,19 +10,27 @@
 namespace larflow {
 namespace keypoints {
 
+  /**
+   * @ingroup Keypoints
+   * @class KPdata
+   * @brief Info representing true keypoints in the images
+   *
+   * Produced by larflow::keypoints::PrepKeypointData.
+   * 
+   */
   class KPdata {
 
   public:
     
-    int crossingtype;
-    std::vector<int> imgcoord;
-    std::vector<float> keypt;
-    int trackid;
-    int pid;
-    int vid;
-    int is_shower;
-    int origin;
-    KeyPoint_t kptype;
+    int crossingtype; ///< crossing type: 0=entering; 1=exiting; 2=through-going; -1=not crossing; 
+    std::vector<int> imgcoord; ///< (row, U col, V col, Y col)
+    std::vector<float> keypt;  ///< 3D position of keypoint in cm
+    int trackid;               ///< ID of track or shower by which this keypoint data was made
+    int pid;                   ///< particle ID of track or shower making keypoint
+    int vid;                   ///< vector index of container from which the track or shower truth object came
+    int is_shower;             ///< if =1, then keypoint came from shower
+    int origin;                ///< if =1, origin is cosmics; if =2 origin is from neutrino interaction generator
+    KeyPoint_t kptype;         ///< class of keypoint label, KeyPoint_t
     KPdata() {
       crossingtype = -1;
       imgcoord.clear();

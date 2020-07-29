@@ -14,6 +14,8 @@ the TPC images where the points project into.
 * scores indicating which 3D points are near important, key-points:
   track ends, shower starts, and neutrino interaction vertices.
 
+Documentation for the library can be found at [github.io/larflow](https://nutufts.github.io/larflow).
+
 ## Contents
 
 * larmatchnet: definition of network, scripts to train and deploy network

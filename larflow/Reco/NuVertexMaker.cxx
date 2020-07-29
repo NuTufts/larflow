@@ -1,13 +1,18 @@
 #include "NuVertexMaker.h"
 
 #include "geofuncs.h"
+#include "DataFormat/track.h"
+
+#include "NuVertexFitter.h"
 
 namespace larflow {
 namespace reco {
 
 
   /**
-   * constructor. calls default parameter method.
+   * @brief default constructor
+   *
+   * calls default parameter method.
    *
    */
   NuVertexMaker::NuVertexMaker()
@@ -18,25 +23,31 @@ namespace reco {
   }
 
   /**
-   * process event data
+   * @brief process event data
    *
    * goal of module is to form vertex candidates.
    * start by seeding possible vertices using
-   * - keypoints 
-   * - intersections of particle clusters (not yet implemented)
-   * - vertex activity near ends of partice clusters (not yet implemented)
+   * @verbatim embed:rst:leading-asterisk
+   *  * keypoints 
+   *  * intersections of particle clusters (not yet implemented)
+   *  * vertex activity near ends of partice clusters (not yet implemented)
+   * @endverbatim
    *
    * event data inputs expected by algorthm:
-   * - keypoint candidates, representd as larflow3dhit, used as vertex seeds. 
+   * @verbatim embed:rst:leading-asterisk
+   * * keypoint candidates, representd as larflow3dhit, used as vertex seeds. 
    *   Use add_keypoint_producer(...) to provide tree name before calling.
-   * - particle cluster candidates, represented as larflowcluster, to associate to vertex seeds. 
+   * * particle cluster candidates, represented as larflowcluster, to associate to vertex seeds. 
    *   Use add_cluster_producer(...) to provide tree name before calling.
-   * - particle cluster candidate containers need to be labeled with a certain ClusterType_t.
-   * - the cluster type affects how it is added to the vertex and how the vertex candidates are scored
+   * * particle cluster candidate containers need to be labeled with a certain ClusterType_t.
+   * * the cluster type affects how it is added to the vertex and how the vertex candidates are scored
+   * @endverbatim
    *
    * output:
-   * - vertex candidates stored in _vertex_v
-   * - need to figure out way to store in larcv or larlite iomanagers
+   * @verbatim embed:rst:leading-asterisk
+   *  * vertex candidates stored in _vertex_v
+   *  * need to figure out way to store in larcv or larlite iomanagers
+   * @endverbatim
    *
    * @param[in] iolcv Instance of LArCV IOManager with event data
    * @param[in] ioll  Instance of larlite storage_manager containing event data
@@ -73,20 +84,34 @@ namespace reco {
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
     }
-    
+
     _createCandidates();
+    _merge_candidates();
+    if ( _apply_cosmic_veto ) {
+      _cosmic_veto_candidates( ioll );
+    }
+    LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size()
+                 << "  after-merging=" << _merged_v.size()
+                 << "  after-veto=" << _vetoed_v.size()
+                 << std::endl;
+
+    _refine_position( iolcv, ioll );
     
   }
 
   /**
-   * create vertex candidates by associating clusters to vertex seeds
+   * @brief create vertex candidates by associating clusters to vertex seeds
    *
    * inputs
-   * - uses _keypoint_producers map to get vertex candidates
-   * - uses _cluster_producers map to get cluster candidates
+   * @verbatim embed:rst:leading-asterisk
+   *  * uses _keypoint_producers map to get vertex candidates
+   *  * uses _cluster_producers map to get cluster candidates
+   * @endverbatim
    *
    * outputs
-   * - fills _vertex_v container
+   * @verbatim embed:rst:leading-asterisk
+   *  * fills _vertex_v container
+   * @endverbatim
    * 
    */
   void NuVertexMaker::_createCandidates()
@@ -130,52 +155,10 @@ namespace reco {
           auto const& lfcluster = it->second->at(icluster);
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
           NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
-        
-          std::vector<float> pcadir(3,0);
-          std::vector<float> start(3,0);
-          std::vector<float> end(3,0);
-          float dist[2] = {0,0};
-          for (int v=0; v<3; v++) {
-            pcadir[v] = lfpca.getEigenVectors()[0][v];
-            start[v]  = lfpca.getEigenVectors()[3][v];
-            end[v]    = lfpca.getEigenVectors()[4][v];
-            dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
-            dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
-          }
-          dist[0] = sqrt(dist[0]);
-          dist[1] = sqrt(dist[1]);
-          int closestend = (dist[0]<dist[1]) ? 0 : 1;
-          float gapdist = dist[closestend];
-          float r = pointLineDistance( start, end, vertex.pos );
 
-          // wide association for now
-          if ( gapdist>_cluster_type_max_gap[ctype] )
-            continue;
-          
-          if ( r>_cluster_type_max_impact_radius[ctype] )
-            continue;
+          bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
+                                                     ctype, it->first, icluster, true );
 
-          // else attach
-          NuVertexCandidate::VtxCluster_t cluster;
-          cluster.producer = it->first;
-          cluster.index = icluster;
-          cluster.dir.resize(3,0);
-          cluster.pos.resize(3,0);
-          for ( int i=0; i<3; i++) {
-            if ( closestend==0 ) {
-              cluster.dir[i] = pcadir[i];
-              cluster.pos[i] = start[i];
-            }
-            else {
-              cluster.dir[i] = -pcadir[i];
-              cluster.pos[i] = end[i];
-            }
-          }
-          cluster.gap = gapdist;
-          cluster.impact = r;
-          cluster.type = ctype;
-          cluster.npts = (int)lfcluster.size();
-          vertex.cluster_v.emplace_back( std::move(cluster) );
           
         }//end of cluster loop
       }//end of cluster container loop
@@ -214,12 +197,12 @@ namespace reco {
   }
 
   /**
-   * clear all data containers
-   *
+   * @brief clear all data containers
    */
   void NuVertexMaker::clear()
   {
     _vertex_v.clear();
+    _merged_v.clear();
     _keypoint_producers.clear();
     _keypoint_pca_producers.clear();
     _cluster_producers.clear();
@@ -227,10 +210,12 @@ namespace reco {
   }
 
   /** 
-   * set parameter defaults
+   * @brief set parameter defaults
    *
-   * _cluster_type_max_impact_radius: per cluster type, maximum radius to accept candidate into vertex
-   * _cluster_type_max_gap: per cluster type, maximum gap to accept candidate into vertex
+   * @verbatim embed:rst:leading-asterisk
+   * * _cluster_type_max_impact_radius: per cluster type, maximum radius to accept candidate into vertex
+   * * _cluster_type_max_gap: per cluster type, maximum gap to accept candidate into vertex
+   * @endverbatim
    *
    */
   void NuVertexMaker::_set_defaults()
@@ -246,15 +231,21 @@ namespace reco {
     // Shower
     _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 50.0;
     _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 100.0;
+
+    _apply_cosmic_veto = false;
     
   }
 
   /**
-   * provide score to vertex seeds in order to provide a way to rank them
-   * not used to cut or anything.
+   * @brief provide score to vertex seeds 
+
+   * Scores used to rank vertex candidates.
+   * Scores not used to cut at this stage.
    *
    * attempting to rank by number of quality cluster associations
    * cluster association quality based on how well cluster points back to vertex
+   *
+   * @param[in] vtx A candidate neutrino vertex
    *
    */
   void NuVertexMaker::_score_vertex( NuVertexCandidate& vtx )
@@ -277,7 +268,9 @@ namespace reco {
       }
       else {
         float ratio = cluster.impact/cluster.gap;
-        clust_score *= (1.0/tau_ratio_shower)*exp( -ratio/tau_ratio_shower );        
+        clust_score *= (1.0/tau_ratio_shower)*exp( -ratio/tau_ratio_shower );
+        if ( cluster.impact>3.0 )
+          clust_score *= (1.0/tau_impact_shower)*exp( -cluster.impact/tau_impact_shower );
       }
       std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
       vtx.score += clust_score;
@@ -285,20 +278,23 @@ namespace reco {
   }
 
   /**
-   * add branch to tree that will save container of vertex candidates
+   * @brief add branch to tree that will save container of vertex candidates
    *
+   * @param[in] tree ROOT tree to add branches to
    */
   void NuVertexMaker::add_nuvertex_branch( TTree* tree )
   {
     _ana_tree = tree;
     _own_tree = false;
     tree->Branch("nuvertex_v", &_vertex_v );
+    tree->Branch("numerged_v", &_merged_v );
+    tree->Branch("nuvetoed_v", &_vetoed_v );
+    tree->Branch("nufitted_v", &_fitted_v );    
   }
 
 
   /**
-   * create a TTree into which we will save the vertex container
-   *
+   * @brief create a TTree into which we will save the vertex container
    */
   void NuVertexMaker::make_ana_tree()
   {
@@ -316,6 +312,360 @@ namespace reco {
     }
   }
 
+  /**
+   * @brief merge nearby vertices
+   *
+   * merge if close. the "winning vertex" has the best score when we take the union of prongs.
+   * the winning vertex also gets the union of prongs assigned to it.
+   *
+   * we fill the _merged_v vector using _vertex_v candidates.
+   *
+   */
+  void NuVertexMaker::_merge_candidates()
+  {
+
+    // sort by score
+    // start with best score, absorb others, (so N^2 algorithm)
+
+    // clear existing merged
+    _merged_v.clear();
+
+    if ( _vertex_v.size()==0 )
+      return;
+    
+    _merged_v.reserve( _vertex_v.size() );
+    
+    // struct for us to sort by score
+    struct NuScore_t {
+      const NuVertexCandidate* nu;
+      float score;
+      NuScore_t( const NuVertexCandidate* the_nu, float s )
+        : nu(the_nu),
+          score(s)
+      {};
+      bool operator<( const NuScore_t& rhs ) const
+      {
+        if ( score>rhs.score ) return true;
+        return false;
+      }      
+    };
+
+    std::vector< NuScore_t > nu_v;
+    nu_v.reserve( _vertex_v.size() );
+    for ( auto const& nucand : _vertex_v ) {
+      nu_v.push_back( NuScore_t(&nucand, nucand.score) );
+    }
+    std::sort( nu_v.begin(), nu_v.end() );
+
+    std::vector<int> used_v( nu_v.size(), 0 );
+
+    // seed first merger candidate
+    _merged_v.push_back( *(nu_v[0].nu) );
+    used_v[0] = 1;
+
+    if ( _vertex_v.size()==1 )
+      return;
+    
+    int nused = 0;
+    int current_cand_index = 0; // index of candidate in _merged_v, for whom we are currently looking for mergers
+    while ( nused<(int)nu_v.size() && current_cand_index<_merged_v.size() ) {
+
+      auto& cand = _merged_v.at(current_cand_index);
+
+      for (int i=0; i<(int)nu_v.size(); i++) {
+        if ( used_v[i]==1 ) continue;
+
+        // test vertex
+        auto const& test_vtx = *nu_v[i].nu;
+        
+        // test vertex distance
+        float dist = 0.;
+        for (int v=0; v<3; v++)
+          dist += (test_vtx.pos[v]-cand.pos[v])*(test_vtx.pos[v]-cand.pos[v]);
+        dist = sqrt(dist);
+
+        if ( dist>5.0 )
+          continue; // too far to merge (or the same)
+
+        // if within distance, absorb clusters to make union
+        // set the pos, keypoint producer based on best score
+        used_v[i] = 1;
+
+        // loop over clusters inside test vertex we are merging with
+        int nclust_before = cand.cluster_v.size();
+        for ( auto const& test_clust : test_vtx.cluster_v ) {
+
+          // check the clusters against the current candidate's clusters
+          bool is_found = false;
+          for (auto const& curr_clust : cand.cluster_v ) {
+            if ( curr_clust.index==test_clust.index && curr_clust.producer==test_clust.producer ) {
+              is_found = true;
+              break;
+            }
+          }
+          
+          if ( !is_found ) {
+            // if not found, add it to the current candidate vertex
+            auto it_clust = _cluster_producers.find( test_clust.producer );
+            auto it_pca   = _cluster_pca_producers.find( test_clust.producer );
+            auto it_ctype = _cluster_type.find( test_clust.producer );
+            if ( it_clust==_cluster_producers.end() || it_pca==_cluster_pca_producers.end() ) {
+              throw std::runtime_error("ERROR NuVertexMaker. could not find cluster/pca producer in dict");
+            }
+            auto const& lfcluster = it_clust->second->at(test_clust.index);
+            auto const& lfpca     = it_pca->second->at(test_clust.index);
+            auto const& clust_t   = it_ctype->second;
+            _attachClusterToCandidate( cand, lfcluster, lfpca, clust_t,
+                                       test_clust.producer, test_clust.index, false );
+          }
+              
+        }//after test cluster loop
+
+        // score the current candidate
+        _score_vertex( cand );
+
+        // here we create a duplicate,
+        // but with the vertex moved to the pos of the test_vtx
+        // then we decide which one to keep based on highest score
+        
+      }//end of loop to absorb vertices
+
+      // get the next unused absorbed vertex, to seed as merger
+      for (int i=0; i<(int)nu_v.size(); i++) {
+        if ( used_v[i]==1 ) continue;
+        _merged_v.push_back( *nu_v[i].nu );
+        used_v[i] = 1;
+        break;
+      }
+      
+      current_cand_index++;
+    }
+    
+    
+  }
+
+  /**
+   * @brief add cluster to a neutrino vertex candidate
+   *
+   * @param[in] vertex NuVertexCandidate instance to add to
+   * @param[in] lfcluster cluster in the form of a larflowcluster instance
+   * @param[in] lfpca cluster pca info for lfcluster
+   * @param[in] ctype type of cluster
+   * @param[in] producer tree name that held the cluster being passed in
+   * @param[in] icluster cluster index
+   * @param[in] apply_cut if true, clusters only attached if satisfies limits on impact parameter and gap distance
+   */
+  bool NuVertexMaker::_attachClusterToCandidate( NuVertexCandidate& vertex,
+                                                 const larlite::larflowcluster& lfcluster,
+                                                 const larlite::pcaxis& lfpca,
+                                                 NuVertexCandidate::ClusterType_t ctype,
+                                                 std::string producer,
+                                                 int icluster,
+                                                 bool apply_cut )
+  {
+
+    std::vector<float> pcadir(3,0);
+    std::vector<float> start(3,0);
+    std::vector<float> end(3,0);
+    float dist[2] = {0,0};
+    float pcalen = 0.;
+    for (int v=0; v<3; v++) {
+      pcadir[v] = lfpca.getEigenVectors()[0][v];
+      start[v]  = lfpca.getEigenVectors()[3][v];
+      end[v]    = lfpca.getEigenVectors()[4][v];
+      dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
+      dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
+      pcalen += pcadir[v]*pcadir[v];
+    }
+    pcalen = sqrt(pcalen);
+    if (pcalen<0.1 || std::isnan(pcalen) ) {
+      return false;
+    }          
+    dist[0] = sqrt(dist[0]);
+    dist[1] = sqrt(dist[1]);
+    int closestend = (dist[0]<dist[1]) ? 0 : 1;
+    float gapdist = dist[closestend];
+    float r = pointLineDistance( start, end, vertex.pos );
+
+    LARCV_DEBUG() << "pcadir-len=" << pcalen << std::endl;
+    float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
+    float ends  = pointRayProjection<float>( start, pcadir, end );
+
+    if ( apply_cut ) {
+      // wide association for now
+      if ( gapdist>_cluster_type_max_gap[ctype] )
+        return false;
+          
+      if ( r>_cluster_type_max_impact_radius[ctype] )
+        return false;
+
+      if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
+        if ( projs>2.0 && projs < (ends-2.0) )
+          return false;
+      }
+    }
+
+    // else attach
+    NuVertexCandidate::VtxCluster_t cluster;
+    cluster.producer = producer;
+    cluster.index = icluster;
+    cluster.dir.resize(3,0);
+    cluster.pos.resize(3,0);
+    for ( int i=0; i<3; i++) {
+      if ( closestend==0 ) {
+        cluster.dir[i] = pcadir[i];
+        cluster.pos[i] = start[i];
+      }
+      else {
+        cluster.dir[i] = -pcadir[i];
+        cluster.pos[i] = end[i];
+      }
+    }
+    cluster.gap = gapdist;
+    cluster.impact = r;
+    cluster.type = ctype;
+    cluster.npts = (int)lfcluster.size();
+    vertex.cluster_v.emplace_back( std::move(cluster) );
+    
+    return true;
+  }
+  
+  /**
+   * @brief apply cosmic track veto to candidate vertices
+   *
+   * Get tracks from tree, `boudarycosmicnoshift`.
+   * Vertices close to these are removed from consideration.
+   *
+   * @param[in] ioll larlite storage_manager containing event data.
+   *
+   */
+  void NuVertexMaker::_cosmic_veto_candidates( larlite::storage_manager& ioll )
+  {
+
+    // get cosmic tracks
+    larlite::event_track* ev_cosmic
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, "boundarycosmicnoshift" );
+
+    // loop over vertices
+    _vetoed_v.clear();
+    for ( auto& vtx : _merged_v ) {
+
+      bool close2cosmic = false;
+      
+      for (int itrack=0; itrack<(int)ev_cosmic->size(); itrack++) {
+        const larlite::track& cosmictrack = ev_cosmic->at(itrack);
+
+        float mindist_segment = 1.0e9;
+        float mindist_point   = 1.0e9;
+        for (int ipt=0; ipt<(int)cosmictrack.NumberTrajectoryPoints()-1; ipt++) {
+
+          const TVector3& pos  = cosmictrack.LocationAtPoint(ipt);
+          const TVector3& next = cosmictrack.LocationAtPoint(ipt+1);
+
+          std::vector<float> fpos  = { (float)pos(0),  (float)pos(1),  (float)pos(2) };
+          std::vector<float> fnext = { (float)next(0), (float)next(1), (float)next(2) };
+
+          std::vector<float> fdir(3,0);
+          float flen = 0.;
+          for (int i=0; i<3; i++) {
+            fdir[i] = fnext[i]-fpos[i];
+            flen += fdir[i]*fdir[i];
+          }          
+          if ( flen>0 ) {
+            flen = sqrt(flen);
+            for (int i=0; i<3; i++)
+              fdir[i] /= flen;
+          }
+          else {
+            continue;
+          }
+            
+
+          float r = larflow::reco::pointLineDistance3f( fpos, fnext, vtx.pos );
+          float s = larflow::reco::pointRayProjection3f( fpos, fdir, vtx.pos );
+
+          if ( s>=0 && s<=flen && mindist_segment>r) {
+            mindist_segment = r;
+          }
+
+          float pt1dist = 0.;
+          for (int i=0; i<3; i++) {
+            pt1dist += (fpos[i]-vtx.pos[i])*(fpos[i]-vtx.pos[i]);
+          }
+          pt1dist = sqrt(pt1dist);
+          if ( pt1dist<mindist_point ) {
+            mindist_point = pt1dist;
+          }
+
+          if ( ipt+1==(int)cosmictrack.NumberTrajectoryPoints() ) {
+            pt1dist = 0;
+            for (int i=0; i<3; i++) {
+              pt1dist += (fnext[i]-vtx.pos[i])*(fnext[i]-vtx.pos[i]);
+            }
+            pt1dist = sqrt(pt1dist);
+            if ( pt1dist<mindist_point ) {
+              mindist_point = pt1dist;
+            }            
+          }
+        }//end of loop over cosmic points
+
+
+        if ( mindist_segment<10.0 || mindist_point<10.0 ) {
+          close2cosmic = true;
+        }
+
+
+        if ( close2cosmic )
+          break;
+      }//end of loop over tracks
+
+
+      if ( !close2cosmic ) {
+        _vetoed_v.push_back( vtx );
+      }
+      
+    }//end of vertex loop
+
+    LARCV_INFO() << "Vertices after cosmic veto: " << _vetoed_v.size() << " (from " << _merged_v.size() << ")" << std::endl;
+    
+  }
+
+  /**
+   * @brief Use NuVertexFitter to refine vertex position
+   * 
+   * Also, provide refined prong direction and dQ/dx measure
+   * 
+   * @param[in] iolcv LArCV IO manager with current event data
+   * @param[in] ioll  larlite storage_manager with current event data
+   *
+   */
+  void NuVertexMaker::_refine_position( larcv::IOManager& iolcv,
+                                        larlite::storage_manager& ioll )                                        
+  {
+
+    larflow::reco::NuVertexFitter fitter;
+    if ( _apply_cosmic_veto )
+      fitter.process( iolcv, ioll, get_vetoed_candidates() );
+    else
+      fitter.process( iolcv, ioll, get_merged_candidates() );
+
+    const std::vector< std::vector<float> >& fitted_pos_v
+      = fitter.get_fitted_pos();
+
+    _fitted_v.clear();
+    if ( _apply_cosmic_veto ) {
+
+      int ivtx=0;
+      for ( auto const& vtx : _vetoed_v ) {
+        NuVertexCandidate fitcand = vtx;
+        fitcand.pos = fitted_pos_v[ivtx];
+        ivtx++;
+        _fitted_v.emplace_back( std::move(fitcand) );
+      }
+      
+    }
+    
+  }
   
   
 }

@@ -8,6 +8,8 @@ class LArMatchKeypointClassifier(nn.Module):
     def __init__(self,features_per_layer=16,
                  keypoint_nfeatures=[32,32],                 
                  ninput_planes=3,
+                 nclasses=3,
+                 use_bn=True,
                  device=torch.device("cpu")):
         super(LArMatchKeypointClassifier,self).__init__()
 
@@ -43,7 +45,7 @@ class LArMatchKeypointClassifier(nn.Module):
             keypoint_nuVtx_layers["keypoint%drelu"%(ilayer+1)] = torch.nn.ReLU()
         keypoint_nuVtx_layers["keypointout"] = torch.nn.Conv1d(nfeats,1,1)
         self.keypoint_nuVtx = torch.nn.Sequential( keypoint_nuVtx_layers )
-        
+
     def forward(self,triplet_feat_t):
         """
         classify triplet of (u,v,y) wire plane pixel combination as being (background,track,shower)

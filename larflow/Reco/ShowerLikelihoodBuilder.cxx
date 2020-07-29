@@ -11,6 +11,9 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief default constructor 
+   */
   ShowerLikelihoodBuilder::ShowerLikelihoodBuilder()
   {
     _hll          = new TH2F("lfshower_ll","",2000, -10, 190, 1000, 0, 100 );
@@ -23,18 +26,28 @@ namespace reco {
     // if ( _hll ) delete _hll;
     // _hll = nullptr;
   }
-  
+
+  /**
+   * @brief process data for one event, retrieving data from larcv and larlite io managers
+   *
+   *
+   * steps:
+   *
+   * first we need to assemble true triplet points of showers
+   * @verbatim embed:rst:leading-asterisk
+   *   * we start by masking out adc images by segment image, keeping shower pixels
+   *   * then we pass the masked image into the triplet proposal algorithm, making true pixels
+   *   * we filter out the proposals by true match + source pixel being on an electron (true ssnet label)
+   * @endverbatim
+   *
+   * after ground truth points are made, we can build the calculations we want
+   *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void ShowerLikelihoodBuilder::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 
-    // steps.
-    //
-    // first we need to assemble true triplet points of showers
-    // 1) we start by masking out adc images by segment image, keeping shower pixels
-    // 2) then we pass the masked image into the triplet proposal algorithm, making true pixels
-    // 3) we filter out the proposals by true match + source pixel being on an electron (true ssnet label)
-    //
-    // after ground truth points are made, we can build the calculations we want
 
 
     // get input data
@@ -299,8 +312,9 @@ namespace reco {
 
   }
 
-  /*
-   * Build a profile histogram using true shower hits.
+  /**
+   * @brief Build a shower profile histogram using true shower hits.
+   *
    * we assume all hits belong to the shower. 
    * note: this code was intended to run on single shower events, 
    * in order to build a proper
@@ -381,7 +395,8 @@ namespace reco {
   }
 
   /**
-   * Make truehit clusters
+   * @brief Make truehit clusters
+   *
    * populates the member cluster container, cluster_v.
    * 
    * @param[in] truehit_v Collection of true shower hits
@@ -400,16 +415,11 @@ namespace reco {
   }
 
   /**
-   * Performs cluster-based analysis of true shower.
-   * Gathers statistics we hope to use to relate shower fragment to shower trunks.
-   * note: this code was intended to run on single shower events, 
-   * in order to build a proper
-   * profile that we can use on multi-shower events.
+   * @brief Find closest cluster to given shower start an direction
    *
-   * 
-   * @param[in] truehit_v Collection of true shower hits
-   * @param[in] shower_dir Vector describing initial 3D shower direction
-   * @param[in] shower_vtx Vector giving 3D shower start point/vertex
+   * @param[in] claimed_cluster_v Clusters to search
+   * @param[in] shower_vtx Vector giving 3D shower start point/vertex for which we find the closest cluster
+   * @param[in] shower_dir Vector describing initial 3D shower direction. Not used.
    * 
    */ 
   int ShowerLikelihoodBuilder::_find_closest_cluster( std::vector<int>& claimed_cluster_v,
@@ -458,7 +468,8 @@ namespace reco {
   }  
   
   /**
-   * Performs cluster-based analysis of true shower.
+   * @brief Performs cluster-based analysis of true shower.
+   *
    * Gathers statistics we hope to use to relate shower fragment to shower trunks.
    * note: this code was intended to run on single shower events, 
    * in order to build a proper
@@ -589,8 +600,9 @@ namespace reco {
   }
 
   /**
-   * function that calculates shortest distance from a point to a line.
-   * the latter is defined by a start point and a ray.
+   * @brief function that calculates shortest distance from a point to a line.
+   *
+   * the the line is defined by a start point and a ray.
    *
    * @param[in]  ray_start Line 3D start point
    * @param[in]  ray_dir   Line 3D direction
@@ -642,17 +654,27 @@ namespace reco {
   }
 
   /**
-   * shortest distance between lines
+   * @brief shortest distance between lines
    *
-   * using: https://math.stackexchange.com/questions/2213165/find-shortest-distance-between-lines-in-3d
+   * Calculations referenced from:
+   * https://math.stackexchange.com/questions/2213165/find-shortest-distance-between-lines-in-3d
+   * 
+   * @param[in] l_start Start of one line
+   * @param[in] l_dir   Direction of one line
+   * @param[in] m_start Start of the other line
+   * @param[in] m_dir   Direction of the other line
+   * @param[out] impact_dist Shortest distance between the two lines
+   * @param[out] proj_l Where the shortest distance line is on the l-line relative to l_start
+   * @param[out] proj_m where the shortest distance line is on the m-line relative to m_start
+   *
    */
   void ShowerLikelihoodBuilder::_impactdist( const std::vector<float>& l_start,
                                              const std::vector<float>& l_dir,
                                              const std::vector<float>& m_start,
                                              const std::vector<float>& m_dir,
                                              float& impact_dist,
-                                              float& proj_l,
-                                              float& proj_m )
+                                             float& proj_l,
+                                             float& proj_m )
   {
 
     impact_dist = -1.0;

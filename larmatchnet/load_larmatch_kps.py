@@ -12,8 +12,11 @@ Load LArMatch Triplet data files for training and deploy
 """
 
 
-def load_larmatch_kps(loader, current_entry, batchsize,
-                      npairs=5000,verbose=False,single_batch_mode=False):
+def load_larmatch_kps(loaders, current_entry, batchsize,
+                      npairs=5000,
+                      verbose=False,
+                      exclude_neg_examples=False,
+                      single_batch_mode=False):
 
     batch = []
     batch_npts_per_plane = []
@@ -29,34 +32,45 @@ def load_larmatch_kps(loader, current_entry, batchsize,
     for ibatch in xrange(batchsize):
         ientry = current_entry + ibatch    
         data    = {"entry":ientry,
-                   "tree_entry":int(ientry)%int(loader.GetEntries())}
+                   "tree_entry":int(ientry)%int(loaders["kps"].GetEntries())}
 
 
     
-        # get data from match tree
+        # get data from match trees
         tio     = time.time()
-        nbytes  = loader.load_entry(data["tree_entry"])
+        for name,loader in loaders.items():
+            nbytes = loader.load_entry(data["tree_entry"])
+            if verbose:
+                print "nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry']            
         dtio    += time.time()-tio
 
-        if verbose:
-            print "nbytes: ",nbytes," for tree entry=",data['tree_entry']
         nfilled = c_int()
         nfilled.value = 0
-        spdata_v    = [ loader.triplet_v[0].make_sparse_image( p ) for p in xrange(3) ]
-        matchdata   = loader.sample_data( npairs, nfilled, True )
+        # the sparse image comes from the KPS loader
+        spdata_v    = [ loaders["kps"].triplet_v[0].make_sparse_image( p ) for p in xrange(3) ]
+        # sample the possible spacepoint matches
+        matchdata   = loaders["kps"].sample_data( npairs, nfilled, True )
+        # get the particle affinity field data
+        pafdata = loaders["affinity"].get_match_data( matchdata["matchtriplet"], exclude_neg_examples )
+        
+        # add the contents to the data dictionary
         data.update(matchdata)
+        data.update(pafdata)
 
         # prepare data dictionary
         npts_per_plane = [0,0,0]
+        # separate the sparse charge image matrix into coordinates and features (the charge)
         for p in xrange(3):
             data["coord_%d"%(p)] = spdata_v[p][:,0:2].astype( dtype=np.int32 )
             data["feat_%d"%(p)]  = spdata_v[p][:,2].reshape( (spdata_v[p].shape[0], 1) )
             npts_per_plane[p] = spdata_v[p].shape[0]
             batch_tot_per_plane[p] += npts_per_plane[p]
         batch_npts_per_plane.append(npts_per_plane)
+        # split the spacepoint match information into the 3-plane sparse matrxi indices 
         data["matchpairs"]     = matchdata["matchtriplet"][:,0:3].astype( dtype=np.long )
         data["larmatchlabels"] = matchdata["matchtriplet"][:,3].astype( dtype=np.long )
         data["npairs"]         = nfilled.value
+        # resetting the topological weights for ssnet
         nboundary = np.sum(data["ssnet_top_weight"][data["ssnet_top_weight"]==10.0])
         nvertex   = np.sum(data["ssnet_top_weight"][data["ssnet_top_weight"]==100.0])        
         data["ssnet_top_weight"][ data["ssnet_top_weight"]==10.0 ]  = 2.0
@@ -111,28 +125,30 @@ if __name__ == "__main__":
 
 
     from ROOT import std
-    input_files = ["larmatch_keypointssnet_small_sample_test.root"]
+    input_files = ["output_alldata.root"]
     device      = torch.device("cpu")
 
     input_v = std.vector("string")()
     for i in input_files:
         input_v.push_back(i)
 
-    loader = larflow.keypoints.LoaderKeypointData( input_v )
-    loader.exclude_false_triplets( False )
-    nentries = loader.GetEntries()
+    loaders = {"kps":larflow.keypoints.LoaderKeypointData( input_v ),
+               "affinity":larflow.keypoints.LoaderAffinityField( input_v )}
+    for name,loader in loaders.items():
+        loader.exclude_false_triplets( False )
+    nentries = loaders["kps"].GetEntries()
     print "num entries: ",nentries
 
     nmax    = c_int()
     nfilled = c_int()
     nmax.value = 50000
 
-    nentries = 1000000000
+    nentries = 10
     batchsize = 1
     
     for ientry in xrange(0,nentries,batchsize):
         print "[LOAD ENTRY ",ientry,"]"
-        data = load_larmatch_kps( loader, ientry, batchsize, verbose=True, single_batch_mode=True )
+        data = load_larmatch_kps( loaders, ientry, batchsize, exclude_neg_examples=False, verbose=True, single_batch_mode=True )
         for x,arr in data.items():
             if isinstance(arr,np.ndarray):
                 print x,": ",arr.shape,arr[:10]

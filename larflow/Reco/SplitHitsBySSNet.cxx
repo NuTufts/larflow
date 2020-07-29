@@ -6,7 +6,17 @@
 
 namespace larflow {
 namespace reco {
-  
+
+  /**
+   * @brief split-up container of larflow3dhit using ssnet output images
+   *
+   * @param[in] ssnet_score_v            SSNet shower score images for each plane
+   * @param[in] larmatch_hit_v           LArMatch hits
+   * @param[in] ssnet_score_threshold    Threshold shower score
+   * @param[in] larmatch_score_threshold Threshold larmatch score
+   * @param[out] accept_v                Hits above threshold
+   * @param[out] reject_v                Hits below threshold
+   */
   void SplitHitsBySSNet::split( const std::vector<larcv::Image2D>& ssnet_score_v,
                                 const larlite::event_larflow3dhit& larmatch_hit_v,
                                 const float ssnet_score_threshold,
@@ -75,6 +85,12 @@ namespace reco {
     
   }
 
+  /**
+   * @brief Process event data in the larcv and larlite IO managers
+   *
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */
   void SplitHitsBySSNet::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 
@@ -108,10 +124,10 @@ namespace reco {
     split( ssnet_showerimg_v, *ev_lfhit, _score_threshold, _larmatch_threshold, _shower_hit_v, _track_hit_v );
 
     larlite::event_larflow3dhit* evout_shower_hit
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "showerhit" );
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _output_larmatch_hit_stem_name+"_showerhit" );
 
     larlite::event_larflow3dhit* evout_track_hit
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "trackhit" );
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _output_larmatch_hit_stem_name+"_trackhit" );
 
     for ( auto& hit : _shower_hit_v )
       evout_shower_hit->push_back( hit );

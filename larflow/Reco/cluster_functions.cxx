@@ -2,10 +2,8 @@
 
 #include <fstream>
 
-#include "ublarcvapp/dbscan/DBScan.h"
-#include "ublarcvapp/dbscan/sDBScan.h"
-// #include "ublarcvapp/dbscan/DBScan_vp.h"
-// #include "ublarcvapp/dbscan/dataset.h"
+#include "ublarcvapp/dbscan/DBScan.h"  ///< hand-written
+#include "ublarcvapp/dbscan/sDBScan.h" ///< external
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
 #include <cilantro/principal_component_analysis.hpp>
 
@@ -15,8 +13,14 @@ namespace reco {
   ClusterFunctions::ClusterFunctions() {}
   
   /**
-   * we use db scan to make an initial set of clusters
+   * @brief use DB scan to cluster vector of larflow3dhit
    *
+   * @param[in]  hit_v     Vector of larflow3dhit
+   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[in]  maxdist   maximum distance two points can be connected
+   * @param[in]  minsize   minimum size of cluster
+   * @param[in]  maxkd     maximum number of connections a node can have
+   * 
    */
   void cluster_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
                               std::vector< cluster_t >& cluster_v,
@@ -64,8 +68,14 @@ namespace reco {
   }
 
   /**
-   * we use db scan to make an initial set of clusters
-   *
+   * @brief make clusters from vector of floats using DB scan
+   * 
+   * @param[in]  points_v  vector of 3D space points represented as a vector<float>
+   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[in]  maxdist   maximum distance two points can be connected
+   * @param[in]  minsize   minimum size of cluster
+   * @param[in]  maxkd     maximum number of connections a node can have
+   * 
    */
   void cluster_spacepoint_v( const std::vector< std::vector<float> >& points_v,
                              std::vector< cluster_t >& cluster_v,
@@ -87,12 +97,6 @@ namespace reco {
       for ( auto const& hitidx : cluster ) {
         // store 3d position and 2D image coordinates
         c.points_v.push_back( points_v.at(hitidx) );
-        // std::vector<int> coord(4,0);
-        // coord[3] = hit_v[hitidx].tick;
-        // coord[0] = (int)hit_v[hitidx].targetwire[0]; // U-plane
-        // coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
-        // coord[2] = (int)hit_v[hitidx].srcwire;
-        // c.imgcoord_v.push_back( coord );
         c.hitidx_v.push_back(hitidx);
       }
       cluster_v.emplace_back(std::move(c));
@@ -106,7 +110,15 @@ namespace reco {
 
   
   /**
-   * we use alternative simple dbscan package to make an initial set of clusters
+   * @brief cluster larflow3dhit with simple DBScan external library
+   * 
+   * This is preferred to above.
+   *
+   * @param[in]  hit_v     Vector of larflow3dhit
+   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[in]  maxdist   maximum distance two points can be connected
+   * @param[in]  minsize   minimum size of cluster
+   * @param[in]  maxkd     maximum number of connections a node can have
    *
    */
   void cluster_sdbscan_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
@@ -157,57 +169,82 @@ namespace reco {
   }
 
   /**
-   * we use alternative simple dbscan package to make an initial set of clusters
+   * @brief cluster spacepoints represented as vector<float> with simple DBScan external library
+   * 
+   * This is preferred to above.
+   *
+   * @param[in]  hit_v     Vector of larflow3dhit
+   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[in]  maxdist   maximum distance two points can be connected
+   * @param[in]  minsize   minimum size of cluster
+   * @param[in]  maxkd     maximum number of connections a node can have
    *
    */
-  // void cluster_dbscan_vp_larflow3dhits( const std::vector<larlite::larflow3dhit>& hit_v,
-  //                                       std::vector< cluster_t >& cluster_v,
-  //                                       const float maxdist, const int minsize, const int maxkd ) {
+  void cluster_sdbscan_spacepoints( const std::vector< std::vector<float> >& hit_v,
+                                    std::vector< cluster_t >& cluster_v,
+                                    const float maxdist, const int minsize, const int maxkd )
+  {
     
-  //   clock_t start = clock();
-
-  //   ublarcvapp::dbscan::Dataset::Ptr dataset = ublarcvapp::dbscan::Dataset::create();
+    clock_t start = clock();
     
-  //   // convert points into list of floats
-  //   for ( auto const& lfhit : hit_v ) {
-  //     Eigen::Vector3f vec( lfhit[0], lfhit[1], lfhit[2] );
-  //     dataset->data().emplace_back( std::move(vec) );
-  //   }
-
-  //   std::cout << "fit dbscan_vp" << std::endl;
-  //   ublarcvapp::dbscan::DBSCAN_VP::Ptr dbscan
-  //     = boost::make_shared< ublarcvapp::dbscan::DBSCAN_VP >( dataset );
-  //   dbscan->fit();
-
-  //   std::cout << "predict dbscan_vp" << std::endl;    
-  //   const unsigned int num_clusters = dbscan->predict( maxdist, minsize );
-  //   std::cout << "dbscan_vp gives " << num_clusters << " clusters" << std::endl;    
+    // convert points into list of floats
+    std::vector< std::vector<float> > points_v;
+    points_v.reserve( hit_v.size() );
     
-  //   const ublarcvapp::dbscan::DBSCAN_VP::Labels& l = dbscan->get_labels();
-
-  //   cluster_v.resize( num_clusters );
+    for ( auto const& lfhit : hit_v ) {
+      std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
+      points_v.push_back( hit );
+    }
     
-  //   for (size_t hitidx=0; hitidx<l.size(); hitidx++ ) {
-  //     // skip the last cluster, which are noise points
-  //     auto& c = cluster_v[ l[hitidx] ];
-
-  //     // store 3d position and 2D image coordinates
-  //     c.points_v.push_back( hit_v[hitidx] );
-  //     std::vector<int> coord(4,0);
-  //     coord[3] = hit_v[hitidx].tick;
-  //     coord[0] = (int)hit_v[hitidx].targetwire[0]; // U-plane
-  //     coord[1] = (int)hit_v[hitidx].targetwire[1]; // V-plane
-  //     coord[2] = (int)hit_v[hitidx].targetwire[2]; // Y-plane
-  //     c.imgcoord_v.push_back( coord );
-  //     c.hitidx_v.push_back(hitidx);
-  //   }
-
-  //   clock_t end = clock();
-  //   double elapsed = double(end-start)/CLOCKS_PER_SEC;
+    auto sdbscan = ublarcvapp::dbscan::SDBSCAN< std::vector<float>, float >();
+    sdbscan.Run( &points_v, 3, maxdist, minsize );
     
-  //   std::cout << "[cluster_dbscan_vp_larflow3dhits] made clusters: " << cluster_v.size() << " elapsed=" << elapsed << " secs" << std::endl;    
-  // }
+    auto noise = sdbscan.Noise;
+    auto dbcluster_v = sdbscan.Clusters;
+    
+    for (int ic=0; ic<(int)dbcluster_v.size();ic++) {
+      // skip the last cluster, which are noise points
+      auto const& cluster = dbcluster_v[ic];
+      cluster_t c;
+      c.points_v.reserve(cluster.size());
+      c.imgcoord_v.reserve(cluster.size());
+      c.hitidx_v.reserve(cluster.size());
+      for ( auto const& hitidx : cluster ) {
+        // store 3d position and 2D image coordinates
+        c.points_v.push_back( points_v.at(hitidx) );
+        c.hitidx_v.push_back(hitidx);        
+      }
+      cluster_v.emplace_back(std::move(c));
+    }
+    clock_t end = clock();
+    double elapsed = double(end-start)/CLOCKS_PER_SEC;
+    
+    std::cout << "[cluster_sdbscan_spacepoints] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+  }
   
+  /**
+   * @brief run PCA on the hits in the cluster
+   *
+   * points_v must be filled.
+   *
+   * the following members are then filled:
+   * \verbatim embed:rst:leading-asterisk
+   *  * larflow::reco::cluster_t::bbox_v
+   *  * larflow::reco::cluster_t::pca_center
+   *  * larflow::reco::cluster_t::pca_eigenvalues
+   *  * larflow::reco::cluster_t::pca_axis_v
+   *  * larflow::reco::cluster_t::ordered_idx_v
+   *  * larflow::reco::cluster_t::pca_proj_v
+   *  * larflow::reco::cluster_t::pca_ends_v
+   *  * larflow::reco::cluster_t::pca_len
+   *  * larflow::reco::cluster_t::pca_radius_v
+   *  * larflow::reco::cluster_t::pca_max_r
+   *  * larflow::reco::cluster_t::pca_ave_r2
+   * \endverbatim
+   * 
+   * @param[out] cluster   Container of larflow::reco::cluster_t objects made
+   * 
+   */  
   void cluster_pca( cluster_t& cluster ) {
 
     //std::cout << "[cluster_pca]" << std::endl;
@@ -355,6 +392,12 @@ namespace reco {
     
   }
 
+  /**
+   * @brief run larflow::cluster_pca on a vector of cluster_t
+   *
+   * @param[out] cluster_v A vector of cluster_t
+   *
+   */
   void cluster_runpca( std::vector<cluster_t>& cluster_v ) {
     clock_t start = clock();
     for ( auto& cluster : cluster_v ) {
@@ -364,7 +407,14 @@ namespace reco {
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     std::cout << "[ cluster_runpca ] elapsed=" << elapsed << " secs" << std::endl;
   }
-  
+
+  /**
+   * @brief dump cluster_t contents into a json file for debugging
+   *
+   * @param[in] cluster_v Clusters to dumpout.
+   * @param[in] outfilename Path to the file we write to.
+   *
+   */
   void cluster_dump2jsonfile( const std::vector<cluster_t>& cluster_v, std::string outfilename ) {
     nlohmann::json j;
     std::vector< nlohmann::json > jcluster_v;
@@ -382,9 +432,11 @@ namespace reco {
   }
 
   /**
-   * convert cluster into json object
+   * @brief convert cluster into json object
    * 
-   * usually for easy export
+   * for debugging
+   *
+   * @param[in] cluster Cluster whose info we will convert into json
    *
    */
   nlohmann::json cluster_json( const cluster_t& cluster ) {
@@ -408,7 +460,13 @@ namespace reco {
     
 
   /**
-   * we split larflow points by projecting into planes and getting scores
+   * @brief Split larflow points by projecting into planes and getting scores
+   *
+   * @param[in] hit_v               A vector of hits in larflow3dhit form.
+   * @param[in] ssnettrack_image_v  Images with the track score for each pixel, one for each plane.
+   * @param[out] track_hit_v        larflow3dhits from hit_v which land on majority track-like pixels.
+   * @param[out] shower_hit_v       larflow3dhits from hit_v which land on majority shower-like pixels.
+   * @param[in]  min_larmatch_score minimum larmatch threshold for hit to be passed into track_hit_v or shower_hit_v.
    *
    */
   void cluster_splitbytrackshower( const std::vector<larlite::larflow3dhit>& hit_v,
@@ -477,10 +535,14 @@ namespace reco {
   }
 
   /**
-   * project the 3D cluster points back into the 2D image2d
+   * @brief project the 3D cluster points back into the 2D image2d
+   *
+   * @param[in]  cluster          Cluster whose hits in cluster_t::points_v we project into images.
+   * @param[out] clust2d_images_v Image2D whose pixels are set to 50.0 if cluster hit projects onto it.
    *
    */
-  void cluster_imageprojection( const cluster_t& cluster, std::vector<larcv::Image2D>& clust2d_images_v ) {
+  void cluster_imageprojection( const cluster_t& cluster,
+                                std::vector<larcv::Image2D>& clust2d_images_v ) {
 
     // zero the images
     for ( auto& img : clust2d_images_v )
@@ -497,7 +559,11 @@ namespace reco {
   }
 
   /**
-   * project the 3D cluster points back into the 2D image2d
+   * @brief project the 3D cluster points back into the 2D image2d
+   *
+   * unfinished. 
+   *
+   * @brief clust2d_images_v Wire plane images for which we will find 2D contours.
    *
    */
   void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v ) {
@@ -535,7 +601,14 @@ namespace reco {
   }
 
   /**
-   * calculate closest distance between end points using simple distance between points
+   * @brief calculate closest distance from cluster pca end points
+   *
+   * uses larflow::reco::cluster_t::pca_ends_v
+   *
+   * @param[in] clust_a First cluster.
+   * @param[in] clust_b Second cluster.
+   * @param[out] endpts End point on clust_a and end point on clust_b are returned
+   * @return distance between closest end points in cm
    *
    */
   float cluster_closest_endpt_dist( const cluster_t& clust_a, const cluster_t& clust_b,
@@ -577,8 +650,11 @@ namespace reco {
   }
 
   /**
-   * one of the end pts are in the bounding box
+   * @brief check if one of the end pts are in the bounding box of the cluster
    *
+   * @param[in] clust_a First cluster.
+   * @param[in] clust_b Second cluster.
+   * @return True if there are bounding box overlap.
    */
   bool cluster_endpt_in_bbox( const cluster_t& clust_a, const cluster_t& clust_b ) {
 
@@ -606,7 +682,10 @@ namespace reco {
   }
 
   /** 
-   * calculate cosine between first PCA axis of two clusters
+   * @brief calculate cosine between first PCA axis of two clusters
+   * @param[in] clust_a First cluster.
+   * @param[in] clust_b Second cluster.
+   * @return inner product of first PC axis
    */
   float cluster_cospca( const cluster_t& clust_a, const cluster_t& clust_b ) {
     float cospca = 0.;
@@ -619,7 +698,13 @@ namespace reco {
   }
 
   /**
-   * make a new cluster that is a combination of two clusters
+   * @brief make a new cluster that is a combination of two clusters
+   *
+   * This creates a new cluster based on the union of two clusters
+   * 
+   * @param[in] clust_a First cluster.
+   * @param[in] clust_b Second cluster.
+   * @return Union cluster.
    *
    */
   cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b ) {
@@ -640,7 +725,15 @@ namespace reco {
   }
 
   /**
-   * convert PC axis information in cluster into larlite object
+   * @brief convert PC axis information in cluster into larlite::pcaxis object
+   *
+   * Note, pcaxis objects typically have only 3 vectors.
+   * Here we add an additional 2 vectors (total 5) in the larlite::pcaxis object.
+   * These include info on the start and end pca line points: cluster_t.pca_ends_v
+   * 
+   * @param[in] c     The cluster to convert.
+   * @param[in] cidx  An ID number the user is free to set.
+   * @return larlite::pcaxis containing cluster PCA info.
    */
   larlite::pcaxis cluster_make_pcaxis( const cluster_t& c, int cidx ) {
 
@@ -666,9 +759,12 @@ namespace reco {
 
 
   /**
-   * convert larflow cluster back into a cluster_t object.
+   * @brief convert larflow cluster back into a cluster_t object.
    *
-   * we assume that the larflowcluster was made using the tools in this module
+   * we assume that the larflowcluster was made using the tools in this module.
+   *
+   * @param[in] lfcluster larflow3dhit cluster to convert.
+   * @return Cluster_t copy of the input larflow3dhit cluster
    *
    */
   cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster ) {
@@ -700,7 +796,11 @@ namespace reco {
   }
 
   /*
-   * project hits into the ADC image and get the total pixel sum for each plane
+   * @brief project hits into the ADC image and get the total pixel sum for each plane
+   *
+   * @param[in] cluster Cluster whose hits we project. (Note we use cluster_t::imgcoord).
+   * @param[in] img_v   Wire plane image to get the charge sum from.
+   * @return charge sum on each plane.
    *
    */
   std::vector<float> cluster_pixelsum( const cluster_t& cluster,
@@ -731,9 +831,16 @@ namespace reco {
     return cluster_adc;
   }
 
+  /**
+   * @brief get distance of test point from pca-axis
+   *
+   * @param[in] cluster Cluster to test. Using end points saved in clust.pca_ends_v to perform calculation
+   * @param[in] pt test point
+   * @return distnce from first PCA line
+   */
   float cluster_dist_from_pcaline( const cluster_t& cluster, const std::vector<float>& pt ) {
 
-    // get distance of point from pca-axis
+    // 
     // http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
     
     std::vector<float> d1(3);

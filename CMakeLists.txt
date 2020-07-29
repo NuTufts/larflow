@@ -8,6 +8,9 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "${CMAKE_BUILD_DIR}" FORCE )
 endif()
 
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 ## Dependencies
 
 #---CERN ROOT (required)
@@ -82,6 +85,9 @@ set(LARFLOW_BASE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}")
 
 #---Add base of source
 add_subdirectory(larflow)
+
+#---Add folder to generate docs
+#add_subdirectory(docs)
 
 #---Configuration export
 include(CMakePackageConfigHelpers)

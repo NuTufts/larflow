@@ -1,8 +1,13 @@
-//
-// cint script to generate libraries
-// Declaire namespace & classes you defined
-// #pragma statement: order matters! Google it ;)
-//
+/** \defgroup LArFlowConstants LArFlowConstants
+ *
+ * \brief Tools to match CRT hit and track objects to TPC tracks
+ *
+ *
+ * cint script to generate libraries and python bindings.
+ * Declare namespace & classes you defined
+ * pragma statement: order matters! Google it ;)
+ *
+ */
 
 #ifdef __CINT__
 #pragma link off all globals;

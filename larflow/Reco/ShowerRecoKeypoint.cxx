@@ -11,25 +11,49 @@
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/pcaxis.h"
 
-#include "PCACluster.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
+
 #include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
 
-  void ShowerRecoKeypoint::process( larcv::IOManager& iolc, larlite::storage_manager& ioll ) {
+  /**
+   * @brief process shower clusters produced by PCA cluster algo
+   * 
+   * Steps:
+   * @verbatim embed:rst:leading-asterisk
+   *  * form shower (sub)clusters using dbscan
+   *  * identify which clusters are potentially the shower trunk using output keypoint network
+   *  * build showers from these trunk clusters by associating the subclusters to the trunk clusters
+   *  * for clusters assigned to two shower candidates, resolve conflicts
+   *  * make reco shower object
+   * @endverbatim
+   *
+   * Expected inputs:
+   * @verbatim embed:rst:leading-asterisk
+   *   * shower-labeled larflow3dhit. The class larflow::reco::SplitHitsBySSNet produces these.
+   *   * `keypoint`: container of larflow3dhit representing reconstructed keypoints. These are made by larflow::reco::KeypointReco. 
+   *                 uses only the shower-labeled keypoints.
+   * @endverbatim
+   *
+   * Outputs:
+   * @verbatim embed:rst:leading-asterisk
+   *   * `showergoodhit`: collection of larflowcluster holding reconstruced shower clusters
+   *   * `showergoodhit`: collection of pcaxis holding principle component info for clusters
+   *   * `showerkp`: larflowcluster representing showers built using keypoint-identified trunk clusters
+   *   * `showerkp`: pcaxis containing principle component info for the `showerkp` clusters
+   *   * `showerkp`: larflow3dhit representing the shower keypoints used
+   * @endverbatim
+   *
+   *  To do: make assignment of shower (sub)clusters to a trunk cluster via
+   *  a shower likelihood of some kind, instead of just distance and proximinty to trunk direction.
+   *
+   * @param[in] iolcv LArCV IOManager, nothing retrieved from here.
+   * @param[in] ioll  larlite storage_manager
+   */
+  void ShowerRecoKeypoint::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
-    // we process shower clusters produced by PCA cluster algo
-    // steps:
-    // (1) find trunk candidates:
-    //      - we contour the shower pixels and look for straight segments
-    //      - we gather track clusters that are connected to the shower clusters
-    // (2) we build a shower hypothesis from the trunks:
-    //      - we add points along the pca-axis of the cluster
-    //      - does one end of the trunk correspond to the end of the assembly? define as start point
-    //      - shower envelope expands from start
-    //      - trunk pca and assembly pca are aligned
-    // (3) choose the best shower hypothesis that has been formed
 
     // clear member containers
     _shower_cand_v.clear();
@@ -53,7 +77,7 @@ namespace reco {
     LARCV_INFO() << "number of above-threshold hits: " << shower_goodhit_v.size() << " of " << shower_lfhit_v->size() << std::endl;
     
     // make shower clusters
-    float maxdist = 2.0;
+    float maxdist = 5.0;
     int minsize = 20;
     int maxkd = 20;
     std::vector<cluster_t> cluster_v;
@@ -65,6 +89,7 @@ namespace reco {
     // can have any number of such candidates per shower cluster
     // we only analyze clusters with a first pc-axis length > 1.0 cm
     std::vector< const cluster_t* > showerhit_cluster_v;
+    std::vector<int>                cluster_used_v( cluster_v.size(), 0 );
 
     int idx = -1;
     for ( auto& showercluster : cluster_v ) {
@@ -87,17 +112,25 @@ namespace reco {
       if ( len<1.0 ) continue;
       //if ( eigenval_ratio<0.1 ) continue;
 
+      cluster_used_v[idx] = 1;
       showerhit_cluster_v.push_back( &showercluster );
     }
 
 
     // save shower cluster pca's
+    larlite::event_larflowcluster* evout_goodhit_cluster_v
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
     larlite::event_pcaxis* evout_goodhit_pca_v
       = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
     int pcidx = 0;
     for ( auto const& cluster : cluster_v ) {
+      larlite::larflowcluster lfc;
+      for (auto const& idx : cluster.hitidx_v ) {
+        lfc.push_back( shower_goodhit_v[idx] );
+      }
       larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
       pcidx++;
+      evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
       evout_goodhit_pca_v->emplace_back( std::move(pca) );
     }
     
@@ -108,8 +141,12 @@ namespace reco {
 
     larlite::event_larflow3dhit* evout_keypoint =
       (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint");
-    for ( auto const& kp : *evout_keypoint )
-      keypoint_v.push_back( &kp );
+    for ( auto const& kp : *evout_keypoint ) {
+      if (kp.at(3)==(int)larflow::kShowerStart ) {
+        keypoint_v.push_back( &kp );
+      }
+    }
+    LARCV_INFO() << "number of shower keypoints: " << keypoint_v.size() << " of " << evout_keypoint->size() << std::endl;
 
     // MAKE TRUNK CANDIDATES FOR EACH SHOWER
     _reconstructClusterTrunks( showerhit_cluster_v, keypoint_v );
@@ -198,17 +235,21 @@ namespace reco {
 
   /**
    * 
-   * match keypoints to shower clusters, use to define the trunk
+   * @brief match keypoints to shower clusters, use to define the trunk
    *
-   * we match keypoints to shower clusters
-   * for each keypoint assigned to cluster, define 1,3,5 cm hit cluster around each keypoint
-   * going from 5,3,1 cm clusters, accept pca-axis based on eigenvalue ratio
+   * we match keypoints to shower clusters.
+   * for each keypoint assigned to cluster, define 1,3,5 cm hit cluster around each keypoint.
+   * going from 5,3,1 cm clusters, accept pca-axis based on eigenvalue ratio between first and second principle component.
    * 
-   * use log likelihood function to pick best key-point trunk
-   * output is shower cluster, keypoint, and trunk cluster
+   * use log likelihood function to pick best key-point trunk.
+   * output is shower cluster, keypoint, and trunk cluster.
    * 
    * note: might want to move keypoint based on pca end near keypoint.
-   * 
+   *
+   * This method populates the _shower_cand_v data member.
+   *
+   * @param[in] showercluster_v Clusters made from shower-labeled spacepoints
+   * @param[in] keypoint_v  Keypoints from the keypoint network
    */
   void ShowerRecoKeypoint::_reconstructClusterTrunks( const std::vector<const cluster_t*>& showercluster_v,
                                                       const std::vector<const larlite::larflow3dhit*>& keypoint_v )
@@ -426,8 +467,25 @@ namespace reco {
   }
 
   /**
+   * @brief build out shower cluster from trunk candidates
+   *
    * for each shower cluster with trunk candidate, 
-   * we absorb points clusters that are within some radius of the trunk axis
+   * we absorb points clusters that are within some radius of the trunk axis.
+   *
+   * we use the candidates held in _shower_cand_v that were made in _reconstructClusterTrunks().
+   *
+   * first step is to associate other clusters to the shower candidates based on pc axes using _buildShowerCandidate().
+   *
+   * for showers that try to claim the same cluster, we do some tests to resolve which is the real shower trunk
+   *  using _chooseBestShowerForCluster().
+   *
+   * the real shower trunk gets to claim the conflicted clusters.
+   *
+   * once conflicts are resolved, the reco. showers get to claim additional unclaimed hits using _fillShowerObject().
+   * 
+   * This method fills _recod_shower_v, which contains our reconstructed showers.
+   *
+   * @param[in] showerhit_cluster_v The clusters made from shower-labeled spacepoints.
    *
    */
   void ShowerRecoKeypoint::_buildShowers( const std::vector< const cluster_t*>& showerhit_cluster_v )
@@ -499,10 +557,15 @@ namespace reco {
   }
 
   /**
+   * @brief build out a shower starting with trunk candidates
+   *
    * we build a shower from a shower candidate, by 
    * building out the shower using each trunk candidate
    * and selecting the best shower somehow
    *
+   * @param[in] shower_cand Shower trunk candidate.
+   * @param[in] showerhit_cluster_v All the shower clusters
+   * @return A reconstructed shower candidate
    */
   ShowerRecoKeypoint::Shower_t
   ShowerRecoKeypoint::_buildShowerCandidate( const ShowerCandidate_t& shower_cand,
@@ -567,10 +630,13 @@ namespace reco {
   }
 
   /**
-   * build out the shower using the trunk candidate
+   * @brief build out the shower using the trunk candidate
    *
    * we absorb shower hits within some radius of the axis.
    * we track the shower hit indexes as well.
+   *
+   * @param[in] trunk_cand Shower trunk candidate
+   * @param[in] showerhit_cluster_v all the shower clusters
    *
    */
   std::set<int> ShowerRecoKeypoint::_buildoutShowerTrunkCandidate( const ShowerTrunk_t& trunk_cand,
@@ -661,7 +727,7 @@ namespace reco {
           proj += ( hit[v]-trunk_cand.keypoint->at(v) )*trunk_cand.pcaxis_v[v];
         proj /= pcalen;
         
-        if ( (proj>0.0 && dist<1.0*ar_molier_rad_cm && proj<50.0 )
+        if ( (proj>0.0 && dist<0.5*ar_molier_rad_cm && proj<50.0 )
              || (proj<=0.0 && proj>-3.0 && dist<3.0 ) ) {
           npts_inside++;
         }
@@ -692,14 +758,16 @@ namespace reco {
     return clusteridx_v;
   }
 
-  // std::set<int> ShowerRecoKeypoint::_extendShower( const ShowerCandidate_t& shower_cand,
-  //                                                  const int trunk_idx,
-  //                                                  const std::vector< const cluster_t* >& showerhit_cluster_v,
-  //                                                  const float extend_range_min_cm, const float extend_range_max_cm )
-  // {
-    
-  // }
 
+  /**
+   * @brief assemble reconstructd shower from verious ingredients
+   *
+   * @param[in] shower_cand Shower candidate
+   * @param[in] cluster_idx_set Indices to showerhit_cluster_v that are assigned to this reco shower
+   * @param[in] trunk_idx   Shower trunk used to build this shower
+   * @param[in] showerhit_cluster_v All the shower clusters in the event
+   * @return Reconstructed shower object
+   */
   ShowerRecoKeypoint::Shower_t
   ShowerRecoKeypoint::_fillShowerObject( const ShowerCandidate_t& shower_cand,
                                          const std::set<int>& cluster_idx_set,
@@ -722,7 +790,12 @@ namespace reco {
     return recoshower;
   }
 
-
+  /**
+   * @brief get hits of reconstructed shower from original shower clusters
+   * 
+   * @param[in] shower Reconstructed shower object
+   * @param[in] showerhit_cluster_v Original shower clusters
+   */
   void ShowerRecoKeypoint::_fillShowerObject( Shower_t& shower,
                                               const std::vector< const cluster_t* >& showerhit_cluster_v )
   {
@@ -737,7 +810,15 @@ namespace reco {
       
     }
   }
-  
+
+  /**
+   * @brief Choose which trunk candidates within a shower candidate is correct
+   *
+   * @param[in] shower_cand The shower candidate under consideration
+   * @param[in] cluster_idx_v Indices of showerhit_cluster_v for clusters associated to the shower candidate
+   * @param[in] showerhit_cluster_v all of the original shower clusters
+   * @return index of the best trunk candidate
+   */
   int ShowerRecoKeypoint::_chooseBestTrunk( const ShowerCandidate_t& shower_cand,
                                             const std::set<int>& cluster_idx_v,
                                             const std::vector< const cluster_t* >& showerhit_cluster_v )
@@ -802,6 +883,14 @@ namespace reco {
     return best_trunk_idx;
   }
 
+  /**
+   * @brief resolve which shower to assign cluster originally assigned to more than one
+   * 
+   * @param[in] cluster Shower cluster in question
+   * @param[in] shower_idx_v Index of shower candidates that the cluster has been assigned to
+   * @param[in] showerhit_cluster_v All the shower clusters
+   * @return index of the best shower candidate to assign cluster
+   */
   int ShowerRecoKeypoint::_chooseBestShowerForCluster( const cluster_t& cluster,
                                                        const std::set<int>& shower_idx_v,
                                                        const std::vector< const cluster_t* >& showerhit_cluster_v )

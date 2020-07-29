@@ -3,6 +3,13 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief Reduce hits from event data stored in IO managers
+   *
+   * @param[in] iolcv LArCV data manager with the event data
+   * @param[in] ioll  larlite data manager with the data for the same event
+   *
+   */
   void ChooseMaxLArFlowHit::process( larcv::IOManager& iolcv,
                                      larlite::storage_manager& ioll )
   {
@@ -51,6 +58,23 @@ namespace reco {
     
   }
 
+  /**
+   * @brief make map from pixel on a plane to a vector of space point indices
+   *
+   * This associates at the space points to pixels in the image.
+   * There should be at least one space point per pixel.
+   * This allows us to later choose the space point with the highest score
+   * for each pixel.
+   *
+   * The pixel map information populates the 
+   * larflow::recoChooseMaxLArFlow::_srcpixel_to_spacepoint_m data memeber.
+   *
+   * @param[in] hit_v Event container holding larflow3dhit instances, which represent our space points.
+   * @param[in] img_v Wire plane images. We use these get the ImageMeta for each image.
+   * @param[in] source_plane The wire plane of interest
+   * @param[out] idx_used_v Index of the event container hit_v that have been associated to the pixel map.
+   *
+   */
   void ChooseMaxLArFlowHit::_make_pixelmap( const larlite::event_larflow3dhit& hit_v,
                                             const std::vector<larcv::Image2D>& img_v,
                                             const int source_plane,

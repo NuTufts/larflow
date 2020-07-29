@@ -5,16 +5,17 @@
 #include <sstream>
 
 namespace larflow {
+namespace prep {
 
   /**
-   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   * @brief generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
    *
    * this version takes image2d as input
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
    *                       If false, we save the image col posiiton.
@@ -33,14 +34,14 @@ namespace larflow {
   }
 
   /**
-   * generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
+   * @brief generate list of possible combinations of (U,V,Y) intersections given source to target plane matching.
    *
    * this version takes the sparse matrix representation of the image, skipping its generation
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
@@ -60,13 +61,13 @@ namespace larflow {
   }
 
   /**
-   * using the list of pixels in the sparse matrix representation, build the list of possible
+   * @brief using the list of pixels in the sparse matrix representation, build the list of possible
    *  three-plane triplets
    *
    * @param[in] source The source plane index, where we start the match with a pixel above threshold.
    * @param[in] target The target plane index, where we match to pixels above threshold
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] badc_v Vector of images labeling bad channels
+   * @param[in] badch_v Vector of images labeling bad channels
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
    * @param[in] threshold Pixels that we consider must be above this value
    * @param[in] save_index If true, we save the index of the pixel in the sparse matrix representation.
@@ -95,35 +96,54 @@ namespace larflow {
     std::map< std::pair<int,int>, int > _added_dead_channel_pixels[3];
     _deadch_to_add.resize( adc_v.size() );
 
+    // turn this on for a full dump
+    bool for_debug = false;
+
     // make possible triples based on going from source pixel to target pixels
     for ( auto& srcpix : sparseimg_vv[_source_plane] ) {
 
-      // we get all the target plane wires this pixel overlaps with
-      std::vector< std::vector<int> > overlap = larflow::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
-      // std::cout << "FlowTriples[" << _source_plane << "," << _target_plane << "," << _other_plane << "] "
-      //           << " srcwire=" << srcpix.col << " row=" << srcpix.row 
-      //           << " tar-overlap=[" << overlap[0].front() << "," << overlap[0].back() << "] "
-      //           << " oth-overlap=[" << overlap[1].front() << "," << overlap[1].back() << "] "
-      //           << std::endl;
+      // activate conditional debug
+      // we puke for pixels above threshold, but sitting in dead channel.
+      // this is to trace effect of INFILL
+      // float badchval = badch_v[_source_plane].pixel( srcpix.row, srcpix.col );
+      // if ( badchval>0 )
+      //   for_debug = true;
+      // else
+      //   for_debug = false;
+      
+      // we get all the 'target' and 'other' plane wires this pixel overlaps with
+      std::vector< std::vector<int> > overlap = larflow::prep::WireOverlap::getOverlappingWires( _source_plane, _target_plane, srcpix.col );
+
+      if ( for_debug ) {
+        std::cout << "FlowTriples[" << _source_plane << "," << _target_plane << "," << _other_plane << "] "
+                  << " srcwire=" << srcpix.col << " row=" << srcpix.row 
+                  << " tar-overlap=[" << overlap[0].front() << "," << overlap[0].back() << "] "
+                  << " oth-overlap=[" << overlap[1].front() << "," << overlap[1].back() << "] "
+                  << std::endl;
+      }
       
       if ( overlap[0].size()==0 ) {
-        //std::cout << " -- target no overlap" << std::endl;
+        if ( for_debug )
+          std::cout << " -- target no overlap" << std::endl;
         continue;
       }
 
-      // get iterator to overlap[0] vector
+      // get iterator to overlap[0] vector: contains pixels in the target wire, the source wire overlaps with
       auto it_overlap0 = overlap[0].begin();
       
-      // get the lowerbound pixel for (row,col) in target image
+      // get the lowerbound pixel for (row,col) in target sparse image container (assumes sorted properly sort worked)
       PixData_t lb( srcpix.row, (int)overlap[0][0], 0.0 );
       auto it_target = std::lower_bound( sparseimg_vv[_target_plane].begin(), sparseimg_vv[_target_plane].end(), lb );
-      //if ( it_target!=sparseimg_vv[_target_plane].end() )
-      //std::cout << " tarlb(row,col)=(" << it_target->row << "," << it_target->col << ") ";
 
-      // std::cout << " other=[" << overlap[1].front() << "," << overlap[1].back() << "]"
-      //           << std::endl;
+      if ( for_debug ) {
+        if ( it_target!=sparseimg_vv[_target_plane].end() )
+          std::cout << " target_pix_lb(row,col)=(" << it_target->row << "," << it_target->col << ") ";
+        std::cout << " other=[" << overlap[1].front() << "," << overlap[1].back() << "]"
+                  << std::endl;
+      }
 
       // iterator forward in target wire with charge, until we go to another row (different time)
+      if (for_debug) std::cout << " ... start of target pixel loop ..." << std::endl;
       while ( it_target!=sparseimg_vv[_target_plane].end() && it_target->row==srcpix.row ) {
 
         // break if we out of range over the target wire
@@ -132,7 +152,7 @@ namespace larflow {
         // find position in overlap[0] in order to get overlap[1] element, i.e. the other wire the source+target wires intersect
         it_overlap0 = std::lower_bound( it_overlap0, overlap[0].end(), it_target->col );
         if ( it_overlap0==overlap[0].end() ) {
-          //std::cout << " column not in list: break" << std::endl;
+          if ( for_debug ) std::cout << " target col not in list: break" << std::endl;
           break; // didnt find the target column in the list
         }
 
@@ -142,10 +162,12 @@ namespace larflow {
           ivec = it_overlap0-overlap[0].begin();
           it_overlap0++;
         }
-        //std::cout << " ivec=" << ivec << std::endl;
+        if ( for_debug )
+          std::cout << " .. target pixel: row=" << it_target->row << " col=" << it_target->col << " ivec=" << ivec << std::endl;
 
         int otherwire = overlap[1][ivec];
-        //std::cout << "  ... search for otherwire=" << otherwire << " ivec=" << ivec << std::endl;
+        if ( for_debug )
+          std::cout << "  ... search for otherwire=" << otherwire << " ivec=" << ivec << std::endl;
         
         // now find the other plane pixel in the sparse matrix.
         // we allow for a little slop
@@ -154,10 +176,11 @@ namespace larflow {
                                           sparseimg_vv[_other_plane].end(),
                                           PixData_t( srcpix.row, otherwire-2, 0.0) );
 
-        // for debug
-        // if ( it_other!=sparseimg_vv[_other_plane].end() ) {
-        //   std::cout << " ... otherlb(r,c)=" << it_other->row << "," << it_other->col << ")" << std::endl;
-        // }
+        if ( for_debug ) {
+          if ( it_other!=sparseimg_vv[_other_plane].end() ) {
+            std::cout << " ... otherlb(r,c)=" << it_other->row << "," << it_other->col << ")" << std::endl;
+          }
+        }
 
         // now we scan through the pixels in the other plane
         bool found = false;        
@@ -167,12 +190,16 @@ namespace larflow {
             // if a pixel in the other plane is found close to the one we searched for,
             //  we know it has charge, so we store the triple
             //valid triple
-            // std::cout << " .... looking for row=" << srcpix.row << " otherwire=" << otherwire
-            //           << " cols=(" << srcpix.col << "," << it_target->col << "," << it_other->col << ")"
-            //           << std::endl;
+            if ( for_debug ) {
+              std::cout << " .... looking for row=" << srcpix.row << " otherwire=" << otherwire
+                        << " cols=(" << srcpix.col << "," << it_target->col << "," << it_other->col << ")"
+                        << std::endl;
+            }
             
             if ( abs(it_other->col-otherwire)<=1 ) {
-              //std::cout << "  ... found triple with charge" << std::endl;
+              if (for_debug) {
+                std::cout << "  ... found triple with charge!!!" << std::endl;
+              }
               if (save_index) {
                 std::vector<int> trip = { srcpix.idx, it_target->idx, it_other->idx, srcpix.row }; // store positions in sparsematrix
                 _triple_v.push_back( trip );
@@ -193,10 +220,12 @@ namespace larflow {
           // badchannel, other wire lands in dead channel
           
           // check we have this pixel
-          // std::cout << " ... looking for badch row=" << srcpix.row
-          //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
-          //           << std::endl;          
-          // std::cout << "  ... found triple with dead channel" << std::endl;
+          if ( for_debug ) {
+            std::cout << " ... looking for badch row=" << srcpix.row
+                      << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
+                      << std::endl;          
+            std::cout << "  ... found triple with dead channel" << std::endl;
+          }
 
           // store this dead pixel to add to the sparsematrix after we complete the search method
           auto it_dead_other = _added_dead_channel_pixels[_other_plane].find( std::pair<int,int>(srcpix.row,otherwire) );
@@ -229,14 +258,16 @@ namespace larflow {
         }
         else {
 
-          // std::cout << "looking for row=" << srcpix.row
-          //           << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
-          //           << std::endl;                    
+          if ( for_debug ) {
+            std::cout << "looking for row=" << srcpix.row
+                      << " cols=(" << srcpix.col << "," << it_target->col << "," << otherwire << ")"
+                      << std::endl;                    
           
-          // if ( it_other==sparseimg_vv[_other_plane].end() )
-          //   std::cout << "  ... no triple" << std::endl;
-          // else
-          //   std::cout << "  ... lowerbound found, but no match? lowerbound otherpix=(" <<it_other->row << "," << it_other->col << ")" <<  std::endl;
+            if ( it_other==sparseimg_vv[_other_plane].end() )
+              std::cout << "  ... no triple" << std::endl;
+            else
+              std::cout << "  ... lowerbound found, but no match? lowerbound otherpix=(" <<it_other->row << "," << it_other->col << ")" <<  std::endl;
+          }
           
         }
         
@@ -265,7 +296,9 @@ namespace larflow {
 
 
   /**
-   * use a th2d to plot the projected locations of the triplets in each of the planes
+   * @brief use a th2d to plot the projected locations of the triplets in each of the planes
+   *
+   * utility function to help with visual debugging
    *
    * @param[in] adc_v  Vector of image pixel values
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
@@ -300,7 +333,9 @@ namespace larflow {
   }
 
   /**
-   * make a TH2D in order to visualize the sparse matrix data
+   * @brief make a TH2D in order to visualize the sparse matrix data
+   *
+   * utility function to help with visual debugging
    *
    * @param[in] adc_v  Vector of image pixel values
    * @param[in] sparseimg_vv Sparse representation (i.e. list of pixels) for each plane.
@@ -335,10 +370,12 @@ namespace larflow {
 
   
   /**
-   * convert the wire image data into a sparse represntation
+   * @brief convert the wire image data into a sparse represntation
+   *
+   * we convert the image into a vector of PixData_t objects.
    *
    * @param[in] adc_v  Vector of image pixel values
-   * @param[in] hist_stem_name  Stem of histogram name generated.
+   * @param[in] threshold Keep only pixels with value above this threshold
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
   std::vector< std::vector<FlowTriples::PixData_t> >
@@ -371,5 +408,6 @@ namespace larflow {
 
     return sparseimg_vv;
   }
-  
+
+}
 }
