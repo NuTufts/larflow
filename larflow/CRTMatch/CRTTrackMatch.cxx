@@ -5,6 +5,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
+#include "larflow/SCBoundary/SCBoundary.h"
 
 #include "TH2D.h"
 #include "TCanvas.h"
@@ -24,7 +25,9 @@ namespace crtmatch {
     _adc_producer("wire"),
     _crttrack_producer("crttrack"),
     _opflash_producer_v( {"simpleFlashBeam","simpleFlashCosmic"} ),
-    _make_debug_images(false)
+    _make_debug_images(false),
+    _keep_only_boundary_tracks(false),
+    _max_dist_to_boundary_cm(15.0)
   {
     _sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Forward );
     _reverse_sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Backward );
@@ -56,6 +59,11 @@ namespace crtmatch {
    *   * `_modified_crttrack_v`: the crt track after a fit has optimized the end points to better fit line of charge in TPC.
    *   * `_cluster_v`: 3D pixels
    * \endverbatim
+   *
+   * Use save_to_file() to store the output larlite::larflowcluster into the larlite tree.
+   *
+   * If one only wants to save tracks that reach the boundaries at both ends,
+   * make sure to call set_keep_only_boundary_tracks() before calling this function.
    * 
    * @param[in] iolcv LArCV IOManager from which we get event data containers
    * @param[in] ioll larlite storage_manaer from which we get event data containers
@@ -134,6 +142,11 @@ namespace crtmatch {
       _cluster_v.emplace_back( std::move(cluster) );
 
     }
+
+    if ( _keep_only_boundary_tracks ) {
+      _keepOnlyBoundaryTracks();
+    }
+    
 
     if ( _make_debug_images ) {
 
@@ -873,6 +886,12 @@ namespace crtmatch {
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
 
     for (size_t i=0; i<_modified_crttrack_v.size(); i++ ) {
+
+      if ( _keep_only_boundary_tracks && _boundary_cluster_v[i]==0 ) {
+        LARCV_INFO() << "skipping non-boundary track" << std::endl;
+        continue;
+      }
+      
       auto& crttrack = _modified_crttrack_v[i];
       auto& opflash  = _matched_opflash_v[i];
       auto& cluster  = _cluster_v[i];
@@ -883,7 +902,9 @@ namespace crtmatch {
       }
       
       float petot = opflash.TotalPE();
-      LARCV_NORMAL() << "saving track with opflash pe=" << petot << " nopdets=" << opflash.nOpDets() << std::endl;
+      LARCV_NORMAL() << "saving track with opflash pe=" << petot
+                     << " nopdets=" << opflash.nOpDets()
+                     << std::endl;
 
       out_crttrack->push_back(crttrack);            
       out_opflash->push_back(opflash);
@@ -909,7 +930,42 @@ namespace crtmatch {
     _fitted_crttrack_v.clear();   //< result of crt track fitter
     _matched_opflash_v.clear();   //< opflashes matched to tracks in _fitted_crttrack_v
     _modified_crttrack_v.clear(); //< crttrack object with modified end points
-    _cluster_v.clear();
+    _cluster_v.clear();           //< clusters kept
+    _boundary_cluster_v.clear();  //< clusters that reach the space charge boundary
+  }
+
+  /**
+   * @brief keep only the tracks that reach the space charge boundary
+   *
+   * Will take the tracks clusters in _cluster_v and populate _boundary_cluster_v
+   *
+   */
+  void CRTTrackMatch::_keepOnlyBoundaryTracks()
+  {
+    
+    _boundary_cluster_v.clear();
+    larflow::scb::SCBoundary scb;
+    int icluster = 0;
+    _boundary_cluster_v.resize( _cluster_v.size(), 0 );
+    for ( auto& lfcluster : _cluster_v ) {
+      larflow::reco::cluster_t as_clust_t = larflow::reco::cluster_from_larflowcluster( lfcluster );
+      cluster_pca( as_clust_t );
+
+      // end points
+      int nends_at_boundary = 0;
+      for ( auto const& endpt : as_clust_t.pca_ends_v ) {
+        float dist2scb = scb.dist2boundary( (float)endpt[0],(float)endpt[1],(float)endpt[2] );
+        LARCV_DEBUG() << "Track[" << icluster << "] endpt dist to boundary"  << dist2scb << std::endl;
+        if ( dist2scb<_max_dist_to_boundary_cm )
+          nends_at_boundary++;
+      }
+      LARCV_INFO() << "Track[" << icluster << "] num of boundaries: "  << nends_at_boundary << std::endl;
+
+      if ( nends_at_boundary>=2 ) {
+        _boundary_cluster_v[icluster] = 1;
+      }
+      icluster++;
+    }
   }
   
 }
