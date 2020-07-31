@@ -41,9 +41,11 @@ def load_event_data( ioll, ientry ):
     entrydata = []
     
     for treename in ["fitcrttrack"]:
-        ev_crttrack = io.get_data(larlite.data.kCRTTrack, treename )
-        ev_opflash  = io.get_data(larlite.data.kOpFlash,  treename )
-        ev_cluster  = io.get_data(larlite.data.kLArFlowCluster, treename )
+        ev_crttrack  = io.get_data(larlite.data.kCRTTrack, treename )
+        ev_origtrack = io.get_data(larlite.data.kCRTTrack, treename+"_origtrack" )        
+        ev_opflash   = io.get_data(larlite.data.kOpFlash,  treename )
+        ev_cluster   = io.get_data(larlite.data.kLArFlowCluster, treename )
+        ev_lmcluster = io.get_data(larlite.data.kLArFlowCluster, treename+"_larmatchhits" )
 
         ntracks = ev_crttrack.size()
 
@@ -53,12 +55,20 @@ def load_event_data( ioll, ientry ):
         print("   ncluster=",ev_cluster.size(),")")
 
         for n in xrange(ntracks):
-            vis_crttrack = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
-            vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
-            vis_larflow  = [ lardly.data.visualize_larlite_larflowhits( ev_cluster.at(n) ) ]
+            vis_crttrack  = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
+            vis_origtrack = [lardly.data.visualize_larlite_crttrack(ev_origtrack.at(n),notimeshift=True)]
+            vis_opflash   =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
+            vis_larflow   = [ lardly.data.visualize_larlite_larflowhits( ev_cluster.at(n) ) ]
+            vis_lm        = [ lardly.data.visualize_larlite_larflowhits( ev_lmcluster.at(n) ) ]            
             for vis_lf in vis_larflow:
                 vis_lf["marker"]["color"]="rgb(0,0,255)"
-            entrydata.append( vis_crttrack + vis_opflash + vis_larflow )
+            for pvis in vis_lm:
+                pvis["marker"]["color"]="rgb(255,0,0)"
+            for pvis in vis_origtrack:
+                pvis["marker"]["color"]="rgb(125,125,125)"
+                pvis["line"]["color"]="rgb(200,200,200)"                
+            entrydata.append( vis_crttrack + vis_origtrack + vis_opflash + vis_larflow + vis_lm )
+            #entrydata.append( vis_crttrack + vis_opflash + vis_lm )
 
     if False:
         ev_unmatched = io.get_data(larlite.data.kLArFlowCluster, "crtunmatched")

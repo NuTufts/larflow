@@ -26,9 +26,10 @@ from larflow import larflow
 #print larflow.reco.cluster_larflow3dhits
 
 
-io = larlite.storage_manager( larlite.storage_manager.kREAD )
+io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
+io.set_out_filename( args.output )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_read( larlite.data.kCRTTrack, "crttrack" )
 io.set_data_to_read( larlite.data.kCRTHit,   "crthitcorr" )
@@ -42,9 +43,6 @@ io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
 #io.set_data_to_read( larlite.data.kTrack,    "nutrack" )
 io.open()
 
-outio = larlite.storage_manager( larlite.storage_manager.kWRITE )
-outio.set_out_filename( args.output )
-outio.open()
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 iolcv.add_in_file( args.input_dlmerged )
@@ -64,7 +62,7 @@ crtmatch = larflow.crtmatch.CRTTrackMatch()
 crtmatch.set_max_iters( 25 )
 crtmatch.make_debug_images( False )
 crtmatch.set_keep_only_boundary_tracks( True )
-crtmatch.set_verbosity(0)
+crtmatch.set_verbosity(1)
 
 start_entry = args.start_entry
 
@@ -82,12 +80,11 @@ print "Run entries ",start_entry," to ",end_entry
 print "Number of entries to run: ",nentries
 
 print "Start loop."
-
+io.go_to(start_entry)
+    
 for ientry in xrange( start_entry, end_entry ):
 
     print "================ ENTRY[",ientry,"] ============================"
-
-    io.go_to(ientry)    
     iolcv.read_entry(ientry)
 
     dtload = time.time()
@@ -104,12 +101,10 @@ for ientry in xrange( start_entry, end_entry ):
     dtprocess = time.time()-dtprocess
     print "timem to process: ",dtprocess," secs"
 
-    crtmatch.save_to_file( outio )
-    outio.set_id( io.run_id(), io.subrun_id(), io.event_id() )
-    outio.next_event()
-    #break
-
+    crtmatch.save_to_file( io, True )
+    crtmatch.save_nearby_larmatch_hits_to_file( io, True )
+    io.next_event()
 
 io.close()
 iolcv.finalize()
-outio.close()
+#outio.close()

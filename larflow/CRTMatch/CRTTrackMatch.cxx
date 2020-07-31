@@ -6,6 +6,7 @@
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
 #include "larflow/SCBoundary/SCBoundary.h"
+#include "larflow/Reco/geofuncs.h"
 
 #include "TH2D.h"
 #include "TCanvas.h"
@@ -890,6 +891,8 @@ namespace crtmatch {
     // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
     larlite::event_crttrack* out_crttrack
       = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack" );
+    larlite::event_crttrack* out_orig
+      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack_origtrack" );
     larlite::event_opflash* out_opflash
       = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, "fitcrttrack" );
     larlite::event_larflowcluster* out_lfcluster
@@ -905,6 +908,7 @@ namespace crtmatch {
       auto& crttrack = _modified_crttrack_v[i];
       auto& opflash  = _matched_opflash_v[i];
       auto& cluster  = _cluster_v[i];
+      const larlite::crttrack& orig_crttrack = *(_fitted_crttrack_v[i].pcrttrack);
       
       if ( remove_if_no_flash && _matched_opflash_v[i].TotalPE()==0.0 ) {
         LARCV_INFO() << "no matching flash for fitted CRT track[" << i << "], not saving" << std::endl;
@@ -919,6 +923,7 @@ namespace crtmatch {
       out_crttrack->push_back(crttrack);            
       out_opflash->push_back(opflash);
       out_lfcluster->push_back( cluster );
+      out_orig->push_back( orig_crttrack );
       
     }
 
@@ -933,7 +938,7 @@ namespace crtmatch {
   void CRTTrackMatch::save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
 
     larlite::event_larflow3dhit* evin_larmatch
-      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data:kLArFlow3DHit, "larmatch" );
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
 
     larlite::event_larflowcluster* out_lfcluster
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack_larmatchhits" );
@@ -970,12 +975,19 @@ namespace crtmatch {
 	  = _reverse_sce->GetPosOffsets( (double)modx, (double)lmhit[1], (double)lmhit[2] );
 
 	std::vector<float> pos_rsce(3,0);
-	pos_rsce[0] = modx+(float)offset_v[0]-0.6;
-	pos_rsce[1] = lmhit[1]-(float)offset_v[1];
-	pos_rsce[2] = lmhit[2]-(float)offset_v[2];
+	pos_rsce[0] = modx-(float)offset_v[0];
+	pos_rsce[1] = lmhit[1]+(float)offset_v[1];
+	pos_rsce[2] = lmhit[2]+(float)offset_v[2];
+	// pos_rsce[0] = modx;
+	// pos_rsce[1] = lmhit[1];
+	// pos_rsce[2] = lmhit[2];
 
 	float dist2line = larflow::reco::pointLineDistance<float>( crttrack_pos1, crttrack_pos2, pos_rsce );
-	if ( dist2line<10.0 ) {
+	if ( dist2line<20.0 ) {
+          // std::cout << "save lmhit (" << pos_rsce[0] << "," << pos_rsce[1] << "," << pos_rsce[2] << ") "
+          //           << "rsce-offset=(" << offset_v[0] << "," << offset_v[1] << "," << offset_v[2] << ") "
+          //           << "dx_flash_cm=" << dx_flash_cm
+          //           << std::endl;
 	  // make copy of hit with space-charge correction
 	  larlite::larflow3dhit modhit = lmhit;
 	  for (int i=0; i<3; i++) {
@@ -984,9 +996,9 @@ namespace crtmatch {
 	  track_larmatch_hits.push_back( modhit );
 	}
       }
-      out_lfcluster->push_back( cluster );
+      out_lfcluster->push_back( track_larmatch_hits );
       
-    }
+    }//end of loop over cluster
     
   }
   

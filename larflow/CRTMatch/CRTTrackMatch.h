@@ -61,7 +61,7 @@ namespace crtmatch {
     void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
     
     void save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
-    void save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash );
+    void save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
     void clear_output_containers();
 
     /**
