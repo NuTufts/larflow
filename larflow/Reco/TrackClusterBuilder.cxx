@@ -479,6 +479,16 @@ namespace reco {
   }
 
   /**
+   * @brief reset veto flags in nodes
+   */
+  void TrackClusterBuilder::resetVetoFlags()
+  {
+    for ( auto& node : _nodepos_v ) {
+      node.veto = false;
+    }
+  }
+
+  /**
    * @brief choose the best path among the several created after the recursive graph traversal is finished
    *
    * from a given start point, several completed paths to various leaf nodes are possible and returned.

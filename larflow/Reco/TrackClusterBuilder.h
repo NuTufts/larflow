@@ -183,6 +183,8 @@ namespace reco {
     void set_output_one_track_per_startpoint( bool output_only_one ) { _one_track_per_startpoint=output_only_one; };
 
     std::string str( const Segment_t& seg );
+
+    void resetVetoFlags();
     
   protected:
 

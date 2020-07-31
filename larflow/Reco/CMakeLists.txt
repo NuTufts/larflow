@@ -21,6 +21,7 @@ set( HEADERS cluster_functions.h
   NuVertexFitter.h  
   NuTrackBuilder.h
   TrackOTFit.h
+  ProjPixFitter.h  
   KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
@@ -43,6 +44,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuVertexMaker.cxx
   NuVertexFitter.cxx  
   TrackOTFit.cxx
+  ProjPixFitter.cxx  
   KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )
 

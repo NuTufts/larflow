@@ -42,6 +42,20 @@ namespace reco {
     set_output_one_track_per_startpoint( true );    
 
     for (auto const& nuvtx : nu_candidate_v ) {
+      
+      // reset the veto flags for the segment nodes
+      TrackClusterBuilder::resetVetoFlags();
+
+      // veto nodes connected to the segment end closest to the vertexer
+
+      // operate the tracker to return all possible leaf paths
+
+      // build paths
+
+      // sort by the longest path
+
+      // run the fitter through the path!
+      
       buildTracksFromPoint( nuvtx.pos );
     }
 
