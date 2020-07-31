@@ -13,6 +13,7 @@ parser.add_argument('-o','--output',type=str,required=True,help="Name of output 
 parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of entries to run")
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
 parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,help="Input larcv images are tick-backward")
+parser.add_argument('-di','--debug-image',action='store_true',default=False,help="If provided, makes a debug image, showing fit in 2D planes")
 
 args = parser.parse_args()
 
@@ -60,7 +61,7 @@ iolcv.initialize()
 
 crtmatch = larflow.crtmatch.CRTTrackMatch()
 crtmatch.set_max_iters( 25 )
-crtmatch.make_debug_images( False )
+crtmatch.make_debug_images( args.debug_image )
 crtmatch.set_keep_only_boundary_tracks( True )
 crtmatch.set_verbosity(1)
 
@@ -80,11 +81,12 @@ print "Run entries ",start_entry," to ",end_entry
 print "Number of entries to run: ",nentries
 
 print "Start loop."
-io.go_to(start_entry)
+#io.go_to(start_entry)
     
 for ientry in xrange( start_entry, end_entry ):
 
     print "================ ENTRY[",ientry,"] ============================"
+    io.go_to(ientry)
     iolcv.read_entry(ientry)
 
     dtload = time.time()
@@ -103,7 +105,8 @@ for ientry in xrange( start_entry, end_entry ):
 
     crtmatch.save_to_file( io, True )
     crtmatch.save_nearby_larmatch_hits_to_file( io, True )
-    io.next_event()
+    io.set_id( io.run_id(), io.subrun_id(), io.event_id() )    
+io.next_event()
 
 io.close()
 iolcv.finalize()
