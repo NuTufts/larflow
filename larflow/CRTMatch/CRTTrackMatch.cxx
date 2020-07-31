@@ -530,7 +530,7 @@ namespace crtmatch {
             std::vector<double> newpos = { old.pixelpos_vv[ipt][3], poszy[1], poszy[0] };
 
             // reverse the space-charge
-            std::vector<double> offset_v = _reverse_sce->GetPosOffsets( newpos[0], newpos[1], newpos[2] );
+            //std::vector<double> offset_v = _reverse_sce->GetPosOffsets( newpos[0], newpos[1], newpos[2] );
             // std::vector<double> pos_sce(3,0);
             // pos_sce[0] = newpos[0] - offset_v[0] + 0.6;
             // pos_sce[1] = newpos[1] + offset_v[1];
@@ -868,7 +868,17 @@ namespace crtmatch {
   }
 
   /**
-   * save information into larlite::storage_manager
+   * @brief save information into larlite::storage_manager
+   *
+   * store the following:
+   * @verbatim embed:rst:leading-asterisk
+   *   * new crt object with updated hit positions (and old hit positions as well)
+   *   * matched opflash objects
+   *   * larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
+   * @endvarbatim
+   * 
+   * @param[out] ioll larlite IO manager to store data in
+   * @param[in]  remove_if_no_flash If true, only those CRT tracks matched to an opfash are stored
    *
    */
   void CRTTrackMatch::save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
@@ -914,6 +924,72 @@ namespace crtmatch {
 
   }
 
+  /**
+   * @brief save clusters of larmatch hits next to the track
+   *
+   * 
+   *
+   */
+  void CRTTrackMatch::save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
+
+    larlite::event_larflow3dhit* evin_larmatch
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data:kLArFlow3DHit, "larmatch" );
+
+    larlite::event_larflowcluster* out_lfcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack_larmatchhits" );
+
+    for (size_t i=0; i<_modified_crttrack_v.size(); i++ ) {
+
+      if ( _keep_only_boundary_tracks && _boundary_cluster_v[i]==0 ) {
+        LARCV_INFO() << "skipping non-boundary track" << std::endl;
+        continue;
+      }
+      
+      auto& crttrack = _modified_crttrack_v[i];
+      auto& opflash  = _matched_opflash_v[i];
+      auto& cluster  = _cluster_v[i];
+      
+      if ( remove_if_no_flash && _matched_opflash_v[i].TotalPE()==0.0 ) {
+        LARCV_INFO() << "no matching flash for fitted CRT track[" << i << "], not saving" << std::endl;
+        continue;
+      }
+
+      float dx_flash_cm = opflash.Time()*larutil::LArProperties::GetME()->DriftVelocity();
+      std::vector<float> crttrack_pos1 = { crttrack.x1_pos, crttrack.y1_pos, crttrack.z1_pos };
+      std::vector<float> crttrack_pos2 = { crttrack.x2_pos, crttrack.y2_pos, crttrack.z2_pos };
+      
+      larlite::larflowcluster track_larmatch_hits;
+
+      // loop over larmatch hits and assign to track if within some radius
+      for ( auto const& lmhit : *evin_larmatch ) {
+	
+	float modx = lmhit[0]-dx_flash_cm;
+
+	// correct for larmatch position
+	std::vector<double> offset_v 
+	  = _reverse_sce->GetPosOffsets( (double)modx, (double)lmhit[1], (double)lmhit[2] );
+
+	std::vector<float> pos_rsce(3,0);
+	pos_rsce[0] = modx+(float)offset_v[0]-0.6;
+	pos_rsce[1] = lmhit[1]-(float)offset_v[1];
+	pos_rsce[2] = lmhit[2]-(float)offset_v[2];
+
+	float dist2line = larflow::reco::pointLineDistance<float>( crttrack_pos1, crttrack_pos2, pos_rsce );
+	if ( dist2line<10.0 ) {
+	  // make copy of hit with space-charge correction
+	  larlite::larflow3dhit modhit = lmhit;
+	  for (int i=0; i<3; i++) {
+	    modhit[i] =  pos_rsce[i];
+	  }
+	  track_larmatch_hits.push_back( modhit );
+	}
+      }
+      out_lfcluster->push_back( cluster );
+      
+    }
+    
+  }
+  
   /**
    * @brief clear the output data containers
    * 
