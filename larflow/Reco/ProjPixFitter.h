@@ -13,7 +13,8 @@ namespace reco {
     ProjPixFitter() {};
     virtual ~ProjPixFitter() {};
 
-    static void grad_and_d2_pixel( const std::vector<float>& pos,
+    static void grad_and_d2_pixel( const std::vector<float>& pt1, 
+                                   const std::vector<float>& pt2, 
                                    const float tick,
                                    const float wire,
                                    const int plane,

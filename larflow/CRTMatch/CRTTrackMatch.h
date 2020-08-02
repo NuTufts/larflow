@@ -78,6 +78,7 @@ namespace crtmatch {
       std::vector< float >                 pixelrad_vv[3];  ///< pixel dist from nearest charge pixel to projected pixel along crt-track line for each plane (3 planes total)
       std::vector< std::vector< double > > pixelpos_vv;     ///< list of 3D SC-corrected positions along the crt-track line
       std::vector< std::vector<int> >      pixelcoord_vv;   ///< list of pixel coordinates (U col, V col, Y col, tick)
+      std::vector< float >                 t_v;             ///< fraction of distance from start to end of the sampling point on line
       std::vector< float >                 totalq_v;        ///< total charge of closest pixels around crt-track line per plane
       std::vector< float >                 toterr_v;        ///< total pixel dist to closest pixels along crt-track line per plane
       float                                len_intpc_sce;   ///< path length of the reconstructed path inside the TPC
@@ -111,6 +112,10 @@ namespace crtmatch {
     // methods
     crttrack_t _find_optimal_track( const larlite::crttrack& crt,
                                     const std::vector<larcv::Image2D>& adc_v );
+
+    crttrack_t _fit_pixelset_track( const larlite::crttrack& crt,
+                                    const std::vector<larcv::Image2D>& adc_v );
+    
 
     
     crttrack_t _collect_chargepixels_for_track( const std::vector<double>& hit1_pos,
