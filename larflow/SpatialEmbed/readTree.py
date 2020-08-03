@@ -9,6 +9,7 @@ from ublarcvapp import ublarcvapp
 from larflow import larflow
 import os,sys,argparse,time
 import random
+import torch
 
 import matplotlib.pyplot as plt
 from SpatialEmbed import SpatialEmbed
@@ -18,8 +19,9 @@ parser = argparse.ArgumentParser("Read TTree")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-d', "--input-directory", type=str, help='TTree input directory')
 group.add_argument("-f", "--input-tree-file", type=str,help="Input TTreee file [required]")
-parser.add_argument("-v", "--visualize",required=False,type=int,help="Percentage [0-100] of events to visualize")
+parser.add_argument("-p", "--visualize",required=False,type=int,help="Percentage [0-100] of events to visualize")
 parser.add_argument("-u", "--vis-uneven", action='store_true', help="Visualize all cases where num instances is uneven amongst planes")
+parser.add_argument("-v", "--verbose", action='store_true', help="Verbose")
 args = parser.parse_args()
 
 
@@ -58,7 +60,7 @@ else:
     directory_files = [os.path.join(args.input_directory, file) for file in os.listdir(args.input_directory)]
 
 
-model = SpatialEmbed()
+model = SpatialEmbed(features_per_layer=3)
 
 
 
@@ -67,7 +69,7 @@ for filename in directory_files:
     tree = f.Get('trainingdata')
 
     for entry in tree:
-        print "======== EVENT {} ========".format(events)
+        print "======== EVENT {} ========".format(events+1)
 
         coord_plane0_t = entry.DataBranch.coord_t_pyarray(0)
         coord_plane1_t = entry.DataBranch.coord_t_pyarray(1)
@@ -109,13 +111,32 @@ for filename in directory_files:
                     plt.legend()
                     plt.show()
 
+        if (args.verbose):
+            entry.DataBranch.check_instance_parity()
 
-        f1, f2, f3 = model.forward_features(coord_dict[0], feat_dict[0],
-                                            coord_dict[1], feat_dict[1],
-                                            coord_dict[2], feat_dict[2], 1)
-        # Train
-        # for plane, coord_t in coord_dict.items():
-        #     print plane
+        for plane in range(3):
+            for instance in range(entry.DataBranch.num_instances_plane(plane)):
+                instances_coords = entry.DataBranch.instance(plane, instance);
+                instances_binary = entry.DataBranch.instance_binary(plane, instance);
+
+                pixels_count = 0
+                for elem in instances_binary:
+                    if elem == 1:
+                        pixels_count += 1
+
+                if numpy.shape(instances_coords)[0] != pixels_count:
+                    print plane, instance
+                    print numpy.shape(instances_coords), pixels_count
+        
+
+        # print(numpy.shape(coord_dict[0]))
+        # print(numpy.shape(feat_dict[0]))
+        # f1, f2 = model.forward_features(torch.from_numpy(coord_dict[0]), torch.from_numpy(feat_dict[0]), 1, verbose=True)
+
+        # print(f1.detach().numpy())
+        # # print(f2.detach().numpy())
+        # print type(f1)
+
 
         events += 1
         if events == 1:

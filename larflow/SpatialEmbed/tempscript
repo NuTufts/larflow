@@ -1,0 +1,7 @@
+cd ../../build
+make install
+
+
+cd ../larflow/SpatialEmbed
+python prepspatialembeddata.py  -ill /home/taritree/mcinfo-Run000001-SubRun000001.root -ilcv /home/taritree/larcvtruth-Run000001-SubRun000001.root -o ./output/test2.root
+python readTree.py -f output/test2.root 

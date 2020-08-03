@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 
 namespace larcv {
@@ -73,8 +74,11 @@ public:
     PyObject* coord_t_pyarray(int plane);
     PyObject* feat_t_pyarray(int plane);
     PyObject* instance(int plane, int instance);
+    PyObject* instance_binary(int plane, int instance);
+
     int typeof_instance(int plane, int instance);
 
+    void check_instance_parity();
 
 private:
 
@@ -88,6 +92,13 @@ private:
     std::vector<std::vector<std::vector<InstancePix>>> instances_t; // vector length 3, one for each plane
                                                                     // For each plane, 1d is instances
                                                                     // 2nd dimension is pixels per instance
+
+                  
+    std::vector<std::vector<std::vector<int>>> instances_binary_t; // vector length 3, one for each plane
+                                                                    // For each plane, list of instance binary maps
+                                                                    // each binary map has an entry for each non-zero pixel in coord_t for that plane
+                                                                    // 0 for not part of that instance, 1 for part of it
+
 
     bool _setup_numpy;
 

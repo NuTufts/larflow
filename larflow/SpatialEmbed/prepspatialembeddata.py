@@ -19,10 +19,6 @@ from larlite import larlite
 from larflow import larflow
 from ublarcvapp import ublarcvapp
 
-"""
-test script for the PrepKeypointData class
-"""
-
 larcv.SetPyUtil()
 
 rt.gStyle.SetOptStat(0)
