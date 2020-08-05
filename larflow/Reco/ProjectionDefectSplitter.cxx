@@ -578,6 +578,56 @@ namespace reco {
     // if we vetod hits, we assign those veto hits near the ends of found clusters
     // we recalc the pca for these clusters
     // ============= TO DO ==================
+    if ( nvetoed>0 ) {
+      // track which clusters we modified
+      std::vector<int> modded_cluster( dense_cluster_v.size(), 0 );
+      int nclaimed = 0;
+      
+      // add hits to cluster ends
+      for ( int ihit=0; ihit<total_pts; ihit++) {
+        if ( used_hits_v[ihit]!=2 )
+          continue;
+
+        auto const& hit = inputhits[ihit];
+        
+        // check to add to clusters
+        bool claimed = false;
+        for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
+          auto& cluster = dense_cluster_v[ic];
+          for ( auto const& endpt : cluster.pca_ends_v ) {
+            float dist = 0.;
+            for (int v=0; v<3; v++)
+              dist += (endpt[v]-hit[v])*(endpt[v]-hit[v]);
+            if (dist<_maxdist*_maxdist ) {
+              std::vector<float> pt = { hit[0], hit[1], hit[2] };
+              std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+              cluster.points_v.push_back( pt );
+              cluster.imgcoord_v.push_back( imgcoord );
+              cluster.hitidx_v.push_back( ihit );
+              used_hits_v[ihit] = 1;
+              modded_cluster[ic] = 1;
+              nclaimed++;
+              break;
+            }
+            if ( claimed )
+              break;
+          }//end of loop over end points
+          if ( claimed )
+            break;
+        }//end of loop over clusters
+      }//end of hit loop
+      
+      // if we modded any clusters, recalc the pca
+      int nmodded = 0;
+      for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
+        if ( modded_cluster[ic]==1 ) {
+          auto& cluster = dense_cluster_v[ic];
+          larflow::reco::cluster_pca(cluster);
+            nmodded++;
+        }
+      }
+      LARCV_INFO() << "Absorbed " << nclaimed << " hits and moddified " << nmodded << " clusters"  << std::endl;
+    }//end of if we ha veto'd hits, absorb those hits and veto
       
     // we perform split functions on the clusters
     int nsplit = 0;
