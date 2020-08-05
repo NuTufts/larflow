@@ -136,8 +136,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
     clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.05),
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.05)]
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.5),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.5)]
     for (name,producer,rgbcolor,opa) in clusters:
         ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
         ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
@@ -147,6 +147,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
             cluster_trace["marker"]["color"] = rgbcolor
             cluster_trace["marker"]["opacity"] = opa
+            cluster_trace["marker"]["width"] = 3.0
             traces_v.append(cluster_trace)            
 
             pcaxis = ev_pcacluster.at( icluster )

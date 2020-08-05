@@ -77,6 +77,7 @@ else:
 
 # ALGORITHMS
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root") )
+recoman.set_verbosity(1)
 
 io.go_to( args.start_entry )
 #io.next_event()

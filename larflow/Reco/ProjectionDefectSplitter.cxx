@@ -48,6 +48,17 @@ namespace reco {
     larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
 
+    // get keypoint event containers to veto hits (if any trees were specified)
+    _event_keypoint_for_veto_v.clear();
+    if ( _veto_hits_around_keypoints ) {
+      for ( auto const& kptreename : _keypoint_veto_trees_v ) {
+        larlite::event_larflow3dhit* ev_keypoint
+          = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, kptreename );
+        _event_keypoint_for_veto_v.push_back( ev_keypoint );
+      }
+    }
+
+
     // cluster track hits
     std::vector<int> used_hits_v( ev_lfhits->size(), 0 );
     std::vector<cluster_t> cluster_track_v;
@@ -333,7 +344,8 @@ namespace reco {
         out_v.emplace_back( std::move(cluster) );
       }
       else {
-        // we re-cluster
+        // we re-cluster -- should move this to simple dbscan algorithm
+        //
         std::vector< ublarcvapp::dbscan::dbCluster > dbcluster_v
           = ublarcvapp::dbscan::DBScan::makeCluster3f( _maxdist, _minsize, _maxkd, cluster.points_v );
 
@@ -424,9 +436,9 @@ namespace reco {
       if ( used_hits_v[ ihit ]==1 ) continue;
       
       // apply quick bounding box test
-      if ( hit[0] < cluster.bbox_v[0][0] || hit[0]>cluster.bbox_v[0][1]
-           || hit[1] < cluster.bbox_v[1][0] || hit[1]>cluster.bbox_v[1][1]
-           || hit[2] < cluster.bbox_v[2][0] || hit[2]>cluster.bbox_v[2][1] ) {
+      if (    hit[0] < cluster.bbox_v[0][0]-_maxdist || hit[0]>cluster.bbox_v[0][1]+_maxdist
+           || hit[1] < cluster.bbox_v[1][0]-_maxdist || hit[1]>cluster.bbox_v[1][1]+_maxdist
+           || hit[2] < cluster.bbox_v[2][0]-_maxdist || hit[2]>cluster.bbox_v[2][1]+_maxdist ) {
         continue;
       }
 
@@ -495,6 +507,9 @@ namespace reco {
     TRandom3 rand(12345);
     used_hits_v.resize( total_pts, 0 );
     output_cluster_v.clear();
+
+    // veto hits using keypoints
+    int nvetoed = _veto_hits_using_keypoints( inputhits, used_hits_v );
     
     // downsample points, if needed
     std::vector<larlite::larflow3dhit> downsample_hit_v;
@@ -502,12 +517,28 @@ namespace reco {
 
     float downsample_fraction = (float)max_pts_to_cluster/(float)total_pts;
     bool sample = total_pts>max_pts_to_cluster;
+
+    LARCV_INFO() << "Downsample points: " << sample << ", downsample_fraction=" << downsample_fraction << std::endl;
+    
+    int nremaining = 0;
     for ( size_t ihit=0; ihit<total_pts; ihit++ ) {
+
+      if ( used_hits_v[ihit]==1 )
+        continue; // assigned to cluster
+
+      nremaining++;
+
+      if ( used_hits_v[ihit]==2 ) {
+        // keypoint veto
+        continue;
+      }
+      
       if ( !sample || rand.Uniform()<downsample_fraction ) {
         downsample_hit_v.push_back( inputhits[ihit] );
       }
+      
     }
-    LARCV_DEBUG() << "Remaining hits downsampled to " << downsample_hit_v.size() << " of " << total_pts << std::endl;
+    LARCV_INFO() << "Remaining hits, " << nremaining << ", downsampled to " << downsample_hit_v.size() << " of " << total_pts << " total" << std::endl;
 
     // cluster these hits
     std::vector<larflow::reco::cluster_t> cluster_pass_v;
@@ -517,6 +548,9 @@ namespace reco {
     int nused_final = 0;
     std::vector<larflow::reco::cluster_t> dense_cluster_v;    
     if ( sample ) {
+
+      LARCV_INFO() << "Absorb unused hits" << std::endl;
+      
       // we then absorb the hits around these clusters
       for ( auto const& ds_cluster : cluster_pass_v ) {
         cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
@@ -534,11 +568,16 @@ namespace reco {
       LARCV_DEBUG() << "After absorbing hits to sparse clusters: " << nused_tot << " of " << total_pts << " all hits" << std::endl;
     }
     else {
+      LARCV_INFO() << "Do not absorb. Pass clusters." << std::endl;      
       for ( auto& cluster : cluster_pass_v ) {
         dense_cluster_v.emplace_back( std::move(cluster) );
       }
       nused_final = (int)inputhits.size();      
     }
+
+    // if we vetod hits, we assign those veto hits near the ends of found clusters
+    // we recalc the pca for these clusters
+    // ============= TO DO ==================
       
     // we perform split functions on the clusters
     int nsplit = 0;
@@ -562,7 +601,73 @@ namespace reco {
     LARCV_DEBUG() << "nclusters=" << output_cluster_v.size() << " nused=" << nused_final << std::endl;
     
   }
-                                     
+
+  /**
+   * @brief Add tree name to get keypoints for vetoing hits
+   * 
+   * If tree names are provided, the keypoints are used to veto nearby hits.
+   * This is done to help break-up particle clusters.
+   * When this method is called, _veto_hits_around_keypoints, is set to true.
+   * 
+   * @param[in] name 
+   *
+   */
+  void ProjectionDefectSplitter::add_input_keypoint_treename_for_hitveto( std::string name )
+  {
+    _veto_hits_around_keypoints = true;
+    _keypoint_veto_trees_v.push_back(name);
+  }
+
+  /**
+   * @brief veto hits near keypoints
+   *
+   * we veto hits with _maxdist of a keypoint.
+   * we veto by marking hits in the used hits vector.
+   *
+   * @param[in]  inputhits   Container of input hits
+   * @param[out] used_hits_v Vector used to flag/veto hits
+   */
+  int ProjectionDefectSplitter::_veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
+                                                             std::vector<int>& used_hits_v )
+  {
+
+    float max_dist_sq = _maxdist*_maxdist;
+    int nhits_vetoed = 0;
+    for ( int ihit=0; ihit<(int)inputhits.size(); ihit++ ) {
+
+      if ( used_hits_v[ihit]!=0 )
+        continue;
+      
+      auto const& lfhit = inputhits[ihit];
+      
+      bool veto_hit = false;
+      for ( auto const& pev_keypoint : _event_keypoint_for_veto_v ) {
+        for ( auto const& kphit : *pev_keypoint ) {
+
+          float dist = 0.;
+          for (int i=0; i<3; i++) {
+            dist += (lfhit[i]-kphit[i])*(lfhit[i]-kphit[i]);
+          }
+          if ( dist<max_dist_sq+0.3 ) {
+            // we veto this hit
+            veto_hit = true;
+          }
+          if ( veto_hit )
+            break;
+        }
+        if ( veto_hit )
+          break;
+      }
+
+      if ( veto_hit ) {
+        nhits_vetoed += 1;
+        used_hits_v[ihit] = 2;
+      }
+      
+    }
+    LARCV_INFO() << "Number of hits veto'd by keypoints: " << nhits_vetoed << std::endl;
+    return nhits_vetoed;
+  }
   
 }
 }

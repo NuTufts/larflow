@@ -247,14 +247,17 @@ namespace reco {
     const float _maxdist = 2.0;
     const float _minsize = 20;
     const float _maxkd   = 100;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time hits)" << std::endl;
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
+    _projsplitter.add_input_keypoint_treename_for_hitveto( "keypoint" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");

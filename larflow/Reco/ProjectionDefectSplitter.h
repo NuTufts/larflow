@@ -9,6 +9,7 @@
 #include "larcv/core/DataFormat/Image2D.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/larflow3dhit.h"
 
 #include "cluster_functions.h"
 
@@ -36,7 +37,8 @@ namespace reco {
       _min_larmatch_score(0.0),
       _maxdist(2.0),
       _minsize(20),
-      _maxkd(30)
+      _maxkd(30),
+      _veto_hits_around_keypoints(false)
       {};
     virtual ~ProjectionDefectSplitter() {};
 
@@ -98,7 +100,20 @@ namespace reco {
       _minsize = minsize;
       _maxkd = maxkd;
     };
+
+    // OPTIONAL INPUTS
+
+  public:
     
+    void add_input_keypoint_treename_for_hitveto( std::string name );
+    
+  protected:
+
+    bool _veto_hits_around_keypoints; ///< if true, veto hits around keypoints to help separate particle clusters
+    std::vector< std::string > _keypoint_veto_trees_v; ///< contains name of keypoint tree names for vetoing hits
+    std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  
+    int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
+                                    std::vector<int>& used_hits_v );
   };
 
 }
