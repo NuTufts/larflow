@@ -403,8 +403,14 @@ namespace reco {
     for ( size_t ii=0; ii<cluster.ordered_idx_v.size(); ii++ ) {
       int iorder = cluster.ordered_idx_v[ii];
       int hitidx = cluster.hitidx_v[iorder];
+      if ( hitidx<0 || hitidx>=(int)source_lfhit_v.size() ) {
+        std::cout << "Could not retrieve hit with index=" << hitidx << ". Number of input hits=" << source_lfhit_v.size() << std::endl;
+        throw std::runtime_error("Could not retrieve hit index");
+      }
+      
       auto const& srchit = source_lfhit_v[hitidx];
-      lfcluster.push_back( srchit );
+      lfcluster.push_back( srchit );        
+
     }//end of hit loop
     
     return lfcluster;
@@ -425,6 +431,8 @@ namespace reco {
   cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( const cluster_t& cluster,
                                                            const std::vector<larlite::larflow3dhit>& hit_v,
                                                            std::vector<int>& used_hits_v,
+                                                           std::vector<larlite::larflow3dhit>& downsample_hit_v,
+                                                           std::vector<int>& orig_idx_v,
                                                            float max_dist2line ) {
 
     cluster_t newcluster;
@@ -433,7 +441,7 @@ namespace reco {
 
       auto const& hit = hit_v[ihit];
 
-      if ( used_hits_v[ ihit ]==1 ) continue;
+      if ( used_hits_v[ ihit ]!=0 ) continue;
       
       // apply quick bounding box test
       if (    hit[0] < cluster.bbox_v[0][0]-_maxdist || hit[0]>cluster.bbox_v[0][1]+_maxdist
@@ -448,10 +456,15 @@ namespace reco {
       if ( dist2line < max_dist2line ) {
         std::vector<float> pt = { hit[0], hit[1], hit[2] };
         std::vector<int> coord_v = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+
+        int downsample_index = downsample_hit_v.size();
+        downsample_hit_v.push_back( hit );
+        orig_idx_v.push_back( ihit );
+        
         newcluster.points_v.push_back( pt );
         newcluster.imgcoord_v.push_back( coord_v );
         newcluster.hitidx_v.push_back( ihit );
-        used_hits_v[ihit] = 1;
+        used_hits_v[ihit] = 3;
         nused++;
       }
       
@@ -515,13 +528,16 @@ namespace reco {
     std::vector<larlite::larflow3dhit> downsample_hit_v;
     downsample_hit_v.reserve( max_pts_to_cluster );
 
+
     float downsample_fraction = (float)max_pts_to_cluster/(float)total_pts;
     bool sample = total_pts>max_pts_to_cluster;
 
     LARCV_INFO() << "Downsample points: " << sample << ", downsample_fraction=" << downsample_fraction << std::endl;
     
     int nremaining = 0;
-    for ( size_t ihit=0; ihit<total_pts; ihit++ ) {
+    std::vector<int> orig_idx_v;
+    orig_idx_v.reserve( total_pts );
+    for ( int ihit=0; ihit<total_pts; ihit++ ) {
 
       if ( used_hits_v[ihit]==1 )
         continue; // assigned to cluster
@@ -535,6 +551,7 @@ namespace reco {
       
       if ( !sample || rand.Uniform()<downsample_fraction ) {
         downsample_hit_v.push_back( inputhits[ihit] );
+        orig_idx_v.push_back( ihit );
       }
       
     }
@@ -556,6 +573,8 @@ namespace reco {
         cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
                                                        inputhits,
                                                        used_hits_v,
+                                                       downsample_hit_v,
+                                                       orig_idx_v,
                                                        10.0 );
         if ( dense_cluster.points_v.size()>0 ) 
           dense_cluster_v.emplace_back( std::move(dense_cluster) );
@@ -601,9 +620,15 @@ namespace reco {
             if (dist<_maxdist*_maxdist ) {
               std::vector<float> pt = { hit[0], hit[1], hit[2] };
               std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+
+              int downsample_index = orig_idx_v.size();
+              orig_idx_v.push_back( ihit );
+              downsample_hit_v.push_back( hit );              
+              
               cluster.points_v.push_back( pt );
               cluster.imgcoord_v.push_back( imgcoord );
-              cluster.hitidx_v.push_back( ihit );
+              cluster.hitidx_v.push_back( downsample_index );
+
               used_hits_v[ihit] = 1;
               modded_cluster[ic] = 1;
               nclaimed++;
@@ -623,7 +648,7 @@ namespace reco {
         if ( modded_cluster[ic]==1 ) {
           auto& cluster = dense_cluster_v[ic];
           larflow::reco::cluster_pca(cluster);
-            nmodded++;
+          nmodded++;
         }
       }
       LARCV_INFO() << "Absorbed " << nclaimed << " hits and moddified " << nmodded << " clusters"  << std::endl;
@@ -642,6 +667,26 @@ namespace reco {
     
     // now split and merge with pass clusters
     for ( auto& dense : dense_cluster_v ) {
+
+      // translate indexing back to original clusters
+      for ( size_t ii=0; ii<dense.hitidx_v.size(); ii++ ) {
+        int downsample_index = dense.hitidx_v[ii];
+
+        if ( downsample_index<0 || downsample_index>=(int)downsample_hit_v.size() ) {
+          std::stringstream ss;
+          ss << __FILE__ << ":L" << __LINE__ << " Bad Index=" << downsample_index << ". Number of downsample hits=" << downsample_hit_v.size() << std::endl;
+          throw std::runtime_error(ss.str());
+        }
+        
+        int orig_idx = orig_idx_v[downsample_index];
+        if ( orig_idx<0 || orig_idx>=total_pts ) {
+          std::stringstream ss;
+          ss << __FILE__ << ":L" << __LINE__ << " Bad Index=" << orig_idx << std::endl;
+          throw std::runtime_error(ss.str());
+        }
+        dense.hitidx_v[ii] = orig_idx;
+      }
+      
       output_cluster_v.emplace_back( std::move(dense) );
     }
       

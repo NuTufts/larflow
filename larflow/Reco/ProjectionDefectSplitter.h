@@ -57,6 +57,8 @@ namespace reco {
     cluster_t _absorb_nearby_hits( const cluster_t& cluster,
                                    const std::vector<larlite::larflow3dhit>& hit_v,
                                    std::vector<int>& used_hits_v,
+                                   std::vector<larlite::larflow3dhit>& downsample_hit_v,
+                                   std::vector<int>& orig_idx_v,                       
                                    float max_dist2line );
     
     void _runSplitter( const larlite::event_larflow3dhit& inputhits,
@@ -114,6 +116,7 @@ namespace reco {
     std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
+    
   };
 
 }
