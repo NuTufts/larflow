@@ -424,6 +424,11 @@ namespace reco {
    * @param[in] hit_v   The original (not-downsaampled) set of hits used to make the given cluster
    * @param[in] used_hits_v Vector same size as hit_v where value is 1 if hit is already assigned to cluster.
    *                        Hits assigned by this call of the function to the cluster will have their flags set to 1.
+   * @param[in] downsample_hit_v Collection of hits we used to cluster. This can be a fraction of the input hits (in hit_v).
+   *                             Downsampling done in order to prevent DBSCAN from taking too long.
+   * @param[in] orig_idx_v Map from downsample_hit_v index to hit_v index. The vector is the same length as
+   *                       downsample_hit_v and so the position of the vector corresponds to the index of downsample_hit_v.
+   *                       The values at each position correspond to the index of hit_v.
    * @param[in] max_dist2line Maximum distance from a point to the first principle component axis
    *                          of the given cluster.
    * @return A new cluster with additional hits added to the given cluster
