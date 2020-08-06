@@ -48,6 +48,7 @@ TVector3 convert_point(const larlite::mcstep& mcstep, larutil::SpaceChargeMicroB
   x  = (tick - 3200)*cm_per_tick;
 
   point.SetXYZ(x,y,z);
+  return point;
 }
 
 float DistFromLine(TVector3 x0, TVector3 x1, TVector3 x2){
@@ -127,74 +128,128 @@ int main( int nargs, char** argv ) {
   int nentries = llio.get_entries();
 
   // output
-  TFile* outfile = new TFile(Form("out_test1_evt%d-%d.root",startentry,startentry+maxentries-1),"recreate");
+  TFile* outfile = new TFile(Form("cosmnu_sr0001_evt%d-%d.root",startentry,startentry+maxentries-1),"recreate");
 
   // DEFINE HISTOGRAMS
-  const int nhists = 4;
+  const int nhists = 3;
   // strings for histo names
   std::string str1[4] = {"u","v","y","3d"};
   std::string str2[4] = {"dx","dy","dz","3d"};
   std::string str3[3] = {"track","shower","all"};
   
-  // score output versus flow distance
-  TH2D* hprob_v_coldist[ nhists ] = {nullptr};
-  for (int n=0; n<=3; n++ ) {
-    char name[100];
-    sprintf( name, "hprob_v_coldist_%s", str1[n].c_str() );
-    hprob_v_coldist[n] = new TH2D( name,  ";distance from true target wire (cm); match probability", 3334, 0, 1000, 100, 0.0, 1.0 );
-  }
-  // score vs track/shower theta 
-  TH2D* hprob_v_theta[ 3 ] = {nullptr};
+  // score output versus dist
+  TH2D* hprob_v_dist[ nhists ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
-    sprintf( name, "hprob_v_theta_%s", str3[n].c_str() );
-    hprob_v_theta[n] = new TH2D( name,  ";Polar angle; distance to true triplet", 63, -3.14, 3.14, 900, 0.0, 300 );
+    sprintf( name, "hprob_v_dist_%s", str3[n].c_str() );
+    hprob_v_dist[n] = new TH2D( name,  ";distance from true target wire (cm); match score", 2000, 0, 1000, 100, 0.0, 1.0 );
   }
 
+  // score output versus dist bestmatch
+  TH2D* hprob_v_dist_best[ nhists ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hprob_v_dist_bestmatch_%s", str3[n].c_str() );
+    hprob_v_dist_best[n] = new TH2D( name,  ";distance from true target wire (cm); match score", 2000, 0, 1000, 100, 0.0, 1.0 );
+  }
+
+    //theta all only
   TH1D* htheta[ 3 ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
     sprintf( name, "htheta_%s", str3[n].c_str() );
-    htheta[n] = new TH1D( name,  ";Polar angle;", 63, -3.14, 3.14 );
+    htheta[n] = new TH1D( name,  ";polar angle;", 32, 0, 3.14 );
   }
+
+  //phi all only
   TH1D* hphi[ 3 ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
     sprintf( name, "hphi_%s", str3[n].c_str() );
-    hphi[n] = new TH1D( name,  ";Azimuth angle;", 63, -3.14, 3.14 );
+    hphi[n] = new TH1D( name,  ";azimuth angle;", 32, -3.14, 3.14 );
   }
 
-  // score vs track/shower phi 
-  TH2D* hprob_v_phi[ 3 ] = {nullptr};
+  // dist vs track/shower theta 
+  TH2D* hdist_v_theta[ 3 ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
-    sprintf( name, "hprob_v_phi_%s", str3[n].c_str() );
-    hprob_v_phi[n] = new TH2D( name,  ";Azimuth angle; distance ti true triplet", 63, -3.14, 3.14, 900, 0.0, 300 );
+    sprintf( name, "hdist_v_theta_%s", str3[n].c_str() );
+    hdist_v_theta[n] = new TH2D( name,  ";polar angle (rad); distance to true triplet (cm)", 16, 0, 3.14, 600, 0.0, 300 );
   }
 
-  // score vs track/shower phi 
+  // dist vs track/shower theta best
+  TH2D* hdist_v_theta_best[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hdist_v_theta_best_%s", str3[n].c_str() );
+    hdist_v_theta_best[n] = new TH2D( name,  ";polar angle (rad); distance to true triplet (cm)", 16, 0, 3.14, 600, 0.0, 300 );
+  }
+
+  // dist vs track/shower phi 
+  TH2D* hdist_v_phi[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hdist_v_phi_%s", str3[n].c_str() );
+    hdist_v_phi[n] = new TH2D( name,  ";azimuth angle (rad); distance to true triplet (cm)", 32, -3.14, 3.14, 600, 0.0, 300 );
+  }
+
+  // dist vs track/shower phi best
+  TH2D* hdist_v_phi_best[ 3 ] = {nullptr};
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hdist_v_phi_best_%s", str3[n].c_str() );
+    hdist_v_phi_best[n] = new TH2D( name,  ";azimuth angle (rad); distance to true triplet (cm)", 32, -3.14, 3.14, 600, 0.0, 300 );
+  }
+  
+  // dist vs radial dist
   TH2D* hdist_v_radius[ 3 ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
     sprintf( name, "hdist_v_radius_%s", str3[n].c_str() );
-    hdist_v_radius[n] = new TH2D( name,  ";distance from true triplet ;distance from track axis", 600, 0, 300, 600, 0, 300 );
+    hdist_v_radius[n] = new TH2D( name,  ";distance to true triplet (cm);distance from axis (cm)", 900, 0, 300, 1200, 0, 400 );
   }
 
-  // error in flow (using max match)
-  TH1D* herrflow[ nhists ] = { nullptr };
-  for (int n=0; n<=3; n++ ) {
-    char name[100];
-    sprintf( name, "herrflow_%s", str2[n].c_str() );
-    herrflow[n] = new TH1D(name, ";distance from true triplet (cm)", 3334, 0, 1000 );
-
-  }
-
-  TH1D* herrflow_radial[ 3 ] = { nullptr };
+  // dist vs radial dist best,atch
+  TH2D* hdist_v_radius_best[ 3 ] = {nullptr};
   for (int n=0; n<3; n++ ) {
     char name[100];
-    sprintf( name, "herrflow_radial_%s", str3[n].c_str() );
-    herrflow_radial[n] = new TH1D(name,";distance from track/shower axis (cm)",1000,0,1000);
+    sprintf( name, "hdist_v_radius_best_%s", str3[n].c_str() );
+    hdist_v_radius_best[n] = new TH2D( name,  ";distance to true triplet (cm);distance from  axis (cm)", 900, 0, 300, 1200, 0, 400 );
   }
+
+  // error in flow 
+  TH1D* herrflow[ 3 ] = { nullptr };
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "herrflow_%s", str3[n].c_str() );
+    herrflow[n] = new TH1D(name, ";distance to true triplet (cm)", 2000, 0, 1000 );
+
+  }
+  // error in flow bestmatch
+  TH1D* herrflow_best[ 3 ] = { nullptr };
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "herrflow_best_%s", str3[n].c_str() );
+    herrflow_best[n] = new TH1D(name, ";distance to true triplet (cm)", 2000, 0, 1000 );
+
+  }
+  // error in flow bestmatch
+  TH1D* hrad_best[ 3 ] = { nullptr };
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hrad_best_%s", str3[n].c_str() );
+    hrad_best[n] = new TH1D(name, ";distance to axis (cm)", 2000, 0, 1000 );
+
+  }
+  // error in flow bestmatch
+  TH1D* hrad_best_goodT[ 3 ] = { nullptr };
+  for (int n=0; n<3; n++ ) {
+    char name[100];
+    sprintf( name, "hrad_best_goodT_%s", str3[n].c_str() );
+    hrad_best_goodT[n] = new TH1D(name, ";distance to axis (cm)", 2000, 0, 1000 );
+
+  }
+
     
   // MCPG
   ublarcvapp::mctools::MCPixelPGraph mcpg;
@@ -236,21 +291,18 @@ int main( int nargs, char** argv ) {
       //std::vector<std::vector<int>> pix_vv = mcpg.getPixelsFromParticleAndDaughters(tid);
       larlite::mctrack* trk = NULL;
       larlite::mcshower* shwr = NULL;
-      if(node.origin !=1) continue;
+      //if(node.origin !=1) continue;  //OPTION OFR NU ONLY
       if(node.type==0) trk = &evmctrack->at( node.vidx );
       else if(node.type==1) shwr = &evmcshower->at( node.vidx );
       else {};
 
       if(trk){
-
 	start = convert_point(trk->Start(), sce, tsv);
 	end = convert_point(trk->End(), sce, tsv);
-	//start.SetXYZ(trk->Start().X(),trk->Start().Y(),trk->Start().Z());
-	//end.SetXYZ(trk->End().X(),trk->End().Y(),trk->End().Z());
       }
       else if(shwr){
-	start.SetXYZ(shwr->Start().X(),shwr->Start().Y(),shwr->Start().Z());
-	end.SetXYZ(shwr->End().X(),shwr->End().Y(),shwr->End().Z());
+	start = convert_point(shwr->Start(), sce, tsv);
+	end = convert_point(shwr->End(), sce, tsv);
       }
       else{
 	start.SetXYZ(15000.,15000.,15000.);
@@ -315,68 +367,101 @@ int main( int nargs, char** argv ) {
 	  bestscore = map1.at(it->second).score;
 	  bestidx = it->second;
 	}	
+
+	//fill all scores
+	TVector3 me(map1.at(it->second).xyz[0], map1.at(it->second).xyz[1], map1.at(it->second).xyz[2]);
+	float dLine = DistFromLine(me, trackmeta.start, trackmeta.end);      
+	float dx = sqrt(pow(map1.at(it->second).xyz[0] - truehit.xyz[0],2));
+	float dy = sqrt(pow(map1.at(it->second).xyz[1] - truehit.xyz[1],2));
+	float dz = sqrt(pow(map1.at(it->second).xyz[2] - truehit.xyz[2],2));
+	float dist = sqrt(dx*dx + dy*dy + dz*dz);
+
+	if(trackmeta.type==0){
+	  hdist_v_theta[0]->Fill( theta, dist);
+	  hdist_v_phi[0]->Fill( phi, dist);
+	  
+	  hdist_v_radius[0]->Fill( dist, dLine);
+	  
+	  hphi[0]->Fill(phi);
+	  htheta[0]->Fill(theta);
+	  
+	  herrflow[0]->Fill( dist );
+	  hprob_v_dist[0]->Fill( dist, map1.at(it->second).score);
+	}
+	
+	if(trackmeta.type==1){
+	  hdist_v_theta[1]->Fill( theta, dist);
+	  hdist_v_phi[1]->Fill( phi, dist);
+	  
+	  hdist_v_radius[1]->Fill( dist, dLine);
+	  
+	  hphi[1]->Fill(phi);
+	  htheta[1]->Fill(theta);
+	  
+	  herrflow[1]->Fill( dist );
+	  hprob_v_dist[1]->Fill( dist, map1.at(it->second).score );	
       }
+	hdist_v_theta[2]->Fill( theta, dist);
+	hdist_v_phi[2]->Fill( phi, dist);
       
+	hdist_v_radius[2]->Fill( dist, dLine);
+      
+	hphi[2]->Fill(phi);
+	htheta[2]->Fill(theta);
+
+	herrflow[2]->Fill( dist );
+	hprob_v_dist[2]->Fill( dist, map1.at(it->second).score);
+
+      }
+
+      // fill bestmatch
       float dx = sqrt(pow(map1.at(bestidx).xyz[0] - truehit.xyz[0],2));
       float dy = sqrt(pow(map1.at(bestidx).xyz[1] - truehit.xyz[1],2));
       float dz = sqrt(pow(map1.at(bestidx).xyz[2] - truehit.xyz[2],2));
       float dist = sqrt(dx*dx + dy*dy + dz*dz);
       
-      float dU = map1.at(bestidx).U - truehit.U;
-      float dV = map1.at(bestidx).V - truehit.V;
+      //float dU = map1.at(bestidx).U - truehit.U;
+      //float dV = map1.at(bestidx).V - truehit.V;
       
       TVector3 me(map1.at(bestidx).xyz[0], map1.at(bestidx).xyz[1], map1.at(bestidx).xyz[2]);
       float dLine = DistFromLine(me, trackmeta.start, trackmeta.end);      
 
-      //debug
-      /*
-      std::vector<float> pt(3);
-      pt[0] = map1.at(bestidx).xyz[0];
-      pt[1] = map1.at(bestidx).xyz[1];
-      pt[2] = map1.at(bestidx).xyz[2];    
-      float dLine2 = pointLineDistance(trackmeta.st, trackmeta.et, pt);
-      std::cout << "tvector: " << dLine << " vector<float>: "<<dLine2 << std::endl;
-      */
       if(trackmeta.type==0){
-	hprob_v_theta[0]->Fill(theta, dist);
-	hprob_v_phi[0]->Fill(phi, dist);
+	hdist_v_theta_best[0]->Fill( theta, dist);
+	hdist_v_phi_best[0]->Fill( phi, dist);
 
-	herrflow_radial[0]->Fill( dLine);
-	hdist_v_radius[0]->Fill( dist, dLine);
+	hdist_v_radius_best[0]->Fill( dist, dLine);
 
-	hphi[0]->Fill(phi);
-	htheta[0]->Fill(theta);
+	herrflow_best[0]->Fill( dist );
+	hprob_v_dist_best[0]->Fill( dist, bestscore);
+	hrad_best[0]->Fill( dLine );
+	if(dist<=1.0) hrad_best_goodT[0]->Fill( dLine );
       }
-      if(trackmeta.type==1){
-	hprob_v_theta[1]->Fill(theta, dist);
-	hprob_v_phi[1]->Fill(phi, dist);
-
-	herrflow_radial[1]->Fill( dLine);
-	hdist_v_radius[1]->Fill( dist, dLine);
-
-	hphi[1]->Fill(phi);
-	htheta[1]->Fill(theta);
-
-      }
-      hprob_v_theta[2]->Fill(theta, dist);
-      hprob_v_phi[2]->Fill(phi, dist);
-
-      herrflow_radial[2]->Fill( dLine );      
-      hdist_v_radius[2]->Fill( dist, dLine);
-
-      hphi[2]->Fill(phi);
-      htheta[2]->Fill(theta);
-
-      herrflow[0]->Fill( dx );
-      herrflow[1]->Fill( dy );
-      herrflow[2]->Fill( dz );
-      herrflow[3]->Fill( dist );
-      hprob_v_coldist[0]->Fill(fabs(dU)*0.3, bestscore);
-      hprob_v_coldist[1]->Fill(fabs(dV)*0.3, bestscore);
-      hprob_v_coldist[3]->Fill(dist, bestscore);
       
+      if(trackmeta.type==1){
+	hdist_v_theta_best[1]->Fill( theta, dist);
+	hdist_v_phi_best[1]->Fill( phi, dist);
+
+	hdist_v_radius_best[1]->Fill( dist, dLine);
+
+	herrflow_best[1]->Fill( dist );
+	hprob_v_dist_best[1]->Fill( dist, bestscore);	
+	hrad_best[1]->Fill( dLine );
+	if(dist<=1.0) hrad_best_goodT[1]->Fill( dLine );
+
+      }
+      
+      hdist_v_theta_best[2]->Fill( theta, dist);
+      hdist_v_phi_best[2]->Fill( phi, dist);
+      
+      hdist_v_radius_best[2]->Fill( dist, dLine);
+      
+      herrflow_best[2]->Fill( dist );
+      hprob_v_dist_best[2]->Fill( dist, bestscore);
+      hrad_best[2]->Fill( dLine );
+      if(dist<=1.0) hrad_best_goodT[2]->Fill( dLine );
+
     }// end of loop over points
-    std::cout << herrflow[3]->Integral() <<" "<<hprob_v_coldist[3]->Integral() << std::endl;
     std::cout << "hits with true flow: " << nhits_wtrueflow << std::endl;
     std::cout << "total hits: " << lfhit_v->size() <<" "<< map1.size() << std::endl;
     
