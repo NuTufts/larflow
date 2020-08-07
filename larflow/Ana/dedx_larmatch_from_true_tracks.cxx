@@ -16,6 +16,7 @@
 
 #include "larflow/Reco/geofuncs.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
+#include "ublarcvapp/ubdllee/dwall.h"
 
 int main( int nargs, char** argv )
 {
@@ -83,24 +84,41 @@ int main( int nargs, char** argv )
 
         if ( track.TrackID()==track.MotherTrackID() ) {
 
-          if ( abs(track.PdgCode())==13 )
-            primary_muons_v.push_back( &track );
-          if ( abs(track.PdgCode())==2212 )
-            primary_protons_v.push_back( &track );
+          std::vector<float> end(3,0);
+          for (int p=0; p<3; p++)
+            end[p] = track.End().Position()[p];
+          int boundary = 0;
+          float dwall = ublarcvapp::dwall( end, boundary );          
+          float E = track.End().E();
+
           
+          if ( abs(track.PdgCode())==13 ) {
+            float ke = E-105.0;
+            if ( dwall>5.0 && ke<5.0 )
+              primary_muons_v.push_back( &track );
+          }
+          else if ( abs(track.PdgCode())==2212 ) {
+            float ke = E-938.0;
+            if ( dwall>5.0 && ke<5.0 )
+              primary_protons_v.push_back( &track );
+          }
         }
         
       }
     }
 
+    std::cout << "===== STOPPED AND CONTAINED MUON/PROTON TRACKS=====" << std::endl;    
     for ( auto const& ptrack : primary_muons_v ) {
       std::cout << "Muon Track: start=(" << ptrack->Start().X() << "," << ptrack->Start().Y() << "," << ptrack->Start().Z() << ")"
                 << " end=(" << ptrack->End().X() << "," << ptrack->End().Y() << "," << ptrack->End().Z() << ")"
+                << " E=" << ptrack->End().E() << " MeV"
                 << std::endl;
     }
+    std::cout << "--------------------------" << std::endl;
     for ( auto const& ptrack : primary_protons_v ) {
       std::cout << "Proton Track: start=(" << ptrack->Start().X() << "," << ptrack->Start().Y() << "," << ptrack->Start().Z() << ")"
                 << " end=(" << ptrack->End().X() << "," << ptrack->End().Y() << "," << ptrack->End().Z() << ")"
+                << " E=" << ptrack->End().E() << " MeV"        
                 << std::endl;
     }
 
@@ -114,6 +132,28 @@ int main( int nargs, char** argv )
     track_list_v.push_back( &primary_protons_v );
     std::vector<int> track_list_pid_v = { 13, 2212 };
 
+    std::vector< float > hit_rad_v( ev_larmatch->size(), -1.0 ); /// this vector holds
+
+    struct TrackPt_t {
+      int hitidx;
+      int pid;
+      float s;
+      float res;
+      float r;
+      float q;
+      float dqdx;
+      float lm;
+      std::vector<float> pt;
+      bool operator<( const TrackPt_t& rhs ) const
+      {
+        if ( s>rhs.s) return true;
+        return false;
+      };
+    };
+    
+    typedef std::vector<TrackPt_t> TrackPtList_t;
+    std::vector< TrackPtList_t > trackpt_list_v;
+    
     int itracklist = -1;
     for ( auto const& ptracklist : track_list_v ) {
       itracklist++;
@@ -188,23 +228,9 @@ int main( int nargs, char** argv )
         std::cout << "number of hits inside bounding box: " << point_v.size() << std::endl;
         
         // now collect hits along track
-        struct TrackPt_t {
-          int hitidx;
-          float s;
-          float r;
-          float q;
-          float dqdx;
-          float lm;
-          std::vector<float> pt;
-          bool operator<( const TrackPt_t& rhs ) const
-          {
-            if ( s>rhs.s) return true;
-            return false;
-          };
-        };
         
         float current_len = 0.;
-        std::vector< TrackPt_t > trackpt_v;
+        TrackPtList_t trackpt_v;
         
         for ( int istep=0; istep<(int)detpath.size()-1; istep++ ) {
           std::vector<float>& start = detpath[istep];
@@ -246,6 +272,7 @@ int main( int nargs, char** argv )
             TrackPt_t trkpt;
             trkpt.pt     = pt;
             trkpt.hitidx = search_index_v[ii];
+            trkpt.pid = pid;
             trkpt.r = r;
             trkpt.s = s+current_len;
             trkpt.q = 0.;            
@@ -291,6 +318,9 @@ int main( int nargs, char** argv )
             // y-plane only
             trkpt.q = pixval_v[2];
             trkpt.dqdx = dqdx_v[2];
+
+            if ( hit_rad_v[trkpt.hitidx]<0 || trkpt.r<hit_rad_v[trkpt.hitidx] )
+              hit_rad_v[trkpt.hitidx] = trkpt.r;
             
             trackpt_v.push_back( trkpt );
           }//end of point loop
@@ -304,18 +334,35 @@ int main( int nargs, char** argv )
         std::sort( trackpt_v.begin(), trackpt_v.end() );
 
         for ( auto& trkpt : trackpt_v ) {
-          res = current_len - trkpt.s;
+          trkpt.res = current_len - trkpt.s;
+        }
+        
+        trackpt_list_v.emplace_back( std::move(trackpt_v) );
+        
+      }//end of loop over tracks
+    }//end of track list
+
+    // fill track points
+    int npt_notclose = 0;
+    for ( auto& trackpt_v : trackpt_list_v ) {
+      for (auto& trkpt : trackpt_v ) {
+
+        // store only if hit is on closest truth track
+        if ( trkpt.r<=hit_rad_v[trkpt.hitidx] ) {
+          pid = trkpt.pid;
+          res = trkpt.res;
           pixval = trkpt.q;
           dqdx = trkpt.dqdx;
           rad = trkpt.r;
           lm = trkpt.lm;
           ana->Fill();
         }
-        
-        
-      }//end of loop over tracks
-    }//end of track list
-    
+        else {
+          npt_notclose++;
+        }
+      }
+    }
+    std::cout << "Number of hits in the event not the closest to track: " << npt_notclose << std::endl;
     
   }
 
