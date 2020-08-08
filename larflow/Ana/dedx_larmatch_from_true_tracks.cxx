@@ -51,16 +51,20 @@ int main( int nargs, char** argv )
   int pid;
   float res;
   float rad;
+  float lm;  
   float pixval;
   float dqdx;
-  float lm;
+  float pixval_med;
+  float dqdx_med;
 
   ana->Branch("pid",&pid,"pid/I");
   ana->Branch("res",&res,"res/F");
   ana->Branch("rad",&rad,"rad/F");
+  ana->Branch("lm",&lm,"lm/F");      
   ana->Branch("pixval",&pixval,"pixval/F");
   ana->Branch("dqdx",&dqdx,"dqdx/F");
-  ana->Branch("lm",&lm,"lm/F");    
+  ana->Branch("pixval_med",&pixval_med,"pixval_med/F");
+  ana->Branch("dqdx_med",&dqdx_med,"dqdx_med/F");
 
   std::cout << "NUM ENTRIES: " << nentries << std::endl;
   for (int ientry=0; ientry<nentries; ientry++ ) {
@@ -142,11 +146,23 @@ int main( int nargs, char** argv )
       float r;
       float q;
       float dqdx;
+      float q_med;
+      float dqdx_med;
       float lm;
       std::vector<float> pt;
       bool operator<( const TrackPt_t& rhs ) const
       {
         if ( s>rhs.s) return true;
+        return false;
+      };
+    };
+
+    struct PtQ_t {
+      float q;
+      float dqdx;
+      bool operator<( const PtQ_t& rhs ) const
+      {
+        if ( q<rhs.q ) return true;
         return false;
       };
     };
@@ -277,13 +293,15 @@ int main( int nargs, char** argv )
             trkpt.s = s+current_len;
             trkpt.q = 0.;            
             trkpt.dqdx = 0.;
+            trkpt.q_med = 0.;
+            trkpt.dqdx_med = 0.;
             trkpt.lm = ev_larmatch->at(trkpt.hitidx).track_score;
 
             // get the median charge inside the image
             int row = adc_v.front().meta().row( imgcoord[3] );
 
-            std::vector<float> dqdx_v(3,0);
-            std::vector<float> pixval_v(3,0);            
+            std::vector< PtQ_t > pixq_v(3);
+
             for ( int p=0; p<3; p++) {
 
               float pixsum = 0.;
@@ -296,9 +314,9 @@ int main( int nargs, char** argv )
                 npix++;
               }
               if ( npix>0 )
-                pixval_v[p] = pixsum/float(npix);
+                pixq_v[p].q = pixsum/float(npix);
               else
-                pixval_v[p] = 0;
+                pixq_v[p].q = 0;
               
               float dcos_yz = fabs(truedir[1]*orthy[p] + truedir[2]*orthz[p]);
               float dcos_x  = fabs(truedir[0]);
@@ -307,18 +325,17 @@ int main( int nargs, char** argv )
                 dx = 3.0/dcos_yz;
               else
                 dx = 3.0/dcos_x;
-              dqdx_v[p] = pixval_v[p]/dx;
+              pixq_v[p].dqdx = pixsum/dx;
             }
-            // median value
-            //std::sort( pixval_v.begin(), pixval_v.end() );
-            //std::sort( dqdx_v.begin(), dqdx_v.end() ); 
-            //trkpt.q = pixval_v[1];
-            //trkpt.dqdx = dqdx_v[1];
-
             // y-plane only
-            trkpt.q = pixval_v[2];
-            trkpt.dqdx = dqdx_v[2];
+            trkpt.q = pixq_v[2].q;
+            trkpt.dqdx = pixq_v[2].dqdx;
 
+            // median value
+            std::sort( pixq_v.begin(), pixq_v.end() );
+            trkpt.q_med    = pixq_v[1].q;
+            trkpt.dqdx_med = pixq_v[1].dqdx;
+            
             if ( hit_rad_v[trkpt.hitidx]<0 || trkpt.r<hit_rad_v[trkpt.hitidx] )
               hit_rad_v[trkpt.hitidx] = trkpt.r;
             
@@ -355,6 +372,8 @@ int main( int nargs, char** argv )
           dqdx = trkpt.dqdx;
           rad = trkpt.r;
           lm = trkpt.lm;
+          pixval_med = trkpt.q_med;
+          dqdx_med   = trkpt.dqdx_med;
           ana->Fill();
         }
         else {
