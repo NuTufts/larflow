@@ -10,9 +10,10 @@ from larflow import larflow
 import os,sys,argparse,time
 import random
 import torch
+import torch.optim as optim
 
 import matplotlib.pyplot as plt
-from SpatialEmbed import SpatialEmbed
+from SpatialEmbed import SpatialEmbed, spatialembed_loss
 
 parser = argparse.ArgumentParser("Read TTree")
 
@@ -28,6 +29,7 @@ args = parser.parse_args()
 if (args.visualize) and (args.visualize < 0 or args.visualize > 100):
     raise ValueError('Visualize percentage must be between 0-100.')
 
+particle_list = [11, 13, 2212, 22, 111, 211]
 particle_names = {
     11: "electron",
     13: "muon",
@@ -60,8 +62,9 @@ else:
     directory_files = [os.path.join(args.input_directory, file) for file in os.listdir(args.input_directory)]
 
 
-model = SpatialEmbed(features_per_layer=3)
-
+NUM_TYPES = len(particle_list)
+model = SpatialEmbed(features_per_layer=NUM_TYPES)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 
 for filename in directory_files:
@@ -111,35 +114,54 @@ for filename in directory_files:
                     plt.legend()
                     plt.show()
 
-        if (args.verbose):
-            entry.DataBranch.check_instance_parity()
+        # if (args.verbose):
+        #     entry.DataBranch.check_instance_parity()
 
-        for plane in range(3):
-            for instance in range(entry.DataBranch.num_instances_plane(plane)):
-                instances_coords = entry.DataBranch.instance(plane, instance);
-                instances_binary = entry.DataBranch.instance_binary(plane, instance);
+        # for plane in range(3):
+        #     for instance in range(entry.DataBranch.num_instances_plane(plane)):
+        #         instances_coords = entry.DataBranch.instance(plane, instance);
+        #         instances_binary = entry.DataBranch.instance_binary(plane, instance);
 
-                pixels_count = 0
-                for elem in instances_binary:
-                    if elem == 1:
-                        pixels_count += 1
+        #         pixels_count = 0
+        #         for elem in instances_binary:
+        #             if elem == 1:
+        #                 pixels_count += 1
 
-                if numpy.shape(instances_coords)[0] != pixels_count:
-                    print plane, instance
-                    print numpy.shape(instances_coords), pixels_count
+        #         if numpy.shape(instances_coords)[0] != pixels_count:
+        #             print plane, instance
+        #             print numpy.shape(instances_coords), pixels_count
         
 
-        # print(numpy.shape(coord_dict[0]))
-        # print(numpy.shape(feat_dict[0]))
-        # f1, f2 = model.forward_features(torch.from_numpy(coord_dict[0]), torch.from_numpy(feat_dict[0]), 1, verbose=True)
+        # Train on each plane
+        for plane in range(3):
+            if args.verbose:
+                print "Plane: ", plane
 
-        # print(f1.detach().numpy())
-        # # print(f2.detach().numpy())
-        # print type(f1)
+            optimizer.zero_grad()
 
+            offsets, seeds = model.forward_features(torch.from_numpy(coord_dict[plane]), torch.from_numpy(feat_dict[plane]), 1)
+
+            num_instances = entry.DataBranch.num_instances_plane(plane)
+
+            # get positions of instance pixels per instance
+            instances = entry.DataBranch.get_instance_binaries(plane)
+            instances = torch.Tensor(instances)
+
+            # Get each combined labeled class map, for each class, arranged in matrix
+            # Get the indices of each type
+            class_maps = []
+            types = []
+            for key in particle_list:
+                class_maps.append(entry.DataBranch.get_class_map(plane, key, 1))
+                types.append(list(entry.DataBranch.type_indices(plane, key, 1)))
+            class_maps = torch.Tensor(class_maps)
+
+            loss = spatialembed_loss(offsets, seeds, instances, class_maps, num_instances, types, verbose=args.verbose)
+            loss.backward()
+            optimizer.step()
 
         events += 1
-        if events == 1:
+        if events == 5:
             exit()
 
 

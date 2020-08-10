@@ -71,10 +71,14 @@ public:
     std::vector<std::vector<double>> getFeat_t(); 
     std::vector<std::vector<std::vector<InstancePix>>> getInstances_t(); 
 
+
     PyObject* coord_t_pyarray(int plane);
     PyObject* feat_t_pyarray(int plane);
     PyObject* instance(int plane, int instance);
     PyObject* instance_binary(int plane, int instance);
+    PyObject* get_instance_binaries(int plane);
+    PyObject* get_class_map(int plane, int type, int include_opp=0); // include negatives aka 11 == -11
+    PyObject* type_indices(int plane, int type, int include_opp=0);
 
     int typeof_instance(int plane, int instance);
 
@@ -99,6 +103,11 @@ private:
                                                                     // each binary map has an entry for each non-zero pixel in coord_t for that plane
                                                                     // 0 for not part of that instance, 1 for part of it
 
+    // std::vector<std::vector<std::vector<int>>> types_binary_t; // vector length 3, one for each plane
+                                                            //    for each plane, vector size #instance classes in plane
+                                                            //    each vector for instance class is a 0/1 map on whether or not
+                                                            //    pixel at that location is of that class
+                                                            //    (aka logical OR's instances of the same class into one vector)
 
     bool _setup_numpy;
 

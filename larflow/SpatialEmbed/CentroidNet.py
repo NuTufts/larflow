@@ -38,8 +38,6 @@ for ientry in xrange(nentries):
 
     prepembed.process( iolcv, ioll, preptriplet )
 
-    test = larflow.spatialembed.PrepSpatialEmbed()
-
     print "============================================="
     print prepembed.get_id_list(0)
     print "============================================="

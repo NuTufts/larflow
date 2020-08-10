@@ -317,6 +317,119 @@ PyObject* SpatialEmbedData::instance_binary(int plane, int instance){
     return (PyObject*) array;
 }
 
+
+PyObject* SpatialEmbedData::get_instance_binaries(int plane){
+    if ( !_setup_numpy ){
+        import_array1(0);
+        _setup_numpy = true;
+    }
+    if (plane > 2){
+        std::string error = "Plane must be between [0,2]. Input was: " + std::to_string(plane) + ".\n";
+        throw std::runtime_error(error);
+    }
+
+    npy_intp* dims = new npy_intp[2];
+    if (instances_binary_t[plane].size() == 0){
+        dims[0] = 0;
+        dims[1] = 1;
+    } 
+    else{
+        dims[0] = instances_binary_t[plane].size();
+        dims[1] = instances_binary_t[plane][0].size();
+    }
+    
+    PyArrayObject* array = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_INT);
+
+    for (int i=0; i < dims[0]; i++){
+        for (int j=0; j < dims[1]; j++)
+            *((int*)PyArray_GETPTR2(array, i, j)) = instances_binary_t[plane][i][j];
+    }
+    return (PyObject*) array;
+}
+
+PyObject* SpatialEmbedData::get_class_map(int plane, int type, int include_opp ){
+    if ( !_setup_numpy ){
+        import_array1(0);
+        _setup_numpy = true;
+    }
+    if (plane > 2){
+        std::string error = "Plane must be between [0,2]. Input was: " + std::to_string(plane) + ".\n";
+        throw std::runtime_error(error);
+    }
+
+    std::vector<int> indices;
+    int num_instances = instances_t[plane].size();
+    for (int inst_type=0; inst_type < num_instances; inst_type++){
+        if ((types_t[plane][inst_type] == type) || (include_opp && types_t[plane][inst_type] == -1*type)){
+            indices.push_back(inst_type);
+        }
+    }
+
+    npy_intp* dims = new npy_intp[2];
+    if ((instances_binary_t[plane].size() == 0) || (indices.size() == 0)){
+        dims[0] = coord_t[plane].size();
+        dims[1] = 1;
+    } 
+    else{
+        dims[0] = instances_binary_t[plane][0].size();
+        dims[1] = 1;
+    }
+    
+    PyArrayObject* array = (PyArrayObject*) PyArray_SimpleNew(1, dims, NPY_INT);
+
+    int is_true = 0;
+    // loop for number of pixels
+    for (int idx=0; idx < dims[0]; idx++){
+        is_true = 0;
+        for (int type_idx=0; type_idx < indices.size(); type_idx++){ // check instances of that type
+            if (instances_binary_t[plane][indices[type_idx]][idx] == 1){
+                is_true = 1;
+                break;
+            }   
+        }
+         *((int*)PyArray_GETPTR2(array, idx, 0)) = is_true;
+    }
+
+    return (PyObject*) array;
+}
+
+
+PyObject* SpatialEmbedData::type_indices(int plane, int type, int include_opp ){
+    if ( !_setup_numpy ){
+        import_array1(0);
+        _setup_numpy = true;
+    }
+    if (plane > 2){
+        std::string error = "Plane must be between [0,2]. Input was: " + std::to_string(plane) + ".\n";
+        throw std::runtime_error(error);
+    }
+
+    std::vector<int> indices;
+    int num_instances = instances_t[plane].size();
+    for (int inst_type=0; inst_type < num_instances; inst_type++){
+        if ((types_t[plane][inst_type] == type) || (include_opp && types_t[plane][inst_type] == -1*type)){
+            indices.push_back(inst_type);
+        }
+    }
+
+    npy_intp* dims = new npy_intp[2];
+    if ((instances_binary_t[plane].size() == 0) || (indices.size() == 0)){
+        dims[0] = 0;
+        dims[1] = 1;
+    } 
+    else{
+        dims[0] = indices.size();
+        dims[1] = 1;
+    }
+    
+    PyArrayObject* array = (PyArrayObject*) PyArray_SimpleNew(1, dims, NPY_INT);
+
+    for (int idx = 0; idx < dims[0]; idx++){
+        *((int*)PyArray_GETPTR2(array, idx, 0)) = indices[idx];
+    }
+
+    return (PyObject*) array;
+}
 std::vector<std::vector<larflow::spatialembed::SpatialEmbedData::CoordPix>> SpatialEmbedData::getCoord_t(){
     return coord_t;
 } 

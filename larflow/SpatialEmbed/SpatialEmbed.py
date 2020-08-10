@@ -2,10 +2,14 @@ from collections import OrderedDict
 import sys
 import torch 
 import torch.nn as nn
+from torch.autograd import Variable
 import sparseconvnet as scn
 
 sys.path.insert(1, "/home/jhwang/ubdl/larflow/larmatchnet/")
 from utils_sparselarflow import create_resnet_layer
+
+sys.path.insert(1, "/home/jhwang/ubdl/larflow/larflow/SpatialEmbed/LovaszSoftmax/pytorch")
+import lovasz_losses
 
 class SpatialEmbed(nn.Module):
     def __init__(self, ndimensions=2,
@@ -152,3 +156,91 @@ class SpatialEmbed(nn.Module):
         seed_map  = self.source_outlayer_seed( seed_map )
 
         return offset_map, seed_map
+
+
+def spatialembed_loss(offsets, seeds, binary_maps, class_segmentation, num_instances, types, verbose=False):
+    ''' 
+        offsets: 4 channel tensor: e_ix, e_iy, sigma_x, sigma_y
+        seeds: #types channel tensor
+        binary_maps: (#instances, #number of pixels), list of instances (and their pixels, expressed as 0 or 1)
+        class_segmentation: (#classes, #number of pixels), class map for each class (binary) (should be same size as seeds)
+        types: vector length #instances, type labels
+    '''
+    if verbose: 
+        print "    Num pixels: ", offsets.size()[0], ", Num instances: ", num_instances
+        print "    Offsets size, seeds size, binary_maps size, class_segmentation size:"
+        print "    ", offsets.size(), seeds.size(), binary_maps.size(), class_segmentation.size()
+
+    e_ix, e_iy = offsets[:,0], offsets[:,1]
+    sigma_x, sigma_y = offsets[:,2], offsets[:,3] 
+
+    # Gaussian tensor
+
+    # Average e_i for pixels in each instance
+    x_centroids_binary = torch.mul(e_ix, binary_maps)
+    y_centroids_binary = torch.mul(e_iy, binary_maps)
+
+    x_centroids = x_centroids_binary.sum(dim=1) / (x_centroids_binary != 0).sum(dim=1).type(torch.FloatTensor)
+    y_centroids = y_centroids_binary.sum(dim=1) / (y_centroids_binary != 0).sum(dim=1).type(torch.FloatTensor)
+
+
+    # Average sigma_k per instance
+    sigma_x_binary = torch.mul(sigma_x, binary_maps)
+    sigma_y_binary = torch.mul(sigma_y, binary_maps)
+
+    sigma_kx = sigma_x_binary.sum(dim=1) / (sigma_x_binary != 0).sum(dim=1).type(torch.FloatTensor)
+    sigma_ky = sigma_y_binary.sum(dim=1) / (sigma_y_binary != 0).sum(dim=1).type(torch.FloatTensor)
+
+
+    x_portion = e_ix.repeat(num_instances, 1)
+    x_portion = x_portion - x_centroids.view(num_instances, 1)
+    x_portion = x_portion.pow(2)
+    x_portion = torch.div( x_portion, 2 * sigma_kx.view(num_instances, 1).pow(2) )
+
+    y_portion = e_iy.repeat(num_instances, 1)
+    y_portion = y_portion - y_centroids.view(num_instances, 1)
+    y_portion = y_portion.pow(2)
+    y_portion = torch.div( y_portion, 2 * sigma_ky.view(num_instances, 1).pow(2) )
+
+    gaussian = - x_portion - y_portion
+    gaussian = torch.exp(gaussian) # size should be (num_instances, num_pixels)
+    if verbose: print "    Gaussian size: ", gaussian.size()
+
+    loss = 0
+    # Lovasz-Softmax for each instance
+    for i in range(num_instances):
+        loss += lovasz_losses.lovasz_hinge_flat(gaussian[i], binary_maps[i])
+    
+    # Seed-map MSE loss
+    mseloss = nn.MSELoss()
+
+    class_gaussians = []
+    for class_type in types:
+        class_gaussian = torch.zeros(e_ix.size()[0])
+        for index in class_type:
+            class_gaussian = torch.max(class_gaussian, gaussian[index])
+        class_gaussians.append(class_gaussian)
+    class_gaussians = torch.stack(class_gaussians)
+    class_segmentation = class_segmentation * class_gaussians
+    
+    loss += mseloss(seeds, class_segmentation.t())
+
+    # Sigma-smoothing loss
+    avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1)
+    avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1)
+
+    avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
+    avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
+
+    loss += mseloss(sigma_x, avg_x_sigma_flattened)
+    loss += mseloss(sigma_y, avg_y_sigma_flattened)
+
+
+    print "    Loss: ", loss
+    return Variable(loss, requires_grad=True)
+
+
+    # print(x_centroids)
+    # print(y_centroids)
+    # print(sigma_kx)
+    # print(sigma_ky)
