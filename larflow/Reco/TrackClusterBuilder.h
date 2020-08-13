@@ -185,6 +185,9 @@ namespace reco {
     std::string str( const Segment_t& seg );
 
     void resetVetoFlags();
+
+    int findClosestSegment( const std::vector<float>& testpt, const float max_dist );
+                            
     
   protected:
 

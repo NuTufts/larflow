@@ -12,6 +12,9 @@
 
 #include "TRandom3.h"
 
+#include "larflow/Reco/geofuncs.h"
+#include "larflow/Reco/TrackOTFit.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -63,6 +66,16 @@ namespace reco {
     std::vector<int> used_hits_v( ev_lfhits->size(), 0 );
     std::vector<cluster_t> cluster_track_v;
     _runSplitter( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+
+    // Fit linesegments to clusters
+    larlite::event_track* evout_track
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
+    if ( _fit_line_segments_to_clusters )
+      _fitLineSegmentsToClusters( cluster_track_v, *ev_lfhits, adc_v, *evout_track );
+    
+
+    // FORM OUTPUTS
+    // =============
     
     // form clusters of larflow hits for saving
     larlite::event_larflowcluster* evout_lfcluster
@@ -709,7 +722,7 @@ namespace reco {
    * This is done to help break-up particle clusters.
    * When this method is called, _veto_hits_around_keypoints, is set to true.
    * 
-   * @param[in] name 
+   * @param[in] name Name of tree containing keypoints for vetoing hits
    *
    */
   void ProjectionDefectSplitter::add_input_keypoint_treename_for_hitveto( std::string name )
@@ -768,6 +781,199 @@ namespace reco {
     LARCV_INFO() << "Number of hits veto'd by keypoints: " << nhits_vetoed << std::endl;
     return nhits_vetoed;
   }
+
+  /**
+   * @brief fit line segments to clusters
+   *
+   * @param[in] cluster_v Container of clusters to fit
+   * @param[in] lfhit_v Source of hits that were used to make the clusters
+   * @param[in] adc_v   Wire plane images
+   * @param[out] evout_track Container of tracks made of the fitted line segments to the clusters. 
+   *                         Should be same length as cluster_v.
+   */
+  void ProjectionDefectSplitter::_fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                             const larlite::event_larflow3dhit& lfhit_v,
+                                                             const std::vector<larcv::Image2D>& adc_v,
+                                                             larlite::event_track& evout_track )
+  {
+    for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
+      larlite::track lltrack = _fitLineSegmentToCluster( cluster_v[icluster], lfhit_v, adc_v );
+      evout_track.emplace_back( std::move(lltrack) );
+    }
+  }
+
+  /**
+   * @brief fit line segments to clusters
+   *
+   * We break the pca-line into 5.0 cm pieces and use larflow::reco::TrackOTFit to fit each piece.
+   * 
+   * @param[in] cluster Cluster to fit
+   * @param[in] lfhit_v Source of his used to make clusters
+   * @param[in] adc_v Wire plane images
+   * @return Line segments fitted to cluster in the form of a larlite track object
+   */
+  larlite::track ProjectionDefectSplitter::_fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+                                                                     const larlite::event_larflow3dhit& lfhit_v,
+                                                                     const std::vector<larcv::Image2D>& adc_v )                                                             
+  {
+
+    const float max_line_seg_cm = 5.0;
+
+    float pca_len = cluster.pca_len;
+
+    int nsegments = pca_len/max_line_seg_cm+1;
+    float init_seg_len = pca_len/float(nsegments);
+    
+    // divide pca-axis
+    std::vector< std::vector<float> > init_segments_v;
+    init_segments_v.reserve(nsegments+1);
+    
+    for (int iseg=0; iseg<=nsegments; iseg++) {
+      std::vector< float > segpt(3,0);
+      for (int i=0; i<3; i++)
+        segpt[i] = cluster.pca_ends_v[0][i] + float(iseg)*init_seg_len*cluster.pca_axis_v[0][i];
+      init_segments_v.push_back( segpt );
+    }
+
+    int nhits = cluster.points_v.size();
+
+    const int nrows = adc_v.front().meta().rows();
+    const int nplanes = adc_v.size();
+    
+    // get the charge of the point
+    std::vector<float> q_v( nhits, 0);
+    for (int ihit=0; ihit<nhits; ihit++) {
+      std::vector<int> imgcoord = { lfhit_v[ihit].targetwire[0],
+                                    lfhit_v[ihit].targetwire[1],
+                                    lfhit_v[ihit].targetwire[2],
+                                    0 };
+      imgcoord[3] = adc_v.front().meta().row( lfhit_v[ihit].tick );
+      std::vector<float> qpix( nplanes, 0 );
+      std::vector<int>   npix( nplanes, 0 );
+      for (int dr=-2; dr<=2; dr++) {
+        int r = imgcoord[3]+dr;
+        if ( r<0 || r>=nrows )
+          continue;      
+        for (int p=0; p<(int)nplanes; p++) {
+          const larcv::Image2D& img = adc_v[p];
+          qpix[p] += img.pixel( r, imgcoord[p] );
+          npix[p]++;
+        }
+      }
+
+      for (int p=0; p<(int)nplanes;p++) {
+        if ( npix[p]>0 )
+          qpix[p] /= (float)npix[p];
+      }
+
+      // get smallest non-zero value
+      // this means this wire has the most orthognal projection
+      std::sort( qpix.begin(), qpix.end() );
+      
+      for (int p=0; p<3; p++) {
+        if ( qpix[p]>0 ) {
+          q_v[ihit] = qpix[p];
+          break;
+        }
+      }
+      
+    }//end of hit loop
+    
+    // get the larmatch score (stored in weird place i know...)
+    std::vector<float> lm_v( nhits, 0 );
+    for (int ihit=0; ihit<nhits; ihit++) {
+      lm_v[ihit] = lfhit_v[ihit].track_score;
+    }
+    
+    // get projection s relative to the start point
+    std::vector<float> proj_s( nhits, 0 );
+    for (int ihit=0; ihit<nhits; ihit++) {
+      proj_s[ihit] = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[0], cluster.pca_axis_v[0], cluster.points_v[ihit] );
+    }
+
+    // for the first segment, we could be way off, so we seed by using the first pca-axis
+    larflow::reco::cluster_t seg0_cluster;
+    seg0_cluster.points_v.reserve( int( nhits*2.0*init_seg_len/pca_len ) );
+
+    // label the segment each point is assigned to
+    std::vector< int > segindex_v( nhits, 0 );
+    
+    for (int ihit=0; ihit<nhits; ihit++) {
+
+      int segidx = proj_s[ihit]/init_seg_len;
+      segindex_v[ihit] = segidx;
+      
+      if ( proj_s[ihit]>=0 && proj_s[ihit]<init_seg_len ) {
+        std::vector< float > pos_and_feat(5);
+        for (int i=0; i<3; i++)
+          pos_and_feat[i] = cluster.points_v[ihit][i];
+        pos_and_feat[3] = q_v[ihit];
+        pos_and_feat[4] = lm_v[ihit];
+        seg0_cluster.points_v.push_back( pos_and_feat );
+      }
+    }
+
+    larflow::reco::cluster_pca( seg0_cluster );
+
+    const float lr = 1.0e-1;
+    
+    // we minizer over the first segment twice.
+    // first we hold the start fixed and vary the end
+    // then we hold the end fixed and vary the start.
+    std::vector< std::vector<float> > seg0_endpt_pass1;
+    seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[0] );
+    seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );    
+    TrackOTFit::fit_segment( seg0_endpt_pass1, seg0_cluster.points_v, 100, lr );
+
+    // swap
+    std::vector< std::vector<float> > seg0_endpt_pass2;
+    seg0_endpt_pass2.push_back( seg0_endpt_pass1[1] );
+    seg0_endpt_pass2.push_back( seg0_cluster.pca_ends_v[0] );
+    TrackOTFit::fit_segment( seg0_endpt_pass2, seg0_cluster.points_v, 100, lr );
+
+    // now move down the line segments, re-fitting
+    std::vector< std::vector<float> > final_segment_v = init_segments_v;
+    final_segment_v[0] = seg0_endpt_pass2[1];
+    final_segment_v[1] = seg0_endpt_pass2[0];
+    for (int iseg=0; iseg<nsegments; iseg++) {
+      std::vector< std::vector<float> > seg(2);
+      seg[0] = final_segment_v[iseg];
+      seg[1] = final_segment_v[iseg+1];
+      // get points
+      std::vector< std::vector<float> > seg_point_v;
+      for (int ihit=0; ihit<nhits; ihit++) {
+        if ( segindex_v[ihit]==iseg ) {
+          std::vector< float > pos_and_feat(5);
+          for (int i=0; i<3; i++)
+            pos_and_feat[i] = cluster.points_v[ihit][i];
+          pos_and_feat[3] = q_v[ihit];
+          pos_and_feat[4] = lm_v[ihit];
+          seg_point_v.push_back( pos_and_feat );
+        }
+      }
+      
+      std::vector< std::vector<float> > seg_end(2);
+      seg_end[0] = final_segment_v[iseg];
+      seg_end[1] = final_segment_v[iseg+1];
+      try {
+        TrackOTFit::fit_segment( seg_end, seg_point_v, 100, lr );
+      }
+      catch ( ... ) {
+        continue;
+      }
+
+      final_segment_v[iseg+1] = seg_end[1];
+    }
+
+    // done fitting, make larlite track object
+    larlite::track trackout;
+    for ( auto const& pt : final_segment_v ) {
+      trackout.add_vertex( TVector3( pt[0], pt[1], pt[2] ) );
+      trackout.add_direction( TVector3( 0, 0, 0 ) );      
+    }
+
+    return trackout;
+  }  
   
 }
 }

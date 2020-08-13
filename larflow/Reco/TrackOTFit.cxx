@@ -2,19 +2,84 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 namespace larflow {
 namespace reco {
 
   /**
-   * @brief fit points [unfinished function right now]
+   * @brief fit points to a line segment. we vary only the last end point
    * 
-   * @param[in] initial_track Initial track points, consisting of a start and end point
-   * @param[in] track_pts_w_feat_v vector of space points (vector<float>) to fit to
+   * @param[out] initial_track Initial track points, consisting of a start and end point.
+   *             expects the outer vector to have length 2. 
+   *             The first inner vector is the start 3d position of the line segment.
+   *             The second inner vector is the end 3d position of the line segment.
+   *             The second 'end' position is updated by the routine.
+   * @param[in]  track_pts_w_feat_v vector of space points (vector<float>) to fit to
+   * @param[in]  _maxiters_ Maximum number of fitting iterations. Default 100.
+   * @param[in]  lr learning rate. default 0.1.
    */
-  void TrackOTFit::fit( std::vector< std::vector<float> >& initial_track,
-                        std::vector< std::vector<float> >& track_pts_w_feat_v )
+  void TrackOTFit::fit_segment( std::vector< std::vector<float> >& initial_segment,
+                                std::vector< std::vector<float> >& track_pts_w_feat_v,
+                                const int _maxiters_,
+                                const float lr )
   {
+
+    int iter=0;
+    // const int _maxiters_ = 1000;
+    // float lr = 0.1;
+
+    float first_loss = -1;
+    float current_loss = -1;
+
+    std::vector< std::vector<float> > current_segment;
+    current_segment.push_back( initial_segment[0] );
+    current_segment.push_back( initial_segment[1] );
+    
+    while ( iter<_maxiters_ ) {
+
+      float iter_loss = 0;
+      float iter_weight = 0.;        
+      std::vector<float> iter_grad(3,0);
+
+      larflow::reco::TrackOTFit::getWeightedLossAndGradient( current_segment,
+                                                             track_pts_w_feat_v,
+                                                             iter_loss,
+                                                             iter_weight,
+                                                             iter_grad );
+
+      if ( first_loss<0 )
+        first_loss = iter_loss;
+      
+      // update
+      float gradlen = 0.;
+      for (int i=0; i<3; i++ ) {
+        current_segment[1][i] += -lr*iter_grad[i];
+        gradlen += iter_grad[i]*iter_grad[i];
+      }
+      current_loss = iter_loss;
+
+      std::cout << "[TrackOTFit::fit_segment] iter[" << iter << "] "
+                << " grad=(" << iter_grad[0] << "," << iter_grad[1] << "," << iter_grad[2] << ")"
+                << " len=" << sqrt(gradlen)
+                << " currentvtx=(" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")"
+                << " loss=" << current_loss
+                << std::endl;
+      
+      if ( sqrt(gradlen)<1.0e-3 )
+        break;
+      iter++;
+    }
+
+    std::cout << "[TrackOTFit::fit_segment] FIT RESULTS -----------------" << std::endl;
+    std::cout << "  num iterations: " << iter << std::endl;
+    std::cout << "  original vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
+    std::cout << "  final vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
+    std::cout << "  original loss: " << first_loss << std::endl;
+    std::cout << "  current loss: " << current_loss << std::endl;    
+    std::cout << "-----------------------------------------------------------" << std::endl;
+
+    initial_segment[1] = current_segment[1];
     
   }
 

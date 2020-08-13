@@ -222,34 +222,17 @@ namespace reco {
   {
 
     // find closest segment
-    float mindist = 0.;
-    int   min_segidx = -1;
+    float max_dist = 3.0;
+    int   min_segidx = findClosestSegment( startpoint, max_dist );
     
-    for ( size_t iseg=0; iseg<_segment_v.size(); iseg++ ) {
-      auto const& seg = _segment_v[iseg];
-      float dist = pointLineDistance<float>(  seg.start, seg.end, startpoint );
-      float proj = pointRayProjection<float>( seg.start, seg.dir, startpoint );
-
-      if ( proj>-3.0 && proj<=seg.len+3.0 ) {
-        if ( mindist>dist || min_segidx<0 ) {
-          mindist = dist;
-          min_segidx = iseg;
-        }
-      }
-    }
     if ( min_segidx<0 ) {
       LARCV_INFO() << "No acceptable segment found for startpoint" << std::endl;
       return;
     }
 
-    if ( mindist>3.0 ) {
-      LARCV_INFO() << "No segment is close enough to keypoint" << std::endl;
-      return;
-    }
-
     LARCV_DEBUG() << "=== Seed track with point (" << startpoint[0] << "," << startpoint[1] << "," << startpoint[2] << ") ======" << std::endl;
     LARCV_DEBUG() << " segment found idx=[" << min_segidx << "] to build from " << str(_segment_v[min_segidx]) << std::endl;
-
+    
     // reset the nodes
     for ( auto& node : _nodepos_v )
       node.inpath = false;
@@ -819,6 +802,44 @@ namespace reco {
     LARCV_DEBUG() << "number of tracks made via segment seeds: " << nsegtracks_made << std::endl;
     
   }
+
+  /**
+   * return index of segment closest to a test point
+   *
+   * @param[in] testpt 3D position to find closest segment to
+   * @param[in] max_dist Maximum distance testpt can be from line segment and end points
+   * @return Index of segment. If none within max distance, return -1
+   */
+  int TrackClusterBuilder::findClosestSegment( const std::vector<float>& testpt,
+                                               const float max_dist )
+  {
+  
+    // find closest segment
+    float mindist = 0.;
+    int   min_segidx = -1;
+    
+    for ( size_t iseg=0; iseg<_segment_v.size(); iseg++ ) {
+      auto const& seg = _segment_v[iseg];
+      float dist = pointLineDistance<float>(  seg.start, seg.end, testpt );
+      float proj = pointRayProjection<float>( seg.start, seg.dir, testpt );
+      
+      if ( proj>-max_dist && proj<=seg.len+max_dist && dist<max_dist ) {
+        if ( mindist>dist || min_segidx<0 ) {
+          mindist = dist;
+          min_segidx = iseg;
+        }
+      }
+    }
+
+    // if ( mindist>3.0 ) {
+    //   LARCV_INFO() << "No segment is close enough to keypoint" << std::endl;
+    //   return;
+    // }
+    
+    return min_segidx;
+    
+  }
+  
   
 }
 }

@@ -251,6 +251,7 @@ namespace reco {
     //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
+    _projsplitter.set_fit_line_segments_to_clusters( true );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
     _projsplitter.add_input_keypoint_treename_for_hitveto( "keypoint" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
@@ -295,6 +296,7 @@ namespace reco {
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.process( iolcv, ioll );
 
+    // NuTrackBuilder class
     _nu_track_builder.clear();
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
     

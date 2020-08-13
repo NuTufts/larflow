@@ -111,6 +111,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
 
+    # PLOT FITTED TRACK SEGMENTS
+    lineseg_producer = "trackprojsplit_wcfilter"
+    ev_lineseg_track = io.get_data( larlite.data.kTrack, lineseg_producer )
+    print("Number of line-segment tracks: ",ev_lineseg_track.size())
+    for itrack in range(ev_lineseg_track.size()):
+        lineseg_track = ev_lineseg_track.at(itrack)
+        lineseg_trace = lardly.data.visualize_larlite_track( lineseg_track )
+        traces_v.append( lineseg_trace )
+
     # KEYPOINTS
     # ============
     ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )

@@ -10,6 +10,7 @@
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/track.h"
 
 #include "cluster_functions.h"
 
@@ -38,7 +39,8 @@ namespace reco {
       _maxdist(2.0),
       _minsize(20),
       _maxkd(30),
-      _veto_hits_around_keypoints(false)
+      _veto_hits_around_keypoints(false),
+      _fit_line_segments_to_clusters(false)      
       {};
     virtual ~ProjectionDefectSplitter() {};
 
@@ -116,6 +118,23 @@ namespace reco {
     std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
+
+    bool _fit_line_segments_to_clusters; ///< if true, run routine to fit line segments to the different clusters
+
+    void _fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+                                     const larlite::event_larflow3dhit& lfhit_v,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     larlite::event_track& evout_track );
+    
+    larlite::track _fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+                                             const larlite::event_larflow3dhit& lfhit_v,
+                                             const std::vector<larcv::Image2D>& adc_v );
+  public:
+
+    /** @brief set the flag that determines if linesegments are fit to the clusters */
+    void set_fit_line_segments_to_clusters( bool fit ) { _fit_line_segments_to_clusters=fit; };
+    
+    
     
   };
 

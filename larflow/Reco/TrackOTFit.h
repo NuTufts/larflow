@@ -20,8 +20,10 @@ namespace reco {
     virtual ~TrackOTFit() {};
 
 
-    void fit( std::vector< std::vector<float> >& initial_track,
-              std::vector< std::vector<float> >& track_pts_w_feat_v );
+    static void fit_segment( std::vector< std::vector<float> >& initial_segment,
+                             std::vector< std::vector<float> >& track_pts_w_feat_v,
+                             const int _maxiters_=100,
+                             const float lr=0.1 );
 
     
     static float d2_segment_point( const std::vector<float>& seg_start,
