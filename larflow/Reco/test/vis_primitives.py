@@ -100,7 +100,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             lfcluster = ev_cosmic_trackcluster.at( icluster )
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
             cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = 0.3
+            cluster_trace["marker"]["opacity"] = 0.5
+            cluster_trace["marker"]["size"] = 3
             traces_v.append(cluster_trace)            
 
             pcaxis = ev_cosmic_pcacluster.at( icluster )
