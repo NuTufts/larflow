@@ -298,6 +298,7 @@ namespace reco {
 
     // NuTrackBuilder class
     _nu_track_builder.clear();
+    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
     
   }

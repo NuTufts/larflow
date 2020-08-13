@@ -43,9 +43,62 @@ namespace reco {
 
     for (auto const& nuvtx : nu_candidate_v ) {
 
+      LARCV_DEBUG() << "/////// [NuTrackBuilder Vertex Start]: "
+                    << "(" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")"
+                    << "/////////////"
+                    << std::endl;
+
+      // get nodes from each vertex
+      std::vector<NodePos_t*> nodes_near_cluster_start;
+      std::vector<NodePos_t*> nodes_far_cluster_start;      
+      std::vector<int> segment_near_cluster_start;
+      
       // loop over starting track clusters
       for ( auto const& vtxcluster : nuvtx.cluster_v ) {
 
+        // only deal with tracks        
+        if ( vtxcluster.type!=NuVertexCandidate::kTrack ) {
+          nodes_near_cluster_start.push_back( nullptr );
+          nodes_far_cluster_start.push_back( nullptr );          
+          segment_near_cluster_start.push_back(-1);
+          continue;
+        }
+        
+        // veto nodes connected to the segment end closest to the vertexer
+        int min_segidx = findClosestSegment( vtxcluster.pos, 20.0 );
+
+        if ( min_segidx<0 ) {
+          nodes_near_cluster_start.push_back( nullptr );
+          nodes_far_cluster_start.push_back( nullptr );          
+          segment_near_cluster_start.push_back(-1);          
+          continue; // no matching segment
+        }
+        
+        // operate the tracker to return all possible leaf paths
+        // Nodes from the segment
+        NodePos_t& node0 = _nodepos_v[2*min_segidx];
+        NodePos_t& node1 = _nodepos_v[2*min_segidx+1];
+
+        // determine which end of the segment is close to the vertex
+        std::vector<float> enddist(2,0);
+        for (int i=0; i<3; i++) {
+          enddist[0] += ( nuvtx.pos[i] - node0.pos[i] )*( nuvtx.pos[i] - node0.pos[i] );
+          enddist[1] += ( nuvtx.pos[i] - node1.pos[i] )*( nuvtx.pos[i] - node1.pos[i] );
+        }
+
+        NodePos_t* vtxnode   = ( enddist[0]<enddist[1] ) ? &node0 : &node1;
+        NodePos_t* farnode   = ( enddist[0]<enddist[1] ) ? &node1 : &node0;
+        
+        nodes_near_cluster_start.push_back(vtxnode);
+        nodes_far_cluster_start.push_back(farnode);
+        segment_near_cluster_start.push_back(min_segidx);
+      }//end of loop over vertex clusters
+      
+      // loop over starting track clusters
+      int ivtx = -1;
+      for ( auto const& vtxcluster : nuvtx.cluster_v ) {
+        ivtx++;
+        
         // only deal with tracks        
         if ( vtxcluster.type!=NuVertexCandidate::kTrack )
           continue;
@@ -57,35 +110,34 @@ namespace reco {
         // transform back to cluster_t type
         larflow::reco::cluster_t cluster = larflow::reco::cluster_from_larflowcluster( lfcluster );
         
+        LARCV_DEBUG() << "[NuTrackBuilder] Vertex Cluster seeding point: "
+                      << "(" << vtxcluster.pos[0] << "," << vtxcluster.pos[1] << "," << vtxcluster.pos[2] << ")"
+                      << std::endl;
+        
         // reset the veto flags for the segment nodes
         TrackClusterBuilder::resetVetoFlags();
 
         // veto nodes connected to the segment end closest to the vertexer
-        int min_segidx = findClosestSegment( nuvtx.pos, 5.0 );
+        int min_segidx = segment_near_cluster_start[ivtx];
 
         if ( min_segidx<0 )
           continue; // no matching segment
         
-        // operate the tracker to return all possible leaf paths
-        // Nodes from the segment
-        NodePos_t& node0 = _nodepos_v[2*min_segidx];
-        NodePos_t& node1 = _nodepos_v[2*min_segidx+1];
-        node0.inpath = true;
-        node1.inpath = true;
+        NodePos_t* vtxnode  = nodes_near_cluster_start[ivtx];
 
-        // determine which end of the segment is close to the vertex
-        std::vector<float> enddist(2,0);
-        for (int i=0; i<3; i++) {
-          enddist[0] += ( nuvtx.pos[i] - node0.pos[i] )*( nuvtx.pos[i] - node0.pos[i] );
-          enddist[1] += ( nuvtx.pos[i] - node1.pos[i] )*( nuvtx.pos[i] - node1.pos[i] );
+        // veto the other nodes
+        for (int jvtx=0; jvtx<(int)nodes_near_cluster_start.size(); jvtx++) {
+          if ( jvtx!=ivtx && nodes_near_cluster_start[jvtx] )
+            nodes_near_cluster_start[jvtx]->veto = true;
+          if ( nodes_far_cluster_start[jvtx] )
+            nodes_far_cluster_start[jvtx]->veto = true;
         }
+        vtxnode->veto = false;
 
-        NodePos_t* startnode = ( enddist[0]<enddist[1] ) ? &node1 : &node0;
-        NodePos_t* vtxnode   = ( enddist[0]<enddist[1] ) ? &node0 : &node1;
-
-        vtxnode->veto = true;
+        LARCV_DEBUG() << "[NuTrackBuilder] Vertex Cluster end near vertex: "
+                      << "(" << vtxnode->pos[0] << "," << vtxnode->pos[1] << "," << vtxnode->pos[2] << ")"
+                      << std::endl;
         
-        //     LARCV_DEBUG() << " starting track from: (" << startnode->pos[0] << "," << startnode->pos[1] << "," << startnode->pos[2] << ")" << std::endl;
         
         //     // build paths
         //     auto it_segedge12 = _segedge_m.find( std::pair<int,int>(startnode->nodeidx,vtxnode->nodeidx) );
@@ -96,8 +148,6 @@ namespace reco {
         //     std::vector< const std::vector<float>* > path_dir_v;    
         //     std::vector< std::vector<NodePos_t*> > complete_v;
         
-        
-        
         //     // start at startnode
         //     path.clear();
         //     path_dir_v.clear();      
@@ -107,7 +157,7 @@ namespace reco {
         //     LARCV_DEBUG() << "[after start->next] point generated " << complete_v.size() << " possible tracks" << std::endl;
         // }
         
-        buildTracksFromPoint( nuvtx.pos );
+        buildTracksFromPoint( vtxnode->pos );
         
       }
     }

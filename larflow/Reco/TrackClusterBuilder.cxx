@@ -386,13 +386,13 @@ namespace reco {
       }
 
       // add this segment
-      // std::cout << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
-      //           << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
-      //           << "dist=" << gaplen << " "
-      //           << " seg1-seg2=" << segcos
-      //           << " seg1-edge=" << concos1
-      //           << " edge-seg2=" << concos2
-      //           << std::endl;
+      // LARCV_DEBUG() << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
+      //               << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+      //               << "dist=" << gaplen << " "
+      //               << " seg1-seg2=" << segcos
+      //               << " seg1-edge=" << concos1
+      //               << " edge-seg2=" << concos2
+      //               << std::endl;
       
       // criteria for accepting connection
       // ugh, the heuristics ...
@@ -400,10 +400,6 @@ namespace reco {
            || (gaplen>=2.0 && gaplen<10.0 && segcos>0.8 && concos1>0.8 && concos2>0.8 )  // far: everything in the same direction           
            || (gaplen>=10.0 && segcos>0.9 && concos1>0.9 && concos2>0.9 ) ) {  // far: everything in the same direction
 
-        // add this segment
-        // std::cout << "  ==> connect node[" << node.nodeidx << "]->node[" << node.nodeidx << "] "
-        //           << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
-        //           << std::endl;
         //std::cin.get();
         
         NodePos_t& node_pair = _nodepos_v[inode_pair];
@@ -411,7 +407,16 @@ namespace reco {
         path_dir_v.push_back( &segdir );
         path.push_back( &nextnode );
         nconnections++;
+
+        // add this segment
+        LARCV_DEBUG() << "  ==> connected node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "]->node[" << node_pair.nodeidx << "]" << std::endl;
+        LARCV_DEBUG() << "    from: seg[" << node.segidx << "] (" << node.pos[0] << "," << node.pos[1] << "," << node.pos[2] << ")" << std::endl;
+        LARCV_DEBUG() << "    to: seg[" << nextnode.segidx << "] (" << nextnode.pos[0] << "," << nextnode.pos[1] << "," << nextnode.pos[2] << ")"
+                      << "--> (" << node_pair.pos[0] << "," << node_pair.pos[1] << "," << node_pair.pos[2] << ")" << std::endl;
+        
         _recursiveFollowPath( node_pair, segdir, path, path_dir_v, complete );
+        
+        LARCV_DEBUG() << "--- Back to node[" << node.nodeidx << "] ---" << std::endl;
 
         if ( complete.size()>=1000 ) {
           //cut this off!
@@ -822,7 +827,7 @@ namespace reco {
       auto const& seg = _segment_v[iseg];
       float dist = pointLineDistance<float>(  seg.start, seg.end, testpt );
       float proj = pointRayProjection<float>( seg.start, seg.dir, testpt );
-      
+
       if ( proj>-max_dist && proj<=seg.len+max_dist && dist<max_dist ) {
         if ( mindist>dist || min_segidx<0 ) {
           mindist = dist;
