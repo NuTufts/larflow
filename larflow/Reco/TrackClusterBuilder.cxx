@@ -4,6 +4,8 @@
 #include "larflow/Reco/geofuncs.h"
 
 #include "ublarcvapp/ubdllee/dwall.h"
+#include "larflow/Reco/ProjectionDefectSplitter.h"
+#include "larflow/Reco/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -24,8 +26,10 @@ namespace reco {
       = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
     larlite::event_pcaxis* ev_pcaxis
       = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
+    larlite::event_track* ev_track_segments
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
 
-    loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+    loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track_segments );
 
   }
 
@@ -41,17 +45,40 @@ namespace reco {
 
   /**
    * @brief store given clusters and associated principle component info as Segment_t and NodePos_t
+   *
+   * The track segment object is optional.
+   * If the container is empty, the pointer in Segment_t to the track segment
+   * is set to nullptr.
    * 
-   * @param[in] cluster_v Vector of clusters in the form of larflowcluster 
-   * @param[in] pcaxis_v  Principle component analysis info for the clusters in cluster_v
+   * @param[in] cluster_v  Vector of clusters in the form of larflowcluster 
+   * @param[in] pcaxis_v   Principle component analysis info for the clusters in cluster_v
+   * @param[in] trackseg_v List of tracks made by the line-segment fitter in larflow::reco::ProjectionDefectSplitter
    */
   void TrackClusterBuilder::loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
-                                                const larlite::event_pcaxis& pcaxis_v )
+                                                const larlite::event_pcaxis& pcaxis_v,
+                                                const larlite::event_track& trackseg_v )
   {
 
+    if ( trackseg_v.size()>0 && cluster_v.size()!=trackseg_v.size() ) {
+      std::stringstream sserr;
+      sserr << "Number of track segments (" << trackseg_v.size() << ") does not match number of clusters (" << cluster_v.size() << ")" << std::endl;
+      throw std::runtime_error( sserr.str() );
+    }
+
+    if ( pcaxis_v.size()>0 && cluster_v.size()!=pcaxis_v.size() ) {
+      std::stringstream sserr;
+      sserr << "Number of PC axes (" << pcaxis_v.size() << ") does not match number of clusters (" << cluster_v.size() << ")" << std::endl;
+      throw std::runtime_error( sserr.str() );
+    }
+    
     for (int i=0; i<cluster_v.size(); i++) {
+      
       const larlite::larflowcluster& cluster = cluster_v.at(i);
       const larlite::pcaxis& pca = pcaxis_v.at(i);
+
+      const larlite::track* trackseg = nullptr;
+      if ( trackseg_v.size()>0 )
+        trackseg = &trackseg_v.at(i);
 
       // create a segment object
       std::vector<float> start(3,0);
@@ -62,8 +89,9 @@ namespace reco {
       }
 
       Segment_t seg( start, end );
-      seg.cluster = &cluster;
-      seg.pca     = &pca;
+      seg.cluster  = &cluster;
+      seg.pca      = &pca;
+      seg.trackseg = trackseg;
 
       if ( seg.len<1.0 )
         continue;
@@ -646,6 +674,8 @@ namespace reco {
    * We must convert a track defined as a sequence of NodePos_t instances into
    * a larlite track for storage into the output larlite ROOT file.
    *
+   * This builds a track using the pca-axes.
+   *
    * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
    */
   void TrackClusterBuilder::fillLarliteTrackContainer( larlite::event_track& evout_track )
@@ -845,6 +875,210 @@ namespace reco {
     
   }
   
+  /**
+   * @brief store paths we've found as larlite::track objects in the provided event container
+   *
+   * We must convert a track defined as a sequence of NodePos_t instances into
+   * a larlite track for storage into the output larlite ROOT file.
+   *
+   * This builds a track using the fitted line-segment paths.
+   * This will also calculate the average dQ/dx of the larmatch hits
+   * per track segment.
+   *
+   * We stitch by fitting at the boundaries
+   *
+   * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
+   * @param[in]  adc_v Wire plane images used to get dQ/dx
+   *
+   */
+  void TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,
+                                                                      const std::vector<larcv::Image2D>& adc_v )
+  {
+
+    struct TrackSeg_t {
+      TVector3 start;
+      TVector3 end;
+      TVector3 dir;
+      TVector3 dqdx;
+      int segidx;
+    };
+
+    for ( size_t itrack=0; itrack<_track_proposal_v.size(); itrack++ ) {
+
+      auto const& path = _track_proposal_v[itrack];
+
+      if ( path.size()<=1 )
+        continue;
+
+      // check that we have the track objects we need
+      for ( auto const& node : path ) {
+        auto const& seg = _segment_v[node->segidx];
+        if ( seg.trackseg==nullptr) {
+          std::stringstream ss;
+          ss << "Reco Track[" << itrack << "] does not have a track object as needed" << std::endl;
+          throw std::runtime_error(ss.str());
+        }
+      }
+
+      // first step, collect track points, resort 
+      std::vector< TrackSeg_t > seg_v;
+
+      std::cout << "[TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack] PATH " << itrack << std::endl;
+      
+      for (int inode=1; inode<path.size(); inode++ ) {
+
+        const NodePos_t* node     = path[inode];   // end of segment
+        const NodePos_t* nodeprev = path[inode-1]; // start of segment
+        
+        if ( node->segidx!=nodeprev->segidx ) {
+          // not the node set we need
+          continue;
+        }
+
+        const Segment_t& seg = _segment_v.at(node->segidx);
+
+        const larlite::track& track = *seg.trackseg;
+        const int npts = track.NumberTrajectoryPoints();
+        
+        int seg_reversed = 0;
+
+        float start_dist[2] = { 0.0, 0.0 };
+        for (int i=0; i<3; i++) {
+          start_dist[0] += (nodeprev->pos[i]-track.LocationAtPoint(0)[i] )*( nodeprev->pos[i]-track.LocationAtPoint(0)[i] );
+          start_dist[1] += (node->pos[i]-track.LocationAtPoint(0)[i] )*( node->pos[i]-track.LocationAtPoint(0)[i] );
+        }
+        if ( start_dist[0]>start_dist[1] ) {
+          seg_reversed = 1;
+        }
+
+        int istart = 0;
+        int iend = npts;
+        int di = 1;
+        if ( seg_reversed ) {
+          istart = npts-1;
+          iend = -1;
+          di = -1;
+        }
+        for (int istep=istart; istep!=iend; istep+=di ) {
+          TrackSeg_t segpt;
+          segpt.start = track.LocationAtPoint(istep);
+          segpt.segidx = node->segidx;
+          seg_v.push_back( segpt );
+        }
+        
+      }//end of loop over nodes
+
+      std::cout << "  number of sorted track points: " << seg_v.size() << std::endl;
+
+      // now that the points are all realigned, we can look for segment transitions
+      std::vector< TrackSeg_t > stitched_v;
+      int last_segidx = -1;
+      int last_fill_step = -1;
+      for ( int istep=0; istep<(int)seg_v.size(); istep++ ) {
+        int segidx = seg_v[istep].segidx;
+        if ( segidx!=last_segidx && last_segidx!=-1 ) {
+
+          std::cout << "segment transition: " << last_segidx << "->" << segidx << std::endl;
+          
+          // segment transition
+          int iprev_start=istep-3;
+          if ( iprev_start<0 )
+            iprev_start = 0;
+          
+          int inext=istep+2;
+          if ( inext>=(int)seg_v.size() )
+            inext = (int)seg_v.size()-1;
+
+          if ( (inext-iprev_start) <=1 ) {
+            std::cout << "simple transition: fill " << last_fill_step << " to " << istep << std::endl;
+            // dont do anything fancy with gap
+            // simply merge up to current location
+            for (int jstep=last_fill_step+1; jstep<=istep; jstep++) {
+              stitched_v.push_back( seg_v[jstep] );
+            }
+            last_fill_step = istep;
+          }
+          else {
+            // we are going to gather the hits between the iprev_start and inext steps
+            // and fit them to a new segment
+            std::cout << "fit gap transition" << std::endl;
+            
+            // define a line segment
+            std::vector< float > gap_start(3);
+            std::vector< float > gap_end(3);
+            std::vector< float > gap_dir(3);
+            float gaplen = 0.;
+            for (int i=0; i<3; i++) {
+              gap_start[i] = seg_v[iprev_start].start[i];
+              gap_end[i] = seg_v[inext].start[i];
+              gap_dir[i] = gap_end[i]-gap_start[i];
+              gaplen += gap_dir[i]*gap_dir[i];
+            }
+            gaplen = sqrt(gaplen);
+            for (int i=0; i<3; i++)
+              gap_dir[i] /= gaplen;
+
+            // loop over cluster hits
+            // of our two segments
+
+            larflow::reco::cluster_t gapcluster;
+            const larlite::larflowcluster* lfclusters[2] = { _segment_v[last_segidx].cluster, _segment_v[segidx].cluster };
+            larlite::event_larflow3dhit gap_lfhit;
+            for (int ic=0; ic<2; ic++) {
+              for (auto const& lfhit : *(lfclusters[ic]) ) {
+                std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
+                float s = larflow::reco::pointRayProjection<float>( gap_start, gap_dir, hit );
+                //float r = larflow::reco::pointLineDistance<float>( gap_start, gap_end, hit );
+                if ( s>=0 && s<=gaplen) {
+                  gapcluster.points_v.push_back( hit );
+                  gap_lfhit.push_back( lfhit );
+                  gapcluster.hitidx_v.push_back( (int)gap_lfhit.size()-1 );
+                }
+              }//end of hit loop
+            }//end of cluster loop
+            std::cout << "gap cluster has " << gapcluster.points_v.size() << " hits" << std::endl;
+            
+            larflow::reco::cluster_pca( gapcluster );
+            larlite::track gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
+
+            // fill up to the gap
+            for (int jstep=last_fill_step+1; jstep<iprev_start; jstep++) {
+              stitched_v.push_back( seg_v[jstep] );
+            }
+            for (int i=0; i<(int)gaptrack.NumberTrajectoryPoints()-1; i++) {
+              TrackSeg_t gappt;
+              gappt.start = gaptrack.LocationAtPoint(i);
+              gappt.segidx = -1; // gap label
+              stitched_v.push_back( gappt );
+            }
+            std::cout << "number of hits in stitched track after gap fit: " << stitched_v.size() << std::endl;
+            last_fill_step = inext;
+          }//if valid gap size
+
+        }// if at segment transition
+        last_segidx = segidx;
+      }//end of step loop through full track
+
+      // last segment wont have a transition
+      for (int jstep=last_fill_step+1; jstep<(int)seg_v.size(); jstep++) {
+        stitched_v.push_back( seg_v[jstep] );
+      }
+      
+
+      std::cout << "  number of stitched track points: " << stitched_v.size() << std::endl;      
+
+      larlite::track lltrack;
+      lltrack.reserve( stitched_v.size() );
+      for (auto const& trkpt : stitched_v ) {
+        lltrack.add_vertex( trkpt.start );
+        lltrack.add_direction( TVector3(0,0,0) );
+      }
+      std::cout << "Number of track points: " << lltrack.NumberTrajectoryPoints() << std::endl;
+      
+      evout_track.emplace_back( std::move(lltrack) );
+    }//end of loop over tracks
+    
+  }
   
 }
 }

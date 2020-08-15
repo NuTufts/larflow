@@ -121,14 +121,16 @@ namespace reco {
 
     bool _fit_line_segments_to_clusters; ///< if true, run routine to fit line segments to the different clusters
 
-    void _fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
-                                     const larlite::event_larflow3dhit& lfhit_v,
-                                     const std::vector<larcv::Image2D>& adc_v,
-                                     larlite::event_track& evout_track );
+  public:
     
-    larlite::track _fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
-                                             const larlite::event_larflow3dhit& lfhit_v,
-                                             const std::vector<larcv::Image2D>& adc_v );
+    static void fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+                                           const larlite::event_larflow3dhit& lfhit_v,
+                                           const std::vector<larcv::Image2D>& adc_v,
+                                           larlite::event_track& evout_track );
+    
+    static larlite::track fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+                                                   const larlite::event_larflow3dhit& lfhit_v,
+                                                   const std::vector<larcv::Image2D>& adc_v );
   public:
 
     /** @brief set the flag that determines if linesegments are fit to the clusters */

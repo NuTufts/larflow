@@ -52,7 +52,9 @@ namespace reco {
         = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       larlite::event_pcaxis* ev_pcaxis
         = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
-      loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+      larlite::event_track* ev_track
+        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
+      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
     }
     
     buildNodeConnections();

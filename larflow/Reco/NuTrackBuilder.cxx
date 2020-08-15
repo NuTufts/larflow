@@ -1,5 +1,6 @@
 #include "NuTrackBuilder.h"
 #include "larflow/Reco/cluster_functions.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 
 namespace larflow {
 namespace reco {
@@ -33,10 +34,12 @@ namespace reco {
         = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       larlite::event_pcaxis* ev_pcaxis
         = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);      
-      loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+      larlite::event_track* ev_track
+        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);      
+      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
       
     }
-    
+
     buildNodeConnections();
     
     set_output_one_track_per_startpoint( false );
@@ -162,10 +165,18 @@ namespace reco {
       }
     }
 
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
+    
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack");
+    larlite::event_track* evout_track_fitted
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack_fitted");
 
-    fillLarliteTrackContainer( *evout_track );
+    fillLarliteTrackContainer( *evout_track );    
+    fillLarliteTrackContainerWithFittedTrack( *evout_track_fitted, adc_v );
+
     
   }
   

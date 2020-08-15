@@ -71,7 +71,7 @@ namespace reco {
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
     if ( _fit_line_segments_to_clusters )
-      _fitLineSegmentsToClusters( cluster_track_v, *ev_lfhits, adc_v, *evout_track );
+      fitLineSegmentsToClusters( cluster_track_v, *ev_lfhits, adc_v, *evout_track );
     
 
     // FORM OUTPUTS
@@ -791,13 +791,13 @@ namespace reco {
    * @param[out] evout_track Container of tracks made of the fitted line segments to the clusters. 
    *                         Should be same length as cluster_v.
    */
-  void ProjectionDefectSplitter::_fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+  void ProjectionDefectSplitter::fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
                                                              const larlite::event_larflow3dhit& lfhit_v,
                                                              const std::vector<larcv::Image2D>& adc_v,
                                                              larlite::event_track& evout_track )
   {
     for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
-      larlite::track lltrack = _fitLineSegmentToCluster( cluster_v[icluster], lfhit_v, adc_v );
+      larlite::track lltrack = fitLineSegmentToCluster( cluster_v[icluster], lfhit_v, adc_v );
       evout_track.emplace_back( std::move(lltrack) );
     }
   }
@@ -812,7 +812,7 @@ namespace reco {
    * @param[in] adc_v Wire plane images
    * @return Line segments fitted to cluster in the form of a larlite track object
    */
-  larlite::track ProjectionDefectSplitter::_fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+  larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
                                                                      const larlite::event_larflow3dhit& lfhit_v,
                                                                      const std::vector<larcv::Image2D>& adc_v )                                                             
   {
