@@ -1040,16 +1040,36 @@ namespace reco {
             
             larflow::reco::cluster_pca( gapcluster );
             larlite::track gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
-
+            int npts_gaptrack = gaptrack.NumberTrajectoryPoints();
+            std::cout << "number of points in the fitted gap track: " << npts_gaptrack << std::endl;
+            
             // fill up to the gap
             for (int jstep=last_fill_step+1; jstep<iprev_start; jstep++) {
               stitched_v.push_back( seg_v[jstep] );
             }
-            for (int i=0; i<(int)gaptrack.NumberTrajectoryPoints()-1; i++) {
-              TrackSeg_t gappt;
-              gappt.start = gaptrack.LocationAtPoint(i);
-              gappt.segidx = -1; // gap label
-              stitched_v.push_back( gappt );
+
+            // is the fitted track in the forward or reverse direction?
+            float trackdist[2] = {0,0};
+            for (int i=0; i<3; i++) {
+              trackdist[0] += (gaptrack.LocationAtPoint(0)[i]-gap_start[i])*(gaptrack.LocationAtPoint(0)[i]-gap_start[i]);
+              trackdist[1] += (gaptrack.LocationAtPoint(npts_gaptrack-1)[i]-gap_start[i])*(gaptrack.LocationAtPoint(npts_gaptrack-1)[i]-gap_start[i]);
+            }
+
+            if ( trackdist[0]<trackdist[1] ) {          
+              for (int i=0; i<npts_gaptrack; i++) {
+                TrackSeg_t gappt;
+                gappt.start = gaptrack.LocationAtPoint(i);
+                gappt.segidx = -1; // gap label
+                stitched_v.push_back( gappt );
+              }
+            }
+            else {
+              for (int i=0; i<npts_gaptrack-1; i++) {
+                TrackSeg_t gappt;
+                gappt.start = gaptrack.LocationAtPoint(npts_gaptrack-i-1);
+                gappt.segidx = -1; // gap label
+                stitched_v.push_back( gappt );
+              }
             }
             std::cout << "number of hits in stitched track after gap fit: " << stitched_v.size() << std::endl;
             last_fill_step = inext;
