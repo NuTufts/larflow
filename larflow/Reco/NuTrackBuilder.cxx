@@ -140,26 +140,7 @@ namespace reco {
         LARCV_DEBUG() << "[NuTrackBuilder] Vertex Cluster end near vertex: "
                       << "(" << vtxnode->pos[0] << "," << vtxnode->pos[1] << "," << vtxnode->pos[2] << ")"
                       << std::endl;
-        
-        
-        //     // build paths
-        //     auto it_segedge12 = _segedge_m.find( std::pair<int,int>(startnode->nodeidx,vtxnode->nodeidx) );
-        //     auto it_segedge21 = _segedge_m.find( std::pair<int,int>(vtxnode->nodeidx,startnode->nodeidx) );    
-        //     std::vector<float>& path_dir = it_segedge21->second.dir;
-        
-        //     std::vector< NodePos_t* > path;
-        //     std::vector< const std::vector<float>* > path_dir_v;    
-        //     std::vector< std::vector<NodePos_t*> > complete_v;
-        
-        //     // start at startnode
-        //     path.clear();
-        //     path_dir_v.clear();      
-        //     path.push_back( startnode );
-        //     path_dir_v.push_back( &path_dir );    
-        //     _recursiveFollowPath( *startnode, path_dir, path, path_dir_v, complete_v );
-        //     LARCV_DEBUG() << "[after start->next] point generated " << complete_v.size() << " possible tracks" << std::endl;
-        // }
-        
+                       
         buildTracksFromPoint( vtxnode->pos );
         
       }
