@@ -15,11 +15,11 @@ LDFLAGS+=`larlite-config --libs`
 LDFLAGS+=`root-config --libs`
 
 
-all: kpsreco_vertexana
+all: kpsreco_vertexana CRTana
 
 %: %.cxx
 	@echo "<< compile $@ >>"
 	$(CXX) $(CXXFLAGS)  $< -o $@ $(LDFLAGS)
 
 clean:
-	@rm truthana_larmatch keypoint_truthana keypoint_recoana
+	@rm truthana_larmatch keypoint_truthana keypoint_recoana CRTana
