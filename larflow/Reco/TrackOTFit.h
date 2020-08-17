@@ -3,6 +3,14 @@
 
 #include <vector>
 
+namespace larcv {  
+  class Image2D;
+}
+
+namespace larlite {
+  class larflow3dhit;
+}
+
 namespace larflow {
 namespace reco {
 
@@ -44,6 +52,11 @@ namespace reco {
                                              float& loss,
                                              float& totweight,
                                              std::vector<float>& grad );
+
+    static void addLarmatchScoreAndChargeFeatures( std::vector< std::vector<float> >& point_v,
+                                                   const std::vector<larlite::larflow3dhit>& lfhit_v,                                                   
+                                                   const std::vector<larcv::Image2D>& adc_v );
+
     
   };
   

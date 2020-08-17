@@ -4,6 +4,9 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "larcv/core/DataFormat/Image2D.h"
+#include "DataFormat/larflow3dhit.h"
+
 namespace larflow {
 namespace reco {
 
@@ -269,5 +272,67 @@ namespace reco {
 
   }
   
+  /**
+   * @brief extend position vectors in points_v to include charge and larmatch score
+   *
+   * This info is used in the fitting routines.
+   * The charge returned is the smallest non-zero value, aiming to get the most orthogonal projection.
+   *
+   */
+  void TrackOTFit::addLarmatchScoreAndChargeFeatures( std::vector< std::vector<float> >& point_v,
+                                                      const std::vector<larlite::larflow3dhit>& lfhit_v,
+                                                      const std::vector<larcv::Image2D>& adc_v )
+  {
+    
+    int nhits = point_v.size();
+
+    const int nrows = adc_v.front().meta().rows();
+    const int nplanes = adc_v.size();
+    
+    // get the charge of the point
+    for (int ihit=0; ihit<nhits; ihit++) {
+      
+      int orig_len = point_v[ihit].size();
+      point_v[ihit].resize( orig_len+2, 0 );
+      
+      std::vector<int> imgcoord = { lfhit_v[ihit].targetwire[0],
+                                    lfhit_v[ihit].targetwire[1],
+                                    lfhit_v[ihit].targetwire[2],
+                                    0 };
+      imgcoord[3] = adc_v.front().meta().row( lfhit_v[ihit].tick );
+      std::vector<float> qpix( nplanes, 0 );
+      std::vector<int>   npix( nplanes, 0 );
+      for (int dr=-2; dr<=2; dr++) {
+        int r = imgcoord[3]+dr;
+        if ( r<0 || r>=nrows )
+          continue;      
+        for (int p=0; p<(int)nplanes; p++) {
+          const larcv::Image2D& img = adc_v[p];
+          qpix[p] += img.pixel( r, imgcoord[p] );
+          npix[p]++;
+        }
+      }
+      
+      for (int p=0; p<(int)nplanes;p++) {
+        if ( npix[p]>0 )
+          qpix[p] /= (float)npix[p];
+      }
+      
+      // get smallest non-zero value
+      // this means this wire has the most orthognal projection
+      std::sort( qpix.begin(), qpix.end() );
+      
+      for (int p=0; p<3; p++) {
+        if ( qpix[p]>0 ) {
+          point_v[ihit][orig_len] = qpix[p];
+          break;
+        }
+      }
+      
+      point_v[ihit][orig_len+1] = lfhit_v[ihit].track_score;
+      
+    }//end of hit loop
+
+  }
 }
 }
