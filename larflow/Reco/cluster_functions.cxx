@@ -320,7 +320,7 @@ namespace reco {
     cluster.pca_proj_v.resize( ordered_v.size() );
     for ( size_t i=0; i<ordered_v.size(); i++ ) {
       cluster.ordered_idx_v[i] = ordered_v[i].idx;
-      cluster.pca_proj_v[i]    = ordered_v[i].s;
+      cluster.pca_proj_v[i]    = ordered_v[i].s - ordered_v.front().s; // set first point to zero
     }
 
     // define ends
@@ -872,6 +872,7 @@ namespace reco {
     float r = len1x2/cluster.pca_len;
     return r;
   }
+
   
 }
 }
