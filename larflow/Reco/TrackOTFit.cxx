@@ -62,25 +62,25 @@ namespace reco {
       }
       current_loss = iter_loss;
 
-      std::cout << "[TrackOTFit::fit_segment] iter[" << iter << "] "
-                << " grad=(" << iter_grad[0] << "," << iter_grad[1] << "," << iter_grad[2] << ")"
-                << " len=" << sqrt(gradlen)
-                << " currentvtx=(" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")"
-                << " loss=" << current_loss
-                << std::endl;
+      // std::cout << "[TrackOTFit::fit_segment] iter[" << iter << "] "
+      //           << " grad=(" << iter_grad[0] << "," << iter_grad[1] << "," << iter_grad[2] << ")"
+      //           << " len=" << sqrt(gradlen)
+      //           << " currentvtx=(" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")"
+      //           << " loss=" << current_loss
+      //           << std::endl;
       
       if ( sqrt(gradlen)<1.0e-3 )
         break;
       iter++;
     }
 
-    std::cout << "[TrackOTFit::fit_segment] FIT RESULTS -----------------" << std::endl;
-    std::cout << "  num iterations: " << iter << std::endl;
-    std::cout << "  original vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
-    std::cout << "  final vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
-    std::cout << "  original loss: " << first_loss << std::endl;
-    std::cout << "  current loss: " << current_loss << std::endl;    
-    std::cout << "-----------------------------------------------------------" << std::endl;
+    // std::cout << "[TrackOTFit::fit_segment] FIT RESULTS -----------------" << std::endl;
+    // std::cout << "  num iterations: " << iter << std::endl;
+    // std::cout << "  original vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
+    // std::cout << "  final vertex: (" << current_segment[1][0] << "," << current_segment[1][1] << "," << current_segment[1][2] << ")" << std::endl;
+    // std::cout << "  original loss: " << first_loss << std::endl;
+    // std::cout << "  current loss: " << current_loss << std::endl;    
+    // std::cout << "-----------------------------------------------------------" << std::endl;
 
     initial_segment[1] = current_segment[1];
     

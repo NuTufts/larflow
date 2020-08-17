@@ -984,7 +984,7 @@ namespace reco {
           seglen += segdir[i]*segdir[i];
         }
       }
-      else {
+      else if (iseg-1>=0) {
         auto const& prevpt = final_segment_v[iseg-1];
         for (int i=0; i<3; i++) {
           segdir[i] = pt[i]-prevpt[i];
@@ -998,41 +998,54 @@ namespace reco {
           segdir[i] /= seglen;
       }
       trackout.add_direction( segdir );
-
     }
+    std::cout << "Fitted track with " << trackout.NumberTrajectoryPoints() << " points" << std::endl;
 
     // define average dqdx per segment
     // use the fact that the segments should be in order
-    int last_segid = -1;
-    float current_seg_q = 0.;
-    int num_hit_q = 0;
-    std::vector<double> dqdx_v( final_segment_v.size(), 0 );
+    std::map<int,float> segment_q_m;
+    std::map<int,int>   segment_nhit_m;
+    
     for (int ihit=0; ihit<nhits; ihit++) {
+
+      if ( lm_v[ihit]<0.5 )
+        continue;
+      
+      // end of a segment (or last hit)
       int segidx = segindex_v[ihit];
-      if ( last_segid!=segidx && last_segid>=0 ) {
-        // end of a segment
 
-        float dqdx = 0.0;
-        if ( num_hit_q>0 )
-          dqdx = current_seg_q/float(num_hit_q);
-
-        dqdx_v[segidx] = dqdx;
-        
-        // reset segment vars
-        current_seg_q = 0.;
-        num_hit_q = 0;
-        
+      auto it_qseg = segment_q_m.find( segidx );
+      if ( it_qseg==segment_q_m.end() ) {
+        segment_q_m[segidx] = 0.0;
+        segment_nhit_m[segidx] = 0;
+        it_qseg = segment_q_m.find(segidx);
       }
       
-      if ( lm_v[ihit]>0.5 ){
-        // continue a segment
-        current_seg_q += q_v[ihit];
-        num_hit_q++;
-      }
-      last_segid = segidx;
+      auto it_nhit = segment_nhit_m.find( segidx );
+      
+      // continue a segment
+      it_qseg->second += q_v[ihit];
+      it_nhit->second += 1;
     }
-    trackout.add_dqdx( dqdx_v );
 
+    std::vector<double> dqdx_v;
+    for (int iseg=0; iseg<nsegments; iseg++) {
+      float dqdx = 0.;
+      if ( segment_q_m.find(iseg)!=segment_q_m.end() ) {
+        auto it_qseg = segment_q_m.find(iseg);
+        auto it_nhit = segment_nhit_m.find(iseg);
+        if ( it_nhit->second>0 ) {
+          dqdx = it_qseg->second/float(it_nhit->second);
+        }
+      }
+      dqdx_v.push_back(dqdx);
+    }
+    dqdx_v.push_back(0);
+    for (int p=0; p<3; p++) 
+      trackout.add_dqdx( dqdx_v );
+    
+    std::cout << "Added " << dqdx_v.size() << " dqdx points to track" << std::endl;
+    
     return trackout;
   }  
   
