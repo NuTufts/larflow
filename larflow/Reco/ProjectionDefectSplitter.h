@@ -130,7 +130,8 @@ namespace reco {
     
     static larlite::track fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
                                                    const larlite::event_larflow3dhit& lfhit_v,
-                                                   const std::vector<larcv::Image2D>& adc_v );
+                                                   const std::vector<larcv::Image2D>& adc_v,
+                                                   const float max_line_seg_cm=5.0);
   public:
 
     /** @brief set the flag that determines if linesegments are fit to the clusters */

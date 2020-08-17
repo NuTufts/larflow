@@ -813,11 +813,10 @@ namespace reco {
    * @return Line segments fitted to cluster in the form of a larlite track object
    */
   larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
-                                                                     const larlite::event_larflow3dhit& lfhit_v,
-                                                                     const std::vector<larcv::Image2D>& adc_v )                                                             
+                                                                    const larlite::event_larflow3dhit& lfhit_v,
+                                                                    const std::vector<larcv::Image2D>& adc_v,
+                                                                    const float max_line_seg_cm )
   {
-
-    const float max_line_seg_cm = 5.0;
 
     float pca_len = cluster.pca_len;
 
@@ -842,6 +841,8 @@ namespace reco {
     
     // get the charge of the point
     std::vector<float> q_v( nhits, 0);
+    std::vector<int> qplane_v( nhits, -1);
+    
     for (int ihit=0; ihit<nhits; ihit++) {
       std::vector<int> imgcoord = { lfhit_v[ihit].targetwire[0],
                                     lfhit_v[ihit].targetwire[1],
@@ -873,6 +874,7 @@ namespace reco {
       for (int p=0; p<3; p++) {
         if ( qpix[p]>0 ) {
           q_v[ihit] = qpix[p];
+          qplane_v[ihit] = p;          
           break;
         }
       }
@@ -967,10 +969,69 @@ namespace reco {
 
     // done fitting, make larlite track object
     larlite::track trackout;
-    for ( auto const& pt : final_segment_v ) {
+    std::vector<float> seglen_v(final_segment_v.size(),1.0);
+    for (int iseg=0; iseg<(int)final_segment_v.size(); iseg++) {
+      auto const& pt = final_segment_v[iseg];
       trackout.add_vertex( TVector3( pt[0], pt[1], pt[2] ) );
-      trackout.add_direction( TVector3( 0, 0, 0 ) );      
+
+      TVector3 segdir(0,0,0);
+      float seglen = 0.;
+      
+      if ( iseg+1<final_segment_v.size() ) {
+        auto const& nextpt = final_segment_v[iseg+1];
+        for (int i=0; i<3; i++) {
+          segdir[i] = nextpt[i]-pt[i];
+          seglen += segdir[i]*segdir[i];
+        }
+      }
+      else {
+        auto const& prevpt = final_segment_v[iseg-1];
+        for (int i=0; i<3; i++) {
+          segdir[i] = pt[i]-prevpt[i];
+          seglen += segdir[i]*segdir[i];
+        }
+      }
+      seglen = sqrt(seglen);
+      seglen_v[iseg] = seglen;
+      if ( seglen>0 ) {
+        for (int i=0; i<3; i++)
+          segdir[i] /= seglen;
+      }
+      trackout.add_direction( segdir );
+
     }
+
+    // define average dqdx per segment
+    // use the fact that the segments should be in order
+    int last_segid = -1;
+    float current_seg_q = 0.;
+    int num_hit_q = 0;
+    std::vector<double> dqdx_v( final_segment_v.size(), 0 );
+    for (int ihit=0; ihit<nhits; ihit++) {
+      int segidx = segindex_v[ihit];
+      if ( last_segid!=segidx && last_segid>=0 ) {
+        // end of a segment
+
+        float dqdx = 0.0;
+        if ( num_hit_q>0 )
+          dqdx = current_seg_q/float(num_hit_q);
+
+        dqdx_v[segidx] = dqdx;
+        
+        // reset segment vars
+        current_seg_q = 0.;
+        num_hit_q = 0;
+        
+      }
+      
+      if ( lm_v[ihit]>0.5 ){
+        // continue a segment
+        current_seg_q += q_v[ihit];
+        num_hit_q++;
+      }
+      last_segid = segidx;
+    }
+    trackout.add_dqdx( dqdx_v );
 
     return trackout;
   }  
