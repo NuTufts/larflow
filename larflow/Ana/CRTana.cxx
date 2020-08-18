@@ -157,11 +157,21 @@ int main( int nargs, char** argv ) {
 
 
     }
-        
-    
+           
   }
 
   // Outside event loop
+  for (int i = 0; i < xyzBins[0]; i++) {
+    for (int j = 0; j < xyzBins[1]; j++) {
+      for (int k = 0; k < xyzBins[2]; k++) {
+	
+	//	std::cout << hitcount_xyz_th3d->GetBinContent(i, j, k) << std::endl;
+	hitsPerVoxel = hitcount_xyz_th3d->GetBinContent(i, j, k);
+	tree->Fill();
+
+      }
+    }
+  }
   
   outfile->Write();
   outfile->Close();
