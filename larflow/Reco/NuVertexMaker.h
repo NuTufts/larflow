@@ -83,6 +83,18 @@ namespace reco {
 
     /** @brief get candidates after optimizing vertex position */
     const std::vector<NuVertexCandidate>& get_fitted_candidates() const { return _fitted_v; };            
+
+    /** @brief get mutable initial candidates */
+    std::vector<NuVertexCandidate>& get_mutable_nu_candidates() { return _vertex_v; };
+
+    /** @brief get mutable candidates after vetoing using cosmics */
+    std::vector<NuVertexCandidate>& get_mutable_vetoed_candidates() { return _vetoed_v; };
+
+    /** @brief get mutable candidates after merging nearby candidates (in 3D space) */
+    std::vector<NuVertexCandidate>& get_mutable_merged_candidates() { return _merged_v; };
+
+    /** @brief get mutable candidates after optimizing vertex position */
+    std::vector<NuVertexCandidate>& get_mutable_fitted_candidates() { return _fitted_v; };            
     
     void clear();
     

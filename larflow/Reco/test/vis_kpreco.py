@@ -86,7 +86,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     vtxinfo = []
-    for ivtx in range( kpsanatree.nuvetoed_v.size() ):
+    for ivtx in range( kpsanatree.nufitted_v.size() ):
         vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvetoed_v.at(ivtx).score ), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
@@ -134,11 +134,37 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
 
+        # PLOT TRACK FOR VERTEX
+        print("VERTEX[%d] HAS %d TRACKS"%(ivtx,vertexcand_fit.track_v.size()))
+        for itrack in range(vertexcand_fit.track_v.size()):
+            track = vertexcand_fit.track_v.at(itrack)
+            trktrace = lardly.data.visualize_larlite_track( track )
+            trktrace["name"] = "V[%d]-T[%d]"%(ivtx,itrack)
+            trktrace["line"]["color"] = "rgb(0,255,255)"
+            trktrace["line"]["width"] = 5
+            trktrace["line"]["opacity"] = 1.0
+            traces_v.append( trktrace )
+
+        # PLOT SHOWER FOR VERTEX
+        print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,vertexcand_fit.shower_v.size()))        
+        for ishower in range(vertexcand_fit.shower_v.size()):
+            shower = vertexcand_fit.shower_v.at(ishower)
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d]"%(ivtx,ishower) )
+            rgbcolor = np.random.randint(255,size=3)
+            cluster_trace["marker"]["color"] = "rgb(%d,%d,0)"%(rgbcolor[0],rgbcolor[1])
+            cluster_trace["marker"]["opacity"] = 0.5
+            cluster_trace["marker"]["size"] = 2.0
+            traces_v.append(cluster_trace)            
+        
+
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.5),
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.5)]
-    for (name,producer,rgbcolor,opa) in clusters:
+    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15,True),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.5,True),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.5,False)]
+    for (name,producer,rgbcolor,opa,plotme) in clusters:
+        if not plotme:
+            continue
+        
         ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
         ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
         print("plot pca clusters: ",producer,ev_trackcluster)
@@ -159,10 +185,12 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( pcatrace )
             
     # TRACK RECO
-    for name,track_producer,zrgb in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)"),
-                                     ("CTRK","containedcosmic","rgb(100,0,50)"),
-                                     ("NUTRK","nutrack_fitted","rgb(0,100,50)")]:
+    for name,track_producer,zrgb,plotme in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)",False),
+                                     ("CTRK","containedcosmic","rgb(100,0,50)",False),
+                                     ("NUTRK","nutrack_fitted","rgb(0,100,50)",False)]:
         if False and name in ["NUTRK"]:
+            continue
+        if not plotme:
             continue
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
         for itrack in xrange(ev_track.size()):

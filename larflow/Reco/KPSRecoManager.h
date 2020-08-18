@@ -28,6 +28,7 @@
 #include "NuVertexMaker.h"
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
+#include "NuShowerBuilder.h"
 
 namespace larflow {
 namespace reco {
@@ -66,7 +67,8 @@ namespace reco {
     NuVertexMaker       _nuvertexmaker; ///< make proto-vertices from prongs
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
-    NuTrackBuilder      _nu_track_builder; ///< build tracs for non-comic track clusters
+    NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
+    NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
     // Algorithms
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

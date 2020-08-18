@@ -17,7 +17,7 @@ namespace reco {
    */
   void NuTrackBuilder::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
-                                const std::vector<NuVertexCandidate>& nu_candidate_v )
+                                std::vector<NuVertexCandidate>& nu_candidate_v )
   {
 
     // clear segments, connections, proposals
@@ -44,9 +44,23 @@ namespace reco {
     
     set_output_one_track_per_startpoint( false );
 
-    for (auto const& nuvtx : nu_candidate_v ) {
+    // wire plane images for getting dqdx later
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
 
-      LARCV_DEBUG() << "/////// [NuTrackBuilder Vertex Start]: "
+    // output containers
+    larlite::event_track* evout_track
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack");
+    larlite::event_track* evout_track_fitted
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack_fitted");
+    
+    for (auto& nuvtx : nu_candidate_v ) {
+
+      nuvtx.track_v.clear();
+      _track_proposal_v.clear(); // clear out track proposals
+
+      LARCV_DEBUG() << "/////// [Vertex Start]: "
                     << "(" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")"
                     << "/////////////"
                     << std::endl;
@@ -143,22 +157,29 @@ namespace reco {
                        
         buildTracksFromPoint( vtxnode->pos );
         
-      }
-    }
+      }//end of loop over vertex clusters
 
-    larcv::EventImage2D* ev_adc =
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
-    auto const& adc_v = ev_adc->Image2DArray();
-    
-    larlite::event_track* evout_track
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack");
-    larlite::event_track* evout_track_fitted
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack_fitted");
 
-    fillLarliteTrackContainer( *evout_track );    
-    fillLarliteTrackContainerWithFittedTrack( *evout_track_fitted, adc_v );
+      // fill track containers for this 
+      larlite::event_track unfitted_v;
+      larlite::event_track fitted_v;
+      fillLarliteTrackContainer( unfitted_v );    
+      fillLarliteTrackContainerWithFittedTrack( fitted_v, adc_v );
+      LARCV_DEBUG() << "Vertex tracks: " << fitted_v.size() << std::endl;
 
-    
+      // pass the fitted tracks to the nu candidate
+      for (auto& fitted : fitted_v )
+        nuvtx.track_v.push_back(fitted);
+
+      // pass the tracks to the output container
+      for ( auto& unfitted : unfitted_v )
+        evout_track->emplace_back( std::move(unfitted) );
+      for ( auto& fitted: fitted_v )
+        evout_track_fitted->emplace_back( std::move(fitted) );
+      
+    }//end of loop over vertex candidates
+
+    LARCV_DEBUG() << "Number of tracks saved: " << evout_track_fitted->size() << std::endl;
   }
   
 }

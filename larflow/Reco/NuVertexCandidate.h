@@ -4,6 +4,8 @@
 
 #include <string>
 #include <vector>
+#include "DataFormat/track.h"
+#include "DataFormat/larflowcluster.h"
 
 namespace larflow {
 namespace reco {
@@ -48,6 +50,9 @@ namespace reco {
     std::vector<float> pos;         ///< keypoint position
     std::vector< VtxCluster_t > cluster_v; ///< clusters assigned to vertex
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster
+
+    std::vector<larlite::track>  track_v;  ///< track candidates
+    std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {

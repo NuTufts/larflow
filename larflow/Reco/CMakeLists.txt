@@ -16,12 +16,13 @@ set( HEADERS cluster_functions.h
   TrackClusterBuilder.h
   CosmicTrackBuilder.h
   ShowerRecoKeypoint.h
-  NuVertexCandidate.h  
+  NuVertexCandidate.h
+  TrackOTFit.h
+  ProjPixFitter.h    
   NuVertexMaker.h
   NuVertexFitter.h  
   NuTrackBuilder.h
-  TrackOTFit.h
-  ProjPixFitter.h  
+  NuShowerBuilder.h  
   KPSRecoManager.h
   ShowerLikelihoodBuilder.h )
 
@@ -39,12 +40,13 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ShowerRecoKeypoint.cxx
   TrackClusterBuilder.cxx
   CosmicTrackBuilder.cxx
-  NuTrackBuilder.cxx
-  NuVertexCandidate.cxx  
-  NuVertexMaker.cxx
-  NuVertexFitter.cxx  
+  NuVertexCandidate.cxx
+  ProjPixFitter.cxx      
   TrackOTFit.cxx
-  ProjPixFitter.cxx  
+  NuVertexMaker.cxx
+  NuVertexFitter.cxx
+  NuTrackBuilder.cxx
+  NuShowerBuilder.cxx  
   KPSRecoManager.cxx  
   ShowerLikelihoodBuilder.cxx )
 

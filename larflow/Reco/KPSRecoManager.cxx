@@ -112,13 +112,7 @@ namespace reco {
       _ana_tree->Fill();
       return;
     }
-    
-    // FILTER KEYPOINTS: To be on clusters larger than X hits
-    // _kpfilter.set_verbosity( larcv::msg::kDEBUG );
-    // _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
-    // _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
-    // _kpfilter.process( iolcv, ioll );
-  
+      
     // PARTICLE FRAGMENT RECO
     recoParticles( iolcv, ioll );
     
@@ -299,7 +293,10 @@ namespace reco {
     // NuTrackBuilder class
     _nu_track_builder.clear();
     _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_fitted_candidates() );
+    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
+    _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     
   }
 
