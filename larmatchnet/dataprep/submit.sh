@@ -6,7 +6,7 @@
 #SBATCH --output=lmkpsdata.log
 #SBATCH --mem-per-cpu=2000
 #SBATCH --time=1-00:00:00
-#SBATCH --array=2-245
+#SBATCH --array=0
 
 container=/cluster/tufts/wongjiradlab/larbys/larbys-containers/singularity_pytorch1.3cpu.simg
 DATA_PREP_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larmatchnet/dataprep
