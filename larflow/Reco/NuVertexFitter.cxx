@@ -36,7 +36,7 @@ namespace reco {
 
     for ( int ivtx=0; ivtx<(int)vertex_v.size(); ivtx++ )  {
 
-      std::cout << "=====[ FITTER VERTEX " << ivtx << " ]========" << std::endl;
+      LARCV_INFO() << "=====[ FITTER VERTEX " << ivtx << " ]========" << std::endl;
       
       const NuVertexCandidate& cand = vertex_v.at(ivtx);
 
@@ -62,8 +62,8 @@ namespace reco {
         cluster_v.push_back( lfcluster );
         pcaxis_v.push_back( lfpca );
 
-        std::cout << "cluster[" << icluster << "]--------------" << std::endl;
-        std::cout << "num hits: " << lfcluster->size() << std::endl;
+        LARCV_DEBUG() << "cluster[" << icluster << "]--------------" << std::endl;
+        LARCV_DEBUG() << "num hits: " << lfcluster->size() << std::endl;
 
         Prong_t prong;
         prong.orig_cluster = lfcluster;
@@ -118,13 +118,13 @@ namespace reco {
             std::sort( planeq_v.begin(), planeq_v.end() );
             ptpos[4] = planeq_v[1];
             
-            std::cout << " pronghit[" << hitidx << "]"
-                      << " pos=(" << lfhit[0] << "," << lfhit[1] << "," << lfhit[2] << ")"
-                      << " row=" << row << " tick=" << lfhit.tick
-                      << " wire=(" << lfhit.targetwire[0] << "," << lfhit.targetwire[1] << "," << lfhit.targetwire[2] << ")"              
-                      << " lmscore=" << lfhit[9]
-                      << " sorted-q=(" << planeq_v[0] << "," << planeq_v[1] << "," << planeq_v[2] << ")"
-                      << std::endl;
+            LARCV_DEBUG() << " pronghit[" << hitidx << "]"
+                          << " pos=(" << lfhit[0] << "," << lfhit[1] << "," << lfhit[2] << ")"
+                          << " row=" << row << " tick=" << lfhit.tick
+                          << " wire=(" << lfhit.targetwire[0] << "," << lfhit.targetwire[1] << "," << lfhit.targetwire[2] << ")"              
+                          << " lmscore=" << lfhit[9]
+                          << " sorted-q=(" << planeq_v[0] << "," << planeq_v[1] << "," << planeq_v[2] << ")"
+                          << std::endl;
             
             prong.feat_v.push_back( ptpos );
             clust.points_v.push_back( ptpos );
@@ -132,7 +132,7 @@ namespace reco {
             clust.hitidx_v.push_back( hitidx );
           }          
         }
-        std::cout << "num with rad of vertex: " << npts_in_radius << std::endl;
+        LARCV_DEBUG() << "num with rad of vertex: " << npts_in_radius << std::endl;
 
         if ( npts_in_radius<5 )
           continue;
@@ -157,7 +157,7 @@ namespace reco {
         prong_v.emplace_back( std::move(prong) );
       }//end of cluster loop
 
-      std::cout << "Fitting Vertex: number of prongs " << prong_v.size() << std::endl;
+      LARCV_INFO() << "Fitting Vertex: number of prongs " << prong_v.size() << std::endl;
 
       if ( prong_v.size()<1 ) {
         // can't do anything
@@ -169,7 +169,7 @@ namespace reco {
       float delta_loss;
       try {
         _fit_vertex( cand.pos, prong_v, fitted_pos, delta_loss );
-        std::cout << "[fit returned.] deltaL=" << delta_loss << std::endl;        
+        LARCV_INFO() << "[fit returned.] deltaL=" << delta_loss << std::endl;        
       }
       catch (...) {
         std::cout << "[fit failed. using old pos]" << std::endl;
@@ -254,25 +254,25 @@ namespace reco {
       }
       current_loss = tot_loss;
 
-      std::cout << "[NuVertexFitter::_fit_vertex] iter[" << iter << "] "
-                << " grad=(" << grad[0] << "," << grad[1] << "," << grad[2] << ")"
-                << " len=" << sqrt(gradlen)
-                << " currentvtx=(" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")"
-                << " loss=" << current_loss
-                << std::endl;
+      LARCV_DEBUG() << " iter[" << iter << "] "
+                    << " grad=(" << grad[0] << "," << grad[1] << "," << grad[2] << ")"
+                    << " len=" << sqrt(gradlen)
+                    << " currentvtx=(" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")"
+                    << " loss=" << current_loss
+                    << std::endl;
 
       if ( sqrt(gradlen)<1.0e-2 )
         break;
       iter++;
     }
 
-    std::cout << "[NuVertexFitter::_fit_vertex] FIT RESULTS -----------------" << std::endl;
-    std::cout << "  num iterations: " << iter << std::endl;
-    std::cout << "  original vertex: (" << initial_vertex_pos[0] << "," << initial_vertex_pos[1] << "," << initial_vertex_pos[2] << ")" << std::endl;
-    std::cout << "  final vertex: (" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")" << std::endl;
-    std::cout << "  original loss: " << first_loss << std::endl;
-    std::cout << "  current loss: " << current_loss << std::endl;    
-    std::cout << "-----------------------------------------------------------" << std::endl;
+    LARCV_INFO() << " --- -------------FIT RESULTS -----------------" << std::endl;
+    LARCV_INFO() << "  num iterations: " << iter << std::endl;
+    LARCV_INFO() << "  original vertex: (" << initial_vertex_pos[0] << "," << initial_vertex_pos[1] << "," << initial_vertex_pos[2] << ")" << std::endl;
+    LARCV_INFO() << "  final vertex: (" << current_vertex[0] << "," << current_vertex[1] << "," << current_vertex[2] << ")" << std::endl;
+    LARCV_INFO() << "  original loss: " << first_loss << std::endl;
+    LARCV_INFO() << "  current loss: " << current_loss << std::endl;    
+    LARCV_INFO() << "-----------------------------------------------" << std::endl;
 
     fitted_pos = current_vertex;
     delta_loss = current_loss-first_loss;

@@ -797,8 +797,26 @@ namespace reco {
                                                              larlite::event_track& evout_track )
   {
     for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
-      larlite::track lltrack = fitLineSegmentToCluster( cluster_v[icluster], lfhit_v, adc_v );
-      evout_track.emplace_back( std::move(lltrack) );
+
+      try {
+        // fit segment
+        larlite::track lltrack = fitLineSegmentToCluster( cluster_v[icluster], lfhit_v, adc_v );
+        evout_track.emplace_back( std::move(lltrack) );              
+      }
+      catch (...)  {
+        // use pca instead :(
+        larlite::track lltrack;
+        lltrack.add_vertex( TVector3(cluster_v[icluster].pca_ends_v[0][0],
+                                     cluster_v[icluster].pca_ends_v[0][1],
+                                     cluster_v[icluster].pca_ends_v[0][2]) );
+        lltrack.add_vertex( TVector3(cluster_v[icluster].pca_ends_v[1][0],
+                                     cluster_v[icluster].pca_ends_v[1][1],
+                                     cluster_v[icluster].pca_ends_v[1][2]) );
+        lltrack.add_direction( TVector3(0,0,0) );
+        lltrack.add_direction( TVector3(0,0,0) );
+        evout_track.emplace_back( std::move(lltrack) );        
+      }
+
     }
   }
 
@@ -999,7 +1017,7 @@ namespace reco {
       }
       trackout.add_direction( segdir );
     }
-    std::cout << "Fitted track with " << trackout.NumberTrajectoryPoints() << " points" << std::endl;
+    //std::cout << "Fitted track with " << trackout.NumberTrajectoryPoints() << " points" << std::endl;
 
     // define average dqdx per segment
     // use the fact that the segments should be in order
@@ -1044,7 +1062,7 @@ namespace reco {
     for (int p=0; p<3; p++) 
       trackout.add_dqdx( dqdx_v );
     
-    std::cout << "Added " << dqdx_v.size() << " dqdx points to track" << std::endl;
+    //std::cout << "Added " << dqdx_v.size() << " dqdx points to track" << std::endl;
     
     return trackout;
   }  

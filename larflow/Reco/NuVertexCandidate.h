@@ -53,6 +53,7 @@ namespace reco {
 
     std::vector<larlite::track>  track_v;  ///< track candidates
     std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
+    std::vector<larlite::track>  shower_trunk_v;   ///< line for shower trunk for plotting
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {

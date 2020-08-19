@@ -242,8 +242,8 @@ namespace reco {
     const float _minsize = 20;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time hits)" << std::endl;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
-    _projsplitter.set_verbosity( larcv::msg::kINFO );    
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );    
+    //_projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_fit_line_segments_to_clusters( true );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
@@ -253,8 +253,10 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
-    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
+    _projsplitter_cosmic.set_fit_line_segments_to_clusters( true );    
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
     _projsplitter_cosmic.process( iolcv, ioll );
 

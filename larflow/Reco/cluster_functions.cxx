@@ -267,6 +267,9 @@ namespace reco {
       }
     }
 
+    if ( eigen_v.size()==0 ) {
+      throw std::runtime_error("cluster_functions.cc:L271 not enough points to take PCA");
+    }
     
     cilantro::PrincipalComponentAnalysis3f pca( eigen_v );
     cluster.pca_center.resize(3,0);

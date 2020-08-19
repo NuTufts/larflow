@@ -148,13 +148,24 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         # PLOT SHOWER FOR VERTEX
         print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,vertexcand_fit.shower_v.size()))        
         for ishower in range(vertexcand_fit.shower_v.size()):
+
             shower = vertexcand_fit.shower_v.at(ishower)
+            shower_trunk = vertexcand_fit.shower_trunk_v.at(ishower)
+            
             cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d]"%(ivtx,ishower) )
+            trunk_trace   = lardly.data.visualize_larlite_track( shower_trunk )
+            
             rgbcolor = np.random.randint(255,size=3)
             cluster_trace["marker"]["color"] = "rgb(%d,%d,0)"%(rgbcolor[0],rgbcolor[1])
             cluster_trace["marker"]["opacity"] = 0.5
             cluster_trace["marker"]["size"] = 2.0
-            traces_v.append(cluster_trace)            
+            traces_v.append(cluster_trace)
+            
+            trunk_trace["line"]["color"] = "rgb(200,0,200)"
+            trunk_trace["line"]["width"] = 5
+            trunk_trace["line"]["opacity"] = 1.0
+            traces_v.append(trunk_trace)            
+
         
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
