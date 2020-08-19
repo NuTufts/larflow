@@ -96,20 +96,25 @@ def make_figures(entry,plotby="truthmatch"):
     traces_v.append( clusterplot )
 
     # make scatter of keypoints
-    kppos = np.zeros( (ev_keypoint.kppos.size(),3) )
-    for i in xrange( kppos.shape[0] ):
-        for v in xrange(3):
-            kppos[i,v] = ev_keypoint.kppos[i][v]
-    kpplot = {
-        "type":"scatter3d",
-        "x":kppos[:,0],
-        "y":kppos[:,1],
-        "z":kppos[:,2],
-        "mode":"markers",
-        "name":"keypoints",
-        "marker":{"color":"rgba(0,255,255,1.0)","size":5},
-    }
-    traces_v.append(kpplot)
+    for kptype,kpcolor in [("trackends","rgb(0,255,0)"),
+                           ("showerstart","rgb(0,0,255)"),
+                           ("nuvertex","rgb(255,0,0)")]:
+        exec("brname=ev_keypoint.kppos_%s"%(kptype))
+        print(brname)
+        kppos = np.zeros( (brname.size(),3) )
+        for i in xrange( kppos.shape[0] ):
+            for v in xrange(3):
+                kppos[i,v] = brname[i][v]
+        kpplot = {
+            "type":"scatter3d",
+            "x":kppos[:,0],
+            "y":kppos[:,1],
+            "z":kppos[:,2],
+            "mode":"markers",
+            "name":"keypoints",
+            "marker":{"color":kpcolor,"size":5},
+        }
+        traces_v.append(kpplot)
 
     return traces_v
 
