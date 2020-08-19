@@ -5,7 +5,7 @@
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
 
 namespace larflow {
-namespace prepflowmatchdata {
+namespace prep {
 
   PrepSSNetTriplet::~PrepSSNetTriplet()
   {
@@ -19,7 +19,7 @@ namespace prepflowmatchdata {
    */
   void PrepSSNetTriplet::make_ssnet_labels( larcv::IOManager& iolcv,
                                             larlite::storage_manager& ioll,
-                                            const larflow::PrepMatchTriplets& tripletmaker ) {
+                                            const larflow::prep::PrepMatchTriplets& tripletmaker ) {
 
     // get truth images
     larcv::EventImage2D* ev_segment =
@@ -65,7 +65,7 @@ namespace prepflowmatchdata {
    *
    */
   void PrepSSNetTriplet::make_trackshower_labels( const std::vector<larcv::Image2D>& segment_v,
-                                                  const larflow::PrepMatchTriplets& tripletmaker,
+                                                  const larflow::prep::PrepMatchTriplets& tripletmaker,
                                                   const std::vector<int>& vtx_imgcoord )
   {
 

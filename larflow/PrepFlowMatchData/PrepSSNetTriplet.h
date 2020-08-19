@@ -15,7 +15,7 @@
 #include "PrepMatchTriplets.h"
 
 namespace larflow {
-namespace prepflowmatchdata {
+namespace prep {
 
   class PrepSSNetTriplet {
   public:
@@ -27,10 +27,10 @@ namespace prepflowmatchdata {
 
     void make_ssnet_labels( larcv::IOManager& iolcv,
                             larlite::storage_manager& ioll,                            
-                            const larflow::PrepMatchTriplets& tripletmaker );
+                            const larflow::prep::PrepMatchTriplets& tripletmaker );
 
     void make_trackshower_labels( const std::vector<larcv::Image2D>& segment_v,
-                                  const larflow::PrepMatchTriplets& tripletmaker,
+                                  const larflow::prep::PrepMatchTriplets& tripletmaker,
                                   const std::vector<int>& vtx_imgcoord );
     
     TTree* _label_tree;
