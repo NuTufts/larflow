@@ -21,8 +21,12 @@
 int main( int nargs, char** argv )
 {
 
-  std::string dlmerged_input_file = "../../../testdata/mcc9_v29e_wc_bnb_overlay_run3g/merged_dlreco_497be540-00f9-49a8-9f80-7846143c4fce.root";  
-  std::string larmatch_input_file = "../../../testdata/mcc9_v29e_wc_bnb_overlay_run3g/larmatch_kps_497be540-00f9-49a8-9f80-7846143c4fce_larlite.root";
+  // std::string dlmerged_input_file = "../../../testdata/mcc9_v29e_wc_bnb_overlay_run3g/merged_dlreco_497be540-00f9-49a8-9f80-7846143c4fce.root";  
+  // std::string larmatch_input_file = "../../../testdata/mcc9_v29e_wc_bnb_overlay_run3g/larmatch_kps_497be540-00f9-49a8-9f80-7846143c4fce_larlite.root";
+
+  std::string dlmerged_input_file = argv[1];
+  std::string larmatch_input_file = argv[2];
+  std::string output_file = argv[3];
 
   larlite::storage_manager io( larlite::storage_manager::kREAD );
   io.add_in_filename( dlmerged_input_file );
@@ -45,7 +49,7 @@ int main( int nargs, char** argv )
   const std::vector<Double_t> orthy = larutil::Geometry::GetME()->GetOrthVectorsY();
   const std::vector<Double_t> orthz = larutil::Geometry::GetME()->GetOrthVectorsZ();
  
-  TFile* out = new TFile("anaout_true_dedx.root","recreate");
+  TFile* out = new TFile(output_file.c_str(),"new");
   TTree* ana = new TTree("anadedx", "Analysis of dQdx using truth tracks");
 
   int pid;
