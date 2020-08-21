@@ -21,7 +21,14 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
     
-color_by_options = ["truthmatch","isclosematch","dist2keypoint","ssnetlabels","ssnetweights"]
+color_by_options = ["truthmatch",
+                    "isclosematch",
+                    "dist2keypoint_nu",
+                    "dist2keypoint_trk",
+                    "dist2keypoint_shr",                    
+                    "ssnetlabels",
+                    "ssnetweights"]
+
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -53,6 +60,7 @@ def make_figures(entry,plotby="truthmatch"):
     ntriplets = triplet._triplet_v.size()
     print("number of triplets: ",ntriplets)
     nsamples = 50000
+    sig = 10.0
     index = np.arange(ntriplets)
     np.random.shuffle(index)
     pos3d = np.zeros( (nsamples,4) )
@@ -76,13 +84,34 @@ def make_figures(entry,plotby="truthmatch"):
     elif plotby=="ssnetweights":
         for i in xrange(nsamples):
             pos3d[i,3] = log(1.0+ev_ssnet.trackshower_weight_v[ index[i] ])
-    elif plotby=="dist2keypoint":
+    elif plotby=="dist2keypoint_nu":
         for i in xrange(nsamples):
-            dist = 0.0
-            for v in xrange(3):
-                dist += ev_keypoint.kplabel[index[i]][v]*ev_keypoint.kplabel[index[i]][v]
-            dist = np.sqrt(dist)
-            pos3d[i,3] = 1.0 + max(30.0-dist,0)/30.0
+            if ev_keypoint.kplabel_nuvertex[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_nuvertex[index[i]][1+v]*ev_keypoint.kplabel_nuvertex[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )
+    elif plotby=="dist2keypoint_trk":
+        for i in xrange(nsamples):
+            if ev_keypoint.kplabel_trackends[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0                
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_trackends[index[i]][1+v]*ev_keypoint.kplabel_trackends[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
+    elif plotby=="dist2keypoint_shr":
+        for i in xrange(nsamples):
+            if ev_keypoint.kplabel_showerstart[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0            
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_showerstart[index[i]][1+v]*ev_keypoint.kplabel_showerstart[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
+
                 
     clusterplot = {
         "type":"scatter3d",
