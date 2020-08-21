@@ -1037,12 +1037,21 @@ namespace reco {
               }//end of hit loop
             }//end of cluster loop
             std::cout << "gap cluster has " << gapcluster.points_v.size() << " hits" << std::endl;
-            
-            larflow::reco::cluster_pca( gapcluster );
-            larlite::track gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
+
+            larlite::track gaptrack;
+            if ( gapcluster.points_v.size()>=5 ) {
+              larflow::reco::cluster_pca( gapcluster );
+              gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
+            }
+            else {
+              gaptrack.add_vertex( TVector3(gap_start[0],gap_start[1],gap_start[2]) );
+              gaptrack.add_vertex( TVector3(gap_end[0],gap_end[1],gap_end[2]) );
+              gaptrack.add_direction( TVector3(0,0,0) );
+              gaptrack.add_direction( TVector3(0,0,0) );
+            }
             int npts_gaptrack = gaptrack.NumberTrajectoryPoints();
-            std::cout << "number of points in the fitted gap track: " << npts_gaptrack << std::endl;
-            
+            std::cout << "number of points in the fitted gap track: " << npts_gaptrack << std::endl;            
+
             // fill up to the gap
             for (int jstep=last_fill_step+1; jstep<iprev_start; jstep++) {
               stitched_v.push_back( seg_v[jstep] );
