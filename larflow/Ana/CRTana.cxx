@@ -30,17 +30,17 @@ int main( int nargs, char** argv ) {
   int wireBins[] = {250, 250, 350};
   int wireMax[] = {2500, 2500, 3500};
 
-  float xyzMin[] = {0., -130., 0.};
-  float xyzMax[] = {250., 130., 1041.};
-  int xyzBins[] = {250, 260, 1041};
+  float xyzMin[] = {0., -117., 0.};
+  float xyzMax[] = {256., 117., 1036.};
+  int xyzBins[] = {256, 234, 1036};
   
   float xzzMin[] = {0., 0., 0.}; 
-  float xzzMax[] = {250., 1041., 1041.};
-  int xzzBins[] = {250, 1041, 1041};
+  float xzzMax[] = {256., 1036., 1036.};
+  int xzzBins[] = {256, 1036, 1036};
   
-  float yyxMin[] = {-130., -130., 0.}; 
-  float yyxMax[] = {130., 130., 250.};
-  int yyxBins[] = {260, 260, 250};
+  float yyxMin[] = {-117., -117., 0.}; 
+  float yyxMax[] = {117., 117., 256.};
+  int yyxBins[] = {234, 234, 256};
 
   // Input for ttree
   int hitsPerVoxel;
@@ -99,7 +99,7 @@ int main( int nargs, char** argv ) {
   TH3D* hitcount_xyz_th3d = nullptr;
   char name[100];
   sprintf( name, "hitcount_xyz_th3d");
-  hitcount_xyz_th3d = new TH3D( name, ";position ;position ; position", (250), 0., 250., (260), -130., 130., (1041), 0., 1041.);
+  hitcount_xyz_th3d = new TH3D( name, ";position ;position ; position", (256/5), 0., 256., (234/5), -117., 117., (1036/5), 0., 1036.);
 
   // Loop over events
   for (int i = startentry; i < (startentry + maxentries); i++) {
@@ -161,9 +161,9 @@ int main( int nargs, char** argv ) {
   }
 
   // Outside event loop
-  for (int i = 1; i <= (xyzBins[0]); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
-    for (int j = 1; j <= (xyzBins[1]); j++) {
-      for (int k = 1; k <= (xyzBins[2]); k++) {
+  for (int i = 1; i <= (xyzBins[0]/5); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
+    for (int j = 1; j <= (xyzBins[1]/5); j++) {
+      for (int k = 1; k <= (xyzBins[2]/5); k++) {
 	
 	//	std::cout << hitcount_xyz_th3d->GetBinContent(i, j, k) << std::endl;
 	hitsPerVoxel = hitcount_xyz_th3d->GetBinContent(i, j, k);
