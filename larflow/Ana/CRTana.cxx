@@ -99,7 +99,7 @@ int main( int nargs, char** argv ) {
   TH3D* hitcount_xyz_th3d = nullptr;
   char name[100];
   sprintf( name, "hitcount_xyz_th3d");
-  hitcount_xyz_th3d = new TH3D( name, ";position ;position ; position", 250, 0., 250., 260, -130., 130., 1041, 0., 1041.);
+  hitcount_xyz_th3d = new TH3D( name, ";position ;position ; position", (250), 0., 250., (260), -130., 130., (1041), 0., 1041.);
 
   // Loop over events
   for (int i = startentry; i < (startentry + maxentries); i++) {
@@ -118,12 +118,12 @@ int main( int nargs, char** argv ) {
 
       std::cout << "I'm in cluster: " << iCluster << std::endl;
       
-      larlite::event_larflow3dhit* lfhits_v = (larlite::event_larflow3dhit*)llio.get_data(larlite::data::kLArFlow3DHit,"larmatch");
+      //      larlite::event_larflow3dhit* lfhits_v = (larlite::event_larflow3dhit*)llio.get_data(larlite::data::kLArFlow3DHit,"larmatch");
 
       // loop thru hits in this cluster
-      for ( size_t iHit = 0; iHit < lfhits_v->size(); iHit++ ) {
+      for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
 
-	const larlite::larflow3dhit& lfhit = lfhits_v->at( iHit );
+	const larlite::larflow3dhit& lfhit = cluster.at( iHit );
 
 	hit_U = lfhit.targetwire[0];
 	hit_V = lfhit.targetwire[1];
@@ -161,9 +161,9 @@ int main( int nargs, char** argv ) {
   }
 
   // Outside event loop
-  for (int i = 0; i < xyzBins[0]; i++) {
-    for (int j = 0; j < xyzBins[1]; j++) {
-      for (int k = 0; k < xyzBins[2]; k++) {
+  for (int i = 0; i < (xyzBins[0]); i++) {
+    for (int j = 0; j < (xyzBins[1]); j++) {
+      for (int k = 0; k < (xyzBins[2]); k++) {
 	
 	//	std::cout << hitcount_xyz_th3d->GetBinContent(i, j, k) << std::endl;
 	hitsPerVoxel = hitcount_xyz_th3d->GetBinContent(i, j, k);
