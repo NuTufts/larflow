@@ -78,7 +78,11 @@ namespace prep {
     _trackshower_num_v.clear();
     _trackshower_num_v.resize(3,0.0);
 
-    int vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
+    int vtxrow = -1;
+    if ( vtx_imgcoord[3]>tripletmaker._imgmeta_v.front().min_y()
+         && vtx_imgcoord[3]<tripletmaker._imgmeta_v.front().max_y()  ) {
+      vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
+    }
 
     for (int i=0; i<3; i++) _trackshower_num_v[i] = 0;
       
@@ -135,7 +139,7 @@ namespace prep {
           ntrack++;
 
         // determine if near vertex
-        if ( abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
+        if ( vtxrow>=0 && abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
           isvertex++;
       }//end of plane loop
 
