@@ -161,9 +161,9 @@ int main( int nargs, char** argv ) {
   }
 
   // Outside event loop
-  for (int i = 0; i < (xyzBins[0]); i++) {
-    for (int j = 0; j < (xyzBins[1]); j++) {
-      for (int k = 0; k < (xyzBins[2]); k++) {
+  for (int i = 1; i <= (xyzBins[0]); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
+    for (int j = 1; j <= (xyzBins[1]); j++) {
+      for (int k = 1; k <= (xyzBins[2]); k++) {
 	
 	//	std::cout << hitcount_xyz_th3d->GetBinContent(i, j, k) << std::endl;
 	hitsPerVoxel = hitcount_xyz_th3d->GetBinContent(i, j, k);
