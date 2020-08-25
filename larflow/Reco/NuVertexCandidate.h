@@ -52,6 +52,8 @@ namespace reco {
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster
 
     std::vector<larlite::track>  track_v;  ///< track candidates
+    std::vector<larlite::larflowcluster>  track_hitcluster_v;  ///< track candidates
+    
     std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
     std::vector<larlite::track>  shower_trunk_v;   ///< line for shower trunk for plotting
 

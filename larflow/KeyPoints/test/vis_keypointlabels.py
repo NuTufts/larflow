@@ -5,6 +5,7 @@ from math import log
 
 parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
+parser.add_argument("--no-keypoints",action='store_false',default=True,help="if flag given, turns off keypoints")
 args = parser.parse_args()
 
 import numpy as np
@@ -19,7 +20,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
+import lardly
     
 color_by_options = ["truthmatch",
                     "isclosematch",
@@ -65,6 +66,8 @@ def make_figures(entry,plotby="truthmatch"):
     np.random.shuffle(index)
     pos3d = np.zeros( (nsamples,4) )
 
+    detdata = lardly.DetectorOutline()
+    
     traces_v = []
 
     for i in xrange(nsamples):
@@ -122,29 +125,36 @@ def make_figures(entry,plotby="truthmatch"):
         "name":"larmatchtriplets",
         "marker":{"color":pos3d[:,3],"size":1,"colorscale":colorscale}
     }
+
+    if plotby=="truthmatch":
+        clusterplot["marker"]["colorscale"] = "Bluered"
+    
     traces_v.append( clusterplot )
 
     # make scatter of keypoints
-    for kptype,kpcolor in [("trackends","rgb(0,255,0)"),
-                           ("showerstart","rgb(0,0,255)"),
-                           ("nuvertex","rgb(255,0,0)")]:
-        exec("brname=ev_keypoint.kppos_%s"%(kptype))
-        print(brname)
-        kppos = np.zeros( (brname.size(),3) )
-        for i in xrange( kppos.shape[0] ):
-            for v in xrange(3):
-                kppos[i,v] = brname[i][v]
-        kpplot = {
-            "type":"scatter3d",
-            "x":kppos[:,0],
-            "y":kppos[:,1],
-            "z":kppos[:,2],
-            "mode":"markers",
-            "name":"keypoints",
-            "marker":{"color":kpcolor,"size":5},
-        }
-        traces_v.append(kpplot)
-
+    if args.no_keypoints:
+        for kptype,kpcolor in [("trackends","rgb(0,255,0)"),
+                               ("showerstart","rgb(0,0,255)"),
+                               ("nuvertex","rgb(255,0,0)")]:
+            exec("brname=ev_keypoint.kppos_%s"%(kptype))
+            print(brname)
+            kppos = np.zeros( (brname.size(),3) )
+            for i in xrange( kppos.shape[0] ):
+                for v in xrange(3):
+                    kppos[i,v] = brname[i][v]
+            kpplot = {
+                "type":"scatter3d",
+                "x":kppos[:,0],
+                "y":kppos[:,1],
+                "z":kppos[:,2],
+                "mode":"markers",
+                "name":"keypoints",
+                "marker":{"color":kpcolor,"size":5},
+            }
+            traces_v.append(kpplot)
+            
+    # add microboone TPC outline
+    traces_v += detdata.getlines(color=(0,0,0))
     return traces_v
 
 def test():

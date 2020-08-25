@@ -888,10 +888,12 @@ namespace reco {
    * We stitch by fitting at the boundaries
    *
    * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
+   * @param[out] evout_track Hits associated to track, sorted by position along track
    * @param[in]  adc_v Wire plane images used to get dQ/dx
    *
    */
   void TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,
+                                                                      larlite::event_larflowcluster& evout_hitcluster,
                                                                       const std::vector<larcv::Image2D>& adc_v )
   {
 
@@ -922,6 +924,9 @@ namespace reco {
 
       // first step, collect track points, resort 
       std::vector< TrackSeg_t > seg_v;
+
+      // also collect larflow3dhits
+      larlite::larflowcluster track_hitcluster;
 
       std::cout << "[TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack] PATH " << itrack << std::endl;
       
@@ -964,6 +969,10 @@ namespace reco {
           segpt.start = track.LocationAtPoint(istep);
           segpt.segidx = node->segidx;
           seg_v.push_back( segpt );
+        }
+
+        for ( auto const& lfhit : *seg.cluster ) {
+          track_hitcluster.push_back(lfhit);
         }
         
       }//end of loop over nodes
@@ -1103,8 +1112,10 @@ namespace reco {
         lltrack.add_direction( TVector3(0,0,0) );
       }
       std::cout << "Number of track points: " << lltrack.NumberTrajectoryPoints() << std::endl;
-      
+
       evout_track.emplace_back( std::move(lltrack) );
+      evout_hitcluster.emplace_back( std::move(track_hitcluster) );
+      
     }//end of loop over tracks
     
   }

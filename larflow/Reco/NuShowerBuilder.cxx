@@ -23,6 +23,8 @@ namespace reco {
                                  std::vector<NuVertexCandidate>& nu_candidate_v )
   {
 
+    LARCV_DEBUG() << "start" << std::endl;
+    
     // get shower clusters we want to merge into a meta cluster
 
     // wire plane images for getting dqdx later
@@ -260,6 +262,8 @@ namespace reco {
         }//end of if valid seeding prong
       }//end of shower clusters @ vtx
     }//end of nu vertex candidates
+    
+    LARCV_DEBUG() << "end" << std::endl;
   }
   
 }

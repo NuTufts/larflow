@@ -182,6 +182,7 @@ namespace reco {
     void fillLarliteTrackContainer( larlite::event_track& ev_track );
 
     void fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,
+                                                   larlite::event_larflowcluster& evout_hitcluster,
                                                    const std::vector<larcv::Image2D>& adc_v );
     
     /** @brief set flag that if true, reduces many possible paths down to one */

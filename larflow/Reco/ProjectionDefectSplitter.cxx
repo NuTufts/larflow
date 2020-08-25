@@ -933,28 +933,33 @@ namespace reco {
       }
     }
 
-    larflow::reco::cluster_pca( seg0_cluster );
-
-    const float lr = 1.0e-1;
-    
-    // we minizer over the first segment twice.
-    // first we hold the start fixed and vary the end
-    // then we hold the end fixed and vary the start.
-    std::vector< std::vector<float> > seg0_endpt_pass1;
-    seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[0] );
-    seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );    
-    TrackOTFit::fit_segment( seg0_endpt_pass1, seg0_cluster.points_v, 100, lr );
-
-    // swap
-    std::vector< std::vector<float> > seg0_endpt_pass2;
-    seg0_endpt_pass2.push_back( seg0_endpt_pass1[1] );
-    seg0_endpt_pass2.push_back( seg0_cluster.pca_ends_v[0] );
-    TrackOTFit::fit_segment( seg0_endpt_pass2, seg0_cluster.points_v, 100, lr );
-
-    // now move down the line segments, re-fitting
+    // the final segment points we have fitted to
     std::vector< std::vector<float> > final_segment_v = init_segments_v;
-    final_segment_v[0] = seg0_endpt_pass2[1];
-    final_segment_v[1] = seg0_endpt_pass2[0];
+
+    // learning rate for fit
+      const float lr = 1.0e-1;
+      
+    if ( seg0_cluster.points_v.size()>3 ) {
+      larflow::reco::cluster_pca( seg0_cluster );
+    
+      // we minizer over the first segment twice.
+      // first we hold the start fixed and vary the end
+      // then we hold the end fixed and vary the start.
+      std::vector< std::vector<float> > seg0_endpt_pass1;
+      seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[0] );
+      seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );    
+      TrackOTFit::fit_segment( seg0_endpt_pass1, seg0_cluster.points_v, 100, lr );
+
+      // swap
+      std::vector< std::vector<float> > seg0_endpt_pass2;
+      seg0_endpt_pass2.push_back( seg0_endpt_pass1[1] );
+      seg0_endpt_pass2.push_back( seg0_cluster.pca_ends_v[0] );
+      TrackOTFit::fit_segment( seg0_endpt_pass2, seg0_cluster.points_v, 100, lr );
+
+      final_segment_v[0] = seg0_endpt_pass2[1];
+      final_segment_v[1] = seg0_endpt_pass2[0];
+    }
+    
     for (int iseg=0; iseg<nsegments; iseg++) {
       std::vector< std::vector<float> > seg(2);
       seg[0] = final_segment_v[iseg];

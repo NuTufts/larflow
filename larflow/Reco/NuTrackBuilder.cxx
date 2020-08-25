@@ -163,13 +163,20 @@ namespace reco {
       // fill track containers for this 
       larlite::event_track unfitted_v;
       larlite::event_track fitted_v;
+      larlite::event_larflowcluster fitted_hitcluster_v;
       fillLarliteTrackContainer( unfitted_v );    
-      fillLarliteTrackContainerWithFittedTrack( fitted_v, adc_v );
-      LARCV_DEBUG() << "Vertex tracks: " << fitted_v.size() << std::endl;
+      fillLarliteTrackContainerWithFittedTrack( fitted_v, fitted_hitcluster_v, adc_v );
+      LARCV_DEBUG() << "Vertex tracks: " << fitted_v.size() << "; hit clusters: " << fitted_hitcluster_v.size() << std::endl;
 
       // pass the fitted tracks to the nu candidate
+      nuvtx.track_v.reserve( fitted_v.size() );
       for (auto& fitted : fitted_v )
         nuvtx.track_v.push_back(fitted);
+
+      // pass the hit clusters on
+      nuvtx.track_hitcluster_v.reserve( fitted_v.size() );
+      for ( auto& hitcluster : fitted_hitcluster_v )
+        nuvtx.track_hitcluster_v.emplace_back( std::move(hitcluster) );
 
       // pass the tracks to the output container
       for ( auto& unfitted : unfitted_v )

@@ -50,7 +50,7 @@ tmp = rt.TFile(args.output,"recreate")
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 
 # triplet proposal maker
-ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
+ev_triplet = std.vector("larflow::prep::PrepMatchTriplets")(1)
 
 # keypoint score data
 kpana = larflow.keypoints.PrepKeypointData()
@@ -59,7 +59,7 @@ tmp.cd()
 kpana.defineAnaTree()
 
 # ssnet label data
-ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
+ssnet = larflow.prep.PrepSSNetTriplet()
 tmp.cd()
 ssnet.defineAnaTree()
 
