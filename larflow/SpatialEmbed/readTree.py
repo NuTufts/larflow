@@ -10,13 +10,15 @@ from larflow import larflow
 import os,sys,argparse,time
 import random
 import torch
+import torch.nn as nn
 import torch.optim as optim
 
 import matplotlib.pyplot as plt
-from SpatialEmbed import SpatialEmbed, spatialembed_loss
+from SpatialEmbed import SpatialEmbed, spatialembed_loss, post_process
+from particle_list import *
+from SpatialEmbedVisualization import *
 
 parser = argparse.ArgumentParser("Read TTree")
-
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-d', "--input-directory", type=str, help='TTree input directory')
 group.add_argument("-f", "--input-tree-file", type=str,help="Input TTreee file [required]")
@@ -25,48 +27,32 @@ parser.add_argument("-u", "--vis-uneven", action='store_true', help="Visualize a
 parser.add_argument("-v", "--verbose", action='store_true', help="Verbose")
 args = parser.parse_args()
 
-
 if (args.visualize) and (args.visualize < 0 or args.visualize > 100):
     raise ValueError('Visualize percentage must be between 0-100.')
-
-particle_list = [11, 13, 2212, 22, 111, 211]
-particle_names = {
-    11: "electron",
-    13: "muon",
-    2212: "proton",
-    22: "photon",
-    111: "pi_0",
-    211: "pi_+/-"
-}
-colors = {}
-
-if (args.visualize != None) or args.vis_uneven:
-    colormap = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
-    '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
-    '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
-
-    keys = particle_names.keys()
-    keys.sort()
-    for idx, key in enumerate(keys):
-        colors[key] = colormap[idx%len(colormap)]
-
-IMG_WIDTH  = 3456
-IMG_HEIGHT = 1008
-IMG_BUFF = 15
-
-events = 0
 
 if args.input_tree_file:
     directory_files = [args.input_tree_file]
 else:
     directory_files = [os.path.join(args.input_directory, file) for file in os.listdir(args.input_directory)]
 
+if (args.visualize != None) or args.vis_uneven:
+    visualization_setup(particle_names)
 
+IMG_WIDTH  = 3456
+IMG_HEIGHT = 1008
+IMG_BUFF = 15
 NUM_TYPES = len(particle_list)
-model = SpatialEmbed(features_per_layer=NUM_TYPES)
+
+dtype = torch.float
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+model = SpatialEmbed(features_per_layer=NUM_TYPES).to(device)
+model = model.train()
+
 optimizer = optim.Adam(model.parameters(), lr=0.01)
+criterion = spatialembed_loss
 
-
+events = 0
 for filename in directory_files:
     f = rt.TFile.Open(filename)
     tree = f.Get('trainingdata')
@@ -94,75 +80,74 @@ for filename in directory_files:
                (entry.DataBranch.num_instances_plane(0) != entry.DataBranch.num_instances_plane(2)):
             instances_uneven = True
 
-
         # Visualize, check correctness
         if (args.visualize != None) or (args.vis_uneven):
-            for plane, coord_t in coord_dict.items(): # random for each plane
-                if ((args.visualize != None) and (random.random()*100 < args.visualize)) or \
-                    (args.vis_uneven and instances_uneven):
-
-                    x, y, dummy = zip(*coord_t)
-                    plt.ylim(0, IMG_WIDTH + IMG_BUFF)
-                    plt.xlim(0, IMG_HEIGHT + IMG_BUFF)
-                    plt.title("Event {}, plane {}".format(events, plane))
-
-                    plt.plot(x, y, '.', markersize=5, color='black')
-                    for inst_idx in xrange(entry.DataBranch.num_instances_plane(plane)):
-                        inst_xs, inst_ys = zip(*entry.DataBranch.instance(plane, inst_idx))
-                        type_inst = abs(entry.DataBranch.typeof_instance(plane, inst_idx))
-                        plt.plot(inst_xs, inst_ys, '.', markersize=7, color=colors[type_inst], label=particle_names[type_inst])
-                    plt.legend()
-                    plt.show()
-
-        # if (args.verbose):
-        #     entry.DataBranch.check_instance_parity()
-
-        # for plane in range(3):
-        #     for instance in range(entry.DataBranch.num_instances_plane(plane)):
-        #         instances_coords = entry.DataBranch.instance(plane, instance);
-        #         instances_binary = entry.DataBranch.instance_binary(plane, instance);
-
-        #         pixels_count = 0
-        #         for elem in instances_binary:
-        #             if elem == 1:
-        #                 pixels_count += 1
-
-        #         if numpy.shape(instances_coords)[0] != pixels_count:
-        #             print plane, instance
-        #             print numpy.shape(instances_coords), pixels_count
-        
+            visualize(entry, coord_dict, events, IMG_WIDTH, IMG_HEIGHT, IMG_BUFF, args.visualize, \
+                      args.vis_uneven, instances_uneven, particle_names)
 
         # Train on each plane
-        for plane in range(3):
-            if args.verbose:
-                print "Plane: ", plane
+        for iterate in range(1000):
+            for plane in range(1):
+                if args.verbose:
+                    print "Plane: ", plane
 
-            optimizer.zero_grad()
+                # if iterate==1:
+                #     x, y, dummy = zip(*coord_dict[plane])
 
-            offsets, seeds = model.forward_features(torch.from_numpy(coord_dict[plane]), torch.from_numpy(feat_dict[plane]), 1)
+                #     plt.plot(x, y, '.', markersize=5, color='black')
+                #     for inst_idx in xrange(entry.DataBranch.num_instances_plane(plane)):
+                #         inst_xs, inst_ys = zip(*entry.DataBranch.instance(plane, inst_idx))
+                #         type_inst = abs(entry.DataBranch.typeof_instance(plane, inst_idx))
+                #         plt.plot(inst_xs, inst_ys, '.', markersize=7, color='red')
+                #     plt.show()
+                #     exit(1)
 
-            num_instances = entry.DataBranch.num_instances_plane(plane)
+                optimizer.zero_grad()
 
-            # get positions of instance pixels per instance
-            instances = entry.DataBranch.get_instance_binaries(plane)
-            instances = torch.Tensor(instances)
+                coord_plane = torch.from_numpy(coord_dict[plane]).float().to(device)
+                feat_plane =  torch.from_numpy(feat_dict[plane]).float().to(device)
 
-            # Get each combined labeled class map, for each class, arranged in matrix
-            # Get the indices of each type
-            class_maps = []
-            types = []
-            for key in particle_list:
-                class_maps.append(entry.DataBranch.get_class_map(plane, key, 1))
-                types.append(list(entry.DataBranch.type_indices(plane, key, 1)))
-            class_maps = torch.Tensor(class_maps)
+                offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
 
-            loss = spatialembed_loss(offsets, seeds, instances, class_maps, num_instances, types, verbose=args.verbose)
-            loss.backward()
-            optimizer.step()
+
+                # get positions of instance pixels per instance
+                instances = entry.DataBranch.get_instance_binaries(plane)
+                instances = torch.Tensor(instances).float().to(device)
+                instances.requires_grad_(True)
+
+                num_instances = entry.DataBranch.num_instances_plane(plane)
+
+                # Get each combined labeled class map, for each class, arranged in matrix
+                # Get the indices of each type
+                class_maps = []
+                types = []
+                for key in particle_list:
+                    class_maps.append(entry.DataBranch.get_class_map(plane, key, 1))
+                    types.append(list(entry.DataBranch.type_indices(plane, key, 1)))
+                class_maps = torch.Tensor(class_maps).float().to(device)
+                class_maps.requires_grad_(True)
+
+                offsets = offsets.to(device)
+                seeds = seeds.to(device)
+                
+                offsets.requires_grad_(True)
+                seeds.requires_grad_(True)
+
+
+                loss = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=args.verbose, iterator=iterate)
+                
+                loss.backward()
+                optimizer.step()
+
+
+        coord_plane = torch.from_numpy(coord_dict[0]).float().to(device)
+        feat_plane =  torch.from_numpy(feat_dict[0]).float().to(device)
+
+        offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
+        print(numpy.shape(post_process(coord_plane.to('cpu'), offsets.detach().cpu(), seeds.detach().cpu())))
 
         events += 1
-        if events == 5:
+        if events == 1:
             exit()
-
 
 print 'End'

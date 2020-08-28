@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import sparseconvnet as scn
+import numpy as np
+import matplotlib.pyplot as plt
 
 sys.path.insert(1, "/home/jhwang/ubdl/larflow/larmatchnet/")
 from utils_sparselarflow import create_resnet_layer
@@ -158,7 +160,8 @@ class SpatialEmbed(nn.Module):
         return offset_map, seed_map
 
 
-def spatialembed_loss(offsets, seeds, binary_maps, class_segmentation, num_instances, types, verbose=False):
+def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, num_instances, types, device, verbose=False, 
+                      lovasz_weight=60, seed_weight=1, sigma_smooth_weight=1, iterator=0):
     ''' 
         offsets: 4 channel tensor: e_ix, e_iy, sigma_x, sigma_y
         seeds: #types channel tensor
@@ -167,11 +170,13 @@ def spatialembed_loss(offsets, seeds, binary_maps, class_segmentation, num_insta
         types: vector length #instances, type labels
     '''
     if verbose: 
-        print "    Num pixels: ", offsets.size()[0], ", Num instances: ", num_instances
+        print "    Num pixels: ", offsets.detach().size()[0], ", Num instances: ", num_instances
         print "    Offsets size, seeds size, binary_maps size, class_segmentation size:"
-        print "    ", offsets.size(), seeds.size(), binary_maps.size(), class_segmentation.size()
+        print "    ", offsets.detach().size(), seeds.detach().size(), binary_maps.detach().size(), class_segmentation.detach().size()
 
+    o_x, o_y   = coord_t[:,0], coord_t[:,1]
     e_ix, e_iy = offsets[:,0], offsets[:,1]
+    e_ix, e_iy = o_x + e_ix, o_y + e_iy
     sigma_x, sigma_y = offsets[:,2], offsets[:,3] 
 
     # Gaussian tensor
@@ -180,18 +185,19 @@ def spatialembed_loss(offsets, seeds, binary_maps, class_segmentation, num_insta
     x_centroids_binary = torch.mul(e_ix, binary_maps)
     y_centroids_binary = torch.mul(e_iy, binary_maps)
 
-    x_centroids = x_centroids_binary.sum(dim=1) / (x_centroids_binary != 0).sum(dim=1).type(torch.FloatTensor)
-    y_centroids = y_centroids_binary.sum(dim=1) / (y_centroids_binary != 0).sum(dim=1).type(torch.FloatTensor)
-
+    x_centroids = x_centroids_binary.sum(dim=1) / (x_centroids_binary != 0).sum(dim=1).float()
+    y_centroids = y_centroids_binary.sum(dim=1) / (y_centroids_binary != 0).sum(dim=1).float()
 
     # Average sigma_k per instance
     sigma_x_binary = torch.mul(sigma_x, binary_maps)
     sigma_y_binary = torch.mul(sigma_y, binary_maps)
 
-    sigma_kx = sigma_x_binary.sum(dim=1) / (sigma_x_binary != 0).sum(dim=1).type(torch.FloatTensor)
-    sigma_ky = sigma_y_binary.sum(dim=1) / (sigma_y_binary != 0).sum(dim=1).type(torch.FloatTensor)
+    sigma_kx = sigma_x_binary.sum(dim=1) / (sigma_x_binary != 0).sum(dim=1).float()
+    sigma_ky = sigma_y_binary.sum(dim=1) / (sigma_y_binary != 0).sum(dim=1).float()
 
+    # print sigma_kx, sigma_ky
 
+    # Gaussian per instance (as per paper)
     x_portion = e_ix.repeat(num_instances, 1)
     x_portion = x_portion - x_centroids.view(num_instances, 1)
     x_portion = x_portion.pow(2)
@@ -203,44 +209,161 @@ def spatialembed_loss(offsets, seeds, binary_maps, class_segmentation, num_insta
     y_portion = torch.div( y_portion, 2 * sigma_ky.view(num_instances, 1).pow(2) )
 
     gaussian = - x_portion - y_portion
+
     gaussian = torch.exp(gaussian) # size should be (num_instances, num_pixels)
-    if verbose: print "    Gaussian size: ", gaussian.size()
 
-    loss = 0
-    # Lovasz-Softmax for each instance
-    for i in range(num_instances):
-        loss += lovasz_losses.lovasz_hinge_flat(gaussian[i], binary_maps[i])
-    
-    # Seed-map MSE loss
     mseloss = nn.MSELoss()
+    bceloss = nn.BCELoss()
+    loss = 0
 
-    class_gaussians = []
-    for class_type in types:
-        class_gaussian = torch.zeros(e_ix.size()[0])
-        for index in class_type:
-            class_gaussian = torch.max(class_gaussian, gaussian[index])
-        class_gaussians.append(class_gaussian)
-    class_gaussians = torch.stack(class_gaussians)
-    class_segmentation = class_segmentation * class_gaussians
     
-    loss += mseloss(seeds, class_segmentation.t())
+    folded_gaussian = torch.max(gaussian, dim=0)[0]
+    folded_binary_maps = torch.max(binary_maps, dim=0)[0]
 
-    # Sigma-smoothing loss
+    print "expected ", int((binary_maps[0].detach() > 0.2).sum().float()),int((binary_maps[1].detach() > 0.2).sum().float()),int((binary_maps[2].detach() > 0.2).sum().float())
+    print "Gaussian ", int((gaussian[0].detach() > 0.2).sum().float()), int((gaussian[1].detach() > 0.2).sum().float()), int((gaussian[2].detach() > 0.2).sum().float())
+    print "tot      ", int((folded_binary_maps.detach() > 0.2).sum().float()), int((folded_gaussian.detach() > 0.2).sum().float())
+
+    for i in range(num_instances):
+        loss += 20 * mseloss(gaussian[i], binary_maps[i])
+
+    loss += 40 * mseloss(folded_gaussian, folded_binary_maps)
+    # loss += 60 * lovasz_losses.lovasz_hinge_flat(folded_gaussian, folded_binary_maps)
+
+    if verbose: print "        Lovasz: ", loss.detach()
+
+    if iterator == 2000: 
+        temp_coord_t = np.array(coord_t.detach().to('cpu'))
+        x, y, dummy = zip(*np.array(coord_t.detach().to('cpu')))
+
+        plt.scatter(x, y, marker='.', c=list(np.array((folded_gaussian.detach().to('cpu') * 10).type(torch.int))), cmap=plt.cm.autumn)
+        # plt.scatter(x, y, marker='.', c=list(np.array((folded_binary_maps.detach().to('cpu') * 10).type(torch.int))), cmap=plt.cm.autumn)
+
+        plt.colorbar()
+        # plt.plot(x, y, '.', markersize=5, color='black')
+        # for inst_idx in xrange(entry.DataBranch.num_instances_plane(plane)):
+        #     inst_xs, inst_ys = zip(*entry.DataBranch.instance(plane, inst_idx))
+        #     type_inst = abs(entry.DataBranch.typeof_instance(plane, inst_idx))
+        #     plt.plot(inst_xs, inst_ys, '.', markersize=7, color=colors[type_inst], label=particle_names[type_inst])
+        plt.show()
+
+
+    # Seed-map MSE loss
+
+    gaussian_class_segmentation = folded_gaussian * class_segmentation
+    
+
+    print "Classseg ",
+    for i in range(6):
+        print int((gaussian_class_segmentation.detach()[i] > 0.2).sum().float()),
+    print 
+
+    print "Seeds    ",
+    for i in range(6):
+        print int((seeds.detach().t()[i] > 0.2).sum().float()),
+    print 
+
+    if verbose: print "        Seed: ", (seed_weight * mseloss(seeds, gaussian_class_segmentation.t())).detach()
+
+    # seeds = 10 * seeds
+    # gaussian_class_segmentation = 10 * gaussian_class_segmentation
+
+    gaussian_class_segmentation = gaussian_class_segmentation.t()
+    loss += bceloss(seeds, gaussian_class_segmentation)
+    # loss += 100* mseloss(seeds, gaussian_class_segmentation.t())
+
+    # seeds = seeds / 10
+    # gaussian_class_segmentation = gaussian_class_segmentation / 10
+
+
+    # Sigma-smoothing loss 
+    #    (take sigmas @instance pixel locations and consolidate into one vector)
     avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1)
     avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1)
 
     avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
     avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
 
-    loss += mseloss(sigma_x, avg_x_sigma_flattened)
-    loss += mseloss(sigma_y, avg_y_sigma_flattened)
+    if verbose: print "        Sigma: ", (sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened) + sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)).detach()
+    # loss += sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened)
+    # loss += sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)
 
 
-    print "    Loss: ", loss
-    return Variable(loss, requires_grad=True)
+    print "    Loss: ", loss.detach()
+    return loss
 
 
-    # print(x_centroids)
-    # print(y_centroids)
-    # print(sigma_kx)
-    # print(sigma_ky)
+def post_process(coord_t, offsets, seeds):
+
+    seeds = seeds.t()
+    instances = []
+    for instance_type in seeds:
+        visited = set()
+
+        # initialize first max pixel
+        max_idx, max_val = max_with_index(instance_type, visited)
+        c_kx, c_ky  = coord_t[max_idx][0], coord_t[max_idx][1]
+        cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
+        sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
+        centroid_val = np.exp(-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2)))
+
+        print '--------------------------'
+        print cent_eix - c_kx, cent_eiy - c_ky
+        print sigma_x, sigma_y
+        print '--------------------------'
+        # print "    c_kx, c_ky ", c_kx, c_ky
+        # print "    cent_eix, cent_eiy ", cent_eix, cent_eiy
+        # print "    sigma_x, sigma_y ", sigma_x, sigma_y
+        # print "    inner exp, ", ((-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2))))
+        print "Seed, offset ", max_val, centroid_val
+        print max_idx
+
+
+        # ============================ debugging 
+
+        # Gaussian per instance (as per paper)
+        
+        # temp_coord_t = np.array(coord_t.detach().to('cpu'))
+        # x, y, dummy = zip(*np.array(coord_t.detach().to('cpu')))
+
+        # plt.scatter(x, y, marker='.', c=list(np.array(instance_type.detach().to('cpu'))), cmap=plt.cm.autumn)
+        # plt.colorbar()
+        # plt.show()
+
+
+        # ============================ debugging 
+
+        instances_for_class = []
+        while centroid_val > 0.5:  # while there are pixels which we think are part of instances...
+            max_idx, max_val = max_with_index(instance_type, visited)
+            c_kx, c_ky  = coord_t[max_idx][0], coord_t[max_idx][1]
+            cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
+            sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
+            centroid_val = np.exp(-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2)))
+
+            visited.add(max_idx)
+
+            instance_pixels = [(coord_t[max_idx][0], coord_t[max_idx][1])]
+            for i, pix in enumerate(instance_type):  # collect all non-visited pixels that belong to that centroid
+                if (i not in visited):
+                    eix, eiy = coord_t[i][0] + offsets[i][0], coord_t[i][1] + offsets[i][1]
+                    val = -((eix - c_kx)**2)/(2*(sigma_x**2)) - ((eiy - c_ky)**2)/(2*(sigma_y**2))
+                    if (np.exp(val) > 0.5):
+                        visited.add(i)
+                        instance_pixels.append((coord_t[i][0], coord_t[i][1]))
+            
+            instances_for_class.append(instance_pixels)
+
+        instances.append(instances_for_class)
+
+def max_with_index(ray, visited):
+    initialized = False
+    for i, elem in enumerate(ray):
+        if (not initialized) and (i not in visited):
+            idx, maximum = i, elem
+            initialized = True
+
+        if (elem > maximum) and (i not in visited):
+            idx, maximum = i, elem
+    
+    return idx, maximum
