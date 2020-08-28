@@ -269,8 +269,8 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     # gaussian_class_segmentation = 10 * gaussian_class_segmentation
 
     gaussian_class_segmentation = gaussian_class_segmentation.t()
-    loss += bceloss(seeds, gaussian_class_segmentation)
-    # loss += 100* mseloss(seeds, gaussian_class_segmentation.t())
+    # loss += bceloss(seeds, gaussian_class_segmentation)
+    loss += 100* mseloss(seeds, gaussian_class_segmentation)
 
     # seeds = seeds / 10
     # gaussian_class_segmentation = gaussian_class_segmentation / 10
