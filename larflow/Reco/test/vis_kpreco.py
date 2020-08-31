@@ -169,9 +169,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",0.15,True),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.5,True),
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.5,False)]
+    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.5,True),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.8,True),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.8,True)]
     for (name,producer,rgbcolor,opa,plotme) in clusters:
         if not plotme:
             continue
