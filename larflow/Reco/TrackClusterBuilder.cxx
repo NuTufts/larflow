@@ -887,9 +887,9 @@ namespace reco {
    *
    * We stitch by fitting at the boundaries
    *
-   * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
-   * @param[out] evout_track Hits associated to track, sorted by position along track
-   * @param[in]  adc_v Wire plane images used to get dQ/dx
+   * @param[out] evout_track      Node paths stored in _track_proposal_v are stored into this container
+   * @param[out] evout_hitcluster Hits associated to track, sorted by position along track
+   * @param[in]  adc_v            Wire plane images used to get dQ/dx
    *
    */
   void TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,

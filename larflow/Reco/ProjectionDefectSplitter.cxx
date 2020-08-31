@@ -823,11 +823,12 @@ namespace reco {
   /**
    * @brief fit line segments to clusters
    *
-   * We break the pca-line into 5.0 cm pieces and use larflow::reco::TrackOTFit to fit each piece.
+   * We break the pca-line into line segments and use larflow::reco::TrackOTFit to fit each piece.
    * 
    * @param[in] cluster Cluster to fit
    * @param[in] lfhit_v Source of his used to make clusters
    * @param[in] adc_v Wire plane images
+   * @param[in] max_line_seg_cm Maximum distance a line segment can be when we break up a cluster before fitting.
    * @return Line segments fitted to cluster in the form of a larlite track object
    */
   larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,

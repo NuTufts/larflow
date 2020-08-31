@@ -59,9 +59,11 @@ namespace crtmatch {
 
     /** @brief set flag that determines if pngs are made for debugging purposes */
     void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
-    
+
     void save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
+
     void save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
+    
     void clear_output_containers();
 
     /**
@@ -161,8 +163,8 @@ namespace crtmatch {
     std::string _crttrack_producer; ///< name of CRT track producer
     std::vector<std::string> _opflash_producer_v;  ///< names of opflash producers to search for matching flashes
     bool _make_debug_images;   ///< if true, dump debugging pngs
-    bool _keep_only_boundary_tracks; // if true, keep boundary tracks [default: false]
-    float _max_dist_to_boundary_cm;  // if keeping only tracks near boundary, this is max distance to count as at boundary [default: 15 cm]
+    bool _keep_only_boundary_tracks; ///< if true, keep boundary tracks [default: false]
+    float _max_dist_to_boundary_cm;  ///< if keeping only tracks near boundary, this is max distance to count as at boundary [default: 15 cm]
 
   public:
 

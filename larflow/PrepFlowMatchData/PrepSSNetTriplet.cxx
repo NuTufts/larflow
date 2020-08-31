@@ -14,8 +14,11 @@ namespace prep {
   
   
   /**
-   * uses truth images from iomanager to make labels and weights for proposed triplets
+   * @brief uses truth images from iomanager to make labels and weights for proposed triplets
    *
+   * @param[in] iolcv LArCV IOManager with event data to use
+   * @param[in] ioll  larlite storage_manager with event data to use
+   * @param[in] tripletmaker Instance of triplet maker where triplets have already been made.
    */
   void PrepSSNetTriplet::make_ssnet_labels( larcv::IOManager& iolcv,
                                             larlite::storage_manager& ioll,
@@ -40,28 +43,34 @@ namespace prep {
   }
 
   /** 
-   * make track/shower labels
+   * @brief make track/shower labels
    *
-   * labels
-   * -------
-   * [0]: background
-   * [1]: track
-   * [2]: shower
+   * The labels we define:
+   * @verbatim embed:rst:leading-asterisk
+   *  * [0]: background
+   *  * [1]: track
+   *  * [2]: shower
+   * @endverbatim
    *
-   * weights
-   * --------
-   * 0: if not true proposal
-   * 100: if within 10 pixels of neutrino vertex pixel
-   * 10: if a boundary pixel
-   * 1: everything else
+   * We assign two additional weights to each pixel to help balance the classes. 
+   * The first weight is inversely proportional to the times the class shows up in the event image.
+   * The second weight is multipler to the first in order to emphasize certain important
+   * pixel classes. These are
+   * @verbatim embed:rst:leading-asterisk
+   *  * 0: if not true proposal
+   *  * 100: if within 10 pixels of neutrino vertex pixel
+   *  * 10: if a boundary pixel
+   *  * 1: everything else
+   * @endverbatim
    *
-   * labels stored in _trackshower_label_v
-   * weights stored in _trackshower_weight_v
-   * follows triplet index vector, larflow::PrepMatchTriplets::_triplet_v
+   * The labels are stored in the class data memeber, _trackshower_label_v.
+   * The weights stored in _trackshower_weight_v
+   * The size of these vectors are determined by the size of the input triplet index vector, larflow::PrepMatchTriplets::_triplet_v.
+   * The values correspond to the elements in that triplet vector.
    *
    * @param[in] segment_v Vector of particle-ID labeled truth image
    * @param[in] tripletmaker Class that made triplets and stores values
-   * @param[in] vtx_imgcoords Vector of image coordinates for true neutrino vertex (u,v,y,tick)
+   * @param[in] vtx_imgcoord Vector of image coordinates for true neutrino vertex (u,v,y,tick)
    *
    */
   void PrepSSNetTriplet::make_trackshower_labels( const std::vector<larcv::Image2D>& segment_v,
@@ -169,7 +178,7 @@ namespace prep {
   }
 
   /** 
-   * create the ana tree where we'll save labels
+   * @brief create the ana tree where we'll save labels
    *
    */
   void PrepSSNetTriplet::defineAnaTree()

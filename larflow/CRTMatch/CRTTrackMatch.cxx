@@ -948,7 +948,8 @@ namespace crtmatch {
   /**
    * @brief save clusters of larmatch hits next to the track
    *
-   * 
+   * @param[in] ioll larlite::storage_manager to save data products to
+   * @param[in] remove_if_no_flash If true, do not save hits for tracks not matched to a CRT track and optical flash
    *
    */
   void CRTTrackMatch::save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {

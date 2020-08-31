@@ -11,10 +11,10 @@ namespace larflow {
 namespace reco {
 
   /**
-   * @brief fit points to a line segment. we vary only the last end point
+   * @brief fit points to a line segment. we vary only the last end point.
    * 
-   * @param[out] initial_track Initial track points, consisting of a start and end point.
-   *             expects the outer vector to have length 2. 
+   * @param[out] initial_segment Initial 3D line segment defined by a start and end point.
+   *             Expects the outer vector to have length 2. 
    *             The first inner vector is the start 3d position of the line segment.
    *             The second inner vector is the end 3d position of the line segment.
    *             The second 'end' position is updated by the routine.

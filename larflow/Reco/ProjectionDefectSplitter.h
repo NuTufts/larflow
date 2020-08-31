@@ -115,7 +115,7 @@ namespace reco {
 
     bool _veto_hits_around_keypoints; ///< if true, veto hits around keypoints to help separate particle clusters
     std::vector< std::string > _keypoint_veto_trees_v; ///< contains name of keypoint tree names for vetoing hits
-    std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  
+    std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  ///< we veto clusters if they are near these 3d space points
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
 
