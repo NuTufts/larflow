@@ -1,16 +1,24 @@
 import os,sys
 import ROOT as rt
 
-tfile = rt.TFile("extracted_tensorboard.root")
+tfile = rt.TFile("extracted_tensorboard_train_kpspaf.root")
 tfile.ls()
 
 """
   KEY: TGraphErrors	gtrain_loss;1	Graph
   KEY: TGraphErrors	gvalid_loss;1	Graph
-  KEY: TGraphErrors	gtrain_acc_pos_examples;1	Graph
-  KEY: TGraphErrors	gvalid_acc_pos_examples;1	Graph
-  KEY: TGraphErrors	gtrain_acc_neg_examples;1	Graph
-  KEY: TGraphErrors	gvalid_acc_neg_examples;1	Graph
+
+  KEY: TGraphErrors	gtrain_acc_lm_all;1	Graph
+  KEY: TGraphErrors	gvalid_acc_lm_all;1	Graph
+  KEY: TGraphErrors	gtrain_acc_kp_nu;1	Graph
+  KEY: TGraphErrors	gvalid_acc_kp_nu;1	Graph
+  KEY: TGraphErrors	gtrain_acc_kp_trk;1	Graph
+  KEY: TGraphErrors	gvalid_acc_kp_trk;1	Graph
+  KEY: TGraphErrors	gtrain_acc_kp_shr;1	Graph
+  KEY: TGraphErrors	gvalid_acc_kp_shr;1	Graph
+  KEY: TGraphErrors	gtrain_acc_paf;1	Graph
+  KEY: TGraphErrors	gvalid_acc_paf;1	Graph
+
 """
 
 c = rt.TCanvas("closs","closs",600,400)
@@ -41,31 +49,35 @@ tloss.Draw()
 c.Update()
 
 cacc = rt.TCanvas("cacc","cacc",600,400)
-gtrain_acc_pos_examples = tfile.Get("gtrain_acc_pos_examples")
-gtrain_acc_neg_examples = tfile.Get("gtrain_acc_neg_examples")
-gvalid_acc_pos_examples = tfile.Get("gvalid_acc_pos_examples")
-gvalid_acc_neg_examples = tfile.Get("gvalid_acc_neg_examples")
+gacc = {}
+acc_color = {"lm_all":rt.kRed,
+             "kp_nu":rt.kBlue,
+             "kp_trk":rt.kGreen-8,
+             "kp_shr":rt.kMagenta,
+             "paf":rt.kBlack}
+acc_name = {"lm_all":"LArMatch",
+            "kp_nu":"Keypoint-#nu_{e}",
+            "kp_trk":"Keypoint-Track",
+            "kp_shr":"Keypoint-Shower",
+            "paf":"Flow Field, cos>0.94"}
 
-for g in [gtrain_acc_pos_examples,gtrain_acc_neg_examples,gvalid_acc_pos_examples,gvalid_acc_neg_examples]:
-    g.SetLineWidth(2)
-    
-gtrain_acc_pos_examples.SetLineColor(rt.kBlue+1)
-gtrain_acc_neg_examples.SetLineColor(rt.kBlue-9)
-#gtrain_acc_neg_examples.SetLineStyle(2)
-gvalid_acc_pos_examples.SetLineColor(rt.kRed+1)
-gvalid_acc_neg_examples.SetLineColor(rt.kRed-9)
-#gvalid_acc_neg_examples.SetLineStyle(2)
+for s in ["train","valid"]:
+    for n in ["lm_all","kp_nu","kp_trk","kp_shr","paf"]:
+        gacc[(s,n)] = tfile.Get("g%s_acc_%s"%(s,n))
+        gacc[(s,n)].SetLineWidth(2)
+        if "train"==s:
+            gacc[(s,n)].SetLineStyle(2)
+        gacc[(s,n)].SetLineColor( acc_color[n] )
 
-gtrain_acc_pos_examples.Draw("ALX")
-gtrain_acc_neg_examples.Draw("LX")
-gvalid_acc_pos_examples.Draw("LX")
-gvalid_acc_neg_examples.Draw("LX")
+tacc = rt.TLegend(0.5,0.1,0.8,0.4)        
+gacc[("train","paf")].Draw("ALX")
+gacc[("train","paf")].SetTitle(";iterations;accuracy")
+gacc[("train","paf")].GetYaxis().SetRangeUser(0,1.0)
+for s in ["valid"]:    
+    for n in ["lm_all","kp_nu","kp_trk","kp_shr","paf"]:
+        gacc[(s,n)].Draw("LX")
+        tacc.AddEntry( gacc[(s,n)], acc_name[n], "L" )
 
-tacc = rt.TLegend(0.5,0.1,0.8,0.4)
-tacc.AddEntry(gtrain_acc_pos_examples,"Pos. Examples (train)","L")
-tacc.AddEntry(gtrain_acc_neg_examples,"Neg. Examples (train)","L")
-tacc.AddEntry(gvalid_acc_pos_examples,"Pos. Examples (valid)","L")
-tacc.AddEntry(gvalid_acc_neg_examples,"Neg. Examples (valid)","L")
 tacc.Draw()
 
 cacc.SetGridx(1)
