@@ -16,6 +16,7 @@
 
 // ublarcvapp
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
+#include "ublarcvapp/MCTools/LArbysMC.h"
 
 // larflow
 #include "KeypointReco.h"
@@ -70,14 +71,19 @@ namespace reco {
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
+    // MC event info
+    ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
+
     // Algorithms
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-                         
+
+    void saveEventMCinfo(bool savemc);
 
   protected:
 
+    bool _save_event_mc_info;
     TFile* _ana_file; ///< output file for non-larlite and non-larcv reco products
     TTree* _ana_tree; ///< tree to store non-larlite and non-larcv reco products
     std::string _ana_output_file; ///< name of the ana file to create

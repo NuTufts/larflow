@@ -18,7 +18,8 @@ namespace reco {
    */
   KPSRecoManager::KPSRecoManager( std::string inputfile_name )
     : larcv::larcv_base("KPSRecoManager"),
-    _ana_output_file(inputfile_name)
+    _save_event_mc_info(false),
+    _ana_output_file(inputfile_name)    
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -137,7 +138,10 @@ namespace reco {
     for ( auto const& flash : *ev_input_opflash_beam )
       evout_opflash_beam->push_back( flash );
     
-
+    if ( _save_event_mc_info ) {
+      _event_mcinfo_maker.process( ioll );
+    }
+    
     // Fill Ana Tree
     _ana_run = ev_adc->run();
     _ana_subrun = ev_adc->subrun();
@@ -316,6 +320,16 @@ namespace reco {
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");    
   }
+
+  /** @brief is true, save MC event summary */  
+  void KPSRecoManager::saveEventMCinfo( bool savemc )
+  {
+    if ( !_save_event_mc_info && savemc )  {
+      _event_mcinfo_maker.bindAnaVariables( _ana_tree );
+    }
+    _save_event_mc_info = savemc;
+
+  };  
   
 }
 }
