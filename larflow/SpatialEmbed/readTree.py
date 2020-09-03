@@ -86,7 +86,7 @@ for filename in directory_files:
                       args.vis_uneven, instances_uneven, particle_names)
 
         # Train on each plane
-        for iterate in range(1000):
+        for iterate in range(5000):
             for plane in range(1):
                 if args.verbose:
                     print "Plane: ", plane
@@ -125,7 +125,7 @@ for filename in directory_files:
                     class_maps.append(entry.DataBranch.get_class_map(plane, key, 1))
                     types.append(list(entry.DataBranch.type_indices(plane, key, 1)))
                 class_maps = torch.Tensor(class_maps).float().to(device)
-                class_maps.requires_grad_(True)
+                class_maps.requires_grad_(False)
 
                 offsets = offsets.to(device)
                 seeds = seeds.to(device)
@@ -134,7 +134,7 @@ for filename in directory_files:
                 seeds.requires_grad_(True)
 
 
-                loss = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=args.verbose, iterator=iterate)
+                loss = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=True, iterator=iterate)
                 
                 loss.backward()
                 optimizer.step()
