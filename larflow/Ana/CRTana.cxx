@@ -27,6 +27,7 @@ int main( int nargs, char** argv ) {
   float hit_y = 0.;
   float hit_z = 0.;
 
+  // Define variables for histograms
   int wireBins[] = {250, 250, 350};
   int wireMax[] = {2500, 2500, 3500};
 
@@ -44,13 +45,16 @@ int main( int nargs, char** argv ) {
 
   int voxelSize[] = {1, 3, 5, 10}; // cm
 
+  const int nhists = 3;
   const int voxHists = 4;
   
+  std::string str1[3] = {"U","V","Y"};
+  std::string str2[3] = {"x","y","z"};
+  std::string str3[3] = {"x","z","z"};
+  std::string str4[3] = {"y","y","x"};
+  std::string str5[4] = {"1cm","3cm","5cm","10cm"};  
+  
   // Input for ttrees
-  //  int hitsPer1cmVoxel;
-  // int hitsPer3cmVoxel;
-  //int hitsPer5cmVoxel;
-  //int hitsPer10cmVoxel;
   int hitsPerVoxel[4];
   
   std::string input_crtfile = argv[1];
@@ -67,27 +71,9 @@ int main( int nargs, char** argv ) {
 
   TTree* T[ voxHists ] = {nullptr};
   for ( int i = 0; i < voxHists; i++ ) {
-    T[i] = new TTree(Form("T%d",i),"");
+    T[i] = new TTree(Form("T_%s",str5[i].c_str()),"");
     T[i]->Branch("hitsPerVoxel",&hitsPerVoxel[i],"hitsPerVoxel/I");
   }
-  //  TTree *tree = new TTree("tree","tree of hits per voxel");
-  //  tree->Branch("hitsPer1cmVoxel", &hitsPer1cmVoxel, "hitsPer1cmVoxel/I");
-  //tree->Branch("hitsPer3cmVoxel", &hitsPer3cmVoxel, "hitsPer3cmVoxel/I");
-  //tree->Branch("hitsPer5cmVoxel", &hitsPer5cmVoxel, "hitsPer5cmVoxel/I");
-  //tree->Branch("hitsPer10cmVoxel", &hitsPer10cmVoxel, "hitsPer10cmVoxel/I");
-  //tree->Branch("hitsPerVoxel_array", hitsPerVoxel, "hitsPerVoxel[4]/I");
-  //  tree->Branch("hitsPer1cmVoxel", &hitsPerVoxel[0], "hitsPerVoxel[0]/I");
-  //tree->Branch("hitsPer3cmVoxel", &hitsPerVoxel[1], "hitsPerVoxel[1]/I");
-  //tree->Branch("hitsPer5cmVoxel", &hitsPerVoxel[2], "hitsPerVoxel[2]/I");
-  //tree->Branch("hitsPer10cmVoxel", &hitsPerVoxel[3], "hitsPerVoxel[3]/I");
-
-  // Define histograms
-  const int nhists = 3;
-  std::string str1[3] = {"U","V","Y"};
-  std::string str2[3] = {"x","y","z"};
-  std::string str3[3] = {"x","z","z"};
-  std::string str4[3] = {"y","y","x"};
-  std::string str5[4] = {"1cm","3cm","5cm","10cm"};
   
   // wire hists
   TH1D* hitcount_wire_hist[ nhists ] = {nullptr};
@@ -143,8 +129,6 @@ int main( int nargs, char** argv ) {
 
       std::cout << "I'm in cluster: " << iCluster << std::endl;
       
-      //      larlite::event_larflow3dhit* lfhits_v = (larlite::event_larflow3dhit*)llio.get_data(larlite::data::kLArFlow3DHit,"larmatch");
-
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
 
@@ -179,7 +163,6 @@ int main( int nargs, char** argv ) {
 	hitcount_xyz_th2d[2]->Fill(hit_z, hit_x);
 	
 	// fill 3d hists for 4 diff voxel sizes
-	//	for (int n = 0; n < 4; i++) hitcount_xyz_th3d[n]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z);
@@ -200,9 +183,7 @@ int main( int nargs, char** argv ) {
       for (int j = 1; j <= (xyzBins[1]/voxelSize[n]); j++) {
 	for (int k = 1; k <= (xyzBins[2]/voxelSize[n]); k++) {
 
-	  //	  hitsPer3cmVoxel = hitcount_xyz_th3d[1]->GetBinContent(i, j, k);
 	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
-	  //	  tree->Fill();
 	  T[n]->Fill();
 	  
 	}
@@ -212,10 +193,6 @@ int main( int nargs, char** argv ) {
   }
   
   outfile->Write();
-  //T[0]->Write();
-  //T[1]->Write();
-  //T[2]->Write();
-  //T[3]->Write();  
   outfile->Close();
   
   llio.close();
