@@ -43,10 +43,12 @@ int main( int nargs, char** argv ) {
   int yyxBins[] = {234, 234, 256};
 
   int voxelSize[] = {1, 3, 5, 10}; // cm
+
+  const int voxHists = 4;
   
-  // Input for ttree
-  //int hitsPer1cmVoxel;
-  //int hitsPer3cmVoxel;
+  // Input for ttrees
+  //  int hitsPer1cmVoxel;
+  // int hitsPer3cmVoxel;
   //int hitsPer5cmVoxel;
   //int hitsPer10cmVoxel;
   int hitsPerVoxel[4];
@@ -62,25 +64,29 @@ int main( int nargs, char** argv ) {
   int nentries = llio.get_entries();
   
   TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
-  TTree *tree = new TTree("tree","tree of hits per voxel");
+
+  TTree* T[ voxHists ] = {nullptr};
+  for ( int i = 0; i < voxHists; i++ ) {
+    T[i] = new TTree(Form("T%d",i),"");
+    T[i]->Branch("hitsPerVoxel",&hitsPerVoxel[i],"hitsPerVoxel/I");
+  }
+  //  TTree *tree = new TTree("tree","tree of hits per voxel");
   //  tree->Branch("hitsPer1cmVoxel", &hitsPer1cmVoxel, "hitsPer1cmVoxel/I");
   //tree->Branch("hitsPer3cmVoxel", &hitsPer3cmVoxel, "hitsPer3cmVoxel/I");
   //tree->Branch("hitsPer5cmVoxel", &hitsPer5cmVoxel, "hitsPer5cmVoxel/I");
   //tree->Branch("hitsPer10cmVoxel", &hitsPer10cmVoxel, "hitsPer10cmVoxel/I");
-  tree->Branch("hitsPerVoxel_array", hitsPerVoxel, "hitsPerVoxel[4]/I");
-  //  tree->Branch("hitsPerVoxel[0]", &hitsPerVoxel[0], "hitsPerVoxel_0/I");
-  //  tree->Branch("hitsPerVoxel[1]", &hitsPerVoxel[1], "hitsPerVoxel_1/I");
-  //tree->Branch("hitsPerVoxel[2]", &hitsPerVoxel[2], "hitsPerVoxel_2/I");
-  //tree->Branch("hitsPerVoxel[3]", &hitsPerVoxel[3], "hitsPerVoxel_3/I");
-  
+  //tree->Branch("hitsPerVoxel_array", hitsPerVoxel, "hitsPerVoxel[4]/I");
+  //  tree->Branch("hitsPer1cmVoxel", &hitsPerVoxel[0], "hitsPerVoxel[0]/I");
+  //tree->Branch("hitsPer3cmVoxel", &hitsPerVoxel[1], "hitsPerVoxel[1]/I");
+  //tree->Branch("hitsPer5cmVoxel", &hitsPerVoxel[2], "hitsPerVoxel[2]/I");
+  //tree->Branch("hitsPer10cmVoxel", &hitsPerVoxel[3], "hitsPerVoxel[3]/I");
+
   // Define histograms
   const int nhists = 3;
   std::string str1[3] = {"U","V","Y"};
   std::string str2[3] = {"x","y","z"};
   std::string str3[3] = {"x","z","z"};
   std::string str4[3] = {"y","y","x"};
-
-  const int voxHists = 4;
   std::string str5[4] = {"1cm","3cm","5cm","10cm"};
   
   // wire hists
@@ -196,7 +202,8 @@ int main( int nargs, char** argv ) {
 
 	  //	  hitsPer3cmVoxel = hitcount_xyz_th3d[1]->GetBinContent(i, j, k);
 	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
-	  tree->Fill();
+	  //	  tree->Fill();
+	  T[n]->Fill();
 	  
 	}
       }
@@ -205,6 +212,10 @@ int main( int nargs, char** argv ) {
   }
   
   outfile->Write();
+  //T[0]->Write();
+  //T[1]->Write();
+  //T[2]->Write();
+  //T[3]->Write();  
   outfile->Close();
   
   llio.close();
