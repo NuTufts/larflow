@@ -1,6 +1,7 @@
 #include "NuVertexShowerReco.h"
 
 #include "geofuncs.h"
+#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -92,9 +93,9 @@ namespace reco {
       }
 
       bool found = false;
-      std::cout << "check seed: " << vtxcluster.producer << " " << vtxcluster.index << std::endl;
+      //std::cout << "check seed: " << vtxcluster.producer << " " << vtxcluster.index << std::endl;
       for ( auto& seed : seed_rank_v ) {
-        std::cout << " past seed: " << seed.producer << " " << seed.container_idx << std::endl;
+        //std::cout << " past seed: " << seed.producer << " " << seed.container_idx << std::endl;
         if ( seed.producer==vtxcluster.producer && seed.container_idx==vtxcluster.index )
           found = true;
         if ( found )
@@ -102,7 +103,7 @@ namespace reco {
       }
 
       if ( found ) {
-        std::cout << " cluster duplicate." << std::endl;
+        //std::cout << " cluster duplicate." << std::endl;
         continue;
       }
 
@@ -110,11 +111,25 @@ namespace reco {
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
 
-      // define shower axis -- start point to vertex
+      // define shower start, dir, ll-score
+      std::vector<float> shower_start;
+      std::vector<float> shower_dir;
+      float shower_ll;
+      _make_trunk_cand( nuvtx.pos,
+                        lfcluster,
+                        shower_start,
+                        shower_dir,
+                        shower_ll );
+
+      std::vector<float> shower_end(3,0);
+      for (int i=0; i<3; i++)
+        shower_end[i] = shower_start[i] + 10.0*shower_dir[i];
+      
+      // // define shower axis -- start point to vertex
       std::vector<float> axis(3,0);
       float dist = 0.;
       for (int i=0; i<3; i++) {
-        axis[i] = vtxcluster.pos[i]-nuvtx.pos[i];
+        axis[i] = shower_start[i]-nuvtx.pos[i];
         dist += axis[i]*axis[i];
       }
       if ( dist>0 ) {
@@ -123,47 +138,48 @@ namespace reco {
           axis[i] /= dist;
       }
 
-      std::vector<float> axis_start(3,0);
-      std::vector<float> axis_end(3,0);      
-      for (int i=0; i<3; i++) {
-        axis_start[i] = vtxcluster.pos[i];
-        axis_end[i]   = vtxcluster.pos[i] + 30.0*axis[i];
-      }
+      // std::vector<float> axis_start(3,0);
+      // std::vector<float> axis_end(3,0);      
+      // for (int i=0; i<3; i++) {
+      //   axis_start[i] = vtxcluster.pos[i];
+      //   axis_end[i]   = vtxcluster.pos[i] + 30.0*axis[i];
+      // }
+
+      // float score_ll = 0;
+      // // -log(P(r)*P(s))
+      // // P(r): distance from axis falls off as exp
+      // // P(s): projection along axis. exp penalty for being behind vertex
+      // // only deal with showers
+      
+      // for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
+      //   auto const& hit = lfcluster[ihit];
+      //   std::vector<float> pt(3,0);
+      //   for (int i=0; i<3; i++)
+      //     pt[i] = hit[i];
+        
+      //   float r = pointLineDistance3f( axis_start, axis_end, pt );
+      //   float s = pointRayProjection3f( axis_start, axis, pt );
+
+      //   score_ll += r/r_mollier;
+      //   if (s<0)
+      //     score_ll += -s/tau_startpt;
+      // }
+      // if ( lfcluster.size()>0 )
+      //   score_ll /= float(lfcluster.size());
 
       float score_ll = 0;
-      // -log(P(r)*P(s))
-      // P(r): distance from axis falls off as exp
-      // P(s): projection along axis. exp penalty for being behind vertex
-      // only deal with showers
-      
-      for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
-        auto const& hit = lfcluster[ihit];
-        std::vector<float> pt(3,0);
-        for (int i=0; i<3; i++)
-          pt[i] = hit[i];
-        
-        float r = pointLineDistance3f( axis_start, axis_end, pt );
-        float s = pointRayProjection3f( axis_start, axis, pt );
-
-        score_ll += r/r_mollier;
-        if (s<0)
-          score_ll += -s/tau_startpt;
-      }
-      if ( lfcluster.size()>0 )
-        score_ll /= float(lfcluster.size());
-
       if ( lfcluster.size()>10 ) {
         score_ll = dist;
       }
       else {
-        score_ll = 30.0 + dist; // blerg
+        score_ll = 100.0 + dist; // blerg
       }
 
       ProngRank_t rank( vtxcluster.producer, iprong, vtxcluster.index, score_ll );
       rank.dist2vtx = dist;
-      rank.axis = axis;
-      rank.axis_start = axis_start;
-      rank.axis_end   = axis_end;
+      rank.axis = shower_dir;
+      rank.axis_start = shower_start;
+      rank.axis_end   = shower_end;
       seed_rank_v.push_back( rank );
     }
 
@@ -257,7 +273,7 @@ namespace reco {
           max_gap_s = fabs(track_s_v[i]-track_s_v[i-1]);
       }
       LARCV_DEBUG() << "Number of trunk hits found: " << ntrunk_hits_added << " max gap=" << max_gap_s << std::endl;      
-      if ( max_gap_s<10.0 ) {
+      if ( max_gap_s<3.0 ) {
         for (auto& hit : trunk_hit_v )
           shower_hit_v.push_back(hit);
       }
@@ -331,6 +347,179 @@ namespace reco {
       nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk_dir) );
 
     }//end of seed prong loop      
+    
+  }
+
+  void NuVertexShowerReco::_make_trunk_cand( const std::vector<float>& pos,
+                                             const larlite::larflowcluster& lfcluster,
+                                             std::vector<float>& shower_start,
+                                             std::vector<float>& shower_dir,
+                                             float& shower_ll )
+  {
+
+    std::vector<float> dist2vertex(lfcluster.size(),0);
+    float min_dist = 1e9;
+    for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
+      float dist = 0.;
+      for (int i=0; i<3; i++) {
+        dist += (lfcluster[ihit][i]-pos[i])*(lfcluster[ihit][i]-pos[i]);
+      }
+      dist2vertex[ihit] = sqrt(dist);
+      if ( min_dist>dist2vertex[ihit] )
+        min_dist = dist2vertex[ihit];
+    }
+
+    std::vector< std::vector<float> > close_hit_v;
+    close_hit_v.reserve( lfcluster.size() );
+    
+    for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
+      if ( dist2vertex[ihit]-min_dist < 3.5 ) {
+        std::vector<float> pt = { lfcluster[ihit][0], lfcluster[ihit][1], lfcluster[ihit][2] };
+        close_hit_v.push_back( pt );
+      }
+    }
+
+    std::vector<cluster_t> trunk_cand_v;
+    larflow::reco::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
+    
+
+    struct CandRank_t {
+      int idx;
+      float llscore;
+      std::vector<float> start;
+      std::vector<float> dir;
+      CandRank_t( int ii, float ll )
+        : idx(ii), llscore(ll)
+      {};
+      bool operator<( const CandRank_t& rhs ) {
+        if ( llscore<rhs.llscore )
+          return true;
+        return false;
+      }
+    };
+
+    std::vector< CandRank_t > rank_v;
+
+    for ( int icluster=0; icluster<(int)trunk_cand_v.size(); icluster++) {
+      
+      auto& trunk = trunk_cand_v[icluster];
+      if ( trunk.points_v.size()<5 ) {
+        CandRank_t rank( icluster, 1e9 );
+        rank_v.push_back( rank );
+        continue;
+      }
+
+      larflow::reco::cluster_pca( trunk );
+
+      // determine direction
+      // we want to use the pca axis, but we can switch to vertex->centroid if the trunk is bad
+      std::vector<float> vtx2centroid(3,0);
+      std::vector<float> pca1(3,0);
+      float lenv2c = 0.;
+      float lenpca = 0.;
+      float cos_pca_v2c = 0.;
+      for (int i=0; i<3; i++) {
+        vtx2centroid[i] = trunk.pca_center[i]-pos[i];
+        lenv2c += vtx2centroid[i]*vtx2centroid[i];
+        pca1[i] = trunk.pca_axis_v[0][i];
+        lenpca += pca1[i]*pca1[i];
+        cos_pca_v2c += pca1[i]*vtx2centroid[i];
+      }
+      lenv2c = sqrt(lenv2c);
+      lenpca = sqrt(lenpca);
+      if ( lenv2c>0 && lenpca>0 ) {
+        for (int i=0; i<3; i++)
+          vtx2centroid[i] /= lenv2c;
+        for (int i=0; i<3; i++)
+          pca1[i] /= lenpca;
+        cos_pca_v2c /= (lenpca*lenv2c);
+      }
+
+      // get start point of pca line
+      int pca_start;
+      int pca_end;
+      float pcaend_dist[2] = {0,0};
+      for (int i=0; i<3; i++) {
+        pcaend_dist[0] += (trunk.pca_ends_v[0][i]-pos[i])*(trunk.pca_ends_v[0][i]-pos[i]);
+        pcaend_dist[1] += (trunk.pca_ends_v[1][i]-pos[i])*(trunk.pca_ends_v[1][i]-pos[i]);
+      }
+      if ( pcaend_dist[0]<pcaend_dist[1] ) {
+        pca_start = 0;
+        pca_end = 1;
+      }
+      else {
+        pca_start = 1;
+        pca_end = 0;
+      }
+      std::vector<float> pcadir(3,0);
+      float len_pcadir = 0.;
+      for (int i=0; i<3; i++) {        
+        pcadir[i] = trunk.pca_ends_v[pca_end][i]-trunk.pca_ends_v[pca_start][i];
+        len_pcadir += pcadir[i]*pcadir[i];
+      }
+      len_pcadir = sqrt(len_pcadir);
+      for (int i=0; i<3; i++)
+        pcadir[i] /= len_pcadir;
+             
+
+      float score_pca = 0.;
+      float score_v2c = 0.;
+      std::vector<float> v2c_start(3,0);
+      float max_s_v2c = 1e9;
+      for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
+        std::vector<float> pt = { lfcluster[ihit][0], lfcluster[ihit][1], lfcluster[ihit][2] };
+
+        // pca score
+        float r_pca = larflow::reco::pointLineDistance3f( trunk.pca_ends_v[pca_start], trunk.pca_ends_v[pca_end], pt );
+        float s_pca = larflow::reco::pointRayProjection3f( trunk.pca_ends_v[pca_start], pcadir, pt );
+        if ( s_pca>3.0 )
+          score_pca += r_pca/( (s_pca/14.0)*9.0 );
+        else if (s_pca>0.0 && s_pca<3.0 )
+          score_pca += r_pca/1.0;
+        else
+          score_pca += -s_pca/1.0;
+
+        // v2c score
+        float r_v2c = larflow::reco::pointLineDistance3f( pos, trunk.pca_center, pt );
+        float s_v2c = larflow::reco::pointRayProjection3f( pos, vtx2centroid, pt )-min_dist;
+
+        if ( s_v2c<max_s_v2c ) {
+          max_s_v2c = s_v2c;
+          v2c_start = pt;
+        }
+        
+        if ( s_v2c>3.0 )
+          score_v2c += r_v2c/( (s_v2c/14.0)*9.0 );
+        else if (s_v2c>0.0 && s_v2c<3.0 )
+          score_v2c += r_v2c/1.0;
+        else
+          score_v2c += -s_v2c/1.0;
+        
+      }
+
+      if ( fabs(cos_pca_v2c)>0.7 ) {
+        // use the pca score
+        CandRank_t rank( icluster, score_pca );
+        rank.start = trunk.pca_ends_v[pca_start];
+        rank.dir   = pcadir;
+        rank_v.push_back( rank );
+      }
+      else {
+        CandRank_t rank( icluster, score_v2c );
+        rank.start = v2c_start;
+        rank.dir   = vtx2centroid;
+        rank_v.push_back( rank );
+      }
+      
+      
+    }//loop over trunk candidates
+
+
+    std::sort( rank_v.begin(), rank_v.end() );
+
+    shower_start = rank_v.front().start;
+    shower_dir   = rank_v.front().dir;
+    shower_ll    = rank_v.front().llscore;
     
   }
   

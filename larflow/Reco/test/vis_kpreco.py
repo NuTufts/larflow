@@ -85,6 +85,33 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         if nflashes==0:
             traces_v += lardly.data.visualize_empty_opflash()        
 
+    #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
+    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,True),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,True),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.1,True)]
+    for (name,producer,rgbcolor,opa,plotme) in clusters:
+        if not plotme:
+            continue
+        
+        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
+        ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
+        print("plot pca clusters: ",producer,ev_trackcluster)
+        for icluster in range(ev_trackcluster.size()):
+            lfcluster = ev_trackcluster.at( icluster )
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
+            cluster_trace["marker"]["color"] = rgbcolor
+            cluster_trace["marker"]["opacity"] = opa
+            cluster_trace["marker"]["width"] = 1.0
+            traces_v.append(cluster_trace)            
+
+            pcaxis = ev_pcacluster.at( icluster )
+            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
+            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
+            pcatrace["line"]["color"] = "rgb(0,0,0)"
+            pcatrace["line"]["width"] = 1
+            pcatrace["line"]["opacity"] = 1.0            
+            traces_v.append( pcatrace )
+            
     # plot vertices
     vertex_v = kpsanatree.nufitted_v
     vtxinfo = []
@@ -148,7 +175,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             lfcluster = nuvtx.track_hitcluster_v[itrack]
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,itrack) )
             cluster_trace["marker"]["color"] = "rgb(0,255,0)"
-            cluster_trace["marker"]["opacity"] = 0.3
+            cluster_trace["marker"]["opacity"] = 0.8
+            cluster_trace["marker"]["size"] = 2.0
             traces_v.append(cluster_trace)            
             
             # track-line
@@ -179,36 +207,11 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trunk_trace["line"]["color"] = "rgb(200,0,200)"
             trunk_trace["line"]["width"] = 5
             trunk_trace["line"]["opacity"] = 1.0
+            trunk_trace["name"] = "V[%s]-S[%d]"%(ivtx,ishower)
             traces_v.append(trunk_trace)            
 
         
 
-    #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,True),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,True),
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.1,True)]
-    for (name,producer,rgbcolor,opa,plotme) in clusters:
-        if not plotme:
-            continue
-        
-        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
-        ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
-        print("plot pca clusters: ",producer,ev_trackcluster)
-        for icluster in range(ev_trackcluster.size()):
-            lfcluster = ev_trackcluster.at( icluster )
-            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
-            cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = opa
-            cluster_trace["marker"]["width"] = 3.0
-            traces_v.append(cluster_trace)            
-
-            pcaxis = ev_pcacluster.at( icluster )
-            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
-            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
-            pcatrace["line"]["color"] = "rgb(0,0,0)"
-            pcatrace["line"]["width"] = 1
-            pcatrace["line"]["opacity"] = 1.0            
-            traces_v.append( pcatrace )
             
     # TRACK RECO
     for name,track_producer,zrgb,plotme in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)",False),

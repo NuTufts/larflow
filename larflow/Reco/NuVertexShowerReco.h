@@ -56,6 +56,11 @@ namespace reco {
                                 larcv::IOManager& iolcv, 
                                 larlite::storage_manager& ioll );
     
+    void _make_trunk_cand( const std::vector<float>& pos,
+                           const larlite::larflowcluster& lfcluster,
+                           std::vector<float>& shower_start,
+                           std::vector<float>& shower_dir,
+                           float& shower_ll );
 
   };
 
