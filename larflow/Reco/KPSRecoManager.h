@@ -30,6 +30,7 @@
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
 #include "NuShowerBuilder.h"
+#include "NuVertexShowerReco.h"
 
 namespace larflow {
 namespace reco {
@@ -66,6 +67,7 @@ namespace reco {
     ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
     ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score
     NuVertexMaker       _nuvertexmaker; ///< make proto-vertices from prongs
+    NuVertexShowerReco  _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters

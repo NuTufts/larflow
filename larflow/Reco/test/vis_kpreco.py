@@ -85,9 +85,14 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         if nflashes==0:
             traces_v += lardly.data.visualize_empty_opflash()        
 
+    # plot vertices
+    vertex_v = kpsanatree.nufitted_v
     vtxinfo = []
     for ivtx in range( kpsanatree.nufitted_v.size() ):
-        vtxinfo.append( {"label":"%d (%.2f)"%(ivtx,kpsanatree.nuvetoed_v.at(ivtx).score ), "value":ivtx} )
+        nuvtx = vertex_v.at(ivtx)
+        ntracks  = nuvtx.track_v.size()
+        nshowers = nuvtx.shower_v.size()
+        vtxinfo.append( {"label":"%d (%.2f) ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
@@ -112,32 +117,42 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         # we want to plot the clusters associated with this
         # if in all mode, we plot pca-axis only (else too messy)
         # we plot hits by plot-by option?
-        cluster_list = []
-        for icluster in range(vertexcand.cluster_v.size()):
-            clustinfo = vertexcand.cluster_v.at(icluster)
-            lfcluster = io.get_data( larlite.data.kLArFlowCluster, clustinfo.producer ).at( clustinfo.index )
+        if False:
+            cluster_list = []
+            for icluster in range(vertexcand.cluster_v.size()):
+                clustinfo = vertexcand.cluster_v.at(icluster)
+                lfcluster = io.get_data( larlite.data.kLArFlowCluster, clustinfo.producer ).at( clustinfo.index )
 
-            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,icluster) )
-            if clustinfo.type==larflow.reco.NuVertexCandidate.kTrack:
-                cluster_trace["marker"]["color"] = "rgb(0,255,0)"
-            else:
-                cluster_trace["marker"]["color"] = "rgb(255,0,0)"
-            cluster_trace["marker"]["opacity"] = 0.3
-            traces_v.append(cluster_trace)            
-            cluster_list.append(lfcluster)
+                cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,icluster) )
+                if clustinfo.type==larflow.reco.NuVertexCandidate.kTrack:
+                    cluster_trace["marker"]["color"] = "rgb(0,255,0)"
+                else:
+                    cluster_trace["marker"]["color"] = "rgb(255,0,0)"
+                cluster_trace["marker"]["opacity"] = 0.3
+                traces_v.append(cluster_trace)            
+                cluster_list.append(lfcluster)
 
-            pcaxis = io.get_data( larlite.data.kPCAxis, clustinfo.producer ).at( clustinfo.index )
-            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
-            pcatrace["name"] = "v[%d]c[%d]"%(ivtx,icluster)
-            pcatrace["line"]["color"] = "rgb(0,0,0)"
-            pcatrace["line"]["width"] = 3
-            pcatrace["line"]["opacity"] = 1.0            
-            traces_v.append( pcatrace )
+                pcaxis = io.get_data( larlite.data.kPCAxis, clustinfo.producer ).at( clustinfo.index )
+                pcatrace = lardly.data.visualize_pcaxis( pcaxis )
+                pcatrace["name"] = "v[%d]c[%d]"%(ivtx,icluster)
+                pcatrace["line"]["color"] = "rgb(0,0,0)"
+                pcatrace["line"]["width"] = 3
+                pcatrace["line"]["opacity"] = 1.0            
+                traces_v.append( pcatrace )
 
         # PLOT TRACK FOR VERTEX
-        print("VERTEX[%d] HAS %d TRACKS"%(ivtx,vertexcand_fit.track_v.size()))
-        for itrack in range(vertexcand_fit.track_v.size()):
-            track = vertexcand_fit.track_v.at(itrack)
+        print("VERTEX[%d] HAS %d TRACKS"%(ivtx,nuvtx.track_v.size()))
+        for itrack in range(nuvtx.track_v.size()):
+
+            # track-cluster
+            lfcluster = nuvtx.track_hitcluster_v[itrack]
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,itrack) )
+            cluster_trace["marker"]["color"] = "rgb(0,255,0)"
+            cluster_trace["marker"]["opacity"] = 0.3
+            traces_v.append(cluster_trace)            
+            
+            # track-line
+            track = nuvtx.track_v.at(itrack)
             trktrace = lardly.data.visualize_larlite_track( track )
             trktrace["name"] = "V[%d]-T[%d]"%(ivtx,itrack)
             trktrace["line"]["color"] = "rgb(0,255,255)"
@@ -146,18 +161,18 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( trktrace )
 
         # PLOT SHOWER FOR VERTEX
-        print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,vertexcand_fit.shower_v.size()))        
-        for ishower in range(vertexcand_fit.shower_v.size()):
+        print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,nuvtx.shower_v.size()))        
+        for ishower in range(nuvtx.shower_v.size()):
 
-            shower = vertexcand_fit.shower_v.at(ishower)
-            shower_trunk = vertexcand_fit.shower_trunk_v.at(ishower)
+            shower = nuvtx.shower_v.at(ishower)
+            shower_trunk = nuvtx.shower_trunk_v.at(ishower)
             
-            cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d]"%(ivtx,ishower) )
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d] N[%d]"%(ivtx,ishower,shower.size()) )
             trunk_trace   = lardly.data.visualize_larlite_track( shower_trunk )
             
             rgbcolor = np.random.randint(255,size=3)
             cluster_trace["marker"]["color"] = "rgb(%d,%d,0)"%(rgbcolor[0],rgbcolor[1])
-            cluster_trace["marker"]["opacity"] = 0.5
+            cluster_trace["marker"]["opacity"] = 0.8
             cluster_trace["marker"]["size"] = 2.0
             traces_v.append(cluster_trace)
             
@@ -169,9 +184,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.5,True),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.8,True),
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.8,True)]
+    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,True),
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,True),
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.1,True)]
     for (name,producer,rgbcolor,opa,plotme) in clusters:
         if not plotme:
             continue

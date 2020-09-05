@@ -301,8 +301,16 @@ namespace reco {
     _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
 
-    _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
-    _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    // first attempt
+    // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
+    // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    // simpler, cone-based reco
+    _nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+    _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     
   }
 
