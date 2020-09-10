@@ -57,17 +57,21 @@ int main( int nargs, char** argv ) {
   // Input for ttrees
   int hitsPerVoxel[4];
   
-  std::string input_crtfile = argv[1];
-  int startentry = atoi(argv[2]);
-  int maxentries = atoi(argv[3]);
+  std::string crtfile_path = argv[1];
+  std::string input_crtfile = argv[2];
+  //  int startentry = atoi(argv[2]);
+  //int maxentries = atoi(argv[3]);
+  //  std::string output_filename = argv[2]
 
   larlite::storage_manager llio( larlite::storage_manager::kREAD );
-  llio.add_in_filename( input_crtfile );
+  llio.add_in_filename( crtfile_path + input_crtfile );
   llio.open();
 
   int nentries = llio.get_entries();
+  std::cout << "[DEBUG] This is nentries: " << nentries << std::endl;
   
-  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
+  //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
+  TFile* outfile = new TFile(Form("CRTana_%s",input_crtfile.c_str()),"recreate");
 
   TTree* T[ voxHists ] = {nullptr};
   for ( int i = 0; i < voxHists; i++ ) {
@@ -113,7 +117,8 @@ int main( int nargs, char** argv ) {
   }
 
   // Loop over events
-  for (int i = startentry; i < (startentry + maxentries); i++) {
+  //  for (int i = startentry; i < (startentry + maxentries); i++) {
+  for (int i = 0; i < nentries; i++) {
     
     std::cout << "===========================================" << std::endl;
     std::cout << "[ Entry " << i << " ]" << std::endl;
