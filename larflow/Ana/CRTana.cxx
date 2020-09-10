@@ -68,7 +68,7 @@ int main( int nargs, char** argv ) {
   llio.open();
 
   int nentries = llio.get_entries();
-  std::cout << "[DEBUG] This is nentries: " << nentries << std::endl;
+  //  std::cout << "[DEBUG] This is nentries: " << nentries << std::endl;
   
   //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
   TFile* outfile = new TFile(Form("CRTana_%s",input_crtfile.c_str()),"recreate");
@@ -120,8 +120,8 @@ int main( int nargs, char** argv ) {
   //  for (int i = startentry; i < (startentry + maxentries); i++) {
   for (int i = 0; i < nentries; i++) {
     
-    std::cout << "===========================================" << std::endl;
-    std::cout << "[ Entry " << i << " ]" << std::endl;
+    //    std::cout << "===========================================" << std::endl;
+    //std::cout << "[ Entry " << i << " ]" << std::endl;
 
     llio.go_to(i);
 
@@ -132,7 +132,7 @@ int main( int nargs, char** argv ) {
 
       const larlite::larflowcluster& cluster = clusters_v->at( iCluster );
 
-      std::cout << "I'm in cluster: " << iCluster << std::endl;
+      // std::cout << "I'm in cluster: " << iCluster << std::endl;
       
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
