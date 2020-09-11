@@ -3,6 +3,7 @@
 #include "larcv/core/DataFormat/DataFormatTypes.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/larflowcluster.h"
 #include "DataFormat/mcshower.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
@@ -155,13 +156,15 @@ namespace reco {
       int origin;
       int priority;
       int matched_cluster;
+      float highq_plane;
+      float cos_sce;
       std::vector<float> shower_dir;
       std::vector<float> shower_dir_sce;
       std::vector<float> shower_vtx;
       std::vector<float> shower_vtx_sce;      
       bool operator<(const ShowerInfo_t& rhs ) {
         if ( priority<rhs.priority ) return true;
-        else if ( priority==rhs.priority && idx<rhs.idx ) return true;
+        else if ( priority==rhs.priority && highq_plane<rhs.highq_plane ) return true;
         return false;
       };
     };
@@ -174,16 +177,23 @@ namespace reco {
       info.idx = idx;
       info.pid = mcsh.PdgCode();
       info.origin = mcsh.Origin();
+      info.highq_plane = 0;
+      for (int p=0; p<3; p++) {
+        if ( mcsh.Charge()[p]>info.highq_plane )
+          info.highq_plane = mcsh.Charge()[p];
+      }
+
+      // rank the shower objects
       if ( info.origin==1 && abs(info.pid)==11 )
-        info.priority = 0;
+        info.priority = 0; // from neutrino is electron
       else if ( info.origin==1 && abs(info.pid)==22 )
-        info.priority = 1;
+        info.priority = 1; // from neutrino is gamma
       else if ( info.origin==1 )
-        info.priority = 2;
+        info.priority = 2; // from neutrino other
       else if ( info.origin==2 && abs(info.pid)==11 )
-        info.priority = 3;
+        info.priority = 3; // from cosmic is electron
       else
-        info.priority = 4;
+        info.priority = 4; // from cosmic is gamma
 
       info.shower_dir.resize(3,0);
       info.shower_vtx.resize(3,0);
@@ -235,20 +245,24 @@ namespace reco {
           info.shower_vtx_sce[i] = info.shower_vtx[i];
         }
       }
-
-      std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
-      std::cout << " pid=" << info.pid << std::endl;
-      std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
-      std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
-      std::cout << " cos(truth*sce)=" << cos_sce << std::endl;
-      std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
-      std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
+      info.cos_sce = cos_sce;
 
       shower_info_v.push_back( info );
     }
 
-    std::sort( shower_info_v.begin(), shower_info_v.end() );    
+    std::sort( shower_info_v.begin(), shower_info_v.end() );
+    std::cout << "============================================================" << std::endl;
     std::cout << "[ShowerLikelihoodBuilder] saved " << shower_info_v.size() << " showers" << std::endl;
+    for ( auto const& info : shower_info_v ) {
+      std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
+      std::cout << " highq_plane: " << info.highq_plane << std::endl;
+      std::cout << " pid=" << info.pid << std::endl;
+      std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
+      std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
+      std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
+      std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
+      std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
+    }
 
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
     std::vector<int> cluster_match_v( shower_info_v.size(), -1 );
@@ -271,10 +285,14 @@ namespace reco {
     */
 
     std::vector< larlite::larflow3dhit > clustered_truehits_v;
+    std::vector< larlite::larflowcluster > larflow_cluster_v;
     for ( auto& cluster : cluster_v ) {
+      larlite::larflowcluster lfcluster;
       for ( auto& hitidx : cluster.hitidx_v ) {
         clustered_truehits_v.push_back( truehit_v[hitidx] );
+        lfcluster.push_back( truehit_v[hitidx] );
       }
+      larflow_cluster_v.emplace_back( std::move(lfcluster) );
     }
     
     // fill profile histogram
@@ -287,11 +305,16 @@ namespace reco {
 
     // mcpg.printGraph();
     
-    // save the larflow hits
+    // save all true larflow shower hits
     larlite::event_larflow3dhit* evout = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "trueshowerhits" );
     for (auto& hit : clustered_truehits_v )
       evout->emplace_back( std::move(hit) );
 
+    // save the clusters
+    larlite::event_larflowcluster* evout_cluster = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "trueshowerclusters" );
+    for (auto& lfcluster : larflow_cluster_v )
+      evout_cluster->emplace_back( std::move(lfcluster) );
+    
     // save the shower object we are basing the info on
     larlite::event_mcshower* mcshowerout = (larlite::event_mcshower*)ioll.get_data(larlite::data::kMCShower, "truthshower" );
     for ( auto& info : shower_info_v ) {

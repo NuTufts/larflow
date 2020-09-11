@@ -34,6 +34,7 @@ io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_write( larlite.data.kLArFlow3DHit, "trueshowerhits" )
 io.set_data_to_write( larlite.data.kMCShower, "truthshower" )
 io.set_data_to_write( larlite.data.kPCAxis, "truthshower" )
+io.set_data_to_write( larlite.data.kLArFlowCluster, "trueshowerclusters" )
 io.open()
 
 outio = larlite.storage_manager( larlite.storage_manager.kWRITE )

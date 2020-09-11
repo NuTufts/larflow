@@ -44,50 +44,64 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
     global io
     io.go_to(entry)
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, treename )
+    ev_lfclusters = io.get_data( larlite.data.kLArFlowCluster, "trueshowerclusters" )
     npoints = ev_lfhits.size()
     
     traces_v = []        
-
+    shower_traces_v = []
+    
     if plotby=="larmatch":
-        lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "trueshowerhits", score_threshold=minprob) ]
-        traces_v += lfhit_v
-    elif plotby in ["keypoint"]:
-        hitindex=13
-        xyz = np.zeros( (npoints,4 ) )
-        ptsused = 0
-        for ipt in xrange(npoints):
-            hit = ev_lfhits.at(ipt)
+        for ishower in range(ev_lfclusters.size()):
+            lfshower = ev_lfclusters.at(ishower)
+            lfhit_v = [ lardly.data.visualize_larlite_larflowhits( lfshower, "trueshowerclusters", score_threshold=minprob) ]
+            shower_traces_v += lfhit_v
+    # elif plotby in ["keypoint"]:
+    #     hitindex=13
+    #     xyz = np.zeros( (npoints,4 ) )
+    #     ptsused = 0
+    #     for ipt in xrange(npoints):
+    #         hit = ev_lfhits.at(ipt)
 
-            if hit.track_score<minprob:
-                continue
+    #         if hit.track_score<minprob:
+    #             continue
 
-            xyz[ptsused,0] = hit[0]
-            xyz[ptsused,1] = hit[1]
-            xyz[ptsused,2] = hit[2]
-            if plotby=="ssn-class":
-                idx = np.argmax( np.array( (hit[10],hit[11],hit[12]) ) )
-                xyz[ptsused,3] = float(idx)/2.0
-            else:
-                xyz[ptsused,3] = hit[hitindex]
-            #print(xyz[ptsused,3])
-            ptsused += 1
+    #         xyz[ptsused,0] = hit[0]
+    #         xyz[ptsused,1] = hit[1]
+    #         xyz[ptsused,2] = hit[2]
+    #         if plotby=="ssn-class":
+    #             idx = np.argmax( np.array( (hit[10],hit[11],hit[12]) ) )
+    #             xyz[ptsused,3] = float(idx)/2.0
+    #         else:
+    #             xyz[ptsused,3] = hit[hitindex]
+    #         #print(xyz[ptsused,3])
+    #         ptsused += 1
 
-        print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
-        larflowhits = {
-            "type":"scatter3d",
-            "x": xyz[:ptsused,0],
-            "y": xyz[:ptsused,1],
-            "z": xyz[:ptsused,2],
-            "mode":"markers",
-            "name":plotby,
-            "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
-        }
-        traces_v.append( larflowhits )
+    #     print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
+    #     larflowhits = {
+    #         "type":"scatter3d",
+    #         "x": xyz[:ptsused,0],
+    #         "y": xyz[:ptsused,1],
+    #         "z": xyz[:ptsused,2],
+    #         "mode":"markers",
+    #         "name":plotby,
+    #         "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
+    #     }
+    #     traces_v.append( larflowhits )
 
     # PCA
     ev_pca = io.get_data( larlite.data.kPCAxis, "truthshower" )
     pca_v = lardly.data.visualize_event_pcaxis( ev_pca )
-    traces_v += pca_v
+    ishower = 0
+    for shower_trace,pca_trace in zip(shower_traces_v,pca_v):
+        # random color
+        rgb = np.random.randint(0,high=255,size=3)
+        print("rgb: ",rgb)
+        shower_trace["marker"]["color"] = "rgb(%d,%d,%d)"%(rgb[0],rgb[1],rgb[2])
+        shower_trace["name"] = "shower[%d]"%(ishower)
+        ishower += 1
+        
+        traces_v.append(shower_trace)
+        traces_v.append(pca_trace)
         
     # MC
     ev_mcshower = io.get_data( larlite.data.kMCShower, "truthshower" )
