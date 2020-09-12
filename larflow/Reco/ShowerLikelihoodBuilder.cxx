@@ -125,7 +125,6 @@ namespace reco {
       hit.srcwire = tripletalgo._triplet_v[i][2];
       hit.targetwire.resize(3);
       
-      
       for (size_t p=0; p<3; p++)
         hit.targetwire[p] = tripletalgo._sparseimg_vv[p][ tripletalgo._triplet_v[i][p] ].col;
       hit.idxhit = i;
@@ -164,6 +163,9 @@ namespace reco {
           info.highq_plane = mcsh.Charge()[p];
       }
 
+      if ( info.highq_plane==0 )
+        continue;
+
       // rank the shower objects
       if ( info.origin==1 && abs(info.pid)==11 )
         info.priority = 0; // from neutrino is electron
@@ -178,12 +180,19 @@ namespace reco {
 
       info.shower_dir.resize(3,0);
       info.shower_vtx.resize(3,0);
-      info.shower_dir_sce.resize(3,0);
-      info.shower_vtx_sce.resize(3,0);
+      //info.shower_dir_sce.resize(3,0);
+      //info.shower_vtx_sce.resize(3,0);
       auto const& detprofdir = mcsh.DetProfile().Momentum().Vect();
       for (int i=0; i<3; i++) {
         info.shower_dir[i] = detprofdir[i]/detprofdir.Mag();
         info.shower_vtx[i] = mcsh.DetProfile().Position()[i];
+      }
+      std::cout << "** dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
+      std::cout << "** vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
+      if ( std::isnan(info.shower_vtx[0]) || std::isinf(info.shower_vtx[0])
+           || std::isnan(info.shower_dir[0]) || std::isinf(info.shower_dir[0]) ) {
+        std::cout << "** bad detprof values **" << std::endl;
+        continue;
       }
 
       float dirnorm = 0.;
@@ -195,37 +204,36 @@ namespace reco {
 
       // adjust shower dir due to SCE
       float cos_sce = 1.0;      
-      if ( abs(info.pid)==11 ) {
+      // if ( abs(info.pid)==11 ) {        
+      //   // SCE corrected direction
+      //   // std::vector<float> shower_end(3,0);
+      //   // for (int p=0; p<3; p++ ) shower_end[p] = info.shower_vtx[p] + 3.0*info.shower_dir[p];
         
-        // SCE corrected direction
-        std::vector<float> shower_end(3,0);
-        for (int p=0; p<3; p++ ) shower_end[p] = info.shower_vtx[p] + 3.0*info.shower_dir[p];
+      //   // std::vector<double> offset = _psce->GetPosOffsets( info.shower_vtx[0], info.shower_vtx[1], info.shower_vtx[2] );
+      //   // info.shower_vtx_sce  = { info.shower_vtx[0] - (float)offset[0] + (float)0.6,
+      //   //                          info.shower_vtx[1] + (float)offset[1],
+      //   //                          info.shower_vtx[2] + (float)offset[2] };
+      //   // offset = _psce->GetPosOffsets( shower_end[0], shower_end[1], shower_end[2] );
+      //   // std::vector<float> shower_end_sce  = { shower_end[0] - (float)offset[0] + (float)0.6,
+      //   //                                        shower_end[1] + (float)offset[1],
+      //   //                                        shower_end[2] + (float)offset[2] };
+      //   // float scenorm = 0.;
+      //   // for (int i=0; i<3; i++ ) {
+      //   //   info.shower_dir_sce[i] = shower_end_sce[i]-info.shower_vtx_sce[i];
+      //   //   scenorm += info.shower_dir_sce[i]*info.shower_dir_sce[i];
+      //   //   cos_sce += info.shower_dir[i]*info.shower_dir_sce[i];
+      //   // }
         
-        std::vector<double> offset = _psce->GetPosOffsets( info.shower_vtx[0], info.shower_vtx[1], info.shower_vtx[2] );
-        info.shower_vtx_sce  = { info.shower_vtx[0] - (float)offset[0] + (float)0.6,
-                                 info.shower_vtx[1] + (float)offset[1],
-                                 info.shower_vtx[2] + (float)offset[2] };
-        offset = _psce->GetPosOffsets( shower_end[0], shower_end[1], shower_end[2] );
-        std::vector<float> shower_end_sce  = { shower_end[0] - (float)offset[0] + (float)0.6,
-                                               shower_end[1] + (float)offset[1],
-                                               shower_end[2] + (float)offset[2] };
-        float scenorm = 0.;
-        for (int i=0; i<3; i++ ) {
-          info.shower_dir_sce[i] = shower_end_sce[i]-info.shower_vtx_sce[i];
-          scenorm += info.shower_dir_sce[i]*info.shower_dir_sce[i];
-          cos_sce += info.shower_dir[i]*info.shower_dir_sce[i];
-        }
-        
-        scenorm = sqrt(scenorm);
-        for (int i=0; i<3; i++ ) info.shower_dir_sce[i] /= scenorm;
-        cos_sce /= scenorm;
-      }
-      else {
-        for (int i=0; i<3; i++ ) {
-          info.shower_dir_sce[i] = info.shower_dir[i];
-          info.shower_vtx_sce[i] = info.shower_vtx[i];
-        }
-      }
+      //   // scenorm = sqrt(scenorm);
+      //   // for (int i=0; i<3; i++ ) info.shower_dir_sce[i] /= scenorm;
+      //   // cos_sce /= scenorm;
+      // }
+      // else {
+      //   for (int i=0; i<3; i++ ) {
+      //     info.shower_dir_sce[i] = info.shower_dir[i];
+      //     info.shower_vtx_sce[i] = info.shower_vtx[i];
+      //   }
+      // }
       info.cos_sce = cos_sce;
 
       shower_info_v.push_back( info );
@@ -239,10 +247,10 @@ namespace reco {
       std::cout << " highq_plane: " << info.highq_plane << std::endl;
       std::cout << " pid=" << info.pid << std::endl;
       std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
-      std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
+      //std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
       std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
       std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
-      std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
+      //std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
     }
 
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
@@ -251,7 +259,7 @@ namespace reco {
     for ( auto& info : shower_info_v ) {
       std::cout << "[" << iidx << "] pid=" << info.pid
                 << " origin=" << info.origin
-                << " vtx=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")"
+                << " vtx=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")"
                 << std::endl;
       int match_cluster_idx = _find_closest_cluster( claimed_cluster_v, info.shower_vtx, info.shower_dir );
       shower_info_v[iidx].matched_cluster = match_cluster_idx;

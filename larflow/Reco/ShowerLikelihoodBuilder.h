@@ -103,9 +103,9 @@ namespace reco {
       float highq_plane; ///< charge of shower on the highest plane, no idea what the unit is
       float cos_sce; ///< direction difference between det profile dir before and after SCE
       std::vector<float> shower_dir; ///< det profile direction
-      std::vector<float> shower_dir_sce;
+      //std::vector<float> shower_dir_sce;
       std::vector<float> shower_vtx; ///< det profile shower start
-      std::vector<float> shower_vtx_sce;      
+      //std::vector<float> shower_vtx_sce;      
       bool operator<(const ShowerInfo_t& rhs ) {
         if ( priority<rhs.priority ) return true;
         else if ( priority==rhs.priority && highq_plane>rhs.highq_plane ) return true;

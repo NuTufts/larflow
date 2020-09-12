@@ -47,11 +47,11 @@ mcpg.set_adc_treename("wiremc")
     
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-start = 18
-nentries = 1
+start = 0
+nentries = 10
 
 print "Start loop."
-raw_input()
+#raw_input()
 
 io.go_to(start)
 for ientry in xrange( start, start+nentries ):
@@ -62,7 +62,7 @@ for ientry in xrange( start, start+nentries ):
     mcpg.printGraph()
     
     print "[enter] continue"
-    raw_input()
+    #raw_input()
     
     builder.process( iolcv, io )
     iolcv.set_id( iolcv.event_id().run(), iolcv.event_id().subrun(), iolcv.event_id().event() )

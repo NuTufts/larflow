@@ -53,6 +53,8 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
     ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, treename )
     ev_lfclusters = io.get_data( larlite.data.kLArFlowCluster, "trueshowerclusters" )
     npoints = ev_lfhits.size()
+
+    print("number of clusters: %d"%(ev_lfclusters.size()))
     
     traces_v = []        
     shower_traces_v = []
@@ -104,6 +106,7 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
         rgb = np.random.randint(0,high=255,size=3)
         #print("rgb: ",rgb)
         shower_trace["marker"]["color"] = "rgb(%d,%d,%d)"%(rgb[0],rgb[1],rgb[2])
+        shower_trace["marker"]["opacity"] = 0.2
         shower_trace["name"] = "shower[%d]"%(ishower)
         ishower += 1
         
