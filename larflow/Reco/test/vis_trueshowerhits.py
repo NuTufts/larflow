@@ -3,12 +3,14 @@ import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
 parser.add_argument("input_hits",type=str,help="larflow input")
+parser.add_argument("-mc","--mcinfo",type=str,default=None,help="larlite mcinfo input file")
 args = parser.parse_args()
 
 import numpy as np
 import ROOT as rt
 from larlite import larlite
 from larcv import larcv
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 larcv.SetPyUtil()
 
@@ -28,7 +30,12 @@ for opt in color_by_options:
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_hits )
+if args.mcinfo is not None:
+    io.add_in_filename( args.mcinfo )
 io.open()
+
+#mcpg = ublarcvapp.mctools.MCPixelPGraph()
+#mcpg.set_adc_treename("wiremc")
 
 nentries = io.get_entries()
 print("NENTRIES: ",nentries)
@@ -95,7 +102,7 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
     for shower_trace,pca_trace in zip(shower_traces_v,pca_v):
         # random color
         rgb = np.random.randint(0,high=255,size=3)
-        print("rgb: ",rgb)
+        #print("rgb: ",rgb)
         shower_trace["marker"]["color"] = "rgb(%d,%d,%d)"%(rgb[0],rgb[1],rgb[2])
         shower_trace["name"] = "shower[%d]"%(ishower)
         ishower += 1
@@ -113,6 +120,8 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
 
     # end of loop over treenames
     traces_v += detdata.getlines()
+
+    
     
     return traces_v
 
