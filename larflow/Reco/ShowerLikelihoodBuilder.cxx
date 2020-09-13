@@ -852,10 +852,11 @@ namespace reco {
         pix_v.reserve( lfcluster.size()*2 );
 
         for (auto& lfhit : lfcluster ) {
-          int row = claimed.meta().row(lfhit.tick);
+          int row = lfhit.tick;
+          int tick = (int)claimed.meta().pos_y(row);
           int col = claimed.meta().col(lfhit.targetwire[p]);
           if ( claimed.pixel(row,col)<0.5 && adc.pixel(row,col)>5.0 )  {
-            pix_v.push_back(row);
+            pix_v.push_back(tick);
             pix_v.push_back(col);
             claimed.set_pixel(row,col,1.0);
           }
