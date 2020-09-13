@@ -5,8 +5,9 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/larflowcluster.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
-
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/Reco/cluster_functions.h"
 
@@ -95,7 +96,8 @@ namespace reco {
      * 
      */
     struct ShowerInfo_t {
-      int idx; ///< index in mcshower event container
+      int idx; ///< index in mc shower event container
+      int trackid; ///< track id from geant for particle
       int pid; ///< particle ID
       int origin; ///< origin index
       int priority; ///< rank of shower when absorbing clusters
@@ -112,11 +114,16 @@ namespace reco {
         return false;
       };
     };
+    std::vector<ShowerInfo_t> _shower_info_v;
+    std::vector< larlite::larflowcluster > _larflow_cluster_v;    
     
     void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                        std::vector<larlite::larflowcluster>& merged_cluster_v,
                                        const std::vector<larlite::larflow3dhit>& truehit_v );
-        
+
+    void updateMCPixelGraph( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                             larcv::IOManager& iolcv ); 
+    
     
   };
   

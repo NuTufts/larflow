@@ -2,11 +2,11 @@
 
 #include "larcv/core/DataFormat/DataFormatTypes.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "DataFormat/larflow3dhit.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/mcshower.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
-#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "cluster_functions.h"
 #include "geofuncs.h"
 
@@ -148,13 +148,14 @@ namespace reco {
 
     // we loop over the different MC showers
     // we try to associate a truehit cluster to the mc shower object
-    std::vector<ShowerInfo_t> shower_info_v;
+    _shower_info_v.clear();
       
     for ( size_t idx=0; idx<ev_mcshower->size(); idx++ ) {
       auto const& mcsh = ev_mcshower->at( idx );
 
       ShowerInfo_t info;
       info.idx = idx;
+      info.trackid = mcsh.TrackID();
       info.pid = mcsh.PdgCode();
       info.origin = mcsh.Origin();
       info.highq_plane = 0;
@@ -236,13 +237,13 @@ namespace reco {
       // }
       info.cos_sce = cos_sce;
 
-      shower_info_v.push_back( info );
+      _shower_info_v.push_back( info );
     }
 
-    std::sort( shower_info_v.begin(), shower_info_v.end() );
+    std::sort( _shower_info_v.begin(), _shower_info_v.end() );
     std::cout << "============================================================" << std::endl;
-    std::cout << "[ShowerLikelihoodBuilder] saved " << shower_info_v.size() << " showers" << std::endl;
-    for ( auto const& info : shower_info_v ) {
+    std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers" << std::endl;
+    for ( auto const& info : _shower_info_v ) {
       std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
       std::cout << " highq_plane: " << info.highq_plane << std::endl;
       std::cout << " pid=" << info.pid << std::endl;
@@ -254,22 +255,22 @@ namespace reco {
     }
 
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
-    std::vector<int> cluster_match_v( shower_info_v.size(), -1 );
+    std::vector<int> cluster_match_v( _shower_info_v.size(), -1 );
     int iidx = 0;
-    for ( auto& info : shower_info_v ) {
+    for ( auto& info : _shower_info_v ) {
       std::cout << "[" << iidx << "] pid=" << info.pid
                 << " origin=" << info.origin
                 << " vtx=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")"
                 << std::endl;
       int match_cluster_idx = _find_closest_cluster( claimed_cluster_v, info.shower_vtx, info.shower_dir );
-      shower_info_v[iidx].matched_cluster = match_cluster_idx;
+      _shower_info_v[iidx].matched_cluster = match_cluster_idx;
       std::cout << "   matched cluster index: " << match_cluster_idx << std::endl;
       iidx++;        
     }
 
 
-    std::vector< larlite::larflowcluster > larflow_cluster_v;    
-    _trueshowers_absorb_clusters( shower_info_v, larflow_cluster_v, truehit_v );
+    _larflow_cluster_v.clear();    
+    _trueshowers_absorb_clusters( _shower_info_v, _larflow_cluster_v, truehit_v );
     
     /*
     // cluster hits into cluster_t objects, using dbscan
@@ -277,14 +278,10 @@ namespace reco {
     */
 
     std::vector< larlite::larflow3dhit > clustered_truehits_v;
-    //std::vector< larlite::larflowcluster > larflow_cluster_v;
     for ( auto& cluster : cluster_v ) {
-      //larlite::larflowcluster lfcluster;
       for ( auto& hitidx : cluster.hitidx_v ) {
         clustered_truehits_v.push_back( truehit_v[hitidx] );
-        //lfcluster.push_back( truehit_v[hitidx] );
       }
-      //larflow_cluster_v.emplace_back( std::move(lfcluster) );
     }
     
     // fill profile histogram
@@ -304,12 +301,14 @@ namespace reco {
 
     // save the clusters
     larlite::event_larflowcluster* evout_cluster = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "trueshowerclusters" );
-    for (auto& lfcluster : larflow_cluster_v )
-      evout_cluster->emplace_back( std::move(lfcluster) );
+    for (auto& lfcluster : _larflow_cluster_v ) {
+      if ( lfcluster.size()>0 )
+        evout_cluster->emplace_back( std::move(lfcluster) );
+    }
     
     // save the shower object we are basing the info on
     larlite::event_mcshower* mcshowerout = (larlite::event_mcshower*)ioll.get_data(larlite::data::kMCShower, "truthshower" );
-    for ( auto& info : shower_info_v ) {
+    for ( auto& info : _shower_info_v ) {
       mcshowerout->push_back( ev_mcshower->at( info.idx ) );
     }
 
@@ -735,6 +734,13 @@ namespace reco {
     
   }
 
+  /**
+   * @brief assign truehit clusters to true shower objects
+   *
+   * @param[in]  shower_info_v    List of true shower objects
+   * @param[out] merged_cluster_v Output merged clusters
+   * @param[in]  truehit_v        List of true space points
+   */
   void ShowerLikelihoodBuilder::_trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                                               std::vector<larlite::larflowcluster>& merged_cluster_v,
                                                               const std::vector<larlite::larflow3dhit>& truehit_v )
@@ -744,11 +750,13 @@ namespace reco {
     std::vector<int> cluster_used_v( cluster_v.size(), 0 );
     for ( auto& info : shower_info_v ) {
 
-      if ( info.matched_cluster<0 )
-        continue;
-
       larlite::larflowcluster out_cluster;
       
+      if ( info.matched_cluster<0 ) {
+        merged_cluster_v.emplace_back( std::move(out_cluster) );
+        continue;
+      }
+
       std::vector<float> trunk_end_v(3,0);
       for (int i=0; i<3; i++) {
         trunk_end_v[i] = info.shower_vtx[i] + 3.0*info.shower_dir[i];
@@ -798,6 +806,66 @@ namespace reco {
     }//end of truth shower loop
     
   }//end of _trueshowers_absorb_clusters
+
+  /**
+   * @brief update shower nodes in an MCPixelGraph with true hit shower clusters
+   *
+   */
+  void ShowerLikelihoodBuilder::updateMCPixelGraph( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                    larcv::IOManager& iolcv )
+  {
+
+    // get input data
+    larcv::EventImage2D* ev_adc      =
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+    larcv::EventImage2D* ev_seg      =
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
+
+    std::vector<larcv::Image2D> claimed_v;
+    for ( auto const& adc : ev_adc->Image2DArray() ) {
+      larcv::Image2D claimed(adc.meta());
+      claimed.paint(0);
+      claimed_v.emplace_back( std::move(claimed) );
+    }
+
+    for (int ishower=0; ishower<(int)_shower_info_v.size(); ishower++) {
+
+      auto& info      = _shower_info_v[ishower];
+      auto& lfcluster = _larflow_cluster_v[ishower];
+
+      if ( lfcluster.size()==0 )
+        continue;
+      
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* node = mcpg.findTrackID( info.trackid );
+      // we are going to replace the pixel list of this node
+      // node->pix_vv: std::vector< std::vector<int> >, pixels should be stored as (row,col)
+
+      // we are going to project back into the pixels
+      std::vector< std::vector<int> > pix_vv( ev_adc->Image2DArray().size() );
+
+      for (int p=0; p<(int)ev_adc->Image2DArray().size(); p++) {
+        auto& claimed = claimed_v.at(p);
+        auto& adc     = ev_adc->Image2DArray().at(p);
+
+        auto& pix_v = pix_vv.at(p);
+        pix_v.clear();
+        pix_v.reserve( lfcluster.size()*2 );
+
+        for (auto& lfhit : lfcluster ) {
+          int row = claimed.meta().row(lfhit.tick);
+          int col = claimed.meta().col(lfhit.targetwire[p]);
+          if ( claimed.pixel(row,col)<0.5 && adc.pixel(row,col)>5.0 )  {
+            pix_v.push_back(row);
+            pix_v.push_back(col);
+            claimed.set_pixel(row,col,1.0);
+          }
+        }
+      }
+      
+      std::swap(node->pix_vv,pix_vv);
+    }//end of shower loop
+    
+  }
 
 }
 }
