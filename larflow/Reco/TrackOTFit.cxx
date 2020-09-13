@@ -13,13 +13,18 @@ namespace reco {
   /**
    * @brief fit points to a line segment. we vary only the last end point.
    * 
+   * Structure of initial_segment variable:
+   * @verbatim embed:rst:leading-asterisk
+   *  * Expects the outer vector to have length 2. 
+   *  * The first inner vector is the start 3d position of the line segment.
+   *  * The second inner vector is the end 3d position of the line segment.
+   *  * vertex activity near ends of partice clusters (not yet implemented)
+   * @endverbatim
+   * Note that the second 'end' position is updated by the routine.
+   * 
    * @param[out] initial_segment Initial 3D line segment defined by a start and end point.
-   *             Expects the outer vector to have length 2. 
-   *             The first inner vector is the start 3d position of the line segment.
-   *             The second inner vector is the end 3d position of the line segment.
-   *             The second 'end' position is updated by the routine.
    * @param[in]  track_pts_w_feat_v vector of space points (vector<float>) to fit to
-   * @param[in]  _maxiters_ Maximum number of fitting iterations. Default 100.
+   * @param[in]  \_maxiters\_ Maximum number of fitting iterations. Default 100.
    * @param[in]  lr learning rate. default 0.1.
    */
   void TrackOTFit::fit_segment( std::vector< std::vector<float> >& initial_segment,

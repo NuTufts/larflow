@@ -85,7 +85,7 @@ namespace reco {
 
   protected:
 
-    bool _save_event_mc_info;
+    bool _save_event_mc_info; ///< if true, save event-level mc info to ana tree
     TFile* _ana_file; ///< output file for non-larlite and non-larcv reco products
     TTree* _ana_tree; ///< tree to store non-larlite and non-larcv reco products
     std::string _ana_output_file; ///< name of the ana file to create

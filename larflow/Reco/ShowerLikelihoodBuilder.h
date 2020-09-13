@@ -107,15 +107,16 @@ namespace reco {
       std::vector<float> shower_dir; ///< det profile direction
       //std::vector<float> shower_dir_sce;
       std::vector<float> shower_vtx; ///< det profile shower start
-      //std::vector<float> shower_vtx_sce;      
+      //std::vector<float> shower_vtx_sce;
+      /** @brief comparison operator for struct used for sorting by priority and charge */
       bool operator<(const ShowerInfo_t& rhs ) {
         if ( priority<rhs.priority ) return true;
         else if ( priority==rhs.priority && highq_plane>rhs.highq_plane ) return true;
         return false;
       };
     };
-    std::vector<ShowerInfo_t> _shower_info_v;
-    std::vector< larlite::larflowcluster > _larflow_cluster_v;    
+    std::vector<ShowerInfo_t> _shower_info_v; ///< vector of info on true shower objects in event
+    std::vector< larlite::larflowcluster > _larflow_cluster_v; ///< larflow cluster made by merged true hit clusters based on trunk info from shower objects
     
     void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                        std::vector<larlite::larflowcluster>& merged_cluster_v,

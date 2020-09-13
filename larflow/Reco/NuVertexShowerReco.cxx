@@ -350,6 +350,15 @@ namespace reco {
     
   }
 
+  /**
+   * @brief Define the shower trunk
+   *
+   * @param[in] pos Position of vertex.
+   * @param[in] lfcluster Cluster to find trunk for.
+   * @param[out] shower_start Start of defined shower trunk.
+   * @param[out] shower_dir   Direction of defined shower trunk.
+   * @param[out] shower_ll    Score for choosing best trunk for shower cluster.
+   */
   void NuVertexShowerReco::_make_trunk_cand( const std::vector<float>& pos,
                                              const larlite::larflowcluster& lfcluster,
                                              std::vector<float>& shower_start,

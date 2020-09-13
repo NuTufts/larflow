@@ -892,7 +892,7 @@ namespace crtmatch {
    *   * new crt object with updated hit positions (and old hit positions as well)
    *   * matched opflash objects
    *   * larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
-   * @endvarbatim
+   * @endverbatim
    * 
    * @param[out] ioll larlite IO manager to store data in
    * @param[in]  remove_if_no_flash If true, only those CRT tracks matched to an opfash are stored
