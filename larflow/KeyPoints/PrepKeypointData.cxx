@@ -383,7 +383,7 @@ namespace keypoints {
    * @param[in]     mctruth_v Truth information about the neutrino interaction.
    * @param[in]     img_v     Wire Images, just for the meta
    * @param[in]     psce      Pointer to space-charge microboone instance
-   * @param[in/out] kpdata_v  Keypoint elements to potentially change
+   * @param[out]    kpdata_v  Keypoint elements to potentially change
    *
    */
   void PrepKeypointData::_label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
@@ -602,7 +602,7 @@ namespace keypoints {
    *  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
    * 
    */
-  void PrepKeypointData::make_proposal_labels( const larflow::PrepMatchTriplets& match_proposals )
+  void PrepKeypointData::make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals )
   {
 
     for (int i=0; i<larflow::kNumKeyPoints; i++) {
@@ -768,7 +768,7 @@ namespace keypoints {
    */
   std::vector<TH2D> PrepKeypointData::makeScoreImage( const int ikpclass, const float sigma,
                                                       const std::string histname,
-                                                      const larflow::PrepMatchTriplets& tripmaker,
+                                                      const larflow::prep::PrepMatchTriplets& tripmaker,
                                                       const std::vector<larcv::Image2D>& adc_v ) const
   {
 

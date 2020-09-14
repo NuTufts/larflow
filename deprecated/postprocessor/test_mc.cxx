@@ -23,11 +23,11 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
-#include "larcv/app/UBWireTool/UBWireTool.h"
+//#include "larcv/app/UBWireTool/UBWireTool.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 
 // larlitecv
-#include "Base/DataCoordinator.h"
+//#include "Base/DataCoordinator.h"
 
 // ContourTools
 #include "ContourTools/ContourCluster.h"

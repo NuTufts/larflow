@@ -20,6 +20,12 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief process data in event containers 
+   *
+   * @param[in] iolcv LArCV IO manager with event data
+   * @param[in] ioll  larlite storage_manager with event data
+   */
   void DBScanLArMatchHits::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
     larlite::event_larflow3dhit* ev_lfhits
@@ -69,6 +75,13 @@ namespace reco {
     
   }
 
+  /** 
+   * @brief convert cluster data in cluster_t into a larflowcluster object
+   *
+   * @param[in] cluster  cluster produced by cluster_sdbscan_larflow3dhits()
+   * @param[in] source_lfhit_v larflow3dhit vector passed into cluster_sdbscan_larflow3dhits()
+   * @return cluster represented as larlite::larflowcluster object
+   */
   larlite::larflowcluster DBScanLArMatchHits::makeLArFlowCluster( cluster_t& cluster,
                                                                   const std::vector<larlite::larflow3dhit>& source_lfhit_v ) {
     
@@ -99,6 +112,15 @@ namespace reco {
     return lfcluster;
   }
 
+  /**
+   * @brief assign spacepoints to cluster made using downsampled set of spacepoints
+   * 
+   * @param[in] cluster The cluster made using downsampled space points
+   * @param[in] hit_v   Container with all spacepoints (i.e. not downsampled)
+   * @param[in] used_hits_v Vector same size as hit_v, containing 1 if hit is already used. If 1, will not be added to current cluster.
+   * @param[in] max_dist2line Maximum distance a space point can be from the downsampled cluster's 1st principle component
+   * @return A new cluster_t object that includes all assigned spacepoints
+   */
   cluster_t DBScanLArMatchHits::absorb_nearby_hits( const cluster_t& cluster,
                                                     const std::vector<larlite::larflow3dhit>& hit_v,
                                                     std::vector<int>& used_hits_v,
@@ -152,6 +174,14 @@ namespace reco {
     return newcluster;
   }
 
+  /**
+   * @brief make cluster_t objects using given vector of larflow3dhit objects
+   *
+   * @param[in] inputhits Input vector of larflow3dhit objects to cluster
+   * @param[out] output_cluster_v Output clusters found
+   * @param[in]  used_hits_v Vector same length as inputhits. If 1, that hit has already been assigned to a cluster. 
+   *                         This function updates this flag for hits claimed while running this method.
+   */
   void DBScanLArMatchHits::makeCluster( const std::vector<larlite::larflow3dhit>& inputhits,
                                         std::vector<cluster_t>& output_cluster_v,
                                         std::vector<int>& used_hits_v ) {

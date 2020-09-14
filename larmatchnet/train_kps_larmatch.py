@@ -43,6 +43,7 @@ from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
 from larmatch_keypoint_classifier import LArMatchKeypointClassifier
 from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 from load_larmatch_kps import load_larmatch_kps
 from loss_larmatch_kps import SparseLArMatchKPSLoss
 
@@ -50,13 +51,16 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
 RESUME_FROM_CHECKPOINT=True
+RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="train_kps_nossnet/checkpoint.1000000th.tar"
+CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_SSNET=False
 TRAIN_KP=True
 TRAIN_KPSHIFT=False
+TRAIN_PAF=False
 TRAIN_VERBOSE=True
+FREEZE_LAYERS=True
 
 # Hard example training parameters (not yet implemented)
 # =======================================================
@@ -66,21 +70,24 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_data/"
-INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
-                 "larmatch_kps_train_p07.root",
-                 "larmatch_kps_train_p08.root",
-                 "larmatch_kps_train_p09.root",
-                 "larmatch_kps_train_p01.root",
-                 "larmatch_kps_train_p02.root",
-                 "larmatch_kps_train_p03.root",
-                 "larmatch_kps_train_p04.root"]
-INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
+#TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_data/"
+#INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
+#                 "larmatch_kps_train_p07.root",
+#                 "larmatch_kps_train_p08.root",
+#                 "larmatch_kps_train_p09.root",
+#                 "larmatch_kps_train_p01.root",
+#                 "larmatch_kps_train_p02.root",
+#                 "larmatch_kps_train_p03.root",
+#                 "larmatch_kps_train_p04.root"]
+#INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
+TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
+INPUTFILE_TRAIN=["output_alldata.root"]
+INPUTFILE_VALID=["output_alldata.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 1000001
+START_ITER  = 0
 NUM_ITERS   = 2000000
 TEST_NUM_MATCH_PAIRS = 30000
 ADC_MAX = 400.0
@@ -94,10 +101,10 @@ NBATCHES_per_itertrain = 1
 NBATCHES_per_step      = 1 # if >1 we use gradient accumulation
 trainbatches_per_print = -1
 
-NBATCHES_per_itervalid = 10
+NBATCHES_per_itervalid = 1
 validbatches_per_print = -1
 
-ITER_PER_VALID = 100
+ITER_PER_VALID = 10
 
 # CHECKPOINT PARAMETERS
 # =======================
@@ -116,8 +123,8 @@ PREDICT_CLASSVEC=True
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
 writer = SummaryWriter()
-train_entry = 30001
-valid_entry = 3800
+train_entry = 0
+valid_entry = 0
 TRAIN_NENTRIES = 0
 VALID_NENTRIES = 0
 
@@ -137,16 +144,22 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the device
-    model = LArMatch(neval=TEST_NUM_MATCH_PAIRS,use_unet=True).to(DEVICE)
-    ssnet_head = LArMatchSSNetClassifier().to(DEVICE)
-    kplabel_head = LArMatchKeypointClassifier().to(DEVICE)
-    kpshift_head = LArMatchKPShiftRegressor().to(DEVICE)
+    model = LArMatch(use_unet=True).to(DEVICE)
+    ssnet_head    = LArMatchSSNetClassifier().to(DEVICE)
+    kplabel_head  = LArMatchKeypointClassifier().to(DEVICE)
+    kpshift_head  = LArMatchKPShiftRegressor().to(DEVICE)
+    affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64]).to(DEVICE)
     # the model is multi-tasked, so we group the different tasks into a map
     model_dict = {"larmatch":model,
                   "ssnet":ssnet_head,
                   "kplabel":kplabel_head,
-                  "kpshift":kpshift_head}
-
+                  "kpshift":kpshift_head,
+                  "paf":affinity_head}
+    parameters = []
+    for n,model in model_dict.items():
+        for p in model.parameters():
+            parameters.append( p )
+    
     if True:
         # DUMP MODEL (for debugging)
         print model
@@ -165,11 +178,25 @@ def main():
     if RESUME_FROM_CHECKPOINT:
         print "RESUMING FROM CHECKPOINT FILE ",CHECKPOINT_FILE
         checkpoint = torch.load( CHECKPOINT_FILE, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
+
+        # hack to be able to load sparseconvnet<1.3
+        for name,arr in checkpoint["state_larmatch"].items():
+            if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
+                 ("stem" in name and "weight" in name and len(arr.shape)==3) or
+                 ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
+                 ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
+                print("reshaping ",name)
+                checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
+        
         best_prec1 = checkpoint["best_prec1"]
         if CHECKPOINT_FROM_DATA_PARALLEL:
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
         for n,m in model_dict.items():
-            m.load_state_dict(checkpoint["state_"+n])
+            if "state_"+n in checkpoint:
+                if n in ["kplabel"]:
+                    print "skip re-loading keypoint"
+                    continue
+                m.load_state_dict(checkpoint["state_"+n])
 
     # data parallel training -- does not work
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
@@ -185,13 +212,24 @@ def main():
         hardex_model = {"larmatch":hardex_larmatch_model}
         for n,m in hardex_model.items():
             m.load_state_dict(hardex_checkpoint["state_"+n])
+    else:
+        hardex_model=None
+            
 
-
+    # FIX CERTAIN PARAMETERS
+    if FREEZE_LAYERS:
+        for fixed_model in ["larmatch","ssnet","kpshift"]:
+            for param in model_dict[fixed_model].parameters():
+                param.requires_grad = False
+        
     # define loss function (criterion) and optimizer
-    criterion = SparseLArMatchKPSLoss()
+    criterion = SparseLArMatchKPSLoss( eval_ssnet=False,
+                                       eval_keypoint_label=True,
+                                       eval_keypoint_shift=False,
+                                       eval_affinity_field=TRAIN_PAF )
 
     # training parameters
-    lr = 1.0e-5
+    lr = 1e-2
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -202,10 +240,10 @@ def main():
     # SETUP OPTIMIZER
     # ADAM
     # betas default: (0.9, 0.999) for (grad, grad^2). smoothing coefficient for grad. magnitude calc.
-    optimizer = torch.optim.Adam(model.parameters(), 
+    optimizer = torch.optim.Adam(parameters, 
                                  lr=lr, 
                                  weight_decay=weight_decay)
-    if RESUME_FROM_CHECKPOINT:
+    if RESUME_OPTIM_FROM_CHECKPOINT:
         optimizer.load_state_dict( checkpoint["optimizer"] )
 
     # optimize algorithms based on input size (good if input size is constant)
@@ -215,21 +253,25 @@ def main():
     traindata_v = std.vector("std::string")()
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iotrain = larflow.keypoints.LoaderKeypointData(traindata_v)
+    iotrain = {"kps":larflow.keypoints.LoaderKeypointData(traindata_v),
+               "affinity":larflow.keypoints.LoaderAffinityField(traindata_v)}
 
     validdata_v = std.vector("std::string")()
     for x in INPUTFILE_VALID:
         validdata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iovalid = larflow.keypoints.LoaderKeypointData(validdata_v)
+    iovalid = {"kps":larflow.keypoints.LoaderKeypointData(validdata_v),
+               "affinity":larflow.keypoints.LoaderAffinityField(validdata_v)}
 
     if not EXCLUDE_NEG_EXAMPLES:
-        iotrain.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
-        iovalid.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
+        for name,loader in iotrain.items():
+            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
+        for name,loader in iovalid.items():
+            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
 
-    TRAIN_NENTRIES = iotrain.GetEntries()
+    TRAIN_NENTRIES = iotrain["kps"].GetEntries()
     iter_per_epoch = TRAIN_NENTRIES/(itersize_train)
     epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
-    VALID_NENTRIES = iovalid.GetEntries()
+    VALID_NENTRIES = iovalid["kps"].GetEntries()
 
     print "Number of iterations to run: ",NUM_ITERS
     print "Entries in the training set: ",TRAIN_NENTRIES
@@ -298,7 +340,8 @@ def main():
                         'state_larmatch': model_dict["larmatch"].state_dict(),
                         'state_ssnet': model_dict["ssnet"].state_dict(),
                         'state_kplabel': model_dict["kplabel"].state_dict(),
-                        'state_kpshift': model_dict["kpshift"].state_dict(),                                                
+                        'state_kpshift': model_dict["kpshift"].state_dict(),
+                        'state_paf': model_dict["paf"].state_dict(),
                         'best_prec1': best_prec1,
                         'optimizer' : optimizer.state_dict(),
                     }, is_best, -1)
@@ -312,7 +355,8 @@ def main():
                     'state_larmatch': model_dict["larmatch"].state_dict(),
                     'state_ssnet': model_dict["ssnet"].state_dict(),
                     'state_kplabel': model_dict["kplabel"].state_dict(),
-                    'state_kpshift': model_dict["kpshift"].state_dict(),                                                
+                    'state_kpshift': model_dict["kpshift"].state_dict(),
+                    'state_paf': model_dict["paf"].state_dict(),                    
                     'best_prec1': best_prec1,
                     'optimizer' : optimizer.state_dict(),
                 }, False, ii)
@@ -327,7 +371,8 @@ def main():
             'state_larmatch': model_dict["larmatch"].state_dict(),
             'state_ssnet': model_dict["ssnet"].state_dict(),
             'state_kplabel': model_dict["kplabel"].state_dict(),
-            'state_kpshift': model_dict["kpshift"].state_dict(),                                                
+            'state_kpshift': model_dict["kpshift"].state_dict(),
+            'state_paf': model_dict["paf"].state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, False, NUM_ITERS)
@@ -371,8 +416,8 @@ def train(train_loader, device, batchsize,
     acc_time      = AverageMeter()
 
     # accruacy and loss meters
-    lossnames    = ("total","lm","ssnet","kp")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_pos")
+    lossnames    = ("total","lm","ssnet","kp","paf")
+    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -393,6 +438,13 @@ def train(train_loader, device, batchsize,
     # clear gradients
     optimizer.zero_grad()
     nnone = 0
+
+    #print "ZERO GRAD BY OPTIMIZER"
+    #for n,p in model["kplabel"].named_parameters():
+    #    if "out" in n:
+    #        print n,": grad: ",p.grad
+    #        print n,": ",p
+    
 
     # run predictions over nbatches before calculating gradients
     # if nbatches>1, this is so-called "gradient accumulation".
@@ -424,6 +476,9 @@ def train(train_loader, device, batchsize,
         kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device).requires_grad_(False)
         kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'] ).to(device).requires_grad_(False)        
         kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
+        
+        paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
+        paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)
 
         for p in xrange(3):
             feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
@@ -445,8 +500,9 @@ def train(train_loader, device, batchsize,
                                                                            coord_t[1], feat_t[1],
                                                                            coord_t[2], feat_t[2], 1,
                                                                            verbose=TRAIN_VERBOSE )
-        if HARD_EXAMPLE_TRAINING:
+        if HARD_EXAMPLE_TRAINING and hardex_model is not None:
             # we use the fixed network to calculate score for all triplets
+            raise RuntimeError("HARD_EXAMPLE_TRAINING not implemented yet. This is just a stub.")
             fixednet_ntriplets = preplarmatch._triplet_v.size()
             fixednet_startidx  = 0
             fixednet_scores_np = np.zeros( ntriplets )
@@ -458,36 +514,33 @@ def train(train_loader, device, batchsize,
                                                                        last_index,
                                                                        npairs,
                                                                        with_truth )
-        t_chunk = time.time()-t_chunk
-        print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
-        dt_chunk += t_chunk
-            
-        startidx = int(last_index.value)
+                t_chunk = time.time()-t_chunk
+                print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
+                dt_chunk += t_chunk            
+                startidx = int(last_index.value)
 
-        # make torch tensor or array providing index of pixels in each plane we should group
-        # to form a 3D spacepoint proposal
-        matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
+            # make torch tensor or array providing index of pixels in each plane we should group
+            # to form a 3D spacepoint proposal
+            matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
                 
-        if with_truth:
-            truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
+            if with_truth:
+                truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
 
-        # HARD EXAMPLE TRAINING: Get features
-        if HARD_EXAMPLE_TRAINING and hardex_model is not None:
             with torch.no_grad():
                 feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
                                                                           matchpair_t, npairs.value,
                                                                           DEVICE, verbose=True )
-
-        # EVALUATE LARMATCH SCORES
-        tstart = time.time()
-        with torch.no_grad():
-            pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
-        dt_net_classify = time.time()-tstart
-        dt_net  += dt_net_classify
-        prob_t = sigmoid(pred_t) # should probably move inside classify_triplet method
-        print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
+            tstart = time.time()
+            with torch.no_grad():
+                pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
+            dt_net_classify = time.time()-tstart
+            dt_net  += dt_net_classify
+            prob_t = sigmoid(pred_t) # should probably move inside classify_triplet method
+            print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
             
-        
+
+        # TRAINING MODEL: EVALUATE LARMATCH SCORES
+        # ==========================================
         # extract features according to sampled match indices
         feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                              match_t, flowdata['npairs'],
@@ -508,10 +561,12 @@ def train(train_loader, device, batchsize,
         else:
             ssnet_pred_t = None
         
-        # next evaluate ssnet classifier
+        # next evaluate keypoint classifier
         if TRAIN_KP:
             kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape            
+            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
+            kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
             print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
         else:
             kplabel_pred_t = None
@@ -525,12 +580,22 @@ def train(train_loader, device, batchsize,
         else:
             kpshift_pred_t = None
 
+        # next evaluate affinity field predictor
+        if TRAIN_PAF:
+            paf_pred_t = model["paf"].forward( feat_triplet_t )
+            print "[larmatch train]: paf pred=",paf_pred_t.shape
+            paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
+            paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
+            print "[larmatch train]: paf pred=",paf_pred_t.shape
+        else:
+            paf_pred_t = None
+
         # Calculate the loss
-        totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
-                                                                           match_label_t,  ssnet_label_t, kp_label_t,     kpshift_t,
-                                                                           truematch_idx_t,
-                                                                           match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, 
-                                                                           verbose=TRAIN_VERBOSE )
+        totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss, paf_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
+                                                                                     match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
+                                                                                     truematch_idx_t,
+                                                                                     match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
+                                                                                     verbose=TRAIN_VERBOSE )
 
         if RUNPROFILER:
             torch.cuda.synchronize()
@@ -549,10 +614,21 @@ def train(train_loader, device, batchsize,
         
         # of course, we calculate gradients for this batch
         totloss.backward()
+
+        # clip the gradients
+        for n,p in model["kplabel"].named_parameters():
+            torch.nn.utils.clip_grad_value_( p, 0.5 )
+        
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
             print "batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step)
             optimizer.step()
+
+            for n,p in model["kplabel"].named_parameters():
+                if "out" in n:
+                    print n,": grad: ",p.grad
+                    print n,": ",p
+            
             optimizer.zero_grad()
             
         if RUNPROFILER:        
@@ -566,13 +642,15 @@ def train(train_loader, device, batchsize,
         loss_meters["total"].update( totloss.detach().item(),    nbatches_per_step )
         loss_meters["lm"].update( larmatch_loss, nbatches_per_step )
         loss_meters["ssnet"].update( ssnet_loss, nbatches_per_step )
-        loss_meters["kp"].update( kp_loss,       nbatches_per_step )        
+        loss_meters["kp"].update( kp_loss,       nbatches_per_step )
+        loss_meters["paf"].update( paf_loss,     nbatches_per_step )
         
         
         # measure accuracy and update meters
         acc = accuracy(match_pred_t, match_label_t,
                        ssnet_pred_t, ssnet_label_t,
                        kplabel_pred_t, kp_label_t,
+                       paf_pred_t, paf_label_t,
                        truematch_idx_t,
                        acc_meters)
             
@@ -618,8 +696,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     global valid_entry
 
     # accruacy and loss meters
-    lossnames    = ("total","lm","ssnet","kp")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_pos")
+    lossnames    = ("total","lm","ssnet","kp","paf")
+    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -667,6 +745,9 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device).requires_grad_(False)
         kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'] ).to(device).requires_grad_(False)        
         kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
+
+        paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
+        paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)        
         
         # CLAMP ADC VALUES
         for p in xrange(3):
@@ -711,7 +792,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
             # evaluate keypoint regression
             if TRAIN_KP:
                 kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-                kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[-1]) )
+                kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
+                kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
                 print "[keypoint valid] kplabel-pred=",kplabel_pred_t.shape
             else:
                 kplabel_pred_t = None
@@ -725,33 +807,45 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
             else:
                 kpshift_pred_t = None
 
-            totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t,
-                                                                               match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,
-                                                                               truematch_idx_t,
-                                                                               match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t,
-                                                                               verbose=False )
-        time_meters["forward"].update(time.time()-tforward)
+            # next evaluate affinity field predictor
+            if TRAIN_PAF:
+                paf_pred_t = model["paf"].forward( feat_triplet_t )
+                print "[larmatch valid]: paf pred=",paf_pred_t.shape
+                paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
+                paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
+                print "[larmatch valid]: paf pred=",paf_pred_t.shape
+            else:
+                paf_pred_t = None            
 
-        # update loss meters
-        loss_meters["total"].update( totloss.item(),    nbatches )
-        loss_meters["lm"].update( larmatch_loss, nbatches )
-        loss_meters["ssnet"].update( ssnet_loss, nbatches )
-        loss_meters["kp"].update( kp_loss,       nbatches )        
+            totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss,paf_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
+                                                                                        match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,      paf_label_t,
+                                                                                        truematch_idx_t,
+                                                                                        match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
+                                                                                        verbose=False )
+            time_meters["forward"].update(time.time()-tforward)
+
+            # update loss meters
+            loss_meters["total"].update( totloss.item(),    nbatches )
+            loss_meters["lm"].update( larmatch_loss, nbatches )
+            loss_meters["ssnet"].update( ssnet_loss, nbatches )
+            loss_meters["kp"].update( kp_loss,       nbatches )
+            loss_meters["paf"].update( paf_loss,     nbatches )
         
-        # measure accuracy and update meters
-        end = time.time()
-        acc = accuracy(match_pred_t, match_label_t,
-                       ssnet_pred_t, ssnet_label_t,
-                       kplabel_pred_t, kp_label_t,
-                       truematch_idx_t,
-                       acc_meters)
-        time_meters["accuracy"].update(time.time()-end)        
+            # measure accuracy and update meters
+            end = time.time()
+            acc = accuracy(match_pred_t, match_label_t,
+                           ssnet_pred_t, ssnet_label_t,
+                           kplabel_pred_t, kp_label_t,
+                           paf_pred_t, paf_label_t,
+                           truematch_idx_t,
+                           acc_meters)
+            time_meters["accuracy"].update(time.time()-end)        
             
-        # measure elapsed time for batch
-        time_meters["batch"].update( time.time()-batchstart )
-        end = time.time()
-        if print_freq>0 and i % print_freq == 0:
-            prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters, False )
+            # measure elapsed time for batch
+            time_meters["batch"].update( time.time()-batchstart )
+            end = time.time()
+            if print_freq>0 and i % print_freq == 0:
+                prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters, False )
 
             
     prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters, False )
@@ -804,6 +898,7 @@ def adjust_learning_rate(optimizer, epoch, lr):
 def accuracy(match_pred_t, match_label_t,
              ssnet_pred_t, ssnet_label_t,
              kp_pred_t, kp_label_t,
+             paf_pred_t, paf_label_t,
              truematch_indices_t,
              acc_meters):
     """Computes the accuracy metrics."""
@@ -849,11 +944,35 @@ def accuracy(match_pred_t, match_label_t,
         else:
             kp_pred  = kp_pred_t.detach()
             kp_label = kp_label_t.detach()[:npairs]
-        kp_n_pos = float(kp_label.gt(0.5).sum().item())
-        kp_pos   = float(kp_pred.gt(0.5)[ kp_label.gt(0.5) ].sum().item())
-        print "kp_n_pos[>0.5]: ",kp_n_pos," (sel_)kp_label: ",kp_label.shape," sum=",kp_label.gt(0.5).sum().item()," (orig_)kp_label[>0.5]: ",kp_label_t.detach()[:npairs].gt(0.5).sum().item()
-        print "kp_pos: ",kp_pos
-        acc_meters["kp_pos"].update( kp_pos/kp_n_pos )
+        names = ["nu","trk","shr"]
+        for c in xrange(3):
+            kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
+            kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
+            print "kp[",c,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos
+            acc_meters["kp_"+names[c]].update( kp_pos/kp_n_pos )
+
+    # PARTICLE AFFINITY FLOW
+    if paf_pred_t is not None:
+        # we define accuracy with the direction is less than 20 degress
+        if paf_pred_t.shape[0]!=paf_label_t.shape[0]:
+            paf_pred  = torch.index_select( paf_pred_t.detach(),  0, truematch_indices_t )
+            paf_label = torch.index_select( paf_label_t.detach(), 0, truematch_indices_t )
+        else:
+            paf_pred  = paf_pred_t.detach()
+            paf_label = paf_label_t.detach()[:npairs]
+        # calculate cosine
+        paf_truth_lensum = torch.sum( paf_label*paf_label, 1 )
+        paf_pred_lensum  = torch.sum( paf_pred*paf_pred, 1 )
+        paf_pred_lensum  = torch.sqrt( paf_pred_lensum )
+        paf_posexamples = paf_truth_lensum.gt(0.5)
+        #print paf_pred[paf_posexamples,:].shape," ",paf_label[paf_posexamples,:].shape," ",paf_pred_lensum[paf_posexamples].shape
+        paf_cos = torch.sum(paf_pred[paf_posexamples,:]*paf_label[paf_posexamples,:],1)/(paf_pred_lensum[paf_posexamples]+0.001)
+        paf_npos  = paf_cos.shape[0]
+        paf_ncorr = paf_cos.gt(0.94).sum().item()
+        paf_acc = float(paf_ncorr)/float(paf_npos)
+        print "paf: npos=",paf_npos," acc=",paf_acc
+        if paf_npos>0:
+            acc_meters["paf"].update( paf_acc )
     
     
     return True
