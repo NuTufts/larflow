@@ -236,7 +236,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
 
     if verbose: print "        Lovasz: ", loss_gaus.detach()
 
-    if iterator == 2000: 
+    if iterator == -1: 
         temp_coord_t = np.array(coord_t.detach().to('cpu'))
         x, y, dummy = zip(*np.array(coord_t.detach().to('cpu')))
 
@@ -290,11 +290,12 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     sigmoid = torch.nn.Sigmoid()
     sig_seeds = sigmoid(seeds)
     loss_seed = mseloss_class(seeds, gaussian_class_segmentation.t())
+    class_pix_w *= 200
     loss_seed *= class_pix_w
     loss_seed = loss_seed.sum()
+    # loss_seed *= 140
     if verbose: print "loss_seed: ",loss_seed
 
-    loss = loss_gaus+loss_seed
 
     # seeds = seeds / 10
     # gaussian_class_segmentation = gaussian_class_segmentation / 10
@@ -302,17 +303,26 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
 
     # Sigma-smoothing loss 
     #    (take sigmas @instance pixel locations and consolidate into one vector)
-    #avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1)
-    #avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1)
+    avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1).detach()
+    avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1).detach()
 
-    #avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
-    #avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
+    avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
+    avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
+
+    #only compare it to the places that we care about
+    seeds_x_sigma = binary_maps * sigma_x.detach()
+    seeds_y_sigma = binary_maps * sigma_y.detach()
+
+    seeds_x_sigma = torch.max(seeds_x_sigma.t(), 1)[0]
+    seeds_y_sigma = torch.max(seeds_y_sigma.t(), 1)[0]
 
     #if verbose: print "        Sigma: ", (sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened) + sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)).detach()
-    # loss += sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened)
-    # loss += sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)
+    loss_sigma = mseloss(seeds_x_sigma, avg_x_sigma_flattened) 
+    loss_sigma += mseloss(seeds_y_sigma, avg_y_sigma_flattened) 
 
+    print "    Loss Sigma: ", loss_sigma
 
+    loss = loss_gaus+loss_seed+loss_sigma
     print "    Loss: ", loss.detach()
     return loss
 
@@ -321,7 +331,7 @@ def post_process(coord_t, offsets, seeds):
 
     seeds = seeds.t()
     instances = []
-    for instance_type in seeds:
+    for i, instance_type in enumerate(seeds):
         visited = set()
 
         # initialize first max pixel
@@ -339,12 +349,10 @@ def post_process(coord_t, offsets, seeds):
         # print "    cent_eix, cent_eiy ", cent_eix, cent_eiy
         # print "    sigma_x, sigma_y ", sigma_x, sigma_y
         # print "    inner exp, ", ((-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2))))
-        print "Seed, offset ", max_val, centroid_val
-        print max_idx
+        print "Class, seed, offset ", i, max_val, centroid_val
 
 
         # ============================ debugging 
-
         # Gaussian per instance (as per paper)
         
         # temp_coord_t = np.array(coord_t.detach().to('cpu'))
@@ -353,8 +361,6 @@ def post_process(coord_t, offsets, seeds):
         # plt.scatter(x, y, marker='.', c=list(np.array(instance_type.detach().to('cpu'))), cmap=plt.cm.autumn)
         # plt.colorbar()
         # plt.show()
-
-
         # ============================ debugging 
 
         instances_for_class = []
@@ -379,6 +385,8 @@ def post_process(coord_t, offsets, seeds):
             instances_for_class.append(instance_pixels)
 
         instances.append(instances_for_class)
+
+    return instances
 
 def max_with_index(ray, visited):
     initialized = False

@@ -86,7 +86,7 @@ for filename in directory_files:
                       args.vis_uneven, instances_uneven, particle_names)
 
         # Train on each plane
-        for iterate in range(5000):
+        for iterate in range(3000):
             for plane in range(1):
                 if args.verbose:
                     print "Plane: ", plane
@@ -144,7 +144,14 @@ for filename in directory_files:
         feat_plane =  torch.from_numpy(feat_dict[0]).float().to(device)
 
         offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
-        print(numpy.shape(post_process(coord_plane.to('cpu'), offsets.detach().cpu(), seeds.detach().cpu())))
+        results = numpy.array(post_process(coord_plane.to('cpu'), offsets.detach().cpu(), seeds.detach().cpu()))
+
+        for i in range(0, 6):
+            print "Class ", i, ": "
+            print "    ",
+            for elem in results[i]:
+                print len(elem), ", ",
+            print
 
         events += 1
         if events == 1:
