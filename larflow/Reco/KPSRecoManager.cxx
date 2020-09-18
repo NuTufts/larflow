@@ -343,6 +343,7 @@ namespace reco {
   /** @brief run Truth-Reco analyses for studying performance **/
   void KPSRecoManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
+    _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     _track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
   

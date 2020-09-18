@@ -47,6 +47,7 @@ iolcv.add_in_file(   args.input_dlmerged )
 iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
 iolcv.specify_data_read( larcv.kProductImage2D, "thrumu" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ancestor" );
+iolcv.specify_data_read( larcv.kProductImage2D, "segment" );
 iolcv.specify_data_read( larcv.kProductImage2D, "instance" );
 iolcv.specify_data_read( larcv.kProductImage2D, "larflow" );
 iolcv.specify_data_read( larcv.kProductChStatus, "wire" );

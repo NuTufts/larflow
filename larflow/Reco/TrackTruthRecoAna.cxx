@@ -31,7 +31,9 @@ namespace reco {
 
     // build the pixel graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
+    
     mcpg.buildgraph( iolcv, ioll );
+    mcpg.printGraph();
     
     // get track truth info
     larlite::event_mctrack* ev_mctrack
@@ -47,11 +49,17 @@ namespace reco {
       // loop over the reco tracks
       VertexTrackTruthRecoInfo vtxinfo;
 
+      LARCV_INFO() << "=== Reco Nu-Vertex [" << ivtx << "]: ntracks=" << nuvtx.track_v.size() << " ===" << std::endl;
       
       for ( int ireco=0; ireco<(int)nuvtx.track_v.size(); ireco++ ) {
         auto& recotrack   = nuvtx.track_v.at(ireco);
         auto& recocluster = nuvtx.track_hitcluster_v.at(ireco);
         TrackTruthRecoInfo trackinfo = _make_truthmatch_info( recotrack, recocluster, mcpg, *ev_mctrack );
+
+        LARCV_INFO() << "  Reco track [" << ireco << "] results:" << std::endl;
+        LARCV_INFO() << "    Matched Truth TrackID: " << trackinfo.matched_true_trackid << " pid=" << trackinfo.matched_true_pid << std::endl;
+        LARCV_INFO() << "    Matched mean-squared error: " << trackinfo.matched_mse << std::endl;
+        
         vtxinfo.trackinfo_v.emplace_back( std::move(trackinfo) );
       }
 
@@ -134,7 +142,7 @@ namespace reco {
       float min_endr2 = 1e9; /// min dist-squared to closest end point
       float min_segr2 = 1e9;  /// min dist-squared perpendicular to segment
       
-      for (size_t ipt=0;ipt<truetrack_path_v.size(); ipt++) {
+      for (size_t ipt=0;ipt<truetrack_path_v.size()-1; ipt++) {
 
         const std::vector<float>& pt1 = truetrack_path_v[ipt];
         const std::vector<float>& pt2 = truetrack_path_v[ipt+1];
@@ -152,6 +160,9 @@ namespace reco {
           for (int i=0; i<3; i++)
             ptdir[i] /= seglen;
         }
+
+        if ( seglen==0.0 )
+          continue;
 
         float r  = larflow::reco::pointLineDistance3f( pt1, pt2, testpt );
         float s  = larflow::reco::pointRayProjection3f( pt1, ptdir, testpt );
