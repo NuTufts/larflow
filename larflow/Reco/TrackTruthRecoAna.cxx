@@ -10,6 +10,7 @@ namespace larflow {
 namespace reco {
 
   TrackTruthRecoAna::TrackTruthRecoAna()
+    : larcv::larcv_base("TrackTruthRecoAna")
   {
     _psce  = new larutil::SpaceChargeMicroBooNE;
   }
@@ -49,7 +50,10 @@ namespace reco {
       // loop over the reco tracks
       VertexTrackTruthRecoInfo vtxinfo;
 
-      LARCV_INFO() << "=== Reco Nu-Vertex [" << ivtx << "]: ntracks=" << nuvtx.track_v.size() << " ===" << std::endl;
+      LARCV_INFO() << "=== Reco Nu-Vertex [" << ivtx << "]:"
+                   << " ntracks=" << nuvtx.track_v.size()
+                   << " nclusters=" << nuvtx.track_hitcluster_v.size()
+                   << " ===" << std::endl;
       
       for ( int ireco=0; ireco<(int)nuvtx.track_v.size(); ireco++ ) {
         auto& recotrack   = nuvtx.track_v.at(ireco);
@@ -208,7 +212,18 @@ namespace reco {
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> nu_nodes = mcpg.getNeutrinoParticles();
     std::vector< const larlite::mctrack* > pmctrack_v;
     for ( auto& pnode : nu_nodes ) {
-      pmctrack_v.push_back( &ev_mctrack.at(pnode->vidx) );
+      if (pnode->type!=0)
+        continue;
+      
+      try {
+        pmctrack_v.push_back( &ev_mctrack.at(pnode->vidx) );
+      }
+      catch (std::exception& e) {
+        LARCV_WARNING() << "could not get mctrack object for node. "
+                        << "index=" << pnode->vidx
+                        << " trackid=" << pnode->tid
+                        << " pdg=" << pnode->pid << std::endl;
+      }
     }
 
     // get ave mse for each track
@@ -220,6 +235,9 @@ namespace reco {
       std::vector< std::vector<float> > true_det_path_v
         = getSCEtrueTrackPath( *pmctrack_v[imctrack], _psce );
 
+      if ( true_det_path_v.size()<2 )
+        continue;
+
       float mse = _get_mse_cluster_truetrack_v( true_det_path_v, track_hit_cluster );
       mse_v[imctrack] = mse;
       if ( mse<min_mse ) {
@@ -228,8 +246,14 @@ namespace reco {
       }
     }
 
-    info.matched_true_trackid = pmctrack_v[min_imctrack]->TrackID();
-    info.matched_true_pid     = pmctrack_v[min_imctrack]->PdgCode();
+    if ( min_imctrack>=0 ) {
+      info.matched_true_trackid = pmctrack_v[min_imctrack]->TrackID();
+      info.matched_true_pid     = pmctrack_v[min_imctrack]->PdgCode();
+    }
+    else {
+      info.matched_true_trackid = -1;
+      info.matched_true_pid     = -1;
+    }
     info.matched_mse          = min_mse;
     info.truetrack_completeness = 0;
     info.dist_to_trueend      = 0;
