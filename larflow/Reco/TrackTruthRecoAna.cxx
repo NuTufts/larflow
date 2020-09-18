@@ -49,6 +49,7 @@ namespace reco {
     
       // loop over the reco tracks
       VertexTrackTruthRecoInfo vtxinfo;
+      vtxinfo.vtxid = ivtx;
 
       LARCV_INFO() << "=== Reco Nu-Vertex [" << ivtx << "]:"
                    << " ntracks=" << nuvtx.track_v.size()
