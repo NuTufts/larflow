@@ -56,7 +56,7 @@ int main( int nargs, char** argv ) {
   
   // Input for ttrees
   //  int hitsPerVoxel[4];
-  int hitsPer1cmVoxel;
+  //  int hitsPer1cmVoxel; // DEBUG
   
   std::string crtfile_path = argv[1];
   std::string input_crtfile = argv[2];
@@ -83,8 +83,8 @@ int main( int nargs, char** argv ) {
   */
 
   // [DEBUG] singular tree
-  TTree *tree = new TTree("tree","tree of hits per voxel");
-  tree->Branch("hitsPer1cmVoxel", &hitsPer1cmVoxel, "hitsPer1cmVoxel/I");
+  //  TTree *tree = new TTree("tree","tree of hits per voxel");
+  //tree->Branch("hitsPer1cmVoxel", &hitsPer1cmVoxel, "hitsPer1cmVoxel/I");
   
   // wire hists
   TH1D* hitcount_wire_hist[ nhists ] = {nullptr};
@@ -188,15 +188,18 @@ int main( int nargs, char** argv ) {
   }
 
   // Outside event loop
+  // This is for creating a tree AFTER all input files have been hadded! (doesn't work otherwise)
 
-  //  for (int n = 0; n < voxHists; n++) {
+  /*
+  
+  for (int n = 0; n < voxHists; n++) {
     
     for (int i = 1; i <= (xyzBins[0]/voxelSize[0]); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
       for (int j = 1; j <= (xyzBins[1]/voxelSize[0]); j++) {
 	for (int k = 1; k <= (xyzBins[2]/voxelSize[0]); k++) {
 
-	  //	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
-	  //T[n]->Fill();
+	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
+	  T[n]->Fill();
 
 	  hitsPer1cmVoxel = hitcount_xyz_th3d[0]->GetBinContent(i, j, k);
 	  tree->Fill();
@@ -205,9 +208,10 @@ int main( int nargs, char** argv ) {
       }
     }
     
-    //  }
+  }
 
-  tree->Write();
+  */
+  
   outfile->Write();
   outfile->Close();
   
