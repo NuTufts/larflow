@@ -55,7 +55,8 @@ int main( int nargs, char** argv ) {
   std::string str5[4] = {"1cm","3cm","5cm","10cm"};  
   
   // Input for ttrees
-  int hitsPerVoxel[4];
+  //  int hitsPerVoxel[4];
+  int hitsPer1cmVoxel;
   
   std::string crtfile_path = argv[1];
   std::string input_crtfile = argv[2];
@@ -73,11 +74,17 @@ int main( int nargs, char** argv ) {
   //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
   TFile* outfile = new TFile(Form("CRTana_%s",input_crtfile.c_str()),"recreate");
 
+  /*
   TTree* T[ voxHists ] = {nullptr};
   for ( int i = 0; i < voxHists; i++ ) {
     T[i] = new TTree(Form("T_%s",str5[i].c_str()),"");
     T[i]->Branch("hitsPerVoxel",&hitsPerVoxel[i],"hitsPerVoxel/I");
   }
+  */
+
+  // [DEBUG] singular tree
+  TTree *tree = new TTree("tree","tree of hits per voxel");
+  tree->Branch("hitsPer1cmVoxel", &hitsPer1cmVoxel, "hitsPer1cmVoxel/I");
   
   // wire hists
   TH1D* hitcount_wire_hist[ nhists ] = {nullptr};
@@ -146,7 +153,7 @@ int main( int nargs, char** argv ) {
 	hit_x = lfhit[0];
 	hit_y = lfhit[1];
 	hit_z = lfhit[2];
-
+	
 	// fill wire 1d hists
 	hitcount_wire_hist[0]->Fill(hit_U);
 	hitcount_wire_hist[1]->Fill(hit_V);
@@ -182,21 +189,25 @@ int main( int nargs, char** argv ) {
 
   // Outside event loop
 
-  for (int n = 0; n < voxHists; n++) {
+  //  for (int n = 0; n < voxHists; n++) {
     
-    for (int i = 1; i <= (xyzBins[0]/voxelSize[n]); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
-      for (int j = 1; j <= (xyzBins[1]/voxelSize[n]); j++) {
-	for (int k = 1; k <= (xyzBins[2]/voxelSize[n]); k++) {
+    for (int i = 1; i <= (xyzBins[0]/voxelSize[0]); i++) { // here use i = 1, i <= max, NOT i = 0, i < max (bc bin 0 is underflow in ROOT histograms)
+      for (int j = 1; j <= (xyzBins[1]/voxelSize[0]); j++) {
+	for (int k = 1; k <= (xyzBins[2]/voxelSize[0]); k++) {
 
-	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
-	  T[n]->Fill();
+	  //	  hitsPerVoxel[n] = hitcount_xyz_th3d[n]->GetBinContent(i, j, k);
+	  //T[n]->Fill();
+
+	  hitsPer1cmVoxel = hitcount_xyz_th3d[0]->GetBinContent(i, j, k);
+	  tree->Fill();
 	  
 	}
       }
     }
     
-  }
-  
+    //  }
+
+  tree->Write();
   outfile->Write();
   outfile->Close();
   
