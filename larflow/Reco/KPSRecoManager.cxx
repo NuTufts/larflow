@@ -140,6 +140,7 @@ namespace reco {
     
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
+      truthAna( iolcv, ioll );
     }
     
     // Fill Ana Tree
@@ -333,11 +334,19 @@ namespace reco {
   void KPSRecoManager::saveEventMCinfo( bool savemc )
   {
     if ( !_save_event_mc_info && savemc )  {
+      _track_truthreco_ana.bindAnaVariables( _ana_tree );
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
 
-  };  
+  };
+
+  /** @brief run Truth-Reco analyses for studying performance **/
+  void KPSRecoManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+    _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
+    _track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+  }
   
 }
 }

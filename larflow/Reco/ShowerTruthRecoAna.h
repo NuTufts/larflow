@@ -9,6 +9,34 @@
 namespace larflow {
 namespace reco {
 
+  class ShowerTruthRecoInfo {
+    
+  public:
+    
+    ShowerTruthRecoInfo() {};
+    virtual ~ShowerTruthRecoInfo() {};
+
+    int matched_true_trackid;
+    int matched_true_pid;
+    float matched_nlogl;
+    float trueshower_completeness;
+    float dist_to_showerstart;
+    float cos_true_reco_dir;
+    
+  };
+
+  class VertexShowerTruthRecoInfo {
+    
+  public:
+    
+    VertexShowerTruthRecoInfo() {};
+    virtual ~VertexShowerTruthRecoInfo() {};
+
+    int vtxid;
+    std::vector< ShowerTruthRecoInfo > showerinfo_v;
+    
+  };
+  
   /**
    * @ingroup Reco
    * @class ShowerTruthRecoAna
