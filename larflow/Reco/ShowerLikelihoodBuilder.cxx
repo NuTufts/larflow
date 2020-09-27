@@ -139,7 +139,7 @@ namespace reco {
 
     // now we parse the truth, by building the particle graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
-    mcpg.set_adc_treename( "wire" );
+    mcpg.set_adc_treename( "wiremc" );
     mcpg.buildgraph( iolcv, ioll );
 
     // Get neutrino particles

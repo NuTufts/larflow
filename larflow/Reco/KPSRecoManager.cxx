@@ -140,6 +140,7 @@ namespace reco {
     
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
+      truthAna( iolcv, ioll );
     }
     
     // Fill Ana Tree

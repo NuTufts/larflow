@@ -91,7 +91,6 @@ for ientry in xrange( args.start_entry, end_entry ):
     iolcv.read_entry(ientry)
 
     recoman.process( iolcv, io )
-    recoman.truthAna( iolcv, io )    
     
   #   # make bad channel image
   #   t_badch = time.time()
