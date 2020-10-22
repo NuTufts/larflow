@@ -56,12 +56,15 @@ public:
 
     void processImageData( larcv::EventImage2D* ev_adc, double threshold );
 
-
     void processLabelData(larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-
 
     void processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcpg,
                            larflow::spatialembed::PrepMatchEmbed* prepembed );
+
+    void processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg,
+                            larflow::spatialembed::PrepMatchEmbed* prepembed,
+                            larcv::EventImage2D* ev_adc );
+
 
     int num_instances_plane(int plane);
 

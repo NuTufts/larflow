@@ -6,6 +6,7 @@ from torch.autograd import Variable
 import sparseconvnet as scn
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 sys.path.insert(1, os.environ['LARFLOW_BASEDIR']+"/larmatchnet/")
 from utils_sparselarflow import create_resnet_layer
@@ -170,12 +171,16 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
         types: vector length #instances, type labels
     '''
     if verbose: 
-        print "    Num pixels: ", offsets.detach().size()[0], ", Num instances: ", num_instances
-        print "    Offsets size, seeds size, binary_maps size, class_segmentation size:"
-        print "    ", offsets.detach().size(), seeds.detach().size(), binary_maps.detach().size(), class_segmentation.detach().size()
+        print "---------------------------LOSS---------------------------------"
+        print "Num pixels: ", offsets.detach().size()[0], ", Num instances: ", num_instances
+        print "Offsets size, seeds size, binary_maps size, class_segmentation size:"
+        print offsets.detach().size(), seeds.detach().size(), binary_maps.detach().size(), class_segmentation.detach().size()
         print "      seeds: ",seeds.shape
         print "      binary_maps: ",binary_maps.shape
         print "      class seg: ",class_segmentation.shape
+        print
+
+    epsilon = 0.01
 
     o_x, o_y   = coord_t[:,0], coord_t[:,1]
     e_ix, e_iy = offsets[:,0], offsets[:,1]
@@ -188,15 +193,15 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     x_centroids_binary = torch.mul(e_ix, binary_maps)
     y_centroids_binary = torch.mul(e_iy, binary_maps)
 
-    x_centroids = x_centroids_binary.sum(dim=1) / (x_centroids_binary != 0).sum(dim=1).float()
-    y_centroids = y_centroids_binary.sum(dim=1) / (y_centroids_binary != 0).sum(dim=1).float()
+    x_centroids = x_centroids_binary.sum(dim=1) / ((x_centroids_binary != 0).sum(dim=1).float() + epsilon)
+    y_centroids = y_centroids_binary.sum(dim=1) / ((y_centroids_binary != 0).sum(dim=1).float() + epsilon)
 
     # Average sigma_k per instance
     sigma_x_binary = torch.mul(sigma_x, binary_maps)
     sigma_y_binary = torch.mul(sigma_y, binary_maps)
 
-    sigma_kx = sigma_x_binary.sum(dim=1) / (sigma_x_binary != 0).sum(dim=1).float()
-    sigma_ky = sigma_y_binary.sum(dim=1) / (sigma_y_binary != 0).sum(dim=1).float()
+    sigma_kx = sigma_x_binary.sum(dim=1) / ((sigma_x_binary != 0).sum(dim=1).float() + epsilon)
+    sigma_ky = sigma_y_binary.sum(dim=1) / ((sigma_y_binary != 0).sum(dim=1).float() + epsilon)
 
     # print sigma_kx, sigma_ky
 
@@ -204,12 +209,12 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     x_portion = e_ix.repeat(num_instances, 1)
     x_portion = x_portion - x_centroids.view(num_instances, 1)
     x_portion = x_portion.pow(2)
-    x_portion = torch.div( x_portion, 2 * sigma_kx.view(num_instances, 1).pow(2) )
+    x_portion = torch.div( x_portion, 2 * sigma_kx.view(num_instances, 1).pow(2) + epsilon)
 
     y_portion = e_iy.repeat(num_instances, 1)
     y_portion = y_portion - y_centroids.view(num_instances, 1)
     y_portion = y_portion.pow(2)
-    y_portion = torch.div( y_portion, 2 * sigma_ky.view(num_instances, 1).pow(2) )
+    y_portion = torch.div( y_portion, 2 * sigma_ky.view(num_instances, 1).pow(2) + epsilon)
 
     gaussian = - x_portion - y_portion
 
@@ -224,9 +229,9 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     folded_gaussian = torch.max(gaussian, dim=0)[0]
     folded_binary_maps = torch.max(binary_maps, dim=0)[0]
 
-    print "expected ", int((binary_maps[0].detach() > 0.2).sum().float()),int((binary_maps[1].detach() > 0.2).sum().float()),int((binary_maps[2].detach() > 0.2).sum().float())
-    print "Gaussian ", int((gaussian[0].detach() > 0.2).sum().float()), int((gaussian[1].detach() > 0.2).sum().float()), int((gaussian[2].detach() > 0.2).sum().float())
-    print "tot      ", int((folded_binary_maps.detach() > 0.2).sum().float()), int((folded_gaussian.detach() > 0.2).sum().float())
+    if verbose:
+        for i in range(num_instances):
+            print "Expected Gauss: ", int((binary_maps[i].detach() > 0.2).sum().float()), " Learned Gauss: ", int((gaussian[i].detach() > 0.2).sum().float())
 
     for i in range(num_instances):
         loss_gaus += 20 * mseloss(gaussian[i], binary_maps[i])
@@ -234,8 +239,8 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     loss_gaus += 40 * mseloss(folded_gaussian, folded_binary_maps)
     # loss += 60 * lovasz_losses.lovasz_hinge_flat(folded_gaussian, folded_binary_maps)
 
-    if verbose: print "        Lovasz: ", loss_gaus.detach()
 
+    # Debugging, plotting learned heatmap
     if iterator == -1: 
         temp_coord_t = np.array(coord_t.detach().to('cpu'))
         x, y, dummy = zip(*np.array(coord_t.detach().to('cpu')))
@@ -253,52 +258,42 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
 
 
     # Seed-map MSE loss
-    print "folded Gaussian: ",folded_gaussian.shape
     gaussian_class_segmentation = folded_gaussian.detach() * class_segmentation
-    if verbose:
-        print "gaussian_class_segmentation: ",gaussian_class_segmentation.shape," requires_grad=",gaussian_class_segmentation.requires_grad
-    
 
     class_pix_w = torch.ones( seeds.shape, requires_grad=False).to( seeds.device )
 
     nclasstot = torch.sum( class_segmentation, 1 )
     nbgtot = float(seeds.shape[0])-nclasstot    
-    print "  nclasstot: ",nclasstot," nbgtot: ",nbgtot    
-    print "Classseg ",
+    if verbose: 
+        print "  nclasstot: ",nclasstot,
+        print "  nbgtot: ",nbgtot    
+        print "Classseg ",
+
     for i in range(6):
-        print int((gaussian_class_segmentation.detach()[i] > 0.2).sum().float()),
+        if verbose: print int((gaussian_class_segmentation.detach()[i] > 0.2).sum().float()),
         class_pix_w[:,i][ class_segmentation[i,:]==1.0 ] = (nbgtot[i]+1)/seeds.shape[0]
         class_pix_w[:,i][ class_segmentation[i,:]==0.0 ] = (nclasstot[i]+1)/seeds.shape[0]
-    print 
+
 
     # weight class
-    if verbose: print "  class weights: ",class_pix_w.shape
-    
-    print "Seeds    ",
-    for i in range(6):
-        print int((seeds.detach().t()[i] > 0.2).sum().float()),
-    print 
+    if verbose: 
+        print
+        print "Seeds    ",
+        for i in range(6):
+            print int((seeds.detach().t()[i] > 0.2).sum().float()),
+        print 
 
-    if verbose: print "        Seed: ", (seed_weight * mseloss(seeds, gaussian_class_segmentation.t())).detach()
 
-    # seeds = 10 * seeds
-    # gaussian_class_segmentation = 10 * gaussian_class_segmentation
+    if verbose: print "    Loss Lovasz: ", loss_gaus.detach()
 
-    # gaussian_class_segmentation = gaussian_class_segmentation.t()
-    # loss += bceloss(seeds, gaussian_class_segmentation)
-
+    # Seed Loss
     sigmoid = torch.nn.Sigmoid()
     sig_seeds = sigmoid(seeds)
     loss_seed = mseloss_class(seeds, gaussian_class_segmentation.t())
-    class_pix_w *= 200
+    class_pix_w *= 100
     loss_seed *= class_pix_w
     loss_seed = loss_seed.sum()
-    # loss_seed *= 140
-    if verbose: print "loss_seed: ",loss_seed
-
-
-    # seeds = seeds / 10
-    # gaussian_class_segmentation = gaussian_class_segmentation / 10
+    if verbose: print "    Loss Seed:   ",loss_seed.detach()
 
 
     # Sigma-smoothing loss 
@@ -320,10 +315,16 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     loss_sigma = mseloss(seeds_x_sigma, avg_x_sigma_flattened) 
     loss_sigma += mseloss(seeds_y_sigma, avg_y_sigma_flattened) 
 
-    print "    Loss Sigma: ", loss_sigma
+
+    if verbose: print "    Loss Sigma:  ", loss_sigma.detach()
 
     loss = loss_gaus+loss_seed+loss_sigma
-    print "    Loss: ", loss.detach()
+    if verbose: print "    Total Loss:  ", loss.detach()
+
+    if math.isnan(loss.detach()):
+        print "loss is bunked"
+        exit(1)
+
     return loss
 
 
@@ -340,16 +341,13 @@ def post_process(coord_t, offsets, seeds):
         cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
         sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
         centroid_val = np.exp(-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2)))
+        visited.add(max_idx)
 
-        print '--------------------------'
-        print cent_eix - c_kx, cent_eiy - c_ky
-        print sigma_x, sigma_y
-        print '--------------------------'
         # print "    c_kx, c_ky ", c_kx, c_ky
         # print "    cent_eix, cent_eiy ", cent_eix, cent_eiy
         # print "    sigma_x, sigma_y ", sigma_x, sigma_y
         # print "    inner exp, ", ((-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2))))
-        print "Class, seed, offset ", i, max_val, centroid_val
+        print "Class, Seedmap Max, Offset at Seed max:  ", i, max_val, centroid_val
 
 
         # ============================ debugging 
@@ -365,13 +363,6 @@ def post_process(coord_t, offsets, seeds):
 
         instances_for_class = []
         while centroid_val > 0.5:  # while there are pixels which we think are part of instances...
-            max_idx, max_val = max_with_index(instance_type, visited)
-            c_kx, c_ky  = coord_t[max_idx][0], coord_t[max_idx][1]
-            cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
-            sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
-            centroid_val = np.exp(-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2)))
-
-            visited.add(max_idx)
 
             instance_pixels = [(coord_t[max_idx][0], coord_t[max_idx][1])]
             for i, pix in enumerate(instance_type):  # collect all non-visited pixels that belong to that centroid
@@ -384,6 +375,14 @@ def post_process(coord_t, offsets, seeds):
             
             instances_for_class.append(instance_pixels)
 
+            max_idx, max_val = max_with_index(instance_type, visited)
+            if (max_idx == -1): break
+            c_kx, c_ky  = coord_t[max_idx][0], coord_t[max_idx][1]
+            cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
+            sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
+            centroid_val = np.exp(-((cent_eix - c_kx)**2)/(2*(sigma_x**2)) - ((cent_eiy - c_ky)**2)/(2*(sigma_y**2)))
+            visited.add(max_idx)
+
         instances.append(instances_for_class)
 
     return instances
@@ -391,11 +390,15 @@ def post_process(coord_t, offsets, seeds):
 def max_with_index(ray, visited):
     initialized = False
     for i, elem in enumerate(ray):
-        if (not initialized) and (i not in visited):
-            idx, maximum = i, elem
-            initialized = True
-
-        if (elem > maximum) and (i not in visited):
-            idx, maximum = i, elem
+        if (not initialized):
+            if (i not in visited):
+                idx, maximum = i, elem
+                initialized = True
+        else:
+            if (elem > maximum) and (i not in visited):
+                idx, maximum = i, elem
     
+    if (not initialized):
+        return -1, -1
+
     return idx, maximum

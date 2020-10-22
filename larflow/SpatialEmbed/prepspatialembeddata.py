@@ -19,20 +19,26 @@ from larlite import larlite
 from larflow import larflow
 from ublarcvapp import ublarcvapp
 
+print larflow.reco.cluster_t
 
 larcv.SetPyUtil()
 
 rt.gStyle.SetOptStat(0)
 
-ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+ioll = larlite.storage_manager( larlite.storage_manager.kBOTH )
 ioll.add_in_filename(  args.input_larlite )
+ioll.set_out_filename( "delete.root")
 ioll.open()
 
-if args.tick_backward:
-    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
-else:
-    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
+# if args.tick_backward:
+#     iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
+# else:
+#     iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickForward )
+
+iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
+
 iolcv.add_in_file( args.input_larcv )
+iolcv.set_out_file( "delete2.root" )
 iolcv.reverse_all_products()
 iolcv.initialize()
 
@@ -43,9 +49,6 @@ if args.nentries>=0 and args.nentries<nentries:
 
 start = time.time()
 
-nrun = 0
-
-
 root_file = rt.TFile(args.output, "RECREATE")
 output_tree = rt.TTree("trainingdata", "Spatial Embed Training Data")
 
@@ -53,6 +56,7 @@ data = larflow.spatialembed.SpatialEmbedData()
 output_tree.Branch('DataBranch', data)
 # output_tree.Branch('DataBranch', 'larflow::spatialembed::SpatialEmbedData', data)
 
+builder = larflow.reco.ShowerLikelihoodBuilder()
 
 for ientry in xrange( nentries ):
 
@@ -62,24 +66,27 @@ for ientry in xrange( nentries ):
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
-
     # Process Image data    
 
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
-    data.processImageData(ev_adc, 10)
-
     # Process Instance Data
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
     mcpg.set_adc_treename( "wiremc" )
     mcpg.buildgraph( iolcv, ioll )
 
-    preptriplet = larflow.PrepMatchTriplets()
+    builder.process( iolcv, ioll )
+
+    builder.updateMCPixelGraph( mcpg, iolcv )
+
+    data.processImageData(ev_adc, 10)
+
+    preptriplet = larflow.prep.PrepMatchTriplets()
     prepembed = larflow.spatialembed.PrepMatchEmbed()
     prepembed.process( iolcv, ioll, preptriplet )
 
-    data.processLabelData( mcpg, prepembed )
 
-    # data.processLabelData(iolcv, ioll)
+    data.processLabelDataWithShower( mcpg, prepembed, ev_adc)
+    # data.processLabelData( mcpg, prepembed )
 
     for plan in xrange(3):
         print data.num_instances_plane(plan)

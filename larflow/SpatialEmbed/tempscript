@@ -4,4 +4,10 @@ make install
 
 cd ../larflow/SpatialEmbed
 python prepspatialembeddata.py  -ill /home/taritree/mcinfo-Run000001-SubRun000001.root -ilcv /home/taritree/larcvtruth-Run000001-SubRun000001.root -o ./output/test2.root
-python readTree.py -f output/test2.root 
+python train_SpatialEmbed_net.py -f output/test2.root 
+
+
+python /home/jhwang/ubdl/larflow/larflow/Reco/test/run_showerlikelihoodbuilder.py -lcv /home/taritree/larcvtruth-Run000001-SubRun000001.root -ll /home/taritree/mcinfo-Run000001-SubRun000001.root -o ./SimInputData/input_1
+
+python prepspatialembeddata.py  -ill /home/taritree/mcinfo-Run000001-SubRun000001.root -ilcv /home/taritree/larcvtruth-Run000001-SubRun000001.root -o ./output/DELETEME.root
+

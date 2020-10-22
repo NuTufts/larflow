@@ -20,7 +20,7 @@ SpatialEmbedData::SpatialEmbedData( ) {
 
 SpatialEmbedData::~SpatialEmbedData() { }
 
-
+// retrieves Coord_t and feat_t per 3d image
 void SpatialEmbedData::processImageData( larcv::EventImage2D* ev_adc, double threshold)
 {
     coord_t.clear();
@@ -59,11 +59,110 @@ void SpatialEmbedData::processLabelData(larcv::IOManager& iolcv, larlite::storag
     mcpg.set_adc_treename( "wiremc" );
     mcpg.buildgraph( iolcv, ioll );
 
-    larflow::PrepMatchTriplets preptriplet = larflow::PrepMatchTriplets();
+    PrepMatchTriplets preptriplet = PrepMatchTriplets();
     larflow::spatialembed::PrepMatchEmbed prepembed = larflow::spatialembed::PrepMatchEmbed();
     prepembed.process(iolcv, ioll, preptriplet);
 
     processLabelData(&mcpg, &prepembed);
+}
+
+void SpatialEmbedData::processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg,
+                           larflow::spatialembed::PrepMatchEmbed* prepembed,
+                           larcv::EventImage2D* ev_adc )
+{
+    types_t.clear();
+    instances_t.clear();
+    instances_binary_t.clear();
+
+    _setup_numpy = false; // reset
+
+    auto const& img_meta = ev_adc->Image2DArray().at(0).meta();
+
+    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> tids_from_neutrino 
+        = mcpg->getNeutrinoPrimaryParticles();
+
+    std::unordered_map<std::string, int> binary_hash_map;
+
+    int num_instances = tids_from_neutrino.size();
+
+    for (int plane = 0; plane < 3; plane++){
+
+        std::vector<int> types;
+        std::vector<std::vector<larflow::spatialembed::SpatialEmbedData::InstancePix>> instance_pixels;  // for sparse array
+        std::vector<std::vector<int>> instance_binaries; // for binary maps
+
+
+        for (int node = 0; node < num_instances; node++){ // loop over instances
+
+            std::vector< std::vector<int> > pixs = tids_from_neutrino[node]->pix_vv;
+
+            std::cerr << pixs[plane].size() << ' ';
+            
+            try{ 
+                std::vector<int> pixlist = (tids_from_neutrino[node]->pix_vv)[plane];
+
+                types.push_back(tids_from_neutrino[node]->pid);  
+
+                // Process pixel coords
+                std::vector<larflow::spatialembed::SpatialEmbedData::InstancePix> pixels;
+                int num_pixels = pixlist.size()/2;
+                for (int pixel = 0; pixel < (num_pixels*2); pixel+=2 ){
+                    // Create pixel object and add it to list
+                    larflow::spatialembed::SpatialEmbedData::InstancePix pix {img_meta.row(pixlist[pixel]), pixlist[pixel+1]};
+                    pixels.push_back(pix);
+
+                    // Indicate that that pixel is in an instance
+                    std::string key = std::to_string(img_meta.row(pixlist[pixel])) + "," + std::to_string(pixlist[pixel+1]);
+                    binary_hash_map[key] = 1;
+                }
+                instance_pixels.push_back(pixels);
+
+
+                // std::unordered_map<std::string, int> pixels_in_img_map;
+                int pixel_count = 0;
+                // Process binary map
+                std::vector<int> instance_binary;
+                int image_size = coord_t[plane].size();
+                for (int pixel = 0; pixel < image_size; pixel++ ){
+                    std::string image_pix_key = std::to_string(coord_t[plane][pixel].row) + "," + std::to_string(coord_t[plane][pixel].col);
+                    // pixels_in_img_map[image_pix_key] = 1;
+                    if (binary_hash_map.find(image_pix_key) == binary_hash_map.end()){
+                        instance_binary.push_back(0);
+                    }
+                    else {
+                        instance_binary.push_back(binary_hash_map[image_pix_key]);
+                        pixel_count++;
+                    }
+                }
+
+
+                // for (int pixel = 0; pixel < pixels.size(); pixel++){
+                //     std::string key = std::to_string(pixels[pixel].row) + "," + std::to_string(pixels[pixel].col);
+                //     if (pixels_in_img_map.find(key) == pixels_in_img_map.end()){
+                //         std::cerr << key << std::endl;
+                //     }
+                // }
+
+                instance_binaries.push_back(instance_binary);
+                binary_hash_map.clear();
+
+                std::cout << "Plane: " << plane << ", Instance: " << node << ", Coordsize: " << pixels.size() << ", Pixcount: " << pixel_count << std::endl;
+                if (num_pixels != pixel_count){
+                    std::cerr << "NUMBER OF INSTANCE PIXELS MISMATCH WITH 1'S IN BINARY MAP: ";
+                    std::cerr << num_pixels << " " << pixel_count << std::endl;
+                    // exit(1);
+                }
+
+            } catch (const std::runtime_error& e){
+                std::cout << "ID " << tids_from_neutrino[node]->tid << 
+                          " does not exist in plane " << plane << " ";
+                std::cout << "(" << e.what() << ")" << std::endl;
+            }
+        }
+        types_t.push_back(types);
+        instances_t.push_back(instance_pixels);
+        instances_binary_t.push_back(instance_binaries);
+    } 
 }
 
 void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcpg,
@@ -77,6 +176,8 @@ void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcp
 
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> tids_from_neutrino 
         = mcpg->getNeutrinoPrimaryParticles();
+
+    std::cerr << "number of nodes: " << tids_from_neutrino.size() << std::endl;
 
     std::unordered_map<std::string, int> binary_hash_map;
 
@@ -94,6 +195,8 @@ void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcp
                 std::vector<larflow::spatialembed::AncestorIDPix_t> pixlist 
                     = prepembed->get_instance_pixlist(plane, tids_from_neutrino[node]->tid);
                 
+                std::cerr << "pixels in node: " << pixlist.size() << std::endl;
+
                 types.push_back(tids_from_neutrino[node]->pid);  
 
                 // Process pixel coords
@@ -105,7 +208,9 @@ void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcp
                     pixels.push_back(pix);
 
                     // Indicate that that pixel is in an instance
-                    binary_hash_map[std::to_string(pixlist[pixel].row) + "," + std::to_string(pixlist[pixel].col)] = 1;
+                    std::string key = std::to_string(pixlist[pixel].row) + "," + std::to_string(pixlist[pixel].col);
+                    std::cerr << key << " "; 
+                    binary_hash_map[key] = 1;
                 }
                 instance_pixels.push_back(pixels);
 

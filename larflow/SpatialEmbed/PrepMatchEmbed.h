@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+using namespace larflow::prep;
 
 namespace larcv {
   class IOManager;
@@ -95,5 +96,6 @@ namespace spatialembed {
 }
 }
     
+
 
 #endif
