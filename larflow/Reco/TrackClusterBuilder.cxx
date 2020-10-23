@@ -719,7 +719,7 @@ namespace reco {
 
       evout_track.emplace_back( std::move(lltrack) );
     }//end of loop over tracks
-    
+    LARCV_INFO() << "Number of output tracks made: " << evout_track.size() << std::endl;
   }
 
   /**

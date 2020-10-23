@@ -1,5 +1,5 @@
-#ifndef __LARFLOW_CRTMATCH_CRTMATCHMANAGER_H__
-#define __LARFLOW_CRTMATCH_CRTMATCHMANAGER_H__
+#ifndef __LARFLOW_CRTMATCH_CRTTRUTHMATCHMANAGER_H__
+#define __LARFLOW_CRTMATCH_CRTTRUTHMATCHMANAGER_H__
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -15,7 +15,6 @@
 #include "larflow/Reco/KeypointReco.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
 #include "larflow/Reco/TrackTruthRecoAna.h"
-#include "larflow/Reco/CosmicTrackBuilder.h"
 
 #include "CRTTrackMatch.h"
 #include "CRTHitMatch.h"
@@ -24,19 +23,19 @@ namespace larflow {
 namespace crtmatch {
 
   /**
-   * @ingroup CRTMatchManager
-   * @class CRTMatchManager
-   * @brief Perform track matching to CRT tracks and CRT hits
+   * @ingroup CRTTruthMatchManager
+   * @class CRTTruthMatchManager
+   * @brief Perform track matching to CRT tracks and CRT hits using truth to cluster interactions
    *
-   * Class that runs both CRTTrackMatch and CRTHitMatch.
+   * Class that clusters interaction using truth.
    *
    */
-  class CRTMatchManager : public larcv::larcv_base {
+  class CRTTruthMatchManager : public larcv::larcv_base {
 
   public:
     
-    CRTMatchManager( std::string inputfile );
-    virtual ~CRTMatchManager();
+    CRTTruthMatchManager( std::string inputfile );
+    virtual ~CRTTruthMatchManager();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll);
     void store_output( larcv::IOManager& outlcv, larlite::storage_manager& outll, bool remove_if_no_flash=true );
@@ -67,12 +66,10 @@ namespace crtmatch {
 
     // algorithms from the Reco module
     ublarcvapp::EmptyChannelAlgo _badchmaker; ///< bad channel image maker. also finds empty channels.    
-    larflow::reco::SplitHitsBySSNet _splithits_ssnet;        ///< splits shower space points from track spacepoints
-    larflow::reco::ChooseMaxLArFlowHit _choosemaxhit;        ///< reduce cosmic-track hits using max larmatch score
-    larflow::reco::KeypointReco     _kpreco_track_cosmic;    ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints    
-    larflow::reco::ProjectionDefectSplitter _projsplitter;   ///< split wirecell filtered track clusters into straight clusters
-    larflow::reco::CosmicTrackBuilder _cosmic_track_builder; ///< construct cosmic tracks
-    CRTHitMatch _crthit_match;
+    larflow::reco::SplitHitsBySSNet _splithits_ssnet;      ///< splits shower space points from track spacepoints
+    larflow::reco::ChooseMaxLArFlowHit _choosemaxhit;      ///< reduce cosmic-track hits using max larmatch score
+    larflow::reco::KeypointReco     _kpreco_track_cosmic;  ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints    
+    larflow::reco::ProjectionDefectSplitter _projsplitter; ///< split wirecell filtered track clusters into straight clusters
 
     // mc algorithms
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker;       ///< extracts mc event info and saves info to tree    

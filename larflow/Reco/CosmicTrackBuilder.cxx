@@ -11,6 +11,15 @@
 namespace larflow {
 namespace reco {
 
+  CosmicTrackBuilder::CosmicTrackBuilder()
+    : _do_boundary_analysis(true),
+      _using_default_cluster(true)
+  {
+    _cluster_tree_v.clear();
+    _cluster_tree_v.push_back( "trackprojsplit_full" );
+    producer_keypoint = "keypointcosmic";      
+  }
+  
   /**
    * @brief Process the event data in the IO managers
    *
@@ -39,15 +48,7 @@ namespace reco {
 
     clear();
     
-    // get clusters, pca-axis
-    // std::vector<std::string> producer_v
-    //   = { "trackprojsplit_full",
-    //       "trackprojsplit_wcfilter" };
-    std::vector<std::string> producer_v
-      = { "trackprojsplit_full" };
-
-
-    for ( auto const& producer : producer_v ) {
+    for ( auto const& producer : _cluster_tree_v ) {
       larlite::event_larflowcluster* ev_cluster
         = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       larlite::event_pcaxis* ev_pcaxis
@@ -60,7 +61,6 @@ namespace reco {
     buildNodeConnections();
 
     // make tracks using keypoints
-    std::string producer_keypoint = "keypointcosmic";
     larlite::event_larflow3dhit* ev_keypoint
       = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
 
@@ -73,8 +73,6 @@ namespace reco {
 
     // make tracks using unused segments
     _buildTracksFromSegments();
-
-    
     
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
@@ -663,6 +661,16 @@ namespace reco {
 
     }
     
+  }
+
+  void CosmicTrackBuilder::add_cluster_treename( std::string treename )
+  {
+    if ( _using_default_cluster ) {
+      // we are going to replace the default cluster tree, so clear it out.
+      _using_default_cluster = false;
+      _cluster_tree_v.clear();
+    }
+    _cluster_tree_v.push_back( treename );
   }
   
 }

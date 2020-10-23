@@ -25,9 +25,7 @@ namespace reco {
 
   public:
 
-    CosmicTrackBuilder()
-      : _do_boundary_analysis(true)
-      {};
+    CosmicTrackBuilder();
     virtual ~CosmicTrackBuilder() {};
 
     // override the process command
@@ -36,13 +34,24 @@ namespace reco {
 
     /** @brief set flag that if true, runs the boundary analysis */
     void do_boundary_analysis( bool doit ) { _do_boundary_analysis = doit; };
+
+    /** @brief set the clusters to use */
+    void add_cluster_treename( std::string treename );
+
+    /** @brief set keypoint tree to use */
+    void set_keypoint_treename( std::string treename ) { producer_keypoint = treename; };
     
   protected:
 
     bool _do_boundary_analysis; ///< if true, split found tracks into boundary and contained tracks
     
     void _boundary_analysis_wflash( larlite::storage_manager& ioll );
-    void _boundary_analysis_noflash( larlite::storage_manager& ioll );    
+    void _boundary_analysis_noflash( larlite::storage_manager& ioll );
+
+    bool _using_default_cluster;
+    std::vector<std::string> _cluster_tree_v; ///< tree clusters to use
+
+    std::string producer_keypoint;    
     
   };
   

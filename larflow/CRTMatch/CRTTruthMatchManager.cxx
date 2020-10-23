@@ -1,12 +1,14 @@
-#include "CRTMatchManager.h"
+#include "CRTTruthMatchManager.h"
 
 // larlite
 #include "DataFormat/opflash.h"
+#include "DataFormat/larflowcluster.h"
 
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
+#include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
 namespace crtmatch {
@@ -16,31 +18,25 @@ namespace crtmatch {
    *
    * @param[in] inputfile_name Name of output file for non-larcv and non-larlite reco products
    */
-  CRTMatchManager::CRTMatchManager( std::string inputfile_name )
-    : larcv::larcv_base("CRTMatchManager"),
+  CRTTruthMatchManager::CRTTruthMatchManager( std::string inputfile_name )
+    : larcv::larcv_base("CRTTruthMatchManager"),
     // _save_event_mc_info(false),
     _ana_output_file(inputfile_name)    
   {
     make_ana_file();
-    _cosmic_track_builder.set_keypoint_treename( "kpcosmic_all" );
-    _cosmic_track_builder.add_cluster_treename( "cosmictrackclusters" );
   }
 
-  CRTMatchManager::~CRTMatchManager()
+  CRTTruthMatchManager::~CRTTruthMatchManager()
   {
   }
 
   /**
    * @brief process event data in larcv and larlite IO managers 
    * 
-   * The strategy is to first build up cosmic track candidates.
-   * Then we match them to CRT Hit and CRT Tracks
-   * Then we need to resolve duplicates, picking best track.
-   *
    * @param[in] iolcv LArCV IO manager
    * @param[in] ioll  larlite IO manager
    */
-  void CRTMatchManager::process( larcv::IOManager& iolcv,
+  void CRTTruthMatchManager::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll )
   {
 
@@ -64,91 +60,86 @@ namespace crtmatch {
       evout_badch->Emplace( std::move(gap) );
     }
 
-    // PREP SETS OF HITS
-    // ------------------
+    ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.buildgraph( iolcv, ioll );
+
+    larflow::reco::ShowerLikelihoodBuilder sllb;
+    sllb.process( iolcv, ioll );
+    sllb.updateMCPixelGraph( mcpg, iolcv );
     
-    // PREP: SPLIT HITS INTO TRACK/SHOWER
-    // input:
-    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
-    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
-    // output:
-    //  * larflow3dhit in 'ssnetsplit_wcfilter_trackhit'
-    //  * larflow3dhit in 'ssnetsplit_wcfilter_showerhit'
-    _splithits_ssnet.set_larmatch_tree_name( "larmatch" );
-    _splithits_ssnet.set_output_tree_stem_name( "ssnetsplitall" );    
-    _splithits_ssnet.process( iolcv, ioll );
-
-    // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
-    // output:
-    //  * larflow3dhit in 'maxtrackhit_wcfilter'
-    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplitall_trackhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_all" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    _choosemaxhit.process( iolcv, ioll );
+    std::vector< larlite::larflowcluster > truth_cluster_v;
+    //void makeTruthTrackClusters( iolcv, ioll, mcpg );
     
-    // MAKE KEYPOINTS -- WILL USE 'mactrackhit_all' hits
-    recoKeypoints( iolcv, ioll );
-
-    if ( false ) {
-      // for debug
-      _ana_run = ev_adc->run();
-      _ana_subrun = ev_adc->subrun();
-      _ana_event  = ev_adc->event();
-      _ana_tree->Fill();
-      return;
-    }
-      
-    // PARTICLE FRAGMENT RECO
-    recoParticles( iolcv, ioll );
-
-    // At this point we have track clusters in 'cosmictrackclusters' tree
+    // // PREP SETS OF HITS
+    // // ------------------
     
-    // // COSMIC RECO
-    _cosmic_track_builder.clear();
-    // //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
-    _cosmic_track_builder.do_boundary_analysis( true );
-    _cosmic_track_builder.process( iolcv, ioll );
+    // // PREP: SPLIT HITS INTO TRACK/SHOWER
+    // // input:
+    // //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    // //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
+    // // output:
+    // //  * larflow3dhit in 'ssnetsplit_wcfilter_trackhit'
+    // //  * larflow3dhit in 'ssnetsplit_wcfilter_showerhit'
+    // _splithits_ssnet.set_larmatch_tree_name( "larmatch" );
+    // _splithits_ssnet.set_output_tree_stem_name( "ssnetsplitall" );    
+    // _splithits_ssnet.process( iolcv, ioll );
 
-    // CRT HIT MATCH
-    bool remove_track_if_no_flash = true;
-    _crthit_match.set_verbosity(larcv::msg::kDEBUG);
-    _crthit_match.setInputTrackTreename( "cosmictrack" );
-    try {
-      _crthit_match.process( iolcv, ioll );
-    }
-    catch (const std::exception& e ) {
-      LARCV_ERROR() << "Failed to run crthitmanager: " << e.what() << std::endl;
-      throw e;
-    }
-    _crthit_match.save_to_file( ioll, remove_track_if_no_flash );
-
-    // // MULTI-PRONG INTERNAL RECO
-    // multiProngReco( iolcv, ioll );
+    // // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
+    // // output:
+    // //  * larflow3dhit in 'maxtrackhit_wcfilter'
+    // _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplitall_trackhit" );
+    // _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_all" );
+    // _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    // _choosemaxhit.process( iolcv, ioll );
     
-    // // Single particle interactions
+    // // MAKE KEYPOINTS -- WILL USE 'mactrackhit_all' hits
+    // recoKeypoints( iolcv, ioll );
 
-    // // Copy larlite contents
-    // // in-time opflash
-    // larlite::event_opflash* ev_input_opflash_beam =
-    //   (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
-    // larlite::event_opflash* evout_opflash_beam =
-    //   (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
-    // for ( auto const& flash : *ev_input_opflash_beam )
-    //   evout_opflash_beam->push_back( flash );
-    
-    // if ( _save_event_mc_info ) {
-    //   _event_mcinfo_maker.process( ioll );
-    //   truthAna( iolcv, ioll );
+    // if ( false ) {
+    //   // for debug
+    //   _ana_run = ev_adc->run();
+    //   _ana_subrun = ev_adc->subrun();
+    //   _ana_event  = ev_adc->event();
+    //   _ana_tree->Fill();
+    //   return;
     // }
+      
+    // // PARTICLE FRAGMENT RECO
+    // recoParticles( iolcv, ioll );
+
+    // // At this point we have track clusters in 'cosmictrackclusters' tree
     
-    // Fill Ana Tree
+    // // // COSMIC RECO
+    // // _cosmic_track_builder.clear();
+    // // //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    // // _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
+    // // _cosmic_track_builder.do_boundary_analysis( true );
+    // // _cosmic_track_builder.process( iolcv, ioll );
+
+    // // // MULTI-PRONG INTERNAL RECO
+    // // multiProngReco( iolcv, ioll );
+    
+    // // // Single particle interactions
+
+    // // // Copy larlite contents
+    // // // in-time opflash
+    // // larlite::event_opflash* ev_input_opflash_beam =
+    // //   (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+    // // larlite::event_opflash* evout_opflash_beam =
+    // //   (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+    // // for ( auto const& flash : *ev_input_opflash_beam )
+    // //   evout_opflash_beam->push_back( flash );
+    
+    // // if ( _save_event_mc_info ) {
+    // //   _event_mcinfo_maker.process( ioll );
+    // //   truthAna( iolcv, ioll );
+    // // }
+    
+    // // Fill Ana Tree
     // _ana_run = ev_adc->run();
     // _ana_subrun = ev_adc->subrun();
     // _ana_event  = ev_adc->event();
     // _ana_tree->Fill();
-
-    
     
   }
 
@@ -158,7 +149,7 @@ namespace crtmatch {
    * @param[in] iolcv LArCV IO manager
    * @param[in] ioll  larlite IO manager
    */
-  void CRTMatchManager::recoKeypoints( larcv::IOManager& iolcv,
+  void CRTTruthMatchManager::recoKeypoints( larcv::IOManager& iolcv,
                                       larlite::storage_manager& ioll )
   {
 
@@ -189,7 +180,7 @@ namespace crtmatch {
    * @param[in] iolcv LArCV IO manager
    * @param[in] ioll  larlite IO manager
    */
-  void CRTMatchManager::recoParticles( larcv::IOManager& iolcv,
+  void CRTTruthMatchManager::recoParticles( larcv::IOManager& iolcv,
                                       larlite::storage_manager& ioll )
   {
 
@@ -232,7 +223,7 @@ namespace crtmatch {
    * @param[in] iolcv LArCV IO manager
    * @param[in] ioll  larlite IO manager
    */  
-  void CRTMatchManager::multiProngReco( larcv::IOManager& iolcv,
+  void CRTTruthMatchManager::multiProngReco( larcv::IOManager& iolcv,
                                        larlite::storage_manager& ioll )
   {
 
@@ -267,20 +258,20 @@ namespace crtmatch {
   /**
    * @brief create ana file and define output tree
    *
-   * The tree created is `CRTMatchManagerTree`.
+   * The tree created is `CRTTruthMatchManagerTree`.
    *
    */
-  void CRTMatchManager::make_ana_file()
+  void CRTTruthMatchManager::make_ana_file()
   {
-    // _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
-    // _ana_tree = new TTree("CRTMatchManagerTree","Ana Output of CRTMatchManager algorithms");
-    // _ana_tree->Branch("run",&_ana_run,"run/I");
-    // _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
-    // _ana_tree->Branch("event",&_ana_event,"event/I");    
+    _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
+    _ana_tree = new TTree("CRTTruthMatchManagerTree","Ana Output of CRTTruthMatchManager algorithms");
+    _ana_tree->Branch("run",&_ana_run,"run/I");
+    _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
+    _ana_tree->Branch("event",&_ana_event,"event/I");    
   }
 
   /** @brief is true, save MC event summary */  
-  void CRTMatchManager::saveEventMCinfo( bool savemc )
+  void CRTTruthMatchManager::saveEventMCinfo( bool savemc )
   {
     if ( !_save_event_mc_info && savemc )  {
       _track_truthreco_ana.bindAnaVariables( _ana_tree );
@@ -291,11 +282,25 @@ namespace crtmatch {
   };
 
   /** @brief run Truth-Reco analyses for studying performance **/
-  void CRTMatchManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  void CRTTruthMatchManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
     _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     //_track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
+
+  // void CRTTruthMatchManager::makeTruthTrackClusters( larcv::IOManager& iolcv,
+  //                                                    larlite::storage_manager& ioll,
+  //                                                    ublarcvapp::mctools::MCPixelPGraph& mcpg )
+  // {
+  //   // do dump loop for now. (larmatch hit x primary graph).
+  //   // but at least can build bounding boxes to speed comparisons.
+
+  //   // build primary bounding box lists
+  //   typedef std::vector< std::vector<float> > BBox_t;
+  //   std::vector< BBox_t > primary_bbox_v;
+
+    
+  // }
   
 }
 }
