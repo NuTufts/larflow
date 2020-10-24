@@ -78,22 +78,21 @@ else:
 print "Number of entries to run: ",nentries
 print "Start loop."
 
+io.go_to(args.start_entry)
 for ientry in xrange( args.start_entry, end_entry ):
 
     print "[ENTRY ",ientry,"]"
-    io.go_to(ientry)    
     iolcv.read_entry(ientry)
-
 
     dtload = time.time()
     
     crtmm.process( iolcv, io )
     #crtmm.store_output( outlcv, outio )
     
-    #io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
+    io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     #iolcv.set_id( io.run_id(), io.subrun_id(), io.event_id() )    
-io.next_event()
-iolcv.save_entry()
+    io.next_event()
+    iolcv.save_entry()
 
 
 io.close()

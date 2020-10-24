@@ -179,7 +179,8 @@ namespace reco {
     /** @brief clear track proposal container _track_proposal_v */
     void clearProposals() { _track_proposal_v.clear(); };
 
-    void fillLarliteTrackContainer( larlite::event_track& ev_track );
+    void fillLarliteTrackContainer( larlite::event_track& ev_track,
+                                    larlite::event_larflowcluster& evout_trackcluster );
 
     void fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,
                                                    larlite::event_larflowcluster& evout_hitcluster,

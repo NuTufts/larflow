@@ -164,7 +164,8 @@ namespace reco {
       larlite::event_track unfitted_v;
       larlite::event_track fitted_v;
       larlite::event_larflowcluster fitted_hitcluster_v;
-      fillLarliteTrackContainer( unfitted_v );    
+      larlite::event_larflowcluster unfitted_hitcluster_v;
+      fillLarliteTrackContainer( unfitted_v, unfitted_hitcluster_v );
       fillLarliteTrackContainerWithFittedTrack( fitted_v, fitted_hitcluster_v, adc_v );
       LARCV_DEBUG() << "Vertex tracks: " << fitted_v.size() << "; hit clusters: " << fitted_hitcluster_v.size() << std::endl;
 

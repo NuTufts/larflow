@@ -110,15 +110,16 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["color"] = "rgb(0,0,0)"
             pcatrace["line"]["width"] = 1
             pcatrace["line"]["opacity"] = 1.0            
-            traces_v.append( pcatrace )
+            #traces_v.append( pcatrace )
 
 
             
     # TRACK RECO
-    tracks = [("CMT","cosmictrack","rgb(100,0,50)",True),
-              ("CON","containedcosmic","rgb(100,0,50)",True)]
+    tracks = [("CMT","cosmictrack","rgb(0,100,50)",False,True),
+              ("SIM","simplecosmictrack","rgb(0,100,50)",True,True),
+              ("CON","containedcosmic","rgb(100,0,50)",False,False)]
               
-    for name,track_producer,zrgb,plotme in tracks:
+    for name,track_producer,zrgb,plotme,plotcluster in tracks:
         if not plotme:
             continue
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
@@ -129,6 +130,17 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trktrace["line"]["width"] = 5
             trktrace["line"]["opacity"] = 1.0
             traces_v.append( trktrace )
+        if not plotcluster:
+            continue
+        ev_trackcluster = io.get_data( larlite.data.kLArFlowCluster,track_producer)
+        for itrack in xrange(ev_trackcluster.size()):
+            trktrace = lardly.data.visualize_larlite_larflowhits( ev_trackcluster[itrack] )
+            trktrace["name"] = "%s[%d]"%(name,itrack)
+            trktrace["marker"]["color"] = zrgb
+            trktrace["marker"]["width"] = 1
+            trktrace["marker"]["opacity"] = 1.0
+            traces_v.append( trktrace )
+        
 
     for treename in ["matchcrthit"]:
         ev_crttrack = io.get_data(larlite.data.kCRTTrack, treename )
@@ -148,6 +160,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             vis_larflow  = [ lardly.data.visualize_larlite_track( ev_track.at(n) ) ]
             for vis_lf in vis_larflow:
                 vis_lf["line"]["color"]="rgb(0,0,255)"
+            vis_larflow[0]["name"] = "%s[%d]"%(treename,n)
             traces_v += vis_crttrack
             traces_v += vis_opflash
             traces_v += vis_larflow
@@ -203,7 +216,7 @@ plot_layout = {
         "xaxis": axis_template,
         "yaxis": axis_template,
         "zaxis": axis_template,
-        "aspectratio": {"x": 1, "y": 1, "z": 3},
+        "aspectratio": {"x": 1, "y": 1, "z": 1},
         "camera": {"eye": {"x": 1, "y": 1, "z": 1},
                    "up":dict(x=0, y=1, z=0)},
         "annotations": [],

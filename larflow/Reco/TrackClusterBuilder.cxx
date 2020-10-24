@@ -677,8 +677,11 @@ namespace reco {
    * This builds a track using the pca-axes.
    *
    * @param[out] evout_track Node paths stored in _track_proposal_v are stored into this container
+   * @param[out] evout_trackcluster Clusters from node paths stored in _track_proposal_v are stored into this container
+   *
    */
-  void TrackClusterBuilder::fillLarliteTrackContainer( larlite::event_track& evout_track )
+  void TrackClusterBuilder::fillLarliteTrackContainer( larlite::event_track& evout_track,
+                                                       larlite::event_larflowcluster& evout_trackcluster )
   {
 
     for ( size_t itrack=0; itrack<_track_proposal_v.size(); itrack++ ) {
@@ -691,7 +694,13 @@ namespace reco {
       larlite::track lltrack;
       lltrack.reserve(path.size()); // npts = 2*num seg;
 
-      std::vector<float> last_seg_dir(3,0);
+      std::vector<float> last_seg_dir(3,0); /// save last segment direction
+      std::set<int> segidx_set;
+      std::vector<int> segidx_v;
+
+      if ( path.size()>0 )
+        segidx_set.insert( path[0]->segidx );
+      
       for (int inode=1; inode<path.size(); inode++ ) {
 
         const NodePos_t* node     = path[inode];
@@ -714,10 +723,24 @@ namespace reco {
           lltrack.add_vertex( TVector3(node->pos[0],node->pos[1], node->pos[2]) );
           lltrack.add_direction( TVector3(last_seg_dir[0],last_seg_dir[1], last_seg_dir[2]) );
         }
+
+        if ( segidx_set.find(node->segidx)==segidx_set.end() ) {
+          segidx_v.push_back( node->segidx );
+          segidx_set.insert( node->segidx );
+        }
         
       }//end of loop over nodes
 
       evout_track.emplace_back( std::move(lltrack) );
+
+      larlite::larflowcluster trackcluster;
+      for ( auto const& segidx : segidx_v ) {
+        for ( auto const& hit : *(_segment_v[segidx].cluster) ) {
+          trackcluster.push_back( hit );
+        }
+      }
+      evout_trackcluster.emplace_back( std::move(trackcluster) );
+      
     }//end of loop over tracks
     LARCV_INFO() << "Number of output tracks made: " << evout_track.size() << std::endl;
   }
@@ -941,7 +964,6 @@ namespace reco {
         }
 
         const Segment_t& seg = _segment_v.at(node->segidx);
-
         const larlite::track& track = *seg.trackseg;
         const int npts = track.NumberTrajectoryPoints();
         

@@ -6,6 +6,8 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
 
+#include "larcv/core/DataFormat/EventImage2D.h"
+
 #include "larflow/SCBoundary/SCBoundary.h"
 
 namespace larflow {
@@ -76,8 +78,19 @@ namespace reco {
     
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
+    larlite::event_larflowcluster* evout_trackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
 
-    fillLarliteTrackContainer( *evout_track );
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+
+    fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, ev_adc->Image2DArray() );
+
+    larlite::event_track* evout_simpletrack
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "simplecosmictrack");
+    larlite::event_larflowcluster* evout_simpletrackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "simplecosmictrack");    
+    fillLarliteTrackContainer( *evout_simpletrack, *evout_simpletrackcluster ); 
 
     if ( _do_boundary_analysis ) {
       _boundary_analysis_noflash( ioll );
