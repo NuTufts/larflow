@@ -80,7 +80,8 @@ namespace crtmatch {
       _kInputDataType(kInputCluster),
       _input_cluster_treename("pcacluster"),
       _input_pcaxis_treename("pcacluster"),
-      _input_track_treename("cosmictrack")
+      _input_track_treename("cosmictrack"),
+      _input_trackcluster_treename("__null__")
       {};
     virtual ~CRTHitMatch() {};
     
@@ -135,10 +136,18 @@ namespace crtmatch {
     void _convertClusterToTracks( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     // tracks, if using tracks to match
-    std::string _input_track_treename; ///< name of larlite::track tree to use for input track objects
-    std::vector< const larlite::track* >          _track_input_v; ///< container for tracks to match to CRT objects
+    std::string _input_track_treename;        ///< name of larlite::track tree to use for input track objects
+    std::string _input_trackcluster_treename; ///< name of larlite::larflowcluster tree associated with track objects
+    std::vector< const larlite::track* >           _track_input_v;        ///< container for tracks to match to CRT objects
+    std::vector< const larlite::larflowcluster* >  _trackcluster_input_v; ///< container for tracks to match to CRT objects    
     /** @brief set the name of the root tree from which we should get the input larlite::track */
     void setInputTrackTreename( std::string name ) { _input_track_treename = name; _kInputDataType=kInputTrack; };
+    /** @brief set the name of the root trees from which we should get the pairs of larlite::track and larlite::larflowcluster */
+    void setInputTrackTreename( std::string track, std::string trackcluster ) {
+      _input_track_treename = track;
+      _input_trackcluster_treename = trackcluster;
+      _kInputDataType=kInputTrack;
+    };    
     void _loadTrackInput( larlite::storage_manager& ioll );
 
     std::vector< std::vector< match_t > >         _hit2track_rank_v; ///< for each input crt hit (outer vector), match info to each track
@@ -162,9 +171,11 @@ namespace crtmatch {
     // output containers
     std::vector<int>                       _matched_hitidx;    ///< indices of CRT hits in _crthit_v which found a good track match
     std::vector< const larlite::crthit* >  _match_hit_v;       ///< pointer to CRT hit object that was matched
+    std::vector<int>                       _match_hitidx_v;    ///< container index to CRT hit object that was matched, for debugging
     std::vector<larlite::larflowcluster>   _matched_cluster;   ///< matching cluster to the CRT hit
     std::vector<larflow::reco::cluster_t>  _matched_cluster_t; ///< matching cluster in larflow::reco::cluster_t form
     std::vector<larlite::track>            _matched_track;     ///< matching track to the CRT hit
+    std::vector<larlite::larflowcluster>   _matched_trackcluster; ///< matching track cluster to the CRT hit    
     std::vector< larlite::opflash >        _matched_opflash_v; ///< matched opflash to CRT hit + track pair
     std::vector<int>                       _used_tracks_v;     ///< flag indicating if track in _lfcluster_v has been matched. 1: matched, 0: unmatched
     

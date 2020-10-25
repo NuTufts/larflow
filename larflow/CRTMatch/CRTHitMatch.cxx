@@ -28,10 +28,12 @@ namespace crtmatch {
     _matched_hitidx.clear();
     _flash_v.clear();
     _match_hit_v.clear();
+    _match_hitidx_v.clear();
     _matched_cluster.clear();
     _matched_cluster_t.clear();    
     _matched_opflash_v.clear();
     _matched_track.clear();
+    _matched_trackcluster.clear();    
     _used_tracks_v.clear();
     
   }
@@ -176,13 +178,19 @@ namespace crtmatch {
     // compile matches
     compilematches();
 
+    _used_tracks_v.clear();
     _used_tracks_v.resize( _track_input_v.size(), 0 );
+    std::vector<int> used_crthit_v( _crthit_v.size(), 0 );
 
     // process matches in greedy fashion
     for ( auto& m : _all_rank_v ) {
 
       // get index of crt hit of this match
       int crthitidx = m.hitidx;
+
+      // if we already used the crt hit, then skip this match.
+      if ( used_crthit_v[crthitidx]==1 )
+        continue;
 
       auto& hit_matches_v = _hit2track_rank_v[ crthitidx ];
 
@@ -204,8 +212,11 @@ namespace crtmatch {
         }
         else {
           _matched_track.push_back( *_track_input_v[m.trackidx] );
+          if ( _input_trackcluster_treename!="__null__" )
+            _matched_trackcluster.push_back( *_trackcluster_input_v[m.trackidx] );
         }
         _used_tracks_v[ m.trackidx ] = 1;
+        used_crthit_v[ crthitidx ] = 1;
         
       }
       else {
@@ -235,6 +246,29 @@ namespace crtmatch {
               _used_tracks_v[ m.trackidx ] = 1;          
               LARCV_INFO() << "store merged clusters" << std::endl;
             }
+          }
+        }
+        else {
+          // Tracks
+          // for now, just pick the minimum, though could imagine merging
+          float mindist = 1e9;
+          int mindist_idx = -1;
+          int mindist_trackidx = -1;
+          for ( size_t i=0; i<hit_matches_v.size(); i++ ) {
+            auto const& hitm = hit_matches_v[i];
+            if (hitm.dist2hit < mindist && _used_tracks_v[hitm.trackidx]==0 ) {
+              mindist = hitm.dist2hit;
+              mindist_idx = i;
+              mindist_trackidx = hitm.trackidx;
+            }
+          }
+          if ( mindist_idx>=0 ) {
+            _matched_hitidx.push_back( crthitidx );
+            _matched_track.push_back( *_track_input_v[mindist_trackidx] );
+            if ( _input_trackcluster_treename!="__null__" )
+              _matched_trackcluster.push_back( *_trackcluster_input_v[mindist_trackidx] ); 
+            _used_tracks_v[mindist_idx] = 1;
+            used_crthit_v[ crthitidx ] = 1;
           }
         }
       }
@@ -276,6 +310,12 @@ namespace crtmatch {
           shifted.add_vertex( pos );
           shifted.add_direction( t.DirectionAtPoint(ipt) );
         }
+        if ( _input_trackcluster_treename!="__null__" ) {
+          auto& c = _matched_trackcluster[imatch];
+          for ( auto& hit : c ) {
+            hit[0] -= xoffset;
+          }
+        }
         std::swap( _matched_track[imatch], shifted );
       }
     }
@@ -289,6 +329,7 @@ namespace crtmatch {
     // make list of crt hits with matches
     for ( auto const& hitidx : _matched_hitidx ) {
       _match_hit_v.push_back( &_crthit_v[ hitidx ] );
+      _match_hitidx_v.push_back( hitidx );
     }
     if ( _kInputDataType==kInputCluster ) {
       _matchOpflashes( _flash_v, _match_hit_v, _matched_cluster, _matched_opflash_v );
@@ -363,7 +404,7 @@ namespace crtmatch {
           best_endpt_matched = endpt_matched;
         }
       }//end of hit loop
-      LARCV_DEBUG() << " [" << itrack << "] closest dist per plane = "
+      LARCV_DEBUG() << " TRK[" << itrack << "] closest dist per plane = "
                     << "[ " << min_dist[0] << ", " << min_dist[1] << ", " << min_dist[2] << ", " << min_dist[3] << "]"
                     << std::endl;
 
@@ -373,10 +414,10 @@ namespace crtmatch {
         // if a good hit found in the plane
         if ( best_hitidx[p]>=0 ) {
           auto const& besthit = _crthit_v[best_hitidx[p]];        
-          LARCV_DEBUG() << " crt_hit=(" << besthit.x_pos << ", " << besthit.y_pos << "," << besthit.z_pos << ") "
-                        << " panel_pos=(" << best_panel_pos[p][0] << "," << best_panel_pos[p][1] << "," << best_panel_pos[p][2] << ") "
+          LARCV_DEBUG() << " crt_hit[" << best_hitidx[p]<< "]=(" << besthit.x_pos << ", " << besthit.y_pos << "," << besthit.z_pos << ") "
+                        << " panel[" << p << "] pos=(" << best_panel_pos[p][0] << "," << best_panel_pos[p][1] << "," << best_panel_pos[p][2] << ") "
                         << std::endl;
-
+          
           if ( min_dist[p]>=0 && min_dist[p]<50.0 ) {
             float line[3] = {0};
             float dist = 0.;
@@ -445,11 +486,14 @@ namespace crtmatch {
          << " p=" << hit.plane
          << " pos=(" << hit.x_pos << ", " << hit.y_pos << ", " << hit.z_pos << ") "
          << " t=" << hit.ts2_ns*1.0e-3 << " usec ]";
-      
-      ss << " matches[";
-      for ( auto const& hidx : _hit2track_rank_v[idx] )
-        ss << " (dist2hit " << hidx.dist2hit << ", tracklen " << hidx.tracklen << ")";
-      ss << " ] ";
+      if ( _hit2track_rank_v[idx].size()>0 ) {
+        ss << " matches:" << std::endl;
+        for ( auto const& hidx : _hit2track_rank_v[idx] ) {
+          ss << "  dist-to-hit[" << hidx.hitidx << "] " << hidx.dist2hit << ","
+             << " track[" << hidx.trackidx << "]-len " << hidx.tracklen << ")"
+             << std::endl;
+        }
+      }
       LARCV_NORMAL() << ss.str() << std::endl;
     }
     LARCV_NORMAL() << "===============================================" << std::endl;    
@@ -481,7 +525,7 @@ namespace crtmatch {
     float dist2hit[2] = {0,0};
     float dirlen[2] = {0.,0.};
     int ntrackpts = track.NumberTrajectoryPoints();
-    LARCV_DEBUG() << "match one track (npts=" << ntrackpts << ") and crt hit" << std::endl;
+    //LARCV_DEBUG() << "match one track (npts=" << ntrackpts << ") and crt hit" << std::endl;
     
     for ( int i=0; i<3; i++ ) {
       endpts[0][i] = track.LocationAtPoint(0)(i);
@@ -585,7 +629,7 @@ namespace crtmatch {
 
     panel_pos[0] += x_offset;
 
-    LARCV_DEBUG() << "dist to hit (on CRT plane): " << dist << std::endl;
+    //LARCV_DEBUG() << "dist to hit (on CRT plane): " << dist << std::endl;
 
     return dist;
   }
@@ -783,6 +827,7 @@ namespace crtmatch {
     for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
       
       auto const& crt = *hit_v[ihit];
+      int hitidx = _match_hitidx_v[ihit];
         
       std::vector< const larlite::opflash* > matched_in_time_v;
       std::vector<float> dt_usec_v;
@@ -802,12 +847,13 @@ namespace crtmatch {
           matched_in_time_v.push_back( flash_v[i] );
           dt_usec_v.push_back( dt_usec );
           matched_index_v.push_back( i );
-          LARCV_INFO() << "  ...  crt-track and opflash matched. dt_usec=" << dt_usec << std::endl;
+          LARCV_INFO() << "  ...  crt-hit[" << hitidx << "] and opflash matched. dt_usec=" << dt_usec << std::endl;
         }
         
       }//end of flash loop
 
-      LARCV_NORMAL() << "crt-hit has " << matched_index_v.size() << " flash matches. closest time=" << closest_time  << std::endl;
+      LARCV_NORMAL() << "crt-hit[" << hitidx << "] has " << matched_index_v.size() << " flash matches. "
+                     << "closest time=" << closest_time  << std::endl;
 
       
       if ( matched_in_time_v.size()==0 ) {
@@ -995,6 +1041,7 @@ namespace crtmatch {
     }
     else {
       out_track     = (larlite::event_track*)outll.get_data( larlite::data::kTrack, "matchcrthit" );
+      out_lfcluster = (larlite::event_larflowcluster*)outll.get_data( larlite::data::kLArFlowCluster, "matchcrthit" );            
       nmatched = _matched_track.size();
     }
 
@@ -1021,6 +1068,8 @@ namespace crtmatch {
       }
       else {
 	track = &_matched_track[i];
+        if ( _input_trackcluster_treename!="__null__")
+          cluster = &_matched_trackcluster[i];
       }
       
 
@@ -1093,6 +1142,8 @@ namespace crtmatch {
       }
       else {
         out_track->push_back( *track );
+        if ( _input_trackcluster_treename!="__null__" )
+          out_lfcluster->push_back( *cluster );
       }
       
     }
@@ -1211,11 +1262,20 @@ namespace crtmatch {
       (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _input_track_treename );
     
     _track_input_v.clear();
-
+    _trackcluster_input_v.clear();
+    
     for ( auto& track : *ev_track ) {
       _track_input_v.push_back( &track );
     }
-    
+
+    if ( _input_trackcluster_treename!="__null__" ) {
+      larlite::event_larflowcluster* ev_trackcluster =
+        (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster,
+                                                       _input_trackcluster_treename );
+      for ( auto& cluster : *ev_trackcluster ) {
+        _trackcluster_input_v.push_back( &cluster );
+      }
+    }
   }
 
 }

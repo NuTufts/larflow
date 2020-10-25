@@ -113,7 +113,8 @@ namespace crtmatch {
     // CRT HIT MATCH
     bool remove_track_if_no_flash = true;
     _crthit_match.set_verbosity(larcv::msg::kDEBUG);
-    _crthit_match.setInputTrackTreename( "simplecosmictrack" );
+    //_crthit_match.setInputTrackTreename( "simplecosmictrack" );
+    _crthit_match.setInputTrackTreename( "simplecosmictrack", "simplecosmictrack" );    
     try {
       _crthit_match.process( iolcv, ioll );
     }

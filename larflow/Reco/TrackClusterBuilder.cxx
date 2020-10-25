@@ -698,8 +698,10 @@ namespace reco {
       std::set<int> segidx_set;
       std::vector<int> segidx_v;
 
-      if ( path.size()>0 )
+      if ( path.size()>0 ) {
         segidx_set.insert( path[0]->segidx );
+        segidx_v.push_back( path[0]->segidx );
+      }
       
       for (int inode=1; inode<path.size(); inode++ ) {
 

@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser("Plot Keypoint output")
 parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsrecomanager larlite output file")
 #parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
+#parser.add_argument("--draw-crtdata",type=str,default=None,help="dl merged or larlite with crt info")
 parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 args = parser.parse_args()
 
@@ -71,10 +72,26 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     if vtxid == "all" or vtxid=="notloaded":
         plotall = True
     else:
-        vtxid = int(vtxid)
         plotall = False
 
-    if args.draw_flash:
+    # CRT HITS
+    if True:
+        evopflash_beam   = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        evopflash_cosmic = io.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
+        
+        evhits = io.get_data(larlite.data.kCRTHit,"crthitcorr")
+        crthit_v = [ lardly.data.visualize_larlite_event_crthit( evhits, "crthitcorr", notimeshift=False) ]
+        filtered_crthit_v = lardly.ubdl.filter_crthits_wopreco( evopflash_beam, evopflash_cosmic, evhits, verbose=True )
+        vis_filtered_crthit_v = [ lardly.data.visualize_larlite_crthit( x, notimeshift=False ) for x in filtered_crthit_v ]
+        traces_v += vis_filtered_crthit_v
+
+        # CRT TRACKS
+        #evtracks   = io.get_data(larlite.data.kCRTTrack,"crttrack")
+        #crttrack_v = lardly.data.visualize_larlite_event_crttrack( evtracks, "crttrack", notimeshift=True)
+        #traces_v += crttrack_v
+        
+
+    if False:
         ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
         nflashes = 0
         for iflash in range(ev_flash.size()):
@@ -88,83 +105,97 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","cosmictrackclusters","rgb(10,10,150)",0.1,True)]
-    for (name,producer,rgbcolor,opa,plotme) in clusters:
-        if not plotme:
-            continue
+    if plotall:
+        clusters = [("cosmic","cosmictrackclusters","rgb(10,10,150)",0.1,True)]
+        for (name,producer,rgbcolor,opa,plotme) in clusters:
+            if not plotme:
+                continue
         
-        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
-        ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
-        print("plot pca clusters: ",producer,ev_trackcluster)
-        for icluster in range(ev_trackcluster.size()):
-            lfcluster = ev_trackcluster.at( icluster )
-            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
-            cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = opa
-            cluster_trace["marker"]["width"] = 1.0
-            traces_v.append(cluster_trace)            
+            ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
+            ev_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
+            print("plot pca clusters: ",producer,ev_trackcluster)
+            for icluster in range(ev_trackcluster.size()):
+                lfcluster = ev_trackcluster.at( icluster )
+                cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
+                cluster_trace["marker"]["color"] = rgbcolor
+                cluster_trace["marker"]["opacity"] = opa
+                cluster_trace["marker"]["width"] = 1.0
+                traces_v.append(cluster_trace)            
+                
+                pcaxis = ev_pcacluster.at( icluster )
+                pcatrace = lardly.data.visualize_pcaxis( pcaxis )
+                pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
+                pcatrace["line"]["color"] = "rgb(0,0,0)"
+                pcatrace["line"]["width"] = 1
+                pcatrace["line"]["opacity"] = 1.0            
+                traces_v.append( pcatrace )
 
-            pcaxis = ev_pcacluster.at( icluster )
-            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
-            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
-            pcatrace["line"]["color"] = "rgb(0,0,0)"
-            pcatrace["line"]["width"] = 1
-            pcatrace["line"]["opacity"] = 1.0            
-            #traces_v.append( pcatrace )
-
-
-            
     # TRACK RECO
     tracks = [("CMT","cosmictrack","rgb(0,100,50)",False,True),
-              ("SIM","simplecosmictrack","rgb(0,100,50)",True,True),
+              ("SIM","simplecosmictrack","rgb(0,100,50)",False,True),
               ("CON","containedcosmic","rgb(100,0,50)",False,False)]
-              
-    for name,track_producer,zrgb,plotme,plotcluster in tracks:
-        if not plotme:
-            continue
-        ev_track = io.get_data(larlite.data.kTrack,track_producer)
-        for itrack in xrange(ev_track.size()):
-            trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
-            trktrace["name"] = "%s[%d]"%(name,itrack)
-            trktrace["line"]["color"] = zrgb
-            trktrace["line"]["width"] = 5
-            trktrace["line"]["opacity"] = 1.0
-            traces_v.append( trktrace )
-        if not plotcluster:
-            continue
-        ev_trackcluster = io.get_data( larlite.data.kLArFlowCluster,track_producer)
-        for itrack in xrange(ev_trackcluster.size()):
-            trktrace = lardly.data.visualize_larlite_larflowhits( ev_trackcluster[itrack] )
-            trktrace["name"] = "%s[%d]"%(name,itrack)
-            trktrace["marker"]["color"] = zrgb
-            trktrace["marker"]["width"] = 1
-            trktrace["marker"]["opacity"] = 1.0
-            traces_v.append( trktrace )
+    
+    if plotall:
+        for name,track_producer,zrgb,plotme,plotcluster in tracks:
+            if not plotme:
+                continue
+            ev_track = io.get_data(larlite.data.kTrack,track_producer)
+            for itrack in xrange(ev_track.size()):
+                trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
+                trktrace["name"] = "LN-%s[%d]"%(name,itrack)
+                trktrace["line"]["color"] = zrgb
+                trktrace["line"]["width"] = 5
+                trktrace["line"]["opacity"] = 1.0
+                traces_v.append( trktrace )
+            if not plotcluster:
+                continue
+            ev_trackcluster = io.get_data( larlite.data.kLArFlowCluster,track_producer)
+            for itrack in xrange(ev_trackcluster.size()):
+                trktrace = lardly.data.visualize_larlite_larflowhits( ev_trackcluster[itrack] )
+                trktrace["name"] = "PT-%s[%d]"%(name,itrack)
+                trktrace["marker"]["color"] = zrgb
+                trktrace["marker"]["width"] = 5
+                trktrace["marker"]["opacity"] = 1.0
+                traces_v.append( trktrace )
         
 
+    vtxinfo = []
     for treename in ["matchcrthit"]:
         ev_crttrack = io.get_data(larlite.data.kCRTTrack, treename )
         ev_opflash  = io.get_data(larlite.data.kOpFlash,  treename )
         ev_track    = io.get_data(larlite.data.kTrack,    treename )
+        ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, treename)
 
         ntracks = ev_crttrack.size()
 
         print(" tree set: ",treename)
         print("   ncrttrack=",ev_crttrack.size(),")")
         print("   nopflash=",ev_opflash.size(),")")
-        print("   ncluster=",ev_track.size(),")")
+        print("   ntrack=",ev_track.size(),")")
+        print("   ncluster=",ev_trackcluster.size(),")")
 
         for n in xrange(ntracks):
+            matchidname = "%s:%d"%(treename,n)
+            vtxinfo.append( {"label":matchidname,"value":matchidname} )
+            
             vis_crttrack = [lardly.data.visualize_larlite_crttrack(ev_crttrack.at(n),notimeshift=True)]
             vis_opflash  =  lardly.data.visualize_larlite_opflash_3d( ev_opflash.at(n) )
-            vis_larflow  = [ lardly.data.visualize_larlite_track( ev_track.at(n) ) ]
-            for vis_lf in vis_larflow:
+            vis_track  = [ lardly.data.visualize_larlite_track( ev_track.at(n) ) ]
+            vis_cluster = [ lardly.data.visualize_larlite_larflowhits( ev_trackcluster.at(n) ) ]
+
+            if not plotall and vtxid!=matchidname:
+                continue
+            
+            for vis_lf in vis_track:
                 vis_lf["line"]["color"]="rgb(0,0,255)"
-            vis_larflow[0]["name"] = "%s[%d]"%(treename,n)
+            vis_track[0]["name"] = "%s[%d]"%(treename,n)
+            vis_cluster[0]["marker"]["color"]="rgb(255,0,0)"
+            vis_cluster[0]["name"]="%s[%d]"%(treename,n)
             traces_v += vis_crttrack
             traces_v += vis_opflash
-            traces_v += vis_larflow
-    
+            traces_v += vis_track
+            traces_v += vis_cluster
+            
 
     if HAS_MC:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
@@ -178,7 +209,6 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     traces_v += detdata.getlines(color=(10,10,10))
     traces_v += crtdata
 
-    vtxinfo = []
     return traces_v,vtxinfo
 
 def test():
