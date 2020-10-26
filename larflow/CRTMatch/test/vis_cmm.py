@@ -7,6 +7,7 @@ parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsreco
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
 #parser.add_argument("--draw-crtdata",type=str,default=None,help="dl merged or larlite with crt info")
 parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
+parser.add_argument("--draw-preclusters",action='store_true',default=False,help="If true, draw sub-clusters used to form tracks [default: false]")
 args = parser.parse_args()
 
 import numpy as np
@@ -105,7 +106,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    if plotall:
+    if args.draw_preclusters and plotall:        
         clusters = [("cosmic","cosmictrackclusters","rgb(10,10,150)",0.5,True)]
         for (name,producer,rgbcolor,opa,plotme) in clusters:
             if not plotme:
