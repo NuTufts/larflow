@@ -56,7 +56,7 @@ namespace reco {
       _makeLArFlowCluster( cluster_t& cluster,
                            const larlite::event_larflow3dhit& source_lfhit_v );
     
-    cluster_t _absorb_nearby_hits( const cluster_t& cluster,
+    cluster_t _absorb_nearby_hits( cluster_t& cluster,
                                    const std::vector<larlite::larflow3dhit>& hit_v,
                                    std::vector<int>& used_hits_v,
                                    std::vector<larlite::larflow3dhit>& downsample_hit_v,

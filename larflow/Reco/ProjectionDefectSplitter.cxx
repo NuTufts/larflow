@@ -446,7 +446,7 @@ namespace reco {
    *                          of the given cluster.
    * @return A new cluster with additional hits added to the given cluster
    */
-  cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( const cluster_t& cluster,
+  cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( cluster_t& cluster,
                                                            const std::vector<larlite::larflow3dhit>& hit_v,
                                                            std::vector<int>& used_hits_v,
                                                            std::vector<larlite::larflow3dhit>& downsample_hit_v,
@@ -455,6 +455,8 @@ namespace reco {
 
     cluster_t newcluster;
     int nused = 0;
+    std::vector<int> absorbed_orig_index_v;
+    
     for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
 
       auto const& hit = hit_v[ihit];
@@ -481,28 +483,33 @@ namespace reco {
         
         newcluster.points_v.push_back( pt );
         newcluster.imgcoord_v.push_back( coord_v );
-        newcluster.hitidx_v.push_back( ihit );
+        //newcluster.hitidx_v.push_back( ihit );
+        newcluster.hitidx_v.push_back( downsample_index ); // clusters refer to the downsample_hit_v index
         used_hits_v[ihit] = 3;
+        absorbed_orig_index_v.push_back( ihit );
         nused++;
       }
       
     }
-
-    if (nused>=10 ) {
-      //std::cout << "[absorb_nearby_hits] cluster absorbed " << nused << " hits" << std::endl;      
-      cluster_pca( newcluster );
+    
+    if (nused>0 ) {
+      //std::cout << "[absorb_nearby_hits] cluster absorbed " << nused << " hits" << std::endl;
+      for ( size_t iadd=0; iadd<newcluster.points_v.size(); iadd++ ) {
+        cluster.points_v.push_back( newcluster.points_v[iadd] );
+        cluster.imgcoord_v.push_back( newcluster.imgcoord_v[iadd] );
+        cluster.hitidx_v.push_back( newcluster.hitidx_v[iadd] );
+      }
+      cluster_pca( cluster );
     }
     else {
       // throw them back
       //std::cout << "[absorb_nearby_hits] cluster hits " << nused << " below threshold" << std::endl;            
-      for ( auto& idx : newcluster.hitidx_v )
+      for ( auto& idx : absorbed_orig_index_v )
         used_hits_v[idx] = 0;
       newcluster.points_v.clear();
       newcluster.imgcoord_v.clear();
       newcluster.hitidx_v.clear();
     }
-
-    
     return newcluster;
   }
 
@@ -549,6 +556,7 @@ namespace reco {
 
     float downsample_fraction = (float)max_pts_to_cluster/(float)total_pts;
     bool sample = total_pts>max_pts_to_cluster;
+    //sample = false; /// for debugging
 
     LARCV_INFO() << "Downsample points: " << sample << ", downsample_fraction=" << downsample_fraction << std::endl;
     
@@ -569,17 +577,18 @@ namespace reco {
       
       if ( !sample || rand.Uniform()<downsample_fraction ) {
         downsample_hit_v.push_back( inputhits[ihit] );
-        orig_idx_v.push_back( ihit );
+        orig_idx_v.push_back( ihit ); ///< map from downsample index to original index
       }
       
     }
     LARCV_INFO() << "Remaining hits, " << nremaining << ", downsampled to " << downsample_hit_v.size() << " of " << total_pts << " total" << std::endl;
 
-    // cluster these hits
+    // cluster the hits in the downsample_hit_v vector
     std::vector<larflow::reco::cluster_t> cluster_pass_v;
     larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
-    larflow::reco::cluster_runpca( cluster_pass_v );
+    larflow::reco::cluster_runpca( cluster_pass_v ); // get pca for each cluster
 
+    // now we want to absorb unsampled hits into the clusters we just made
     int nused_final = 0;
     std::vector<larflow::reco::cluster_t> dense_cluster_v;    
     if ( sample ) {
@@ -587,15 +596,14 @@ namespace reco {
       LARCV_INFO() << "Absorb unused hits" << std::endl;
       
       // we then absorb the hits around these clusters
-      for ( auto const& ds_cluster : cluster_pass_v ) {
+      for ( auto& ds_cluster : cluster_pass_v ) {
         cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
                                                        inputhits,
                                                        used_hits_v,
                                                        downsample_hit_v,
                                                        orig_idx_v,
                                                        10.0 );
-        if ( dense_cluster.points_v.size()>0 ) 
-          dense_cluster_v.emplace_back( std::move(dense_cluster) );
+        dense_cluster_v.emplace_back( std::move(ds_cluster) );
       }
       
       int nused_tot = 0;

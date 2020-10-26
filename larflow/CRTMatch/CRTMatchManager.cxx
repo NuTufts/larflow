@@ -220,7 +220,8 @@ namespace crtmatch {
     //_projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_fit_line_segments_to_clusters( true );
-    _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_all" );
+    //_projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_all" );
+    _projsplitter.set_input_larmatchhit_tree_name( "ssnetsplitall_trackhit" );    
     _projsplitter.add_input_keypoint_treename_for_hitveto( "kpcosmic_all" );
     _projsplitter.set_output_tree_name("cosmictrackclusters");
     _projsplitter.process( iolcv, ioll );
