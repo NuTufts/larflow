@@ -74,6 +74,15 @@ for filenum, filename in enumerate(test_files):
                                                                 entry.DataBranch.num_instances_plane(1), \
                                                                 entry.DataBranch.num_instances_plane(2))
 
+
+        # x, y, dummy = zip(*coord_plane0_t)
+        # plt.plot(x, y, '.', markersize=5, color='black')
+        # for inst_idx in xrange(entry.DataBranch.num_instances_plane(0)):
+        #     inst_xs, inst_ys = zip(*entry.DataBranch.instance(0, inst_idx))
+        #     plt.plot(inst_xs, inst_ys, '.', markersize=7, color='red')
+        # plt.show()
+
+
         # Train on each plane
         for iterate in range(1):
             for plane in range(1):

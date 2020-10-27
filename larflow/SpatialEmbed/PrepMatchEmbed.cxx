@@ -24,16 +24,18 @@ namespace spatialembed {
                                 const PrepMatchTriplets& triplets )
   {
 
+    // larcv::EventImage2D* ev_image
+    //   = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
     larcv::EventImage2D* ev_image
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     
     larcv::EventImage2D* ev_ancestor
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "ancestor" );
 
     // collect 2D pixel clusters based on ancestor ID number
-    for (size_t p=0; p<3; p++ )
+    for (size_t p=0; p<3; p++ ){
       _collect_ancestor_pixels( ev_image->Image2DArray()[p], ev_ancestor->Image2DArray()[p] );
-
+    }
     // assign ancestor ID to triplets
     _assign_triplet_ancestor_id( triplets, ev_ancestor->Image2DArray() );
     

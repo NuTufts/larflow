@@ -66,9 +66,11 @@ void SpatialEmbedData::processLabelData(larcv::IOManager& iolcv, larlite::storag
     processLabelData(&mcpg, &prepembed);
 }
 
-void SpatialEmbedData::processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg,
-                           larflow::spatialembed::PrepMatchEmbed* prepembed,
-                           larcv::EventImage2D* ev_adc )
+void SpatialEmbedData::processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg, 
+                                                   larcv::IOManager& iolcv,
+                                                   larcv::ImageMeta& img_meta)
+                        //    larflow::spatialembed::PrepMatchEmbed* prepembed,
+                        //    larcv::EventImage2D* ev_adc )
 {
     types_t.clear();
     instances_t.clear();
@@ -76,10 +78,10 @@ void SpatialEmbedData::processLabelDataWithShower( ublarcvapp::mctools::MCPixelP
 
     _setup_numpy = false; // reset
 
-    auto const& img_meta = ev_adc->Image2DArray().at(0).meta();
-
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> tids_from_neutrino 
         = mcpg->getNeutrinoPrimaryParticles();
+
+    std::cerr << "size of mcpg " << tids_from_neutrino.size() << std::endl;
 
     std::unordered_map<std::string, int> binary_hash_map;
 
@@ -209,7 +211,7 @@ void SpatialEmbedData::processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcp
 
                     // Indicate that that pixel is in an instance
                     std::string key = std::to_string(pixlist[pixel].row) + "," + std::to_string(pixlist[pixel].col);
-                    std::cerr << key << " "; 
+                    // std::cerr << key << " "; 
                     binary_hash_map[key] = 1;
                 }
                 instance_pixels.push_back(pixels);

@@ -61,9 +61,11 @@ public:
     void processLabelData( ublarcvapp::mctools::MCPixelPGraph* mcpg,
                            larflow::spatialembed::PrepMatchEmbed* prepembed );
 
-    void processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg,
-                            larflow::spatialembed::PrepMatchEmbed* prepembed,
-                            larcv::EventImage2D* ev_adc );
+    void processLabelDataWithShower( ublarcvapp::mctools::MCPixelPGraph* mcpg, 
+                                     larcv::IOManager& iolcv,
+                                     larcv::ImageMeta& img_meta);
+                            // larflow::spatialembed::PrepMatchEmbed* prepembed,
+                            // larcv::EventImage2D* ev_adc );
 
 
     int num_instances_plane(int plane);

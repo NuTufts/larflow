@@ -51,8 +51,10 @@ namespace reco {
   {
 
     // get input data
+    // larcv::EventImage2D* ev_adc      =
+    //   (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
     larcv::EventImage2D* ev_adc      =
-      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     larcv::EventImage2D* ev_seg      =
       (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
     larcv::EventImage2D* ev_trueflow =
@@ -816,8 +818,10 @@ namespace reco {
   {
 
     // get input data
+    // larcv::EventImage2D* ev_adc      =
+    //   (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
     larcv::EventImage2D* ev_adc      =
-      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     larcv::EventImage2D* ev_seg      =
       (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
 
