@@ -70,10 +70,22 @@ int main( int nargs, char** argv ) {
   llio.add_in_filename( crtfile_path + input_crtfile );
   llio.open();
 
-  
+  //  larcv::IOManager* ioman = new larcv::IOManager(larcv::IOManager::kREAD);                                                                                           
+  //  larcv::IOManager* ioman = new larcv::IOManager(larcv::IOManager::kREAD, "IOManager", larcv::IOManager::kTickForward);                                              
+  larcv::IOManager* ioman = new larcv::IOManager(larcv::IOManager::kREAD, "IOManager", larcv::IOManager::kTickBackward);
+  ioman->add_in_file( (image2d_path + input_image2d_file).c_str() );
+  ioman->specify_data_read( larcv::kProductImage2D, "wire" ); // says only want to read wire image2d product per event; saves time loading files                         
+  ioman->reverse_all_products();
+  ioman->initialize();
 
   int nentries = llio.get_entries();
-  //  std::cout << "[DEBUG] This is nentries: " << nentries << std::endl;
+  ULong_t image2dEntries = ioman->get_n_entries();
+
+  /*                                                                                                                                                                     
+  std::cout << "I think the entries should match." << std::endl;                                                                                                         
+  std::cout << "larlite nentries: " << nentries << std::endl;                                                                                                            
+  std::cout << "larcv entries: " << image2dEntries << std::endl;                                                                                                         
+  */
   
   //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
   TFile* outfile = new TFile(Form("CRTana_%s",input_crtfile.c_str()),"recreate");
@@ -127,15 +139,48 @@ int main( int nargs, char** argv ) {
     hitcount_xyz_th3d[n] = new TH3D( name, ";position ;position ; position", (xyzBins[0]/voxelSize[n]), xyzMin[0], xyzMax[0], (xyzBins[1]/voxelSize[n]), xyzMin[1], xyzMax[1], (xyzBins[2]/voxelSize[n]), xyzMin[2], xyzMax[2]);
   }
 
+  /*
+  // * These are the TH3D's of 4 different voxel sizes for ADC                                                                                                           
+  TH3D* adc_wire_th3d[ voxHists ] = {nullptr};
+  for (int n = 0; n < voxHists; n++ ) {
+    char name[100];
+    sprintf( name, "adc_wire_th3d_%s", str5[n].c_str() );
+    adc_wire_th3d[n] = new TH3D( name, ";wire ;wire ; wire", (wireBins[0]/voxelSize[n]), 0, wireMax[0], (wireBins[1]/voxelSize[n]), 0, wireMax[1], (wireBins[2]/voxelSize[n]), 0, wireMax[2]);
+  }
+
+  // want to make a tree of TH3D's so we can have TH3D ADC trees per event                                                                                               
+  //  TTree *ADCtree = new TTree("ADCtree","tree w/ TH3D of ADC per event");                                                                                             
+  //tree->Branch("adc_wire_th3d", &hitsPerVoxel[i], "hitsPer1cmVoxel/I");                                                                                                
+
+  TTree* ADCtree[ voxHists ] = {nullptr};
+  for ( int i = 0; i < voxHists; i++ ) {
+    ADCtree[i] = new TTree(Form("ADCtree_%s",str5[i].c_str()),"");
+    ADCtree[i]->Branch("adc_wire_th3d", "TH3D", &adc_wire_th3d[i]);
+  }*/
+
   // Loop over events
   //  for (int i = startentry; i < (startentry + maxentries); i++) {
   for (int i = 0; i < nentries; i++) {
     
-    //    std::cout << "===========================================" << std::endl;
-    //std::cout << "[ Entry " << i << " ]" << std::endl;
+    std::cout << "===========================================" << std::endl;
+    std::cout << "[ Entry " << i << " ]" << std::endl;
 
     llio.go_to(i);
+    ioman->read_entry(i);
 
+    const auto ev_img = (larcv::EventImage2D*)ioman->get_data( larcv::kProductImage2D, "wire" );
+
+    std::vector<larcv::Image2D> larcv_img(3);
+    larcv_img = ev_img->Image2DArray();
+
+     /*                                                                                                                                                                   
+    for (int p=0; p<3; p++) {                                                                                                                                            
+      auto const& img_dump=larcv_img.at(p);                                                                                                                              
+      auto const& meta = img_dump.meta();                                                                                                                                
+      std::cout<<meta.dump()<<std::endl;                                                                                                                                 
+    }                                                                                                                                                                    
+    */
+    
     larlite::event_larflowcluster* clusters_v = (larlite::event_larflowcluster*)llio.get_data(larlite::data::kLArFlowCluster,"fitcrttrack_larmatchhits");
 
     // loop thru clusters
@@ -157,6 +202,17 @@ int main( int nargs, char** argv ) {
 	hit_x = lfhit[0];
 	hit_y = lfhit[1];
 	hit_z = lfhit[2];
+	
+	// for a given hit, want the row/col corresponding to it                                                                                                         
+        int row = larcv_img[0].meta().row( tick );
+	int col0 = larcv_img[0].meta().col( hit_U );
+	int col1 = larcv_img[1].meta().col( hit_V );
+	int col2 = larcv_img[2].meta().col( hit_Y );
+
+	// use the row/col of the hit to grab the adc pixel at that hit for each plane                                                                                   
+        float adc_plane0 = larcv_img[0].pixel(row, col0);
+        float adc_plane1 = larcv_img[1].pixel(row, col1);
+        float adc_plane2 = larcv_img[2].pixel(row, col2);
 	
 	// fill wire 1d hists
 	hitcount_wire_hist[0]->Fill(hit_U);
@@ -183,7 +239,14 @@ int main( int nargs, char** argv ) {
 	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z);
-	
+
+	/*
+	// * fill 3d hists w/ ADC for each plane for 4 diff voxel sizes                                                                                                  
+        adc_wire_th3d[0]->Fill(adc_plane0, adc_plane1, adc_plane2);
+        adc_wire_th3d[1]->Fill(adc_plane0, adc_plane1, adc_plane2);
+        adc_wire_th3d[2]->Fill(adc_plane0, adc_plane1, adc_plane2);
+        adc_wire_th3d[3]->Fill(adc_plane0, adc_plane1, adc_plane2);
+	*/
       }
 
 
