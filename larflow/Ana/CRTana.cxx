@@ -163,7 +163,8 @@ int main( int nargs, char** argv ) {
 
   // Loop over events
   //  for (int i = startentry; i < (startentry + maxentries); i++) {
-  for (int i = 0; i < nentries; i++) {
+  //  for (int i = 0; i < nentries; i++) {
+  for (int i = 0; i < 1; i++) { // only try first entry
     
     std::cout << "===========================================" << std::endl;
     std::cout << "[ Entry " << i << " ]" << std::endl;
@@ -187,15 +188,18 @@ int main( int nargs, char** argv ) {
     larlite::event_larflowcluster* clusters_v = (larlite::event_larflowcluster*)llio.get_data(larlite::data::kLArFlowCluster,"fitcrttrack_larmatchhits");
 
     // loop thru clusters
-    for ( size_t iCluster = 0; iCluster < clusters_v->size(); iCluster++ ) {
+    //    for ( size_t iCluster = 0; iCluster < clusters_v->size(); iCluster++ ) {
+    for ( size_t iCluster = 0; iCluster < 1; iCluster++ ) { // just try 1 track for now
 
       const larlite::larflowcluster& cluster = clusters_v->at( iCluster );
 
-      // std::cout << "I'm in cluster: " << iCluster << std::endl;
+      std::cout << "I'm in cluster: " << iCluster << std::endl;
       
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
 
+	std::cout << "I'm at hit: " << iHit << std::endl;
+	
 	const larlite::larflow3dhit& lfhit = cluster.at( iHit );
 
 	hit_U = lfhit.targetwire[0];
@@ -238,10 +242,10 @@ int main( int nargs, char** argv ) {
 	hitcount_xyz_th2d[2]->Fill(hit_z, hit_x);
 	
 	// fill 3d hists for 4 diff voxel sizes
-	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z, adc_plane0);
-	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z, adc_plane0);
-	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z, adc_plane0);
-	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z, adc_plane0);
+	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z);
+	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z);
+	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z, 3); // only dealing w/ 5 cm voxels for now
+	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z);
 
 	/*
 	// * fill 3d hists w/ ADC for each plane for 4 diff voxel sizes                                                                                                  

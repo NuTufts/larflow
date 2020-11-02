@@ -15,11 +15,11 @@ LDFLAGS+=`larlite-config --libs`
 LDFLAGS+=`root-config --libs`
 
 
-all: kpsreco_vertexana CRTana treeMakerScript
+all: kpsreco_vertexana CRTana treeMakerScript prepData
 
 %: %.cxx
 	@echo "<< compile $@ >>"
 	$(CXX) $(CXXFLAGS)  $< -o $@ $(LDFLAGS)
 
 clean:
-	@rm truthana_larmatch keypoint_truthana keypoint_recoana CRTana treeMakerScript
+	@rm truthana_larmatch keypoint_truthana keypoint_recoana CRTana treeMakerScript prepData
