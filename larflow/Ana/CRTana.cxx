@@ -1,4 +1,5 @@
-// Want to histogram hits in 3D: # hits as a function of position for the 3 planes 
+// Want to histogram hits in 3D: # hits as a function of position for the 3 planes
+// Also want to keep charge information. Here we save this as an extra Fill() argument (one per plane)
 
 #include <iostream>
 #include <string>
@@ -60,13 +61,16 @@ int main( int nargs, char** argv ) {
   
   std::string crtfile_path = argv[1];
   std::string input_crtfile = argv[2];
-  //  int startentry = atoi(argv[2]);
-  //int maxentries = atoi(argv[3]);
-  //  std::string output_filename = argv[2]
 
+  // Need merged dlana file to grab ADC from image2d
+  std::string image2d_path = argv[3];
+  std::string input_image2d_file = argv[4];
+  
   larlite::storage_manager llio( larlite::storage_manager::kREAD );
   llio.add_in_filename( crtfile_path + input_crtfile );
   llio.open();
+
+  
 
   int nentries = llio.get_entries();
   //  std::cout << "[DEBUG] This is nentries: " << nentries << std::endl;
