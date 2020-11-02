@@ -17,6 +17,9 @@
 #include "larlite/core/DataFormat/larflow3dhit.h"
 #include "larlite/core/DataFormat/larflowcluster.h"
 
+#include "../../../larcv/larcv/core/DataFormat/IOManager.h"
+#include "../../../larcv/larcv/core/DataFormat/EventImage2D.h"
+
 int main( int nargs, char** argv ) {
 
   int hit_U = 0;
@@ -235,10 +238,10 @@ int main( int nargs, char** argv ) {
 	hitcount_xyz_th2d[2]->Fill(hit_z, hit_x);
 	
 	// fill 3d hists for 4 diff voxel sizes
-	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z);
-	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z);
-	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z);
-	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z);
+	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z, adc_plane0);
+	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z, adc_plane0);
+	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z, adc_plane0);
+	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z, adc_plane0);
 
 	/*
 	// * fill 3d hists w/ ADC for each plane for 4 diff voxel sizes                                                                                                  
