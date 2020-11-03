@@ -198,7 +198,7 @@ int main( int nargs, char** argv ) {
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
 
-	std::cout << "I'm at hit: " << iHit << std::endl;
+	//	std::cout << "I'm at hit: " << iHit << std::endl;
 	
 	const larlite::larflow3dhit& lfhit = cluster.at( iHit );
 
@@ -220,6 +220,8 @@ int main( int nargs, char** argv ) {
         float adc_plane0 = larcv_img[0].pixel(row, col0);
         float adc_plane1 = larcv_img[1].pixel(row, col1);
         float adc_plane2 = larcv_img[2].pixel(row, col2);
+
+	//	std::cout << "adc_plane0: " << adc_plane0 << std::endl;
 	
 	// fill wire 1d hists
 	hitcount_wire_hist[0]->Fill(hit_U);
@@ -244,7 +246,7 @@ int main( int nargs, char** argv ) {
 	// fill 3d hists for 4 diff voxel sizes
 	hitcount_xyz_th3d[0]->Fill(hit_x, hit_y, hit_z);
 	hitcount_xyz_th3d[1]->Fill(hit_x, hit_y, hit_z);
-	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z, 3); // only dealing w/ 5 cm voxels for now
+	hitcount_xyz_th3d[2]->Fill(hit_x, hit_y, hit_z, adc_plane0); // only dealing w/ 5 cm voxels for now
 	hitcount_xyz_th3d[3]->Fill(hit_x, hit_y, hit_z);
 
 	/*
