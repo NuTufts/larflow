@@ -88,10 +88,11 @@ int main( int nargs, char** argv ) {
 
   // Input for ttrees
   //int hitsPerVoxel[4];
-  std::vector<int> voxel_row;
-  std::vector<int> voxel_col;
-  std::vector<int> voxel_depth;
+  std::vector<int> voxel_row;      // x-axis of TH3D
+  std::vector<int> voxel_col;      // y-axis of TH3D
+  std::vector<int> voxel_depth;    // z-axis of TH3D
   std::vector<float> voxel_charge;
+  std::vector<float> flash;
   
   //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
   TFile* outfile = new TFile(Form("CRTPreppedTree_%s",input_crtfile.c_str()),"recreate");
@@ -104,6 +105,7 @@ int main( int nargs, char** argv ) {
   preppedTree->Branch("voxel_depth", &voxel_depth);
   //  preppedTree->Branch("hitsPerVoxel", &hitsPerVoxel, "hitsPerVoxel/I");
   preppedTree->Branch("voxel_charge", &voxel_charge);
+  preppedTree->Branch("flash", &flash);
   
   /*
   TTree* T[ voxHists ] = {nullptr};
@@ -175,8 +177,8 @@ int main( int nargs, char** argv ) {
 
   // Loop over events
   //  for (int i = startentry; i < (startentry + maxentries); i++) {
-  //  for (int i = 0; i < nentries; i++) {
-  for (int i = 0; i < 1; i++) { // only try first entry
+  for (int i = 0; i < nentries; i++) {
+  //for (int i = 0; i < 4; i++) { // only try first entry
     
     std::cout << "===========================================" << std::endl;
     std::cout << "[ Entry " << i << " ]" << std::endl;
@@ -199,9 +201,12 @@ int main( int nargs, char** argv ) {
     
     larlite::event_larflowcluster* clusters_v = (larlite::event_larflowcluster*)llio.get_data(larlite::data::kLArFlowCluster,"fitcrttrack_larmatchhits");
 
+    // Grab flash info for the event
+    larlite::event_opflash* flash_v = (larlite::event_opflash*)llio.get_data(larlite::data::kOpFlash,"fitcrttrack");
+
     // loop thru clusters
-    //    for ( size_t iCluster = 0; iCluster < clusters_v->size(); iCluster++ ) {
-    for ( size_t iCluster = 0; iCluster < 1; iCluster++ ) { // just try 1 track for now
+    for ( size_t iCluster = 0; iCluster < clusters_v->size(); iCluster++ ) {
+    //    for ( size_t iCluster = 0; iCluster < 1; iCluster++ ) { // just try 1 track for now
 
       // Reset TH3D to clear it out for a new track cluster
       hitcount_xyz_th3d[2]->Reset();
@@ -286,9 +291,9 @@ int main( int nargs, char** argv ) {
 
 	    if ( hitcount_xyz_th3d[2]->GetBinContent(i, j, k) != 0 ) {
 	    
-	    voxel_row.push_back(i);
-	    voxel_col.push_back(k);
-	    voxel_depth.push_back(j);
+	    voxel_row.push_back(i);   // x-axis of TH3D  
+	    voxel_col.push_back(j);   // y-axis of TH3D  
+	    voxel_depth.push_back(k); // z-axis of TH3D  
 	    voxel_charge.push_back( hitcount_xyz_th3d[2]->GetBinContent(i, j, k) );
 	    
 	    }
