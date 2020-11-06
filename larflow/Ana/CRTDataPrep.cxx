@@ -16,6 +16,7 @@
 #include "larlite/core/DataFormat/storage_manager.h"
 #include "larlite/core/DataFormat/larflow3dhit.h"
 #include "larlite/core/DataFormat/larflowcluster.h"
+#include "larlite/core/DataFormat/opflash.h"
 
 #include "../../../larcv/larcv/core/DataFormat/IOManager.h"
 #include "../../../larcv/larcv/core/DataFormat/EventImage2D.h"
@@ -92,7 +93,7 @@ int main( int nargs, char** argv ) {
   std::vector<int> voxel_col;      // y-axis of TH3D
   std::vector<int> voxel_depth;    // z-axis of TH3D
   std::vector<float> voxel_charge;
-  std::vector<float> flash;
+  std::vector<float> flash_vector;
   
   //  TFile* outfile = new TFile(Form("crt_%d-%d.root",startentry,startentry+maxentries-1),"recreate");
   TFile* outfile = new TFile(Form("CRTPreppedTree_%s",input_crtfile.c_str()),"recreate");
@@ -105,7 +106,7 @@ int main( int nargs, char** argv ) {
   preppedTree->Branch("voxel_depth", &voxel_depth);
   //  preppedTree->Branch("hitsPerVoxel", &hitsPerVoxel, "hitsPerVoxel/I");
   preppedTree->Branch("voxel_charge", &voxel_charge);
-  preppedTree->Branch("flash", &flash);
+  preppedTree->Branch("flash_vector", &flash_vector);
   
   /*
   TTree* T[ voxHists ] = {nullptr};
@@ -216,10 +217,25 @@ int main( int nargs, char** argv ) {
       voxel_col.clear();
       voxel_depth.clear();
       voxel_charge.clear();
+      flash_vector.clear();
       
       const larlite::larflowcluster& cluster = clusters_v->at( iCluster );
 
       std::cout << "I'm in cluster: " << iCluster << std::endl;
+      //      std::cout << "Here's how many clusters there are: " << clusters_v->size() << std::endl;
+      //std::cout << "Here's how big the flash vector is: " << flash_v->size() << std::endl;
+
+      // This is the flash at this cluster
+      const larlite::opflash& flash = flash_v->at( iCluster );
+
+      // Grab PE info from each PMT
+      for (int i = 0; i < 32; i++) {
+
+	flash_vector.push_back( flash.PE(i) );
+
+	std::cout << "PE: " << flash.PE(i) << std::endl;
+
+      }
       
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
