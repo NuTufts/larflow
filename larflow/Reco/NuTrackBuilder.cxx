@@ -1,5 +1,6 @@
 #include "NuTrackBuilder.h"
 #include "larflow/Reco/cluster_functions.h"
+#include "larflow/Reco/TrackdQdx.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 namespace larflow {
@@ -169,10 +170,32 @@ namespace reco {
       fillLarliteTrackContainerWithFittedTrack( fitted_v, fitted_hitcluster_v, adc_v );
       LARCV_DEBUG() << "Vertex tracks: " << fitted_v.size() << "; hit clusters: " << fitted_hitcluster_v.size() << std::endl;
 
+      if ( fitted_v.size()!=fitted_hitcluster_v.size() ) {
+        std::stringstream msg;
+        msg << "num vertex tracks (" << fitted_v.size() << ") does not match num hit clusters (" << fitted_hitcluster_v.size() << ")" << std::endl;
+        throw std::runtime_error( msg.str() );
+      }
+      
       // pass the fitted tracks to the nu candidate
       nuvtx.track_v.reserve( fitted_v.size() );
-      for (auto& fitted : fitted_v )
-        nuvtx.track_v.push_back(fitted);
+      for (int itrack=0; itrack<(int)fitted_v.size(); itrack++) {
+        auto& fitted = fitted_v.at(itrack);
+        auto& hitcluster = fitted_hitcluster_v.at(itrack);
+
+        // fitted with dqdx
+        larflow::reco::TrackdQdx dqdx_algo;
+        larlite::track track_dqdx;
+        try {
+          track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
+          nuvtx.track_v.emplace_back( std::move(track_dqdx) );
+        }
+        catch ( const std::exception& e ) {
+          std::stringstream msg;
+          msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << ". filling with original track" << std::endl;
+          nuvtx.track_v.push_back(fitted);
+        }
+       
+      }
 
       // pass the hit clusters on
       nuvtx.track_hitcluster_v.reserve( fitted_v.size() );

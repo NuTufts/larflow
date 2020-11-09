@@ -1,5 +1,6 @@
 #include "TrackdQdx.h"
 
+#include "TMatrixD.h"
 #include "LArUtil/Geometry.h"
 
 #include "geofuncs.h"
@@ -33,8 +34,10 @@ namespace reco {
       float lm;
       float ll;
       float llw;
-      std::vector<float> pt;
-      std::vector<float> dir;
+      std::vector<float> linept; // point on current track line
+      std::vector<float> pt;     // space point
+      std::vector<float> dir;    // direction of track line segment
+      std::vector<float> err_v;  // vector from linept to space point (pt)
       std::vector<double> dqdx_v;
       bool operator<( const TrackPt_t& rhs ) const
       {
@@ -130,11 +133,20 @@ namespace reco {
         if ( r>5.0 || s<0 || s>len ) {
           continue;
         }
+
+        std::vector<float> linept(3,0);
+        std::vector<float> rad_v(3,0); // vector from line pt to space point
+        for (int i=0; i<3; i++) {
+          linept[i] = start[i] + s*dir[i];
+          rad_v[i] = pt[i]-linept[i];
+        }
         
         // on segment
         TrackPt_t trkpt;
+        trkpt.linept = linept;
         trkpt.pt  = pt;
         trkpt.dir = dir;
+        trkpt.err_v = rad_v;
         trkpt.hitidx = search_index_v[ii];
         trkpt.pid = 0;
         trkpt.r = r;
@@ -204,16 +216,22 @@ namespace reco {
     larlite::track dqdx_track;
     dqdx_track.reserve( trackpt_v.size() );
     for (auto const& trkpt : trackpt_v ) {
-      // fill vertex, direction, dqdx
+      // fill vertex, direction, dqdx, line to spacepoint vector
       // vertex
-      TVector3 vtx( trkpt.pt[0],  trkpt.pt[1],  trkpt.pt[2] );
+      TVector3 vtx( trkpt.linept[0],  trkpt.linept[1],  trkpt.linept[2] );
       // direction
       TVector3 dir( trkpt.dir[0], trkpt.dir[1], trkpt.dir[2] );
       // dqdx: (u,v,y,median of {u,v,y})
       std::vector<double> dqdx_v = { trkpt.dqdx_v[0], trkpt.dqdx_v[1], trkpt.dqdx_v[2], trkpt.dqdx_med };
+      // linept to spacepoint: abuse of class, we store it in the covariance data member
+      TMatrixD m(3,3);
+      for  (int i=0; i<3; i++) {
+        m(i,i) = trkpt.err_v[i];
+      }
       dqdx_track.add_vertex( vtx );
       dqdx_track.add_direction( dir );
       dqdx_track.add_dqdx( dqdx_v );
+      dqdx_track.add_covariance( m );
     }
 
     return dqdx_track;
