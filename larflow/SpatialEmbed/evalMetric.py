@@ -28,3 +28,13 @@ class Evaluation():
                                           self.types_collective,
                                           self.num_truth_pixels,
                                           self.location_name)
+
+    def __gt__(self, other):
+        return (self.average() > other.average())
+    
+    def __lt__(self, other):
+        return (self.average() < other.average())
+
+    def __eq__(self, other):
+        return (self.average() == other.average())
+        
