@@ -228,14 +228,27 @@ int main( int nargs, char** argv ) {
       // This is the flash at this cluster
       const larlite::opflash& flash = flash_v->at( iCluster );
 
+      bool PMTChCheck = 0;
+      
       // Grab PE info from each PMT
-      for (int i = 0; i < 32; i++) {
+      // Here, we use channels 200-231 which correspond to biased high readout (cosmics)
+      // Note: channels 0-31 are unbiased high readout (beam)
+      for (int i = 200; i < 232; i++) {
 
 	flash_vector.push_back( flash.PE(i) );
 
-	std::cout << "PE: " << flash.PE(i) << std::endl;
+	//	std::cout << "PE: " << flash.PE(i) << std::endl;
 
+	if (flash.PE(i) != 0) PMTChCheck = 1;
+
+	//	std::cout << "Bool check that no entries are 0:  " << PMTChCheck << std::endl;
+	
       }
+
+      // If flash vector ends up being empty, just skip to next track
+      if (PMTChCheck == 0) continue;
+
+      //      std::cout << "Flash vector was not empty! Continuing to hits loop now" << std::endl;
       
       // loop thru hits in this cluster
       for ( size_t iHit = 0; iHit < cluster.size(); iHit++ ) {
@@ -318,7 +331,8 @@ int main( int nargs, char** argv ) {
 	}
       }
 
-      preppedTree->Fill();
+      // Only fill if track-related branches are NOT empty
+      if ( voxel_row.size() != 0 ) preppedTree->Fill(); // if one branch filled, the others are too
       
     }
     
