@@ -59,6 +59,7 @@ iolcv.initialize()
 outfile = rt.TFile( args.output.replace(".root","_s3dembed.root"), "recreate" )
 outtree = rt.TTree("s3dembed", "Spatial 3D embed test and train data")
 voxelmaker.bindVariablesToTree( outtree )
+voxelmaker.setFilterByInstanceImageFlag( True )
 
 lcv_nentries = iolcv.get_n_entries()
 ll_nentries  = io.get_entries()
@@ -69,13 +70,12 @@ else:
 print "[Number of entries: ",nentries,"]"
     
 if args.nentries is not None:
-    end_entry = args.start_entry + nentries
+    print "Num entries specified by argument: ",args.nentries
+    end_entry = args.start_entry + args.nentries
     if end_entry>nentries:
         end_entry = nentries
-    pass
 else:
     end_entry = nentries
-    pass
 
 print "[Run between event (",args.start_entry,",",end_entry,")"
 

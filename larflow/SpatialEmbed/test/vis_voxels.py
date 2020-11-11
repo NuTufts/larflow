@@ -51,6 +51,8 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
 
+    voxel_dim = voxelloader.getVoxelizer().get_dim_len()
+    nvoxels   = voxelloader.getVoxelizer().get_nvoxels()
     data_dict = voxelloader.getTreeEntryDataAsArray(entry)
     print("voxel entries: ",data_dict["coord_t"].shape)
 
@@ -79,13 +81,19 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     else:
         raise ValueError("unrecognized plot option:",plotby)
             
+    # conversion of voxel indices to coordinate space
+    fcoord_t = np.zeros( data_dict["coord_t"].shape )
+    for i in range(3):
+        conversion = voxel_dim.at(i)/nvoxels.at(i)
+        print("dim[",i,"] conversion")
+        fcoord_t[:,i] = data_dict["coord_t"][:,i]*conversion
     
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":data_dict["coord_t"][:,0],
-        "y":data_dict["coord_t"][:,1],
-        "z":data_dict["coord_t"][:,2],
+        "x":fcoord_t[:,0],
+        "y":fcoord_t[:,1],
+        "z":fcoord_t[:,2],
         "mode":"markers",
         "name":"voxels",
         "marker":{"color":color,

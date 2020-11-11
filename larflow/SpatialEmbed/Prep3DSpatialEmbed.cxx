@@ -35,6 +35,17 @@ namespace spatialembed {
 
     VoxelDataList_t data = process_larmatch_hits( *ev_lfhit_v, ev_adc_v->as_vector(), 0.5 );
 
+    if ( _filter_by_instance_image ) {
+      larcv::EventImage2D* ev_instance_v
+        = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
+      if ( ev_instance_v->as_vector().size()>0 ) {
+        VoxelDataList_t filtered_data = filterVoxelsByInstanceImage( data, ev_instance_v->as_vector() );
+        if ( filtered_data.size()<data.size() ) {
+          std::swap( filtered_data, data );
+        }
+      }
+    }
+
     if ( make_truth_if_available )
       generateTruthLabels( iolcv, ioll, data );
     
@@ -76,8 +87,8 @@ namespace spatialembed {
           if ( r<=0 || r>=(int)meta.rows()) continue;
           for ( int dc=-2; dc<=2; dc++) {
             int c = col+dc;
-            if ( c<=0 || c>=(int)meta.cols()) continue;
-            float q = adc_v[p].pixel(r,c);
+            if ( c<0 || c>=(int)meta.cols()) continue;
+            float q = adc_v[p].pixel(r,c,__FILE__,__LINE__);
             if ( q>10.0 ) {
               q_v[p] += q;
             }
@@ -116,12 +127,21 @@ namespace spatialembed {
     }//end of loop over larmatch hits
 
     // take averages
+    // use average position to assign a pixel location for each voxel
     for ( auto& voxel : voxel_v ) {
+      voxel.imgcoord_v.resize(4,0);
       if ( voxel.totw>0 ) {
+        std::vector<double> xyz(3,0);
         for (int i=0; i<3; i++) {
           voxel.feature_v[i] /= voxel.totw;
           voxel.ave_xyz_v[i] /= voxel.totw;
+          xyz[i] = voxel.ave_xyz_v[i];
         }
+
+        for (int p=0; p<3; p++) {
+          voxel.imgcoord_v[p] = larutil::Geometry::GetME()->WireCoordinate( xyz, p );
+        }
+        voxel.imgcoord_v[3] = xyz[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
       }
     }
     
@@ -340,13 +360,6 @@ namespace spatialembed {
       // default set instance to -1
       voxeldata.truth_instance_index = -1;
       voxeldata.truth_realmatch = 0;
-
-      // get tick,wire coordinates of ave space point position inside voxel
-      std::vector<float> imgcoord_v(4,0);
-      for (int p=0; p<3; p++) {
-        imgcoord_v[p] = larutil::Geometry::GetME()->WireCoordinate( xyz, p );
-      }
-      imgcoord_v[3] = xyz[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
       
       // now we determine if voxel is a part of instance 3d cluster, sigh
 
@@ -366,8 +379,8 @@ namespace spatialembed {
             int pixtick = pix_v[2*ipix];
             int pixwire = pix_v[2*ipix+1];
             // near the voxel?
-            float dtick = fabs(pixtick-imgcoord_v[3]);
-            float dwire = fabs(pixwire-imgcoord_v[p]);
+            float dtick = fabs(pixtick-voxeldata.imgcoord_v[3]);
+            float dwire = fabs(pixwire-voxeldata.imgcoord_v[p]);
             if ( dwire<2.5 && dtick < 2.5*adc_v[p].meta().pixel_height() ) {
               num_matched++;
               plane_matched[p] = 1;
@@ -410,7 +423,64 @@ namespace spatialembed {
     LARCV_INFO() << "We matched " << instance_v.size() << " truth clusters to voxels" << std::endl;
     
   }
-  
+
+  /**
+   * @brief select a subset of the voxels based on which ones land on instance image pixels
+   *
+   */
+  Prep3DSpatialEmbed::VoxelDataList_t
+  Prep3DSpatialEmbed::filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
+                                                   const std::vector<larcv::Image2D>& instance_v )
+  {
+    Prep3DSpatialEmbed::VoxelDataList_t filtered_v;
+    filtered_v.reserve( voxel_v.size() );
+
+    int nrows = (int)instance_v.front().meta().rows();
+    
+    for (auto const& voxel : voxel_v ) {
+
+      if ( voxel.imgcoord_v[3]<=instance_v.front().meta().min_y()
+           || voxel.imgcoord_v[3]>=instance_v.front().meta().max_y() )
+        continue;
+      
+      int voxelrow = instance_v.front().meta().row( voxel.imgcoord_v[3], __FILE__, __LINE__ );
+
+      std::vector<int> found_in_plane(3,0);
+      int num_instance_pixels = 0;
+      
+      // for each voxel check if lands on an instance image pixel on at least two planes
+      for (int dr=-2; dr<=2; dr++) {
+        int row = voxelrow + dr;
+        if ( row<0 || row>=nrows ) continue;
+        
+        for (int p=0; p<3; p++) {
+          int voxelcol = instance_v[p].meta().col( voxel.imgcoord_v[p] );
+          int ncols = (int)instance_v[p].meta().cols();
+     
+          for (int dc=-2; dc<=2; dc++) {
+            int col = voxelcol + dc;
+            if ( col<0 || col>=ncols ) continue;
+            int instanceid = instance_v[p].pixel( row, col, __FILE__, __LINE__ );
+            if (instanceid>0) {
+              num_instance_pixels++;
+              found_in_plane[p] = 1;
+            }
+          }
+        }//end of plane loop
+        
+      }//end of dr loop
+
+      int num_planes_with_instancepix = 0;
+      for (int p=0; p<3; p++)
+        num_planes_with_instancepix += found_in_plane[p];
+
+      if ( num_planes_with_instancepix>=2 && num_instance_pixels>0 ) {
+        filtered_v.push_back( voxel );
+      }
+    }//end of voxel loop
+
+    return filtered_v;
+  }
   
   
 }

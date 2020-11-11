@@ -28,6 +28,7 @@ namespace spatialembed {
 
     Prep3DSpatialEmbed()
       : larcv::larcv_base("Prep3DSpatialEmbed"),
+      _filter_by_instance_image(false),
       _tree(nullptr),
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
@@ -47,6 +48,7 @@ namespace spatialembed {
       std::vector<int> voxel_index; ///< voxel index (row,col,depth)
       std::vector<float> feature_v; ///< feature, possible values: (q_u, q_v, q_z, f_u, f_v, f_z)
       std::vector<float> ave_xyz_v; ///< weighted average (x,y,z) position
+      std::vector<int> imgcoord_v;
       int npts;   ///< number of space points we've added to this voxel
       float totw; ///< total weight of points
       int truth_instance_index;
@@ -80,8 +82,19 @@ namespace spatialembed {
                               larlite::storage_manager& ioll,
                               Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
 
+    /** @brief set flag determining if we filter the voxels by overlap with instance image pixels */
+    void setFilterByInstanceImageFlag( bool filter ) { _filter_by_instance_image = filter; };
+
+    VoxelDataList_t filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
+                                                 const std::vector<larcv::Image2D>& instance_v );
+
+    const larflow::voxelizer::VoxelizeTriplets& getVoxelizer() { return _voxelizer; };
+
   protected:
 
+    // parameters affecting behavior
+    bool _filter_by_instance_image; ///< if true, will remove voxels that doesn't project into a neutrino pixel
+    
     larflow::voxelizer::VoxelizeTriplets _voxelizer;
     TTree* _tree;
     std::vector< int > vid_row;
