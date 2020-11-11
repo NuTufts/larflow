@@ -21,7 +21,7 @@ namespace spatialembed {
    */
   void PrepMatchEmbed::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
-                                const PrepMatchTriplets& triplets )
+                                const larflow::prep::PrepMatchTriplets& triplets )
   {
 
     larcv::EventImage2D* ev_image
@@ -100,7 +100,7 @@ namespace spatialembed {
    * in effect clusters the triplet/3d spacepoints based on truth information found in ancestor id images.
    *
    */
-  void PrepMatchEmbed::_assign_triplet_ancestor_id( const PrepMatchTriplets& triplet,
+  void PrepMatchEmbed::_assign_triplet_ancestor_id( const larflow::prep::PrepMatchTriplets& triplet,
                                                     const std::vector<larcv::Image2D>& ancestor_v )
   {
     
