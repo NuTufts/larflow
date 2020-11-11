@@ -19,8 +19,8 @@ from larflow import larflow
 voxelmaker = larflow.spatialembed.Prep3DSpatialEmbed()
 voxelmaker.set_verbosity(larcv.msg.kDEBUG)
 
-io = larlite.storage_manager( larlite.storage_manager.kREAD )
-iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+io = larlite.storage_manager( larlite.storage_manager.kBOTH )
+iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
 
 print "[INPUT: LArCV   - DL MERGED] ",args.input_larcv
 print "[INPUT: larlite - LARMATCH-KPS]  ",args.input_larmatch
@@ -38,24 +38,25 @@ io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
 
 iolcv.add_in_file(   args.input_larcv )
 iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
+iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
+#iolcv.specify_data_read( larcv.kProductImage2D, "wiremc" );
 iolcv.specify_data_read( larcv.kProductImage2D, "thrumu" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ancestor" );
 iolcv.specify_data_read( larcv.kProductImage2D, "segment" );
 iolcv.specify_data_read( larcv.kProductImage2D, "instance" );
 iolcv.specify_data_read( larcv.kProductImage2D, "larflow" );
-iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane0" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane1" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane2" )
 #iolcv.addto_storeonly_list( ... )
 iolcv.reverse_all_products()
-#io.set_out_filename( args.output.replace(".root","_larlite.root") )
-#iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
+io.set_out_filename( args.output.replace(".root","_larlite.root") )
+iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
 
 io.open()
 iolcv.initialize()
 
-outfile = rt.TFile( args.output, "recreate" )
+outfile = rt.TFile( args.output.replace(".root","_s3dembed.root"), "recreate" )
 outtree = rt.TTree("s3dembed", "Spatial 3D embed test and train data")
 voxelmaker.bindVariablesToTree( outtree )
 
@@ -90,18 +91,18 @@ for ientry in xrange( args.start_entry, end_entry ):
     print "[ENTRY ",ientry,"]"
     iolcv.read_entry(ientry)
     print " ... process hits ..."
-    data = voxelmaker.process( iolcv, io, False )
+    data = voxelmaker.process( iolcv, io, True )
     print " ... done ..."
 
     voxelmaker.fillTree( data )
     outtree.Fill()
-    
+
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
-    break
+    iolcv.save_entry()    
 
-#io.close()
-#iolcv.finalize()
+io.close()
+iolcv.finalize()
 
 outfile.Write()
 print "[FIN] clean-up"

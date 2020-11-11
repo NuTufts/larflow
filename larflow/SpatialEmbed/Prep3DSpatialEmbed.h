@@ -32,6 +32,7 @@ namespace spatialembed {
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
       _in_pvid_depth(nullptr),
+      _in_pinstance_id(nullptr),      
       _in_pq_u(nullptr),
       _in_pq_v(nullptr),
       _in_pq_y(nullptr)
@@ -45,6 +46,7 @@ namespace spatialembed {
     struct VoxelData_t {
       std::vector<int> voxel_index; ///< voxel index (row,col,depth)
       std::vector<float> feature_v; ///< feature, possible values: (q_u, q_v, q_z, f_u, f_v, f_z)
+      std::vector<float> ave_xyz_v; ///< weighted average (x,y,z) position
       int npts;   ///< number of space points we've added to this voxel
       float totw; ///< total weight of points
       int truth_instance_index;
@@ -74,6 +76,9 @@ namespace spatialembed {
     VoxelDataList_t getTreeEntry(int entry);
     PyObject*       getTreeEntryDataAsArray( int entry );
     
+    void generateTruthLabels( larcv::IOManager& iolcv,
+                              larlite::storage_manager& ioll,
+                              Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
 
   protected:
 
@@ -82,6 +87,7 @@ namespace spatialembed {
     std::vector< int > vid_row;
     std::vector< int > vid_col;
     std::vector< int > vid_depth;
+    std::vector< int > instance_id;
     std::vector< float > q_u;
     std::vector< float > q_v;
     std::vector< float > q_y;
@@ -90,6 +96,7 @@ namespace spatialembed {
     std::vector< int >* _in_pvid_row;
     std::vector< int >* _in_pvid_col;
     std::vector< int >* _in_pvid_depth;
+    std::vector< int >* _in_pinstance_id;    
     std::vector< float >* _in_pq_u;
     std::vector< float >* _in_pq_v;
     std::vector< float >* _in_pq_y;

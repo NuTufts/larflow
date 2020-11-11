@@ -5,6 +5,7 @@ from math import log
 
 parser = argparse.ArgumentParser("Visuzalize Voxel Data")
 parser.add_argument("input_file",type=str,help="file produced by 'prep_spatialembed.py'")
+#parser.add_argument("-c","--cluster",action='store_true',default=False,help="color by cluster instance")
 args = parser.parse_args()
 
 import numpy as np
@@ -26,7 +27,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
+color_by_options = ["q_yplane","cluster"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -45,13 +46,39 @@ from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
 detdata = lardly.DetectorOutline()
 
-def make_figures(entry,plotby="larmatch",minprob=0.0):
+def make_figures(entry,plotby="cluster",minprob=0.0):
 
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
 
     data_dict = voxelloader.getTreeEntryDataAsArray(entry)
     print("voxel entries: ",data_dict["coord_t"].shape)
+
+    if plotby=="q_yplane":
+        # color by charge of collection plane
+        color = data_dict["feat_t"][:,2]
+    elif plotby=="q_vplane":
+        # color by charge of v plakne
+        color = data_dict["feat_t"][:,1]
+    elif plotby=="q_uplane":
+        # color by charge of u plane
+        color = data_dict["feat_t"][:,0]
+    elif plotby=="cluster":
+        # color by instance index
+        color = np.zeros( (data_dict["coord_t"].shape[0],3) )
+        ninstances = data_dict["instance_t"].max()
+        print("Number of instances: ",ninstances)
+        print("color shape: ",color.shape)
+        for iid in range(1,ninstances+1):
+            print("instance_t shape: ",data_dict["instance_t"].shape)
+            idmask = data_dict["instance_t"]==iid
+            print("idmask: ",idmask.shape)
+            randcolor = np.random.rand(3)*255
+            print("instance[",iid,"] color: ",randcolor)
+            color[idmask,:] = randcolor
+    else:
+        raise ValueError("unrecognized plot option:",plotby)
+            
     
     # 3D trace
     voxtrace = {
@@ -61,10 +88,11 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         "z":data_dict["coord_t"][:,2],
         "mode":"markers",
         "name":"voxels",
-        "marker":{"color":data_dict["feat_t"][:,2],
+        "marker":{"color":color,
                   "size":1,
-                  "opacity":0.5,
-                  "colorscale":"Viridis"}}
+                  "opacity":0.5}}
+    if plotby!="cluster":
+        voxtrace["marker"]["colorscale"]="Viridis"
 
     traces_v = detdata.getlines()    
     traces_v.append( voxtrace )
@@ -124,14 +152,13 @@ minprob_input = dcc.Input(
 
 plotopt = dcc.Dropdown(
     options=option_dict,
-    value='truthmatch',
+    value='cluster',
     id='plotbyopt',
     )
         
 
 app.layout = html.Div( [
     html.Div( [ eventinput,
-                minprob_input,
                 plotopt,
                 html.Button("Plot",id="plot")
     ] ),
@@ -155,7 +182,6 @@ app.layout = html.Div( [
      Output("out","children")],
     [Input("plot","n_clicks")],
     [State("input_event","value"),
-     State("min_prob","value"),
      State("plotbyopt","value"),
      State("det3d","figure")],
     )
@@ -166,21 +192,11 @@ def cb_render(*vals):
     if vals[1]>=nentries or vals[1]<0:
         print("Input event is out of range")
         raise PreventUpdate
-    if vals[3] is None:
+    if vals[2] is None:
         print("Plot-by option is None")
         raise PreventUpdate
-    try:
-        minprob = float(vals[2])
-    except:
-        print("min prob cannot be turned into float")
-        raise PreventUpdate
-    if minprob<0:
-        minprob = 0.0
-    if minprob>1.0:
-        minprob = 1.0
     
-
-    cluster_traces_v = make_figures(int(vals[1]),plotby=vals[3],minprob=minprob)
+    cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2],minprob=0.0)
     #print(cluster_traces_v)
     vals[-1]["data"] = cluster_traces_v
     return vals[-1],"event requested: {} {} {}".format(vals[1],vals[2],vals[3])
