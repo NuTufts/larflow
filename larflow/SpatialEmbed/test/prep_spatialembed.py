@@ -5,7 +5,7 @@ parser.add_argument("-ilm", "--input-larmatch",required=True,type=str,help="Inpu
 parser.add_argument("-ilcv","--input-larcv",required=False,type=str,help="Input LArCV file [required]")
 parser.add_argument("-il","--input-larlitetruth",required=False,type=str,help="Input larlite truth file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output (ROOT) file name [required]")
-parser.add_argument("-n", "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
+parser.add_argument("-n", "--nentries",type=int,default=None,help="Number of entries to run [default: None (all)]")
 parser.add_argument("-s", "--start-entry",type=int,default=0,help="starting entry")
 args = parser.parse_args()
 
