@@ -482,6 +482,107 @@ namespace spatialembed {
     return filtered_v;
   }
   
+
+  /**
+   * @brief make 'perfect network output' for loss testing
+   *
+   * contents of dictionary:
+   * "embed_t":(nvoxels,4)
+   * "seed_t":(nvoxels,1)
+   */
+  PyObject* Prep3DSpatialEmbed::makePerfectNetOutput( const VoxelDataList_t& voxeldata ) const
+  {
+
+    if ( !Prep3DSpatialEmbed::_setup_numpy ) {
+      import_array1(0);
+      Prep3DSpatialEmbed::_setup_numpy = true;
+    }
+
+    size_t nvoxels = voxeldata.size();
+    const std::vector<int>& nvoxels_dim = _voxelizer.get_nvoxels();    
+    LARCV_INFO() << "Converting data for " << nvoxels << " voxels into numpy arrays" << std::endl;
+
+    // first we calculate the centroid of each instance.
+    int max_instance_id = -1;
+    for (auto const& voxel : voxeldata ) {
+      if ( voxel.truth_instance_index>max_instance_id )
+        max_instance_id = voxel.truth_instance_index;
+    }
+
+    std::vector<int> num_instance_voxels(max_instance_id+1,0);
+    std::vector< std::vector<float> > centroid(max_instance_id+1);
+    for (int i=0; i<max_instance_id+1; i++)
+      centroid[i].resize(3,0);
+
+
+
+    for (auto const& voxel : voxeldata ) {
+      if ( voxel.truth_instance_index>=0 ) {
+        for (int i=0; i<3; i++) {
+          centroid[voxel.truth_instance_index][i] += float(voxel.voxel_index[i]);
+        }
+        num_instance_voxels[voxel.truth_instance_index]++;
+      }
+    }
+
+    for (int id=0; id<max_instance_id+1; id++) {
+      if ( num_instance_voxels[id]>0 ) {
+        for (int j=0; j<3; j++) {
+          centroid[id][j] /= float(num_instance_voxels[id]);
+        }
+      }
+    }
+    
+
+    // embed tensor
+    npy_intp embed_t_dim[] = { (long int)nvoxels, 4 };
+    PyArrayObject* embed_t = (PyArrayObject*)PyArray_SimpleNew( 2, embed_t_dim, NPY_FLOAT );
+
+    // seed tensor
+    npy_intp seed_t_dim[] = { (long int)nvoxels, 1 };
+    PyArrayObject* seed_t = (PyArrayObject*)PyArray_SimpleNew( 2, seed_t_dim, NPY_FLOAT );
+
+    // loop over voxel
+    for (size_t i=0; i<nvoxels; i++ ) {
+      auto const& voxel = voxeldata[i];
+
+      // set normalized shift in embed tensor
+      if ( voxel.truth_instance_index>=0 ) {
+        // in instance
+
+        // calc shift
+        for (size_t j=0; j<3; j++)
+          *((float*)PyArray_GETPTR2(embed_t,i,j)) = (float(voxel.voxel_index[j])-centroid[voxel.truth_instance_index][j])/float(nvoxels_dim[j]);
+        
+        // set sigma in embed tensor
+        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.1;
+
+        // set seed map
+        *((float*)PyArray_GETPTR2(seed_t,i,0)) = 1.0;
+      }
+      else {
+        for (size_t j=0; j<3; j++) {        
+          *((float*)PyArray_GETPTR2(embed_t,i,j)) = 0.;
+        }
+        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.1;        
+        *((float*)PyArray_GETPTR2(seed_t,i,0)) = 0.0;
+      }
+
+    }
+    PyObject *embed_t_key = Py_BuildValue("s", "embed_t");    
+    PyObject *seed_t_key = Py_BuildValue("s", "seed_t");
+
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, embed_t_key,    (PyObject*)embed_t);
+    PyDict_SetItem(d, seed_t_key,     (PyObject*)seed_t);
+    
+    Py_DECREF(embed_t_key);
+    Py_DECREF(seed_t_key);
+    
+    return d;
+    
+    
+  }
   
 }
 }

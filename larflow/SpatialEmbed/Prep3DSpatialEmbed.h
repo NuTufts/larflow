@@ -66,6 +66,7 @@ namespace spatialembed {
                                            const float larmatch_threshold );
 
     PyObject* makeTrainingDataDict( const VoxelDataList_t& voxeldata ) const;
+    PyObject* makePerfectNetOutput( const VoxelDataList_t& voxeldata ) const;
 
     PyObject* process_numpy_arrays( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,
@@ -77,6 +78,7 @@ namespace spatialembed {
     void loadTreeBranches( TTree* atree );
     VoxelDataList_t getTreeEntry(int entry);
     PyObject*       getTreeEntryDataAsArray( int entry );
+
     
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,
@@ -88,7 +90,7 @@ namespace spatialembed {
     VoxelDataList_t filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
                                                  const std::vector<larcv::Image2D>& instance_v );
 
-    const larflow::voxelizer::VoxelizeTriplets& getVoxelizer() { return _voxelizer; };
+    const larflow::voxelizer::VoxelizeTriplets& getVoxelizer() const { return _voxelizer; };
 
   protected:
 
