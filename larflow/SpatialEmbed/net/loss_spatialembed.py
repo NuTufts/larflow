@@ -7,12 +7,15 @@ import torch.nn as nn
 from lovasz_losses import lovasz_hinge
 
 class SpatialEmbedLoss(nn.Module):
-    def __init__(self, dim_nvoxels=(1,1,1), w_embed=1.0, w_seed=0.1, w_sigma_var=0.01 ):
+    def __init__(self, dim_nvoxels=(1,1,1), w_embed=1.0, w_seed=1.0, w_sigma_var=10.0 ):
         super(SpatialEmbedLoss,self).__init__()
         self.dim_nvoxels = np.array( dim_nvoxels, dtype=np.float32 )
         self.dim_nvoxels_t = torch.from_numpy( self.dim_nvoxels )
         self.dim_nvoxels_t.requires_grad = False
         self.foreground_weight = 1.0
+        self.w_embed = w_embed
+        self.w_seed  = w_seed
+        self.w_sigma_var = w_sigma_var
         
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
         
@@ -24,11 +27,9 @@ class SpatialEmbedLoss(nn.Module):
         fcoord_t[:,1] /= self.dim_nvoxels_t[1]
         fcoord_t[:,2] /= self.dim_nvoxels_t[2]
 
-        loss_var = 0
-        loss_instance = 0
-        loss_seed = 0
         ave_iou = 0.
         batch_ninstances = 0
+        loss = 0
         
         for b in range(batch_size):
             # get entries a part of current batch index
@@ -49,11 +50,16 @@ class SpatialEmbedLoss(nn.Module):
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
 
             obj_count = 0
-            seed_pix_count = 0
+            loss_var = 0
+            loss_instance = 0
+
+            seed_pix_count = 0            
+            loss_seed = 0
 
             for i in range(1,num_instances+1):
                 print "INSTANCE[",i,"]================"
                 idmask = instance.eq(i)
+                if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
                 embed_i = embed[idmask,:]
                 seed_i  = seed[idmask,:]
@@ -62,9 +68,10 @@ class SpatialEmbedLoss(nn.Module):
 
                 # get sigmas
                 sigma_i = embed_i[:,3]
+                if verbose: print "  sigma_i: ",sigma_i.shape
                 # mean
-                s = sigma_i.mean() # 3 dimensions
-                if verbose: print "  mean(sigma): ",s
+                s = sigma_i.mean() # 1 dimensions
+                if verbose: print "  mean(ln(0.5/sigma^2): ",s
 
                 # calculate instance centroid
                 center_i = spembed_i.mean(0).view(1,3)
@@ -72,33 +79,37 @@ class SpatialEmbedLoss(nn.Module):
 
                 # variance loss, want the values to be similar
                 loss_var = loss_var + torch.mean(torch.pow(sigma_i - s.detach(), 2))
-                print "  variance loss: ",loss_var
+                print "  sigma variance loss: ",loss_var
 
                 # gaus score from this instance centroid and sigma
                 s = torch.exp(s*10)
-                diff = spembed-center_i
-                diff[:,0] *= self.dim_nvoxels_t[0]
-                diff[:,1] *= self.dim_nvoxels_t[1]
-                diff[:,2] *= self.dim_nvoxels_t[2]
-                print "  max diff[0]: ",diff[:,0].max()
-                print "  max diff[1]: ",diff[:,1].max()
-                print "  max diff[2]: ",diff[:,2].max()                
+                if verbose:
+                    diff = spembed[:,0:3].detach()-center_i
+                    diff[:,0] *= self.dim_nvoxels_t[0]
+                    diff[:,1] *= self.dim_nvoxels_t[1]
+                    diff[:,2] *= self.dim_nvoxels_t[2]
+                    print "  ave and max diff[0]: ",diff[:,0].mean()," ",diff[:,0].max()
+                    print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
+                    print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
                 dist = torch.sum(torch.pow(spembed - center_i, 2),1,keepdim=True)
-                gaus = torch.exp(-1*dist*s)
+                gaus = torch.exp(-1*dist*s).squeeze()
                 print "  gaus: ",dist.shape
                 print "  ave instance dist and gaus: ",dist[idmask].mean()," ",gaus[idmask].mean()
                 print "  ave not-instance dist and gaus: ",dist[~idmask].mean()," ",gaus[~idmask].mean()
 
-                loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask )
+                loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask.long() )
+                #loss_instance = loss_instance + torch.BCE( lovasz_hinge( gaus*2-1, idmask )
 
                 # L2 loss for gaussian prediction
-                loss_seed += self.foreground_weight*torch.sum(torch.pow(seed_i[idmask]-dist[idmask].detach(), 2))
+                loss_seed += self.foreground_weight*torch.sum(torch.pow(seed_i-dist[idmask].detach(), 2))
 
                 if calc_iou:
-                    instance_iou += self.calculate_iou(gaus.detach()>0.5, idmask)
+                    instance_iou = self.calculate_iou(gaus.detach()>0.5, idmask)
                     if verbose:
                         print "   iou: ",instance_iou
                     ave_iou += instance_iou
+                if verbose:
+                    print "  npix inside margin: ",(gaus.detach()>0.5).sum()," of ",gaus.shape[0]
 
                 obj_count += 1
                 seed_pix_count += idmask.sum()
@@ -111,12 +122,14 @@ class SpatialEmbedLoss(nn.Module):
                 loss_var /= float(obj_count)
             if seed_pix_count>0:
                 loss_seed /= float(seed_pix_count)
+                
 
-            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var
+            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var 
             batch_ninstances += obj_count
 
+        # end of batch loop
 
-        # normalize per batch
+        # normalize per batch        
         loss = loss / float(b+1)
 
         # ave iou
@@ -125,7 +138,7 @@ class SpatialEmbedLoss(nn.Module):
 
         return loss,batch_ninstances,ave_iou
                 
-    def calculate_iou(pred, label):
+    def calculate_iou(self, pred, label):
         intersection = ((label == 1) & (pred == 1)).sum()
         union = ((label == 1) | (pred == 1)).sum()
         if not union:

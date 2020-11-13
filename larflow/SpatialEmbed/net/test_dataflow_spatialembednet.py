@@ -67,7 +67,7 @@ for ientry in range(nentries):
     print "feat_t nan inf: ",torch.isnan(feat_t).sum()," ",torch.isinf(feat_t).sum()
     print "instance_t nan: ",torch.isnan(instance_t).sum()
 
-    del data
+    #del data
 
     # forward
     embed_t,seed_t = net( coord_t, feat_t, verbose=True )

@@ -152,6 +152,7 @@ class SpatialEmbedNet(nn.Module):
 
         # normalize x,y,z shifts within [-1,1]
         x_embed_shift = torch.tanh( x_embed[:,0:self.ndimensions] )
+        # sigma output is predicting ln(0.5/sigma^2)
         x_embed_sigma = x_embed[:,self.ndimensions:]
         x_embed_out = torch.cat( (x_embed_shift,x_embed_sigma), dim=1 )
 
