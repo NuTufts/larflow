@@ -6,11 +6,22 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
 
+#include "larcv/core/DataFormat/EventImage2D.h"
+
 #include "larflow/SCBoundary/SCBoundary.h"
 
 namespace larflow {
 namespace reco {
 
+  CosmicTrackBuilder::CosmicTrackBuilder()
+    : _do_boundary_analysis(true),
+      _using_default_cluster(true)
+  {
+    _cluster_tree_v.clear();
+    _cluster_tree_v.push_back( "trackprojsplit_full" );
+    producer_keypoint = "keypointcosmic";      
+  }
+  
   /**
    * @brief Process the event data in the IO managers
    *
@@ -39,26 +50,19 @@ namespace reco {
 
     clear();
     
-    // get clusters, pca-axis
-    // std::vector<std::string> producer_v
-    //   = { "trackprojsplit_full",
-    //       "trackprojsplit_wcfilter" };
-    std::vector<std::string> producer_v
-      = { "trackprojsplit_full" };
-
-
-    for ( auto const& producer : producer_v ) {
+    for ( auto const& producer : _cluster_tree_v ) {
       larlite::event_larflowcluster* ev_cluster
         = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       larlite::event_pcaxis* ev_pcaxis
         = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
-      loadClusterLibrary( *ev_cluster, *ev_pcaxis );
+      larlite::event_track* ev_track
+        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
+      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
     }
     
     buildNodeConnections();
 
     // make tracks using keypoints
-    std::string producer_keypoint = "keypointcosmic";
     larlite::event_larflow3dhit* ev_keypoint
       = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
 
@@ -71,13 +75,22 @@ namespace reco {
 
     // make tracks using unused segments
     _buildTracksFromSegments();
-
-    
     
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
+    larlite::event_larflowcluster* evout_trackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
 
-    fillLarliteTrackContainer( *evout_track );
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+
+    fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, ev_adc->Image2DArray() );
+
+    larlite::event_track* evout_simpletrack
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "simplecosmictrack");
+    larlite::event_larflowcluster* evout_simpletrackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "simplecosmictrack");    
+    fillLarliteTrackContainer( *evout_simpletrack, *evout_simpletrackcluster ); 
 
     if ( _do_boundary_analysis ) {
       _boundary_analysis_noflash( ioll );
@@ -661,6 +674,16 @@ namespace reco {
 
     }
     
+  }
+
+  void CosmicTrackBuilder::add_cluster_treename( std::string treename )
+  {
+    if ( _using_default_cluster ) {
+      // we are going to replace the default cluster tree, so clear it out.
+      _using_default_cluster = false;
+      _cluster_tree_v.clear();
+    }
+    _cluster_tree_v.push_back( treename );
   }
   
 }

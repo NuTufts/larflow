@@ -57,7 +57,7 @@ namespace spatialembed {
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
-                  const PrepMatchTriplets& triplets );
+                  const larflow::prep::PrepMatchTriplets& triplets );
 
     void _collect_ancestor_pixels( const larcv::Image2D& adc, const larcv::Image2D& ancestor );
 
@@ -86,7 +86,7 @@ namespace spatialembed {
 
     std::vector<int> _triplet_ancestor_id;
     std::map<int, std::vector<int> > _ancestor2tripletidx_m;
-    void _assign_triplet_ancestor_id( const PrepMatchTriplets& tripletdata,
+    void _assign_triplet_ancestor_id( const larflow::prep::PrepMatchTriplets& tripletdata,
                                       const std::vector<larcv::Image2D>& ancestor_v );
                                      
     

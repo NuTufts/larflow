@@ -2,9 +2,8 @@
 
 WORKDIR=/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larmatchnet/dataprep/workdir
 UBDL_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.txt
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika_training.txt
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir/
-CONFIG=${UBDL_DIR}/larflow/larmatchnet/dataprep/prepmatchtriplet.cfg
 
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
@@ -46,7 +45,7 @@ done
 ana_outputfile=`printf "larmatchtriplet_ana_trainingdata_%04d.root" ${jobid}`
 hadd -f $ana_outputfile out_*.root
 cp $ana_outputfile ${OUTPUT_DIR}/
-cp log_jobid* ${workdir}/
+cp log_jobid* ${jobworkdir}/
 
 cd /tmp
 rm -r $local_jobdir

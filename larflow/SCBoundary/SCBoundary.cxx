@@ -6,7 +6,6 @@ namespace larflow {
 namespace scb {
 
   
-  
   template float  SCBoundary::dist2boundary<float>( const std::vector<float>& pos, Boundary_t& boundary_type ) const;
   template double SCBoundary::dist2boundary<double>( const std::vector<double>& pos, Boundary_t& boundary_type ) const;
   template float  SCBoundary::pointLineDistance( const std::vector<float>& linept1,

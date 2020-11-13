@@ -5,6 +5,9 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
+#include "larflow/SCBoundary/SCBoundary.h"
+#include "larflow/Reco/geofuncs.h"
+#include "larflow/Reco/ProjPixFitter.h"
 
 #include "TH2D.h"
 #include "TCanvas.h"
@@ -24,7 +27,9 @@ namespace crtmatch {
     _adc_producer("wire"),
     _crttrack_producer("crttrack"),
     _opflash_producer_v( {"simpleFlashBeam","simpleFlashCosmic"} ),
-    _make_debug_images(false)
+    _make_debug_images(false),
+    _keep_only_boundary_tracks(false),
+    _max_dist_to_boundary_cm(15.0)
   {
     _sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Forward );
     _reverse_sce = new larutil::SpaceChargeMicroBooNE( larutil::SpaceChargeMicroBooNE::kMCC9_Backward );
@@ -56,6 +61,11 @@ namespace crtmatch {
    *   * `_modified_crttrack_v`: the crt track after a fit has optimized the end points to better fit line of charge in TPC.
    *   * `_cluster_v`: 3D pixels
    * \endverbatim
+   *
+   * Use save_to_file() to store the output larlite::larflowcluster into the larlite tree.
+   *
+   * If one only wants to save tracks that reach the boundaries at both ends,
+   * make sure to call set_keep_only_boundary_tracks() before calling this function.
    * 
    * @param[in] iolcv LArCV IOManager from which we get event data containers
    * @param[in] ioll larlite storage_manaer from which we get event data containers
@@ -91,7 +101,21 @@ namespace crtmatch {
     // try to fit crt track path
     for ( size_t i=0; i<ev_crttrack->size(); i++ ) {
 
-      crttrack_t fit = _find_optimal_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
+      // initial fit
+      crttrack_t prefit = _fit_pixelset_track( ev_crttrack->at(i), ev_adc->Image2DArray() );
+      if ( prefit.pixelpos_vv.size()==0 )
+        continue;
+
+      larlite::crttrack prefit_crttrack = ev_crttrack->at(i);
+      prefit_crttrack.x1_pos = prefit.hit_pos_vv[0][0];
+      prefit_crttrack.y1_pos = prefit.hit_pos_vv[0][1];
+      prefit_crttrack.z1_pos = prefit.hit_pos_vv[0][2];      
+      prefit_crttrack.x2_pos = prefit.hit_pos_vv[1][0];
+      prefit_crttrack.y2_pos = prefit.hit_pos_vv[1][1];
+      prefit_crttrack.z2_pos = prefit.hit_pos_vv[1][2];      
+      
+      crttrack_t fit = _find_optimal_track( prefit_crttrack, ev_adc->Image2DArray() );
+      fit.pcrttrack = &ev_crttrack->at(i);
 
       // save, only if there are points inside the TPC and in the image
       if ( fit.pixelpos_vv.size()>0 ) {
@@ -134,6 +158,11 @@ namespace crtmatch {
       _cluster_v.emplace_back( std::move(cluster) );
 
     }
+
+    if ( _keep_only_boundary_tracks ) {
+      _keepOnlyBoundaryTracks();
+    }
+    
 
     if ( _make_debug_images ) {
 
@@ -399,6 +428,7 @@ namespace crtmatch {
       if ( !inimage ) continue;
       
       data.pixelcoord_vv.push_back( imgcoord_v );
+      data.t_v.push_back( float(istep*stepsize)/len );
 
       pos.resize(6);
       for (int i=0; i<3; i++ ) {
@@ -517,7 +547,7 @@ namespace crtmatch {
             std::vector<double> newpos = { old.pixelpos_vv[ipt][3], poszy[1], poszy[0] };
 
             // reverse the space-charge
-            std::vector<double> offset_v = _reverse_sce->GetPosOffsets( newpos[0], newpos[1], newpos[2] );
+            //std::vector<double> offset_v = _reverse_sce->GetPosOffsets( newpos[0], newpos[1], newpos[2] );
             // std::vector<double> pos_sce(3,0);
             // pos_sce[0] = newpos[0] - offset_v[0] + 0.6;
             // pos_sce[1] = newpos[1] + offset_v[1];
@@ -855,7 +885,17 @@ namespace crtmatch {
   }
 
   /**
-   * save information into larlite::storage_manager
+   * @brief save information into larlite::storage_manager
+   *
+   * store the following:
+   * @verbatim embed:rst:leading-asterisk
+   *   * new crt object with updated hit positions (and old hit positions as well)
+   *   * matched opflash objects
+   *   * larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
+   * @endverbatim
+   * 
+   * @param[out] ioll larlite IO manager to store data in
+   * @param[in]  remove_if_no_flash If true, only those CRT tracks matched to an opfash are stored
    *
    */
   void CRTTrackMatch::save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
@@ -867,12 +907,66 @@ namespace crtmatch {
     // (3) larflow3dhit clusters which store 3d pos and corresponding imgcoord locations for each track
     larlite::event_crttrack* out_crttrack
       = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack" );
+    larlite::event_crttrack* out_orig
+      = (larlite::event_crttrack*)ioll.get_data( larlite::data::kCRTTrack, "fitcrttrack_origtrack" );
     larlite::event_opflash* out_opflash
       = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, "fitcrttrack" );
     larlite::event_larflowcluster* out_lfcluster
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack" );
 
     for (size_t i=0; i<_modified_crttrack_v.size(); i++ ) {
+
+      if ( _keep_only_boundary_tracks && _boundary_cluster_v[i]==0 ) {
+        LARCV_INFO() << "skipping non-boundary track" << std::endl;
+        continue;
+      }
+      
+      auto& crttrack = _modified_crttrack_v[i];
+      auto& opflash  = _matched_opflash_v[i];
+      auto& cluster  = _cluster_v[i];
+      const larlite::crttrack& orig_crttrack = *(_fitted_crttrack_v[i].pcrttrack);
+      
+      if ( remove_if_no_flash && _matched_opflash_v[i].TotalPE()==0.0 ) {
+        LARCV_INFO() << "no matching flash for fitted CRT track[" << i << "], not saving" << std::endl;
+        continue;
+      }
+      
+      float petot = opflash.TotalPE();
+      LARCV_NORMAL() << "saving track with opflash pe=" << petot
+                     << " nopdets=" << opflash.nOpDets()
+                     << std::endl;
+
+      out_crttrack->push_back(crttrack);            
+      out_opflash->push_back(opflash);
+      out_lfcluster->push_back( cluster );
+      out_orig->push_back( orig_crttrack );
+      
+    }
+
+  }
+
+  /**
+   * @brief save clusters of larmatch hits next to the track
+   *
+   * @param[in] ioll larlite::storage_manager to save data products to
+   * @param[in] remove_if_no_flash If true, do not save hits for tracks not matched to a CRT track and optical flash
+   *
+   */
+  void CRTTrackMatch::save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash ) {
+
+    larlite::event_larflow3dhit* evin_larmatch
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+
+    larlite::event_larflowcluster* out_lfcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "fitcrttrack_larmatchhits" );
+
+    for (size_t i=0; i<_modified_crttrack_v.size(); i++ ) {
+
+      if ( _keep_only_boundary_tracks && _boundary_cluster_v[i]==0 ) {
+        LARCV_INFO() << "skipping non-boundary track" << std::endl;
+        continue;
+      }
+      
       auto& crttrack = _modified_crttrack_v[i];
       auto& opflash  = _matched_opflash_v[i];
       auto& cluster  = _cluster_v[i];
@@ -881,18 +975,50 @@ namespace crtmatch {
         LARCV_INFO() << "no matching flash for fitted CRT track[" << i << "], not saving" << std::endl;
         continue;
       }
-      
-      float petot = opflash.TotalPE();
-      LARCV_NORMAL() << "saving track with opflash pe=" << petot << " nopdets=" << opflash.nOpDets() << std::endl;
 
-      out_crttrack->push_back(crttrack);            
-      out_opflash->push_back(opflash);
-      out_lfcluster->push_back( cluster );
+      float dx_flash_cm = opflash.Time()*larutil::LArProperties::GetME()->DriftVelocity();
+      std::vector<float> crttrack_pos1 = { crttrack.x1_pos, crttrack.y1_pos, crttrack.z1_pos };
+      std::vector<float> crttrack_pos2 = { crttrack.x2_pos, crttrack.y2_pos, crttrack.z2_pos };
       
-    }
+      larlite::larflowcluster track_larmatch_hits;
 
+      // loop over larmatch hits and assign to track if within some radius
+      for ( auto const& lmhit : *evin_larmatch ) {
+	
+	float modx = lmhit[0]-dx_flash_cm;
+
+	// correct for larmatch position
+	std::vector<double> offset_v 
+	  = _reverse_sce->GetPosOffsets( (double)modx, (double)lmhit[1], (double)lmhit[2] );
+
+	std::vector<float> pos_rsce(3,0);
+	pos_rsce[0] = modx-(float)offset_v[0];
+	pos_rsce[1] = lmhit[1]+(float)offset_v[1];
+	pos_rsce[2] = lmhit[2]+(float)offset_v[2];
+	// pos_rsce[0] = modx;
+	// pos_rsce[1] = lmhit[1];
+	// pos_rsce[2] = lmhit[2];
+
+	float dist2line = larflow::reco::pointLineDistance<float>( crttrack_pos1, crttrack_pos2, pos_rsce );
+	if ( dist2line<20.0 ) {
+          // std::cout << "save lmhit (" << pos_rsce[0] << "," << pos_rsce[1] << "," << pos_rsce[2] << ") "
+          //           << "rsce-offset=(" << offset_v[0] << "," << offset_v[1] << "," << offset_v[2] << ") "
+          //           << "dx_flash_cm=" << dx_flash_cm
+          //           << std::endl;
+	  // make copy of hit with space-charge correction
+	  larlite::larflow3dhit modhit = lmhit;
+	  for (int i=0; i<3; i++) {
+	    modhit[i] =  pos_rsce[i];
+	  }
+	  track_larmatch_hits.push_back( modhit );
+	}
+      }
+      out_lfcluster->push_back( track_larmatch_hits );
+      
+    }//end of loop over cluster
+    
   }
-
+  
   /**
    * @brief clear the output data containers
    * 
@@ -909,8 +1035,326 @@ namespace crtmatch {
     _fitted_crttrack_v.clear();   //< result of crt track fitter
     _matched_opflash_v.clear();   //< opflashes matched to tracks in _fitted_crttrack_v
     _modified_crttrack_v.clear(); //< crttrack object with modified end points
-    _cluster_v.clear();
+    _cluster_v.clear();           //< clusters kept
+    _boundary_cluster_v.clear();  //< clusters that reach the space charge boundary
   }
+
+  /**
+   * @brief keep only the tracks that reach the space charge boundary
+   *
+   * Will take the tracks clusters in _cluster_v and populate _boundary_cluster_v
+   *
+   */
+  void CRTTrackMatch::_keepOnlyBoundaryTracks()
+  {
+    
+    _boundary_cluster_v.clear();
+    larflow::scb::SCBoundary scb;
+    int icluster = 0;
+    _boundary_cluster_v.resize( _cluster_v.size(), 0 );
+    for ( auto& lfcluster : _cluster_v ) {
+      larflow::reco::cluster_t as_clust_t = larflow::reco::cluster_from_larflowcluster( lfcluster );
+      cluster_pca( as_clust_t );
+
+      // end points
+      int nends_at_boundary = 0;
+      for ( auto const& endpt : as_clust_t.pca_ends_v ) {
+        float dist2scb = scb.dist2boundary( (float)endpt[0],(float)endpt[1],(float)endpt[2] );
+        LARCV_DEBUG() << "Track[" << icluster << "] endpt dist to boundary"  << dist2scb << std::endl;
+        if ( dist2scb<_max_dist_to_boundary_cm )
+          nends_at_boundary++;
+      }
+      LARCV_INFO() << "Track[" << icluster << "] num of boundaries: "  << nends_at_boundary << std::endl;
+
+      if ( nends_at_boundary>=2 ) {
+        _boundary_cluster_v[icluster] = 1;
+      }
+      icluster++;
+    }
+  }
+  
+  /**
+   * @brief fit track using pixel projection
+   *
+   * @param[in] crt CRT track object giving two coincident (x,y,z) positions on CRT
+   * @param[in] adc_v vector of wire plane images in which we look for matching lines of charge
+   * @return CRT track object that is a modified copy of input CRT track, where the end points
+   *             are those found from the fit.
+   * 
+   */
+  CRTTrackMatch::crttrack_t CRTTrackMatch::_fit_pixelset_track( const larlite::crttrack& crt,
+                                                                const std::vector<larcv::Image2D>& adc_v ) {
+    // first collect pixels around initial track projection
+    //
+    // then we do gradient descent
+    // we can either weight close-by points directly, function of r^2 or stronger
+    // or we can weight through stochastic selection
+
+    // norm-vectors of the planes
+    int   crt_plane_norm_dim[4] = {        1,        0,       0,      1 }; // Y-axis, X-axis, X-axis, Y-axis    
+
+    // walk along the initial track and collect pixels in a 5 cm range
+    std::vector< double > hit1_center = { crt.x1_pos, crt.y1_pos, crt.z1_pos };
+    std::vector< double > hit2_center = { crt.x2_pos, crt.y2_pos, crt.z2_pos };
+    float t0_usec = 0.5*( crt.ts2_ns_h1+crt.ts2_ns_h2 )*0.001;
+    
+    const int ntries   = _max_iters; // max iterations
+
+    // first try, latest iteration of track
+    crttrack_t sample = _collect_chargepixels_for_track( hit1_center,
+                                                         hit2_center,
+                                                         t0_usec,
+                                                         adc_v,
+                                                         _max_fit_step_size,
+                                                         _col_neighborhood );
+
+    // provide additional info, besides projected points found
+    sample.pcrttrack = &crt;
+    sample.t0_usec   = t0_usec;
+
+    if ( sample.pixelpos_vv.size()==0 )
+      return sample;
+
+    // get pixels to fit
+
+    std::vector< float > tick_bounds = { 1e9, 0 };
+    std::vector< std::vector<float> > wire_bounds_v(adc_v.size());
+
+    for (int p=0; p<(int)adc_v.size(); p++) {
+      std::vector<float>& wire_bound = wire_bounds_v[p];
+      wire_bound.resize(2,0);
+      wire_bound[0] = sample.pixelcoord_vv.front()[p];
+      wire_bound[1] = sample.pixelcoord_vv.back()[p];
+
+      if ( wire_bound[1]<wire_bound[0] ) {
+        float tmp = wire_bound[0];
+        wire_bound[0] = wire_bound[1];
+        wire_bound[1] = tmp;
+      }
+
+      if ( sample.pixelcoord_vv.front()[3]<tick_bounds[0] )
+        tick_bounds[0] = sample.pixelcoord_vv.front()[3];
+      if ( sample.pixelcoord_vv.back()[3]<tick_bounds[0] )
+        tick_bounds[0] = sample.pixelcoord_vv.back()[3];        
+
+      if ( sample.pixelcoord_vv.front()[3]>tick_bounds[1] )
+        tick_bounds[1] = sample.pixelcoord_vv.front()[3];
+      if ( sample.pixelcoord_vv.back()[3]>tick_bounds[1] )
+        tick_bounds[1] = sample.pixelcoord_vv.back()[3];
+    }
+
+    // no get the pixel list on each plane we are going to fit
+    typedef std::vector< std::vector<float> > PixelList_t;
+    std::vector< PixelList_t > plane_pixels_v(adc_v.size());
+
+    for (int p=0; p<(int)adc_v.size(); p++) {
+      
+      auto const& img  = adc_v[p];
+      auto const& meta = img.meta();
+      auto const& wire_bounds = wire_bounds_v[p];
+
+      auto& plane_pixels = plane_pixels_v[p];
+      plane_pixels.reserve(1000);
+      
+      for (int r=0; r<(int)meta.rows(); r++) {
+        float rtick = meta.pos_y(r);
+        if (rtick<tick_bounds[0]-10*6 || rtick>tick_bounds[1]+10*6)
+          continue;
+        
+        for (int c=0; c<(int)meta.cols(); c++) {
+          float wire = (float)c;
+          if ( wire<wire_bounds[0]-10 || wire>wire_bounds[1]+10)
+            continue;
+
+          if ( img.pixel( r, c )<10.0 )
+            continue;
+
+          std::vector<float> pix = { wire, rtick };
+          plane_pixels.push_back( pix );
+          
+        }//end of col loop
+      }//end of row loop
+      std::cout << "number of pixels on plane[" << p << "]: " << plane_pixels.size() << std::endl;
+    }//end of plane loop
+
+    // ok, now we do the fit
+    int num_iter = 0;
+    float dloss  = 1e9;
+    float alpha  = 0.01;
+    
+    std::vector<float> hit1(3,0);
+    std::vector<float> hit2(3,0);
+    for (int i=0; i<3; i++) {
+      hit1[i] = hit1_center[i];
+      hit2[i] = hit2_center[i];
+      if ( i==0 ) {
+        hit1[i] += t0_usec*larutil::LArProperties::GetME()->DriftVelocity();
+        hit2[i] += t0_usec*larutil::LArProperties::GetME()->DriftVelocity();
+      }
+    }
+
+    float last_loss = -1;
+    float npts = 0.0;
+    int nsmall_loss_change = 0;
+
+    bool did_end_move[2] = { false, false };
+    float alphamod = 1.0;
+    float gradlen = 10.0;
+    
+    while ( num_iter<20000 && nsmall_loss_change<10 && gradlen>0.5 ) {
+      //|| ( num_iter<20000 && (dloss>1 || dloss<0) )  ) {
+
+      std::vector<float> startpt(3,0);
+      std::vector<float> endpt(3,0);
+
+      int crtpanelid = 0;
+      if ( num_iter%2==0 ) {
+        for (int i=0; i<3; i++) {
+          startpt[i] = hit1[i];
+          endpt[i]   = hit2[i];
+        }
+        crtpanelid = crt.plane1;
+      }
+      else {
+        for (int i=0; i<3; i++) {
+          endpt[i]   = hit1[i];
+          startpt[i] = hit2[i];
+        }
+        crtpanelid = crt.plane2;        
+      }
+      
+      // calculate the grad and loss
+      std::vector<float> grad(3,0);
+      float iter_loss = 0.;
+      npts = 0.0;
+
+      for (int p=0; p<3; p++ ) {
+
+        auto& plane_pixels = plane_pixels_v[p];
+        
+        for ( size_t ipix=0; ipix<plane_pixels.size(); ipix++ ) {
+
+          // get the pixelcord of the point on the line
+          std::vector<float>& pix_tickcol = plane_pixels[ipix];
+        
+          std::vector<float> plane_grad;
+          float plane_loss;
+          std::vector<int>& pix2fit = sample.pixellist_vv[p][ipix];          
+          larflow::reco::ProjPixFitter::grad_and_d2_pixel( startpt, endpt,
+                                                           (float)pix_tickcol[1], (float)pix_tickcol[0],
+                                                           p, plane_loss, plane_grad );
+
+          // std::cout << "iter[" << num_iter << "] p[" << p << "] ipix[" << ipix << "] :: "
+          //           << " l=" << plane_loss
+          //           << " grad=(" << plane_grad[0] << "," << plane_grad[1] << "," << plane_grad[2] << ")"
+          //           << " pix(tick,col)=(" << pix_tickcol[1] << "," << pix_tickcol[0] << ")"
+          //           << std::endl;
+          
+          for (int i=0; i<3; i++ )
+            grad[i] += plane_grad[i];
+          iter_loss += plane_loss;
+
+          npts += 1.0;
+         
+        }//end of pixel loop
+      }//end of plane loop        
+
+
+      // dont allow movement in the normal direction
+      grad[ crt_plane_norm_dim[crtpanelid] ] = 0.0;
+      for (int i=0; i<3; i++ ) {
+        grad[i] /= npts;
+      }
+
+      // do we move the end?
+      bool movetheend = false;
+      float test_dloss = last_loss - iter_loss;
+      alphamod = 1.0;
+      if ( test_dloss>0 || last_loss<0 ) {
+        // improves, so move
+        movetheend = true;
+      }
+      else if ( !did_end_move[0] && !did_end_move[1] ) {
+        // we havent moved either ends in the last two interations
+        // force a move
+        movetheend = true;
+        alphamod = 1.0; // give us a kick
+      }
+
+      if ( movetheend ) {
+      
+        for (int i=0; i<3; i++ ) {
+          if ( num_iter%2==0 ) {
+            hit2[i] += -alpha*alphamod*grad[i];
+          }
+          else {
+            hit1[i] += -alpha*alphamod*grad[i];
+          }
+        }
+
+        if ( last_loss<0 )
+          last_loss = iter_loss;
+        else {
+          dloss = last_loss-iter_loss;
+          last_loss = iter_loss;
+          if ( dloss>0 && dloss<3.0 )
+            nsmall_loss_change++;
+          else
+            nsmall_loss_change = 0;
+        }
+
+        did_end_move[ num_iter%2 ] = true;
+
+        gradlen = 0;
+        for (int i=0; i<3; i++)
+          gradlen += grad[i]*grad[i];
+        gradlen = sqrt(gradlen);
+      }
+      else {
+        did_end_move[ num_iter%2 ] = false;
+      }
+
+      
+
+      std::cout << "iter[" << num_iter << "] loss=" << iter_loss << " dloss=" << dloss
+                << " npts= " << (int)npts
+                << " move-end=" << movetheend
+                << " move-s=" << did_end_move[0]
+                << " move-e=" << did_end_move[1]
+                << " gradlen=" << gradlen
+                << " crtplane[" << crtpanelid << "] normdim=" << crt_plane_norm_dim[crtpanelid]
+                << " grad=(" << grad[0] << "," << grad[1] << "," << grad[2] << ")"
+                << " hit1=(" << hit1[0] << "," << hit1[1] << "," << hit1[2] << ")"
+                << " hit2=(" << hit2[0] << "," << hit2[1] << "," << hit2[2] << ")"
+                << std::endl;
+      
+      num_iter++;
+    }//end of loop
+
+    std::vector<double> final_hit1 = { hit1[0]-t0_usec*larutil::LArProperties::GetME()->DriftVelocity(),
+                                       hit1[1], hit1[2] };
+    std::vector<double> final_hit2 = { hit2[0]-t0_usec*larutil::LArProperties::GetME()->DriftVelocity(),
+                                       hit2[1], hit2[2] };
+    
+    std::cout << "[FINAL HITS] " << " hit1=(" << hit1[0] << "," << hit1[1] << "," << hit1[2] << ")"
+              << " hit2=(" << hit2[0] << "," << hit2[1] << "," << hit2[2] << ")"
+              << " t0_usec=" << t0_usec
+              << std::endl;    
+    
+    crttrack_t final_track = _collect_chargepixels_for_track( final_hit1,
+                                                              final_hit2,
+                                                              t0_usec,
+                                                              adc_v,
+                                                              _max_fit_step_size,
+                                                              _col_neighborhood );
+    final_track.pcrttrack = &crt;
+    final_track.t0_usec   = t0_usec;
+    final_track.hit_pos_vv.push_back( final_hit1 );
+    final_track.hit_pos_vv.push_back( final_hit2 );    
+      
+    return final_track;
+    
+  }//end of method
   
 }
 }

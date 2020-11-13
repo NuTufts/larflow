@@ -50,6 +50,10 @@
 #pragma link C++ class larflow::reco::TrackOTFit+;
 #pragma link C++ class larflow::reco::NuVertexMaker+;
 #pragma link C++ class larflow::reco::NuTrackBuilder+;
+#pragma link C++ class larflow::reco::TrackTruthRecoInfo+;
+#pragma link C++ class larflow::reco::VertexTrackTruthRecoInfo+;
+#pragma link C++ class larflow::reco::TrackTruthRecoAna+;
+#pragma link C++ class larflow::reco::TrackdQdx+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

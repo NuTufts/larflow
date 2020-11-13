@@ -5,7 +5,7 @@
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
 
 namespace larflow {
-namespace prepflowmatchdata {
+namespace prep {
 
   PrepSSNetTriplet::~PrepSSNetTriplet()
   {
@@ -14,12 +14,15 @@ namespace prepflowmatchdata {
   
   
   /**
-   * uses truth images from iomanager to make labels and weights for proposed triplets
+   * @brief uses truth images from iomanager to make labels and weights for proposed triplets
    *
+   * @param[in] iolcv LArCV IOManager with event data to use
+   * @param[in] ioll  larlite storage_manager with event data to use
+   * @param[in] tripletmaker Instance of triplet maker where triplets have already been made.
    */
   void PrepSSNetTriplet::make_ssnet_labels( larcv::IOManager& iolcv,
                                             larlite::storage_manager& ioll,
-                                            const larflow::PrepMatchTriplets& tripletmaker ) {
+                                            const larflow::prep::PrepMatchTriplets& tripletmaker ) {
 
     // get truth images
     larcv::EventImage2D* ev_segment =
@@ -40,32 +43,38 @@ namespace prepflowmatchdata {
   }
 
   /** 
-   * make track/shower labels
+   * @brief make track/shower labels
    *
-   * labels
-   * -------
-   * [0]: background
-   * [1]: track
-   * [2]: shower
+   * The labels we define:
+   * @verbatim embed:rst:leading-asterisk
+   *  * [0]: background
+   *  * [1]: track
+   *  * [2]: shower
+   * @endverbatim
    *
-   * weights
-   * --------
-   * 0: if not true proposal
-   * 100: if within 10 pixels of neutrino vertex pixel
-   * 10: if a boundary pixel
-   * 1: everything else
+   * We assign two additional weights to each pixel to help balance the classes. 
+   * The first weight is inversely proportional to the times the class shows up in the event image.
+   * The second weight is multipler to the first in order to emphasize certain important
+   * pixel classes. These are
+   * @verbatim embed:rst:leading-asterisk
+   *  * 0: if not true proposal
+   *  * 100: if within 10 pixels of neutrino vertex pixel
+   *  * 10: if a boundary pixel
+   *  * 1: everything else
+   * @endverbatim
    *
-   * labels stored in _trackshower_label_v
-   * weights stored in _trackshower_weight_v
-   * follows triplet index vector, larflow::PrepMatchTriplets::_triplet_v
+   * The labels are stored in the class data memeber, _trackshower_label_v.
+   * The weights stored in _trackshower_weight_v
+   * The size of these vectors are determined by the size of the input triplet index vector, larflow::PrepMatchTriplets::_triplet_v.
+   * The values correspond to the elements in that triplet vector.
    *
    * @param[in] segment_v Vector of particle-ID labeled truth image
    * @param[in] tripletmaker Class that made triplets and stores values
-   * @param[in] vtx_imgcoords Vector of image coordinates for true neutrino vertex (u,v,y,tick)
+   * @param[in] vtx_imgcoord Vector of image coordinates for true neutrino vertex (u,v,y,tick)
    *
    */
   void PrepSSNetTriplet::make_trackshower_labels( const std::vector<larcv::Image2D>& segment_v,
-                                                  const larflow::PrepMatchTriplets& tripletmaker,
+                                                  const larflow::prep::PrepMatchTriplets& tripletmaker,
                                                   const std::vector<int>& vtx_imgcoord )
   {
 
@@ -78,7 +87,11 @@ namespace prepflowmatchdata {
     _trackshower_num_v.clear();
     _trackshower_num_v.resize(3,0.0);
 
-    int vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
+    int vtxrow = -1;
+    if ( vtx_imgcoord[3]>tripletmaker._imgmeta_v.front().min_y()
+         && vtx_imgcoord[3]<tripletmaker._imgmeta_v.front().max_y()  ) {
+      vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
+    }
 
     for (int i=0; i<3; i++) _trackshower_num_v[i] = 0;
       
@@ -135,7 +148,7 @@ namespace prepflowmatchdata {
           ntrack++;
 
         // determine if near vertex
-        if ( abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
+        if ( vtxrow>=0 && abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
           isvertex++;
       }//end of plane loop
 
@@ -165,7 +178,7 @@ namespace prepflowmatchdata {
   }
 
   /** 
-   * create the ana tree where we'll save labels
+   * @brief create the ana tree where we'll save labels
    *
    */
   void PrepSSNetTriplet::defineAnaTree()

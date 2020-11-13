@@ -18,7 +18,8 @@ namespace reco {
    */
   KPSRecoManager::KPSRecoManager( std::string inputfile_name )
     : larcv::larcv_base("KPSRecoManager"),
-    _ana_output_file(inputfile_name)
+    _save_event_mc_info(false),
+    _ana_output_file(inputfile_name)    
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -112,13 +113,7 @@ namespace reco {
       _ana_tree->Fill();
       return;
     }
-    
-    // FILTER KEYPOINTS: To be on clusters larger than X hits
-    // _kpfilter.set_verbosity( larcv::msg::kDEBUG );
-    // _kpfilter.set_input_keypoint_tree_name( "taggerfilterkeypoint" );
-    // _kpfilter.set_input_larflowhits_tree_name( "taggerfilterhit" );
-    // _kpfilter.process( iolcv, ioll );
-  
+      
     // PARTICLE FRAGMENT RECO
     recoParticles( iolcv, ioll );
     
@@ -143,7 +138,11 @@ namespace reco {
     for ( auto const& flash : *ev_input_opflash_beam )
       evout_opflash_beam->push_back( flash );
     
-
+    if ( _save_event_mc_info ) {
+      _event_mcinfo_maker.process( ioll );
+      truthAna( iolcv, ioll );
+    }
+    
     // Fill Ana Tree
     _ana_run = ev_adc->run();
     _ana_subrun = ev_adc->subrun();
@@ -247,16 +246,22 @@ namespace reco {
     const float _maxdist = 2.0;
     const float _minsize = 20;
     const float _maxkd   = 100;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
-    _projsplitter.set_verbosity( larcv::msg::kINFO );    
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time hits)" << std::endl;
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );    
+    //_projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
+    _projsplitter.set_fit_line_segments_to_clusters( true );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
+    _projsplitter.add_input_keypoint_treename_for_hitveto( "keypoint" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
-    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
+    _projsplitter_cosmic.set_fit_line_segments_to_clusters( true );    
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
     _projsplitter_cosmic.process( iolcv, ioll );
 
@@ -292,8 +297,21 @@ namespace reco {
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.process( iolcv, ioll );
 
+    // NuTrackBuilder class
     _nu_track_builder.clear();
-    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_nu_candidates() );
+    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    // first attempt
+    // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
+    // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    // simpler, cone-based reco
+    _nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+    _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     
   }
 
@@ -310,6 +328,24 @@ namespace reco {
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");    
+  }
+
+  /** @brief is true, save MC event summary */  
+  void KPSRecoManager::saveEventMCinfo( bool savemc )
+  {
+    if ( !_save_event_mc_info && savemc )  {
+      _track_truthreco_ana.bindAnaVariables( _ana_tree );
+      _event_mcinfo_maker.bindAnaVariables( _ana_tree );
+    }
+    _save_event_mc_info = savemc;
+
+  };
+
+  /** @brief run Truth-Reco analyses for studying performance **/
+  void KPSRecoManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+    _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
+    _track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
   
 }

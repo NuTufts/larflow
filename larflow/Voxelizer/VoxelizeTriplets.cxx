@@ -372,5 +372,27 @@ namespace voxelizer {
     
   }
 
+  /**
+   * @brief get voxel indices from non-t0 corrected space point coordinate
+   *
+   */
+  std::vector<int> VoxelizeTriplets::get_voxel_indices( const std::vector<float>& xyz ) const
+  {
+    std::vector<int> indices(3,0);
+    for (int i=0; i<3; i++) {
+
+      if ( xyz[i]-_origin[i]<0 || xyz[i]>=_origin[i]+_len[i] ) {
+        std::stringstream ss;
+        ss << "[VoxelizeTriplets::get_voxel_indices.L" << __LINE__ << "] "
+           << " Space point provided (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ") is out of bounds"
+           << " for axis=" << i << " bounds=[" << _origin[i] << "," << _origin[i]+_len[i] << ")"
+           << std::endl;
+        throw std::runtime_error( ss.str() );
+      }
+      indices[i] = get_axis_voxel( i, xyz[i] );
+    }
+    return indices;
+  }
+
 }
 }

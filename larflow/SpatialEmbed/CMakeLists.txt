@@ -3,10 +3,11 @@ set(MODULE_NAME SpatialEmbed )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS PrepMatchEmbed.h )
+set( HEADERS PrepMatchEmbed.h Prep3DSpatialEmbed.h )
 
 add_library( ${LIBNAME} SHARED
-  PrepMatchEmbed.cxx )
+  PrepMatchEmbed.cxx
+  Prep3DSpatialEmbed.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -21,7 +22,7 @@ set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
 set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
 
 # larflow libs
-set(LARFLOW_LIBS_USED LArFlow_PrepFlowMatchData )
+set(LARFLOW_LIBS_USED LArFlow_PrepFlowMatchData LArFlow_Voxelizer )
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 

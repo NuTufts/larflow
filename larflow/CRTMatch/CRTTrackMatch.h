@@ -59,8 +59,11 @@ namespace crtmatch {
 
     /** @brief set flag that determines if pngs are made for debugging purposes */
     void make_debug_images( bool make_debug ) { _make_debug_images = make_debug; };
-    
+
     void save_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
+
+    void save_nearby_larmatch_hits_to_file( larlite::storage_manager& ioll, bool remove_if_no_flash=true );
+    
     void clear_output_containers();
 
     /**
@@ -77,6 +80,7 @@ namespace crtmatch {
       std::vector< float >                 pixelrad_vv[3];  ///< pixel dist from nearest charge pixel to projected pixel along crt-track line for each plane (3 planes total)
       std::vector< std::vector< double > > pixelpos_vv;     ///< list of 3D SC-corrected positions along the crt-track line
       std::vector< std::vector<int> >      pixelcoord_vv;   ///< list of pixel coordinates (U col, V col, Y col, tick)
+      std::vector< float >                 t_v;             ///< fraction of distance from start to end of the sampling point on line
       std::vector< float >                 totalq_v;        ///< total charge of closest pixels around crt-track line per plane
       std::vector< float >                 toterr_v;        ///< total pixel dist to closest pixels along crt-track line per plane
       float                                len_intpc_sce;   ///< path length of the reconstructed path inside the TPC
@@ -111,6 +115,10 @@ namespace crtmatch {
     crttrack_t _find_optimal_track( const larlite::crttrack& crt,
                                     const std::vector<larcv::Image2D>& adc_v );
 
+    crttrack_t _fit_pixelset_track( const larlite::crttrack& crt,
+                                    const std::vector<larcv::Image2D>& adc_v );
+    
+
     
     crttrack_t _collect_chargepixels_for_track( const std::vector<double>& hit1_pos,
                                                 const std::vector<double>& hit2_pos,
@@ -141,6 +149,9 @@ namespace crtmatch {
     larutil::SpaceChargeMicroBooNE* _sce;          ///< pointer to space charge correction class
     larutil::SpaceChargeMicroBooNE* _reverse_sce;  ///< pointer to reverse space charge correction class
 
+
+    void _keepOnlyBoundaryTracks();
+    
     /// algorithm parameters
     
     int _max_iters;            ///< max attempts to improve CRT track fit
@@ -152,6 +163,8 @@ namespace crtmatch {
     std::string _crttrack_producer; ///< name of CRT track producer
     std::vector<std::string> _opflash_producer_v;  ///< names of opflash producers to search for matching flashes
     bool _make_debug_images;   ///< if true, dump debugging pngs
+    bool _keep_only_boundary_tracks; ///< if true, keep boundary tracks [default: false]
+    float _max_dist_to_boundary_cm;  ///< if keeping only tracks near boundary, this is max distance to count as at boundary [default: 15 cm]
 
   public:
 
@@ -159,6 +172,17 @@ namespace crtmatch {
         @param[in] treename Name of ROOT tree
      */
     void setADCtreename( std::string treename ) { _adc_producer=treename; }; ///< Set Image2D tree to get wire images from.
+
+    /** 
+     * @brief set flag to keep tracks only on the boundary 
+     * @param[in] keep If true, keep only boundary tracks
+     * @param[in] max_dist_cm Maximum distance from space charge boundary to count as 'at boundary' in cm [default: 15 cm]
+     */
+    void set_keep_only_boundary_tracks( bool keep, float max_dist_cm=15.0 )
+    {
+      _keep_only_boundary_tracks=keep;
+      _max_dist_to_boundary_cm = max_dist_cm;
+    };
 
   protected:
     
@@ -168,6 +192,7 @@ namespace crtmatch {
     std::vector< larlite::opflash >  _matched_opflash_v;   ///< opflashes matched to tracks in _fitted_crttrack_v
     std::vector< larlite::crttrack > _modified_crttrack_v; ///< crttrack object with modified end points
     std::vector< larlite::larflowcluster > _cluster_v;     ///< collections of larflow3dhit close to the 3D line
+    std::vector< int >            _boundary_cluster_v;     ///< flags corresponding to clusters in _cluster_v. If 1, then both ends at space charge boundary
 
   public:
 

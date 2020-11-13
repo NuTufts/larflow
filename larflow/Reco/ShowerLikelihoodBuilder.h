@@ -5,8 +5,9 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/larflowcluster.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
-
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/Reco/cluster_functions.h"
 
@@ -88,6 +89,42 @@ namespace reco {
                       const std::vector<float>& m_dir,
                       float& impact_dist,
                       float& proj_l, float& proj_m );
+
+    /**
+     * @struct ShowerInfo_t
+     * @brief Info we are tracking with true shower objects
+     * 
+     */
+    struct ShowerInfo_t {
+      int idx; ///< index in mc shower event container
+      int trackid; ///< track id from geant for particle
+      int pid; ///< particle ID
+      int origin; ///< origin index
+      int priority; ///< rank of shower when absorbing clusters
+      int matched_cluster; ///< cluster that matches to start point
+      float highq_plane; ///< charge of shower on the highest plane, no idea what the unit is
+      float cos_sce; ///< direction difference between det profile dir before and after SCE
+      std::vector<float> shower_dir; ///< det profile direction
+      //std::vector<float> shower_dir_sce;
+      std::vector<float> shower_vtx; ///< det profile shower start
+      //std::vector<float> shower_vtx_sce;
+      /** @brief comparison operator for struct used for sorting by priority and charge */
+      bool operator<(const ShowerInfo_t& rhs ) {
+        if ( priority<rhs.priority ) return true;
+        else if ( priority==rhs.priority && highq_plane>rhs.highq_plane ) return true;
+        return false;
+      };
+    };
+    std::vector<ShowerInfo_t> _shower_info_v; ///< vector of info on true shower objects in event
+    std::vector< larlite::larflowcluster > _larflow_cluster_v; ///< larflow cluster made by merged true hit clusters based on trunk info from shower objects
+    
+    void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
+                                       std::vector<larlite::larflowcluster>& merged_cluster_v,
+                                       const std::vector<larlite::larflow3dhit>& truehit_v );
+
+    void updateMCPixelGraph( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                             larcv::IOManager& iolcv ); 
+    
     
   };
   

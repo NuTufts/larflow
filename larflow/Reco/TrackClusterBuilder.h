@@ -95,17 +95,18 @@ namespace reco {
      * @brief represents a cluster through a line segment made from the first principle component
      */
     struct Segment_t {
-      const larlite::larflowcluster* cluster; ///< pointer to cluster this segment derives from
-      const larlite::pcaxis*         pca;     ///< pointer to principle component for the cluster instance
-      std::vector<float> start;               ///< start of the line segment
-      std::vector<float> end;                 ///< end of the line segment
-      std::vector<float> dir;                 ///< direction from start to end
-      std::vector< Connection_t* > con_start; ///< pointer to Connection_t (edges) connected to the segment start point
-      std::vector< Connection_t* > con_end;   ///< pointer to Connection_t (edges) connected to the segment end point
-      float len;                              ///< length of the line segment
-      int idx;                                ///< index of the segment
-      bool inpath;                            ///< flag indicating segment is currently part of a path
-      bool visited;                           ///< flag indicating segment has been visited at least once
+      const larlite::larflowcluster* cluster;  ///< pointer to cluster this segment derives from
+      const larlite::pcaxis*         pca;      ///< pointer to principle component for the cluster instance
+      const larlite::track*          trackseg; ///< pointer to track object containing fitted track segment path
+      std::vector<float> start;                ///< start of the line segment
+      std::vector<float> end;                  ///< end of the line segment
+      std::vector<float> dir;                  ///< direction from start to end
+      std::vector< Connection_t* > con_start;  ///< pointer to Connection_t (edges) connected to the segment start point
+      std::vector< Connection_t* > con_end;    ///< pointer to Connection_t (edges) connected to the segment end point
+      float len;                               ///< length of the line segment
+      int idx;                                 ///< index of the segment
+      bool inpath;                             ///< flag indicating segment is currently part of a path
+      bool visited;                            ///< flag indicating segment has been visited at least once
 
       Segment_t()
       : len(0),
@@ -166,7 +167,8 @@ namespace reco {
   public:
     
     void loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
-                             const larlite::event_pcaxis& pcaxis_v );
+                             const larlite::event_pcaxis& pcaxis_v,
+                             const larlite::event_track& trackseg_v );                             
 
     void buildNodeConnections();
 
@@ -177,12 +179,22 @@ namespace reco {
     /** @brief clear track proposal container _track_proposal_v */
     void clearProposals() { _track_proposal_v.clear(); };
 
-    void fillLarliteTrackContainer( larlite::event_track& ev_track );
+    void fillLarliteTrackContainer( larlite::event_track& ev_track,
+                                    larlite::event_larflowcluster& evout_trackcluster );
 
+    void fillLarliteTrackContainerWithFittedTrack( larlite::event_track& evout_track,
+                                                   larlite::event_larflowcluster& evout_hitcluster,
+                                                   const std::vector<larcv::Image2D>& adc_v );
+    
     /** @brief set flag that if true, reduces many possible paths down to one */
     void set_output_one_track_per_startpoint( bool output_only_one ) { _one_track_per_startpoint=output_only_one; };
 
     std::string str( const Segment_t& seg );
+
+    void resetVetoFlags();
+
+    int findClosestSegment( const std::vector<float>& testpt, const float max_dist );
+                            
     
   protected:
 

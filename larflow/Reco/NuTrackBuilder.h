@@ -26,7 +26,7 @@ namespace reco {
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
-                  const std::vector<NuVertexCandidate>& nu_candidate_v );
+                  std::vector<NuVertexCandidate>& nu_candidate_v );
 
   };
 

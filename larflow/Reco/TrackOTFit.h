@@ -3,6 +3,14 @@
 
 #include <vector>
 
+namespace larcv {  
+  class Image2D;
+}
+
+namespace larlite {
+  class larflow3dhit;
+}
+
 namespace larflow {
 namespace reco {
 
@@ -20,8 +28,10 @@ namespace reco {
     virtual ~TrackOTFit() {};
 
 
-    void fit( std::vector< std::vector<float> >& initial_track,
-              std::vector< std::vector<float> >& track_pts_w_feat_v );
+    static void fit_segment( std::vector< std::vector<float> >& initial_segment,
+                             std::vector< std::vector<float> >& track_pts_w_feat_v,
+                             const int _maxiters_=100,
+                             const float lr=0.1 );
 
     
     static float d2_segment_point( const std::vector<float>& seg_start,
@@ -42,6 +52,11 @@ namespace reco {
                                              float& loss,
                                              float& totweight,
                                              std::vector<float>& grad );
+
+    static void addLarmatchScoreAndChargeFeatures( std::vector< std::vector<float> >& point_v,
+                                                   const std::vector<larlite::larflow3dhit>& lfhit_v,                                                   
+                                                   const std::vector<larcv::Image2D>& adc_v );
+
     
   };
   

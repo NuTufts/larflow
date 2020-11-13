@@ -44,7 +44,7 @@ DEVICE=torch.device(devname)
 checkpointfile = args.weights
 checkpoint = torch.load( checkpointfile, map_location={"cuda:0":devname,
                                                        "cuda:1":devname} )
-NUM_PAIRS=50000
+NUM_PAIRS=30000
 ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
@@ -53,7 +53,7 @@ BATCHSIZE = 1
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
-preplarmatch = larflow.PrepMatchTriplets()
+preplarmatch = larflow.prep.PrepMatchTriplets()
 
 # MULTI-HEAD LARMATCH MODEL
 model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
@@ -116,7 +116,7 @@ dt_net   = 0.
 dt_save  = 0.
 
 # setup the hit maker
-hitmaker = larflow.FlowMatchHitMaker()
+hitmaker = larflow.prep.FlowMatchHitMaker()
 hitmaker.set_score_threshold( args.min_score )
 
 # setup badch maker
@@ -180,6 +180,10 @@ for ientry in range(NENTRIES):
     print("  time to prep matches: ",t_prep,"secs")
     dt_prep += t_prep
     
+    # for debugging
+    #if True:
+    #    print("stopping after prep")
+    #sys.exit(0)
     
     # Prep sparse ADC numpy arrays
     sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in xrange(3) ]

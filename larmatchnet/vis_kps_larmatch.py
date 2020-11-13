@@ -95,7 +95,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
-        traces_v += lfhits_v + detdata.getlines()
+        traces_v += lfhits_v + detdata.getlines(color=(0,0,0))
     elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
@@ -127,7 +127,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
         #print(xyz[:ptsused,3])
-        traces_v += [larflowhits]+detdata.getlines()
+        traces_v += [larflowhits]+detdata.getlines(color=(0,0,0))
     elif plotby in ["flow-field"]:
         # must sample, if trying to draw triangles
         ptsused = 0
@@ -169,7 +169,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             colorscale='Blues',
             sizeref=10,
             sizemode="absolute")
-        traces_v += [fig]+detdata.getlines()
+        traces_v += [fig]+detdata.getlines(color=(0,0,0))
 
     if args.has_mc:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)

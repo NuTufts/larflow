@@ -16,6 +16,7 @@
 
 // ublarcvapp
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
+#include "ublarcvapp/MCTools/LArbysMC.h"
 
 // larflow
 #include "KeypointReco.h"
@@ -28,6 +29,11 @@
 #include "NuVertexMaker.h"
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
+#include "NuShowerBuilder.h"
+#include "NuVertexShowerReco.h"
+
+// truth analysis
+#include "TrackTruthRecoAna.h"
 
 namespace larflow {
 namespace reco {
@@ -64,18 +70,29 @@ namespace reco {
     ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
     ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score
     NuVertexMaker       _nuvertexmaker; ///< make proto-vertices from prongs
+    NuVertexShowerReco  _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
-    NuTrackBuilder      _nu_track_builder; ///< build tracs for non-comic track clusters
+    NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
+    NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
+
+    TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
+
+    // MC event info
+    ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
 
     // Algorithms
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-                         
+
+    void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+
+    void saveEventMCinfo(bool savemc);
 
   protected:
 
+    bool _save_event_mc_info; ///< if true, save event-level mc info to ana tree
     TFile* _ana_file; ///< output file for non-larlite and non-larcv reco products
     TTree* _ana_tree; ///< tree to store non-larlite and non-larcv reco products
     std::string _ana_output_file; ///< name of the ana file to create

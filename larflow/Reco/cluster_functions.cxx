@@ -267,6 +267,9 @@ namespace reco {
       }
     }
 
+    if ( eigen_v.size()==0 ) {
+      throw std::runtime_error("cluster_functions.cc:L271 not enough points to take PCA");
+    }
     
     cilantro::PrincipalComponentAnalysis3f pca( eigen_v );
     cluster.pca_center.resize(3,0);
@@ -320,6 +323,7 @@ namespace reco {
     cluster.pca_proj_v.resize( ordered_v.size() );
     for ( size_t i=0; i<ordered_v.size(); i++ ) {
       cluster.ordered_idx_v[i] = ordered_v[i].idx;
+      //cluster.pca_proj_v[i]    = ordered_v[i].s - ordered_v.front().s; // set first point to zero
       cluster.pca_proj_v[i]    = ordered_v[i].s;
     }
 
@@ -872,6 +876,7 @@ namespace reco {
     float r = len1x2/cluster.pca_len;
     return r;
   }
+
   
 }
 }

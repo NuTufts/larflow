@@ -22,6 +22,7 @@
 #pragma link C++ class larflow::prep::WireOverlap+;
 #pragma link C++ class larflow::prep::FlowTriples+;
 #pragma link C++ class larflow::prep::PrepMatchTriplets+;
+#pragma link C++ class larflow::prep::PrepSSNetTriplet+;
 #pragma link C++ class std::vector<larflow::prep::PrepMatchTriplets>+;
 //#pragma link C++ class larflow::prep::MatchTripletProcessor+;
 #pragma link C++ class larflow::prep::FlowMatchHitMaker+;

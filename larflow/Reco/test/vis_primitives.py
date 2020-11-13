@@ -100,7 +100,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             lfcluster = ev_cosmic_trackcluster.at( icluster )
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
             cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = 0.3
+            cluster_trace["marker"]["opacity"] = 0.5
+            cluster_trace["marker"]["size"] = 3
             traces_v.append(cluster_trace)            
 
             pcaxis = ev_cosmic_pcacluster.at( icluster )
@@ -110,6 +111,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["width"] = 3
             pcatrace["line"]["opacity"] = 1.0            
             traces_v.append( pcatrace )
+
+    # PLOT FITTED TRACK SEGMENTS
+    lineseg_producer = "trackprojsplit_wcfilter"
+    ev_lineseg_track = io.get_data( larlite.data.kTrack, lineseg_producer )
+    print("Number of line-segment tracks: ",ev_lineseg_track.size())
+    for itrack in range(ev_lineseg_track.size()):
+        lineseg_track = ev_lineseg_track.at(itrack)
+        lineseg_trace = lardly.data.visualize_larlite_track( lineseg_track )
+        traces_v.append( lineseg_trace )
 
     # KEYPOINTS
     # ============

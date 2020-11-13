@@ -45,11 +45,12 @@ print "Start loop."
 tmp = rt.TFile(args.output,"recreate")
 
 badchmaker = ublarcvapp.EmptyChannelAlgo()
-ev_triplet = std.vector("larflow::PrepMatchTriplets")(1)
+ev_triplet = std.vector("larflow::prep::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
 kpana.setADCimageTreeName( args.adc )
 kpana.defineAnaTree()
-ssnet = larflow.prepflowmatchdata.PrepSSNetTriplet()
+
+ssnet = larflow.prep.PrepSSNetTriplet()
 ssnet.defineAnaTree()
 
 if args.save_triplets:

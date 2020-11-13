@@ -5,6 +5,7 @@ from math import log
 
 parser = argparse.ArgumentParser("Keypoint and Triplet truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_keypointdata.py'")
+parser.add_argument("--no-keypoints",action='store_false',default=True,help="if flag given, turns off keypoints")
 args = parser.parse_args()
 
 import numpy as np
@@ -19,9 +20,16 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
+import lardly
     
-color_by_options = ["truthmatch","isclosematch","dist2keypoint","ssnetlabels","ssnetweights"]
+color_by_options = ["truthmatch",
+                    "isclosematch",
+                    "dist2keypoint_nu",
+                    "dist2keypoint_trk",
+                    "dist2keypoint_shr",                    
+                    "ssnetlabels",
+                    "ssnetweights"]
+
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -53,10 +61,13 @@ def make_figures(entry,plotby="truthmatch"):
     ntriplets = triplet._triplet_v.size()
     print("number of triplets: ",ntriplets)
     nsamples = 50000
+    sig = 10.0
     index = np.arange(ntriplets)
     np.random.shuffle(index)
     pos3d = np.zeros( (nsamples,4) )
 
+    detdata = lardly.DetectorOutline()
+    
     traces_v = []
 
     for i in xrange(nsamples):
@@ -76,13 +87,34 @@ def make_figures(entry,plotby="truthmatch"):
     elif plotby=="ssnetweights":
         for i in xrange(nsamples):
             pos3d[i,3] = log(1.0+ev_ssnet.trackshower_weight_v[ index[i] ])
-    elif plotby=="dist2keypoint":
+    elif plotby=="dist2keypoint_nu":
         for i in xrange(nsamples):
-            dist = 0.0
-            for v in xrange(3):
-                dist += ev_keypoint.kplabel[index[i]][v]*ev_keypoint.kplabel[index[i]][v]
-            dist = np.sqrt(dist)
-            pos3d[i,3] = 1.0 + max(30.0-dist,0)/30.0
+            if ev_keypoint.kplabel_nuvertex[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_nuvertex[index[i]][1+v]*ev_keypoint.kplabel_nuvertex[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )
+    elif plotby=="dist2keypoint_trk":
+        for i in xrange(nsamples):
+            if ev_keypoint.kplabel_trackends[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0                
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_trackends[index[i]][1+v]*ev_keypoint.kplabel_trackends[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
+    elif plotby=="dist2keypoint_shr":
+        for i in xrange(nsamples):
+            if ev_keypoint.kplabel_showerstart[index[i]][0]==0:
+                pos3d[i,3] = 0.0
+            else:
+                dist = 0.0            
+                for v in xrange(3):
+                    dist += ev_keypoint.kplabel_showerstart[index[i]][1+v]*ev_keypoint.kplabel_showerstart[index[i]][1+v]
+                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
+
                 
     clusterplot = {
         "type":"scatter3d",
@@ -93,24 +125,36 @@ def make_figures(entry,plotby="truthmatch"):
         "name":"larmatchtriplets",
         "marker":{"color":pos3d[:,3],"size":1,"colorscale":colorscale}
     }
+
+    if plotby=="truthmatch":
+        clusterplot["marker"]["colorscale"] = "Bluered"
+    
     traces_v.append( clusterplot )
 
     # make scatter of keypoints
-    kppos = np.zeros( (ev_keypoint.kppos.size(),3) )
-    for i in xrange( kppos.shape[0] ):
-        for v in xrange(3):
-            kppos[i,v] = ev_keypoint.kppos[i][v]
-    kpplot = {
-        "type":"scatter3d",
-        "x":kppos[:,0],
-        "y":kppos[:,1],
-        "z":kppos[:,2],
-        "mode":"markers",
-        "name":"keypoints",
-        "marker":{"color":"rgba(0,255,255,1.0)","size":5},
-    }
-    traces_v.append(kpplot)
-
+    if args.no_keypoints:
+        for kptype,kpcolor in [("trackends","rgb(0,255,0)"),
+                               ("showerstart","rgb(0,0,255)"),
+                               ("nuvertex","rgb(255,0,0)")]:
+            exec("brname=ev_keypoint.kppos_%s"%(kptype))
+            print(brname)
+            kppos = np.zeros( (brname.size(),3) )
+            for i in xrange( kppos.shape[0] ):
+                for v in xrange(3):
+                    kppos[i,v] = brname[i][v]
+            kpplot = {
+                "type":"scatter3d",
+                "x":kppos[:,0],
+                "y":kppos[:,1],
+                "z":kppos[:,2],
+                "mode":"markers",
+                "name":"keypoints",
+                "marker":{"color":kpcolor,"size":5},
+            }
+            traces_v.append(kpplot)
+            
+    # add microboone TPC outline
+    traces_v += detdata.getlines(color=(0,0,0))
     return traces_v
 
 def test():

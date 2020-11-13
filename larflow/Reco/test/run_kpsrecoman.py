@@ -14,6 +14,7 @@ parser.add_argument('-o','--output',type=str,required=True,help="Name of output 
 parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of entries to run")
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
 parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,help="Input larcv images are tick-backward")
+parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
 
 args = parser.parse_args()
 
@@ -46,6 +47,7 @@ iolcv.add_in_file(   args.input_dlmerged )
 iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
 iolcv.specify_data_read( larcv.kProductImage2D, "thrumu" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ancestor" );
+iolcv.specify_data_read( larcv.kProductImage2D, "segment" );
 iolcv.specify_data_read( larcv.kProductImage2D, "instance" );
 iolcv.specify_data_read( larcv.kProductImage2D, "larflow" );
 iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
@@ -77,6 +79,9 @@ else:
 
 # ALGORITHMS
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root") )
+recoman.set_verbosity(1)
+if args.ismc:
+    recoman.saveEventMCinfo( args.ismc )
 
 io.go_to( args.start_entry )
 #io.next_event()
