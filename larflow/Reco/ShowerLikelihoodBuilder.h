@@ -43,6 +43,10 @@ namespace reco {
     ShowerLikelihoodBuilder();
     virtual ~ShowerLikelihoodBuilder();
 
+    std::string _wire_tree_name; ///< name of ROOT tree to look for
+    /** @brief set name of tree to get wire plane data */
+    void set_wire_tree_name( std::string name ) { _wire_tree_name = name; };
+    
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     larflow::prep::PrepMatchTriplets tripletalgo; ///< class that produces spacepoints from the wire plane images

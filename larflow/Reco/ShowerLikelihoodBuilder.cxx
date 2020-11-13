@@ -17,6 +17,7 @@ namespace reco {
    * @brief default constructor 
    */
   ShowerLikelihoodBuilder::ShowerLikelihoodBuilder()
+    : _wire_tree_name("wiremc")
   {
     _hll          = new TH2F("lfshower_ll","",2000, -10, 190, 1000, 0, 100 );
     _hll_weighted = new TH2F("lfshower_ll_weighted","",2000, -10, 190, 1000, 0, 100 );
@@ -52,7 +53,7 @@ namespace reco {
 
     // get input data
     larcv::EventImage2D* ev_adc      =
-      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _wire_tree_name );
     larcv::EventImage2D* ev_seg      =
       (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
     larcv::EventImage2D* ev_trueflow =
@@ -139,7 +140,7 @@ namespace reco {
 
     // now we parse the truth, by building the particle graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
-    mcpg.set_adc_treename( "wiremc" );
+    mcpg.set_adc_treename( _wire_tree_name );
     mcpg.buildgraph( iolcv, ioll );
 
     // Get neutrino particles
@@ -817,7 +818,7 @@ namespace reco {
 
     // get input data
     larcv::EventImage2D* ev_adc      =
-      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wiremc" );
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _wire_tree_name );
     larcv::EventImage2D* ev_seg      =
       (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
 

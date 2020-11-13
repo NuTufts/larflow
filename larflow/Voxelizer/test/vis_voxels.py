@@ -3,7 +3,7 @@ import os,sys,argparse,json
 from ctypes import c_int
 from math import log
 
-parser = argparse.ArgumentParser("Keypoint and Triplet truth")
+parser = argparse.ArgumentParser("Visuzalize LArMatch truth")
 parser.add_argument("input_file",type=str,help="file produced by 'run_voxelizetriplets.py'")
 args = parser.parse_args()
 

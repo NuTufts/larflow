@@ -26,8 +26,7 @@
 
 namespace larflow {
 namespace keypoints {
-
-
+  
   /**
    * static variable to track if numpy environment has been setup
    */

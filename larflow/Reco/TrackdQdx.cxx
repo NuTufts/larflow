@@ -266,7 +266,7 @@ namespace reco {
    * @param[in] hitidx Index of space point in source cluster container
    * @param[in] r     distance of space point to line segment
    * @param[in] s     distance of projected point of space point onto track line-segment, from start of entire track
-   * @param[in] s     larmatch score
+   * @param[in] lm_score larmatch score
    * @param[out] trkpt Instance of TrackPt_t whose value we will fill
    */
   void TrackdQdx::_makeTrackPtInfo( const std::vector<float>& start,
