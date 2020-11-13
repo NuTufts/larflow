@@ -29,6 +29,9 @@ class SpatialEmbedNet(nn.Module):
         """
         super(SpatialEmbedNet,self).__init__()
 
+        # number of dimensions
+        self.ndimensions = ndimensions
+        
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
 
@@ -48,9 +51,11 @@ class SpatialEmbedNet(nn.Module):
         #             stem_nfeatures*2,
         #             stem_nfeatures]
 
+        #feat_per_layers = [stem_nfeatures*2,
+        #                   stem_nfeatures*3,
+        #                   stem_nfeatures*4]
         feat_per_layers = [stem_nfeatures*2,
-                           stem_nfeatures*3,
-                           stem_nfeatures*4]
+                           stem_nfeatures*3]
 
         nlayers = len(feat_per_layers)
         
@@ -71,14 +76,17 @@ class SpatialEmbedNet(nn.Module):
         # seed output, each pixel produces score for each class
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
-        residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
+        #residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
         residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)        
 
         # instance/embed out, each pixel needs 3 dimension shift and 1 sigma
         self.embed_out = scn.Sequential()
         residual_block(self.embed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
-        residual_block(self.embed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
+        #residual_block(self.embed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
         residual_block(self.embed_out,stem_nfeatures,4,leakiness=leakiness)
+
+        self.embed_sparse2dense = scn.OutputLayer(ndimensions)
+        self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
         
 
     def forward( self, coord_t, feat_t, verbose=False ):
@@ -110,23 +118,36 @@ class SpatialEmbedNet(nn.Module):
             decode_input = x_encode[-1]
             for i,(conv,up) in enumerate(zip(conv_layers,up_layers)):
                 # up sample the input
-                if verbose: print "  ",name,"-decoder[",i,"]-input: ",decode_input.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-input: ",decode_input.features.shape
                 x = up(decode_input)
-                if verbose: print "  ",name,"-decoder[",i,"]-upsample: ",x.features.shape
-                if verbose: print "  ",name,"-decoder[",i,"]-skip: ",x_encode[-2-i].features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-upsample: ",x.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-skip: ",x_encode[-2-i].features.shape
                 x = cat( (x,x_encode[-2-i]) )
-                if verbose: print "  ",name,"-decoder[",i,"]-skipcat: ",x.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-skipcat: ",x.features.shape
                 x = conv(x)
                 decode_input = x
-                if verbose: print "  ",name,"-decoder[",i,"]-conv: ",decode_input.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-conv: ",decode_input.features.shape
             decode_out[name] = decode_input
 
         x_embed = self.embed_out(decode_out["embed"])
-        x_seed  = self.seed_out(decode_out["seed"])
-        if verbose: print "embed-out: ",x_embed.features.shape
-        if verbose: print "seed-out:  ",x_seed.features.shape        
+        if verbose: print "embed-out: ",x_embed.features.shape," num-nam=",torch.isnan(x_embed.detach()).sum()
         
-        return x_embed,x_seed
+        x_seed  = self.seed_out(decode_out["seed"])
+        if verbose: print "seed-out:  ",x_seed.features.shape," num-nam=",torch.isnan(x_embed.detach()).sum()
+
+        # go back to dense array now
+        x_embed = self.embed_sparse2dense(x_embed)
+        x_seed  = self.seed_sparse2dense(x_seed)
+
+        # normalize x,y,z shifts within [-1,1]
+        x_embed_shift = torch.tanh( x_embed[:,0:self.ndimensions] )
+        x_embed_sigma = x_embed[:,self.ndimensions:]
+        x_embed_out = torch.cat( (x_embed_shift,x_embed_sigma), dim=1 )
+
+        # normalize seed map output between [0,1]
+        x_seed  = torch.sigmoid( x_seed )
+        
+        return x_embed_out,x_seed
                                 
 
 
@@ -149,4 +170,6 @@ if __name__ == "__main__":
 
     coord_t = torch.from_numpy(coord_np)
     feat_t  = torch.from_numpy(feat_np)
-    out = net( coord_t, feat_t, verbose=True )
+    embed,seed = net( coord_t, feat_t, verbose=True )
+    print "embed shape: ",embed.shape
+    print "seed shape: ",seed.shape

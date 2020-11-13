@@ -1,18 +1,22 @@
 import os,sys
 
 import os,sys
+import numpy as np
 import torch
 import torch.nn as nn
+from lovasz_losses import lovasz_hinge
 
 class SpatialEmbedLoss(nn.Module):
-    def __init__(self, dim_nvoxels=(1,1,1) ):
+    def __init__(self, dim_nvoxels=(1,1,1), w_embed=1.0, w_seed=0.1, w_sigma_var=0.01 ):
         super(SpatialEmbedLoss,self).__init__()
         self.dim_nvoxels = np.array( dim_nvoxels, dtype=np.float32 )
         self.dim_nvoxels_t = torch.from_numpy( self.dim_nvoxels )
         self.dim_nvoxels_t.requires_grad = False
+        self.foreground_weight = 1.0
+        
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
         
-    def forward(self, coord_t, embed_t, seed_t, instance_t, verbose=False):
+    def forward(self, coord_t, embed_t, seed_t, instance_t, verbose=False, calc_iou=None):
         batch_size = coord_t[:,3].max()+1
 
         fcoord_t = coord_t.to(torch.float32)
@@ -23,11 +27,15 @@ class SpatialEmbedLoss(nn.Module):
         loss_var = 0
         loss_instance = 0
         loss_seed = 0
-        obj_count = 0
+        ave_iou = 0.
+        batch_ninstances = 0
         
         for b in range(batch_size):
+            # get entries a part of current batch index
             bmask = coord_t[:,3].eq(b)
             if verbose: print "bmask: ",bmask.shape,bmask.sum()
+
+            # get data for batch
             coord = fcoord_t[bmask,:]
             embed = embed_t[bmask,:]
             seed  = seed_t[bmask,:]
@@ -39,7 +47,9 @@ class SpatialEmbedLoss(nn.Module):
 
             # calc embeded position
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
-            
+
+            obj_count = 0
+            seed_pix_count = 0
 
             for i in range(1,num_instances+1):
                 print "INSTANCE[",i,"]================"
@@ -78,8 +88,52 @@ class SpatialEmbedLoss(nn.Module):
                 print "  gaus: ",dist.shape
                 print "  ave instance dist and gaus: ",dist[idmask].mean()," ",gaus[idmask].mean()
                 print "  ave not-instance dist and gaus: ",dist[~idmask].mean()," ",gaus[~idmask].mean()
-                
 
+                loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask )
+
+                # L2 loss for gaussian prediction
+                loss_seed += self.foreground_weight*torch.sum(torch.pow(seed_i[idmask]-dist[idmask].detach(), 2))
+
+                if calc_iou:
+                    instance_iou += self.calculate_iou(gaus.detach()>0.5, idmask)
+                    if verbose:
+                        print "   iou: ",instance_iou
+                    ave_iou += instance_iou
+
+                obj_count += 1
+                seed_pix_count += idmask.sum()
+
+            # end of instance loop
+
+            # normalize by number of instances
+            if obj_count > 0:
+                loss_instance /= float(obj_count)
+                loss_var /= float(obj_count)
+            if seed_pix_count>0:
+                loss_seed /= float(seed_pix_count)
+
+            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var
+            batch_ninstances += obj_count
+
+
+        # normalize per batch
+        loss = loss / float(b+1)
+
+        # ave iou
+        if calc_iou and instance_iou>0:
+            ave_iou /= float(batch_ninstances)
+
+        return loss,batch_ninstances,ave_iou
+                
+    def calculate_iou(pred, label):
+        intersection = ((label == 1) & (pred == 1)).sum()
+        union = ((label == 1) | (pred == 1)).sum()
+        if not union:
+            return 0
+        else:
+            iou = intersection.item() / union.item()
+        return iou
+    
 if __name__=="__main__":
 
     import os,sys,argparse,json
