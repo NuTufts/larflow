@@ -490,7 +490,8 @@ namespace spatialembed {
    * "embed_t":(nvoxels,4)
    * "seed_t":(nvoxels,1)
    */
-  PyObject* Prep3DSpatialEmbed::makePerfectNetOutput( const VoxelDataList_t& voxeldata ) const
+  PyObject* Prep3DSpatialEmbed::makePerfectNetOutput( const VoxelDataList_t& voxeldata,
+                                                      const std::vector<int>& nvoxels_dim ) const
   {
 
     if ( !Prep3DSpatialEmbed::_setup_numpy ) {
@@ -499,7 +500,7 @@ namespace spatialembed {
     }
 
     size_t nvoxels = voxeldata.size();
-    const std::vector<int>& nvoxels_dim = _voxelizer.get_nvoxels();    
+    //const std::vector<int>& nvoxels_dim = _voxelizer.get_nvoxels();    
     LARCV_INFO() << "Converting data for " << nvoxels << " voxels into numpy arrays" << std::endl;
 
     // first we calculate the centroid of each instance.
@@ -511,10 +512,9 @@ namespace spatialembed {
 
     std::vector<int> num_instance_voxels(max_instance_id+1,0);
     std::vector< std::vector<float> > centroid(max_instance_id+1);
-    for (int i=0; i<max_instance_id+1; i++)
-      centroid[i].resize(3,0);
-
-
+    for (int i=0; i<max_instance_id+1; i++) {
+      centroid[i] = std::vector<float>(3,0);
+    }
 
     for (auto const& voxel : voxeldata ) {
       if ( voxel.truth_instance_index>=0 ) {
@@ -527,9 +527,16 @@ namespace spatialembed {
 
     for (int id=0; id<max_instance_id+1; id++) {
       if ( num_instance_voxels[id]>0 ) {
+        std::cout << "centroid[" << id << "]: (";
         for (int j=0; j<3; j++) {
           centroid[id][j] /= float(num_instance_voxels[id]);
+          std::cout << centroid[id][j];
+          if (j+1<3 ) std::cout << ",";
         }
+        std::cout << ") "
+                  << "from " << num_instance_voxels[id]
+                  << std::endl;
+
       }
     }
     
@@ -542,6 +549,8 @@ namespace spatialembed {
     npy_intp seed_t_dim[] = { (long int)nvoxels, 1 };
     PyArrayObject* seed_t = (PyArrayObject*)PyArray_SimpleNew( 2, seed_t_dim, NPY_FLOAT );
 
+    std::vector<float> max_dist_from_centroid(num_instance_voxels.size(),0);
+
     // loop over voxel
     for (size_t i=0; i<nvoxels; i++ ) {
       auto const& voxel = voxeldata[i];
@@ -549,13 +558,22 @@ namespace spatialembed {
       // set normalized shift in embed tensor
       if ( voxel.truth_instance_index>=0 ) {
         // in instance
+        int iid = voxel.truth_instance_index;
 
         // calc shift
-        for (size_t j=0; j<3; j++)
-          *((float*)PyArray_GETPTR2(embed_t,i,j)) = (float(voxel.voxel_index[j])-centroid[voxel.truth_instance_index][j])/float(nvoxels_dim[j]);
+        float voxel_diff = 0.;
+        for (size_t j=0; j<3; j++) {
+          float dv = centroid[iid][j]-float(voxel.voxel_index[j]);
+          *((float*)PyArray_GETPTR2(embed_t,i,j)) = dv/float(nvoxels_dim[j]);
+          voxel_diff += dv*dv;
+        }
+        voxel_diff = sqrt(voxel_diff);
+        if ( voxel_diff>max_dist_from_centroid[iid] ) {
+          max_dist_from_centroid[iid] = voxel_diff;
+        }
         
         // set sigma in embed tensor
-        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.1;
+        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.01;
 
         // set seed map
         *((float*)PyArray_GETPTR2(seed_t,i,0)) = 1.0;
@@ -564,13 +582,18 @@ namespace spatialembed {
         for (size_t j=0; j<3; j++) {        
           *((float*)PyArray_GETPTR2(embed_t,i,j)) = 0.;
         }
-        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.1;        
+        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.01;
         *((float*)PyArray_GETPTR2(seed_t,i,0)) = 0.0;
       }
 
     }
+
+    for (size_t iid=0; iid<max_dist_from_centroid.size(); iid++)
+      LARCV_NORMAL() << "instance[" << iid << "] max voxel diff: " << max_dist_from_centroid[iid] << std::endl; 
+    
     PyObject *embed_t_key = Py_BuildValue("s", "embed_t");    
     PyObject *seed_t_key = Py_BuildValue("s", "seed_t");
+
 
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, embed_t_key,    (PyObject*)embed_t);
