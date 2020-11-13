@@ -1,8 +1,8 @@
-#ifndef __LOADER_KEYPOINT_DATA_H__
-#define __LOADER_KEYPOINT_DATA_H__
+#ifndef __LOADER_LIGHTMODEL_DATA_H__
+#define __LOADER_LIGHTMODEL_DATA_H__
 
 /**
- * class used to help load keypoint ground truth data for training
+ * class used to help load light model ground truth data for training
  *
  */
 
@@ -16,15 +16,15 @@
 #include <vector>
 
 #include "TChain.h"
-#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+//#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
 namespace larflow {
-namespace keypoints {
+namespace lightmodel {
 
   /**
-   * @ingroup Keypoints
-   * @class LoaderKeypointData
-   * @brief load keypoint ground truth data for training
+   * @ingroup Lightmodel
+   * @class DataLoader
+   * @brief load light model ground truth data for training
    *
    * The class, larflow::keypoints::PrepKeypointData, stores keypoint information
    * into a ROOT tree (which is stored in a ROOT file).

@@ -1,20 +1,22 @@
-set(MODULE_NAME KeyPoints )
+set(MODULE_NAME LightModel )
 
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS KPdata.h
-  PrepKeypointData.h
-  LoaderKeypointData.h
-  PrepAffinityField.h
-  LoaderAffinityField.h )
+set( HEADERS
+# KPdata.h
+#  PrepKeypointData.h
+  DataLoader.h
+#  PrepAffinityField.h
+#  LoaderAffinityField.h )
 
 add_library( ${LIBNAME} SHARED
-  KPdata.cxx
-  PrepKeypointData.cxx  
-  LoaderKeypointData.cxx
-  PrepAffinityField.cxx
-  LoaderAffinityField.cxx )
+#  KPdata.cxx
+#  PrepKeypointData.cxx  
+  DataLoader.cxx
+#  PrepAffinityField.cxx
+#  LoaderAffinityField.cxx
+)
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

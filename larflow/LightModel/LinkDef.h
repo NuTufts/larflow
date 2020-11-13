@@ -1,6 +1,6 @@
-/** \defgroup Keypoints Keypoints
+/** \defgroup LightModel LightModel
  *
- * \brief Tools to prepare keypoint truth labels
+ * \brief Tools to prepare lightmodel truth labels
  *
  *
  * cint script to generate libraries and python bindings.
@@ -15,12 +15,12 @@
 #pragma link off all functions;
 
 #pragma link C++ namespace larflow;
-#pragma link C++ namespace larflow::keypoints;
-#pragma link C++ class larflow::keypoints::KPdata+;
-#pragma link C++ class larflow::keypoints::PrepKeypointData+;
-#pragma link C++ class larflow::keypoints::PrepAffinityField+;
-#pragma link C++ class larflow::keypoints::LoaderKeypointData+;
-#pragma link C++ class larflow::keypoints::LoaderAffinityField+;
+#pragma link C++ namespace larflow::lightmodel;
+//#pragma link C++ class larflow::lightmodel::KPdata+;
+//#pragma link C++ class larflow::lightmodel::PrepKeypointData+;
+//#pragma link C++ class larflow::lightmodel::PrepAffinityField+;
+#pragma link C++ class larflow::lightmodel::DataLoader+;
+//#pragma link C++ class larflow::lightmodel::LoaderAffinityField+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif
