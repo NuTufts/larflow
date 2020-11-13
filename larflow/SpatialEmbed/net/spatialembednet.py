@@ -73,6 +73,15 @@ class SpatialEmbedNet(nn.Module):
             setattr(self,"embed_conv_%d"%(i),conv)
             setattr(self,"embed_upsample_%d"%(i),up)
 
+        # make skip connections that feed into embed and seed decoders
+        self.embed_skip = []
+        self.seed_skip  = []
+        for i in range(len(self.encoding_layers)):
+            self.embed_skip.append( scn.Identity() )
+            self.seed_skip.append( scn.Identity() )            
+            setattr(self,"embed_skip_%d"%(i),self.embed_skip[-1])
+            setattr(self,"seed_skip_%d"%(i),self.seed_skip[-1])            
+
         # seed output, each pixel produces score for each class
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
@@ -105,35 +114,37 @@ class SpatialEmbedNet(nn.Module):
         # must save for each encoder layer for skip connections
         x_encode = [ x ]
         for i,enlayer in enumerate(self.encoding_layers):
-            x = enlayer(x_encode[-1])
+            x = enlayer(x_encode[-1])        
             if verbose: print "  encoder[",i,"]: ",x.features.shape            
             x_encode.append( enlayer(x_encode[-1]) )
             #if verbose: print "  encoder[",i,",]: ",x_encode[-1].features.shape
 
         # embed decoder
         cat = scn.JoinTable()
-        decode_out = {}
-        for name,conv_layers,up_layers in [("embed",self.embed_layers,self.embed_up),
-                                           ("seed",self.seed_layers,self.seed_up)]:
+        decode_out = {"embed":[],"seed":[]}
+        for name,conv_layers,up_layers,skip_layers in [("embed",self.embed_layers,self.embed_up,self.embed_skip),
+                                                       ("seed",self.seed_layers,self.seed_up,self.seed_skip)]:
             decode_input = x_encode[-1]
             for i,(conv,up) in enumerate(zip(conv_layers,up_layers)):
                 # up sample the input
                 if verbose: print " ",name,"-decoder[",i,"]-input: ",decode_input.features.shape
                 x = up(decode_input)
                 if verbose: print " ",name,"-decoder[",i,"]-upsample: ",x.features.shape
-                if verbose: print " ",name,"-decoder[",i,"]-skip: ",x_encode[-2-i].features.shape
-                x = cat( (x,x_encode[-2-i]) )
+                x_skip = skip_layers[i](x_encode[-2-i])
+                if verbose: print " ",name,"-decoder[",i,"]-skip: ",x_skip.features.shape
+                x = cat( (x,x_skip) )
                 if verbose: print " ",name,"-decoder[",i,"]-skipcat: ",x.features.shape
                 x = conv(x)
+                decode_out[name].append(x)
                 decode_input = x
                 if verbose: print " ",name,"-decoder[",i,"]-conv: ",decode_input.features.shape
-            decode_out[name] = decode_input
+            if verbose: print " ",name,"-out: isname=",torch.isnan(decode_out[name][-1].features.detach()).sum(),torch.isinf(decode_out[name][-1].features.detach()).sum()
 
-        x_embed = self.embed_out(decode_out["embed"])
-        if verbose: print "embed-out: ",x_embed.features.shape," num-nam=",torch.isnan(x_embed.detach()).sum()
+        x_embed = self.embed_out(decode_out["embed"][-1])
+        if verbose: print "embed-out: ",x_embed.features.shape," num-nan=",torch.isnan(x_embed.features.detach()).sum()
         
-        x_seed  = self.seed_out(decode_out["seed"])
-        if verbose: print "seed-out:  ",x_seed.features.shape," num-nam=",torch.isnan(x_embed.detach()).sum()
+        x_seed  = self.seed_out(decode_out["seed"][-1])
+        if verbose: print "seed-out:  ",x_seed.features.shape," num-nan=",torch.isnan(x_seed.features.detach()).sum()
 
         # go back to dense array now
         x_embed = self.embed_sparse2dense(x_embed)

@@ -59,12 +59,12 @@ for ientry in range(nentries):
     feat_t.requires_grad = False
     instance_t.requires_grad = False
     print "max(coord_t): ",(torch.max( coord_t[:,0]),torch.max(coord_t[:,1]),torch.max(coord_t[:,2]))
-    print "coord_t nan: ",torch.isnan(coord_t).sum()
-    print "feat_t nan: ",torch.isnan(feat_t).sum()
+    print "coord_t nan inf: ",torch.isnan(coord_t).sum()," ",torch.isinf(coord_t).sum()
+    print "feat_t nan inf: ",torch.isnan(feat_t).sum()," ",torch.isinf(feat_t).sum()
     print "instance_t nan: ",torch.isnan(instance_t).sum()        
 
     # forward
-    embed_t,seed_t = net( coord_t, feat_t, verbose=False )
+    embed_t,seed_t = net( coord_t, feat_t, verbose=True )
 
     # loss
     loss,ninstances,iou_out = criterion( coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )
