@@ -10,9 +10,8 @@ class SpatialEmbedNet(nn.Module):
     def __init__(self,ndimensions,inputshape,
                  input_nfeatures=1,
                  stem_nfeatures=16,
-                 features_per_layer=16,
+                 num_unet_layers=5,
                  nclasses=5,
-                 classifier_nfeatures=[32,32],
                  leakiness=0.001 ):
         """
         parameters
@@ -40,22 +39,11 @@ class SpatialEmbedNet(nn.Module):
         self.stem.add( scn.SubmanifoldConvolution(ndimensions, input_nfeatures, stem_nfeatures, 3, False ) )
         #self.stem.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
 
-        #feat_per_layers = [stem_nfeatures*2,
-        #                   stem_nfeatures*3,
-        #                   stem_nfeatures*4,
-        #                   stem_nfeatures*5,
-        #                   stem_nfeatures*6]
-        #out_feats = [stem_nfeatures*5,
-        #             stem_nfeatures*4,
-        #             stem_nfeatures*3,
-        #             stem_nfeatures*2,
-        #             stem_nfeatures]
-
-        #feat_per_layers = [stem_nfeatures*2,
-        #                   stem_nfeatures*3,
-        #                   stem_nfeatures*4]
         feat_per_layers = [stem_nfeatures*2,
                            stem_nfeatures*3]
+        feat_per_layers = []
+        for n in range(num_unet_layers):
+            feat_per_layers = [(2+n)*stem_nfeatures]
 
         nlayers = len(feat_per_layers)
         
@@ -70,8 +58,8 @@ class SpatialEmbedNet(nn.Module):
             setattr(self,"embed_conv_%d"%(i),conv)
             setattr(self,"embed_upsample_%d"%(i),up)
         for i,(conv,up) in enumerate(zip(self.seed_layers,self.seed_up)):
-            setattr(self,"embed_conv_%d"%(i),conv)
-            setattr(self,"embed_upsample_%d"%(i),up)
+            setattr(self,"seed_conv_%d"%(i),conv)
+            setattr(self,"seed_upsample_%d"%(i),up)
 
         # make skip connections that feed into embed and seed decoders
         self.embed_skip = []
@@ -80,13 +68,16 @@ class SpatialEmbedNet(nn.Module):
             self.embed_skip.append( scn.Identity() )
             self.seed_skip.append( scn.Identity() )            
             setattr(self,"embed_skip_%d"%(i),self.embed_skip[-1])
-            setattr(self,"seed_skip_%d"%(i),self.seed_skip[-1])            
+            setattr(self,"seed_skip_%d"%(i),self.seed_skip[-1])
 
         # seed output, each pixel produces score for each class
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
         #residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
-        residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)        
+        residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)
+
+        # a cat function
+        self.cat = scn.JoinTable()
 
         # instance/embed out, each pixel needs 3 dimension shift and 1 sigma
         self.embed_out = scn.Sequential()
@@ -98,12 +89,13 @@ class SpatialEmbedNet(nn.Module):
         self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
         
 
-    def forward( self, coord_t, feat_t, verbose=False ):
+    def forward( self, coord_t, feat_t, device, verbose=False ):
         """
         """
         if verbose:
             print "[larmatch::make feature vectors] "
             print "  coord=",coord_t.shape," feat=",feat_t.shape
+            print "  cuda: coord=",coord_t.is_cuda," feat=",feat_t.is_cuda  
 
         # Stem
         x = self.inputlayer( (coord_t, feat_t) )
@@ -114,25 +106,27 @@ class SpatialEmbedNet(nn.Module):
         # must save for each encoder layer for skip connections
         x_encode = [ x ]
         for i,enlayer in enumerate(self.encoding_layers):
-            x = enlayer(x_encode[-1])        
-            if verbose: print "  encoder[",i,"]: ",x.features.shape            
+            y = enlayer(x_encode[-1])        
+            if verbose: print "  encoder[",i,"]: ",y.features.shape            
             x_encode.append( enlayer(x_encode[-1]) )
-            #if verbose: print "  encoder[",i,",]: ",x_encode[-1].features.shape
 
         # embed decoder
-        cat = scn.JoinTable()
+        if verbose: print " len(x_encode): ",len(x_encode)
+        
         decode_out = {"embed":[],"seed":[]}
         for name,conv_layers,up_layers,skip_layers in [("embed",self.embed_layers,self.embed_up,self.embed_skip),
                                                        ("seed",self.seed_layers,self.seed_up,self.seed_skip)]:
             decode_input = x_encode[-1]
             for i,(conv,up) in enumerate(zip(conv_layers,up_layers)):
                 # up sample the input
-                if verbose: print " ",name,"-decoder[",i,"]-input: ",decode_input.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-input: ",decode_input.features.shape,decode_input.features.is_cuda
                 x = up(decode_input)
+                
                 if verbose: print " ",name,"-decoder[",i,"]-upsample: ",x.features.shape
+                if verbose: print " ",name,"-decoder[",i,"]-encode source[",-2-i,"]: ",x_encode[-2-i].features.shape
                 x_skip = skip_layers[i](x_encode[-2-i])
                 if verbose: print " ",name,"-decoder[",i,"]-skip: ",x_skip.features.shape
-                x = cat( (x,x_skip) )
+                x = self.cat( (x,x_skip) )
                 if verbose: print " ",name,"-decoder[",i,"]-skipcat: ",x.features.shape
                 x = conv(x)
                 decode_out[name].append(x)
@@ -154,7 +148,7 @@ class SpatialEmbedNet(nn.Module):
         x_embed_shift = torch.tanh( x_embed[:,0:self.ndimensions] )
         # sigma output is predicting ln(0.5/sigma^2)
         x_embed_sigma = x_embed[:,self.ndimensions:]
-        x_embed_out = torch.cat( (x_embed_shift,x_embed_sigma), dim=1 )
+        x_embed_out = torch.cat( [x_embed_shift,x_embed_sigma], dim=1 )
 
         # normalize seed map output between [0,1]
         x_seed  = torch.sigmoid( x_seed )

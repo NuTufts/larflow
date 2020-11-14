@@ -1,6 +1,4 @@
-import os,sys
-
-import os,sys
+import os,sys,time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -57,7 +55,7 @@ class SpatialEmbedLoss(nn.Module):
             loss_seed = 0
 
             for i in range(1,num_instances+1):
-                print "INSTANCE[",i,"]================"
+                if verbose: print "INSTANCE[",i,"]================"
                 idmask = instance.eq(i)
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
@@ -79,7 +77,7 @@ class SpatialEmbedLoss(nn.Module):
 
                 # variance loss, want the values to be similar
                 loss_var = loss_var + torch.mean(torch.pow(sigma_i - s.detach(), 2))
-                print "  sigma variance loss: ",loss_var
+                if verbose: print "  sigma variance loss: ",loss_var
 
                 # gaus score from this instance centroid and sigma
                 s = torch.exp(s*10)
@@ -93,9 +91,9 @@ class SpatialEmbedLoss(nn.Module):
                     print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
                 dist = torch.sum(torch.pow(spembed - center_i, 2),1,keepdim=True)
                 gaus = torch.exp(-1*dist*s).squeeze()
-                print "  gaus: ",dist.shape
-                print "  ave instance dist and gaus: ",dist[idmask].mean()," ",gaus[idmask].mean()
-                print "  ave not-instance dist and gaus: ",dist[~idmask].mean()," ",gaus[~idmask].mean()
+                if verbose: print "  gaus: ",dist.shape
+                if verbose: print "  ave instance dist and gaus: ",dist[idmask].mean()," ",gaus[idmask].mean()
+                if verbose: print "  ave not-instance dist and gaus: ",dist[~idmask].mean()," ",gaus[~idmask].mean()
 
                 loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask.long() )
                 #loss_instance = loss_instance + torch.BCE( lovasz_hinge( gaus*2-1, idmask )

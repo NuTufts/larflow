@@ -80,7 +80,7 @@ def resnet_encoding_layers( input_nfeatures, features_per_layer, reps, dimension
     return conv_layers
 
 def resnet_decoding_layers( unet_input_nfeats, encoder_nfeatures_per_layer, reps,
-                            dimensions=2, upsample=[2,2], leakiness=0.001 ):
+                            dimensions=3, upsample=[2,2], leakiness=0.001 ):
     # Decoding layers
     nlayers = len(encoder_nfeatures_per_layer)
     feats = [unet_input_nfeats] + encoder_nfeatures_per_layer
@@ -99,7 +99,7 @@ def resnet_decoding_layers( unet_input_nfeats, encoder_nfeatures_per_layer, reps
         m_up = scn.Sequential()
         m_up.add( scn.BatchNormLeakyReLU(input_feats,leakiness=leakiness))
         m_up.add( scn.Deconvolution(dimensions, input_feats, skip_feats,
-                                    upsample[0], upsample[1], False) )
+                                    upsample[0], upsample[1], True) )
         up_layers.append(m_up)
 
         m_conv = scn.Sequential()
