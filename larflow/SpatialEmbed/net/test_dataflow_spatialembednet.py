@@ -123,7 +123,7 @@ for ientry in range(1,nentries):
 
         # loss
         start = time.time()
-        loss,ninstances,iou_out = criterion( coord_t, embed_t, seed_t, instance_t, verbose=loss_verbose, calc_iou=True )
+        loss,ninstances,iou_out,_loss_components = criterion( coord_t, embed_t, seed_t, instance_t, verbose=loss_verbose, calc_iou=True )
         dt_loss += time.time()-start
 
         print "loss: ",loss.detach().item()

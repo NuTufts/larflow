@@ -210,7 +210,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-4
+    lr = 1e-3
     momentum = 0.9
     weight_decay = 1.0e-3
 
@@ -427,7 +427,8 @@ def train(train_loader, device, batchsize,
         # GET THE DATA
         end = time.time()
             
-        data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
+        #data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
+        data = train_loader["spatialembed"].getTreeEntryDataAsArray(0)
         
         # convert into torch tensors
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)

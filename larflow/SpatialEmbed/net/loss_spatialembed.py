@@ -66,10 +66,11 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
                 sigma_i = sigma[idmask]
-                seed_i  = seed[idmask,:]
+                seed_i  = seed[idmask,0]
                 spembed_i = spembed[idmask,:]
                 if verbose: print "  instance coord.shape: ",coord_i.shape
                 if verbose: print "  sigma_i: ",sigma_i.shape
+                if verbose: print "  seed_i: ",seed_i.shape
                 
                 # mean
                 s = sigma_i.mean() # 1 dimensions
@@ -97,7 +98,7 @@ class SpatialEmbedLoss(nn.Module):
                     print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
                     print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
                 dist = torch.sum(torch.pow(spembed - center_i, 2),1)
-                gaus = torch.clamp( torch.exp(-1*dist*s), min=0, max=1.0 )
+                gaus = torch.exp(-1*dist*s)
                 if verbose: print "  gaus: ",dist.shape
                 if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
                 if verbose: print "  ave not-instance dist and gaus: ",dist.detach()[~idmask].mean()," ",gaus.detach()[~idmask].mean()
@@ -109,7 +110,14 @@ class SpatialEmbedLoss(nn.Module):
                 loss_instance = loss_instance +  loss_i
 
                 # L2 loss for gaussian prediction
-                loss_s = self.foreground_weight*torch.sum(torch.pow(seed_i-gaus[idmask].detach(), 2))
+                if verbose: print "  seed_i [min,max]=[",seed_i.detach().min().item(),",",seed_i.detach().max().item(),"]"
+                if verbose: print "  gaus_i [min,max]=[",gaus[idmask].detach().min().item(),",",gaus[idmask].detach().max().item(),"]"
+                dist_s = torch.pow(seed_i-gaus[idmask].detach(), 2)
+                #dist_s = seed_i-gaus[idmask].detach()
+                if verbose: print "  dist_s: ",dist_s.detach().shape," ",dist_s.detach().mean().item()
+                #if verbose: print "  dist_s: ",dist_s
+                loss_s = self.foreground_weight*dist_s.mean()
+                if verbose: print "  loss_s = ",loss_s.detach().item()
                 if verbose:
                     if idmask.sum()>0:
                         print "  seed loss: ",loss_s.detach().item()/float(idmask.sum().item())
@@ -123,8 +131,8 @@ class SpatialEmbedLoss(nn.Module):
                         print "   iou: ",instance_iou
                     ave_iou += instance_iou
                 if verbose:
-                    print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum()," of ",gaus[idmask].detach().shape[0]                    
-                    print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum()," of ",gaus[~idmask].detach().shape[0]
+                    print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum().item()," of ",gaus[idmask].detach().shape[0]                    
+                    print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum().item()," of ",gaus[~idmask].detach().shape[0]
 
                 obj_count += 1
                 seed_pix_count += idmask.detach().sum()
@@ -135,10 +143,9 @@ class SpatialEmbedLoss(nn.Module):
             if obj_count > 0:
                 loss_instance /= float(obj_count)
                 loss_var /= float(obj_count)
-            if seed_pix_count>0:
-                loss_seed /= float(seed_pix_count)
+                loss_seed /= float(obj_count)
                 
-
+            if verbose: print "_loss_seed=",loss_seed.detach().item()
             loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var                
             _loss_instance += self.w_embed * loss_instance.detach().item()
             _loss_seed     += self.w_seed * loss_seed.detach().item()
@@ -149,7 +156,7 @@ class SpatialEmbedLoss(nn.Module):
         # end of batch loop
 
         # normalize per batch        
-        loss = loss / float(b+1)
+        loss = loss / float(batch_size)
 
         # ave iou
         if calc_iou and instance_iou>0:
