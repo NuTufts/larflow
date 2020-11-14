@@ -17,6 +17,31 @@ namespace spatialembed {
    * static variable to track if numpy environment has been setup
    */
   bool Prep3DSpatialEmbed::_setup_numpy = false;
+
+  /**
+   * @brief constructor where input files have been specified
+   *
+   */
+  Prep3DSpatialEmbed::Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files )
+    : larcv::larcv_base("Prep3DSpatialEmbed"),
+    _filter_by_instance_image(false),
+    _tree(nullptr),
+    _kowner(true),
+    _in_pvid_row(nullptr),
+    _in_pvid_col(nullptr),
+    _in_pvid_depth(nullptr),
+    _in_pinstance_id(nullptr),      
+    _in_pq_u(nullptr),
+    _in_pq_v(nullptr),
+    _in_pq_y(nullptr)
+  {
+    TChain* chain = new TChain("s3dembed");
+    for ( auto const& input_file : input_root_files ) {
+      chain->Add( input_file.c_str() );
+    }
+    loadTreeBranches( (TTree*)chain );
+  }
+  
   
   /**
    * @brief convert larmatch info voxel data list, including truth
@@ -156,7 +181,7 @@ namespace spatialembed {
 
   void Prep3DSpatialEmbed::bindVariablesToTree( TTree* atree )
   {
-    _tree = atree;
+    if ( !_tree ) _tree = atree;
     _tree->Branch( "vidrow", &vid_row );
     _tree->Branch( "vidcol", &vid_col );
     _tree->Branch( "viddepth", &vid_depth );
@@ -268,7 +293,7 @@ namespace spatialembed {
 
   void Prep3DSpatialEmbed::loadTreeBranches( TTree* atree )
   {
-    _tree = atree;
+    if ( !_tree ) _tree = atree;
     _tree->SetBranchAddress("vidrow",&_in_pvid_row);
     _tree->SetBranchAddress("vidcol",&_in_pvid_col);
     _tree->SetBranchAddress("viddepth",&_in_pvid_depth);
@@ -288,9 +313,11 @@ namespace spatialembed {
     
     Prep3DSpatialEmbed::VoxelDataList_t data;
     unsigned long bytes = _tree->GetEntry(entry);
-    if ( !bytes )
+    if ( !bytes ) {
       return data; // return empty container
-
+    }
+    _current_entry = entry;
+    
     // fill container with vector values
     size_t nvoxels = _in_pvid_row->size();
     data.reserve( nvoxels );
@@ -311,9 +338,36 @@ namespace spatialembed {
 
   PyObject* Prep3DSpatialEmbed::getTreeEntryDataAsArray( int entry )
   {
-    return makeTrainingDataDict( getTreeEntry(entry) );
+    auto data = getTreeEntry(entry);
+    if (data.size()>0)
+      return makeTrainingDataDict( data );
+
+    Py_INCREF(Py_None);
+    return Py_None;
   }
 
+  /**
+   * @brief get next entry in file. loops around
+   * 
+   */
+  PyObject* Prep3DSpatialEmbed::getNextTreeEntryDataAsArray()
+  {
+    _current_entry++;
+    auto data = getTreeEntry(_current_entry);
+    if (data.size()>0)
+      return makeTrainingDataDict( data );
+
+    // try again
+    _current_entry = 0;
+    auto data2 = getTreeEntry(_current_entry);
+    if (data2.size()>0)
+      return makeTrainingDataDict( data2 );
+
+    // problems
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  
   /**
    * @brief generate true labels for the voxels. use truth larflow points
    *

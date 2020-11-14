@@ -30,6 +30,7 @@ namespace spatialembed {
       : larcv::larcv_base("Prep3DSpatialEmbed"),
       _filter_by_instance_image(false),
       _tree(nullptr),
+      _kowner(false),
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
       _in_pvid_depth(nullptr),
@@ -38,7 +39,8 @@ namespace spatialembed {
       _in_pq_v(nullptr),
       _in_pq_y(nullptr)
       {};
-    virtual ~Prep3DSpatialEmbed() {};
+    Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files ); 
+    virtual ~Prep3DSpatialEmbed() { if (_kowner) delete (TChain*)_tree; };
 
     /**
      * @brief Data for each non-zero voxel
@@ -79,6 +81,8 @@ namespace spatialembed {
     void loadTreeBranches( TTree* atree );
     VoxelDataList_t getTreeEntry(int entry);
     PyObject*       getTreeEntryDataAsArray( int entry );
+    PyObject* getNextTreeEntryDataAsArray();
+    unsigned long getCurrentEntry();
     
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,
@@ -92,6 +96,8 @@ namespace spatialembed {
 
     const larflow::voxelizer::VoxelizeTriplets& getVoxelizer() const { return _voxelizer; };
 
+    const TTree& getTree() { return *_tree; };
+
   protected:
 
     // parameters affecting behavior
@@ -99,6 +105,8 @@ namespace spatialembed {
     
     larflow::voxelizer::VoxelizeTriplets _voxelizer;
     TTree* _tree;
+    unsigned long _current_entry;
+    bool _kowner; //< indicates if we own the tree
     std::vector< int > vid_row;
     std::vector< int > vid_col;
     std::vector< int > vid_depth;

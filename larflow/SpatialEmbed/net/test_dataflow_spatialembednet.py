@@ -51,14 +51,14 @@ if not use_random_tensor:
     from ublarcvapp import ublarcvapp
     from larflow import larflow
     larcv.SetPyUtil()
-    
-    infile = rt.TFile(args.input_file)
-    io = infile.Get("s3dembed")
-    nentries = io.GetEntries()
+
+    input_file_v = rt.std.vector("std::string")()
+    input_file_v.push_back( args.input_file )
+    voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_file_v)
+    nentries = voxelloader.GetEntries()
     print("NENTRIES: ",nentries)
 
-    voxelloader = larflow.spatialembed.Prep3DSpatialEmbed()
-    voxelloader.loadTreeBranches( io )
+
 # RANDOM DATA
 else:
     print "NO ROOT"

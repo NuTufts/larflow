@@ -16,17 +16,21 @@ from larflow import larflow
 larcv.SetPyUtil()
 
 # LOAD TREES
-infile = rt.TFile(args.input_file)
-io = infile.Get("s3dembed")
-nentries = io.GetEntries()
-print("NENTRIES: ",nentries)
+input_files = rt.std.vector("std::string")()
+input_files.push_back(args.input_file)
 
-voxelloader = larflow.spatialembed.Prep3DSpatialEmbed()
-voxelloader.loadTreeBranches( io )
+nentries = 100
+
+voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_files)
     
 for ientry in range(nentries):
-    data = voxelloader.getTreeEntry(ientry)
-    print("number of voxels: ",data.size())
-    data_dict = voxelloader.getTreeEntryDataAsArray(ientry)
-    print("voxel entries: ",data_dict["coord_t"].shape)
+    #data = voxelloader.getTreeEntry(ientry)
+    #print("number of voxels: ",data.size())
+    data_dict = voxelloader.getNextTreeEntryDataAsArray()
+    if data_dict:
+        print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
+    else:
+        print("returned None")
+        break
+
 print("[FIN]")
