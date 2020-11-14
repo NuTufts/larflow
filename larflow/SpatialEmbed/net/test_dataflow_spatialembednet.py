@@ -55,7 +55,7 @@ if not use_random_tensor:
     input_file_v = rt.std.vector("std::string")()
     input_file_v.push_back( args.input_file )
     voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_file_v)
-    nentries = voxelloader.GetEntries()
+    nentries = voxelloader.getTree().GetEntries()
     print("NENTRIES: ",nentries)
 
 
