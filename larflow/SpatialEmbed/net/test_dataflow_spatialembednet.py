@@ -15,6 +15,7 @@ args = parser.parse_args()
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import autograd
 
 # NETWORK/LOSS
 from spatialembednet import SpatialEmbedNet
@@ -23,6 +24,7 @@ from loss_spatialembed import SpatialEmbedLoss
 device = torch.device("cpu")
 #device = torch.device("cuda")
 verbose = False
+loss_verbose = True
 
 # random tensor option for debugging
 use_random_tensor = False
@@ -36,6 +38,7 @@ net = SpatialEmbedNet(3, voxel_dims,
                       nclasses=1,
                       num_unet_layers=5,
                       stem_nfeatures=32).to(device)
+net.init_embedout()
 
 criterion = SpatialEmbedLoss( dim_nvoxels=voxel_dims ).to(device)
 
@@ -82,7 +85,7 @@ dt_loader = 0.
 dt_forward = 0.
 dt_loss = 0.
 nrun = 0
-for ientry in range(nentries):
+for ientry in range(1,nentries):
 
     start = time.time()
     if not use_random_tensor:
@@ -111,16 +114,31 @@ for ientry in range(nentries):
     print "instance_t nan: ",torch.isnan(instance_t).sum()
     
     # forward
-    start = time.time()    
-    embed_t,seed_t = net( coord_t, feat_t, device, verbose=verbose )
-    dt_forward += time.time()-start
+    with autograd.detect_anomaly():    
+        start = time.time()    
+        embed_t,seed_t = net( coord_t, feat_t, device, verbose=verbose )
+        print " embed_t[shift].sum()=",embed_t[:,0:3].detach().sum()
+        print " embed_t[sigma].mean()=",embed_t[:,3].detach().mean()        
+        dt_forward += time.time()-start
 
-    # loss
-    start = time.time()
-    loss,ninstances,iou_out = criterion( coord_t, embed_t, seed_t, instance_t, verbose=verbose, calc_iou=True )
-    dt_loss += time.time()-start
+        # loss
+        start = time.time()
+        loss,ninstances,iou_out = criterion( coord_t, embed_t, seed_t, instance_t, verbose=loss_verbose, calc_iou=True )
+        dt_loss += time.time()-start
+
+        print "loss: ",loss.detach().item()
+        
+        # backwards
+        loss.backward()
+
+    # dump the gradients
+    if False:
+        for n,p in net.named_parameters():
+            print n,": grad: ",p.grad
 
     nrun += 1
+    break
+
 print("Loading time: ",dt_loader," sec total ",dt_loader/nrun," sec/entry")
 print("Loading net-forward: ",dt_forward," sec total ",dt_forward/nrun," sec/entry")
 print("Loading loss: ",dt_loss," sec total ",dt_loss/nrun," sec/entry")

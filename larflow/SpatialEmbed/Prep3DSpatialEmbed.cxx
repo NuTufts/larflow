@@ -627,7 +627,7 @@ namespace spatialembed {
         }
         
         // set sigma in embed tensor
-        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.01;
+        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 100.0;
 
         // set seed map
         *((float*)PyArray_GETPTR2(seed_t,i,0)) = 1.0;

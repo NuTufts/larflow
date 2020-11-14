@@ -73,8 +73,11 @@ class SpatialEmbedNet(nn.Module):
         # seed output, each pixel produces score for each class
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
-        #residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
+        residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
         residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)
+        # the last layer is a standard conv layer so we can manipulate it
+        #self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+        #self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )
 
         # a cat function
         self.cat = scn.JoinTable()
@@ -83,11 +86,37 @@ class SpatialEmbedNet(nn.Module):
         self.embed_out = scn.Sequential()
         residual_block(self.embed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
         #residual_block(self.embed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
-        residual_block(self.embed_out,stem_nfeatures,4,leakiness=leakiness)
+        #residual_block(self.embed_out,stem_nfeatures,4,leakiness=leakiness)
+        self.embed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+        self.embed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, 4, 3, True) )
 
         self.embed_sparse2dense = scn.OutputLayer(ndimensions)
         self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
-        
+
+    def init_embedout(self,nsigma=1):
+        """
+        trick: the margin term likes to blow up, so we initial to a better spot
+        from paper's code repo
+        with torch.no_grad():
+            output_conv = self.decoders[0].output_conv
+            print('initialize last layer with size: ',
+                  output_conv.weight.size())
+
+            output_conv.weight[:, 0:2, :, :].fill_(0)
+            output_conv.bias[0:2].fill_(0)
+
+            output_conv.weight[:, 2:2+n_sigma, :, :].fill_(0)
+            output_conv.bias[2:2+n_sigma].fill_(1)
+        """
+        with torch.no_grad():
+            print self.embed_out[-1]
+            for n,p in self.embed_out[-1].named_parameters():
+                print n,": pars: ",p.shape
+            self.embed_out[-1].weight.fill_(0)
+            self.embed_out[-1].bias[0:3].fill_(0)
+            self.embed_out[-1].bias[3].fill_(1.0)
+            
+                    
 
     def forward( self, coord_t, feat_t, device, verbose=False ):
         """

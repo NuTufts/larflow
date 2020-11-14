@@ -14,20 +14,25 @@ class SpatialEmbedLoss(nn.Module):
         self.w_embed = w_embed
         self.w_seed  = w_seed
         self.w_sigma_var = w_sigma_var
+        self.bce = torch.nn.BCELoss()
         
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
         
     def forward(self, coord_t, embed_t, seed_t, instance_t, verbose=False, calc_iou=None):
-        batch_size = coord_t[:,3].max()+1
+        with torch.no_grad():
+            batch_size = coord_t[:,3].max()+1
 
-        fcoord_t = coord_t.to(torch.float32)
-        fcoord_t[:,0] /= self.dim_nvoxels_t[0]
-        fcoord_t[:,1] /= self.dim_nvoxels_t[1]
-        fcoord_t[:,2] /= self.dim_nvoxels_t[2]
+            fcoord_t = coord_t.to(torch.float32)
+            fcoord_t[:,0] /= self.dim_nvoxels_t[0]
+            fcoord_t[:,1] /= self.dim_nvoxels_t[1]
+            fcoord_t[:,2] /= self.dim_nvoxels_t[2]
 
         ave_iou = 0.
         batch_ninstances = 0
         loss = 0
+        _loss_var = 0.
+        _loss_seed = 0.
+        _loss_instance = 0.
         
         for b in range(batch_size):
             # get entries a part of current batch index
@@ -46,6 +51,7 @@ class SpatialEmbedLoss(nn.Module):
 
             # calc embeded position
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
+            sigma   = torch.tanh(embed[:,3])
 
             obj_count = 0
             loss_var = 0
@@ -59,14 +65,12 @@ class SpatialEmbedLoss(nn.Module):
                 idmask = instance.eq(i)
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
-                embed_i = embed[idmask,:]
+                sigma_i = sigma[idmask]
                 seed_i  = seed[idmask,:]
                 spembed_i = spembed[idmask,:]
                 if verbose: print "  instance coord.shape: ",coord_i.shape
-
-                # get sigmas
-                sigma_i = embed_i[:,3]
                 if verbose: print "  sigma_i: ",sigma_i.shape
+                
                 # mean
                 s = sigma_i.mean() # 1 dimensions
                 if verbose: print "  mean(ln(0.5/sigma^2): ",s
@@ -75,42 +79,55 @@ class SpatialEmbedLoss(nn.Module):
                 center_i = spembed_i.mean(0).view(1,3)
                 if verbose: print "  centroid: ",center_i
 
-                # variance loss, want the values to be similar
+                # variance loss, want the values to be similar. orig author notes to find loss first
                 loss_var = loss_var + torch.mean(torch.pow(sigma_i - s.detach(), 2))
-                if verbose: print "  sigma variance loss: ",loss_var
+                if verbose: print "  sigma variance loss: ",loss_var.detach().item()
 
                 # gaus score from this instance centroid and sigma
-                s = torch.exp(s*10)
+                s = torch.exp(s*10.0) # tends to blow up
+                #s = 0.5/torch.pow(s,2)
+                #s = torch.clamp(s,min=0, max=2.0)
+
                 if verbose:
-                    diff = spembed[:,0:3].detach()-center_i
+                    diff = spembed[:,0:3].detach()-center_i.detach()
                     diff[:,0] *= self.dim_nvoxels_t[0]
                     diff[:,1] *= self.dim_nvoxels_t[1]
                     diff[:,2] *= self.dim_nvoxels_t[2]
                     print "  ave and max diff[0]: ",diff[:,0].mean()," ",diff[:,0].max()
                     print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
                     print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
-                dist = torch.sum(torch.pow(spembed - center_i, 2),1,keepdim=True)
-                gaus = torch.exp(-1*dist*s).squeeze()
+                dist = torch.sum(torch.pow(spembed - center_i, 2),1)
+                gaus = torch.clamp( torch.exp(-1*dist*s), min=0, max=1.0 )
                 if verbose: print "  gaus: ",dist.shape
-                if verbose: print "  ave instance dist and gaus: ",dist[idmask].mean()," ",gaus[idmask].mean()
-                if verbose: print "  ave not-instance dist and gaus: ",dist[~idmask].mean()," ",gaus[~idmask].mean()
+                if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
+                if verbose: print "  ave not-instance dist and gaus: ",dist.detach()[~idmask].mean()," ",gaus.detach()[~idmask].mean()
 
-                loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask.long() )
-                #loss_instance = loss_instance + torch.BCE( lovasz_hinge( gaus*2-1, idmask )
+                #loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask.long() )
+                #print " idmask.float(): ",idmask.float().sum()
+                loss_i = self.bce( gaus, idmask.float() )
+                if verbose: print "  instance loss: ",loss_i.detach().item()
+                loss_instance = loss_instance +  loss_i
 
                 # L2 loss for gaussian prediction
-                loss_seed += self.foreground_weight*torch.sum(torch.pow(seed_i-dist[idmask].detach(), 2))
+                loss_s = self.foreground_weight*torch.sum(torch.pow(seed_i-gaus[idmask].detach(), 2))
+                if verbose:
+                    if idmask.sum()>0:
+                        print "  seed loss: ",loss_s.detach().item()/float(idmask.sum().item())
+                    else:
+                        print "  seed loss: no instance?"
+                loss_seed += loss_s
 
                 if calc_iou:
-                    instance_iou = self.calculate_iou(gaus.detach()>0.5, idmask)
+                    instance_iou = self.calculate_iou(gaus.detach()>0.5, idmask.detach())
                     if verbose:
                         print "   iou: ",instance_iou
                     ave_iou += instance_iou
                 if verbose:
-                    print "  npix inside margin: ",(gaus.detach()>0.5).sum()," of ",gaus.shape[0]
+                    print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum()," of ",gaus[idmask].detach().shape[0]                    
+                    print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum()," of ",gaus[~idmask].detach().shape[0]
 
                 obj_count += 1
-                seed_pix_count += idmask.sum()
+                seed_pix_count += idmask.detach().sum()
 
             # end of instance loop
 
@@ -122,7 +139,11 @@ class SpatialEmbedLoss(nn.Module):
                 loss_seed /= float(seed_pix_count)
                 
 
-            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var 
+            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var                
+            _loss_instance += self.w_embed * loss_instance.detach().item()
+            _loss_seed     += self.w_seed * loss_seed.detach().item()
+            _loss_var      += self.w_sigma_var * loss_var.detach().item()
+            #loss += self.w_embed * loss_instance + self.w_seed * loss_seed
             batch_ninstances += obj_count
 
         # end of batch loop
@@ -134,15 +155,18 @@ class SpatialEmbedLoss(nn.Module):
         if calc_iou and instance_iou>0:
             ave_iou /= float(batch_ninstances)
 
-        return loss,batch_ninstances,ave_iou
+        if verbose: print "total loss=",loss.detach().item()," ave-iou=",ave_iou
+
+        return loss,batch_ninstances,ave_iou,(_loss_instance,_loss_seed,_loss_var)
                 
     def calculate_iou(self, pred, label):
         intersection = ((label == 1) & (pred == 1)).sum()
         union = ((label == 1) | (pred == 1)).sum()
         if not union:
+            print "no union for iou"
             return 0
         else:
-            iou = intersection.item() / union.item()
+            iou = float(intersection.item()) / float(union.item())
         return iou
     
 if __name__=="__main__":
@@ -194,7 +218,7 @@ if __name__=="__main__":
         
         print("voxel entries: ",coord_t.shape)
 
-        loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True )
+        loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )
         
         break
     

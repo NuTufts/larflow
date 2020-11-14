@@ -82,7 +82,7 @@ namespace spatialembed {
     VoxelDataList_t getTreeEntry(int entry);
     PyObject*       getTreeEntryDataAsArray( int entry );
     PyObject* getNextTreeEntryDataAsArray();
-    unsigned long getCurrentEntry();
+    unsigned long getCurrentEntry() { return _current_entry; };
     
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,

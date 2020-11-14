@@ -1,7 +1,7 @@
 #!/bin/env python
 
 """
-TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
+TRAINING SCRIPT FOR 3D VOXEL SPATIAL EMBED CLUSTERING
 """
 
 ## IMPORT
@@ -36,25 +36,21 @@ import torch.nn.functional as F
 # tensorboardX
 from torch.utils.tensorboard import SummaryWriter
 
-# dataset interface
-from larcvdataset.larcvserver import LArCVServer
-
+# network and loss modules
 from spatialembednet import SpatialEmbedNet
+from loss_spatialembed import SpatialEmbedLoss
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
-TRAIN_SSNET=False
-TRAIN_KP=True
-TRAIN_KPSHIFT=False
-TRAIN_PAF=False
-TRAIN_VERBOSE=True
-FREEZE_LAYERS=True
+TRAIN_NET_VERBOSE=False
+TRAIN_LOSS_VERBOSE=False
+FREEZE_LAYERS=False
 
 # Hard example training parameters (not yet implemented)
 # =======================================================
@@ -74,17 +70,15 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #                 "larmatch_kps_train_p03.root",
 #                 "larmatch_kps_train_p04.root"]
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
-TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
-INPUTFILE_TRAIN=["output_alldata.root"]
-INPUTFILE_VALID=["output_alldata.root"]
+TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
+INPUTFILE_TRAIN=["test_s3dembed.root"]
+INPUTFILE_VALID=["test_s3dembed.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER  = 0
-NUM_ITERS   = 2000000
-TEST_NUM_MATCH_PAIRS = 30000
-ADC_MAX = 400.0
+NUM_ITERS   = 2000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
 BATCHSIZE_VALID=1  # batches per validation iteration
@@ -98,7 +92,7 @@ trainbatches_per_print = -1
 NBATCHES_per_itervalid = 1
 validbatches_per_print = -1
 
-ITER_PER_VALID = 10
+ITER_PER_VALID = 10000000
 
 # CHECKPOINT PARAMETERS
 # =======================
@@ -110,7 +104,7 @@ HARDEX_MAP_LOCATIONS={"cuda:0":"cuda:0",
                       "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=1000
+ITER_PER_CHECKPOINT=1000000000000
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -138,28 +132,26 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the device
-    model = LArMatch(use_unet=True).to(DEVICE)
-    ssnet_head    = LArMatchSSNetClassifier().to(DEVICE)
-    kplabel_head  = LArMatchKeypointClassifier().to(DEVICE)
-    kpshift_head  = LArMatchKPShiftRegressor().to(DEVICE)
-    affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64]).to(DEVICE)
-    # the model is multi-tasked, so we group the different tasks into a map
-    model_dict = {"larmatch":model,
-                  "ssnet":ssnet_head,
-                  "kplabel":kplabel_head,
-                  "kpshift":kpshift_head,
-                  "paf":affinity_head}
+    voxel_dims = (2048, 1024, 4096)
+    model = SpatialEmbedNet(3, voxel_dims,
+                            input_nfeatures=3,
+                            nclasses=1,
+                            num_unet_layers=5,
+                            stem_nfeatures=32).to(DEVICE)
+    model.init_embedout()
+
+    # define loss function (criterion) and optimizer
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims)
+    
+    model_dict = {"spatialembed":model}
     parameters = []
     for n,model in model_dict.items():
         for p in model.parameters():
             parameters.append( p )
     
-    if True:
+    if False:
         # DUMP MODEL (for debugging)
         print model
-        print ssnet_head
-        print kplabel_head
-        print kpshift_head
 
         # uncomment to dump model parameters
         if False:
@@ -216,16 +208,11 @@ def main():
             for param in model_dict[fixed_model].parameters():
                 param.requires_grad = False
         
-    # define loss function (criterion) and optimizer
-    criterion = SparseLArMatchKPSLoss( eval_ssnet=False,
-                                       eval_keypoint_label=True,
-                                       eval_keypoint_shift=False,
-                                       eval_affinity_field=TRAIN_PAF )
 
     # training parameters
-    lr = 1e-2
+    lr = 1e-4
     momentum = 0.9
-    weight_decay = 1.0e-4
+    weight_decay = 1.0e-3
 
     # training variables
     itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
@@ -247,25 +234,18 @@ def main():
     traindata_v = std.vector("std::string")()
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iotrain = {"kps":larflow.keypoints.LoaderKeypointData(traindata_v),
-               "affinity":larflow.keypoints.LoaderAffinityField(traindata_v)}
+    iotrain = {"spatialembed":larflow.spatialembed.Prep3DSpatialEmbed(traindata_v)}
 
     validdata_v = std.vector("std::string")()
     for x in INPUTFILE_VALID:
         validdata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
-    iovalid = {"kps":larflow.keypoints.LoaderKeypointData(validdata_v),
-               "affinity":larflow.keypoints.LoaderAffinityField(validdata_v)}
+    iovalid = {"spatialembed":larflow.spatialembed.Prep3DSpatialEmbed(validdata_v)}
 
-    if not EXCLUDE_NEG_EXAMPLES:
-        for name,loader in iotrain.items():
-            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
-        for name,loader in iovalid.items():
-            loader.exclude_false_triplets( EXCLUDE_NEG_EXAMPLES )
 
-    TRAIN_NENTRIES = iotrain["kps"].GetEntries()
+    TRAIN_NENTRIES = iotrain["spatialembed"].getTree().GetEntries()
     iter_per_epoch = TRAIN_NENTRIES/(itersize_train)
     epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
-    VALID_NENTRIES = iovalid["kps"].GetEntries()
+    VALID_NENTRIES = iovalid["spatialembed"].getTree().GetEntries()
 
     print "Number of iterations to run: ",NUM_ITERS
     print "Entries in the training set: ",TRAIN_NENTRIES
@@ -305,6 +285,8 @@ def main():
                 print e.__class__.__name__
                 traceback.print_exc(e)
                 break
+
+            print "made it to train!"
 
             # evaluate on validation set at a given interval (every ITER_PER_VALID training iterations)
             if ii%ITER_PER_VALID==0 and ii>0:
@@ -362,11 +344,7 @@ def main():
         save_checkpoint({
             'iter':NUM_ITERS,
             'epoch': float(NUM_ITERS)/iter_per_epoch,
-            'state_larmatch': model_dict["larmatch"].state_dict(),
-            'state_ssnet': model_dict["ssnet"].state_dict(),
-            'state_kplabel': model_dict["kplabel"].state_dict(),
-            'state_kpshift': model_dict["kpshift"].state_dict(),
-            'state_paf': model_dict["paf"].state_dict(),
+            'state_embed': model_dict["spatialembed"].state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, False, NUM_ITERS)
@@ -410,8 +388,8 @@ def train(train_loader, device, batchsize,
     acc_time      = AverageMeter()
 
     # accruacy and loss meters
-    lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
+    lossnames    = ["total","instance","seed","var"]
+    flowaccnames = ["iou"]
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -422,7 +400,7 @@ def train(train_loader, device, batchsize,
         loss_meters[n] = AverageMeter()
 
     time_meters = {}
-    for l in ["batch","data","forward","backward","accuracy"]:
+    for l in ["batch","data","forward","backward","loss"]:
         time_meters[l] = AverageMeter()
     
     # switch to train mode
@@ -438,7 +416,6 @@ def train(train_loader, device, batchsize,
     #    if "out" in n:
     #        print n,": grad: ",p.grad
     #        print n,": ",p
-    
 
     # run predictions over nbatches before calculating gradients
     # if nbatches>1, this is so-called "gradient accumulation".
@@ -450,206 +427,69 @@ def train(train_loader, device, batchsize,
         # GET THE DATA
         end = time.time()
             
-        flowdata = load_larmatch_kps( train_loader, train_entry, 1,
-                                      npairs=TEST_NUM_MATCH_PAIRS,
-                                      verbose=True, single_batch_mode=True )
-
-        coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
-        feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
-
-        npairs          = flowdata['npairs']        
-        match_t         = torch.from_numpy( flowdata['matchpairs'] ).to(device).requires_grad_(False)
-        match_label_t   = torch.from_numpy( flowdata['larmatchlabels'] ).to(device).requires_grad_(False)
-        match_weight_t  = torch.from_numpy( flowdata['match_weight'] ).to(device).requires_grad_(False)
-        truematch_idx_t = torch.from_numpy( flowdata['positive_indices'] ).to(device).requires_grad_(False)
+        data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
         
-        ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'] ).to(device).requires_grad_(False)
-        ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'] ).to(device).requires_grad_(False)
-        ssnet_top_weight_t = torch.from_numpy( flowdata['ssnet_top_weight'] ).to(device).requires_grad_(False)
-        
-        kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device).requires_grad_(False)
-        kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'] ).to(device).requires_grad_(False)        
-        kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
-        
-        paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
-        paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)
+        # convert into torch tensors
+        coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
+        feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
+        instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        coord_t.requires_grad = False
+        feat_t.requires_grad = False
+        instance_t.requires_grad = False        
 
-        for p in xrange(3):
-            feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
+        #for p in xrange(3):
+        #    feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
+        train_entry = train_loader["spatialembed"].getCurrentEntry() 
+        print("loaded entry[",train_entry,"] voxel entries: ",data["coord_t"].shape)
 
-        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs
-        if train_entry+1<TRAIN_NENTRIES:
-            train_entry += 1
-        else:
-            train_entry = 0
         
         # compute output
         if RUNPROFILER:
             torch.cuda.synchronize()
-        end = time.time()
         
-
-        # first get feature vectors
-        feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
-                                                                           coord_t[1], feat_t[1],
-                                                                           coord_t[2], feat_t[2], 1,
-                                                                           verbose=TRAIN_VERBOSE )
-        if HARD_EXAMPLE_TRAINING and hardex_model is not None:
-            # we use the fixed network to calculate score for all triplets
-            raise RuntimeError("HARD_EXAMPLE_TRAINING not implemented yet. This is just a stub.")
-            fixednet_ntriplets = preplarmatch._triplet_v.size()
-            fixednet_startidx  = 0
-            fixednet_scores_np = np.zeros( ntriplets )
-            while startidx<ntriplets:
-                print("create matchpairs: startidx=",startidx," of ",ntriplets)
-                t_chunk = time.time()
-                matchpair_np = preplarmatch.get_chunk_triplet_matches( startidx,
-                                                                       NUM_PAIRS,
-                                                                       last_index,
-                                                                       npairs,
-                                                                       with_truth )
-                t_chunk = time.time()-t_chunk
-                print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
-                dt_chunk += t_chunk            
-                startidx = int(last_index.value)
-
-            # make torch tensor or array providing index of pixels in each plane we should group
-            # to form a 3D spacepoint proposal
-            matchpair_t = torch.from_numpy( matchpair_np.astype(np.long) ).to(DEVICE)
-                
-            if with_truth:
-                truthvec = torch.from_numpy( matchpair_np[:,3].astype(np.long) ).to(DEVICE)
-
-            with torch.no_grad():
-                feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
-                                                                          matchpair_t, npairs.value,
-                                                                          DEVICE, verbose=True )
-            tstart = time.time()
-            with torch.no_grad():
-                pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
-            dt_net_classify = time.time()-tstart
-            dt_net  += dt_net_classify
-            prob_t = sigmoid(pred_t) # should probably move inside classify_triplet method
-            print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
-            
-
-        # TRAINING MODEL: EVALUATE LARMATCH SCORES
-        # ==========================================
-        # extract features according to sampled match indices
-        feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
-                                                             match_t, flowdata['npairs'],
-                                                             device, verbose=TRAIN_VERBOSE )
-        print "[larmatch train] feat_triplet_t=",feat_triplet_t.shape
-
-        # evaluate larmatch match classifier
-        match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
-        match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-        print "[larmatch train] match-pred=",match_pred_t.shape
-
-        # evaluate ssnet classifier
-        if TRAIN_SSNET:
-            ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
-            ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
-            ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-            print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
-        else:
-            ssnet_pred_t = None
-        
-        # next evaluate keypoint classifier
-        if TRAIN_KP:
-            kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape            
-            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
-            kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
-        else:
-            kplabel_pred_t = None
-        
-        # next evaluate keypoint shift predictor
-        if TRAIN_KPSHIFT:
-            kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
-            kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
-            kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-            print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
-        else:
-            kpshift_pred_t = None
-
-        # next evaluate affinity field predictor
-        if TRAIN_PAF:
-            paf_pred_t = model["paf"].forward( feat_triplet_t )
-            print "[larmatch train]: paf pred=",paf_pred_t.shape
-            paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-            paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-            print "[larmatch train]: paf pred=",paf_pred_t.shape
-        else:
-            paf_pred_t = None
+        # run network
+        start = time.time()    
+        embed_t,seed_t = model["spatialembed"]( coord_t, feat_t, device, verbose=TRAIN_NET_VERBOSE )
+        dt_forward = time.time()-start
 
         # Calculate the loss
-        totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss, paf_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
-                                                                                     match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
-                                                                                     truematch_idx_t,
-                                                                                     match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
-                                                                                     verbose=TRAIN_VERBOSE )
+        start = time.time()
+        loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t, verbose=TRAIN_LOSS_VERBOSE, calc_iou=True )
+        dt_loss = time.time()-start
 
         if RUNPROFILER:
             torch.cuda.synchronize()
-        time_meters["forward"].update(time.time()-end)
+        time_meters["forward"].update(dt_forward)
+        time_meters["loss"].update(dt_loss)
 
         # compute gradient and do SGD step
         if RUNPROFILER:
             torch.cuda.synchronize()
-        end = time.time()
+        start = time.time()
+        loss.backward()
+        dt_backward = time.time()-start
 
-        # allow for gradient accumulation
-        if nbatches_per_step>1:
-            # if we apply gradient accumulation, we average over accumulation steps
-            print "average over batches per step when gradient accumulating."
-            totloss /= float(nbatches_per_step)
-        
-        # of course, we calculate gradients for this batch
-        totloss.backward()
-
-        # clip the gradients
-        for n,p in model["kplabel"].named_parameters():
-            torch.nn.utils.clip_grad_value_( p, 0.5 )
-        
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
             print "batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step)
             optimizer.step()
-
-            for n,p in model["kplabel"].named_parameters():
-                if "out" in n:
-                    print n,": grad: ",p.grad
-                    print n,": ",p
-            
             optimizer.zero_grad()
             
         if RUNPROFILER:        
             torch.cuda.synchronize()                
-        time_meters["backward"].update(time.time()-end)
+        time_meters["backward"].update(dt_backward)
 
         # measure accuracy and record loss
         end = time.time()
 
         # update loss meters
-        loss_meters["total"].update( totloss.detach().item(),    nbatches_per_step )
-        loss_meters["lm"].update( larmatch_loss, nbatches_per_step )
-        loss_meters["ssnet"].update( ssnet_loss, nbatches_per_step )
-        loss_meters["kp"].update( kp_loss,       nbatches_per_step )
-        loss_meters["paf"].update( paf_loss,     nbatches_per_step )
+        loss_meters["total"].update( loss.detach().item(),    nbatches_per_step )
+        loss_meters["instance"].update( _loss[0],  ninstances )
+        loss_meters["seed"].update( _loss[1],  ninstances )
+        loss_meters["var"].update( _loss[2], ninstances )
         
-        
-        # measure accuracy and update meters
-        acc = accuracy(match_pred_t, match_label_t,
-                       ssnet_pred_t, ssnet_label_t,
-                       kplabel_pred_t, kp_label_t,
-                       paf_pred_t, paf_label_t,
-                       truematch_idx_t,
-                       acc_meters)
-            
-        # update time meter
-        time_meters["accuracy"].update(time.time()-end)            
+        # update acc meters
+        acc_meters["iou"].update( iou_out, ninstances )
 
         # measure elapsed time for batch
         time_meters["batch"].update(time.time()-batchstart)
@@ -667,7 +507,7 @@ def train(train_loader, device, batchsize,
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
     writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
     
-    return loss_meters['total'].avg,acc_meters['lm_all'].avg
+    return loss_meters['total'].avg
 
 
 def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, print_freq):
@@ -982,12 +822,11 @@ def dump_lr_schedule( startlr, numepochs ):
 def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, istrain ):
     print "------------------------------------------------------------------------"
     print " Iter[",iternum,"] ",descripter
-    print "  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Acc[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
-                                                                                                                             timers["batch"].avg,
-                                                                                                                             timers["forward"].avg,
-                                                                                                                             timers["backward"].avg,
-                                                                                                                             timers["accuracy"].avg,
-                                                                                                                             timers["data"].avg)    
+    print "  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
+                                                                                                             timers["batch"].avg,
+                                                                                                             timers["forward"].avg,
+                                                                                                             timers["backward"].avg,
+                                                                                                             timers["data"].avg)    
     print "  Losses: "
     for name,meter in loss_meters.items():
         print "    ",name,": ",meter.avg
