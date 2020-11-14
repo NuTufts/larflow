@@ -78,7 +78,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 # TRAINING PARAMETERS
 # =======================
 START_ITER  = 0
-NUM_ITERS   = 2000
+NUM_ITERS   = 20000
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
 BATCHSIZE_VALID=1  # batches per validation iteration
@@ -427,8 +427,8 @@ def train(train_loader, device, batchsize,
         # GET THE DATA
         end = time.time()
             
-        #data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
-        data = train_loader["spatialembed"].getTreeEntryDataAsArray(0)
+        data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
+        #data = train_loader["spatialembed"].getTreeEntryDataAsArray(0)
         
         # convert into torch tensors
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
