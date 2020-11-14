@@ -20,13 +20,15 @@ input_files = rt.std.vector("std::string")()
 input_files.push_back(args.input_file)
 
 nentries = 100
+batchsize = 4
 
 voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_files)
     
 for ientry in range(nentries):
     #data = voxelloader.getTreeEntry(ientry)
     #print("number of voxels: ",data.size())
-    data_dict = voxelloader.getNextTreeEntryDataAsArray()
+    #data_dict = voxelloader.getNextTreeEntryDataAsArray()
+    data_dict = voxelloader.getTrainingDataBatch(batchsize)
     if data_dict:
         print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
     else:

@@ -223,13 +223,27 @@ namespace spatialembed {
   }
 
   /**
-   * @brief return a python dictionary with numpy arrays
+   * @brief return a python dictionary with numpy arrays for single event
+   *
+   * contents of dictionary:
+   * "coord_t":coordinate tensor
+   * "feat_t":feature tensor
+   */  
+  PyObject* Prep3DSpatialEmbed::makeTrainingDataDict( const VoxelDataList_t& voxeldata ) const
+  {
+    std::vector<VoxelDataList_t> voxeldata_v;
+    voxeldata_v.push_back(voxeldata);
+    return makeTrainingDataDict( voxeldata_v );
+  }
+  
+  /**
+   * @brief return a python dictionary with numpy arrays for batch of events
    *
    * contents of dictionary:
    * "coord_t":coordinate tensor
    * "feat_t":feature tensor
    */
-  PyObject* Prep3DSpatialEmbed::makeTrainingDataDict( const VoxelDataList_t& voxeldata ) const
+  PyObject* Prep3DSpatialEmbed::makeTrainingDataDict( const std::vector<VoxelDataList_t>& voxeldata_v ) const
   {
 
     if ( !Prep3DSpatialEmbed::_setup_numpy ) {
@@ -237,46 +251,71 @@ namespace spatialembed {
       Prep3DSpatialEmbed::_setup_numpy = true;
     }
 
-    size_t nvoxels = voxeldata.size();
-    LARCV_INFO() << "Converting data for " << nvoxels << " voxels into numpy arrays" << std::endl;
-
-    // coord tensor
-    npy_intp coord_t_dim[] = { (long int)nvoxels, 4 };
-    PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
-    for (size_t i=0; i<nvoxels; i++ ) {
-      auto const& voxel = voxeldata[i];
-      for (size_t j=0; j<3; j++)
-        *((long*)PyArray_GETPTR2(coord_t,i,j)) = voxel.voxel_index[j];
-      *((long*)PyArray_GETPTR2(coord_t,i,3))   = 0;
+    size_t nbatches = voxeldata_v.size();
+    size_t nvoxels_tot = 0;
+    LARCV_INFO() << "Converting data for " << nbatches << " of voxels" << std::endl;
+    for (size_t ibatch=0; ibatch<nbatches; ibatch++) {
+      auto const& voxeldata = voxeldata_v[ibatch];
+      size_t nvoxels = voxeldata.size();
+      nvoxels_tot += nvoxels;
     }
-    PyObject *coord_t_key = Py_BuildValue("s", "coord_t");    
+    LARCV_INFO() << "Converting data for " << nvoxels_tot << " total voxels into numpy arrays" << std::endl;
+
+    // DECLARE TENSORS and dict keys
+    
+    // coord tensor
+    npy_intp coord_t_dim[] = { (long int)nvoxels_tot, 4 };
+    PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
+    PyObject *coord_t_key = Py_BuildValue("s", "coord_t");        
 
     // feature tensor
-    npy_intp feat_t_dim[] = { (long int)nvoxels, 3 };
+    npy_intp feat_t_dim[] = { (long int)nvoxels_tot, 3 };
     PyArrayObject* feat_t = (PyArrayObject*)PyArray_SimpleNew( 2, feat_t_dim, NPY_FLOAT );
-    for (size_t i=0; i<nvoxels; i++ ) {
-      auto const& voxel = voxeldata[i];
-      if ( voxel.totw>0 ) {
-        for (size_t j=0; j<3; j++)
-          *((float*)PyArray_GETPTR2(feat_t,i,j)) = voxel.feature_v[j];
-      }
-      else {
-        for (size_t j=0; j<3; j++)
-          *((float*)PyArray_GETPTR2(feat_t,i,j)) = 0.;
-      }
-    }
-    PyObject *feat_t_key = Py_BuildValue("s", "feat_t");
+    PyObject *feat_t_key = Py_BuildValue("s", "feat_t");    
 
     // instance tensor
-    npy_intp instance_t_dim[] = { (long int)nvoxels };
+    npy_intp instance_t_dim[] = { (long int)nvoxels_tot };
     PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
-    for (size_t i=0; i<nvoxels; i++ ) {
-      auto const& voxel = voxeldata[i];
-      *((long*)PyArray_GETPTR1(instance_t,i)) = voxel.truth_instance_index+1;
-    }
     PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
-    
 
+    // FILL TENSORS
+    size_t nvoxels_filled = 0;
+    for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) {
+
+      auto const& voxeldata = voxeldata_v[ibatch];
+      size_t nvoxels = voxeldata.size();
+
+      // fill coord tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	for (size_t j=0; j<3; j++)
+	  *((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,j)) = voxel.voxel_index[j];
+	*((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,3))   = ibatch;
+      }
+      
+      // fill feat tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	if ( voxel.totw>0 ) {
+	  for (size_t j=0; j<3; j++)
+	    *((float*)PyArray_GETPTR2(feat_t,nvoxels_filled+i,j)) = voxel.feature_v[j];
+	}
+	else {
+	  for (size_t j=0; j<3; j++)
+	    *((float*)PyArray_GETPTR2(feat_t,nvoxels_filled+i,j)) = 0.;
+	}
+      }
+
+      // fill instance tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	*((long*)PyArray_GETPTR1(instance_t,nvoxels_filled+i)) = voxel.truth_instance_index+1;
+      }
+
+      nvoxels_filled += nvoxels;
+    }
+    
+    // Create and fill dictionary
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, coord_t_key,    (PyObject*)coord_t);
     PyDict_SetItem(d, feat_t_key,     (PyObject*)feat_t);
@@ -288,7 +327,44 @@ namespace spatialembed {
     
     return d;
     
-    
+  }
+
+    /**
+   * @brief return a python dictionary with numpy arrays
+   *
+   * contents of dictionary:
+   * "coord_t":coordinate tensor
+   * "feat_t":feature tensor
+   */
+  PyObject* Prep3DSpatialEmbed::getTrainingDataBatch(int batch_size)
+  {
+
+
+    std::vector< VoxelDataList_t > data_batch;
+    data_batch.reserve(batch_size);
+
+    int ntries = 0;
+    while ( ntries<batch_size*10 && data_batch.size()<batch_size ) {
+      try {
+	auto data = getTreeEntry(_current_entry);
+	_current_entry++;
+	if (data.size()>0) {
+	  data_batch.emplace_back( std::move(data) );
+	}
+      }
+      catch (...) {
+	// reset entry index and try again
+	_current_entry = 0;
+      }
+      ntries++;
+    }
+
+    if ( data_batch.size()==batch_size ) {
+      return makeTrainingDataDict( data_batch );
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
   }
 
   void Prep3DSpatialEmbed::loadTreeBranches( TTree* atree )
@@ -314,7 +390,7 @@ namespace spatialembed {
     Prep3DSpatialEmbed::VoxelDataList_t data;
     unsigned long bytes = _tree->GetEntry(entry);
     if ( !bytes ) {
-      return data; // return empty container
+      throw std::runtime_error("out of file-bounds");
     }
     _current_entry = entry;
     
@@ -338,9 +414,13 @@ namespace spatialembed {
 
   PyObject* Prep3DSpatialEmbed::getTreeEntryDataAsArray( int entry )
   {
-    auto data = getTreeEntry(entry);
-    if (data.size()>0)
-      return makeTrainingDataDict( data );
+    try {
+      auto data = getTreeEntry(entry);
+      if (data.size()>0)
+	return makeTrainingDataDict( data );
+    }
+    catch (...){
+    }
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -352,16 +432,25 @@ namespace spatialembed {
    */
   PyObject* Prep3DSpatialEmbed::getNextTreeEntryDataAsArray()
   {
-    _current_entry++;
-    auto data = getTreeEntry(_current_entry);
-    if (data.size()>0)
-      return makeTrainingDataDict( data );
-
+    try {
+      auto data = getTreeEntry(_current_entry);
+      _current_entry++;          
+      if (data.size()>0) {
+	return makeTrainingDataDict( data );
+      }
+    }
+    catch (...) {
+      _current_entry = 0;
+    }
     // try again
-    _current_entry = 0;
-    auto data2 = getTreeEntry(_current_entry);
-    if (data2.size()>0)
-      return makeTrainingDataDict( data2 );
+    try {
+      auto data2 = getTreeEntry(_current_entry);
+      _current_entry++;
+      if (data2.size()>0)
+	return makeTrainingDataDict( data2 );
+    }
+    catch (...){
+    }
 
     // problems
     Py_INCREF(Py_None);

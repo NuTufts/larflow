@@ -61,7 +61,7 @@ class SpatialEmbedLoss(nn.Module):
             loss_seed = 0
 
             for i in range(1,num_instances+1):
-                if verbose: print "INSTANCE[",i,"]================"
+                if verbose: print "== BATCH[",b,"]-INSTANCE[",i,"] ================"
                 idmask = instance.eq(i)
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]

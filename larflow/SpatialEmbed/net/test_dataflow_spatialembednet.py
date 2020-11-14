@@ -25,6 +25,7 @@ device = torch.device("cpu")
 #device = torch.device("cuda")
 verbose = False
 loss_verbose = True
+nbatches = 4
 
 # random tensor option for debugging
 use_random_tensor = False
@@ -90,8 +91,10 @@ for ientry in range(1,nentries):
     start = time.time()
     if not use_random_tensor:
         # get entry data (numpy arrays)
-        data = voxelloader.getTreeEntryDataAsArray(ientry)
+        #data = voxelloader.getTreeEntryDataAsArray(ientry)
+        data = voxelloader.getTrainingDataBatch(nbatches)
         print("voxel entries: ",data["coord_t"].shape)
+        print("num batches: ",data["coord_t"][:,3].max())
         
         # convert into torch tensors
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
@@ -126,7 +129,11 @@ for ientry in range(1,nentries):
         loss,ninstances,iou_out,_loss_components = criterion( coord_t, embed_t, seed_t, instance_t, verbose=loss_verbose, calc_iou=True )
         dt_loss += time.time()-start
 
+        print "--- end of forward -----"
         print "loss: ",loss.detach().item()
+        print "num instances evaled: ",ninstances
+        print "ave iou per instance: ",iou_out
+        print "loss-components: ",_loss_components
         
         # backwards
         loss.backward()
