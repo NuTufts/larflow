@@ -50,6 +50,8 @@ CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=False
+VALID_NET_VERBOSE=False
+VALID_LOSS_VERBOSE=False
 FREEZE_LAYERS=False
 
 # Hard example training parameters (not yet implemented)
@@ -80,7 +82,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 START_ITER  = 0
 NUM_ITERS   = 20000
 
-BATCHSIZE_TRAIN=1  # batches per training iteration
+BATCHSIZE_TRAIN=5  # batches per training iteration
 BATCHSIZE_VALID=1  # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
@@ -92,7 +94,7 @@ trainbatches_per_print = -1
 NBATCHES_per_itervalid = 1
 validbatches_per_print = -1
 
-ITER_PER_VALID = 10000000
+ITER_PER_VALID = 10
 
 # CHECKPOINT PARAMETERS
 # =======================
@@ -104,7 +106,7 @@ HARDEX_MAP_LOCATIONS={"cuda:0":"cuda:0",
                       "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=1000000000000
+ITER_PER_CHECKPOINT=1000
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -313,11 +315,7 @@ def main():
                     save_checkpoint({
                         'iter':ii,
                         'epoch': ii/iter_per_epoch,
-                        'state_larmatch': model_dict["larmatch"].state_dict(),
-                        'state_ssnet': model_dict["ssnet"].state_dict(),
-                        'state_kplabel': model_dict["kplabel"].state_dict(),
-                        'state_kpshift': model_dict["kpshift"].state_dict(),
-                        'state_paf': model_dict["paf"].state_dict(),
+                        'state_embed': model_dict["spatialembed"].state_dict(),
                         'best_prec1': best_prec1,
                         'optimizer' : optimizer.state_dict(),
                     }, is_best, -1)
@@ -328,11 +326,7 @@ def main():
                 save_checkpoint({
                     'iter':ii,
                     'epoch': ii/iter_per_epoch,
-                    'state_larmatch': model_dict["larmatch"].state_dict(),
-                    'state_ssnet': model_dict["ssnet"].state_dict(),
-                    'state_kplabel': model_dict["kplabel"].state_dict(),
-                    'state_kpshift': model_dict["kpshift"].state_dict(),
-                    'state_paf': model_dict["paf"].state_dict(),                    
+                    'state_embed': model_dict["spatialembed"].state_dict(),
                     'best_prec1': best_prec1,
                     'optimizer' : optimizer.state_dict(),
                 }, False, ii)
@@ -425,10 +419,11 @@ def train(train_loader, device, batchsize,
         batchstart = time.time()
 
         # GET THE DATA
-        end = time.time()
+        start = time.time()
             
-        data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
-        #data = train_loader["spatialembed"].getTreeEntryDataAsArray(0)
+        #data = train_loader["spatialembed"].getNextTreeEntryDataAsArray()
+        #data = train_loader["spatialembed"].getTreeEntryDataAsArray(0) # for debug on single event
+        data = train_loader["spatialembed"].getTrainingDataBatch(batchsize)
         
         # convert into torch tensors
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
@@ -442,7 +437,7 @@ def train(train_loader, device, batchsize,
         #    feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
         train_entry = train_loader["spatialembed"].getCurrentEntry() 
         print("loaded entry[",train_entry,"] voxel entries: ",data["coord_t"].shape)
-
+        dt_data = time.time()-start
         
         # compute output
         if RUNPROFILER:
@@ -462,6 +457,7 @@ def train(train_loader, device, batchsize,
             torch.cuda.synchronize()
         time_meters["forward"].update(dt_forward)
         time_meters["loss"].update(dt_loss)
+        time_meters["data"].update(dt_data)
 
         # compute gradient and do SGD step
         if RUNPROFILER:
@@ -508,7 +504,7 @@ def train(train_loader, device, batchsize,
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
     writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
     
-    return loss_meters['total'].avg
+    return loss_meters['total'].avg,acc_meters['iou'].avg
 
 
 def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, print_freq):
@@ -531,8 +527,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     global valid_entry
 
     # accruacy and loss meters
-    lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
+    lossnames    = ["total","instance","seed","var"]
+    flowaccnames = ["iou"]
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -543,7 +539,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         loss_meters[n] = AverageMeter()
 
     time_meters = {}
-    for l in ["batch","data","forward","backward","accuracy"]:
+    for l in ["batch","data","forward","backward","loss"]:
         time_meters[l] = AverageMeter()
     
     # switch to evaluate mode
@@ -554,134 +550,60 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     nnone = 0
     for i in range(0,nbatches):
         batchstart = time.time()
-        
-        tdata_start = time.time()
 
-        flowdata = load_larmatch_kps( val_loader, valid_entry, 1,
-                                      npairs=TEST_NUM_MATCH_PAIRS,
-                                      verbose=True, single_batch_mode=True )
-        if valid_entry+1<VALID_NENTRIES:
-            valid_entry += 1
-        else:
-            valid_entry = 0        
+        start = time.time()
+        data = val_loader["spatialembed"].getTrainingDataBatch(batchsize)
+        
+        # convert into torch tensors
+        coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
+        feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
+        instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        coord_t.requires_grad = False
+        feat_t.requires_grad = False
+        instance_t.requires_grad = False        
 
-        coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
-        feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
+        valid_entry = val_loader["spatialembed"].getCurrentEntry() 
+        print("loaded entry[",valid_entry,"] voxel entries: ",data["coord_t"].shape)
+        dt_data = time.time()-start
 
-        match_t         = torch.from_numpy( flowdata['matchpairs'] ).to(device).requires_grad_(False)
-        match_label_t   = torch.from_numpy( flowdata['larmatchlabels'] ).to(device).requires_grad_(False)
-        match_weight_t  = torch.from_numpy( flowdata['match_weight'] ).to(device).requires_grad_(False)
-        truematch_idx_t = torch.from_numpy( flowdata['positive_indices'] ).to(device).requires_grad_(False)        
-        
-        ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'] ).to(device).requires_grad_(False)
-        ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'] ).to(device).requires_grad_(False)
-        ssnet_top_weight_t = torch.from_numpy( flowdata['ssnet_top_weight'] ).to(device).requires_grad_(False)
-        
-        kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device).requires_grad_(False)
-        kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'] ).to(device).requires_grad_(False)        
-        kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device)
+        # run network
+        with torch.no_grad():
+            start = time.time()    
+            embed_t,seed_t = model["spatialembed"]( coord_t, feat_t, device, verbose=VALID_NET_VERBOSE )
+            dt_forward = time.time()-start
 
-        paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
-        paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)        
-        
-        # CLAMP ADC VALUES
-        for p in xrange(3):
-            feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
-        
-        print "loaded valid entry: ",flowdata["entry"]
-        time_meters["data"].update( time.time()-tdata_start )
-        
-        # compute model output
+            # Calculate the loss
+            start = time.time()
+            loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t,
+                                                       verbose=VALID_LOSS_VERBOSE, calc_iou=True )
+            dt_loss = time.time()-start
+
         if RUNPROFILER:
             torch.cuda.synchronize()
-        tforward = time.time()
-
-        # first get feature vectors
-        with torch.no_grad():        
-            feat_u_t, feat_v_t, feat_y_t = model['larmatch'].forward_features( coord_t[0], feat_t[0],
-                                                                               coord_t[1], feat_t[1],
-                                                                               coord_t[2], feat_t[2], 1,
-                                                                               verbose=False )
+        time_meters["forward"].update(dt_forward)
+        time_meters["loss"].update(dt_loss)
+        time_meters["data"].update(dt_data)
 
 
-            # extract features according to sampled match indices
-            feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
-                                                                 match_t, flowdata['npairs'],
-                                                                 device, verbose=False )
+        # measure accuracy and record loss
+        end = time.time()
 
-            # next evaluate larmatch match classifier
-            match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
-            match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-            print "[larmatch valid] match-pred=",match_pred_t.shape
-
-            # evaluate ssnet classifier
-            if TRAIN_SSNET:
-                ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
-                ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
-                ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-                #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
-                print "[ssnet valid] ssnet-pred=",ssnet_pred_t.shape
-            else:
-                ssnet_pred_t = None
+        # update loss meters
+        loss_meters["total"].update( loss.detach().item(), batchsize )
+        loss_meters["instance"].update( _loss[0],  ninstances )
+        loss_meters["seed"].update( _loss[1],  ninstances )
+        loss_meters["var"].update( _loss[2], ninstances )
         
-            # evaluate keypoint regression
-            if TRAIN_KP:
-                kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-                kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
-                kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-                print "[keypoint valid] kplabel-pred=",kplabel_pred_t.shape
-            else:
-                kplabel_pred_t = None
-        
-            # next evaluate keypoint shift
-            if TRAIN_KPSHIFT:
-                kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
-                kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
-                kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-                print "[keypoint shift valid] kpshift-pred=",kpshift_pred_t.shape
-            else:
-                kpshift_pred_t = None
+        # update acc meters
+        acc_meters["iou"].update( iou_out, ninstances )
 
-            # next evaluate affinity field predictor
-            if TRAIN_PAF:
-                paf_pred_t = model["paf"].forward( feat_triplet_t )
-                print "[larmatch valid]: paf pred=",paf_pred_t.shape
-                paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-                paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-                print "[larmatch valid]: paf pred=",paf_pred_t.shape
-            else:
-                paf_pred_t = None            
+        # measure elapsed time for batch
+        time_meters["batch"].update(time.time()-batchstart)
 
-            totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss,paf_loss = criterion( match_pred_t,  ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
-                                                                                        match_label_t, ssnet_label_t, kp_label_t,     kpshift_t,      paf_label_t,
-                                                                                        truematch_idx_t,
-                                                                                        match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
-                                                                                        verbose=False )
-            time_meters["forward"].update(time.time()-tforward)
-
-            # update loss meters
-            loss_meters["total"].update( totloss.item(),    nbatches )
-            loss_meters["lm"].update( larmatch_loss, nbatches )
-            loss_meters["ssnet"].update( ssnet_loss, nbatches )
-            loss_meters["kp"].update( kp_loss,       nbatches )
-            loss_meters["paf"].update( paf_loss,     nbatches )
-        
-            # measure accuracy and update meters
-            end = time.time()
-            acc = accuracy(match_pred_t, match_label_t,
-                           ssnet_pred_t, ssnet_label_t,
-                           kplabel_pred_t, kp_label_t,
-                           paf_pred_t, paf_label_t,
-                           truematch_idx_t,
-                           acc_meters)
-            time_meters["accuracy"].update(time.time()-end)        
+        # print status
+        if print_freq>0 and i%print_freq == 0:
+            prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters, False )
             
-            # measure elapsed time for batch
-            time_meters["batch"].update( time.time()-batchstart )
-            end = time.time()
-            if print_freq>0 and i % print_freq == 0:
-                prep_status_message( "valid-batch", i, acc_meters, loss_meters, time_meters, False )
-
             
     prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters, False )
 
@@ -692,7 +614,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
     writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
     
-    return loss_meters['total'].avg,acc_meters['lm_all'].avg
+    return loss_meters['total'].avg,acc_meters['iou'].avg
 
 def save_checkpoint(state, is_best, p, filename='checkpoint.pth.tar'):
     if p>0:
