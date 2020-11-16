@@ -31,6 +31,10 @@ namespace spatialembed {
       {};
     virtual ~SpatialEmbed3DNetProducts() {};
 
+    std::vector<int> assignVoxelsToCluster( PyObject* voxel_coord_array,
+					    PyObject* seed_score_array,
+					    PyObject* embedding_array,
+					    const std::vector<int>& tensor_dim_lens );
 
   protected:
 
