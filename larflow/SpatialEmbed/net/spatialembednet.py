@@ -187,6 +187,7 @@ class SpatialEmbedNet(nn.Module):
 
     def make_clusters(self,coord_t,embed_t,seed_t,verbose=False):
 
+        batch_clusters = []
 
         with torch.no_grad():
             nbatches = torch.max(coord_t[:,3])+1
@@ -252,6 +253,10 @@ class SpatialEmbedNet(nn.Module):
                             raw_input()
                     else:
                         maxseed_value = 0.
+
+                batch_clusters.append( cluster_id )
+        
+        return batch_clusters
                             
 
 

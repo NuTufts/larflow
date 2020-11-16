@@ -75,6 +75,13 @@ voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_file_v)
 nentries = voxelloader.getTree().GetEntries()
 print("NENTRIES: ",nentries)
 
+# output
+outfile = rt.TFile( args.output_file, "recreate" )
+tree = rt.TTree("se3dcluster","Clusters from Spatial Embedding 3D network")
+# class to help fill output
+datafiller = larflow.spatialembed.SpatialEmbed3DNetProducts()
+datafiller.bindSimpleOutputVariables(tree)
+datafiller.set_verbosity(1)
 
 # Event loop
 entry = 0
@@ -101,13 +108,25 @@ while entry<nentries:
     print("embed_t: ",embed_t.shape)
     print("seed_t: ",seed_t.shape)
 
-    model.make_clusters( coord_t, embed_t, seed_t, verbose=True )
-
+    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=False )
+    
     entry += args.batchsize
 
-    if True:
+    nreturn = args.batchsize
+    if after_entry<start_entry:
+        # wrapped around        
+        nreturn = args.batchsize-after_entry
+
+    for ib in range(nreturn):
+        bmask = coord_t[:,3].eq(ib)
+        datafiller.fillVoxelClusterID( coord_t[bmask,:].numpy(),
+                                       batch_clusters[ib].numpy() )
+
+    if False:
         break # for debug
     
     if after_entry<start_entry:
         break
 
+outfile.Write()
+print "[FIN]"
