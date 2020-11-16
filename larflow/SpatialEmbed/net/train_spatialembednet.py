@@ -28,13 +28,14 @@ import torch.distributed as dist
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torchvision.models as models
 import torch.nn.functional as F
 
 # tensorboardX
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    HAS_TENSORBOARD = True    
+except:
+    HAS_TENSORBOARD = False
 
 # network and loss modules
 from spatialembednet import SpatialEmbedNet
@@ -72,7 +73,8 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #                 "larmatch_kps_train_p03.root",
 #                 "larmatch_kps_train_p04.root"]
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
-TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
+#TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
+TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larflow/SpatialEmbed/net/"
 INPUTFILE_TRAIN=["test_s3dembed.root"]
 INPUTFILE_VALID=["test_s3dembed.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
@@ -112,7 +114,8 @@ PREDICT_CLASSVEC=True
 
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
-writer = SummaryWriter()
+if HAS_TENSORBOARD:
+    writer = SummaryWriter()
 train_entry = 0
 valid_entry = 0
 TRAIN_NENTRIES = 0
@@ -122,7 +125,8 @@ def main():
 
     # load global variables we plan to modify
     global best_prec1
-    global writer
+    if HAS_TENSORBOARD:
+        global writer
     global num_iters
     global TRAIN_NENTRIES
     global VALID_NENTRIES
@@ -348,7 +352,8 @@ def main():
     print "PROFILER"
     if RUNPROFILER:
         print prof
-    writer.close()
+    if HAS_TENSORBOARD:
+        writer.close()
 
 
 def train(train_loader, device, batchsize,
@@ -499,10 +504,12 @@ def train(train_loader, device, batchsize,
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-    writer.add_scalars('data/train_loss', loss_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/train_loss', loss_scalars, iiter )
 
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['iou'].avg
 
@@ -609,10 +616,12 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-    writer.add_scalars('data/valid_loss', loss_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/valid_loss', loss_scalars, iiter )
 
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['iou'].avg
 
