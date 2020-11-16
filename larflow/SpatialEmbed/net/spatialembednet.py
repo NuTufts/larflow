@@ -28,8 +28,9 @@ class SpatialEmbedNet(nn.Module):
         """
         super(SpatialEmbedNet,self).__init__()
 
-        # number of dimensions
+        # number of dimensions, input shape
         self.ndimensions = ndimensions
+        self.input_shape = inputshape
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -183,7 +184,75 @@ class SpatialEmbedNet(nn.Module):
         x_seed  = torch.sigmoid( x_seed )
         
         return x_embed_out,x_seed
-                                
+
+    def make_clusters(self,coord_t,embed_t,seed_t,verbose=False):
+
+
+        with torch.no_grad():
+            nbatches = torch.max(coord_t[:,3])+1
+
+            fcoord_t = coord_t.to(torch.float32)
+            fcoord_t[:,0] /= float(self.input_shape[0])
+            fcoord_t[:,1] /= float(self.input_shape[1])
+            fcoord_t[:,2] /= float(self.input_shape[2])
+            
+            for ib in range(nbatches):
+                if verbose: print "== BATCH[",ib,"] ==================="                
+                bmask = coord_t[:,3].eq(ib)
+
+                coord_b = fcoord_t[bmask,:]
+                embed_b = embed_t[bmask,:]
+                seed_b  = seed_t[bmask]
+
+                if verbose: print "batch coord: ",coord_b.shape
+                if verbose: print "batch seed: ",seed_b.shape
+
+                # calc embeded position
+                spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
+                sigma_b   = torch.tanh(embed_b[:,3])
+
+                nvoxels_b = spembed_b.shape[0]
+                cluster_id = torch.zeros(nvoxels_b, dtype=torch.int )
+                    
+
+                maxseed_value = 1.0
+                unused = cluster_id.eq(0)                
+                nvoxel_unused = unused.sum()
+                currentid = 1
+
+                while maxseed_value>0.5 and nvoxel_unused>0:
+
+                    if verbose: print "form cluster[",currentid,"]"
+                    mask = unused.to(torch.float)
+                    if verbose: print "mask: ",mask.shape
+                    seed_u    = seed_b[:,0]*mask
+
+                    maxseed_idx   = torch.argmax( seed_u )
+                    maxseed_value = seed_u[maxseed_idx]
+                    
+                    if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
+                    centroid = spembed_b[maxseed_idx,:]
+                    if verbose: print "centroid: ",centroid
+                    s = torch.exp( sigma_b[maxseed_idx]*10.0 )
+                    if verbose: print "sigma: ",s
+                    dist = torch.sum(torch.pow(spembed_b-centroid,2),1)
+                    gaus = torch.exp(-dist*s)*mask
+                    if verbose: print "gaus: ",gaus.shape
+                    if verbose: print "num inside margin: ",(gaus>0.5).sum()
+                    
+                    cluster_id[gaus>0.5] = currentid
+                    currentid += 1
+
+                    unused = cluster_id.eq(0)
+                    nvoxel_unused = unused.sum()
+                    if nvoxel_unused>0:
+                        maxseed_value = seed_b[unused].max()
+                        if verbose and False:
+                            print "[next] nunused",nvoxel_unused
+                            raw_input()
+                    else:
+                        maxseed_value = 0.
+                            
 
 
 if __name__ == "__main__":
