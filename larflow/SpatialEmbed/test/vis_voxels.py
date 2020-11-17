@@ -5,6 +5,7 @@ from math import log
 
 parser = argparse.ArgumentParser("Visuzalize Voxel Data")
 parser.add_argument("input_file",type=str,help="file produced by 'prep_spatialembed.py'")
+parser.add_argument("-mc","--input-mcinfo",type=str,default=None,required=False,help="input larlite mcinfo")
 #parser.add_argument("-c","--cluster",action='store_true',default=False,help="color by cluster instance")
 args = parser.parse_args()
 
@@ -41,6 +42,16 @@ print("NENTRIES: ",nentries)
 
 voxelloader = larflow.spatialembed.Prep3DSpatialEmbed()
 voxelloader.loadTreeBranches( io )
+
+if args.input_mcinfo:
+    HAS_MC = True
+    print("LARLITE MCINFO PROVIDED")
+    ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+    ioll.add_in_filename( args.input_mcinfo )
+    ioll.open()
+else:
+    HAS_MC = False
+    
     
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
@@ -50,11 +61,14 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
 
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
+    global ioll
 
     voxel_dim = voxelloader.getVoxelizer().get_dim_len()
     nvoxels   = voxelloader.getVoxelizer().get_nvoxels()
+    voxorigin = voxelloader.getVoxelizer().get_origin()
     data_dict = voxelloader.getTreeEntryDataAsArray(entry)
     print("voxel entries: ",data_dict["coord_t"].shape)
+
 
     if plotby=="q_yplane":
         # color by charge of collection plane
@@ -86,7 +100,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     for i in range(3):
         conversion = voxel_dim.at(i)/nvoxels.at(i)
         print("dim[",i,"] conversion")
-        fcoord_t[:,i] = data_dict["coord_t"][:,i]*conversion
+        fcoord_t[:,i] = data_dict["coord_t"][:,i]*conversion + voxorigin[i]
     
     # 3D trace
     voxtrace = {
@@ -104,6 +118,12 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
 
     traces_v = detdata.getlines()    
     traces_v.append( voxtrace )
+
+    if HAS_MC:
+        ioll.go_to( entry )
+        mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        mcpg.buildgraphonly( ioll )
+        mcpg.printGraph(mcpg.findTrackID(0),False)
     
     return traces_v
 
@@ -207,7 +227,7 @@ def cb_render(*vals):
     cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2],minprob=0.0)
     #print(cluster_traces_v)
     vals[-1]["data"] = cluster_traces_v
-    return vals[-1],"event requested: {} {} {}".format(vals[1],vals[2],vals[3])
+    return vals[-1],"event requested: {} {}".format(vals[1],vals[2])
 
 if __name__ == "__main__":
     app.run_server(debug=True)

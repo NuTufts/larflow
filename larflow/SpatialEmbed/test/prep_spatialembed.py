@@ -3,10 +3,11 @@ import os,sys,argparse,time
 parser = argparse.ArgumentParser("prepare 3d spatial embed data")
 parser.add_argument("-ilm", "--input-larmatch",required=True,type=str,help="Input larmatch file (larlite type) [required]")
 parser.add_argument("-ilcv","--input-larcv",required=False,type=str,help="Input LArCV file [required]")
-parser.add_argument("-il","--input-larlitetruth",required=False,type=str,help="Input larlite truth file [required]")
+parser.add_argument("-il","--input-larlitetruth",required=False,default=None,type=str,help="Input larlite truth file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output (ROOT) file name [required]")
 parser.add_argument("-n", "--nentries",type=int,default=None,help="Number of entries to run [default: None (all)]")
 parser.add_argument("-s", "--start-entry",type=int,default=0,help="starting entry")
+parser.add_argument("-adc","--adc",type=str,default="wire",help="ADC image name")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -18,6 +19,9 @@ from larflow import larflow
 
 voxelmaker = larflow.spatialembed.Prep3DSpatialEmbed()
 voxelmaker.set_verbosity(larcv.msg.kDEBUG)
+voxelmaker.set_adc_image_treename( args.adc )
+voxelmaker.setFilterByInstanceImageFlag( True )
+voxelmaker.setFilterOutNonNuPixelsFlag( True )
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
@@ -28,6 +32,8 @@ print "[OUTPUT]    ",args.output
 
 io.add_in_filename(  args.input_larcv )
 io.add_in_filename(  args.input_larmatch )
+if args.input_larlitetruth is not None:
+    io.add_in_filename( args.input_larlitetruth )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
@@ -37,9 +43,11 @@ io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
 
 
 iolcv.add_in_file(   args.input_larcv )
-iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
-iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
+iolcv.specify_data_read( larcv.kProductImage2D, args.adc );
+#iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
 #iolcv.specify_data_read( larcv.kProductImage2D, "wiremc" );
+iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
+iolcv.specify_data_read( larcv.kProductChStatus, "wiremc" );
 iolcv.specify_data_read( larcv.kProductImage2D, "thrumu" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ancestor" );
 iolcv.specify_data_read( larcv.kProductImage2D, "segment" );
@@ -59,7 +67,6 @@ iolcv.initialize()
 outfile = rt.TFile( args.output.replace(".root","_s3dembed.root"), "recreate" )
 outtree = rt.TTree("s3dembed", "Spatial 3D embed test and train data")
 voxelmaker.bindVariablesToTree( outtree )
-voxelmaker.setFilterByInstanceImageFlag( True )
 
 lcv_nentries = iolcv.get_n_entries()
 ll_nentries  = io.get_entries()

@@ -56,7 +56,13 @@ namespace spatialembed {
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
 
     larcv::EventImage2D* ev_adc_v
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
+
+    if ( ev_adc_v->as_vector().size()==0 ) {
+      LARCV_CRITICAL() << "No ADC images!" << std::endl;
+    }
+    else
+      LARCV_INFO() << "Number of adc images: " << ev_adc_v->as_vector().size() << std::endl;
 
     VoxelDataList_t data = process_larmatch_hits( *ev_lfhit_v, ev_adc_v->as_vector(), 0.5 );
 
@@ -71,8 +77,20 @@ namespace spatialembed {
       }
     }
 
+
     if ( make_truth_if_available )
       generateTruthLabels( iolcv, ioll, data );
+
+    if ( _filter_out_non_nu_pixels ) {
+      VoxelDataList_t filtered;
+      for ( auto& voxel : data ) {
+        if ( voxel.truth_instance_index>=0 ) {
+          filtered.push_back(voxel);
+        }
+      }
+      std::swap( filtered, data );
+    }
+    
     
     return data;
   }
@@ -467,19 +485,20 @@ namespace spatialembed {
   {
 
     larcv::EventImage2D* ev_adc_v
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
     auto const& adc_v = ev_adc_v->as_vector();
     
     // build particle graph and assign pixels
     ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.set_adc_treename(_adc_image_treename);    
     mcpg.buildgraph( iolcv, ioll );
-    mcpg.set_adc_treename("wire");
     LARCV_INFO() << "pre-shower builder graph" << std::endl;
+    //mcpg.printAllNodeInfo();
     mcpg.printGraph();
 
     // additional algorithm to fix the shower instances
     larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
-    mcshowerbuilder.set_wire_tree_name( "wire" );
+    mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
     mcshowerbuilder.process( iolcv, ioll );
     mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
     LARCV_INFO() << "post-shower builder graph" << std::endl;
