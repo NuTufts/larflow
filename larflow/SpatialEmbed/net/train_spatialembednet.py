@@ -73,17 +73,17 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #                 "larmatch_kps_train_p04.root"]
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
-INPUTFILE_TRAIN=["test_s3dembed.root"]
-INPUTFILE_VALID=["test_s3dembed.root"]
+INPUTFILE_TRAIN=["test_train.root"]
+INPUTFILE_VALID=["test_valid.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER  = 0
-NUM_ITERS   = 20000
+NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=5  # batches per training iteration
-BATCHSIZE_VALID=1  # batches per validation iteration
+BATCHSIZE_VALID=5  # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
 
@@ -745,11 +745,12 @@ def dump_lr_schedule( startlr, numepochs ):
 def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, istrain ):
     print "------------------------------------------------------------------------"
     print " Iter[",iternum,"] ",descripter
-    print "  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
-                                                                                                             timers["batch"].avg,
-                                                                                                             timers["forward"].avg,
-                                                                                                             timers["backward"].avg,
-                                                                                                             timers["data"].avg)    
+    print "  Time (secs): iter[%.2f] batch[%.3f] For[%.3f/batch] Back[%.3f/batch] Loss[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
+                                                                                                                      timers["batch"].avg,
+                                                                                                                      timers["forward"].avg,
+                                                                                                                      timers["backward"].avg,
+                                                                                                                      timers["loss"].avg,
+                                                                                                                      timers["data"].avg)    
     print "  Losses: "
     for name,meter in loss_meters.items():
         print "    ",name,": ",meter.avg
