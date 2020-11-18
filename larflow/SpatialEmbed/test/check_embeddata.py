@@ -3,7 +3,7 @@ import os,sys,argparse,json
 from ctypes import c_int
 from math import log
 
-parser = argparse.ArgumentParser("Visuzalize Voxel Data")
+parser = argparse.ArgumentParser("Check embedded data")
 parser.add_argument("input_file",type=str,help="file produced by 'prep_spatialembed.py'")
 args = parser.parse_args()
 
@@ -19,8 +19,8 @@ larcv.SetPyUtil()
 input_files = rt.std.vector("std::string")()
 input_files.push_back(args.input_file)
 
-nentries = 100
-batchsize = 4
+nentries = 20
+batchsize = 5
 
 voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_files)
     
@@ -31,6 +31,8 @@ for ientry in range(nentries):
     data_dict = voxelloader.getTrainingDataBatch(batchsize)
     if data_dict:
         print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
+        for tname,tarr in data_dict.items():
+            print("   ",tname," nan=",np.isnan(tarr).sum()," inf=",np.isinf(tarr).sum()," min=",np.min(tarr)," max=",np.max(tarr))
     else:
         print("returned None")
         break
