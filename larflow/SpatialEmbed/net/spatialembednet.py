@@ -12,6 +12,7 @@ class SpatialEmbedNet(nn.Module):
                  stem_nfeatures=16,
                  num_unet_layers=5,
                  nclasses=5,
+                 nsigma=3,
                  leakiness=0.001 ):
         """
         parameters
@@ -31,6 +32,7 @@ class SpatialEmbedNet(nn.Module):
         # number of dimensions, input shape
         self.ndimensions = ndimensions
         self.input_shape = inputshape
+        self.nsigma = nsigma
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -89,7 +91,7 @@ class SpatialEmbedNet(nn.Module):
         #residual_block(self.embed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
         #residual_block(self.embed_out,stem_nfeatures,4,leakiness=leakiness)
         self.embed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        self.embed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, 4, 3, True) )
+        self.embed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, 3+nsigma, 3, True) )
 
         self.embed_sparse2dense = scn.OutputLayer(ndimensions)
         self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
@@ -254,7 +256,7 @@ class SpatialEmbedNet(nn.Module):
                     else:
                         maxseed_value = 0.
 
-                batch_clusters.append( cluster_id )
+                batch_clusters.append( (cluster_id,spembed_b) )
         
         return batch_clusters
                             

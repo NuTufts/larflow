@@ -26,6 +26,7 @@ namespace spatialembed {
     : larcv::larcv_base("Prep3DSpatialEmbed"),
     _filter_by_instance_image(false),
     _tree(nullptr),
+    _current_entry(0),          
     _kowner(true),
     _in_pvid_row(nullptr),
     _in_pvid_col(nullptr),
@@ -696,7 +697,8 @@ namespace spatialembed {
    * "seed_t":(nvoxels,1)
    */
   PyObject* Prep3DSpatialEmbed::makePerfectNetOutput( const VoxelDataList_t& voxeldata,
-                                                      const std::vector<int>& nvoxels_dim ) const
+                                                      const std::vector<int>& nvoxels_dim,
+                                                      const int nsigma ) const
   {
 
     if ( !Prep3DSpatialEmbed::_setup_numpy ) {
@@ -747,7 +749,7 @@ namespace spatialembed {
     
 
     // embed tensor
-    npy_intp embed_t_dim[] = { (long int)nvoxels, 4 };
+    npy_intp embed_t_dim[] = { (long int)nvoxels, 3+nsigma };
     PyArrayObject* embed_t = (PyArrayObject*)PyArray_SimpleNew( 2, embed_t_dim, NPY_FLOAT );
 
     // seed tensor
@@ -778,7 +780,8 @@ namespace spatialembed {
         }
         
         // set sigma in embed tensor
-        *((float*)PyArray_GETPTR2(embed_t,i,3)) = 100.0;
+        for (int isig=0; isig<nsigma; isig++)
+          *((float*)PyArray_GETPTR2(embed_t,i,3+isig)) = 100.0;
 
         // set seed map
         *((float*)PyArray_GETPTR2(seed_t,i,0)) = 1.0;

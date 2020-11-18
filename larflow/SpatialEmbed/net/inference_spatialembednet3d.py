@@ -120,7 +120,8 @@ while entry<nentries:
     for ib in range(nreturn):
         bmask = coord_t[:,3].eq(ib)
         datafiller.fillVoxelClusterID( coord_t[bmask,:].numpy(),
-                                       batch_clusters[ib].numpy() )
+                                       batch_clusters[ib][0].numpy(),
+                                       batch_clusters[ib][1].numpy() )        
 
     if False:
         break # for debug

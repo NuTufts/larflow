@@ -27,7 +27,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["cluster"]
+color_by_options = ["cluster","embed"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -56,10 +56,15 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
 
     voxel_dim = voxelizer.get_dim_len()
     nvoxels   = voxelizer.get_nvoxels()
+    origin    = voxelizer.get_origin()
     data      = voxelloader.getEntryDataAsNDarray(entry)
+    embed     = None
+    if plotby=="embed":
+        embed = voxelloader.getEntryEmbedPosAsNDarray(entry)
+        print("embed: ",embed)
     print("voxel entries: ",data.shape)
 
-    if plotby=="cluster":
+    if plotby in ["cluster","embed"]:
         # color by instance index
         color = np.zeros( (data.shape[0],3) )
         ninstances = data[:,3].max()
@@ -80,9 +85,13 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     for i in range(3):
         conversion = voxel_dim.at(i)/nvoxels.at(i)
         print("dim[",i,"] conversion")
-        fcoord_t[:,i] = data[:,i]*conversion
-    fcoord_t[:,1] -= 0.5*voxel_dim[1]
-    
+        if plotby=="cluster":
+            fcoord_t[:,i] = data[:,i]*conversion + origin[i]
+        elif plotby=="embed":
+            fcoord_t[:,i] = embed[:,i]*voxel_dim.at(i) + origin[i]
+        print(fcoord_t[:,i].mean())
+
+    print ("fcoord: ",fcoord_t.shape," color:",color.shape)
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
@@ -94,10 +103,15 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         "marker":{"color":color,
                   "size":1,
                   "opacity":0.5}}
-    if plotby!="cluster":
+    if plotby not in ["cluster","embed"]:
         voxtrace["marker"]["colorscale"]="Viridis"
+    if plotby in ["embed"]:
+        voxtrace["marker"]["size"] = 3
+        voxtrace["marker"]["opacity"] = 1.0        
 
-    traces_v = detdata.getlines()    
+    traces_v = []
+    if plotby in ["cluster","embed"]:
+        traces_v += detdata.getlines()
     traces_v.append( voxtrace )
     
     return traces_v

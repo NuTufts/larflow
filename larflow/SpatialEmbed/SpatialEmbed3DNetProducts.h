@@ -32,7 +32,8 @@ namespace spatialembed {
       : larcv::larcv_base("SpatialEmbed3DNetProducts"),
       _tree_simple(nullptr),
       _in_voxelidx_v(nullptr),
-      _in_cluster_id(nullptr)
+      _in_cluster_id(nullptr),
+      _in_embed_pos_v(nullptr)        
       {};
     virtual ~SpatialEmbed3DNetProducts() {};
 
@@ -43,18 +44,23 @@ namespace spatialembed {
                              const std::vector<int>& tensor_dim_lens );
 
     void bindSimpleOutputVariables( TTree* atree );
-    void fillVoxelClusterID( PyObject* voxel_coord_ndarray, PyObject* cluster_idx_ndarray );
+    void fillVoxelClusterID( PyObject* voxel_coord_ndarray,
+                             PyObject* cluster_idx_ndarray,
+                             PyObject* embed_pos_ndarray=nullptr );
     void setTreeBranches( TTree& input_tree );
     PyObject* getEntryDataAsNDarray( int entry );
+    PyObject* getEntryEmbedPosAsNDarray( int entry );    
                                    
   protected:
 
     TTree* _tree_simple;
     std::vector< std::vector<int> > _voxelidx_v;
     std::vector< int >              _cluster_id;
+    std::vector< std::vector<float> > _embed_pos_v;
 
     std::vector< std::vector<int> >* _in_voxelidx_v;
     std::vector< int >*              _in_cluster_id;
+    std::vector< std::vector<float> >* _in_embed_pos_v;
     
   private:
 

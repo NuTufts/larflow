@@ -31,6 +31,7 @@ namespace spatialembed {
       _filter_by_instance_image(false),
       _filter_out_non_nu_pixels(false),      
       _tree(nullptr),
+      _current_entry(0),      
       _kowner(false),
       _adc_image_treename("wire"),
       _in_pvid_row(nullptr),
@@ -74,7 +75,8 @@ namespace spatialembed {
     PyObject* makeTrainingDataDict( const VoxelDataList_t& voxeldata ) const;
     PyObject* makeTrainingDataDict( const std::vector<VoxelDataList_t>& voxeldata_v ) const;    
     PyObject* makePerfectNetOutput( const VoxelDataList_t& voxeldata,
-                                    const std::vector<int>& nvoxels_dim ) const;
+                                    const std::vector<int>& nvoxels_dim,
+                                    const int nsigma=3) const;
 
     PyObject* process_numpy_arrays( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,

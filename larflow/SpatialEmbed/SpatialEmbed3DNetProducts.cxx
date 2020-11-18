@@ -109,7 +109,8 @@ namespace spatialembed {
    *
    */
   void SpatialEmbed3DNetProducts::fillVoxelClusterID( PyObject* voxel_coord_ndarray,
-                                                      PyObject* cluster_idx_ndarray )
+                                                      PyObject* cluster_idx_ndarray,
+                                                      PyObject* embed_pos_ndarray )
   {
 
     if ( !_setup_numpy ) {
@@ -143,6 +144,14 @@ namespace spatialembed {
       throw std::runtime_error("Cannot get carray for voxel cluster tensor");
     }
 
+    PyArray_Descr *descr_float  = PyArray_DescrFromType(NPY_FLOAT);    
+    npy_intp embed_dims[2];
+    float **embed_carray = nullptr;
+    if ( embed_pos_ndarray && PyArray_AsCArray( &embed_pos_ndarray, (void**)&embed_carray, embed_dims, 2, descr_float )<0 ) {
+      LARCV_CRITICAL() << "Cannot get carray for embed position tensor" << std::endl;
+      throw std::runtime_error("Cannot get carray for embed position tensor");      
+    }
+
     // determine the number of batches by find the maximum batch index
     // also make a list of indices for each batch
     std::map<int,std::vector<int> > batch_indices;    
@@ -172,31 +181,39 @@ namespace spatialembed {
       _voxelidx_v.clear();
       _voxelidx_v.reserve( b_indices.size() );
       _cluster_id.resize( b_indices.size(), 0 );
+      _embed_pos_v.clear();
+      _embed_pos_v.reserve( b_indices.size() );      
 
       for ( auto const& i : b_indices ) {
         std::vector<int> coord_i = { (int)coord_carray[i][0], (int)coord_carray[i][1], (int)coord_carray[i][2] };
         _voxelidx_v.push_back( coord_i );
         _cluster_id[i] = cluster_carray[i];
+        if ( embed_pos_ndarray ) {
+          std::vector<float> embed_i = { (float)embed_carray[i][0], (float)embed_carray[i][1], (float)embed_carray[i][2] };
+          _embed_pos_v.push_back( embed_i );
+        }
       }
 
       _tree_simple->Fill();
       ibatch++;
     }
 
-    LARCV_INFO() << "filled " << ibatch << " entries" << std::endl;
+    LARCV_INFO() << "filled " << ibatch << " entries." << std::endl;
   }
 
   void SpatialEmbed3DNetProducts::bindSimpleOutputVariables( TTree* atree )
   {
     _tree_simple = atree;
     atree->Branch("voxelindex",&_voxelidx_v);
-    atree->Branch("cluster_id",&_cluster_id);    
+    atree->Branch("cluster_id",&_cluster_id);
+    atree->Branch("embed_pos",&_embed_pos_v);        
   }
 
   void SpatialEmbed3DNetProducts::setTreeBranches( TTree& input_tree ) {
     _tree_simple = &input_tree;
     _tree_simple->SetBranchAddress( "voxelindex", &_in_voxelidx_v );
     _tree_simple->SetBranchAddress( "cluster_id", &_in_cluster_id );
+    _tree_simple->SetBranchAddress( "embed_pos", &_in_embed_pos_v );
   }
 
   /**
@@ -223,7 +240,7 @@ namespace spatialembed {
     // coord tensor
     npy_intp coord_t_dim[] = { (long int)nvoxels, 4 };
     PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
-
+    
     // FILL TENSORS
     for (size_t i=0; i<nvoxels; i++ ) {
       for (size_t j=0; j<3; j++)
@@ -232,6 +249,42 @@ namespace spatialembed {
     }
           
     return (PyObject*)coord_t;
+    
+  }
+
+  /**
+   * @brief return a numpy array for the entry
+   *
+   */
+  PyObject* SpatialEmbed3DNetProducts::getEntryEmbedPosAsNDarray( int entry )
+  {
+
+    if ( !SpatialEmbed3DNetProducts::_setup_numpy ) {
+      import_array1(0);
+      SpatialEmbed3DNetProducts::_setup_numpy = true;
+    }
+
+    // DECLARE TENSORS and dict keys
+    unsigned long bytes = _tree_simple->GetEntry(entry);
+    if ( bytes==0 ) {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+
+    size_t nvoxels = _in_embed_pos_v->size();
+    
+    // embed tensor
+    npy_intp embed_t_dim[] = { (long int)nvoxels, 4 };
+    PyArrayObject* embed_t = (PyArrayObject*)PyArray_SimpleNew( 2, embed_t_dim, NPY_FLOAT );
+    
+    // FILL TENSORS
+    for (size_t i=0; i<nvoxels; i++ ) {
+      for (size_t j=0; j<3; j++)
+        *((float*)PyArray_GETPTR2(embed_t,i,j)) = (*_in_embed_pos_v)[i][j];
+      *((long*)PyArray_GETPTR2(embed_t,i,3)) = (*_in_cluster_id)[i];
+    }
+          
+    return (PyObject*)embed_t;
     
   }
   

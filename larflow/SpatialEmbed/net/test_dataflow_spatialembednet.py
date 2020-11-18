@@ -21,10 +21,10 @@ from torch import autograd
 from spatialembednet import SpatialEmbedNet
 from loss_spatialembed import SpatialEmbedLoss
 
-#device = torch.device("cpu")
-device = torch.device("cuda")
+device = torch.device("cpu")
+#device = torch.device("cuda")
 verbose = False
-loss_verbose = False
+loss_verbose = True
 nbatches = 4
 
 # random tensor option for debugging
@@ -38,10 +38,11 @@ net = SpatialEmbedNet(3, voxel_dims,
                       input_nfeatures=3,
                       nclasses=1,
                       num_unet_layers=5,
+                      nsigma=3,
                       stem_nfeatures=32).to(device)
 net.init_embedout()
 
-criterion = SpatialEmbedLoss( dim_nvoxels=voxel_dims ).to(device)
+criterion = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3 ).to(device)
 
 # LOAD DATA
 

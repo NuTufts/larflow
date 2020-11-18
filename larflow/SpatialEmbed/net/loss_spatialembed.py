@@ -5,7 +5,7 @@ import torch.nn as nn
 from lovasz_losses import lovasz_hinge
 
 class SpatialEmbedLoss(nn.Module):
-    def __init__(self, dim_nvoxels=(1,1,1), w_embed=1.0, w_seed=1.0, w_sigma_var=10.0 ):
+    def __init__(self, dim_nvoxels=(1,1,1), nsigma=3, w_embed=1.0, w_seed=1.0, w_sigma_var=10.0 ):
         super(SpatialEmbedLoss,self).__init__()
         self.dim_nvoxels = np.array( dim_nvoxels, dtype=np.float32 )
         self.dim_nvoxels_t = torch.from_numpy( self.dim_nvoxels )
@@ -14,6 +14,7 @@ class SpatialEmbedLoss(nn.Module):
         self.w_embed = w_embed
         self.w_seed  = w_seed
         self.w_sigma_var = w_sigma_var
+        self.nsigma = nsigma
         self.bce = torch.nn.BCELoss()
         
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
@@ -51,7 +52,7 @@ class SpatialEmbedLoss(nn.Module):
 
             # calc embeded position
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
-            sigma   = torch.tanh(embed[:,3])
+            sigma   = torch.tanh(embed[:,3:3+self.nsigma])
 
             obj_count = 0
             loss_var = 0
@@ -66,7 +67,7 @@ class SpatialEmbedLoss(nn.Module):
                 if idmask.sum()==0: continue
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
-                sigma_i = sigma[idmask]
+                sigma_i = sigma[idmask,:]
                 seed_i  = seed[idmask,0]
                 spembed_i = spembed[idmask,:]
                 if verbose: print "  instance coord.shape: ",coord_i.shape
@@ -74,7 +75,7 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  seed_i: ",seed_i.shape
                 
                 # mean
-                s = sigma_i.mean() # 1 dimensions
+                s = sigma_i.mean(0).view(1,3) # 1 dimensions
                 if verbose: print "  mean(ln(0.5/sigma^2): ",s
 
                 # calculate instance centroid
@@ -98,9 +99,9 @@ class SpatialEmbedLoss(nn.Module):
                     print "  ave and max diff[0]: ",diff[:,0].mean()," ",diff[:,0].max()
                     print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
                     print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
-                dist = torch.sum(torch.pow(spembed - center_i, 2),1)
-                gaus = torch.exp(-1*dist*s)
-                if verbose: print "  gaus: ",dist.shape
+                dist = (torch.pow(spembed - center_i, 2)*s).sum(1)
+                gaus = torch.exp(-1*dist)
+                if verbose: print "  gaus: ",gaus.shape
                 if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
                 if verbose: print "  ave not-instance dist and gaus: ",dist.detach()[~idmask].mean()," ",gaus.detach()[~idmask].mean()
                 if verbose: print "  min=",gaus.detach().min().item()," max=",gaus.detach().max().item()," inf=",torch.isinf(gaus.detach()).sum().item()
@@ -193,7 +194,7 @@ if __name__=="__main__":
     #voxel_dims = (1109, 800, 3457)
     voxel_dims = (2048, 1024, 4096)
     
-    parser = argparse.ArgumentParser("Visuzalize Voxel Data")
+    parser = argparse.ArgumentParser("Debug loss routine")
     parser.add_argument("input_file",type=str,help="file produced by 'prep_spatialembed.py'")
     args = parser.parse_args()
     
@@ -215,7 +216,7 @@ if __name__=="__main__":
     voxelloader.loadTreeBranches( io )
 
     print("make loss module")
-    loss = SpatialEmbedLoss( dim_nvoxels=voxel_dims )
+    loss = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3 )
     voxdims = rt.std.vector("int")(3,0)
     for i in range(3):
         voxdims[i] = voxel_dims[i]
@@ -225,7 +226,7 @@ if __name__=="__main__":
         print("number of voxels: ",data.size())
 
         netin  = voxelloader.makeTrainingDataDict( data )
-        netout = voxelloader.makePerfectNetOutput( data, voxdims )
+        netout = voxelloader.makePerfectNetOutput( data, voxdims, 3 )
         coord_t    = torch.from_numpy( netin["coord_t"] )
         instance_t = torch.from_numpy( netin["instance_t"] )        
         embed_t    = torch.from_numpy( netout["embed_t"] )
@@ -233,9 +234,7 @@ if __name__=="__main__":
         
         print("voxel entries: ",coord_t.shape)
 
-        loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )
-        
-        break
+        loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )    
     
     print("[FIN]")
 
