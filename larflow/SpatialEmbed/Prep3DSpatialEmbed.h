@@ -29,8 +29,10 @@ namespace spatialembed {
     Prep3DSpatialEmbed()
       : larcv::larcv_base("Prep3DSpatialEmbed"),
       _filter_by_instance_image(false),
+      _filter_out_non_nu_pixels(false),      
       _tree(nullptr),
       _kowner(false),
+      _adc_image_treename("wire"),
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
       _in_pvid_depth(nullptr),
@@ -41,6 +43,8 @@ namespace spatialembed {
       {};
     Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files ); 
     virtual ~Prep3DSpatialEmbed() { if (_kowner) delete (TChain*)_tree; };
+
+    void set_adc_image_treename( std::string name ) { _adc_image_treename=name; };
 
     /**
      * @brief Data for each non-zero voxel
@@ -93,6 +97,9 @@ namespace spatialembed {
     /** @brief set flag determining if we filter the voxels by overlap with instance image pixels */
     void setFilterByInstanceImageFlag( bool filter ) { _filter_by_instance_image = filter; };
 
+    /** @brief set flag determining if we should filter out non-neutrino pixels */
+    void setFilterOutNonNuPixelsFlag( bool filter ) { _filter_out_non_nu_pixels = filter; };
+    
     VoxelDataList_t filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
                                                  const std::vector<larcv::Image2D>& instance_v );
 
@@ -104,11 +111,13 @@ namespace spatialembed {
 
     // parameters affecting behavior
     bool _filter_by_instance_image; ///< if true, will remove voxels that doesn't project into a neutrino pixel
+    bool _filter_out_non_nu_pixels; ///< if true, will remove voxels with non-neutrino origin
     
     larflow::voxelizer::VoxelizeTriplets _voxelizer;
     TTree* _tree;
     unsigned long _current_entry;
     bool _kowner; //< indicates if we own the tree
+    std::string _adc_image_treename;
     std::vector< int > vid_row;
     std::vector< int > vid_col;
     std::vector< int > vid_depth;

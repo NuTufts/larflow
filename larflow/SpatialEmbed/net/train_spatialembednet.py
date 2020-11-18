@@ -28,13 +28,14 @@ import torch.distributed as dist
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torchvision.models as models
 import torch.nn.functional as F
 
 # tensorboardX
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    HAS_TENSORBOARD = True    
+except:
+    HAS_TENSORBOARD = False
 
 # network and loss modules
 from spatialembednet import SpatialEmbedNet
@@ -73,6 +74,7 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #                 "larmatch_kps_train_p04.root"]
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
+#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larflow/SpatialEmbed/net/"
 INPUTFILE_TRAIN=["test_train.root"]
 INPUTFILE_VALID=["test_valid.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
@@ -82,8 +84,8 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 START_ITER  = 0
 NUM_ITERS   = 1000000
 
-BATCHSIZE_TRAIN=5  # batches per training iteration
-BATCHSIZE_VALID=5  # batches per validation iteration
+BATCHSIZE_TRAIN=4  # batches per training iteration
+BATCHSIZE_VALID=8  # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
 
@@ -112,7 +114,8 @@ PREDICT_CLASSVEC=True
 
 # global variables
 best_prec1 = 0.0  # best accuracy, use to decide when to save network weights
-writer = SummaryWriter()
+if HAS_TENSORBOARD:
+    writer = SummaryWriter()
 train_entry = 0
 valid_entry = 0
 TRAIN_NENTRIES = 0
@@ -122,7 +125,8 @@ def main():
 
     # load global variables we plan to modify
     global best_prec1
-    global writer
+    if HAS_TENSORBOARD:
+        global writer
     global num_iters
     global TRAIN_NENTRIES
     global VALID_NENTRIES
@@ -138,7 +142,7 @@ def main():
     model = SpatialEmbedNet(3, voxel_dims,
                             input_nfeatures=3,
                             nclasses=1,
-                            num_unet_layers=5,
+                            num_unet_layers=6,
                             stem_nfeatures=32).to(DEVICE)
     model.init_embedout()
 
@@ -212,9 +216,9 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 1e-4
     momentum = 0.9
-    weight_decay = 1.0e-3
+    weight_decay = 1.0e-1
 
     # training variables
     itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
@@ -348,7 +352,8 @@ def main():
     print "PROFILER"
     if RUNPROFILER:
         print prof
-    writer.close()
+    if HAS_TENSORBOARD:
+        writer.close()
 
 
 def train(train_loader, device, batchsize,
@@ -499,10 +504,12 @@ def train(train_loader, device, batchsize,
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-    writer.add_scalars('data/train_loss', loss_scalars, iiter )
+    if HAS_TENSORBOARD and iiter>0:
+        writer.add_scalars('data/train_loss', loss_scalars, iiter )
 
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['iou'].avg
 
@@ -609,10 +616,12 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
     # write to tensorboard
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-    writer.add_scalars('data/valid_loss', loss_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/valid_loss', loss_scalars, iiter )
 
     acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
+    if HAS_TENSORBOARD:
+        writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['iou'].avg
 

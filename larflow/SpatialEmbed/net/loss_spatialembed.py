@@ -63,6 +63,7 @@ class SpatialEmbedLoss(nn.Module):
             for i in range(1,num_instances+1):
                 if verbose: print "== BATCH[",b,"]-INSTANCE[",i,"] ================"
                 idmask = instance.eq(i)
+                if idmask.sum()==0: continue
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
                 sigma_i = sigma[idmask]
@@ -102,10 +103,12 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  gaus: ",dist.shape
                 if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
                 if verbose: print "  ave not-instance dist and gaus: ",dist.detach()[~idmask].mean()," ",gaus.detach()[~idmask].mean()
+                if verbose: print "  min=",gaus.detach().min().item()," max=",gaus.detach().max().item()," inf=",torch.isinf(gaus.detach()).sum().item()
 
-                #loss_instance = loss_instance + lovasz_hinge( gaus*2-1, idmask.long() )
+
                 #print " idmask.float(): ",idmask.float().sum()
                 loss_i = self.bce( gaus, idmask.float() )
+                #loss_i = lovasz_hinge( gaus*2-1, idmask.long() )
                 if verbose: print "  instance loss: ",loss_i.detach().item()
                 loss_instance = loss_instance +  loss_i
 
@@ -157,10 +160,15 @@ class SpatialEmbedLoss(nn.Module):
 
         # normalize per batch        
         loss = loss / float(batch_size)
+        _loss_instance /= float(batch_size)
+        _loss_seed     /= float(batch_size)
+        _loss_var      /= float(batch_size)
 
         # ave iou
         if calc_iou and instance_iou>0:
             ave_iou /= float(batch_ninstances)
+            if ave_iou>1.0:
+                ave_iou = 1.0
 
         if verbose: print "total loss=",loss.detach().item()," ave-iou=",ave_iou
 

@@ -56,7 +56,13 @@ namespace spatialembed {
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
 
     larcv::EventImage2D* ev_adc_v
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
+
+    if ( ev_adc_v->as_vector().size()==0 ) {
+      LARCV_CRITICAL() << "No ADC images!" << std::endl;
+    }
+    else
+      LARCV_INFO() << "Number of adc images: " << ev_adc_v->as_vector().size() << std::endl;
 
     VoxelDataList_t data = process_larmatch_hits( *ev_lfhit_v, ev_adc_v->as_vector(), 0.5 );
 
@@ -71,8 +77,20 @@ namespace spatialembed {
       }
     }
 
+
     if ( make_truth_if_available )
       generateTruthLabels( iolcv, ioll, data );
+
+    if ( _filter_out_non_nu_pixels ) {
+      VoxelDataList_t filtered;
+      for ( auto& voxel : data ) {
+        if ( voxel.truth_instance_index>=0 ) {
+          filtered.push_back(voxel);
+        }
+      }
+      std::swap( filtered, data );
+    }
+    
     
     return data;
   }
@@ -217,7 +235,10 @@ namespace spatialembed {
         q_v[i] = 0.;
         q_y[i] = 0.;
       }
-      instance_id[i] = d.truth_instance_index+1;
+      if ( d.truth_realmatch==1 )
+        instance_id[i] = d.truth_instance_index+1;
+      else
+        instance_id[i] = 0;
     }
 
   }
@@ -467,25 +488,48 @@ namespace spatialembed {
   {
 
     larcv::EventImage2D* ev_adc_v
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
     auto const& adc_v = ev_adc_v->as_vector();
     
     // build particle graph and assign pixels
     ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.set_adc_treename(_adc_image_treename);    
     mcpg.buildgraph( iolcv, ioll );
-    mcpg.set_adc_treename("wire");
     LARCV_INFO() << "pre-shower builder graph" << std::endl;
+    //mcpg.printAllNodeInfo();
     mcpg.printGraph();
 
     // additional algorithm to fix the shower instances
+    // the showerlikelihood builder will also find the true larmatch points
+    // which we will use
     larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
-    mcshowerbuilder.set_wire_tree_name( "wire" );
+    mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
     mcshowerbuilder.process( iolcv, ioll );
     mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
     LARCV_INFO() << "post-shower builder graph" << std::endl;
     mcpg.printGraph();
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> node_v = mcpg.getNeutrinoParticles();
 
+    // we make a list of true point voxels
+    std::set< std::array<int,3> > true_voxel_set;
+    for ( size_t ipt=0; ipt<mcshowerbuilder.tripletalgo._truth_v.size(); ipt++ ) {
+      if ( mcshowerbuilder.tripletalgo._truth_v[ipt]>0 ) {
+        const std::vector<float>& spacepoint = mcshowerbuilder.tripletalgo._pos_v.at(ipt);
+
+        // add some slop allowance
+        for (int dx=-2;dx<=2; dx++) {
+          int vx = _voxelizer.get_axis_voxel(0,spacepoint[0])+dx;
+          for (int dy=-2;dy<=2;dy++) {
+            int vy = _voxelizer.get_axis_voxel(1,spacepoint[1])+dy;
+            for (int dz=-2;dz<=2;dz++) {
+              int vz = _voxelizer.get_axis_voxel(2,spacepoint[2])+dz;
+              std::array<int,3> true_voxel = { vx,vy,vz };
+              true_voxel_set.insert(true_voxel);
+            }
+          }
+        }
+      }
+    }
     
     std::map<int,int> instance_2_index;
     std::vector<int> instance_v;
@@ -503,12 +547,24 @@ namespace spatialembed {
       // default set instance to -1
       voxeldata.truth_instance_index = -1;
       voxeldata.truth_realmatch = 0;
+
+      // does voxel contain a true larmatch spacepoint
+      std::array<int,3> avox = { voxeldata.voxel_index[0],
+                                 voxeldata.voxel_index[1],
+                                 voxeldata.voxel_index[2] };
+      
+      if ( true_voxel_set.find(avox)!=true_voxel_set.end() ) {
+        // found
+        voxeldata.truth_realmatch = 1;
+      }
       
       // now we determine if voxel is a part of instance 3d cluster, sigh
 
       // loop over all instance pixels
       int max_match_inode = -1;
       int max_num_matched = 0;
+      int max_nplanes_matched = 0;
+      int max_instance_type = -1;
       for ( size_t inode=0; inode<node_v.size(); inode++ ) {
         ublarcvapp::mctools::MCPixelPGraph::Node_t* pnode = node_v[inode];
 
@@ -521,7 +577,7 @@ namespace spatialembed {
           for (int ipix=0; ipix<npix; ipix++) {
             int pixtick = pix_v[2*ipix];
             int pixwire = pix_v[2*ipix+1];
-            // near the voxel?
+            // near the voxel's projected location?
             float dtick = fabs(pixtick-voxeldata.imgcoord_v[3]);
             float dwire = fabs(pixwire-voxeldata.imgcoord_v[p]);
             if ( dwire<2.5 && dtick < 2.5*adc_v[p].meta().pixel_height() ) {
@@ -534,9 +590,11 @@ namespace spatialembed {
         for (int p=0; p<3; p++)
           num_plane_matched += plane_matched[p];
 
-        if ( num_plane_matched>=2 && num_matched>max_num_matched ) {
+        if ( num_plane_matched>0 && num_matched>max_num_matched ) {
           max_num_matched = num_matched;
           max_match_inode = inode;
+          max_nplanes_matched = num_plane_matched;
+          max_instance_type = pnode->type;
         }
         
       }//loop over nodes
@@ -558,6 +616,10 @@ namespace spatialembed {
 
         // all of the above just for this index ...
         voxeldata.truth_instance_index = instance_index;
+
+        // loosen true flow match criterion for track voxels, which do not have triplet space points made
+        if ( max_instance_type==0 && max_nplanes_matched>=2 )
+          voxeldata.truth_realmatch = 1;
       }//end of if a matching instance cluster found for voxel
       
     }//end of voxel loop

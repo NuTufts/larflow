@@ -21,10 +21,10 @@ from torch import autograd
 from spatialembednet import SpatialEmbedNet
 from loss_spatialembed import SpatialEmbedLoss
 
-device = torch.device("cpu")
-#device = torch.device("cuda")
+#device = torch.device("cpu")
+device = torch.device("cuda")
 verbose = False
-loss_verbose = True
+loss_verbose = False
 nbatches = 4
 
 # random tensor option for debugging
@@ -117,12 +117,12 @@ for ientry in range(1,nentries):
     print "instance_t nan: ",torch.isnan(instance_t).sum()
     
     # forward
-    with autograd.detect_anomaly():    
+    with autograd.detect_anomaly():
         start = time.time()    
         embed_t,seed_t = net( coord_t, feat_t, device, verbose=verbose )
-        print " embed_t[shift].sum()=",embed_t[:,0:3].detach().sum()
-        print " embed_t[sigma].mean()=",embed_t[:,3].detach().mean()        
         dt_forward += time.time()-start
+        print " embed_t[shift].sum()=",embed_t[:,0:3].detach().sum().item()
+        print " embed_t[sigma].mean()=",embed_t[:,3].detach().mean().item() 
 
         # loss
         start = time.time()
