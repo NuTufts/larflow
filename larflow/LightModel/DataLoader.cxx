@@ -3,9 +3,9 @@
 #include <iostream>
 
 namespace larflow {
-namespace keypoints {
+namespace lightmodel {
 
-  bool LoaderKeypointData::_setup_numpy = false;
+  bool DataLoader::_setup_numpy = false;
   
   /**
    * @brief constructor given list of input files
@@ -13,53 +13,50 @@ namespace keypoints {
    * @param[in] input_v List of paths to input ROOT files containing ground truth data
    *
    */
-  LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
-    : ttriplet(nullptr),
-      tkeypoint(nullptr),
-      tssnet(nullptr)
+  DataLoader::DataLoader( std::vector<std::string>& input_v )
+    : tclusterflash(nullptr)
   {
     input_files.clear();
     input_files = input_v;
     load_tree();
   }
 
-  LoaderKeypointData::~LoaderKeypointData()
+  DataLoader::~DataLoader()
   {
-    if ( ttriplet ) delete ttriplet;
-    if ( tkeypoint) delete tkeypoint;
-    if ( tssnet )   delete tssnet;
+    if ( tclusterflash ) delete tclusterflash;
   }
 
   /**
    * @brief load TTree class data members and define TBranch variables
    *
    */
-  void LoaderKeypointData::load_tree() {
-    std::cout << "[LoaderKeypointData::load_tree()]" << std::endl;
-    
-    ttriplet  = new TChain("larmatchtriplet");
-    tkeypoint = new TChain("keypointlabels");
-    tssnet    = new TChain("ssnetlabels");
+  void DataLoader::load_tree() {
+    std::cout << "[DataLoader::load_tree()]" << std::endl;
+
+    // @@@ Edit and put tree name??
+    tclusterflash  = new TChain("preppedTree");
+    //    tkeypoint = new TChain("keypointlabels");
+    //    tssnet    = new TChain("ssnetlabels");
+
     for (auto const& infile : input_files ) {
       std::cout << "add " << infile << " to chains" << std::endl;
-      ttriplet->Add(infile.c_str());
-      tkeypoint->Add(infile.c_str());
-      tssnet->Add(infile.c_str());
+      tclusterflash->Add(infile.c_str());
+      //      tkeypoint->Add(infile.c_str());
+      //      tssnet->Add(infile.c_str());
     }
+
+    voxel_row_v = 0;
+    voxel_col_v = 0;
+    voxel_depth_v = 0;
+    voxel_charge_v = 0;
+    flash_v = 0;
     
-    triplet_v = 0;
-    kplabel_v[0] = 0;
-    kplabel_v[1] = 0;
-    kplabel_v[2] = 0;    
-    ssnet_label_v = 0;
-    ssnet_weight_v = 0;
+    tclusterflash->SetBranchAddress(  "voxel_row_v",           &voxel_row_v );
+    tclusterflash->SetBranchAddress(  "voxel_col_v",           &voxel_col_v );
+    tclusterflash->SetBranchAddress(  "voxel_depth_v",           &voxel_depth_v );
+    tclusterflash->SetBranchAddress(  "voxel_charge_v",           &voxel_charge_v );
+    tclusterflash->SetBranchAddress(  "flash_v",           &flash_v );
     
-    ttriplet->SetBranchAddress(  "triplet_v",           &triplet_v );
-    tkeypoint->SetBranchAddress( "kplabel_nuvertex",    &kplabel_v[0] );
-    tkeypoint->SetBranchAddress( "kplabel_trackends",   &kplabel_v[1] );
-    tkeypoint->SetBranchAddress( "kplabel_showerstart", &kplabel_v[2] );    
-    tssnet->SetBranchAddress( "trackshower_label_v",    &ssnet_label_v );
-    tssnet->SetBranchAddress( "trackshower_weight_v",   &ssnet_weight_v );
   }
 
   /**
@@ -68,22 +65,20 @@ namespace keypoints {
    * @param[in] entry number
    * @return number of bytes loaded from the tkeypoint tree data. returns 0 if end of file or error.
    */
-  unsigned long LoaderKeypointData::load_entry( int entry )
+  unsigned long DataLoader::load_entry( int entry )
   {
-    unsigned long bytes = ttriplet->GetEntry(entry);
-    bytes = tssnet->GetEntry(entry);
-    bytes = tkeypoint->GetEntry(entry);
+    unsigned long bytes = tclusterflash->GetEntry(entry);
     return bytes;
   }
 
   /**
    * @brief get total entries
    *
-   * @return number of entries in the ttrplet ROOT tree (chain)
+   * @return number of entries in the tclusterflash ROOT tree (chain)
    */
-  unsigned long LoaderKeypointData::GetEntries()
+  unsigned long DataLoader::GetEntries()
   {
-    return ttriplet->GetEntries();
+    return tclusterflash->GetEntries();
   }
 
   /**
@@ -108,7 +103,8 @@ namespace keypoints {
    * @return Python dictionary object with various numpy arrays
    *                        
    */
-  PyObject* LoaderKeypointData::sample_data( const int& num_max_samples,
+  
+  PyObject* DataLoader::sample_data( const int& num_max_samples,
                                              int& nfilled,
                                              bool withtruth )
   {
@@ -118,19 +114,21 @@ namespace keypoints {
       import_array1(0);
       _setup_numpy = true;
     }
-
-    int index_col = (withtruth) ? 4 : 3;
+  
+  
+    //    int index_col = (withtruth) ? 4 : 3;
     
     // make match index array
     //std::cout << "make triplets" << std::endl;    
-    PyArrayObject* matches =
-      (PyArrayObject*)triplet_v->at(0).sample_triplet_matches( num_max_samples, nfilled, withtruth );
+    //@@@    PyArrayObject* matches =
+    //      (PyArrayObject*)triplet_v->at(0).sample_triplet_matches( num_max_samples, nfilled, withtruth );
 
     // count npos, nneg examples
     // also make list of indices of positive examples, these are the ones we will evaluate ssnet not
-    int npos=0;
-    int nneg=0;
-    std::vector<int> pos_index_v;
+    //    int npos=0;
+    //int nneg=0;
+    //    std::vector<int> pos_index_v;
+    /*
     for (size_t i=0; i<nfilled; i++) {
       long ispositive = *((long*)PyArray_GETPTR2(matches,i,3));
       if (ispositive==1) {
@@ -142,7 +140,8 @@ namespace keypoints {
       }
     }
     PyObject *match_key = Py_BuildValue("s", "matchtriplet");
-
+    */
+    /*
     // make match weight array
     npy_intp match_weight_dim[] = { num_max_samples };
     PyArrayObject* match_weights = (PyArrayObject*)PyArray_SimpleNew( 1, match_weight_dim, NPY_FLOAT );
@@ -157,7 +156,8 @@ namespace keypoints {
         *((float*)PyArray_GETPTR1(match_weights,i)) = w_neg/w_norm;
     }
     PyObject *match_weight_key = Py_BuildValue("s", "match_weight");
-    
+    */
+  /*
     // make index array
     npy_intp pos_dim[] = { (long)pos_index_v.size() };
     PyArrayObject* positive_index = (PyArrayObject*)PyArray_SimpleNew( 1, pos_dim, NPY_LONG );
@@ -165,8 +165,8 @@ namespace keypoints {
       *((long*)PyArray_GETPTR1(positive_index,i)) = pos_index_v[i];
     }
     PyObject *pos_indices_key = Py_BuildValue("s", "positive_indices");
-
-
+  */
+    /*
     // SSNET Arrays
     PyArrayObject* ssnet_label  = nullptr;
     PyArrayObject* ssnet_weight = nullptr;
@@ -184,14 +184,27 @@ namespace keypoints {
                          matches, kplabel_label, kplabel_weight );
     PyObject *kp_label_key     = Py_BuildValue("s", "kplabel" );
     PyObject *kp_weight_key    = Py_BuildValue("s", "kplabel_weight" );
-
+    */
     // KP-SHIFT ARRAY
+    /*
     PyArrayObject* kpshift_label = nullptr;
     make_kpshift_arrays( num_max_samples, nfilled, withtruth,
                          matches, kpshift_label );
-    PyObject *kp_shift_key     = Py_BuildValue("s", "kpshift" );
-
-
+			 
+			 PyObject *kp_shift_key     = Py_BuildValue("s", "kpshift" );
+    */
+    /*
+    // CLUSTER INFO ARRAYS
+    PyArrayObject* index_array = nullptr;
+    PyArrayObject* feature_array = nullptr;
+    make_clusterinfo_arrays( index_array, feature_array );
+    */
+    
+    // FLASH INFO ARRAY
+    PyArrayObject* flashinfo_label = nullptr;
+    make_flashinfo_arrays( flashinfo_label );
+  }
+    /*
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, match_key,              (PyObject*)matches);        
     PyDict_SetItem(d, match_weight_key,       (PyObject*)match_weights);    
@@ -224,8 +237,7 @@ namespace keypoints {
     Py_DECREF(kpshift_label);    
 
     return d;
-  }
-
+    */
   /**
    * @brief make the ssnet numpy arrays 
    *
@@ -240,7 +252,8 @@ namespace keypoints {
    * @return always returns 0
    *
    */
-  int LoaderKeypointData::make_ssnet_arrays( const int& num_max_samples,
+  /*
+  int DataLoader::make_ssnet_arrays( const int& num_max_samples,
                                              int& nfilled,
                                              bool withtruth,
                                              std::vector<int>& pos_match_index,
@@ -309,7 +322,7 @@ namespace keypoints {
     
     return 0;
   }
-
+  /*
   /**
    * @brief make keypoint ground truth numpy arrays
    *
@@ -322,7 +335,8 @@ namespace keypoints {
    * @param[out] kplabel_weight numpy array containing weight for each spacepoint
    * @return always returns 0  
    */
-  int LoaderKeypointData::make_kplabel_arrays( const int& num_max_samples,
+  /*
+  int DataLoader::make_kplabel_arrays( const int& num_max_samples,
                                                 int& nfilled,
                                                 bool withtruth,
                                                 std::vector<int>& pos_match_index,
@@ -408,7 +422,7 @@ namespace keypoints {
 
     return 0;
   }
-
+  /*
   /**
    * @brief make keypoint shift ground truth numpy arrays
    *
@@ -418,8 +432,9 @@ namespace keypoints {
    * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
    * @param[out] kpshift_label numpy array containing ground truth position shifts
    * @return always returns 0  
-   */  
-  int LoaderKeypointData::make_kpshift_arrays( const int& num_max_samples,
+   */
+  /*
+  int DataLoader::make_kpshift_arrays( const int& num_max_samples,
                                                 int& nfilled,
                                                 bool withtruth,
                                                 PyArrayObject* match_array,
@@ -451,6 +466,61 @@ namespace keypoints {
     
     return 0;
   }
+  */
+  /**
+   * @brief make keypoint shift ground truth numpy arrays
+   *
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] kpshift_label numpy array containing ground truth position shifts
+   * @return always returns 0  
+   */
+
+
+  /*
+  int DataLoader::make_clusterinfo_arrays( PyArrayObject*& index_array,
+					   PyArrayObject*& feature_array ) {
+    
+    // make feature (charge) array
+    int feature_nd = 1;
+    npy_intp feature_dims[] = { 32 };
+    flashinfo_label = (PyArrayObject*)PyArray_SimpleNew( flashinfo_nd, flashinfo_dims, NPY_FLOAT );
+
+    // loop through the 32 PMT values
+    for (int i = 0; i < flashinfo_dims[0]; i++ ) {
+
+      float label = flash_v->at( i );
+
+      *((float*)PyArray_GETPTR1(flashinfo_label,i)) = (float)label;
+      
+    }
+    
+    return 0;
+  }
+  */
   
-}
+  int DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
+
+
+    
+    // make flash array
+    int flashinfo_nd = 1;
+    npy_intp flashinfo_dims[] = { 32 };
+    flashinfo_label = (PyArrayObject*)PyArray_SimpleNew( flashinfo_nd, flashinfo_dims, NPY_FLOAT );
+
+    // loop through the 32 PMT values
+    for (int i = 0; i < flashinfo_dims[0]; i++ ) {
+
+      float label = flash_v->at( i );
+
+      *((float*)PyArray_GETPTR1(flashinfo_label,i)) = (float)label;
+      
+    }
+    
+    return 0;
+  }
+
+} 
 }

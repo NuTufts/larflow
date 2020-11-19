@@ -8,7 +8,8 @@ set( HEADERS
 #  PrepKeypointData.h
   DataLoader.h
 #  PrepAffinityField.h
-#  LoaderAffinityField.h )
+#  LoaderAffinityField.h
+)
 
 add_library( ${LIBNAME} SHARED
 #  KPdata.cxx
