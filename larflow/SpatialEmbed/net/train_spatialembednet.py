@@ -44,10 +44,10 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
+CHECKPOINT_FILE="checkpoint.5000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=False
@@ -81,7 +81,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
+START_ITER  = 5001
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -173,22 +173,23 @@ def main():
         checkpoint = torch.load( CHECKPOINT_FILE, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
 
         # hack to be able to load sparseconvnet<1.3
-        for name,arr in checkpoint["state_larmatch"].items():
-            if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
-                 ("stem" in name and "weight" in name and len(arr.shape)==3) or
-                 ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
-                 ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
-                print("reshaping ",name)
-                checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
+        
+        # for name,arr in checkpoint["state_larmatch"].items():
+        #     if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
+        #          ("stem" in name and "weight" in name and len(arr.shape)==3) or
+        #          ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
+        #          ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
+        #         print("reshaping ",name)
+        #         checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
         
         best_prec1 = checkpoint["best_prec1"]
         if CHECKPOINT_FROM_DATA_PARALLEL:
             model = nn.DataParallel( model, device_ids=DEVICE_IDS ) # distribute across device_ids
         for n,m in model_dict.items():
             if "state_"+n in checkpoint:
-                if n in ["kplabel"]:
-                    print "skip re-loading keypoint"
-                    continue
+                #if n in ["kplabel"]:
+                #    print "skip re-loading keypoint"
+                #    continue
                 m.load_state_dict(checkpoint["state_"+n])
 
     # data parallel training -- does not work
@@ -492,7 +493,8 @@ def train(train_loader, device, batchsize,
         loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
-        acc_meters["iou"].update( iou_out, ninstances )
+        if iou_out is not None:
+            acc_meters["iou"].update( iou_out, ninstances )
 
         # measure elapsed time for batch
         time_meters["batch"].update(time.time()-batchstart)
@@ -603,7 +605,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
-        acc_meters["iou"].update( iou_out, ninstances )
+        if iou_out is not None:
+            acc_meters["iou"].update( iou_out, ninstances )
 
         # measure elapsed time for batch
         time_meters["batch"].update(time.time()-batchstart)
