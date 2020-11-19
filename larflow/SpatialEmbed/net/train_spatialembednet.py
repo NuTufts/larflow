@@ -143,11 +143,12 @@ def main():
                             input_nfeatures=3,
                             nclasses=1,
                             num_unet_layers=6,
+                            nsigma=3,
                             stem_nfeatures=32).to(DEVICE)
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3)
     
     model_dict = {"spatialembed":model}
     parameters = []
@@ -216,7 +217,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-4
+    lr = 1e-3
     momentum = 0.9
     weight_decay = 1.0e-1
 

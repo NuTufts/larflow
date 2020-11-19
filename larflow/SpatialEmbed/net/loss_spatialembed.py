@@ -166,7 +166,7 @@ class SpatialEmbedLoss(nn.Module):
         _loss_var      /= float(batch_size)
 
         # ave iou
-        if calc_iou and instance_iou>0:
+        if calc_iou and batch_ninstances>0:
             ave_iou /= float(batch_ninstances)
             if ave_iou>1.0:
                 ave_iou = 1.0
