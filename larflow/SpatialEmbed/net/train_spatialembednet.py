@@ -491,7 +491,8 @@ def train(train_loader, device, batchsize,
         loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
-        acc_meters["iou"].update( iou_out, ninstances )
+        if iou_out is not None:
+            acc_meters["iou"].update( iou_out, ninstances )
 
         # measure elapsed time for batch
         time_meters["batch"].update(time.time()-batchstart)
@@ -602,7 +603,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
-        acc_meters["iou"].update( iou_out, ninstances )
+        if iou_out is not None:
+            acc_meters["iou"].update( iou_out, ninstances )
 
         # measure elapsed time for batch
         time_meters["batch"].update(time.time()-batchstart)

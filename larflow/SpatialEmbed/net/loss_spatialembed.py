@@ -15,7 +15,7 @@ class SpatialEmbedLoss(nn.Module):
         self.w_seed  = w_seed
         self.w_sigma_var = w_sigma_var
         self.nsigma = nsigma
-        self.bce = torch.nn.BCELoss()
+        self.bce = torch.nn.BCELoss(reduction='none')
         
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
         
@@ -30,6 +30,7 @@ class SpatialEmbedLoss(nn.Module):
 
         ave_iou = 0.
         batch_ninstances = 0
+        totpix_instances = 0
         loss = 0
         _loss_var = 0.
         _loss_seed = 0.
@@ -63,7 +64,7 @@ class SpatialEmbedLoss(nn.Module):
 
             for i in range(1,num_instances+1):
                 if verbose: print "== BATCH[",b,"]-INSTANCE[",i,"] ================"
-                idmask = instance.eq(i)
+                idmask = instance.detach().eq(i)
                 if idmask.sum()==0: continue
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
@@ -108,9 +109,21 @@ class SpatialEmbedLoss(nn.Module):
 
 
                 #print " idmask.float(): ",idmask.float().sum()
-                loss_i = self.bce( gaus, idmask.float() )
+                loss_i = self.bce( gaus, idmask.float() )                
+                if idmask.sum()!=idmask.shape[0]:
+                    n_pos = idmask.float().sum()
+                    n_neg = idmask.shape[0]-n_pos
+                    w_pos = 0.5/n_pos
+                    w_neg = 0.5/n_neg
+                    if verbose: print "  w_pos=",w_pos.item()," w_neg=",w_neg.item()," N_pos=",n_pos.item()," N_neg=",n_neg.item()
+                    w_v = idmask.float()*w_pos + (1.0-idmask.float())*w_neg
+                    if verbose: print "  instance loss-unweighted=",loss_i.detach().mean().item()
+                    loss_i *= w_v
+                else:
+                    pass
+                loss_i = loss_i.sum()
                 #loss_i = lovasz_hinge( gaus*2-1, idmask.long() )
-                if verbose: print "  instance loss: ",loss_i.detach().item()
+                if verbose: print "  instance loss-weighted: ",loss_i.detach().item()
                 loss_instance = loss_instance +  loss_i
 
                 # L2 loss for gaussian prediction
@@ -133,7 +146,8 @@ class SpatialEmbedLoss(nn.Module):
                     instance_iou = self.calculate_iou(gaus.detach()>0.5, idmask.detach())
                     if verbose:
                         print "   iou: ",instance_iou
-                    ave_iou += instance_iou
+                    ave_iou += instance_iou*idmask.float().sum()
+                    totpix_instances += idmask.float().sum()
                 if verbose:
                     print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum().item()," of ",gaus[idmask].detach().shape[0]                    
                     print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum().item()," of ",gaus[~idmask].detach().shape[0]
@@ -166,10 +180,11 @@ class SpatialEmbedLoss(nn.Module):
         _loss_var      /= float(batch_size)
 
         # ave iou
-        if calc_iou and instance_iou>0:
-            ave_iou /= float(batch_ninstances)
-            if ave_iou>1.0:
-                ave_iou = 1.0
+        if calc_iou:
+            if totpix_instances.item()>0.0:
+                ave_iou /= totpix_instances.item()
+            else:
+                ave_iou = None
 
         if verbose: print "total loss=",loss.detach().item()," ave-iou=",ave_iou
 
@@ -234,7 +249,9 @@ if __name__=="__main__":
         
         print("voxel entries: ",coord_t.shape)
 
-        loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )    
+        loss_tot,ninstancs,ave_iou,_ = loss.forward(coord_t, embed_t, seed_t, instance_t, verbose=True, calc_iou=True )
+        print("loss total=",loss_tot)
+        print("ave iou=",ave_iou)
     
     print("[FIN]")
 
