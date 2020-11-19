@@ -31,10 +31,10 @@ class SpatialEmbedLoss(nn.Module):
         ave_iou = 0.
         batch_ninstances = 0
         totpix_instances = 0
-        loss = 0
-        _loss_var = 0.
-        _loss_seed = 0.
-        _loss_instance = 0.
+        loss = torch.zeros(1).to(embed_t.device)
+        _loss_var = torch.zeros(1).to(embed_t.device)
+        _loss_seed = torch.zeros(1).to(embed_t.device)
+        _loss_instance = torch.zeros(1).to(embed_t.device)
         
         for b in range(batch_size):
             # get entries a part of current batch index
@@ -53,19 +53,20 @@ class SpatialEmbedLoss(nn.Module):
 
             # calc embeded position
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
-            sigma   = torch.tanh(embed[:,3:3+self.nsigma])
+            #sigma   = torch.tanh(embed[:,3:3+self.nsigma])
+            sigma   = torch.sigmoid(embed[:,3:3+self.nsigma])
 
             obj_count = 0
-            loss_var = 0
-            loss_instance = 0
-
-            seed_pix_count = 0            
-            loss_seed = 0
+            seed_pix_count = 0
+            
+            loss_var = torch.zeros(1).to(embed_t.device)
+            loss_instance = torch.zeros(1).to(embed_t.device)
+            loss_seed = torch.zeros(1).to(embed_t.device)
 
             for i in range(1,num_instances+1):
                 if verbose: print "== BATCH[",b,"]-INSTANCE[",i,"] ================"
                 idmask = instance.detach().eq(i)
-                if idmask.sum()==0: continue
+                if idmask.sum()<10: continue
                 if verbose: print "  idmask: ",idmask.shape
                 coord_i = coord[idmask,:]
                 sigma_i = sigma[idmask,:]
@@ -76,7 +77,7 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  seed_i: ",seed_i.shape
                 
                 # mean
-                s = sigma_i.mean(0).view(1,3) # 1 dimensions
+                s = 1.0e-4+sigma_i.mean(0).view(1,3) # 1 dimensions
                 if verbose: print "  mean(ln(0.5/sigma^2): ",s
 
                 # calculate instance centroid
@@ -84,11 +85,12 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  centroid: ",center_i
 
                 # variance loss, want the values to be similar. orig author notes to find loss first
-                loss_var = loss_var + torch.mean(torch.pow(sigma_i - s.detach(), 2))
+                #loss_var = loss_var + torch.mean(torch.pow(sigma_i - s.detach(), 2))
+                loss_var = loss_var + torch.mean(torch.pow( (sigma_i - s.detach())/(s.detach()), 2)) # scale-free variance
                 if verbose: print "  sigma variance loss: ",loss_var.detach().item()
 
                 # gaus score from this instance centroid and sigma
-                s = torch.exp(s*10.0) # tends to blow up
+                #s = torch.exp(s*10.0) # tends to blow up
                 #s = 0.5/torch.pow(s,2)
                 #s = torch.clamp(s,min=0, max=2.0)
 
@@ -101,7 +103,8 @@ class SpatialEmbedLoss(nn.Module):
                     print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
                     print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
                 dist = (torch.pow(spembed - center_i, 2)*s).sum(1)
-                gaus = torch.exp(-1*dist)
+                gaus = torch.exp(-1000.0*dist)
+                if verbose: print "  dist: [",dist[idmask].detach().min(),",",dist[idmask].detach().max(),"] mean=",dist[idmask].detach().mean(),"]"
                 if verbose: print "  gaus: ",gaus.shape
                 if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
                 if verbose: print "  ave not-instance dist and gaus: ",dist.detach()[~idmask].mean()," ",gaus.detach()[~idmask].mean()
@@ -119,9 +122,10 @@ class SpatialEmbedLoss(nn.Module):
                     w_v = idmask.float()*w_pos + (1.0-idmask.float())*w_neg
                     if verbose: print "  instance loss-unweighted=",loss_i.detach().mean().item()
                     loss_i *= w_v
+                    loss_i = loss_i.sum()
                 else:
-                    pass
-                loss_i = loss_i.sum()
+                    loss_i = loss_i.mean()
+                    
                 #loss_i = lovasz_hinge( gaus*2-1, idmask.long() )
                 if verbose: print "  instance loss-weighted: ",loss_i.detach().item()
                 loss_instance = loss_instance +  loss_i
@@ -146,7 +150,7 @@ class SpatialEmbedLoss(nn.Module):
                     instance_iou = self.calculate_iou(gaus.detach()>0.5, idmask.detach())
                     if verbose:
                         print "   iou: ",instance_iou
-                    ave_iou += instance_iou*idmask.float().sum()
+                    ave_iou += instance_iou*idmask.float().sum().item()
                     totpix_instances += idmask.float().sum()
                 if verbose:
                     print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum().item()," of ",gaus[idmask].detach().shape[0]                    
@@ -165,9 +169,9 @@ class SpatialEmbedLoss(nn.Module):
                 
             if verbose: print "_loss_seed=",loss_seed.detach().item()
             loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var                
-            _loss_instance += self.w_embed * loss_instance.detach().item()
-            _loss_seed     += self.w_seed * loss_seed.detach().item()
-            _loss_var      += self.w_sigma_var * loss_var.detach().item()
+            _loss_instance += self.w_embed * loss_instance.detach()
+            _loss_seed     += self.w_seed * loss_seed.detach()
+            _loss_var      += self.w_sigma_var * loss_var.detach()
             #loss += self.w_embed * loss_instance + self.w_seed * loss_seed
             batch_ninstances += obj_count
 
@@ -188,7 +192,7 @@ class SpatialEmbedLoss(nn.Module):
 
         if verbose: print "total loss=",loss.detach().item()," ave-iou=",ave_iou
 
-        return loss,batch_ninstances,ave_iou,(_loss_instance,_loss_seed,_loss_var)
+        return loss,batch_ninstances,ave_iou,(_loss_instance.detach().item(),_loss_seed.detach().item(),_loss_var.detach().item())
                 
     def calculate_iou(self, pred, label):
         intersection = ((label == 1) & (pred == 1)).sum()

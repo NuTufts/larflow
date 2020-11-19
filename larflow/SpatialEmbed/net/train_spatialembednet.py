@@ -44,10 +44,10 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.5000th.tar"
+CHECKPOINT_FILE="checkpoint.11000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=False
@@ -81,7 +81,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 5001
+START_ITER  = 11410
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -150,7 +150,7 @@ def main():
     # define loss function (criterion) and optimizer
     criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3)
     
-    model_dict = {"spatialembed":model}
+    model_dict = {"embed":model}
     parameters = []
     for n,model in model_dict.items():
         for p in model.parameters():
@@ -171,7 +171,7 @@ def main():
     if RESUME_FROM_CHECKPOINT:
         print "RESUMING FROM CHECKPOINT FILE ",CHECKPOINT_FILE
         checkpoint = torch.load( CHECKPOINT_FILE, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
-
+        print "checkpoint: ",checkpoint.keys()
         # hack to be able to load sparseconvnet<1.3
         
         # for name,arr in checkpoint["state_larmatch"].items():
@@ -190,7 +190,9 @@ def main():
                 #if n in ["kplabel"]:
                 #    print "skip re-loading keypoint"
                 #    continue
+                print "LOAD PARAMETER FROM CHECKPOINT: model ",n
                 m.load_state_dict(checkpoint["state_"+n])
+                print "embedout bias: ",m.embed_out[-1].bias
 
     # data parallel training -- does not work
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
@@ -218,9 +220,9 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 1e-4
     momentum = 0.9
-    weight_decay = 1.0e-1
+    weight_decay = 1.0e-4
 
     # training variables
     itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
@@ -243,7 +245,7 @@ def main():
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
     iotrain = {"spatialembed":larflow.spatialembed.Prep3DSpatialEmbed(traindata_v)}
-
+    
     validdata_v = std.vector("std::string")()
     for x in INPUTFILE_VALID:
         validdata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
@@ -255,6 +257,13 @@ def main():
     epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
     VALID_NENTRIES = iovalid["spatialembed"].getTree().GetEntries()
 
+    # set starting entry
+    start_train_entry = START_ITER%TRAIN_NENTRIES
+    start_valid_entry = int(START_ITER/ITER_PER_VALID)%VALID_NENTRIES
+    iotrain["spatialembed"].getTreeEntry(start_train_entry)
+    iovalid["spatialembed"].getTreeEntry(start_valid_entry)    
+    
+
     print "Number of iterations to run: ",NUM_ITERS
     print "Entries in the training set: ",TRAIN_NENTRIES
     print "Entries in the validation set: ",VALID_NENTRIES
@@ -262,6 +271,9 @@ def main():
     print "Entries per iter (valid): ",itersize_valid
     print "Number of (training) Epochs to run: ",epochs    
     print "Iterations per epoch: ",iter_per_epoch
+    print "Starting iter: ",START_ITER
+    print "IO train start: ",start_train_entry
+    print "IO valid entry: ",start_valid_entry
 
     if False:
         print "passed setup successfully"
@@ -321,7 +333,7 @@ def main():
                     save_checkpoint({
                         'iter':ii,
                         'epoch': ii/iter_per_epoch,
-                        'state_embed': model_dict["spatialembed"].state_dict(),
+                        'state_embed': model_dict["embed"].state_dict(),
                         'best_prec1': best_prec1,
                         'optimizer' : optimizer.state_dict(),
                     }, is_best, -1)
@@ -332,7 +344,7 @@ def main():
                 save_checkpoint({
                     'iter':ii,
                     'epoch': ii/iter_per_epoch,
-                    'state_embed': model_dict["spatialembed"].state_dict(),
+                    'state_embed': model_dict["embed"].state_dict(),
                     'best_prec1': best_prec1,
                     'optimizer' : optimizer.state_dict(),
                 }, False, ii)
@@ -344,7 +356,7 @@ def main():
         save_checkpoint({
             'iter':NUM_ITERS,
             'epoch': float(NUM_ITERS)/iter_per_epoch,
-            'state_embed': model_dict["spatialembed"].state_dict(),
+            'state_embed': model_dict["embed"].state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, False, NUM_ITERS)
@@ -452,7 +464,7 @@ def train(train_loader, device, batchsize,
         
         # run network
         start = time.time()    
-        embed_t,seed_t = model["spatialembed"]( coord_t, feat_t, device, verbose=TRAIN_NET_VERBOSE )
+        embed_t,seed_t = model["embed"]( coord_t, feat_t, device, verbose=TRAIN_NET_VERBOSE )
         dt_forward = time.time()-start
 
         # Calculate the loss
@@ -470,13 +482,15 @@ def train(train_loader, device, batchsize,
         if RUNPROFILER:
             torch.cuda.synchronize()
         start = time.time()
-        loss.backward()
+        if ninstances>0:
+            loss.backward()
         dt_backward = time.time()-start
 
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
             print "batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step)
-            optimizer.step()
+            if ninstances>0:
+                optimizer.step()
             optimizer.zero_grad()
             
         if RUNPROFILER:        
@@ -487,10 +501,11 @@ def train(train_loader, device, batchsize,
         end = time.time()
 
         # update loss meters
-        loss_meters["total"].update( loss.detach().item(),    nbatches_per_step )
-        loss_meters["instance"].update( _loss[0],  ninstances )
-        loss_meters["seed"].update( _loss[1],  ninstances )
-        loss_meters["var"].update( _loss[2], ninstances )
+        if ninstances>0:
+            loss_meters["total"].update( loss.detach().item(),    nbatches_per_step )
+            loss_meters["instance"].update( _loss[0],  ninstances )
+            loss_meters["seed"].update( _loss[1],  ninstances )
+            loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
         if iou_out is not None:
@@ -579,7 +594,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         # run network
         with torch.no_grad():
             start = time.time()    
-            embed_t,seed_t = model["spatialembed"]( coord_t, feat_t, device, verbose=VALID_NET_VERBOSE )
+            embed_t,seed_t = model["embed"]( coord_t, feat_t, device, verbose=VALID_NET_VERBOSE )
             dt_forward = time.time()-start
 
             # Calculate the loss
@@ -599,10 +614,11 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         end = time.time()
 
         # update loss meters
-        loss_meters["total"].update( loss.detach().item(), batchsize )
-        loss_meters["instance"].update( _loss[0],  ninstances )
-        loss_meters["seed"].update( _loss[1],  ninstances )
-        loss_meters["var"].update( _loss[2], ninstances )
+        if ninstances>0:
+            loss_meters["total"].update( loss.detach().item(), batchsize )
+            loss_meters["instance"].update( _loss[0],  ninstances )
+            loss_meters["seed"].update( _loss[1],  ninstances )
+            loss_meters["var"].update( _loss[2], ninstances )
         
         # update acc meters
         if iou_out is not None:

@@ -37,7 +37,7 @@ voxel_dims = (2048, 1024, 4096)
 net = SpatialEmbedNet(3, voxel_dims,
                       input_nfeatures=3,
                       nclasses=1,
-                      num_unet_layers=5,
+                      num_unet_layers=6,
                       nsigma=3,
                       stem_nfeatures=32).to(device)
 net.init_embedout()
@@ -87,13 +87,13 @@ dt_loader = 0.
 dt_forward = 0.
 dt_loss = 0.
 nrun = 0
-for ientry in range(1,nentries):
+for ientry in range(957,957+nbatches):
 
     start = time.time()
     if not use_random_tensor:
         # get entry data (numpy arrays)
-        #data = voxelloader.getTreeEntryDataAsArray(ientry)
-        data = voxelloader.getTrainingDataBatch(nbatches)
+        data = voxelloader.getTreeEntryDataAsArray(ientry)
+        #data = voxelloader.getTrainingDataBatch(nbatches)
         print("voxel entries: ",data["coord_t"].shape)
         print("num batches: ",data["coord_t"][:,3].max())
         
@@ -123,7 +123,7 @@ for ientry in range(1,nentries):
         embed_t,seed_t = net( coord_t, feat_t, device, verbose=verbose )
         dt_forward += time.time()-start
         print " embed_t[shift].sum()=",embed_t[:,0:3].detach().sum().item()
-        print " embed_t[sigma].mean()=",embed_t[:,3].detach().mean().item() 
+        print " embed_t[sigma].mean()=",embed_t[:,3:].detach().mean().item() 
 
         # loss
         start = time.time()
@@ -145,7 +145,7 @@ for ientry in range(1,nentries):
             print n,": grad: ",p.grad
 
     nrun += 1
-    break
+    #break
 
 print("Loading time: ",dt_loader," sec total ",dt_loader/nrun," sec/entry")
 print("Loading net-forward: ",dt_forward," sec total ",dt_forward/nrun," sec/entry")
