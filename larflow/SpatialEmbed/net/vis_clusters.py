@@ -72,6 +72,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         print("embed: ",embed)
     print("voxel entries: ",data.shape)
 
+    tracelist = []
     if plotby in ["cluster","embed"]:
         # color by instance index
         color = np.zeros( (data.shape[0],3) )
@@ -81,48 +82,50 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         for iid in range(ninstances):
             icluster=iid+1
             idmask = data[:,3]==icluster
-            print("idmask: ",idmask.shape)
+            print("idmask: ",idmask.sum())
             if icluster<color_bank.shape[0]:
-                color[idmask,:] = color_bank[icluster,:]
+                cluster_color = color_bank[icluster,:]
             else:
-                color[idmask,:] = np.random.rand(3)*255
-            print("instance[",iid,"] color: ",color[idmask,:][0,:])
+                cluster_color = np.random.rand(3)*255
+            strcolor = "rgb(%d,%d,%d)"%(cluster_color[0],cluster_color[1],cluster_color[2])
+            print("instance[",iid,"] color: ",cluster_color," strcolor=",strcolor)
+            fcoord_t = np.zeros( (int(idmask.sum()),3) )
+            for i in range(3):
+                conversion = voxel_dim.at(i)/nvoxels.at(i)
+                if plotby=="cluster":
+                    print("data[idmask,i]: ",data[idmask,i].shape)
+                    fcoord_t[:,i] = data[idmask,i]*conversion+origin[i]
+                elif plotby=="embed":
+                    fcoord_t[:,i] = embed[idmask,i]*conversion+origin[i]
+                    
+            trace = {
+                "type":"scatter3d",
+                "x":fcoord_t[:,0],
+                "y":fcoord_t[:,1],
+                "z":fcoord_t[:,2],
+                "mode":"markers",
+                "name":"id[%d]"%(icluster),
+                "marker":{"color":strcolor,
+                          "size":5,
+                          "opacity":0.5}}
+            tracelist.append(trace)
+            
     else:
         raise ValueError("unrecognized plot option:",plotby)
             
-    # conversion of voxel indices to coordinate space
-    fcoord_t = np.zeros( (data.shape[0],3) )
-    for i in range(3):
-        conversion = voxel_dim.at(i)/nvoxels.at(i)
-        print("dim[",i,"] conversion")
-        if plotby=="cluster":
-            fcoord_t[:,i] = data[:,i]*conversion + origin[i]
-        elif plotby=="embed":
-            fcoord_t[:,i] = embed[:,i]*voxel_dim.at(i) + origin[i]
-        print(fcoord_t[:,i].mean())
 
-    print ("fcoord: ",fcoord_t.shape," color:",color.shape)
-    # 3D trace
-    voxtrace = {
-        "type":"scatter3d",
-        "x":fcoord_t[:,0],
-        "y":fcoord_t[:,1],
-        "z":fcoord_t[:,2],
-        "mode":"markers",
-        "name":"voxels",
-        "marker":{"color":color,
-                  "size":5,
-                  "opacity":0.5}}
-    if plotby not in ["cluster","embed"]:
-        voxtrace["marker"]["colorscale"]="Viridis"
-    if plotby in ["embed"]:
-        voxtrace["marker"]["size"] = 3
-        voxtrace["marker"]["opacity"] = 1.0        
+    for voxtrace in tracelist:
+        if plotby not in ["cluster","embed"]:
+            print("Set color scale to viridis")
+            voxtrace["marker"]["colorscale"]="Viridis"
+        if plotby in ["embed"]:
+            voxtrace["marker"]["size"] = 3
+            voxtrace["marker"]["opacity"] = 1.0        
 
     traces_v = []
     #if plotby in ["cluster","embed"]:
     #    traces_v += detdata.getlines()
-    traces_v.append( voxtrace )
+    traces_v += tracelist
     
     return traces_v
 
