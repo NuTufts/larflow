@@ -265,7 +265,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
             gaussian_class_segmentation[i] = torch.max(gaussian_class_segmentation[i], gaussian.detach()[instance_idx])
 
     loss_seed = mseloss(gaussian_class_segmentation.t(), seeds) / (seeds.detach().size()[1])
-    print "Loss seed: ", loss_seed
+    # print "Loss seed: ", loss_seed
 
     # gaussian_class_segmentation = folded_gaussian.detach() * class_segmentation
 
@@ -331,7 +331,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     
     if verbose: print "    Loss Sigma:  ", loss_sigma.detach()
 
-    print "Loss sigma: ", loss_sigma.detach()
+    # print "Loss sigma: ", loss_sigma.detach()
 
     # ===========================================
     # loss_sigma = loss_gaus.detach() * 0
@@ -339,7 +339,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
 
     loss = (10*loss_gaus)+(2*loss_seed)+(1*loss_sigma)
     if verbose: print "    Total Loss:  ", loss.detach()
-    print "Loss: ", loss.detach()
+    # print "Loss: ", loss.detach()
 
     if math.isnan(loss.detach()):
         print "loss is bunked"
