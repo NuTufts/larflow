@@ -13,6 +13,7 @@ import torch
 import math
 import torch.nn as nn
 import torch.optim as optim
+import pickle
 
 import matplotlib.pyplot as plt
 from SpatialEmbed import SpatialEmbed, spatialembed_loss, post_process
@@ -53,6 +54,10 @@ else:
 
 loss_tracking = []
 
+class_loss = []
+seed_loss = []
+sigma_smooth_loss = []
+
 IMG_WIDTH  = 3456
 IMG_HEIGHT = 1008
 IMG_BUFF = 15
@@ -64,14 +69,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = SpatialEmbed(features_per_layer=NUM_TYPES).to(device)
 model = model.train()
 
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.005)
 criterion = spatialembed_loss
 
 events = 0
 
-
-loops = 2
-loops_per_image = 2
+loops = 100
+loops_per_image = 1
 loss = 0.0
 total_inner_count = 0
 for loop in range(0, loops):
@@ -149,12 +153,16 @@ for loop in range(0, loops):
                     offsets.requires_grad_(True)
                     seeds.requires_grad_(True)
 
-                    loss = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=args.verbose, iterator=iterate)
+                    loss_tot = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=args.verbose, iterator=iterate)
                     
+                    loss = loss_tot[0]
+
                     if (args.track_loss):
                         if (total_inner_count % args.track_loss) == 0:
-                            print total_inner_count
                             loss_tracking.append(numpy.double(loss.detach().to('cpu')))
+                            class_loss.append(loss_tot[1].detach().to('cpu'))
+                            seed_loss.append(loss_tot[2].detach().to('cpu'))
+                            sigma_smooth_loss.append(loss_tot[3].detach().to('cpu'))
 
                     loss.backward()
                     optimizer.step()
@@ -165,6 +173,13 @@ for loop in range(0, loops):
             # if events == 1:
             #     exit()
 
+# save_dict = {'class_loss': class_loss,
+#              'total_loss': loss_tracking,
+#              'seed_loss': seed_loss,
+#              'sigma_loss': sigma_smooth_loss,
+#              "xaxis": [args.track_loss*i for i, elem in enumerate(loss_tracking)]}
+# pickle.dump(save_dict, open('loss.pkl', 'wb'))
+
 if args.save:
     state = {
         'state_dict': model.state_dict(),
@@ -172,7 +187,10 @@ if args.save:
         'train': train_files,
         'test': test_files,
         'validate': validation_files,
-        'loss_tracking': loss_tracking
+        'loss_tracking': loss_tracking,
+        'class_loss': class_loss,
+        'seed_loss': seed_loss,
+        'sigma_smooth_loss': sigma_smooth_loss
     }
     torch.save(state, args.save)
 

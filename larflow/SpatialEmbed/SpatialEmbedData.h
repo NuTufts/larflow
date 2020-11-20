@@ -79,11 +79,12 @@ public:
 
     PyObject* coord_t_pyarray(int plane);
     PyObject* feat_t_pyarray(int plane);
-    PyObject* instance(int plane, int instance);
-    PyObject* instance_binary(int plane, int instance);
-    PyObject* get_instance_binaries(int plane);
-    PyObject* get_class_map(int plane, int type, int include_opp=0); // include negatives aka 11 == -11
-    PyObject* type_indices(int plane, int type, int include_opp=0);
+    PyObject* instance(int plane, int instance); // returns instance'th instance as a sparse array
+    PyObject* instance_binary(int plane, int instance); // returns instance'th instance as a 1/0 array size coord_t
+    PyObject* get_instance_binaries(int plane);  // returns all instance binaries
+    PyObject* get_class_map(int plane, int type, int include_opp=0);  // returns combined binaries of all binaries of a given type
+                                                                      // include negatives aka 11 == -11
+    PyObject* type_indices(int plane, int type, int include_opp=0);   // returns instance indices of instances of a given type
 
     int typeof_instance(int plane, int instance);
 

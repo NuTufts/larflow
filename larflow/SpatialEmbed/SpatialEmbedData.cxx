@@ -494,7 +494,7 @@ PyObject* SpatialEmbedData::get_class_map(int plane, int type, int include_opp )
                 break;
             }   
         }
-         *((int*)PyArray_GETPTR2(array, idx, 0)) = is_true;
+        *((int*)PyArray_GETPTR2(array, idx, 0)) = is_true;
     }
 
     return (PyObject*) array;

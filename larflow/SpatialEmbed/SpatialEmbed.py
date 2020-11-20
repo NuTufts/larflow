@@ -7,6 +7,7 @@ import sparseconvnet as scn
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import particle_list
 
 sys.path.insert(1, os.environ['LARFLOW_BASEDIR']+"/larmatchnet/")
 from utils_sparselarflow import create_resnet_layer
@@ -29,7 +30,7 @@ class SpatialEmbed(nn.Module):
 
         self.use_unet = use_unet
 
-        self.ninput_planes = ninput_planes  
+        self.ninput_planes = ninput_planes
               
         # OFFSET
         self.source_inputlayer_offset  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -64,7 +65,6 @@ class SpatialEmbed(nn.Module):
 
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.source_inputlayer_seed = scn.InputLayer(ndimensions,inputshape,mode=0)
-
 
         # SEED
             # STEM
@@ -105,6 +105,16 @@ class SpatialEmbed(nn.Module):
         # from there, we move back into a tensor
         self.source_outlayer_offset  = scn.OutputLayer(ndimensions)
         self.source_outlayer_seed = scn.OutputLayer(ndimensions)
+
+        # print type(self.feature_layer_offset)
+        # print type(self.source_outlayer_offset)
+        print type(self.feature_layer_offset.bias.data)
+        print self.feature_layer_offset.bias.size()
+        print self.feature_layer_offset.bias
+
+        self.feature_layer_offset.weight.data.fill_(0)
+        self.feature_layer_offset.bias.data[2:].fill_(1)
+
 
 
     def forward_features( self, coord_plane0_t, plane0_feat_t,
@@ -168,7 +178,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
         seeds: #types channel tensor
         binary_maps: (#instances, #number of pixels), list of instances (and their pixels, expressed as 0 or 1)
         class_segmentation: (#classes, #number of pixels), class map for each class (binary) (should be same size as seeds)
-        types: vector length #instances, type labels
+        types: vector length #classes, inner vector is positions of that class
     '''
     if verbose: 
         print "---------------------------LOSS---------------------------------"
@@ -187,21 +197,27 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     e_ix, e_iy = o_x + e_ix, o_y + e_iy
     sigma_x, sigma_y = offsets[:,2], offsets[:,3] 
 
+    # print offsets[:,0]
+    # print offsets[:,0]
+
+    # print offsets[:,2]
+    # print offsets[:,3]
+
     # Gaussian tensor
 
     # Average e_i for pixels in each instance
     x_centroids_binary = torch.mul(e_ix, binary_maps)
     y_centroids_binary = torch.mul(e_iy, binary_maps)
 
-    x_centroids = x_centroids_binary.sum(dim=1) / ((x_centroids_binary != 0).sum(dim=1).float() + epsilon)
-    y_centroids = y_centroids_binary.sum(dim=1) / ((y_centroids_binary != 0).sum(dim=1).float() + epsilon)
+    x_centroids = x_centroids_binary.sum(dim=1) / (binary_maps.sum(dim=1).float() + epsilon)
+    y_centroids = y_centroids_binary.sum(dim=1) / (binary_maps.sum(dim=1).float() + epsilon)
 
     # Average sigma_k per instance
     sigma_x_binary = torch.mul(sigma_x, binary_maps)
     sigma_y_binary = torch.mul(sigma_y, binary_maps)
 
-    sigma_kx = sigma_x_binary.sum(dim=1) / ((sigma_x_binary != 0).sum(dim=1).float() + epsilon)
-    sigma_ky = sigma_y_binary.sum(dim=1) / ((sigma_y_binary != 0).sum(dim=1).float() + epsilon)
+    sigma_kx = sigma_x_binary.sum(dim=1) / (binary_maps.sum(dim=1).float() + epsilon)
+    sigma_ky = sigma_y_binary.sum(dim=1) / (binary_maps.sum(dim=1).float() + epsilon)
 
     # print sigma_kx, sigma_ky
 
@@ -234,98 +250,103 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
             print "Expected Gauss: ", int((binary_maps[i].detach() > 0.2).sum().float()), " Learned Gauss: ", int((gaussian[i].detach() > 0.2).sum().float())
 
     for i in range(num_instances):
-        loss_gaus += 20 * mseloss(gaussian[i], binary_maps[i])
+        loss_gaus += 1 * mseloss(gaussian[i], binary_maps[i])
 
-    loss_gaus += 40 * mseloss(folded_gaussian, folded_binary_maps)
-    # loss += 60 * lovasz_losses.lovasz_hinge_flat(folded_gaussian, folded_binary_maps)
-
-
-    # Debugging, plotting learned heatmap
-    if iterator == -1: 
-        temp_coord_t = np.array(coord_t.detach().to('cpu'))
-        x, y, dummy = zip(*np.array(coord_t.detach().to('cpu')))
-
-        plt.scatter(x, y, marker='.', c=list(np.array((folded_gaussian.detach().to('cpu') * 10).type(torch.int))), cmap=plt.cm.autumn)
-        # plt.scatter(x, y, marker='.', c=list(np.array((folded_binary_maps.detach().to('cpu') * 10).type(torch.int))), cmap=plt.cm.autumn)
-
-        plt.colorbar()
-        # plt.plot(x, y, '.', markersize=5, color='black')
-        # for inst_idx in xrange(entry.DataBranch.num_instances_plane(plane)):
-        #     inst_xs, inst_ys = zip(*entry.DataBranch.instance(plane, inst_idx))
-        #     type_inst = abs(entry.DataBranch.typeof_instance(plane, inst_idx))
-        #     plt.plot(inst_xs, inst_ys, '.', markersize=7, color=colors[type_inst], label=particle_names[type_inst])
-        plt.show()
-
+    loss_gaus += num_instances * mseloss(folded_gaussian, folded_binary_maps)
+    # loss += lovasz_losses.lovasz_hinge_flat(folded_gaussian, folded_binary_maps)
 
     # Seed-map MSE loss
-    gaussian_class_segmentation = folded_gaussian.detach() * class_segmentation
+    # ====================================
+    #particle_indices from particle_list.py
 
-    class_pix_w = torch.ones( seeds.shape, requires_grad=False).to( seeds.device )
+    gaussian_class_segmentation = torch.zeros(seeds.detach().t().size()).to(seeds.device)
+    for i, instance_idxs in enumerate(types):
+        for instance_idx in instance_idxs:
+            gaussian_class_segmentation[i] = torch.max(gaussian_class_segmentation[i], gaussian.detach()[instance_idx])
 
-    nclasstot = torch.sum( class_segmentation, 1 )
-    nbgtot = float(seeds.shape[0])-nclasstot    
-    if verbose: 
-        print "  nclasstot: ",nclasstot,
-        print "  nbgtot: ",nbgtot    
-        print "Classseg ",
+    loss_seed = mseloss(gaussian_class_segmentation.t(), seeds) / (seeds.detach().size()[1])
+    print "Loss seed: ", loss_seed
 
-    for i in range(6):
-        if verbose: print int((gaussian_class_segmentation.detach()[i] > 0.2).sum().float()),
-        class_pix_w[:,i][ class_segmentation[i,:]==1.0 ] = (nbgtot[i]+1)/seeds.shape[0]
-        class_pix_w[:,i][ class_segmentation[i,:]==0.0 ] = (nclasstot[i]+1)/seeds.shape[0]
+    # gaussian_class_segmentation = folded_gaussian.detach() * class_segmentation
 
+    # class_pix_w = torch.ones( seeds.shape, requires_grad=False).to( seeds.device )
 
-    # weight class
-    if verbose: 
-        print
-        print "Seeds    ",
-        for i in range(6):
-            print int((seeds.detach().t()[i] > 0.2).sum().float()),
-        print 
+    # nclasstot = torch.sum( class_segmentation, 1 )
+    # nbgtot = float(seeds.shape[0])-nclasstot    
+    # if verbose: 
+    #     print "  nclasstot: ",nclasstot,
+    #     print "  nbgtot: ",nbgtot    
+    #     print "Classseg ",
 
+    # for i in range(6):
+    #     if verbose: print int((gaussian_class_segmentation.detach()[i] > 0.2).sum().float()),
+    #     class_pix_w[:,i][ class_segmentation[i,:]==1.0 ] = (nbgtot[i]+1)/seeds.shape[0]
+    #     class_pix_w[:,i][ class_segmentation[i,:]==0.0 ] = (nclasstot[i]+1)/seeds.shape[0]
 
-    if verbose: print "    Loss Lovasz: ", loss_gaus.detach()
+    # # weight class
 
-    # Seed Loss
-    sigmoid = torch.nn.Sigmoid()
-    sig_seeds = sigmoid(seeds)
-    loss_seed = mseloss_class(seeds, gaussian_class_segmentation.t())
-    class_pix_w *= 100
-    loss_seed *= class_pix_w
-    loss_seed = loss_seed.sum()
-    if verbose: print "    Loss Seed:   ",loss_seed.detach()
+    # if verbose: 
+    #     print
+    #     print "Seeds    ",
+    #     for i in range(6):
+    #         print int((seeds.detach().t()[i] > 0.2).sum().float()),
+    #     print 
+
+    # if verbose: print "    Loss Lovasz: ", loss_gaus.detach()
+
+    # # Seed Loss
+
+    # sigmoid = torch.nn.Sigmoid()
+    # sig_seeds = sigmoid(seeds)
+    # loss_seed = mseloss_class(seeds, gaussian_class_segmentation.t())
+    # class_pix_w *= 100
+    # loss_seed *= class_pix_w
+    # loss_seed = loss_seed.sum()
+    # if verbose: print "    Loss Seed:   ",loss_seed.detach()
+    # ====================================
+    # loss_seed = loss_gaus.detach() * 0
 
 
     # Sigma-smoothing loss 
     #    (take sigmas @instance pixel locations and consolidate into one vector)
-    avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1).detach()
-    avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1).detach()
+    # ===========================================
+    # avg_x_sigma_flattened = binary_maps * sigma_kx.view(num_instances, 1).detach()
+    # avg_y_sigma_flattened = binary_maps * sigma_ky.view(num_instances, 1).detach()
 
-    avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
-    avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
+    # avg_x_sigma_flattened = torch.max(avg_x_sigma_flattened.t(), 1)[0]
+    # avg_y_sigma_flattened = torch.max(avg_y_sigma_flattened.t(), 1)[0]
 
     #only compare it to the places that we care about
-    seeds_x_sigma = binary_maps * sigma_x.detach()
-    seeds_y_sigma = binary_maps * sigma_y.detach()
-
-    seeds_x_sigma = torch.max(seeds_x_sigma.t(), 1)[0]
-    seeds_y_sigma = torch.max(seeds_y_sigma.t(), 1)[0]
+    # seeds_x_sigma = binary_maps * sigma_x.detach()
+    # seeds_y_sigma = binary_maps * sigma_y.detach()
+    
+    truth_avg_sigma_x = (binary_maps * sigma_kx.view(num_instances, 1))[binary_maps==True]
+    truth_avg_sigma_y = (binary_maps * sigma_ky.view(num_instances, 1))[binary_maps==True]
+    learned_sigma_x = (binary_maps * sigma_x)[binary_maps==True]
+    learned_sigma_y = (binary_maps * sigma_y)[binary_maps==True]
+    loss_sigma = mseloss(torch.div(3, torch.abs(truth_avg_sigma_x)+1), torch.div(3, torch.abs(learned_sigma_x)+1)) 
+    loss_sigma += mseloss(torch.div(3, torch.abs(truth_avg_sigma_y)+1), torch.div(3, torch.abs(learned_sigma_y)+1)) 
 
     #if verbose: print "        Sigma: ", (sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened) + sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)).detach()
-    loss_sigma = mseloss(seeds_x_sigma, avg_x_sigma_flattened) 
-    loss_sigma += mseloss(seeds_y_sigma, avg_y_sigma_flattened) 
-
-
+    
     if verbose: print "    Loss Sigma:  ", loss_sigma.detach()
 
-    loss = loss_gaus+loss_seed+loss_sigma
+    print "Loss sigma: ", loss_sigma.detach()
+
+    # ===========================================
+    # loss_sigma = loss_gaus.detach() * 0
+
+
+    loss = (10*loss_gaus)+(2*loss_seed)+(1*loss_sigma)
     if verbose: print "    Total Loss:  ", loss.detach()
+    print "Loss: ", loss.detach()
 
     if math.isnan(loss.detach()):
         print "loss is bunked"
         exit(1)
 
-    return loss
+    return loss, loss_gaus, loss_seed, loss_sigma
+    # return loss
 
 
 def post_process(coord_t, offsets, seeds):
