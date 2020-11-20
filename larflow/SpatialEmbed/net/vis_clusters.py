@@ -4,7 +4,7 @@ from ctypes import c_int
 from math import log
 
 parser = argparse.ArgumentParser("Visuzalize Voxel Data")
-parser.add_argument("input_file",type=str,help="file produced by 'prep_spatialembed.py'")
+parser.add_argument("input_file",type=str,help="file produced by 'inference_spatialembed.py'")
 #parser.add_argument("-c","--cluster",action='store_true',default=False,help="color by cluster instance")
 args = parser.parse_args()
 
@@ -47,6 +47,14 @@ from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
 detdata = lardly.DetectorOutline()
 
+# fixed random colors: first 3 are primary
+color_bank = np.zeros( (100,3) )
+color_bank[0,0] = 255
+color_bank[1,1] = 255
+color_bank[2,2] = 255
+for i in range(3,color_bank.shape[0]):
+    color_bank[i,:] = np.random.rand(3)*200
+
 def make_figures(entry,plotby="cluster",minprob=0.0):
 
     print("making figures for entry={} plot-by={}".format(entry,plotby))
@@ -74,9 +82,11 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             icluster=iid+1
             idmask = data[:,3]==icluster
             print("idmask: ",idmask.shape)
-            randcolor = np.random.rand(3)*255
-            print("instance[",iid,"] color: ",randcolor)
-            color[idmask,:] = randcolor
+            if icluster<color_bank.shape[0]:
+                color[idmask,:] = color_bank[icluster,:]
+            else:
+                color[idmask,:] = np.random.rand(3)*255
+            print("instance[",iid,"] color: ",color[idmask,:][0,:])
     else:
         raise ValueError("unrecognized plot option:",plotby)
             
@@ -101,7 +111,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         "mode":"markers",
         "name":"voxels",
         "marker":{"color":color,
-                  "size":1,
+                  "size":5,
                   "opacity":0.5}}
     if plotby not in ["cluster","embed"]:
         voxtrace["marker"]["colorscale"]="Viridis"
@@ -110,8 +120,8 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         voxtrace["marker"]["opacity"] = 1.0        
 
     traces_v = []
-    if plotby in ["cluster","embed"]:
-        traces_v += detdata.getlines()
+    #if plotby in ["cluster","embed"]:
+    #    traces_v += detdata.getlines()
     traces_v.append( voxtrace )
     
     return traces_v

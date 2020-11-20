@@ -20,8 +20,9 @@ from larflow import larflow
 voxelmaker = larflow.spatialembed.Prep3DSpatialEmbed()
 voxelmaker.set_verbosity(larcv.msg.kDEBUG)
 voxelmaker.set_adc_image_treename( args.adc )
+voxelmaker.set_truth_image_treename( "segment" )
 voxelmaker.setFilterByInstanceImageFlag( True )
-voxelmaker.setFilterOutNonNuPixelsFlag( True )
+voxelmaker.setFilterOutNonNuPixelsFlag( False )
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )

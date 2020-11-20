@@ -48,7 +48,8 @@ voxel_dims = (2048, 1024, 4096)
 model = SpatialEmbedNet(3, voxel_dims,
                         input_nfeatures=3,
                         nclasses=1,
-                        num_unet_layers=5,
+                        num_unet_layers=6,
+                        nsigma=3,
                         stem_nfeatures=32).to(device)
 
 checkpoint = torch.load( args.weight_file, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid

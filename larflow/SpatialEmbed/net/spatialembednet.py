@@ -213,7 +213,7 @@ class SpatialEmbedNet(nn.Module):
 
                 # calc embeded position
                 spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
-                sigma_b   = torch.tanh(embed_b[:,3])
+                sigma_b   = torch.sigmoid(embed_b[:,3:3+self.nsigma])
 
                 nvoxels_b = spembed_b.shape[0]
                 cluster_id = torch.zeros(nvoxels_b, dtype=torch.int )
@@ -237,10 +237,10 @@ class SpatialEmbedNet(nn.Module):
                     if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
                     centroid = spembed_b[maxseed_idx,:]
                     if verbose: print "centroid: ",centroid
-                    s = torch.exp( sigma_b[maxseed_idx]*10.0 )
+                    s = 1.0e-4+sigma_b[maxseed_idx,:] # (1,3)
                     if verbose: print "sigma: ",s
-                    dist = torch.sum(torch.pow(spembed_b-centroid,2),1)
-                    gaus = torch.exp(-dist*s)*mask
+                    dist = torch.sum(torch.pow(spembed_b-centroid,2)*s,1)
+                    gaus = torch.exp(-1000.0*dist)*mask
                     if verbose: print "gaus: ",gaus.shape
                     if verbose: print "num inside margin: ",(gaus>0.5).sum()
                     

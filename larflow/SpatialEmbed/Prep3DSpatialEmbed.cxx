@@ -28,6 +28,8 @@ namespace spatialembed {
     _tree(nullptr),
     _current_entry(0),          
     _kowner(true),
+    _adc_image_treename("wire"),
+    _truth_image_treename("segment"),    
     _in_pvid_row(nullptr),
     _in_pvid_col(nullptr),
     _in_pvid_depth(nullptr),
@@ -69,7 +71,7 @@ namespace spatialembed {
 
     if ( _filter_by_instance_image ) {
       larcv::EventImage2D* ev_instance_v
-        = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
+        = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _truth_image_treename );
       if ( ev_instance_v->as_vector().size()>0 ) {
         VoxelDataList_t filtered_data = filterVoxelsByInstanceImage( data, ev_instance_v->as_vector() );
         if ( filtered_data.size()<data.size() ) {
@@ -814,6 +816,11 @@ namespace spatialembed {
     
     
   }
+
+  /**
+   * @brief use ancestor image to remove corsika pixels
+   *
+   */
   
 }
 }

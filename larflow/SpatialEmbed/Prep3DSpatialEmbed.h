@@ -34,6 +34,7 @@ namespace spatialembed {
       _current_entry(0),      
       _kowner(false),
       _adc_image_treename("wire"),
+      _truth_image_treename("segment"),
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
       _in_pvid_depth(nullptr),
@@ -46,6 +47,7 @@ namespace spatialembed {
     virtual ~Prep3DSpatialEmbed() { if (_kowner) delete (TChain*)_tree; };
 
     void set_adc_image_treename( std::string name ) { _adc_image_treename=name; };
+    void set_truth_image_treename( std::string name ) { _truth_image_treename=name; };    
 
     /**
      * @brief Data for each non-zero voxel
@@ -120,6 +122,7 @@ namespace spatialembed {
     unsigned long _current_entry;
     bool _kowner; //< indicates if we own the tree
     std::string _adc_image_treename;
+    std::string _truth_image_treename;    
     std::vector< int > vid_row;
     std::vector< int > vid_col;
     std::vector< int > vid_depth;
