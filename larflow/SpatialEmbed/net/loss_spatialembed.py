@@ -101,9 +101,9 @@ class SpatialEmbedLoss(nn.Module):
                     diff[:,2] *= self.dim_nvoxels_t[2]
                     print "  ave and max diff[0]: ",diff[:,0].mean()," ",diff[:,0].max()
                     print "  ave and max diff[1]: ",diff[:,1].mean()," ",diff[:,1].max()
-                    print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()                
-                dist = (torch.pow(spembed - center_i, 2)*s).sum(1)
-                gaus = torch.exp(-1000.0*dist)
+                    print "  ave and max diff[2]: ",diff[:,2].mean()," ",diff[:,2].max()
+                dist = torch.pow(spembed - center_i, 2)
+                gaus = torch.exp(-1000.0*torch.sum(dist*s,1))
                 if verbose: print "  dist: [",dist[idmask].detach().min(),",",dist[idmask].detach().max(),"] mean=",dist[idmask].detach().mean(),"]"
                 if verbose: print "  gaus: ",gaus.shape
                 if verbose: print "  ave instance dist and gaus: ",dist.detach()[idmask].mean()," ",gaus.detach()[idmask].mean()
@@ -133,10 +133,10 @@ class SpatialEmbedLoss(nn.Module):
                 # L2 loss for gaussian prediction
                 if verbose: print "  seed_i [min,max]=[",seed_i.detach().min().item(),",",seed_i.detach().max().item(),"]"
                 if verbose: print "  gaus_i [min,max]=[",gaus[idmask].detach().min().item(),",",gaus[idmask].detach().max().item(),"]"
-                dist_s = torch.pow(seed_i-gaus[idmask].detach(), 2) # positive case
-                #dist_s = seed_i-gaus[idmask].detach()
+                # positive case
+                gaus_pos = torch.exp(-1.0e5*torch.sum( (dist.detach()[idmask])*s.detach(), 1 )) # note larger sigma scale factor.
+                dist_s = torch.pow(seed_i-gaus_pos.detach(), 2) # positive case
                 if verbose: print "  dist_s: ",dist_s.detach().shape," ",dist_s.detach().mean().item()
-                #if verbose: print "  dist_s: ",dist_s
                 loss_s = self.foreground_weight*dist_s.mean()
                 if verbose: print "  loss_s = ",loss_s.detach().item()
                 if verbose:
