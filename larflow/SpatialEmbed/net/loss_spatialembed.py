@@ -133,7 +133,7 @@ class SpatialEmbedLoss(nn.Module):
                 # L2 loss for gaussian prediction
                 if verbose: print "  seed_i [min,max]=[",seed_i.detach().min().item(),",",seed_i.detach().max().item(),"]"
                 if verbose: print "  gaus_i [min,max]=[",gaus[idmask].detach().min().item(),",",gaus[idmask].detach().max().item(),"]"
-                dist_s = torch.pow(seed_i-gaus[idmask].detach(), 2)
+                dist_s = torch.pow(seed_i-gaus[idmask].detach(), 2) # positive case
                 #dist_s = seed_i-gaus[idmask].detach()
                 if verbose: print "  dist_s: ",dist_s.detach().shape," ",dist_s.detach().mean().item()
                 #if verbose: print "  dist_s: ",dist_s
@@ -160,7 +160,9 @@ class SpatialEmbedLoss(nn.Module):
                 seed_pix_count += idmask.detach().sum()
 
             # end of instance loop
-
+            noidmask = instance.detach().eq(0)
+            loss_seed_neg = torch.pow(seed[noidmask,0],2).mean()
+            
             # normalize by number of instances
             if obj_count > 0:
                 loss_instance /= float(obj_count)
@@ -168,7 +170,7 @@ class SpatialEmbedLoss(nn.Module):
                 loss_seed /= float(obj_count)
                 
             if verbose: print "_loss_seed=",loss_seed.detach().item()
-            loss += self.w_embed * loss_instance + self.w_seed * loss_seed + self.w_sigma_var * loss_var                
+            loss += self.w_embed * loss_instance + self.w_seed * (loss_seed+loss_seed_neg) + self.w_sigma_var * loss_var                
             _loss_instance += self.w_embed * loss_instance.detach()
             _loss_seed     += self.w_seed * loss_seed.detach()
             _loss_var      += self.w_sigma_var * loss_var.detach()
