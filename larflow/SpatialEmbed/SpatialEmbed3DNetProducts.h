@@ -33,7 +33,8 @@ namespace spatialembed {
       _tree_simple(nullptr),
       _in_voxelidx_v(nullptr),
       _in_cluster_id(nullptr),
-      _in_embed_pos_v(nullptr)        
+      _in_embed_pos_v(nullptr),
+      _in_seed_v(nullptr)      
       {};
     virtual ~SpatialEmbed3DNetProducts() {};
 
@@ -46,10 +47,12 @@ namespace spatialembed {
     void bindSimpleOutputVariables( TTree* atree );
     void fillVoxelClusterID( PyObject* voxel_coord_ndarray,
                              PyObject* cluster_idx_ndarray,
-                             PyObject* embed_pos_ndarray=nullptr );
+                             PyObject* embed_pos_ndarray=nullptr,
+                             PyObject* seed_ndarray=nullptr );
     void setTreeBranches( TTree& input_tree );
     PyObject* getEntryDataAsNDarray( int entry );
-    PyObject* getEntryEmbedPosAsNDarray( int entry );    
+    PyObject* getEntryEmbedPosAsNDarray( int entry );
+    PyObject* getEntrySeedScoreAsNDarray( int entry );        
                                    
   protected:
 
@@ -57,10 +60,12 @@ namespace spatialembed {
     std::vector< std::vector<int> > _voxelidx_v;
     std::vector< int >              _cluster_id;
     std::vector< std::vector<float> > _embed_pos_v;
+    std::vector< float > _seed_v; // single-class seed score
 
-    std::vector< std::vector<int> >* _in_voxelidx_v;
-    std::vector< int >*              _in_cluster_id;
+    std::vector< std::vector<int> >*   _in_voxelidx_v;
+    std::vector< int >*                _in_cluster_id;
     std::vector< std::vector<float> >* _in_embed_pos_v;
+    std::vector< float >*              _in_seed_v;
     
   private:
 

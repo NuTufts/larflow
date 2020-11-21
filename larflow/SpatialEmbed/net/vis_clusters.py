@@ -27,7 +27,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["cluster","embed"]
+color_by_options = ["cluster","embed","seed-cluster","seed-embed"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -66,14 +66,12 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     nvoxels   = voxelizer.get_nvoxels()
     origin    = voxelizer.get_origin()
     data      = voxelloader.getEntryDataAsNDarray(entry)
-    embed     = None
-    if plotby=="embed":
-        embed = voxelloader.getEntryEmbedPosAsNDarray(entry)
-        print("embed: ",embed)
+    embed     = voxelloader.getEntryEmbedPosAsNDarray(entry)
+    seed      = voxelloader.getEntrySeedScoreAsNDarray(entry)
     print("voxel entries: ",data.shape)
 
     tracelist = []
-    if plotby in ["cluster","embed"]:
+    if plotby in ["cluster","embed","seed-cluster","seed-embed"]:
         # color by instance index
         color = np.zeros( (data.shape[0],3) )
         ninstances = data[:,3].max()
@@ -92,12 +90,14 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             fcoord_t = np.zeros( (int(idmask.sum()),3) )
             for i in range(3):
                 conversion = voxel_dim.at(i)/nvoxels.at(i)
-                if plotby=="cluster":
+                if plotby in ["cluster","seed-cluster"]:
                     print("data[idmask,i]: ",data[idmask,i].shape)
                     fcoord_t[:,i] = data[idmask,i]*conversion+origin[i]
-                elif plotby=="embed":
+                elif plotby in ["embed","seed-embed"]:
                     fcoord_t[:,i] = embed[idmask,i]*conversion+origin[i]
-                    
+            colordata = strcolor
+            if plotby in ["seed-cluster","seed-embed"]:
+                colordata = seed[idmask,0]
             trace = {
                 "type":"scatter3d",
                 "x":fcoord_t[:,0],
@@ -105,9 +105,9 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
                 "z":fcoord_t[:,2],
                 "mode":"markers",
                 "name":"id[%d]"%(icluster),
-                "marker":{"color":strcolor,
-                          "size":5,
-                          "opacity":0.5}}
+                "marker":{"color":colordata,
+                          "size":3,
+                          "opacity":0.2}}
             tracelist.append(trace)
             
     else:
@@ -115,8 +115,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             
 
     for voxtrace in tracelist:
-        if plotby not in ["cluster","embed"]:
-            print("Set color scale to viridis")
+        if plotby in ["seed-cluster","seed-embed"]:
             voxtrace["marker"]["colorscale"]="Viridis"
         if plotby in ["embed"]:
             voxtrace["marker"]["size"] = 3

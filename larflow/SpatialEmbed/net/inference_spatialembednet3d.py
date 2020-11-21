@@ -16,6 +16,7 @@ parser.add_argument("-i","--input-file",type=str,required=True,help="file produc
 parser.add_argument("-w","--weight-file",type=str,required=True,help="weight file")
 parser.add_argument("-o","--output-file",type=str,required=True,help="output root file")
 parser.add_argument("-b","--batchsize",type=int,default=5,help="batchsize [default: 4]")
+parser.add_argument("-v","--verbose",action='store_true',default=False,help="verbose operation in cluster formation")
 
 args = parser.parse_args()
 
@@ -109,7 +110,7 @@ while entry<nentries:
     print("embed_t: ",embed_t.shape)
     print("seed_t: ",seed_t.shape)
 
-    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=False )
+    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=args.verbose )
     
     entry += args.batchsize
 
@@ -120,9 +121,12 @@ while entry<nentries:
 
     for ib in range(nreturn):
         bmask = coord_t[:,3].eq(ib)
+        print batch_clusters[ib][2].numpy().shape
+        print batch_clusters[ib][2].numpy()        
         datafiller.fillVoxelClusterID( coord_t[bmask,:].numpy(),
                                        batch_clusters[ib][0].numpy(),
-                                       batch_clusters[ib][1].numpy() )        
+                                       batch_clusters[ib][1].numpy(),
+                                       batch_clusters[ib][2].numpy() )
 
     if False:
         break # for debug

@@ -110,7 +110,8 @@ namespace spatialembed {
    */
   void SpatialEmbed3DNetProducts::fillVoxelClusterID( PyObject* voxel_coord_ndarray,
                                                       PyObject* cluster_idx_ndarray,
-                                                      PyObject* embed_pos_ndarray )
+                                                      PyObject* embed_pos_ndarray,
+                                                      PyObject* seed_ndarray )
   {
 
     if ( !_setup_numpy ) {
@@ -152,6 +153,13 @@ namespace spatialembed {
       throw std::runtime_error("Cannot get carray for embed position tensor");      
     }
 
+    npy_intp seed_dims[2];
+    float **seed_carray = nullptr;
+    if ( seed_ndarray && PyArray_AsCArray( &seed_ndarray, (void**)&seed_carray, seed_dims, 2, descr_float )<0 ) {
+      LARCV_CRITICAL() << "Cannot get carray for seed score tensor" << std::endl;
+      throw std::runtime_error("Cannot get carray for seed score tensor");      
+    }
+    
     // determine the number of batches by find the maximum batch index
     // also make a list of indices for each batch
     std::map<int,std::vector<int> > batch_indices;    
@@ -182,7 +190,9 @@ namespace spatialembed {
       _voxelidx_v.reserve( b_indices.size() );
       _cluster_id.resize( b_indices.size(), 0 );
       _embed_pos_v.clear();
-      _embed_pos_v.reserve( b_indices.size() );      
+      _embed_pos_v.reserve( b_indices.size() );
+      _seed_v.clear();
+      _seed_v.reserve( b_indices.size() );
 
       for ( auto const& i : b_indices ) {
         std::vector<int> coord_i = { (int)coord_carray[i][0], (int)coord_carray[i][1], (int)coord_carray[i][2] };
@@ -192,21 +202,25 @@ namespace spatialembed {
           std::vector<float> embed_i = { (float)embed_carray[i][0], (float)embed_carray[i][1], (float)embed_carray[i][2] };
           _embed_pos_v.push_back( embed_i );
         }
+        if ( seed_ndarray ) {
+          _seed_v.push_back( seed_carray[i][0] );
+        }
       }
 
       _tree_simple->Fill();
       ibatch++;
     }
-
+    
     LARCV_INFO() << "filled " << ibatch << " entries." << std::endl;
   }
-
+  
   void SpatialEmbed3DNetProducts::bindSimpleOutputVariables( TTree* atree )
   {
     _tree_simple = atree;
     atree->Branch("voxelindex",&_voxelidx_v);
     atree->Branch("cluster_id",&_cluster_id);
-    atree->Branch("embed_pos",&_embed_pos_v);        
+    atree->Branch("embed_pos",&_embed_pos_v);
+    atree->Branch("seed_score",&_seed_v);            
   }
 
   void SpatialEmbed3DNetProducts::setTreeBranches( TTree& input_tree ) {
@@ -214,6 +228,7 @@ namespace spatialembed {
     _tree_simple->SetBranchAddress( "voxelindex", &_in_voxelidx_v );
     _tree_simple->SetBranchAddress( "cluster_id", &_in_cluster_id );
     _tree_simple->SetBranchAddress( "embed_pos", &_in_embed_pos_v );
+    _tree_simple->SetBranchAddress( "seed_score", &_in_seed_v );    
   }
 
   /**
@@ -285,6 +300,40 @@ namespace spatialembed {
     }
           
     return (PyObject*)embed_t;
+    
+  }
+
+  /**
+   * @brief return a numpy array for the entry's seed score per voxel
+   *
+   */
+  PyObject* SpatialEmbed3DNetProducts::getEntrySeedScoreAsNDarray( int entry )
+  {
+
+    if ( !SpatialEmbed3DNetProducts::_setup_numpy ) {
+      import_array1(0);
+      SpatialEmbed3DNetProducts::_setup_numpy = true;
+    }
+
+    // DECLARE TENSORS and dict keys
+    unsigned long bytes = _tree_simple->GetEntry(entry);
+    if ( bytes==0 ) {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+
+    size_t nvoxels = _in_seed_v->size();
+    
+    // seed tensor
+    npy_intp seed_t_dim[] = { (long int)nvoxels, 1 };
+    PyArrayObject* seed_t = (PyArrayObject*)PyArray_SimpleNew( 2, seed_t_dim, NPY_FLOAT );
+    
+    // FILL TENSORS
+    for (size_t i=0; i<nvoxels; i++ ) {
+      *((float*)PyArray_GETPTR2(seed_t,i,0)) = (*_in_seed_v)[i];
+    }
+          
+    return (PyObject*)seed_t;
     
   }
   

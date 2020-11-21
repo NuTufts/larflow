@@ -226,9 +226,9 @@ class SpatialEmbedNet(nn.Module):
 
                 while maxseed_value>0.5 and nvoxel_unused>0:
 
-                    if verbose: print "form cluster[",currentid,"]"
+                    if verbose: print "// form cluster[",currentid,"] //"
                     mask = unused.to(torch.float)
-                    if verbose: print "mask: ",mask.shape
+                    if verbose: print "mask: #unused=",mask.sum()," shape=",mask.shape
                     seed_u    = seed_b[:,0]*mask
 
                     maxseed_idx   = torch.argmax( seed_u )
@@ -238,8 +238,12 @@ class SpatialEmbedNet(nn.Module):
                     centroid = spembed_b[maxseed_idx,:]
                     if verbose: print "centroid: ",centroid
                     s = 1.0e-4+sigma_b[maxseed_idx,:] # (1,3)
-                    if verbose: print "sigma: ",s
-                    dist = torch.sum(torch.pow(spembed_b-centroid,2)*s,1)
+                    if verbose: print "maxseed sigma: ",s
+                    dist = torch.pow(spembed_b-centroid,2)
+                    if verbose:
+                        d = torch.sum(dist,1)*mask
+                        print "average dist^2: ",d.sum()/mask.sum()," (min,max)=(",d[mask>0.5].min(),",",d[mask>0.5].max(),")"
+                    dist = torch.sum( dist*s, 1 )
                     gaus = torch.exp(-1000.0*dist)*mask
                     if verbose: print "gaus: ",gaus.shape
                     if verbose: print "num inside margin: ",(gaus>0.5).sum()
@@ -257,7 +261,7 @@ class SpatialEmbedNet(nn.Module):
                     else:
                         maxseed_value = 0.
 
-                batch_clusters.append( (cluster_id,spembed_b) )
+                batch_clusters.append( (cluster_id,spembed_b,seed_b) )
         
         return batch_clusters
                             
