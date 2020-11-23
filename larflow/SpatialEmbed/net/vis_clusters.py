@@ -49,10 +49,10 @@ detdata = lardly.DetectorOutline()
 
 # fixed random colors: first 3 are primary
 color_bank = np.zeros( (100,3) )
-color_bank[0,0] = 255
-color_bank[1,1] = 255
-color_bank[2,2] = 255
-for i in range(3,color_bank.shape[0]):
+color_bank[1,0] = 255
+color_bank[2,1] = 255
+color_bank[3,2] = 255
+for i in range(4,color_bank.shape[0]):
     color_bank[i,:] = np.random.rand(3)*200
 
 def make_figures(entry,plotby="cluster",minprob=0.0):
@@ -77,8 +77,8 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         ninstances = data[:,3].max()
         print("Number of instances: ",ninstances)
         print("color shape: ",color.shape)
-        for iid in range(ninstances):
-            icluster=iid+1
+        for iid in range(ninstances+1):
+            icluster=iid
             idmask = data[:,3]==icluster
             print("idmask: ",idmask.sum())
             if icluster<color_bank.shape[0]:
@@ -98,6 +98,9 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             colordata = strcolor
             if plotby in ["seed-cluster","seed-embed"]:
                 colordata = seed[idmask,0]
+            opa = 0.5
+            if iid==0:
+                opa = 0.1
             trace = {
                 "type":"scatter3d",
                 "x":fcoord_t[:,0],
@@ -107,7 +110,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
                 "name":"id[%d]"%(icluster),
                 "marker":{"color":colordata,
                           "size":3,
-                          "opacity":0.2}}
+                          "opacity":opa}}
             tracelist.append(trace)
             
     else:

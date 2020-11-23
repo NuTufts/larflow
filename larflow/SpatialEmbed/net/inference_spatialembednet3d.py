@@ -108,7 +108,7 @@ while entry<nentries:
     embed_t,seed_t = model( coord_t, feat_t, device, verbose=NET_VERBOSE )
     dt_forward = time.time()-start
     print("embed_t: ",embed_t.shape)
-    print("seed_t: ",seed_t.shape)
+    print("seed_t: ",seed_t.shape," mean=",seed_t.mean()," min=",seed_t.min()," max=",seed_t.max())
 
     batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=args.verbose )
     
