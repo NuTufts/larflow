@@ -255,9 +255,11 @@ class SpatialEmbedNet(nn.Module):
                     nvoxel_unused = unused.sum()
                     if nvoxel_unused>0:
                         maxseed_value = seed_b[unused].max()
-                        if verbose and False:
-                            print "[next] nunused",nvoxel_unused
-                            raw_input()
+                        if verbose:
+                            print "remaining maxseed value: ",maxseed_value
+                            if False:
+                                print "[next] nunused",nvoxel_unused
+                                raw_input()
                     else:
                         maxseed_value = 0.
 
