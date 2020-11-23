@@ -77,7 +77,9 @@ class SpatialEmbedNet(nn.Module):
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
         residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
-        residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)
+        #residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)
+        self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+        self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )
         # the last layer is a standard conv layer so we can manipulate it
         #self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
         #self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )

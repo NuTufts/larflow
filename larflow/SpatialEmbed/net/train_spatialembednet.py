@@ -47,7 +47,7 @@ GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.11000th.tar"
+CHECKPOINT_FILE="checkpoint.27000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=False
@@ -75,13 +75,13 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larflow/SpatialEmbed/net/"
-INPUTFILE_TRAIN=["test_train.root"]
-INPUTFILE_VALID=["test_valid.root"]
+INPUTFILE_TRAIN=["spatialembed_nueintrinsics_train.root"]
+INPUTFILE_VALID=["spatialembed_nueintrinsics_valid.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 11410
+START_ITER  = 0
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -220,9 +220,9 @@ def main():
         
 
     # training parameters
-    lr = 1e-4
+    lr = 1e-3
     momentum = 0.9
-    weight_decay = 1.0e-4
+    weight_decay = 1.0e-5
 
     # training variables
     itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
@@ -485,6 +485,9 @@ def train(train_loader, device, batchsize,
         if ninstances>0:
             loss.backward()
         dt_backward = time.time()-start
+
+        # check gradients
+        print "seed_out weights: ",model["embed"].seed_out[-1].weight," bias: ",model["embed"].seed_out[-1].bias
 
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
