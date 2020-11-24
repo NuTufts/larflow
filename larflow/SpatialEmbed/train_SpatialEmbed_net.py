@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pickle
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from SpatialEmbed import SpatialEmbed, spatialembed_loss, post_process
 from particle_list import *
 from SpatialEmbedVisualization import *
@@ -74,8 +74,8 @@ criterion = spatialembed_loss
 
 events = 0
 
-loops = 100
-loops_per_image = 1
+loops = 1
+loops_per_image = 2
 loss = 0.0
 total_inner_count = 0
 for loop in range(0, loops):
@@ -172,6 +172,20 @@ for loop in range(0, loops):
             events += 1
             # if events == 1:
             #     exit()
+
+            if args.save and (events % 200 == 0):
+                state = {
+                    'state_dict': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'train': train_files,
+                    'test': test_files,
+                    'validate': validation_files,
+                    'loss_tracking': loss_tracking,
+                    'class_loss': class_loss,
+                    'seed_loss': seed_loss,
+                    'sigma_smooth_loss': sigma_smooth_loss
+                }
+                torch.save(state, args.save)
 
 # save_dict = {'class_loss': class_loss,
 #              'total_loss': loss_tracking,

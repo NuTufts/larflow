@@ -343,7 +343,8 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
 
     if math.isnan(loss.detach()):
         print "loss is bunked"
-        exit(1)
+        loss *= 0
+        # exit(1)
 
     return loss, loss_gaus, loss_seed, loss_sigma
     # return loss
