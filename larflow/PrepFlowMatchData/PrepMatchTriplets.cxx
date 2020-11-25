@@ -40,6 +40,9 @@ namespace prep {
     _flowdir_v.clear();
     _triarea_v.clear();
     _pos_v.clear();
+    _instance_id_v.clear();
+    _ancestor_id_v.clear();
+    _pdg_v.clear();
     
   }
   
@@ -71,8 +74,12 @@ namespace prep {
     // get chstatus
     larcv::EventChStatus* ev_badch
       = (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus,chstatus_producer);
-    
-    std::vector<larcv::Image2D> badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, *ev_badch );
+
+    //std::vector<larcv::Image2D> badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, *ev_badch );
+    std::vector<larcv::Image2D> badch_v = badchmaker.makeGapChannelImage( ev_adc->as_vector(), *ev_badch,
+                                                                          4, 3, 2400, 6*1008,
+                                                                          3456, 6, 1,
+                                                                          1.0, 100, -1.0 );
     
     process( ev_adc->Image2DArray(), badch_v, adc_threshold, check_wire_intersection );
     
@@ -401,6 +408,163 @@ namespace prep {
     
   }
 
+  /**
+   * @brief use instance ID image to label space points
+   *
+   * @param[in] instance_img_v Vector of Image2D which contain track id.
+   *
+   */
+  void PrepMatchTriplets::make_instanceid_vector( const std::vector<larcv::Image2D>& instance_img_v )
+  {
+
+    _instance_id_v.resize( _triplet_v.size(), 0);
+
+    int nids = 0;
+    
+    for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+      // for each triplet, we look for truth flows that connect the planes
+      auto const& triplet = _triplet_v[itrip];
+      std::vector<int> imgcoord = {0,0,0,triplet[3]};
+      for (int p=0; p<3; p++ ) {
+        imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
+      }
+
+      std::map< int, int > id_votes;
+
+      for (int p=0; p<3; p++ ) {
+        int plane_id = instance_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        if ( id_votes.find(plane_id)==id_votes.end() )
+          id_votes[plane_id] = 0;
+        id_votes[plane_id] += 1;
+      }
+
+      int maxid = 0;
+      int nvotes = 0;
+      for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+        if ( it->first>0 && it->second>nvotes) {
+          nvotes = it->second;
+          maxid = it->first;
+        }
+      }
+
+      if ( maxid>0 )
+        nids++;
+
+      _instance_id_v[itrip] = maxid;
+      
+    }//end of trips loop
+    
+    std::cout << "[PrepMatchTriplets::make_instanceid_vector] " << std::endl;
+    std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
+              
+    
+  }
+
+  /**
+   * @brief use ancestor ID image to label space points
+   *
+   * @param[in] ancestor_img_v Vector of Image2D which contain track id.
+   *
+   */
+  void PrepMatchTriplets::make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_img_v )
+  {
+
+    _ancestor_id_v.resize( _triplet_v.size(), 0);
+
+    int nids = 0;
+    
+    for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+      // for each triplet, we look for truth flows that connect the planes
+      auto const& triplet = _triplet_v[itrip];
+      std::vector<int> imgcoord = {0,0,0,triplet[3]};
+      for (int p=0; p<3; p++ ) {
+        imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
+      }
+
+      std::map< int, int > id_votes;
+
+      for (int p=0; p<3; p++ ) {
+        int plane_id = ancestor_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        if ( id_votes.find(plane_id)==id_votes.end() )
+          id_votes[plane_id] = 0;
+        id_votes[plane_id] += 1;
+      }
+
+      int maxid = 0;
+      int nvotes = 0;
+      for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+        if ( it->first>0 && it->second>nvotes) {
+          nvotes = it->second;
+          maxid = it->first;
+        }
+      }
+
+      if ( maxid>0 )
+        nids++;
+
+      _ancestor_id_v[itrip] = maxid;
+      
+    }//end of trips loop
+    
+    std::cout << "[PrepMatchTriplets::make_ancestorid_vector] " << std::endl;
+    std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
+    
+  }
+
+  /**
+   * @brief use segment image to label particle class
+   *
+   * The id numbers contained in segment image correspond to enum values of larcv::ROIType_t.
+   * ROIType_t is found in larcv/core/DataFormat/DataFormatTyps.h
+   * 
+   * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
+   *
+   */
+  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v )
+  {
+
+    _pdg_v.resize( _triplet_v.size(), 0);
+
+    int nids = 0;
+    
+    for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+      // for each triplet, we look for truth flows that connect the planes
+      auto const& triplet = _triplet_v[itrip];
+      std::vector<int> imgcoord = {0,0,0,triplet[3]};
+      for (int p=0; p<3; p++ ) {
+        imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
+      }
+
+      std::map< int, int > id_votes;
+
+      for (int p=0; p<3; p++ ) {
+        int plane_id = segment_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        if ( id_votes.find(plane_id)==id_votes.end() )
+          id_votes[plane_id] = 0;
+        id_votes[plane_id] += 1;
+      }
+
+      int maxid = 0;
+      int nvotes = 0;
+      for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+        if ( it->first>0 && it->second>nvotes) {
+          nvotes = it->second;
+          maxid = it->first;
+        }
+      }
+
+      if ( maxid>0 )
+        nids++;
+
+      _pdg_v[itrip] = maxid;
+      
+    }//end of trips loop
+    
+    std::cout << "[PrepMatchTriplets::make_segmentid_vector] " << std::endl;
+    std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
+    
+  }
+  
   /**
    * @brief plot truth image for debug
    *

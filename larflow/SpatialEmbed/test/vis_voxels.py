@@ -27,8 +27,22 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
+particle_id_color = {1:(255,0,0),   # electron
+                     2:(0,255,0),   # gamma
+                     3:(0,125,125), # pi0
+                     4:(255,0,255), # Muon
+                     5:(255,255,0), # Kaon
+                     6:(0,0,255), # proton
+                     7:(0,255,125)}   # pion
+particle_id_name = {1:"electron",
+                    2:"gamma",   # gamma
+                    3:"pi0", # pi0
+                    4:"muon", # Muon
+                    5:"kaon", # Kaon
+                    6:"proton", # proton
+                    7:"pion"}   # pion
 
-color_by_options = ["q_yplane","cluster"]
+color_by_options = ["q_yplane","cluster","pid"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -70,54 +84,115 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     print("voxel entries: ",data_dict["coord_t"].shape)
 
 
-    if plotby=="q_yplane":
-        # color by charge of collection plane
-        color = data_dict["feat_t"][:,2]
-    elif plotby=="q_vplane":
-        # color by charge of v plakne
-        color = data_dict["feat_t"][:,1]
-    elif plotby=="q_uplane":
-        # color by charge of u plane
-        color = data_dict["feat_t"][:,0]
-    elif plotby=="cluster":
-        # color by instance index
-        color = np.zeros( (data_dict["coord_t"].shape[0],3) )
-        ninstances = data_dict["instance_t"].max()
-        print("Number of instances: ",ninstances)
-        print("color shape: ",color.shape)
-        for iid in range(1,ninstances+1):
-            print("instance_t shape: ",data_dict["instance_t"].shape)
-            idmask = data_dict["instance_t"]==iid
-            print("idmask: ",idmask.shape)
-            randcolor = np.random.rand(3)*255
-            print("instance[",iid,"] color: ",randcolor)
-            color[idmask,:] = randcolor
-    else:
-        raise ValueError("unrecognized plot option:",plotby)
-            
     # conversion of voxel indices to coordinate space
     fcoord_t = np.zeros( data_dict["coord_t"].shape )
     for i in range(3):
         conversion = voxel_dim.at(i)/nvoxels.at(i)
         print("dim[",i,"] conversion")
         fcoord_t[:,i] = data_dict["coord_t"][:,i]*conversion + voxorigin[i]
+        
+    traces_v = []
     
-    # 3D trace
-    voxtrace = {
-        "type":"scatter3d",
-        "x":fcoord_t[:,0],
-        "y":fcoord_t[:,1],
-        "z":fcoord_t[:,2],
-        "mode":"markers",
-        "name":"voxels",
-        "marker":{"color":color,
-                  "size":1,
-                  "opacity":0.5}}
+    if plotby=="q_yplane":
+        # color by charge of collection plane
+        color = data_dict["feat_t"][:,2]
+        # 3D trace
+        voxtrace = {
+            "type":"scatter3d",
+            "x":fcoord_t[:,0],
+            "y":fcoord_t[:,1],
+            "z":fcoord_t[:,2],
+            "mode":"markers",
+            "name":"voxels",
+            "marker":{"color":color,
+                      "size":1,
+                      "opacity":0.5}}
+        traces_v.append(voxtrace)        
+    elif plotby=="q_vplane":
+        # color by charge of v plakne
+        color = data_dict["feat_t"][:,1]
+        voxtrace = {
+            "type":"scatter3d",
+            "x":fcoord_t[:,0],
+            "y":fcoord_t[:,1],
+            "z":fcoord_t[:,2],
+            "mode":"markers",
+            "name":"voxels",
+            "marker":{"color":color,
+                      "size":1,
+                      "opacity":0.5}}
+        traces_v.append(voxtrace)        
+    elif plotby=="q_uplane":
+        # color by charge of u plane
+        color = data_dict["feat_t"][:,0]
+        voxtrace = {
+            "type":"scatter3d",
+            "x":fcoord_t[:,0],
+            "y":fcoord_t[:,1],
+            "z":fcoord_t[:,2],
+            "mode":"markers",
+            "name":"voxels",
+            "marker":{"color":color,
+                      "size":1,
+                      "opacity":0.5}}
+        traces_v.append(voxtrace)        
+    elif plotby=="cluster":
+        # color by instance index
+        ninstances = data_dict["instance_t"].max()
+        print("Number of instances: ",ninstances)
+        for iid in range(1,ninstances+1):
+            print("instance_t shape: ",data_dict["instance_t"].shape)
+            idmask = data_dict["instance_t"]==iid
+            print("idmask: ",idmask.shape)
+            randcolor = np.random.rand(3)*255
+            print("instance[",iid,"] color: ",randcolor)
+            strcolor = "rgb(%d,%d,%d)"%(randcolor[0],randcolor[1],randcolor[2])            
+            voxtrace = {
+                "type":"scatter3d",
+                "x":fcoord_t[idmask,0],
+                "y":fcoord_t[idmask,1],
+                "z":fcoord_t[idmask,2],
+                "mode":"markers",
+                "name":"c[%d]"%(iid),
+                "marker":{"color":strcolor,
+                          "size":1,
+                          "opacity":0.5}}
+            traces_v.append(voxtrace)            
+    elif plotby=="pid":
+        # color by instance index
+        ncolors = data_dict["class_t"].max()
+        print("class_t.mean: ",data_dict["class_t"].mean())
+        print("class_t.min: ",data_dict["class_t"].min())
+        print("class_t.max: ",data_dict["class_t"].max())                
+        print("Number of particle types: ",ncolors)
+        for pid in range(1,7+1):
+            idmask = data_dict["class_t"]==pid
+            if idmask.sum()>0:                
+                pidcoord_t = fcoord_t[idmask,:]
+                print("class_t[",pid,"] shape: ",pidcoord_t.shape)                
+                color = particle_id_color[pid]
+                strcolor = "rgb(%d,%d,%d)"%(color[0],color[1],color[2])
+                voxtrace = {
+                    "type":"scatter3d",
+                    "x":pidcoord_t[:,0],
+                    "y":pidcoord_t[:,1],
+                    "z":pidcoord_t[:,2],
+                    "mode":"markers",
+                    "name":"%s"%(particle_id_name[pid]),
+                    "marker":{"color":strcolor,
+                              "size":1,
+                              "opacity":0.5}}
+                traces_v.append(voxtrace)
+            
+        
+    else:
+        raise ValueError("unrecognized plot option:",plotby)
+            
+    
     if plotby!="cluster":
         voxtrace["marker"]["colorscale"]="Viridis"
 
-    traces_v = detdata.getlines()    
-    traces_v.append( voxtrace )
+    traces_v += detdata.getlines()    
 
     if HAS_MC:
         ioll.go_to( entry )

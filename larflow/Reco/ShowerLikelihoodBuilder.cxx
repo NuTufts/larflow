@@ -189,8 +189,8 @@ namespace reco {
         info.shower_dir[i] = detprofdir[i]/detprofdir.Mag();
         info.shower_vtx[i] = mcsh.DetProfile().Position()[i];
       }
-      std::cout << "** dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
-      std::cout << "** vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
+      //std::cout << "** dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
+      //std::cout << "** vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
       if ( std::isnan(info.shower_vtx[0]) || std::isinf(info.shower_vtx[0])
            || std::isnan(info.shower_dir[0]) || std::isinf(info.shower_dir[0]) ) {
         std::cout << "** bad detprof values **" << std::endl;
@@ -243,7 +243,7 @@ namespace reco {
 
     std::sort( _shower_info_v.begin(), _shower_info_v.end() );
     std::cout << "============================================================" << std::endl;
-    std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers" << std::endl;
+    std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers to use as anchors" << std::endl;
     for ( auto const& info : _shower_info_v ) {
       std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
       std::cout << " highq_plane: " << info.highq_plane << std::endl;
@@ -256,7 +256,6 @@ namespace reco {
     }
 
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
-    std::vector<int> cluster_match_v( _shower_info_v.size(), -1 );
     int iidx = 0;
     for ( auto& info : _shower_info_v ) {
       std::cout << "[" << iidx << "] pid=" << info.pid
@@ -268,7 +267,6 @@ namespace reco {
       std::cout << "   matched cluster index: " << match_cluster_idx << std::endl;
       iidx++;        
     }
-
 
     _larflow_cluster_v.clear();    
     _trueshowers_absorb_clusters( _shower_info_v, _larflow_cluster_v, truehit_v );

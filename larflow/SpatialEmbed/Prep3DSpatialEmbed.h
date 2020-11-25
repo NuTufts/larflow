@@ -11,6 +11,7 @@
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/Voxelizer/VoxelizeTriplets.h"
 
 namespace larflow {
@@ -38,7 +39,9 @@ namespace spatialembed {
       _in_pvid_row(nullptr),
       _in_pvid_col(nullptr),
       _in_pvid_depth(nullptr),
-      _in_pinstance_id(nullptr),      
+      _in_pinstance_id(nullptr),
+      _in_pancestor_id(nullptr),      
+      _in_pparticle_id(nullptr),      
       _in_pq_u(nullptr),
       _in_pq_v(nullptr),
       _in_pq_y(nullptr)
@@ -61,7 +64,9 @@ namespace spatialembed {
       int npts;   ///< number of space points we've added to this voxel
       float totw; ///< total weight of points
       int truth_instance_index;
+      int truth_ancestor_index; 
       int truth_realmatch;
+      int truth_pid;
     };
 
     typedef std::vector<VoxelData_t> VoxelDataList_t;
@@ -69,6 +74,11 @@ namespace spatialembed {
     VoxelDataList_t process( larcv::IOManager& iolcv,
                              larlite::storage_manager& ioll,
                              bool make_truth_if_available );
+    
+    VoxelDataList_t
+    process_from_truelarflowhits( larcv::IOManager& iolcv,
+                                  larlite::storage_manager& ioll );
+    
 
     VoxelDataList_t process_larmatch_hits( const larlite::event_larflow3dhit& ev_lfhit_v,
                                            const std::vector<larcv::Image2D>& adc_v,
@@ -97,6 +107,10 @@ namespace spatialembed {
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,
                               Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
+    void generateTruthLabels_using_trueflowhits( larcv::IOManager& iolcv,
+                                                 larlite::storage_manager& ioll,                                                 
+                                                 Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
+    
 
     /** @brief set flag determining if we filter the voxels by overlap with instance image pixels */
     void setFilterByInstanceImageFlag( bool filter ) { _filter_by_instance_image = filter; };
@@ -116,8 +130,9 @@ namespace spatialembed {
     // parameters affecting behavior
     bool _filter_by_instance_image; ///< if true, will remove voxels that doesn't project into a neutrino pixel
     bool _filter_out_non_nu_pixels; ///< if true, will remove voxels with non-neutrino origin
-    
-    larflow::voxelizer::VoxelizeTriplets _voxelizer;
+
+    larflow::prep::PrepMatchTriplets _triplet_maker; ///< class that makes triplets
+    larflow::voxelizer::VoxelizeTriplets _voxelizer; ///< class that defines voxelization
     TTree* _tree;
     unsigned long _current_entry;
     bool _kowner; //< indicates if we own the tree
@@ -127,6 +142,8 @@ namespace spatialembed {
     std::vector< int > vid_col;
     std::vector< int > vid_depth;
     std::vector< int > instance_id;
+    std::vector< int > ancestor_id;    
+    std::vector< int > particle_id;    
     std::vector< float > q_u;
     std::vector< float > q_v;
     std::vector< float > q_y;
@@ -135,7 +152,9 @@ namespace spatialembed {
     std::vector< int >* _in_pvid_row;
     std::vector< int >* _in_pvid_col;
     std::vector< int >* _in_pvid_depth;
-    std::vector< int >* _in_pinstance_id;    
+    std::vector< int >* _in_pinstance_id;
+    std::vector< int >* _in_pancestor_id;
+    std::vector< int >* _in_pparticle_id;        
     std::vector< float >* _in_pq_u;
     std::vector< float >* _in_pq_v;
     std::vector< float >* _in_pq_y;

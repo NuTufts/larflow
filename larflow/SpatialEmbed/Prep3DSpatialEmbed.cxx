@@ -33,7 +33,9 @@ namespace spatialembed {
     _in_pvid_row(nullptr),
     _in_pvid_col(nullptr),
     _in_pvid_depth(nullptr),
-    _in_pinstance_id(nullptr),      
+    _in_pinstance_id(nullptr),
+    _in_pancestor_id(nullptr),
+    _in_pparticle_id(nullptr),          
     _in_pq_u(nullptr),
     _in_pq_v(nullptr),
     _in_pq_y(nullptr)
@@ -80,7 +82,6 @@ namespace spatialembed {
       }
     }
 
-
     if ( make_truth_if_available )
       generateTruthLabels( iolcv, ioll, data );
 
@@ -98,6 +99,103 @@ namespace spatialembed {
     return data;
   }
 
+  /**
+   * @brief we make voxels from true larflow hits
+   */
+  Prep3DSpatialEmbed::VoxelDataList_t
+  Prep3DSpatialEmbed::process_from_truelarflowhits( larcv::IOManager& iolcv,
+                                                    larlite::storage_manager& ioll )
+  {
+
+    _triplet_maker.clear();
+    _triplet_maker.process( iolcv, _adc_image_treename, _adc_image_treename, 10.0, true );
+
+    larcv::EventImage2D* ev_adc_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
+    
+    larcv::EventImage2D* ev_larflow_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "larflow" );
+
+    larcv::EventImage2D* ev_segment_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
+    auto const& seg_v = ev_segment_v->as_vector();
+
+    larcv::EventImage2D* ev_instance_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
+
+    larcv::EventImage2D* ev_ancestor_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "ancestor" );
+
+   _triplet_maker.make_truth_vector( ev_larflow_v->as_vector() );
+   _triplet_maker.make_instanceid_vector( ev_instance_v->as_vector() );
+   _triplet_maker.make_ancestorid_vector( ev_ancestor_v->as_vector() );
+   _triplet_maker.make_segmentid_vector( seg_v );
+
+    larlite::event_larflow3dhit* ev_prep =
+      (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "prepspembed");
+
+    // we make larflow hit vector
+    // we keep only those hits on neutrino pixels, using the segment image to filter out cosmic pixels
+    ev_prep->reserve( _triplet_maker._triplet_v.size() );
+    for ( int itriplet=0; itriplet<_triplet_maker._triplet_v.size(); itriplet++ ) {
+      int truth = _triplet_maker._truth_v[itriplet];
+
+      // check: is true hit
+      if ( truth==0 ) continue;
+
+      auto const& triplet = _triplet_maker._triplet_v[itriplet];      
+      std::vector<int> imgcoord = {0,0,0,triplet[3]};
+      for (int p=0; p<3; p++ ) {
+        imgcoord[p] = _triplet_maker._sparseimg_vv[p][triplet[p]].col;
+      }
+      
+      auto const& pos = _triplet_maker._pos_v[itriplet];
+      //int row = seg_v.front().meta().row( triplet[3], __FILE__, __LINE__ );
+      int row = triplet[3];
+      int tick = seg_v.front().meta().pos_y(row);
+
+      //std::cout << "imgcoord[" << itriplet << "]: " << imgcoord[0] << "," << imgcoord[1] << "," << imgcoord[2] << "," << imgcoord[3] << std::endl;      
+      // check, out of image
+      bool inside_image = true;
+      for (int p=0; p<3; p++) {
+        if ( imgcoord[p]<0 || imgcoord[p]>=(int)seg_v[p].meta().cols() )
+          inside_image = false;
+      }
+      if ( !inside_image )
+        continue;
+      
+      // check: non-neutrino
+      if ( _filter_out_non_nu_pixels ) {
+        int num_planes_onseg = 0;
+        for ( size_t p=0; p<3; p++ ) {
+          int segpix = seg_v[p].pixel( row, imgcoord[p], __FILE__, __LINE__ );
+          if ( segpix>0 ) num_planes_onseg++;
+        }
+        if ( num_planes_onseg<2 ) continue;
+      }
+      
+      larlite::larflow3dhit lfhit;
+      lfhit.resize(3);
+      lfhit.targetwire.resize(3,0);
+      for (int i=0; i<3; i++ ) {
+        lfhit.targetwire[i] = imgcoord[i];
+        lfhit[i] = pos[i];
+      }
+      lfhit.tick = tick;
+      lfhit.track_score = 1.0;
+
+      ev_prep->emplace_back( std::move(lfhit) );
+    }
+
+    VoxelDataList_t data = process_larmatch_hits( *ev_prep, ev_adc_v->as_vector(), 0.5 );
+
+
+    // loop over triplet, assigning instance ids
+    generateTruthLabels_using_trueflowhits( iolcv, ioll, data );
+
+    return data;
+  }
+  
   /**
    * @brief function that converts the larmatch points
    */
@@ -126,8 +224,8 @@ namespace spatialembed {
       std::vector<float> q_v(3,0);
       for (int p=0; p<3; p++) {
         auto const& meta = adc_v[p].meta();
-        int row = meta.row( hit.tick );
-        int col = meta.col( hit.targetwire[p] );
+        int row = meta.row( hit.tick, __FILE__, __LINE__ );
+        int col = meta.col( hit.targetwire[p], __FILE__, __LINE__ );
         for (int dr=-2; dr<=2; dr++) {
           int r = row+dr;
           if ( r<=0 || r>=(int)meta.rows()) continue;
@@ -189,6 +287,10 @@ namespace spatialembed {
         }
         voxel.imgcoord_v[3] = xyz[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
       }
+
+      // set truth labels to default:
+      voxel.truth_instance_index = -1;
+      voxel.truth_realmatch = 0;      
     }
     
     LARCV_NORMAL() << "Number of voxels created, " << voxel_v.size() << ", "
@@ -210,6 +312,8 @@ namespace spatialembed {
     _tree->Branch( "q_v", &q_v );
     _tree->Branch( "q_y", &q_y );
     _tree->Branch( "instanceid", &instance_id );
+    _tree->Branch( "ancestorid", &ancestor_id );    
+    _tree->Branch( "particleid", &particle_id );
   }
 
   void Prep3DSpatialEmbed::fillTree( const Prep3DSpatialEmbed::VoxelDataList_t& data )
@@ -219,11 +323,14 @@ namespace spatialembed {
     vid_col.resize(data.size());
     vid_depth.resize(data.size());
     instance_id.resize(data.size());
+    ancestor_id.resize(data.size());    
+    particle_id.resize(data.size());    
     q_u.resize(data.size());
     q_v.resize(data.size());
     q_y.resize(data.size());
 
     for (size_t i=0; i<data.size(); i++) {
+
       auto const& d = data[i];
       vid_row[i]   = d.voxel_index[0];
       vid_col[i]   = d.voxel_index[1];
@@ -238,10 +345,18 @@ namespace spatialembed {
         q_v[i] = 0.;
         q_y[i] = 0.;
       }
-      if ( d.truth_realmatch==1 )
+
+      if ( d.truth_realmatch==1 ) {
         instance_id[i] = d.truth_instance_index+1;
-      else
+        ancestor_id[i] = d.truth_ancestor_index;
+        particle_id[i] = d.truth_pid-3;
+      }
+      else {
         instance_id[i] = 0;
+        ancestor_id[i] = 0;
+        particle_id[i] = 0;        
+      }
+
     }
 
   }
@@ -302,6 +417,11 @@ namespace spatialembed {
     PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
     PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
 
+    // class tensor
+    npy_intp class_t_dim[] = { (long int)nvoxels_tot };
+    PyArrayObject* class_t = (PyArrayObject*)PyArray_SimpleNew( 1, class_t_dim, NPY_LONG );
+    PyObject *class_t_key = Py_BuildValue("s", "class_t");
+    
     // FILL TENSORS
     size_t nvoxels_filled = 0;
     for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) {
@@ -336,6 +456,12 @@ namespace spatialembed {
 	*((long*)PyArray_GETPTR1(instance_t,nvoxels_filled+i)) = voxel.truth_instance_index+1;
       }
 
+      // fill class tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	*((long*)PyArray_GETPTR1(class_t,nvoxels_filled+i)) = voxel.truth_pid;
+      }
+      
       nvoxels_filled += nvoxels;
     }
     
@@ -343,11 +469,13 @@ namespace spatialembed {
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, coord_t_key,    (PyObject*)coord_t);
     PyDict_SetItem(d, feat_t_key,     (PyObject*)feat_t);
-    PyDict_SetItem(d, instance_t_key, (PyObject*)instance_t);     
+    PyDict_SetItem(d, instance_t_key, (PyObject*)instance_t);
+    PyDict_SetItem(d, class_t_key,    (PyObject*)class_t);         
     
     Py_DECREF(coord_t_key);
     Py_DECREF(feat_t_key);
     Py_DECREF(instance_t_key);
+    Py_DECREF(class_t_key);    
     
     return d;
     
@@ -397,7 +525,9 @@ namespace spatialembed {
     _tree->SetBranchAddress("vidrow",&_in_pvid_row);
     _tree->SetBranchAddress("vidcol",&_in_pvid_col);
     _tree->SetBranchAddress("viddepth",&_in_pvid_depth);
-    _tree->SetBranchAddress("instanceid",&_in_pinstance_id);    
+    _tree->SetBranchAddress("instanceid",&_in_pinstance_id);
+    _tree->SetBranchAddress("particleid",&_in_pparticle_id);
+    _tree->SetBranchAddress("ancestorid",&_in_pancestor_id);            
     _tree->SetBranchAddress("q_u",&_in_pq_u);
     _tree->SetBranchAddress("q_v",&_in_pq_v);
     _tree->SetBranchAddress("q_y",&_in_pq_y);
@@ -430,6 +560,8 @@ namespace spatialembed {
       voxel.totw = 1.0;
       voxel.truth_realmatch = -1;
       voxel.truth_instance_index = (*_in_pinstance_id)[i]-1;
+      voxel.truth_pid = (*_in_pparticle_id)[i];
+      voxel.truth_ancestor_index = (*_in_pancestor_id)[i];
       data.emplace_back( std::move(voxel) );
     }
 
@@ -543,13 +675,15 @@ namespace spatialembed {
     for ( size_t ivoxel=0; ivoxel<nvoxels; ivoxel++ ) {
       auto& voxeldata = voxel_v[ivoxel];
 
+      if (voxeldata.truth_instance_index>=0) continue; // already assigned
+
       std::vector<double> xyz = { (double)voxeldata.ave_xyz_v[0],
                                   (double)voxeldata.ave_xyz_v[1],
                                   (double)voxeldata.ave_xyz_v[2] };
 
       // default set instance to -1
-      voxeldata.truth_instance_index = -1;
-      voxeldata.truth_realmatch = 0;
+      //voxeldata.truth_instance_index = -1;
+      //voxeldata.truth_realmatch = 0;
 
       // does voxel contain a true larmatch spacepoint
       std::array<int,3> avox = { voxeldata.voxel_index[0],
@@ -631,6 +765,171 @@ namespace spatialembed {
     LARCV_INFO() << "We matched " << instance_v.size() << " truth clusters to voxels" << std::endl;
     
   }
+
+  /**
+   * @brief generate true labels for the voxels. use truth larflow points
+   *
+   */
+  void Prep3DSpatialEmbed::generateTruthLabels_using_trueflowhits( larcv::IOManager& iolcv,
+                                                                   larlite::storage_manager& ioll,
+                                                                   Prep3DSpatialEmbed::VoxelDataList_t& voxel_v )
+  {
+    
+    // make a dictionary of voxel coordinates to voxeldatalist index
+    std::map< std::vector<int>, int > voxel_coord_2_index_v;
+    for (int idx=0; idx<(int)voxel_v.size(); idx++) {
+      voxel_coord_2_index_v[ voxel_v[idx].voxel_index ] = idx;
+    }
+
+    // prepare truth information for showers
+    larcv::EventImage2D* ev_adc_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
+    auto const& adc_v = ev_adc_v->as_vector();
+    
+    // build particle graph and assign pixels
+    ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.set_adc_treename(_adc_image_treename);    
+    mcpg.buildgraph( iolcv, ioll );
+    LARCV_INFO() << "pre-shower builder graph" << std::endl;
+    //mcpg.printAllNodeInfo();
+    //mcpg.printGraph();
+
+    // the showerlikelihood builder will make true shower larmatch points
+    // and associate clusters of true shower points to showerinfo truth
+    larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
+    mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
+    mcshowerbuilder.process( iolcv, ioll );
+    //mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
+    LARCV_INFO() << "post-shower builder graph" << std::endl;
+    //mcpg.printGraph();
+    //std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> node_v = mcpg.getNeutrinoParticles();
+    
+    // we need vectors to accumulte votes for different truth labels
+    // instanceid
+    // ancestorid
+    // particleid
+    struct VoxelBallot_t {
+      std::map<int,int> instance_votes;
+      std::map<int,int> ancestor_votes;
+      std::map<int,int> pid_votes;
+      int has_true;
+      VoxelBallot_t()
+        : has_true(0) {};
+    };
+
+    // we coordinate this container with the values (index) of voxel_coord_2_index_v
+    std::vector< VoxelBallot_t > voxel_votes( voxel_coord_2_index_v.size() );
+    
+    // loop through larflow hits, assign instance id to larflow3dhit (majority vote)
+    for (int itrip=0; itrip<(int)_triplet_maker._instance_id_v.size(); itrip++) {
+      const std::vector<float>& xyz = _triplet_maker._pos_v[itrip];
+      std::vector<int> voxid = _voxelizer.get_voxel_indices( xyz );
+      auto it = voxel_coord_2_index_v.find(voxid);
+      if ( it!=voxel_coord_2_index_v.end() ) {
+        int idx = it->second;
+
+        auto& ballot = voxel_votes.at(idx);
+
+        // decide on the instance id, ancestor id, and pid this spacepoint will vote for
+        
+        int iid = _triplet_maker._instance_id_v[itrip];
+        if ( iid>0 ) {
+          if ( ballot.instance_votes.find(iid)==ballot.instance_votes.end() )
+            ballot.instance_votes[iid] = 0;
+          ballot.instance_votes[iid] += 1;
+        }
+
+        int aid = _triplet_maker._ancestor_id_v[itrip];
+        if ( aid>0 ) {
+          if ( ballot.ancestor_votes.find(aid)==ballot.ancestor_votes.end() )
+            ballot.ancestor_votes[aid] = 0;
+          ballot.ancestor_votes[aid] += 1;
+        }
+
+        int pid = _triplet_maker._pdg_v[itrip];
+        if ( pid>0 ) {
+          if ( ballot.pid_votes.find(pid)==ballot.pid_votes.end() )
+            ballot.pid_votes[pid] = 0;
+          ballot.pid_votes[pid] += 1;
+        }
+
+        if ( _triplet_maker._truth_v[itrip]>0 )
+          ballot.has_true = 1;
+      }
+    }
+
+    // we know that the instance ids are incomplete,
+    // and we need to use the values from the likelihood showerbuilder,
+    // which tries to fix these
+    for ( size_t ishower=0; ishower<mcshowerbuilder._shower_info_v.size(); ishower++ ) {
+      auto const& showerinfo = mcshowerbuilder._shower_info_v[ishower];
+      int shower_instanceid = showerinfo.trackid;
+      // find the voxel
+      for ( auto const& hit : mcshowerbuilder._larflow_cluster_v[ishower] ) {
+        std::vector<float> xyz = { hit[0], hit[1], hit[2] };
+        std::vector<int> voxid = _voxelizer.get_voxel_indices( xyz );
+        // we are going to muck with the voxel totals
+        auto it = voxel_coord_2_index_v.find(voxid);
+        if ( it!=voxel_coord_2_index_v.end() ) {
+          auto& ballot = voxel_votes.at(it->second);
+          // tampering with the instance-id vote
+          ballot.instance_votes.clear();
+          ballot.instance_votes[shower_instanceid] = 1;
+        }
+      }
+    }
+    
+    // we need to translate geant4 instance id into sequential index,0 to number of unique ids
+    std::map<int,int> instance_2_index;
+    std::vector<int> instance_v;    
+    
+    // now we can decide on the voxel truth labels, accumulating the votes
+    for (int idx=0; idx<(int)voxel_v.size(); idx++) {
+      auto& voxel = voxel_v[idx];
+
+      auto const& ballot = voxel_votes[idx];
+
+      int max_instance_id = 0;
+      int max_instance_num = 0;
+      for (auto it_iid=ballot.instance_votes.begin(); it_iid!=ballot.instance_votes.end(); it_iid++ ) {
+        if ( it_iid->first>0 && it_iid->second>max_instance_num ) {
+          max_instance_id = it_iid->first;
+          max_instance_num = it_iid->second;
+        }
+      }
+      if ( max_instance_id>0 && instance_2_index.find(max_instance_id)==instance_2_index.end() ) {
+        // register index
+        instance_2_index[max_instance_id] = instance_v.size();
+        instance_v.push_back(max_instance_id);
+      }
+
+      int max_ancestor_id = 0;
+      int max_ancestor_num = 0;
+      for (auto it_iid=ballot.ancestor_votes.begin(); it_iid!=ballot.ancestor_votes.end(); it_iid++ ) {
+        if ( it_iid->first>0 && it_iid->second>max_ancestor_num ) {
+          max_ancestor_id = it_iid->first;
+          max_ancestor_num = it_iid->second;
+        }
+      }
+
+      int max_pid_id = 0;
+      int max_pid_num = 0;
+      for (auto it_iid=ballot.pid_votes.begin(); it_iid!=ballot.pid_votes.end(); it_iid++ ) {
+        if ( it_iid->first>0 && it_iid->second>max_pid_num ) {
+          max_pid_id = it_iid->first;
+          max_pid_num = it_iid->second;
+        }
+      }
+
+      voxel.truth_instance_index = instance_2_index[max_instance_id];
+      voxel.truth_ancestor_index = max_ancestor_id;
+      voxel.truth_pid = max_pid_id;      
+      voxel.truth_realmatch = ballot.has_true;
+      
+    }
+    
+    
+  }  
 
   /**
    * @brief select a subset of the voxels based on which ones land on instance image pixels

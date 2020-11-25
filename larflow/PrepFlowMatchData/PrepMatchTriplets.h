@@ -54,6 +54,9 @@ namespace prep {
                   const bool check_wire_intersection=false );
     
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
+    void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
+    void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
+    void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v );
     
     std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
                                           
@@ -68,6 +71,9 @@ namespace prep {
     std::vector< larflow::FlowDir_t >                     _flowdir_v;      ///< flow direction te triplet comes from
     std::vector< float >                                  _triarea_v;      ///< area of triangle formed by the intersection of the 3 wires. measure of 3D consistency.
     std::vector< std::vector<float> >                     _pos_v;          ///< approx. 3d position of triplet
+    std::vector< int >                                    _instance_id_v;  ///< instance ID label for each space point
+    std::vector< int >                                    _ancestor_id_v;  ///< ancestor ID label for each space point
+    std::vector< int >                                    _pdg_v;          ///< PDG label for each space point
     void clear();
 
     // python/numpy functions, to help network interface
