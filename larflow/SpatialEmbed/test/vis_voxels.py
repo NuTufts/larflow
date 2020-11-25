@@ -141,6 +141,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         # color by instance index
         ninstances = data_dict["instance_t"].max()
         print("Number of instances: ",ninstances)
+        #raw_input()
         for iid in range(0,ninstances+1):
             print("instance_t shape: ",data_dict["instance_t"].shape)
             idmask = data_dict["instance_t"]==iid

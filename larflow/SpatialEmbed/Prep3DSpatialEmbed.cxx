@@ -1029,21 +1029,20 @@ namespace spatialembed {
     }
     std::cout << "num zero'd: " << nzerod << std::endl;
     
-    if ( nzerod>0 ) {
-      // reassign id
-      std::map<int,int> reassign_index;
-      std::vector<int>  newindex_v;
-      for ( auto& voxel : voxel_v ) {
-        if ( voxel.truth_instance_index!=0 ) {
-          if ( reassign_index.find( voxel.truth_instance_index )==reassign_index.end() ) {
-            // new index
-            newindex_v.push_back( voxel.truth_instance_index );            
-            reassign_index[voxel.truth_instance_index] = (int)newindex_v.size();
-            //std::cout << "rassign [" << voxel.truth_instance_index << "] -> [" << reassign_index[voxel.truth_instance_index] << "]" << std::endl;
-          }
-          int newindex = reassign_index[voxel.truth_instance_index];
-          voxel.truth_instance_index = newindex;
+
+    // reassign id
+    std::map<int,int> reassign_index;
+    std::vector<int>  newindex_v;
+    for ( auto& voxel : voxel_v ) {
+      if ( voxel.truth_instance_index!=0 ) {
+        if ( reassign_index.find( voxel.truth_instance_index )==reassign_index.end() ) {
+          // new index
+          newindex_v.push_back( voxel.truth_instance_index );            
+          reassign_index[voxel.truth_instance_index] = (int)newindex_v.size();
+          //std::cout << "rassign [" << voxel.truth_instance_index << "] -> [" << reassign_index[voxel.truth_instance_index] << "]" << std::endl;
         }
+        int newindex = reassign_index[voxel.truth_instance_index];
+        voxel.truth_instance_index = newindex;
       }
     }
     
