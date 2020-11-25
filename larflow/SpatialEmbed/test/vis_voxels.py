@@ -32,15 +32,16 @@ particle_id_color = {1:(255,0,0),   # electron
                      3:(0,125,125), # pi0
                      4:(255,0,255), # Muon
                      5:(255,255,0), # Kaon
-                     6:(0,0,255), # proton
-                     7:(0,255,125)}   # pion
+                     6:(255,165,0), # pion                     
+                     7:(0,0,255)}   # proton
+
 particle_id_name = {1:"electron",
                     2:"gamma",   # gamma
                     3:"pi0", # pi0
                     4:"muon", # Muon
                     5:"kaon", # Kaon
-                    6:"proton", # proton
-                    7:"pion"}   # pion
+                    6:"pion", # proton
+                    7:"proton"}   # pion
 
 color_by_options = ["q_yplane","cluster","pid"]
 colorscale = "Viridis"
@@ -140,13 +141,16 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         # color by instance index
         ninstances = data_dict["instance_t"].max()
         print("Number of instances: ",ninstances)
-        for iid in range(1,ninstances+1):
+        for iid in range(0,ninstances+1):
             print("instance_t shape: ",data_dict["instance_t"].shape)
             idmask = data_dict["instance_t"]==iid
             print("idmask: ",idmask.shape)
-            randcolor = np.random.rand(3)*255
-            print("instance[",iid,"] color: ",randcolor)
-            strcolor = "rgb(%d,%d,%d)"%(randcolor[0],randcolor[1],randcolor[2])            
+            if iid>0:
+                randcolor = np.random.rand(3)*255
+                print("instance[",iid,"] color: ",randcolor)
+                strcolor = "rgb(%d,%d,%d)"%(randcolor[0],randcolor[1],randcolor[2])
+            else:
+                strcolor = "rgb(0,0,0)"
             voxtrace = {
                 "type":"scatter3d",
                 "x":fcoord_t[idmask,0],
