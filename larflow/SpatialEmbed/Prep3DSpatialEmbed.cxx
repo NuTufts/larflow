@@ -349,7 +349,7 @@ namespace spatialembed {
       if ( d.truth_realmatch==1 ) {
         instance_id[i] = d.truth_instance_index+1;
         ancestor_id[i] = d.truth_ancestor_index;
-        particle_id[i] = d.truth_pid-3;
+        particle_id[i] = d.truth_pid-2;
       }
       else {
         instance_id[i] = 0;
@@ -792,7 +792,7 @@ namespace spatialembed {
     mcpg.buildgraph( iolcv, ioll );
     LARCV_INFO() << "pre-shower builder graph" << std::endl;
     //mcpg.printAllNodeInfo();
-    //mcpg.printGraph();
+    mcpg.printGraph();
 
     // the showerlikelihood builder will make true shower larmatch points
     // and associate clusters of true shower points to showerinfo truth
@@ -826,8 +826,8 @@ namespace spatialembed {
       std::vector<int> voxid = _voxelizer.get_voxel_indices( xyz );
       auto it = voxel_coord_2_index_v.find(voxid);
       if ( it!=voxel_coord_2_index_v.end() ) {
-        int idx = it->second;
 
+        int idx = it->second;
         auto& ballot = voxel_votes.at(idx);
 
         // decide on the instance id, ancestor id, and pid this spacepoint will vote for
@@ -927,7 +927,92 @@ namespace spatialembed {
       voxel.truth_realmatch = ballot.has_true;
       
     }
+
+    // we cull instances of shower pixels with less then some small threshold
+    // we dont want the network getting penalized for small little depositions
+    std::map<int,int> shower_instance_count;
+    std::map<int,int> track_instance_count;
+    for ( auto& voxel : voxel_v ) {
+      if ( voxel.truth_pid==3 || voxel.truth_pid==4 ) {
+        // electron or gamma
+        if ( voxel.truth_instance_index>0
+             && shower_instance_count.find( voxel.truth_instance_index )==shower_instance_count.end() ) {
+          shower_instance_count[voxel.truth_instance_index] = 0;
+        }
+        shower_instance_count[voxel.truth_instance_index] += 1;
+      }
+      else {
+        // track particles
+        if ( voxel.truth_instance_index>0
+             && track_instance_count.find( voxel.truth_instance_index )==track_instance_count.end() ) {
+          track_instance_count[voxel.truth_instance_index] = 0;
+        }
+        track_instance_count[voxel.truth_instance_index] += 1;        
+      }
+    }
+
+    // debugging
+    struct IDCount_t {
+      int idx;
+      int ncounts;
+      int shape;
+      int operator<( IDCount_t& rhs ) {
+        if ( ncounts<rhs.ncounts ) return true;
+        return false;
+      };
+    };
+
+    std::vector< IDCount_t > count_v;
+    for ( auto it=shower_instance_count.begin(); it!=shower_instance_count.end(); it++ ) {
+      IDCount_t idcnt;
+      idcnt.idx = it->first;
+      idcnt.ncounts = it->second;
+      idcnt.shape = 0;
+      count_v.push_back( idcnt );
+    }
+    for ( auto it=track_instance_count.begin(); it!=track_instance_count.end(); it++ ) {
+      IDCount_t idcnt;
+      idcnt.idx = it->first;
+      idcnt.ncounts = it->second;
+      idcnt.shape = 1;      
+      count_v.push_back( idcnt );
+    }
+    std::sort( count_v.begin(), count_v.end() );
+    std::cout << "///////// INSTANCE COUNTS //////////////////////////" << std::endl;
+    for ( auto& idcnt : count_v ) {
+      std::cout << "[" << idcnt.idx << "] shape=" << idcnt.shape << " counts=" << idcnt.ncounts << std::endl;
+    }
+    std::cout << "////////////////////////////////////////////////////" << std::endl;
     
+
+    // zero out instance ids
+    int nzerod = 0;
+    for ( auto it=shower_instance_count.begin(); it!=shower_instance_count.end(); it++ ) {
+      if ( it->second<20 ) {
+        // set to background instance id
+        for ( auto& voxel : voxel_v ) {
+          if ( voxel.truth_instance_index==it->first )
+            voxel.truth_instance_index = 0;
+        }
+        nzerod++;
+      }
+    }
+
+    if ( nzerod>0 ) {
+      // reassign id
+      std::map<int,int> reassign_index;
+      std::vector<int>  oldindex_v;
+      for ( auto& voxel : voxel_v ) {
+        if ( voxel.truth_instance_index!=0 ) {
+          if ( reassign_index.find( voxel.truth_instance_index )==reassign_index.end() ) {
+            // new index
+            reassign_index[voxel.truth_instance_index] = (int)oldindex_v.size();
+            oldindex_v.push_back( voxel.truth_instance_index );            
+          }
+          voxel.truth_instance_index = reassign_index[voxel.truth_instance_index];
+        }
+      }
+    }
     
   }  
 
