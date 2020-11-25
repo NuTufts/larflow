@@ -242,29 +242,29 @@ namespace reco {
     }
 
     std::sort( _shower_info_v.begin(), _shower_info_v.end() );
-    std::cout << "============================================================" << std::endl;
-    std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers to use as anchors" << std::endl;
-    for ( auto const& info : _shower_info_v ) {
-      std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
-      std::cout << " highq_plane: " << info.highq_plane << std::endl;
-      std::cout << " pid=" << info.pid << std::endl;
-      std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
-      //std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
-      std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
-      std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
-      //std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
-    }
+    // std::cout << "============================================================" << std::endl;
+    // std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers to use as anchors" << std::endl;
+    // for ( auto const& info : _shower_info_v ) {
+    //   std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
+    //   std::cout << " highq_plane: " << info.highq_plane << std::endl;
+    //   std::cout << " pid=" << info.pid << std::endl;
+    //   std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
+    //   //std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
+    //   std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
+    //   std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
+    //   //std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
+    // }
 
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
     int iidx = 0;
     for ( auto& info : _shower_info_v ) {
-      std::cout << "[" << iidx << "] pid=" << info.pid
-                << " origin=" << info.origin
-                << " vtx=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")"
-                << std::endl;
+      // std::cout << "[" << iidx << "] pid=" << info.pid
+      //           << " origin=" << info.origin
+      //           << " vtx=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")"
+      //           << std::endl;
       int match_cluster_idx = _find_closest_cluster( claimed_cluster_v, info.shower_vtx, info.shower_dir );
       _shower_info_v[iidx].matched_cluster = match_cluster_idx;
-      std::cout << "   matched cluster index: " << match_cluster_idx << std::endl;
+      //std::cout << "   matched cluster index: " << match_cluster_idx << std::endl;
       iidx++;        
     }
 
@@ -470,10 +470,10 @@ namespace reco {
       //           << std::endl;
     }
     
-    std::cout << "[ ShowerLikelihoodBuilder::_analyze_clusters ] "
-              << "trunk cluster index=" << best_matched_cluster << " "
-              << "hits near trunk=" << most_nhits
-              << std::endl;
+    // std::cout << "[ ShowerLikelihoodBuilder::_analyze_clusters ] "
+    //           << "trunk cluster index=" << best_matched_cluster << " "
+    //           << "hits near trunk=" << most_nhits
+    //           << std::endl;
     
     if ( best_matched_cluster<0 )
       return -1;
