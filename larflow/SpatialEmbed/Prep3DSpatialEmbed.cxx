@@ -289,7 +289,8 @@ namespace spatialembed {
       }
 
       // set truth labels to default:
-      voxel.truth_instance_index = -1;
+      voxel.truth_instance_index = 0;
+      voxel.truth_ancestor_index = 0;
       voxel.truth_realmatch = 0;      
     }
     
@@ -346,16 +347,19 @@ namespace spatialembed {
         q_y[i] = 0.;
       }
 
-      if ( d.truth_realmatch==1 ) {
-        instance_id[i] = d.truth_instance_index+1;
-        ancestor_id[i] = d.truth_ancestor_index;
+      //if ( d.truth_realmatch==1 ) {
+      instance_id[i] = d.truth_instance_index;
+      ancestor_id[i] = d.truth_ancestor_index;
+      if ( d.truth_pid>=2 )
         particle_id[i] = d.truth_pid-2;
-      }
-      else {
-        instance_id[i] = 0;
-        ancestor_id[i] = 0;
-        particle_id[i] = 0;        
-      }
+      else
+        particle_id[i] = 0;
+      // }
+      // else {
+      //   instance_id[i] = 0;
+      //   ancestor_id[i] = 0;
+      //   particle_id[i] = 0;        
+      // }
 
     }
 
@@ -453,7 +457,7 @@ namespace spatialembed {
       // fill instance tensor
       for (size_t i=0; i<nvoxels; i++ ) {
 	auto const& voxel = voxeldata[i];
-	*((long*)PyArray_GETPTR1(instance_t,nvoxels_filled+i)) = voxel.truth_instance_index+1;
+	*((long*)PyArray_GETPTR1(instance_t,nvoxels_filled+i)) = voxel.truth_instance_index;
       }
 
       // fill class tensor
@@ -558,8 +562,8 @@ namespace spatialembed {
       voxel.feature_v   = { (*_in_pq_u)[i], (*_in_pq_v)[i], (*_in_pq_y)[i] };
       voxel.npts = 1;
       voxel.totw = 1.0;
-      voxel.truth_realmatch = -1;
-      voxel.truth_instance_index = (*_in_pinstance_id)[i]-1;
+      voxel.truth_realmatch = 0;
+      voxel.truth_instance_index = (*_in_pinstance_id)[i];
       voxel.truth_pid = (*_in_pparticle_id)[i];
       voxel.truth_ancestor_index = (*_in_pancestor_id)[i];
       data.emplace_back( std::move(voxel) );
@@ -817,8 +821,15 @@ namespace spatialembed {
         : has_true(0) {};
     };
 
+    struct InstanceBallot_t {
+      int id;
+      std::map<int,int> pid_votes;
+    };
+
     // we coordinate this container with the values (index) of voxel_coord_2_index_v
     std::vector< VoxelBallot_t > voxel_votes( voxel_coord_2_index_v.size() );
+    std::vector< InstanceBallot_t > pid_votes;
+    std::map<int,int> instanceid_2_ballotidx;
     
     // loop through larflow hits, assign instance id to larflow3dhit (majority vote)
     for (int itrip=0; itrip<(int)_triplet_maker._instance_id_v.size(); itrip++) {
@@ -853,9 +864,36 @@ namespace spatialembed {
           ballot.pid_votes[pid] += 1;
         }
 
+        if ( instanceid_2_ballotidx.find( iid )==instanceid_2_ballotidx.end() ) {
+          instanceid_2_ballotidx[iid] = (int)pid_votes.size();
+          InstanceBallot_t iballot;
+          iballot.id = iid;
+          pid_votes.push_back(iballot);
+        }
+        
+        auto& iballot = pid_votes[ instanceid_2_ballotidx[iid] ];
+        if ( iballot.pid_votes.find(pid)==iballot.pid_votes.end() ) {
+          iballot.pid_votes[pid] = 0;
+        }
+        iballot.pid_votes[pid] += 1;
+        
         if ( _triplet_maker._truth_v[itrip]>0 )
-          ballot.has_true = 1;
+          ballot.has_true = 1; // should be 1 by construction
       }
+    }
+
+    // we define the particle type of each instance cluster
+    std::map<int,int> instance_pid;
+    for ( auto& iballot : pid_votes ) {
+      int maxpid = 0;
+      int num_maxpid = 0;
+      for (auto it_pid=iballot.pid_votes.begin(); it_pid!=iballot.pid_votes.end(); it_pid++ ) {
+        if ( it_pid->second>num_maxpid ) {
+          maxpid = it_pid->first;
+          num_maxpid = it_pid->second;
+        }
+      }
+      instance_pid[iballot.id] = maxpid;
     }
 
     // we know that the instance ids are incomplete,
@@ -875,13 +913,13 @@ namespace spatialembed {
           // tampering with the instance-id vote
           ballot.instance_votes.clear();
           ballot.instance_votes[shower_instanceid] = 1;
+          if ( showerinfo.pid==22 )
+            instance_pid[shower_instanceid] = 4; // gamma
+          else
+            instance_pid[shower_instanceid] = 3; // electron
         }
       }
     }
-    
-    // we need to translate geant4 instance id into sequential index,0 to number of unique ids
-    std::map<int,int> instance_2_index;
-    std::vector<int> instance_v;    
     
     // now we can decide on the voxel truth labels, accumulating the votes
     for (int idx=0; idx<(int)voxel_v.size(); idx++) {
@@ -897,11 +935,6 @@ namespace spatialembed {
           max_instance_num = it_iid->second;
         }
       }
-      if ( max_instance_id>0 && instance_2_index.find(max_instance_id)==instance_2_index.end() ) {
-        // register index
-        instance_2_index[max_instance_id] = instance_v.size();
-        instance_v.push_back(max_instance_id);
-      }
 
       int max_ancestor_id = 0;
       int max_ancestor_num = 0;
@@ -913,15 +946,10 @@ namespace spatialembed {
       }
 
       int max_pid_id = 0;
-      int max_pid_num = 0;
-      for (auto it_iid=ballot.pid_votes.begin(); it_iid!=ballot.pid_votes.end(); it_iid++ ) {
-        if ( it_iid->first>0 && it_iid->second>max_pid_num ) {
-          max_pid_id = it_iid->first;
-          max_pid_num = it_iid->second;
-        }
-      }
+      if ( max_instance_id>0 )
+        max_pid_id = instance_pid[max_instance_id];
 
-      voxel.truth_instance_index = instance_2_index[max_instance_id];
+      voxel.truth_instance_index = max_instance_id;
       voxel.truth_ancestor_index = max_ancestor_id;
       voxel.truth_pid = max_pid_id;      
       voxel.truth_realmatch = ballot.has_true;
@@ -951,7 +979,7 @@ namespace spatialembed {
       }
     }
 
-    // debugging
+    // debugging: Print instance count totals for both shower(shape==0) and track(shape==1)
     struct IDCount_t {
       int idx;
       int ncounts;
@@ -989,27 +1017,32 @@ namespace spatialembed {
     int nzerod = 0;
     for ( auto it=shower_instance_count.begin(); it!=shower_instance_count.end(); it++ ) {
       if ( it->second<20 ) {
-        // set to background instance id
+        // set to background instance id, 0
         for ( auto& voxel : voxel_v ) {
-          if ( voxel.truth_instance_index==it->first )
+          if ( voxel.truth_instance_index==it->first ) {
+            //std::cout << "zero out small cluster shower index [" << voxel.truth_instance_index << "]" << std::endl;
             voxel.truth_instance_index = 0;
+          }
         }
         nzerod++;
       }
     }
-
+    std::cout << "num zero'd: " << nzerod << std::endl;
+    
     if ( nzerod>0 ) {
       // reassign id
       std::map<int,int> reassign_index;
-      std::vector<int>  oldindex_v;
+      std::vector<int>  newindex_v;
       for ( auto& voxel : voxel_v ) {
         if ( voxel.truth_instance_index!=0 ) {
           if ( reassign_index.find( voxel.truth_instance_index )==reassign_index.end() ) {
             // new index
-            reassign_index[voxel.truth_instance_index] = (int)oldindex_v.size();
-            oldindex_v.push_back( voxel.truth_instance_index );            
+            newindex_v.push_back( voxel.truth_instance_index );            
+            reassign_index[voxel.truth_instance_index] = (int)newindex_v.size();
+            //std::cout << "rassign [" << voxel.truth_instance_index << "] -> [" << reassign_index[voxel.truth_instance_index] << "]" << std::endl;
           }
-          voxel.truth_instance_index = reassign_index[voxel.truth_instance_index];
+          int newindex = reassign_index[voxel.truth_instance_index];
+          voxel.truth_instance_index = newindex;
         }
       }
     }

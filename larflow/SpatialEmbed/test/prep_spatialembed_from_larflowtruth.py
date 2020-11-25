@@ -1,9 +1,9 @@
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("prepare 3d spatial embed data")
-parser.add_argument("-ilm", "--input-larmatch",required=True,type=str,help="Input larmatch file (larlite type) [required]")
-parser.add_argument("-ilcv","--input-larcv",required=False,type=str,help="Input LArCV file [required]")
-parser.add_argument("-il","--input-larlitetruth",required=False,default=None,type=str,help="Input larlite truth file [required]")
+#parser.add_argument("-ilm", "--input-larmatch",required=True,type=str,help="Input larmatch file (larlite type) [required]")
+parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file [required]")
+parser.add_argument("-il","--input-larlitetruth",required=True,default=None,type=str,help="Input larlite truth file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output (ROOT) file name [required]")
 parser.add_argument("-n", "--nentries",type=int,default=None,help="Number of entries to run [default: None (all)]")
 parser.add_argument("-s", "--start-entry",type=int,default=0,help="starting entry")
@@ -27,14 +27,10 @@ voxelmaker.setFilterOutNonNuPixelsFlag( True )
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
 
-print "[INPUT: LArCV   - DL MERGED] ",args.input_larcv
-print "[INPUT: larlite - LARMATCH-KPS]  ",args.input_larmatch
+print "[INPUT: LArCV   - LARCVTRUTH/DL MERGED] ",args.input_larcv
+print "[INPUT: larlite - MCINFO/DLMERGED]  ",args.input_larlitetruth
 print "[OUTPUT]    ",args.output
-
-io.add_in_filename(  args.input_larcv )
-io.add_in_filename(  args.input_larmatch )
-if args.input_larlitetruth is not None:
-    io.add_in_filename( args.input_larlitetruth )
+io.add_in_filename(  args.input_larlitetruth )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
