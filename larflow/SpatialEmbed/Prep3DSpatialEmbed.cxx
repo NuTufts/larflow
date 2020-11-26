@@ -1170,8 +1170,8 @@ namespace spatialembed {
     npy_intp embed_t_dim[] = { (long int)nvoxels, 3+nsigma };
     PyArrayObject* embed_t = (PyArrayObject*)PyArray_SimpleNew( 2, embed_t_dim, NPY_FLOAT );
 
-    // seed tensor
-    npy_intp seed_t_dim[] = { (long int)nvoxels, 1 };
+    // seed tensor: 7 classes
+    npy_intp seed_t_dim[] = { (long int)nvoxels, 7 };
     PyArrayObject* seed_t = (PyArrayObject*)PyArray_SimpleNew( 2, seed_t_dim, NPY_FLOAT );
 
     std::vector<float> max_dist_from_centroid(num_instance_voxels.size(),0);
@@ -1181,9 +1181,10 @@ namespace spatialembed {
       auto const& voxel = voxeldata[i];
 
       // set normalized shift in embed tensor
-      if ( voxel.truth_instance_index>=0 ) {
+      if ( voxel.truth_instance_index>0 ) {
         // in instance
         int iid = voxel.truth_instance_index;
+	int pid = voxel.truth_pid;
 
         // calc shift
         float voxel_diff = 0.;
@@ -1199,17 +1200,21 @@ namespace spatialembed {
         
         // set sigma in embed tensor
         for (int isig=0; isig<nsigma; isig++)
-          *((float*)PyArray_GETPTR2(embed_t,i,3+isig)) = 100.0;
+          *((float*)PyArray_GETPTR2(embed_t,i,3+isig)) = 0.0;
 
         // set seed map
-        *((float*)PyArray_GETPTR2(seed_t,i,0)) = 1.0;
+	for (int c=0; c<7; c++)
+	  *((float*)PyArray_GETPTR2(seed_t,i,c)) = 0.0;
+	if ( pid>0 )
+	  *((float*)PyArray_GETPTR2(seed_t,i,pid-1)) = 1.0;
       }
       else {
         for (size_t j=0; j<3; j++) {        
           *((float*)PyArray_GETPTR2(embed_t,i,j)) = 0.;
         }
         *((float*)PyArray_GETPTR2(embed_t,i,3)) = 0.01;
-        *((float*)PyArray_GETPTR2(seed_t,i,0)) = 0.0;
+	for (int c=0; c<7; c++)
+	  *((float*)PyArray_GETPTR2(seed_t,i,c)) = 0.0;
       }
 
     }

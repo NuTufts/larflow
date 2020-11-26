@@ -44,8 +44,8 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
-RESUME_OPTIM_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
+RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="checkpoint.76000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
@@ -75,13 +75,13 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larflow/SpatialEmbed/net/"
-INPUTFILE_TRAIN=["spatialembed_nueintrinsics_train.root"]
-INPUTFILE_VALID=["spatialembed_nueintrinsics_valid.root"]
+INPUTFILE_TRAIN=["spatialembed_voxels-Run000001-SubRun000002-jobid0000_s3dembed.root"]
+INPUTFILE_VALID=["spatialembed_voxels-Run000001-SubRun000002-jobid0000_s3dembed.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 76001
+START_ITER  = 0
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -141,14 +141,14 @@ def main():
     voxel_dims = (2048, 1024, 4096)
     model = SpatialEmbedNet(3, voxel_dims,
                             input_nfeatures=3,
-                            nclasses=1,
+                            nclasses=7,
                             num_unet_layers=6,
                             nsigma=3,
                             stem_nfeatures=32).to(DEVICE)
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=10.0)
     
     model_dict = {"embed":model}
     parameters = []
@@ -220,7 +220,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-5
+    lr = 1e-3
     momentum = 0.9
     weight_decay = 1.0e-5
 
@@ -448,9 +448,11 @@ def train(train_loader, device, batchsize,
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
         feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
         instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        class_t    = torch.from_numpy( data["class_t"] ).to(device)
         coord_t.requires_grad = False
         feat_t.requires_grad = False
-        instance_t.requires_grad = False        
+        instance_t.requires_grad = False
+        class_t.requires_grad = False
 
         #for p in xrange(3):
         #    feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
@@ -469,7 +471,8 @@ def train(train_loader, device, batchsize,
 
         # Calculate the loss
         start = time.time()
-        loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t, verbose=TRAIN_LOSS_VERBOSE, calc_iou=True )
+        loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t, class_t,
+                                                   verbose=TRAIN_LOSS_VERBOSE, calc_iou=True )
         dt_loss = time.time()-start
 
         if RUNPROFILER:
@@ -586,9 +589,11 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
         feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
         instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        class_t = torch.from_numpy( data["class_t"] ).to(device)        
         coord_t.requires_grad = False
         feat_t.requires_grad = False
-        instance_t.requires_grad = False        
+        instance_t.requires_grad = False
+        class_t.requires_grad    = False        
 
         valid_entry = val_loader["spatialembed"].getCurrentEntry() 
         print("loaded entry[",valid_entry,"] voxel entries: ",data["coord_t"].shape)
@@ -602,7 +607,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
             # Calculate the loss
             start = time.time()
-            loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t,
+            loss,ninstances,iou_out,_loss = criterion( coord_t, embed_t, seed_t, instance_t, class_t,
                                                        verbose=VALID_LOSS_VERBOSE, calc_iou=True )
             dt_loss = time.time()-start
 

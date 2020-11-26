@@ -5,7 +5,8 @@ import torch.nn as nn
 from lovasz_losses import lovasz_hinge
 
 class SpatialEmbedLoss(nn.Module):
-    def __init__(self, dim_nvoxels=(1,1,1), nsigma=3, nclasses=7, w_embed=1.0, w_seed=1.0, w_sigma_var=10.0, sigma_scale=1.0e4 ):
+    def __init__(self, dim_nvoxels=(1,1,1), nsigma=3, nclasses=7,
+                 w_embed=1.0, w_seed=1.0, w_sigma_var=10.0, sigma_scale=1.0 ):
         super(SpatialEmbedLoss,self).__init__()
         self.dim_nvoxels = np.array( dim_nvoxels, dtype=np.float32 )
         self.dim_nvoxels_t = torch.from_numpy( self.dim_nvoxels )
@@ -77,6 +78,7 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose: print "  instance coord.shape: ",coord_i.shape
                 if verbose: print "  sigma_i: ",sigma_i.shape
                 if verbose: print "  seed_i: ",seed_i.shape
+                if verbose or True: print "  embed: ",torch.sqrt( torch.pow( embed[idmask,0:3].detach(), 2 ) ).mean().item()
 
                 # add to pixel total
                 npix_posinstance += fpos_i
@@ -86,7 +88,7 @@ class SpatialEmbedLoss(nn.Module):
                 
                 # mean
                 s = 1.0e-6+sigma_i.mean(0).view(1,3) # 1 dimensions
-                if verbose: print "  mean(ln(0.5/sigma^2): ",s
+                if verbose or True: print "  mean(ln(0.5/sigma^2): ",s.detach().cpu().numpy().tolist()
 
                 # calculate instance centroid
                 center_i = spembed_i.mean(0).view(1,3)
@@ -165,9 +167,11 @@ class SpatialEmbedLoss(nn.Module):
                     if verbose:
                         print "  IOU: ",instance_iou," weight=",fpos_i.item()
                     ave_iou += instance_iou*fpos_i.item()
-                if verbose:
-                    print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum().item()," of ",gaus[idmask].detach().shape[0]                    
-                    print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum().item()," of ",gaus[~idmask].detach().shape[0]
+                if verbose or True:
+                    #print "  npix-instance inside margin: ",(gaus[idmask].detach()>0.5).sum().item()," of ",gaus[idmask].detach().shape[0]                    
+                    #print "  npix-not-instance inside margin: ",(gaus[~idmask].detach()>0.5).sum().item()," of ",gaus[~idmask].detach().shape[0]
+                    print "  npix-instance inside=",(gaus[idmask].detach()>0.5).sum().float().item()/float(gaus[idmask].detach().shape[0]),
+                    print "  outside=: ",(gaus[~idmask].detach()>0.5).sum().float().item()/float(gaus[~idmask].detach().shape[0])
 
 
 
@@ -211,8 +215,6 @@ class SpatialEmbedLoss(nn.Module):
                 _loss_seed += 0.5/seed_negpix_count[i]*_loss_seed_neg[i]
         _loss_seed /= num_nonzero_classes
                 
-
-        
         loss = self.w_embed*_loss_instance + self.w_sigma_var*_loss_var + self.w_seed*_loss_seed
         if verbose: print "total loss=",loss.detach().item()," ave-iou=",ave_iou
 
@@ -258,7 +260,7 @@ if __name__=="__main__":
     voxelloader.loadTreeBranches( io )
 
     print("make loss module")
-    loss = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3 )
+    loss = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3, sigma_scale=1.0 )
     voxdims = rt.std.vector("int")(3,0)
     for i in range(3):
         voxdims[i] = voxel_dims[i]
@@ -276,7 +278,7 @@ if __name__=="__main__":
         seed_t     = torch.from_numpy( netout["seed_t"] )
 
         # set sigma
-        embed_t[:,3:] = -10.0
+        embed_t[:,3:] = 10.0
         
         print("voxel entries: ",coord_t.shape)
 

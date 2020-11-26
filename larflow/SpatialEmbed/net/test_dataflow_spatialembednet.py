@@ -43,7 +43,7 @@ net = SpatialEmbedNet(3, voxel_dims,
                       stem_nfeatures=32).to(device)
 net.init_embedout()
 
-criterion = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3 ).to(device)
+criterion = SpatialEmbedLoss( dim_nvoxels=voxel_dims, nsigma=3, sigma_scale=1.0 ).to(device)
 
 # LOAD DATA
 
