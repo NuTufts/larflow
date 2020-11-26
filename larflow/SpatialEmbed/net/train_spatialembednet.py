@@ -44,10 +44,10 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
-RESUME_OPTIM_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
+RESUME_OPTIM_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.27000th.tar"
+CHECKPOINT_FILE="checkpoint.76000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=False
@@ -81,7 +81,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
+START_ITER  = 76001
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -220,7 +220,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 1e-5
     momentum = 0.9
     weight_decay = 1.0e-5
 
@@ -258,8 +258,8 @@ def main():
     VALID_NENTRIES = iovalid["spatialembed"].getTree().GetEntries()
 
     # set starting entry
-    start_train_entry = START_ITER%TRAIN_NENTRIES
-    start_valid_entry = int(START_ITER/ITER_PER_VALID)%VALID_NENTRIES
+    start_train_entry = (START_ITER*BATCHSIZE_TRAIN)%TRAIN_NENTRIES
+    start_valid_entry = int(START_ITER*BATCHSIZE_VALID/ITER_PER_VALID)%VALID_NENTRIES
     iotrain["spatialembed"].getTreeEntry(start_train_entry)
     iovalid["spatialembed"].getTreeEntry(start_valid_entry)    
     
@@ -487,7 +487,7 @@ def train(train_loader, device, batchsize,
         dt_backward = time.time()-start
 
         # check gradients
-        print "seed_out weights: ",model["embed"].seed_out[-1].weight," bias: ",model["embed"].seed_out[-1].bias
+        #print "seed_out weights: ",model["embed"].seed_out[-1].weight," bias: ",model["embed"].seed_out[-1].bias
 
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:

@@ -25,7 +25,8 @@ device = torch.device("cpu")
 #device = torch.device("cuda")
 verbose = False
 loss_verbose = True
-nbatches = 4
+nbatches = 1
+nparticles = 7
 
 # random tensor option for debugging
 use_random_tensor = False
@@ -36,9 +37,9 @@ nfake_instances = 3
 voxel_dims = (2048, 1024, 4096)
 net = SpatialEmbedNet(3, voxel_dims,
                       input_nfeatures=3,
-                      nclasses=1,
                       num_unet_layers=6,
                       nsigma=3,
+                      nclasses=nparticles,
                       stem_nfeatures=32).to(device)
 net.init_embedout()
 
@@ -73,6 +74,7 @@ else:
     coord_np[:,2] = np.random.randint(0, high=voxel_dims[2]-1, size=nsamples, dtype=np.int)
     instance_np = np.zeros( nsamples, dtype=np.int )
     instance_np[:] = np.random.randint(0,high=nfake_instances,size=nsamples,dtype=np.int)
+    particle_np = np.random.randint(0,high=nclasses+1,size=nsamples,dtype=np.int)
     feat_np = np.zeros( (nsamples,3), dtype=np.float32 )
     for i in range(3):
         feat_np[:,i] = np.random.rand(nsamples)
@@ -80,6 +82,7 @@ else:
     random_data["coord_t"] = coord_np
     random_data["feat_t"] = feat_np
     random_data["instance_t"] = instance_np
+    random_data["class_t"] = particle_np
     nentries = 1
 
 
@@ -87,13 +90,12 @@ dt_loader = 0.
 dt_forward = 0.
 dt_loss = 0.
 nrun = 0
-for ientry in range(957,957+nbatches):
+for ientry in range(0,nbatches):
 
     start = time.time()
     if not use_random_tensor:
         # get entry data (numpy arrays)
-        data = voxelloader.getTreeEntryDataAsArray(ientry)
-        #data = voxelloader.getTrainingDataBatch(nbatches)
+        data = voxelloader.getTrainingDataBatch(nbatches)
         print("voxel entries: ",data["coord_t"].shape)
         print("num batches: ",data["coord_t"][:,3].max())
         
@@ -101,10 +103,12 @@ for ientry in range(957,957+nbatches):
         coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
         feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
         instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        class_t    = torch.from_numpy( data["class_t"] ).to(device)
     else:
         coord_t    = torch.from_numpy( coord_np ).to(device)
         feat_t     = torch.from_numpy( feat_np ).to(device)
         instance_t = torch.from_numpy( instance_np ).to(device)
+        class_t    = torch.from_numpy( particle_np ).to(device)
     
     coord_t.requires_grad = False
     feat_t.requires_grad = False
@@ -127,7 +131,7 @@ for ientry in range(957,957+nbatches):
 
         # loss
         start = time.time()
-        loss,ninstances,iou_out,_loss_components = criterion( coord_t, embed_t, seed_t, instance_t, verbose=loss_verbose, calc_iou=True )
+        loss,ninstances,iou_out,_loss_components = criterion( coord_t, embed_t, seed_t, instance_t, class_t, verbose=loss_verbose, calc_iou=True )
         dt_loss += time.time()-start
 
         print "--- end of forward -----"

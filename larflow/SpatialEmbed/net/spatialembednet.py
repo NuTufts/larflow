@@ -11,7 +11,7 @@ class SpatialEmbedNet(nn.Module):
                  input_nfeatures=1,
                  stem_nfeatures=16,
                  num_unet_layers=5,
-                 nclasses=5,
+                 nclasses=7,
                  nsigma=3,
                  leakiness=0.001 ):
         """
@@ -19,9 +19,9 @@ class SpatialEmbedNet(nn.Module):
         -----------
         ndimensions [int]    number of spatial dimensions of input data, default=2
         inputshape  [tuple of int]  size of input tensor/image in (num of tick pixels, num of wire pixels), default=(1024,3456)
-        input_nfeatures [int] number of features in the input tensor, default=1 (the image charge)
         stem_nfeatures [int] number of features in the stem layers, also controls num of features in unet layers, default=16
-        features_per_layer [int] number of channels in the resnet layers that follow unet layers, default=16
+        num_unet_layers [int] depth of unet
+        nclasses [int] number of particle type classes, default=5 {1:electron,2:gamma,3:pi0,4:muon,5:Kaon,6:pion,7:proton}
         classifier_nfeatures [tuple of int] number of channels per hidden layer of larmatch classification network, default=[32,32]
         leakiness [float] leakiness of LeakyRelu activiation layers, default=0.01
         ninput_planes [int] number of input image planes, default=3
