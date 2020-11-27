@@ -25,7 +25,7 @@ from loss_spatialembed import SpatialEmbedLoss
 device = torch.device("cuda")
 verbose = False
 loss_verbose = True
-nbatches = 1
+nbatches = 4
 nparticles = 7
 
 # random tensor option for debugging
@@ -90,7 +90,7 @@ dt_loader = 0.
 dt_forward = 0.
 dt_loss = 0.
 nrun = 0
-for ientry in range(0,nbatches):
+for ientry in range(0,1):
 
     start = time.time()
     if not use_random_tensor:

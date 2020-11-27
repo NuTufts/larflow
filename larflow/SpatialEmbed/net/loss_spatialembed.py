@@ -32,6 +32,8 @@ class SpatialEmbedLoss(nn.Module):
         masks = []
         for iid in range(1,num_instances+1):
             idmask = instance_t.eq(iid)
+            if idmask.sum()<50.0:
+                continue
             icentroid = embed_t[idmask,:ndims].mean(0)
             centroids.append(icentroid)
             masks.append(idmask)
@@ -56,7 +58,7 @@ class SpatialEmbedLoss(nn.Module):
             dist = torch.pow(embed_t[:,0:ndims] - center_i, 2)
             gaus = torch.exp(-self.sigma_scale*torch.sum(dist*s,1))
 
-            sigmas.append(sigma_i)
+            sigmas.append(s)
             probs.append(gaus)
         return probs,centroids,sigmas,masks
 
@@ -108,8 +110,8 @@ class SpatialEmbedLoss(nn.Module):
             # calc embeded position
             spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
             #sigma   = torch.sigmoid(embed[:,3:3+self.nsigma]) # keep range between [0,1]
-            #sigma   = torch.exp(embed[:,3:3+self.nsigma]) # keep range between [0,1]
-            sigma = 0.5/(1.0e-2 + torch.pow(embed[:,3:3+self.nsigma],2))
+            sigma   = torch.exp(embed[:,3:3+self.nsigma]) # keep range between [0,1]
+            #sigma = 0.5/(1.0e-2 + torch.pow(embed[:,3:3+self.nsigma],2))
             obj_count = 0
             probs,centroids,sigmas,masks = self.get_instance_probs(spembed,sigma,instance,verbose=verbose)
 
@@ -129,19 +131,23 @@ class SpatialEmbedLoss(nn.Module):
                 s        = sigmas[iid]
                 fnpix    = idmask.float().sum()
                 iloss    = self.bce( prob, idmask.float() ).mean()
-                if verbose: print "  instance[",iid,"] prob loss: ",iloss.detach().item()
+                if verbose: print "instance[",iid,"] npixels=",idmask.sum().item()
+                if verbose: print "  prob loss: ",iloss.detach().item()
                 bloss_instance += iloss*fnpix
                 
                 # variance loss, want the values to be similar. orig author notes to find loss first
-                iloss_var = torch.mean(torch.pow( sigma[idmask,:] - s.detach(), 2))
-                if verbose: print "  instance[",iid,"] variance loss: ",iloss_var.detach().item()
+                iloss_var = torch.pow( sigma[idmask,:] - s.detach(), 2).mean()
+                if verbose: print "  variance loss: ",iloss_var.detach().item()
                 #iloss_var = torch.mean(torch.pow( (sigma_i - s.detach())/(s.detach()), 2)) # scale-free variance
                 bloss_var += iloss_var*fnpix
                 fnpix_tot += fnpix
 
                 instance_iou = self.calculate_iou(prob.detach()>0.5, idmask.detach())
                 if verbose:
-                    print "  instance[",iid,"]: iou=",instance_iou," weight=",fnpix.item()
+                    print "  iou=",instance_iou," weight=",fnpix.item()
+                    print "  npix-instance inside=",(prob[idmask].detach()>0.5).sum().float().item()/float(idmask.sum().item())
+                    print "  outside=: ",(prob[~idmask].detach()>0.5).sum().float().item()/float((~idmask).detach().sum().item())
+                    
                 ave_iou += instance_iou*fnpix.item()
                 ftot_pixels += fnpix.item()
 
