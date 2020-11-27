@@ -26,8 +26,12 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
-
-color_by_options = ["cluster","embed","seed-cluster","seed-embed"]
+NCLASSES=7
+#color_by_options = ["cluster","embed","seed-cluster","seed-embed"]
+color_by_options = []
+for iclass in range(NCLASSES):
+    color_by_options.append("cluster-%d"%(iclass))
+    
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -55,7 +59,7 @@ color_bank[3,2] = 255
 for i in range(4,color_bank.shape[0]):
     color_bank[i,:] = np.random.rand(3)*200
 
-def make_figures(entry,plotby="cluster",minprob=0.0):
+def make_figures(entry,plotby="cluster-0",minprob=0.0):
 
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global io
@@ -65,21 +69,30 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     voxel_dim = voxelizer.get_dim_len()
     nvoxels   = voxelizer.get_nvoxels()
     origin    = voxelizer.get_origin()
+    print("get data")
     data      = voxelloader.getEntryDataAsNDarray(entry)
-    embed     = voxelloader.getEntryEmbedPosAsNDarray(entry)
-    seed      = voxelloader.getEntrySeedScoreAsNDarray(entry)
+    print("get embed")    
+    #embed     = voxelloader.getEntryEmbedPosAsNDarray(entry)
+    print("get seed")        
+    #seed      = voxelloader.getEntrySeedScoreAsNDarray(entry)
     print("voxel entries: ",data.shape)
+    print(data)
+
+    option = plotby.split("-")[0]
+    iclass = int(plotby.split("-")[1])
+    print("plot option: ",option)
+    print("plot class: ",iclass)
 
     tracelist = []
-    if plotby in ["cluster","embed","seed-cluster","seed-embed"]:
+    if option in ["cluster","embed","seed-cluster","seed-embed"]:
         # color by instance index
         color = np.zeros( (data.shape[0],3) )
-        ninstances = data[:,3].max()
+        ninstances = data[:,3+iclass].max()
         print("Number of instances: ",ninstances)
         print("color shape: ",color.shape)
         for iid in range(ninstances+1):
             icluster=iid
-            idmask = data[:,3]==icluster
+            idmask = data[:,3+iclass]==icluster
             print("idmask: ",idmask.sum())
             if icluster<color_bank.shape[0]:
                 cluster_color = color_bank[icluster,:]
@@ -90,13 +103,15 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             fcoord_t = np.zeros( (int(idmask.sum()),3) )
             for i in range(3):
                 conversion = voxel_dim.at(i)/nvoxels.at(i)
-                if plotby in ["cluster","seed-cluster"]:
+                if option in ["cluster","seed-cluster"]:
                     print("data[idmask,i]: ",data[idmask,i].shape)
                     fcoord_t[:,i] = data[idmask,i]*conversion+origin[i]
-                elif plotby in ["embed","seed-embed"]:
+                elif option in ["embed","seed-embed"]:
                     fcoord_t[:,i] = embed[idmask,i]*conversion+origin[i]
+                else:
+                    raise ValueError("unrecognized option")
             colordata = strcolor
-            if plotby in ["seed-cluster","seed-embed"]:
+            if option in ["seed-cluster","seed-embed"]:
                 colordata = seed[idmask,0]
             opa = 0.5
             if iid==0:
@@ -118,9 +133,9 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
             
 
     for voxtrace in tracelist:
-        if plotby in ["seed-cluster","seed-embed"]:
+        if option in ["seed-cluster","seed-embed"]:
             voxtrace["marker"]["colorscale"]="Viridis"
-        if plotby in ["embed"]:
+        if option in ["embed"]:
             voxtrace["marker"]["size"] = 3
             voxtrace["marker"]["opacity"] = 1.0        
 
@@ -184,7 +199,7 @@ minprob_input = dcc.Input(
 
 plotopt = dcc.Dropdown(
     options=option_dict,
-    value='cluster',
+    value='cluster-0',
     id='plotbyopt',
     )
         

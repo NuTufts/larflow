@@ -57,15 +57,15 @@ namespace spatialembed {
   protected:
 
     TTree* _tree_simple;
-    std::vector< std::vector<int> > _voxelidx_v;
-    std::vector< int >              _cluster_id;
-    std::vector< std::vector<float> > _embed_pos_v;
-    std::vector< float > _seed_v; // single-class seed score
+    std::vector< std::vector<int> >   _voxelidx_v;  ///< outer vector over voxels, inner vector over tensor dims
+    std::vector< std::vector<int> >   _cluster_id;  ///< outer vector over classes, inner vector over voxels
+    std::vector< std::vector<float> > _embed_pos_v; ///< outer vector over voxels, inner vector is 3-vector
+    std::vector< std::vector<float> > _seed_v;      ///< outer vector over voxels, innver vector over classes
 
     std::vector< std::vector<int> >*   _in_voxelidx_v;
-    std::vector< int >*                _in_cluster_id;
+    std::vector< std::vector<int> >*   _in_cluster_id;
     std::vector< std::vector<float> >* _in_embed_pos_v;
-    std::vector< float >*              _in_seed_v;
+    std::vector< std::vector<float> >* _in_seed_v;
     
   private:
 

@@ -33,6 +33,7 @@ class SpatialEmbedNet(nn.Module):
         self.ndimensions = ndimensions
         self.input_shape = inputshape
         self.nsigma = nsigma
+        self.nclasses = nclasses
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -208,64 +209,72 @@ class SpatialEmbedNet(nn.Module):
 
                 coord_b = fcoord_t[bmask,:]
                 embed_b = embed_t[bmask,:]
-                seed_b  = seed_t[bmask]
-
-                if verbose: print "batch coord: ",coord_b.shape
-                if verbose: print "batch seed: ",seed_b.shape
-
+                seed_b  = seed_t[bmask,:]
+                
                 # calc embeded position
                 spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
                 sigma_b   = torch.sigmoid(embed_b[:,3:3+self.nsigma])
-
                 nvoxels_b = spembed_b.shape[0]
-                cluster_id = torch.zeros(nvoxels_b, dtype=torch.int )
+                
+                cluster_id_all = torch.zeros( (nvoxels_b,self.nclasses), dtype=torch.int )
+                
+                for c in range(self.nclasses):
+                    seed_c = seed_b[:,c]
+                    cluster_id = cluster_id_all[:,c]
                     
-
-                maxseed_value = 1.0
-                unused = cluster_id.eq(0)                
-                nvoxel_unused = unused.sum()
-                currentid = 1
-
-                while maxseed_value>0.5 and nvoxel_unused>0:
-
-                    if verbose: print "// form cluster[",currentid,"] //"
-                    mask = unused.to(torch.float)
-                    if verbose: print "mask: #unused=",mask.sum()," shape=",mask.shape
-                    seed_u    = seed_b[:,0]*mask
-
-                    maxseed_idx   = torch.argmax( seed_u )
-                    maxseed_value = seed_u[maxseed_idx]
+                    if verbose: print "batch coord: ",coord_b.shape
+                    if verbose: print "batch seed: ",seed_c.shape
                     
-                    if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
-                    centroid = spembed_b[maxseed_idx,:]
-                    if verbose: print "centroid: ",centroid
-                    s = 1.0e-4+sigma_b[maxseed_idx,:] # (1,3)
-                    if verbose: print "maxseed sigma: ",s
-                    dist = torch.pow(spembed_b-centroid,2)
-                    if verbose:
-                        d = torch.sum(dist,1)*mask
-                        print "average dist^2: ",d.sum()/mask.sum()," (min,max)=(",d[mask>0.5].min(),",",d[mask>0.5].max(),")"
-                    dist = torch.sum( dist*s, 1 )
-                    gaus = torch.exp(-1000.0*dist)*mask
-                    if verbose: print "gaus: ",gaus.shape
-                    if verbose: print "num inside margin: ",(gaus>0.5).sum()
-                    
-                    cluster_id[gaus>0.5] = currentid
-                    currentid += 1
-
-                    unused = cluster_id.eq(0)
+                    maxseed_value = 1.0
+                    unused = cluster_id.eq(0)                
                     nvoxel_unused = unused.sum()
-                    if nvoxel_unused>0:
-                        maxseed_value = seed_b[unused].max()
-                        if verbose:
-                            print "remaining maxseed value: ",maxseed_value
-                            if False:
-                                print "[next] nunused",nvoxel_unused
-                                raw_input()
-                    else:
-                        maxseed_value = 0.
+                    currentid = 1
 
-                batch_clusters.append( (cluster_id,spembed_b,seed_b) )
+                    while maxseed_value>0.5 and nvoxel_unused>0:
+
+                        if verbose: print "// form CLASS[",c,"] cluster[",currentid,"] //"
+                        mask = unused.to(torch.float)
+                        if verbose: print "mask: #unused=",mask.sum()," shape=",mask.shape
+                        seed_u    = seed_c*mask
+
+                        maxseed_idx   = torch.argmax( seed_u )
+                        maxseed_value = seed_u[maxseed_idx]
+                    
+                        if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
+                        centroid = spembed_b[maxseed_idx,:]
+                        if verbose: print "centroid: ",centroid
+                        s = 1.0e-6+sigma_b[maxseed_idx,:] # (1,3)
+                        if verbose: print "maxseed sigma: ",s
+                        dist = torch.pow(spembed_b-centroid,2)
+                        if verbose:
+                            d = torch.sum(dist,1)*mask
+                            print "average dist^2: ",d.sum()/mask.sum()," (min,max)=(",d[mask>0.5].min(),",",d[mask>0.5].max(),")"
+                        dist = torch.sum( dist*s, 1 )
+                        gaus = torch.exp(-3.0*dist)*mask
+                        if verbose: print "gaus: ",gaus.shape
+                        if verbose: print "num inside margin: ",(gaus>0.5).sum()
+                    
+                        cluster_id[gaus>0.5] = currentid
+                        currentid += 1
+
+                        unused = cluster_id.eq(0)
+                        nvoxel_unused = unused.sum()
+                        if nvoxel_unused>0:
+                            maxseed_value = seed_c[unused].max()
+                            if verbose:
+                                print "remaining maxseed value: ",maxseed_value
+                                if False:
+                                    print "[next] nunused",nvoxel_unused
+                                    raw_input()
+                        else:
+                            maxseed_value = 0.
+
+                        # end of while loop
+                    
+                    # end of class loop
+                    
+                batch_clusters.append( (cluster_id_all,spembed_b,seed_b) )
+                #end of batch loop
         
         return batch_clusters
                             

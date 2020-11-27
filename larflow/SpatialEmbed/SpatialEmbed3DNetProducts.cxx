@@ -96,9 +96,6 @@ namespace spatialembed {
       // (2) use it to define the centroid and bandwith
       // (3) accept voxels using score
 
-      
-      
-
     }
 
     
@@ -138,9 +135,9 @@ namespace spatialembed {
       throw std::runtime_error("Cannot get carray for voxel coord tensor");
     }
 
-    npy_intp cluster_dims[1];
-    long *cluster_carray;
-    if ( PyArray_AsCArray( &cluster_idx_ndarray, (void*)&cluster_carray, cluster_dims, 1, descr_long )<0 ) {
+    npy_intp cluster_dims[2];
+    long **cluster_carray;
+    if ( PyArray_AsCArray( &cluster_idx_ndarray, (void**)&cluster_carray, cluster_dims, 2, descr_long )<0 ) {
       LARCV_CRITICAL() << "Cannot get carray for voxel cluster tensor" << std::endl;
       throw std::runtime_error("Cannot get carray for voxel cluster tensor");
     }
@@ -188,25 +185,36 @@ namespace spatialembed {
       // clear arrays
       _voxelidx_v.clear();
       _voxelidx_v.reserve( b_indices.size() );
-      _cluster_id.resize( b_indices.size(), 0 );
+      _cluster_id.clear();
+      _cluster_id.resize(7);
+      for (int c=0; c<7; c++)
+        _cluster_id[c].resize( b_indices.size(), 0 );
       _embed_pos_v.clear();
       _embed_pos_v.reserve( b_indices.size() );
       _seed_v.clear();
-      _seed_v.reserve( b_indices.size() );
+      if ( seed_ndarray ) {              
+        _seed_v.resize(b_indices.size());
+      }
 
       for ( auto const& i : b_indices ) {
         std::vector<int> coord_i = { (int)coord_carray[i][0], (int)coord_carray[i][1], (int)coord_carray[i][2] };
         _voxelidx_v.push_back( coord_i );
-        _cluster_id[i] = cluster_carray[i];
         if ( embed_pos_ndarray ) {
           std::vector<float> embed_i = { (float)embed_carray[i][0], (float)embed_carray[i][1], (float)embed_carray[i][2] };
           _embed_pos_v.push_back( embed_i );
         }
+
         if ( seed_ndarray ) {
-          _seed_v.push_back( seed_carray[i][0] );
+          _seed_v[i].resize(7,0);
+        }
+        for (int c=0; c<7; c++) {
+          _cluster_id[c][i] = cluster_carray[i][c];
+          if ( seed_ndarray )
+            _seed_v[i][c] = seed_carray[i][c];
         }
       }
 
+      // fill image in batch
       _tree_simple->Fill();
       ibatch++;
     }
@@ -227,7 +235,7 @@ namespace spatialembed {
     _tree_simple = &input_tree;
     _tree_simple->SetBranchAddress( "voxelindex", &_in_voxelidx_v );
     _tree_simple->SetBranchAddress( "cluster_id", &_in_cluster_id );
-    _tree_simple->SetBranchAddress( "embed_pos", &_in_embed_pos_v );
+    _tree_simple->SetBranchAddress( "embed_pos",  &_in_embed_pos_v );
     _tree_simple->SetBranchAddress( "seed_score", &_in_seed_v );    
   }
 
@@ -253,16 +261,23 @@ namespace spatialembed {
     size_t nvoxels = _in_voxelidx_v->size();
     
     // coord tensor
-    npy_intp coord_t_dim[] = { (long int)nvoxels, 4 };
+    npy_intp coord_t_dim[] = { (long int)nvoxels, 3+7 };
     PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
+
+    std::cout << "nclasses: " << _in_cluster_id->size() << std::endl;
     
     // FILL TENSORS
     for (size_t i=0; i<nvoxels; i++ ) {
       for (size_t j=0; j<3; j++)
         *((long*)PyArray_GETPTR2(coord_t,i,j)) = (*_in_voxelidx_v)[i][j];
-      *((long*)PyArray_GETPTR2(coord_t,i,3)) = (*_in_cluster_id)[i];
     }
-          
+    for (size_t c=0; c<7; c++) {
+      auto const& class_clusterid = (*_in_cluster_id)[c];
+      std::cout << " class[" << c << "] nvoxels=" << class_clusterid.size() << std::endl;
+      for (size_t i=0; i<class_clusterid.size(); i++)
+        *((long*)PyArray_GETPTR2(coord_t,i,3+c)) = class_clusterid[i];
+    }
+    
     return (PyObject*)coord_t;
     
   }
@@ -289,14 +304,15 @@ namespace spatialembed {
     size_t nvoxels = _in_embed_pos_v->size();
     
     // embed tensor
-    npy_intp embed_t_dim[] = { (long int)nvoxels, 4 };
+    npy_intp embed_t_dim[] = { (long int)nvoxels, 3 };
     PyArrayObject* embed_t = (PyArrayObject*)PyArray_SimpleNew( 2, embed_t_dim, NPY_FLOAT );
     
     // FILL TENSORS
     for (size_t i=0; i<nvoxels; i++ ) {
       for (size_t j=0; j<3; j++)
         *((float*)PyArray_GETPTR2(embed_t,i,j)) = (*_in_embed_pos_v)[i][j];
-      *((long*)PyArray_GETPTR2(embed_t,i,3)) = (*_in_cluster_id)[i];
+      // for (size_t c=0; c<7; c++)
+      //   *((long*)PyArray_GETPTR2(embed_t,i,3+c)) = (*_in_cluster_id)[c][i];
     }
           
     return (PyObject*)embed_t;
@@ -325,12 +341,13 @@ namespace spatialembed {
     size_t nvoxels = _in_seed_v->size();
     
     // seed tensor
-    npy_intp seed_t_dim[] = { (long int)nvoxels, 1 };
+    npy_intp seed_t_dim[] = { (long int)nvoxels, 7 };
     PyArrayObject* seed_t = (PyArrayObject*)PyArray_SimpleNew( 2, seed_t_dim, NPY_FLOAT );
     
     // FILL TENSORS
     for (size_t i=0; i<nvoxels; i++ ) {
-      *((float*)PyArray_GETPTR2(seed_t,i,0)) = (*_in_seed_v)[i];
+      for (int c=0; c<7; c++)
+        *((float*)PyArray_GETPTR2(seed_t,i,c)) = (*_in_seed_v)[i][c];
     }
           
     return (PyObject*)seed_t;

@@ -48,7 +48,7 @@ import numpy as np
 voxel_dims = (2048, 1024, 4096)
 model = SpatialEmbedNet(3, voxel_dims,
                         input_nfeatures=3,
-                        nclasses=1,
+                        nclasses=7,
                         num_unet_layers=6,
                         nsigma=3,
                         stem_nfeatures=32).to(device)
@@ -122,7 +122,7 @@ while entry<nentries:
     for ib in range(nreturn):
         bmask = coord_t[:,3].eq(ib)
         print batch_clusters[ib][2].numpy().shape
-        print batch_clusters[ib][2].numpy()        
+        print batch_clusters[ib][2].numpy()
         datafiller.fillVoxelClusterID( coord_t[bmask,:].numpy(),
                                        batch_clusters[ib][0].numpy(),
                                        batch_clusters[ib][1].numpy(),
