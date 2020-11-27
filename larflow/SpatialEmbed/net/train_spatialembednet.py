@@ -148,7 +148,7 @@ def main():
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=10.0)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=10.0,w_sigma_var=1.0)
     
     model_dict = {"embed":model}
     parameters = []
@@ -220,7 +220,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 1e-4
     momentum = 0.9
     weight_decay = 1.0e-5
 

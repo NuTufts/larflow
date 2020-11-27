@@ -120,11 +120,8 @@ class SpatialEmbedNet(nn.Module):
                 print n,": pars: ",p.shape
             self.embed_out[-1].weight.fill_(0)
             self.embed_out[-1].bias[0:3].fill_(0)
-            #self.embed_out[-1].bias[3:].fill_(1.0)
             self.embed_out[-1].bias[3:].fill_(0.0)
             
-                    
-
     def forward( self, coord_t, feat_t, device, verbose=False ):
         """
         """

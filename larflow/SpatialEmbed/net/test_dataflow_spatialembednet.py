@@ -21,8 +21,8 @@ from torch import autograd
 from spatialembednet import SpatialEmbedNet
 from loss_spatialembed import SpatialEmbedLoss
 
-device = torch.device("cpu")
-#device = torch.device("cuda")
+#device = torch.device("cpu")
+device = torch.device("cuda")
 verbose = False
 loss_verbose = True
 nbatches = 1
