@@ -210,7 +210,7 @@ class SpatialEmbedNet(nn.Module):
                 
                 # calc embeded position
                 spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
-                sigma_b   = torch.sigmoid(embed_b[:,3:3+self.nsigma])
+                sigma_b   = torch.exp(embed_b[:,3:3+self.nsigma])
                 nvoxels_b = spembed_b.shape[0]
                 
                 cluster_id_all = torch.zeros( (nvoxels_b,self.nclasses), dtype=torch.int )
@@ -222,7 +222,7 @@ class SpatialEmbedNet(nn.Module):
                     if verbose: print "batch coord: ",coord_b.shape
                     if verbose: print "batch seed: ",seed_c.shape
                     
-                    maxseed_value = 1.0
+                    maxseed_value = seed_c[torch.argmax( seed_c )]
                     unused = cluster_id.eq(0)                
                     nvoxel_unused = unused.sum()
                     currentid = 1
@@ -236,7 +236,7 @@ class SpatialEmbedNet(nn.Module):
 
                         maxseed_idx   = torch.argmax( seed_u )
                         maxseed_value = seed_u[maxseed_idx]
-                    
+
                         if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
                         centroid = spembed_b[maxseed_idx,:]
                         if verbose: print "centroid: ",centroid
@@ -247,7 +247,7 @@ class SpatialEmbedNet(nn.Module):
                             d = torch.sum(dist,1)*mask
                             print "average dist^2: ",d.sum()/mask.sum()," (min,max)=(",d[mask>0.5].min(),",",d[mask>0.5].max(),")"
                         dist = torch.sum( dist*s, 1 )
-                        gaus = torch.exp(-3.0*dist)*mask
+                        gaus = torch.exp(-10.0*dist)*mask
                         if verbose: print "gaus: ",gaus.shape
                         if verbose: print "num inside margin: ",(gaus>0.5).sum()
                     

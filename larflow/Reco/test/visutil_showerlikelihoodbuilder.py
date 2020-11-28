@@ -3,7 +3,7 @@ import ROOT as rt
 
 def make_particle_node_tgraph( node, adc_v ):
     #print "primary pid[",node.pid,"]"
-    if node.pid in [-11,11,2212,13,-13,211,-211,321,-321,22]:
+    if node.pid in [-11,11,2212,2112,13,-13,211,-211,321,-321,22]:
         #print "making tgraph for pid=",node.pid
         e_v = []
         for p in xrange(3):
@@ -27,7 +27,10 @@ def make_particle_node_tgraph( node, adc_v ):
                     g.SetMarkerColor(rt.kMagenta)
             elif node.pid in [2212]:
                 if node.origin==1:                    
-                    g.SetMarkerColor(rt.kBlue)
+                    g.SetMarkerColor(rt.kRed-10)
+            elif node.pid in [2112]:
+                if node.origin==1:                    
+                    g.SetMarkerColor(rt.kBlue-10)
             elif node.pid in [211,-211,321,-321]:
                 if node.origin==1:                    
                     g.SetMarkerColor(rt.kOrange)

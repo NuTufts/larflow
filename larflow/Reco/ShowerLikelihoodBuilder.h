@@ -49,6 +49,8 @@ namespace reco {
     
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
+    void clear();
+
     larflow::prep::PrepMatchTriplets tripletalgo; ///< class that produces spacepoints from the wire plane images
 
     void _fillProfileHist( const std::vector<larlite::larflow3dhit>& truehit_v,
@@ -108,6 +110,7 @@ namespace reco {
       int matched_cluster; ///< cluster that matches to start point
       float highq_plane; ///< charge of shower on the highest plane, no idea what the unit is
       float cos_sce; ///< direction difference between det profile dir before and after SCE
+      float E_MeV; ///< energy of starting lepton (use to set maximum shower distance)
       std::vector<float> shower_dir; ///< det profile direction
       //std::vector<float> shower_dir_sce;
       std::vector<float> shower_vtx; ///< det profile shower start
@@ -121,6 +124,9 @@ namespace reco {
     };
     std::vector<ShowerInfo_t> _shower_info_v; ///< vector of info on true shower objects in event
     std::vector< larlite::larflowcluster > _larflow_cluster_v; ///< larflow cluster made by merged true hit clusters based on trunk info from shower objects
+
+    void _make_shower_info( const larlite::event_mcshower& ev_mcshower,
+                            std::vector< ShowerInfo_t>& info_v );
     
     void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                        std::vector<larlite::larflowcluster>& merged_cluster_v,

@@ -22,7 +22,7 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
-color_by_options = ["larmatch"]
+color_by_options = ["cluster","hit"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -40,7 +40,7 @@ io.open()
 nentries = io.get_entries()
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0):
+def make_figures(entry,plotby="cluster",treename="trueshowerhits",minprob=-1.0):
     from larcv import larcv
     larcv.load_pyutil()
     detdata = lardly.DetectorOutline()
@@ -59,11 +59,30 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
     traces_v = []        
     shower_traces_v = []
     
-    if plotby=="larmatch":
+    if plotby=="cluster":
         for ishower in range(ev_lfclusters.size()):
             lfshower = ev_lfclusters.at(ishower)
             lfhit_v = [ lardly.data.visualize_larlite_larflowhits( lfshower, "trueshowerclusters", score_threshold=minprob) ]
             shower_traces_v += lfhit_v
+            
+        # PCA
+        ev_pca = io.get_data( larlite.data.kPCAxis, "truthshower" )
+        pca_v = lardly.data.visualize_event_pcaxis( ev_pca )
+        ishower = 0
+        for shower_trace,pca_trace in zip(shower_traces_v,pca_v):
+            # random color
+            rgb = np.random.randint(0,high=255,size=3)
+            #print("rgb: ",rgb)
+            shower_trace["marker"]["color"] = "rgb(%d,%d,%d)"%(rgb[0],rgb[1],rgb[2])
+            shower_trace["marker"]["opacity"] = 0.2
+            shower_trace["name"] = "shower[%d]"%(ishower)
+            ishower += 1        
+            traces_v.append(shower_trace)
+            traces_v.append(pca_trace)
+        
+    elif plotby=="hit":
+        lfhit_v = lardly.data.visualize_larlite_larflowhits( ev_lfhits, "trueshowerhits", score_threshold=minprob)
+        traces_v.append( lfhit_v )
     # elif plotby in ["keypoint"]:
     #     hitindex=13
     #     xyz = np.zeros( (npoints,4 ) )
@@ -97,21 +116,6 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
     #     }
     #     traces_v.append( larflowhits )
 
-    # PCA
-    ev_pca = io.get_data( larlite.data.kPCAxis, "truthshower" )
-    pca_v = lardly.data.visualize_event_pcaxis( ev_pca )
-    ishower = 0
-    for shower_trace,pca_trace in zip(shower_traces_v,pca_v):
-        # random color
-        rgb = np.random.randint(0,high=255,size=3)
-        #print("rgb: ",rgb)
-        shower_trace["marker"]["color"] = "rgb(%d,%d,%d)"%(rgb[0],rgb[1],rgb[2])
-        shower_trace["marker"]["opacity"] = 0.2
-        shower_trace["name"] = "shower[%d]"%(ishower)
-        ishower += 1
-        
-        traces_v.append(shower_trace)
-        traces_v.append(pca_trace)
         
     # MC
     ev_mcshower = io.get_data( larlite.data.kMCShower, "truthshower" )
@@ -122,10 +126,8 @@ def make_figures(entry,plotby="larmatch",treename="trueshowerhits",minprob=-1.0)
             #traces_v.append( shower_traces_v[1] )
 
     # end of loop over treenames
-    traces_v += detdata.getlines()
+    traces_v += detdata.getlines()    
 
-    
-    
     return traces_v
 
 def test():
@@ -176,7 +178,7 @@ eventinput = dcc.Input(
 
 plotopt = dcc.Dropdown(
     options=option_dict,        
-    value='larmatch',
+    value='cluster',
     id='plotbyopt',
     )
         

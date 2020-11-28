@@ -143,9 +143,12 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         print("Number of instances: ",ninstances)
         #raw_input()
         for iid in range(0,ninstances+1):
-            print("instance_t shape: ",data_dict["instance_t"].shape)
+            print("== instance [",iid,"] ===")
             idmask = data_dict["instance_t"]==iid
-            print("idmask: ",idmask.shape)
+            pids = np.unique( data_dict["class_t"][idmask] )
+            print(" instance_t size: ",idmask.sum())
+            print(" idmask: ",idmask.shape)
+            print(" pids: ",pids.tolist())
             if iid>0:
                 randcolor = np.random.rand(3)*255
                 print("instance[",iid,"] color: ",randcolor)
@@ -197,7 +200,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
     if plotby!="cluster":
         voxtrace["marker"]["colorscale"]="Viridis"
 
-    traces_v += detdata.getlines()    
+    #traces_v += detdata.getlines()    
 
     if HAS_MC:
         ioll.go_to( entry )

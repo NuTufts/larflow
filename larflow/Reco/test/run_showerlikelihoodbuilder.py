@@ -17,6 +17,10 @@ parser.add_argument("-lcv","--input-larcv",type=str,required=True,help="larcv in
 parser.add_argument("-ll","--input-larlite",type=str,required=True,help="larlite input")
 parser.add_argument("-o","--output",type=str,required=True,help="output stem")
 parser.add_argument("-vis","--vis-2d",action='store_true',default=False,help="make 2d visualizations")
+parser.add_argument("-s","--start",type=int,default=0,help="starting entry")
+parser.add_argument("-n","--nentries",type=int,default=None,help="number of entries")
+parser.add_argument("--invisible",action='store_false',default=True,help="if provided, graph dump shows invisible nodes")
+parser.add_argument("--draw-node",type=int,default=None,help="if provided, will draw specific node")
 
 args = parser.parse_args()
 
@@ -58,36 +62,47 @@ builder = larflow.reco.ShowerLikelihoodBuilder()
 mcpg = ublarcvapp.mctools.MCPixelPGraph()
 mcpg.set_adc_treename("wiremc")
     
-nentries = iolcv.get_n_entries()
-print "Number of entries: ",nentries
-start = 18
-nentries = 1
+file_nentries = iolcv.get_n_entries()
+print "Number of entries in file: ",file_nentries
+start = args.start
+if args.nentries is not None:
+    nentries = args.nentries
+else:
+    nentries = file_nentries
 
 print "Start loop."
 #raw_input()
 
-if plot_2d_clusters:
+if plot_2d_clusters or args.draw_node is not None:
     c = rt.TCanvas("c","c",1200,1800)
     c.Divide(1,3)
 
 io.go_to(start)
 for ientry in xrange( start, start+nentries ):
 
+    if ientry>=file_nentries:
+        break
+
     iolcv.read_entry(ientry)
 
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
     adc_v = ev_adc.Image2DArray()
 
+    print "build PIXEL GRAPH"
     mcpg.buildgraph( iolcv, io )
-    mcpg.printGraph()
-    
+    mcpg.printAllNodeInfo() # check if sorted
+    mcpg.printGraph(0,args.invisible)
+
+    print "Run Shower Likelihood builder"
     print "[enter] continue"
     #raw_input()
     
     builder.process( iolcv, io )
 
+    print "Update Pixel Graph"
+    builder.updateMCPixelGraph( mcpg, iolcv )    
+
     if plot_2d_clusters:
-        builder.updateMCPixelGraph( mcpg, iolcv )
 
         # make histogram
         hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
@@ -115,6 +130,29 @@ for ientry in xrange( start, start+nentries ):
             if ndrawn>0:
                 c.Update()
                 raw_input()
+    elif args.draw_node is not None:
+
+        drawnode = mcpg.node_v.at(args.draw_node)
+        pix_vv = mcpg.getPixelsFromParticleAndDaughters( drawnode.tid )
+
+        g_v = make_particle_node_tgraph(drawnode,adc_v)
+
+        print "Draw node[",args.draw_node,"]: pid=",drawnode.pid," tid=",drawnode.tid
+
+        #draw canvas
+        hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )        
+        ndrawn = 0
+        for p in xrange(3):
+            c.cd(p+1)
+            hist_v[p].Draw("colz")
+            if g_v[p] is not None:
+                ndrawn += 1
+                g_v[p].Draw("P")
+            else:
+                print "graph in plane[",p,"] is None!"
+        if ndrawn>0:
+            c.Update()
+        raw_input()               
         
         
     iolcv.set_id( iolcv.event_id().run(), iolcv.event_id().subrun(), iolcv.event_id().event() )
