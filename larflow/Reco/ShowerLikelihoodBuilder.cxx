@@ -245,7 +245,7 @@ namespace reco {
   void ShowerLikelihoodBuilder::clear()
   {
     tripletalgo.clear();
-    clister_v.clear();
+    cluster_v.clear();
     cluster_pcacos2trunk_v.clear();
     cluster_dist2trunk_v.clear();
     cluster_impactdist2trunk_v.clear();
@@ -407,11 +407,11 @@ namespace reco {
       //           << std::endl;
     }
     
-    std::cout << "[ ShowerLikelihoodBuilder::_analyze_clusters ] "
-              << "trunk cluster index=" << best_matched_cluster << " "
-              << "hits near trunk=" << most_nhits
-              << " min dist 2 vtx=" << min_dist_2_vtx
-              << std::endl;
+    // std::cout << "[ ShowerLikelihoodBuilder::_analyze_clusters ] "
+    //           << "trunk cluster index=" << best_matched_cluster << " "
+    //           << "hits near trunk=" << most_nhits
+    //           << " min dist 2 vtx=" << min_dist_2_vtx
+    //           << std::endl;
     
     if ( best_matched_cluster<0 )
       return -1;
@@ -685,70 +685,104 @@ namespace reco {
 
     // absorb clusters, we loop over all shower trunks, keeping best one.
     // nice and O(N^2) ...
-    
+   
+    merged_cluster_v.resize( shower_info_v.size() );
+
+    // add in the matched clusters
     std::vector<int> cluster_used_v( cluster_v.size(), 0 );
-    
-    for ( auto& info : shower_info_v ) {
 
-      larlite::larflowcluster out_cluster;
-      
-      if ( info.matched_cluster<0 ) {
-        merged_cluster_v.emplace_back( std::move(out_cluster) );
-        continue;
-      }
-
-      std::vector<float> trunk_end_v(3,0);
-      for (int i=0; i<3; i++) {
-        trunk_end_v[i] = info.shower_vtx[i] + 3.0*info.shower_dir[i];
-      }
-
-      // calculate max range, 14 cm radiation length
-      // cut-off at 1 MeV
-      float f_E = 0.1/info.E_MeV;
-      float maxlen_cm = -log(f_E)*14.0;
-
-      for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
-
-        auto& cluster = cluster_v[icluster];
-        bool add_cluster = false;
-        if ( icluster==info.matched_cluster )  {
-          add_cluster = true;
+    std::vector< std::vector<float> > trunk_end_vv(shower_info_v.size());
+    for ( size_t ish=0; ish<shower_info_v.size(); ish++ ) {
+      auto& info = shower_info_v[ish];
+      if (info.matched_cluster>=0 ) {
+        for (auto& hitidx : cluster_v[info.matched_cluster].hitidx_v) {
+          merged_cluster_v[ish].push_back( truehit_v[hitidx] ); // copy of hit
         }
-        else if ( cluster_used_v[icluster]==0 ) {
-          int nhits_in_cone = 0;
-          for (int ihit=0; ihit<(int)cluster.points_v.size(); ihit++) {
+        cluster_used_v[info.matched_cluster] = 1;
+      }
+      auto& trunk_end_v = trunk_end_vv[ish];
+      trunk_end_v.resize(3,0);
+      for (int i=0; i<3; i++)
+        trunk_end_v[i] = info.shower_vtx[i] + 3.0*info.shower_dir[i];
+    }
+      
+    for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
+
+      if ( cluster_used_v[icluster]==1 )
+        continue;
+      
+      auto& cluster = cluster_v[icluster];
+
+      int max_nhits_in_cone = 0;
+      int best_shower_index = -1;
+      float closest_shower_dist = 1e9;
+    
+      for (size_t ish=0; ish<shower_info_v.size(); ish++ ) {
+        
+        auto& info = shower_info_v.at(ish);
+      
+        std::vector<float>& trunk_end_v = trunk_end_vv[ish];
+
+        // calculate max range, 14 cm radiation length
+        // cut-off at 1 MeV
+        float f_E = 0.001/info.E_MeV;
+        float maxlen_cm = -log(f_E)*14.0;
+        if ( maxlen_cm<200.0 )
+          maxlen_cm = 200.0;
+        
+        int nhits_in_cone = 0;
+        float min_dist = 1e9;
+        
+        for (int ihit=0; ihit<(int)cluster.points_v.size(); ihit++) {
             
-            float r = larflow::reco::pointLineDistance3f(  info.shower_vtx, trunk_end_v, cluster.points_v[ihit] );
-            float s = larflow::reco::pointRayProjection3f( info.shower_vtx, info.shower_dir, cluster.points_v[ihit] );
+          float r = larflow::reco::pointLineDistance3f(  info.shower_vtx, trunk_end_v, cluster.points_v[ihit] );
+          float s = larflow::reco::pointRayProjection3f( info.shower_vtx, info.shower_dir, cluster.points_v[ihit] );
 
-            float rovers = 0;
-            if ( s>0.0 )
-              rovers = r/s;
-
-            if ( s>0 && s<maxlen_cm && rovers<0.5*9.0/14.0 )
-              nhits_in_cone++;
+          float dist = 0.;
+          for (int i=0; i<3; i++) {
+            float dx = cluster.points_v[ihit][i] - info.shower_vtx[i]; 
+            dist += dx*dx;
           }
-          if ( (float)nhits_in_cone/(float)cluster.points_v.size() > 0.5 )
-            add_cluster = true;
+          dist = sqrt(dist);
+          if ( dist<min_dist )
+            min_dist = dist;
+          
+          float rovers = 0;
+          if ( s>0.0 )
+            rovers = r/s;
+
+          if ( s>0 && s<maxlen_cm && rovers<9.0/14.0 )
+            nhits_in_cone++;
+          
         }
         
-        if ( add_cluster ) {
-          for (int ihit=0; ihit<(int)cluster.hitidx_v.size(); ihit++) {
-            larlite::larflow3dhit hitcopy = truehit_v[cluster.hitidx_v[ihit]];
-            if ( icluster==info.matched_cluster )
-              hitcopy.idxhit = -icluster;
-            else
-              hitcopy.idxhit = icluster;
-            out_cluster.emplace_back( std::move(hitcopy) );
+        if ( nhits_in_cone<(int)cluster.points_v.size() ) {
+          if ( nhits_in_cone>max_nhits_in_cone ) {
+            best_shower_index = ish;
+            max_nhits_in_cone = nhits_in_cone;
+            closest_shower_dist = min_dist;            
           }
-          cluster_used_v[icluster] = 1;
+        }
+        else {
+          if ( min_dist<closest_shower_dist ) {
+            best_shower_index = ish;
+            max_nhits_in_cone = nhits_in_cone;
+            closest_shower_dist = min_dist;
+          }
         }
 
-      }//end of cluster loop
+      }//end of shower loop
 
-      merged_cluster_v.emplace_back( std::move(out_cluster) );
+      float frac = float(max_nhits_in_cone)/float(cluster.points_v.size());
+      if ( frac>0.5 && best_shower_index>=0 ) {
+        // add cluster
+        cluster_used_v[icluster] = 1;
+        for ( auto const& hitidx : cluster.hitidx_v ) {
+          merged_cluster_v[best_shower_index].push_back( truehit_v[hitidx] ); // copy of hit
+        }
+      }
       
-    }//end of truth shower loop
+    }//end of cluster loop
     
   }//end of _trueshowers_absorb_clusters
 
