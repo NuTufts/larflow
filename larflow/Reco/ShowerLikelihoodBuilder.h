@@ -124,9 +124,12 @@ namespace reco {
     };
     std::vector<ShowerInfo_t> _shower_info_v; ///< vector of info on true shower objects in event
     std::vector< larlite::larflowcluster > _larflow_cluster_v; ///< larflow cluster made by merged true hit clusters based on trunk info from shower objects
+    bool _kExcludeCosmicShowers;
+    void set_exclude_cosmic_showers( bool exclude ) { _kExcludeCosmicShowers=exclude; };
 
     void _make_shower_info( const larlite::event_mcshower& ev_mcshower,
-                            std::vector< ShowerInfo_t>& info_v );
+                            std::vector< ShowerInfo_t>& info_v,
+                            bool exclude_cosmic_showers );
     
     void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                        std::vector<larlite::larflowcluster>& merged_cluster_v,

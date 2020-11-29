@@ -7,7 +7,6 @@
 #include "LArUtil/LArProperties.h"
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
@@ -192,6 +191,16 @@ namespace spatialembed {
 
     // loop over triplet, assigning instance ids
     generateTruthLabels_using_trueflowhits( iolcv, ioll, data );
+
+    if ( _filter_out_non_nu_pixels ) {
+      VoxelDataList_t filtered;
+      for ( auto& voxel : data ) {
+        if ( voxel.truth_instance_index>0 ) {
+          filtered.push_back(voxel);
+        }
+      }
+      std::swap( filtered, data );
+    }
 
     return data;
   }
@@ -789,6 +798,10 @@ namespace spatialembed {
     larcv::EventImage2D* ev_adc_v
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_image_treename );
     auto const& adc_v = ev_adc_v->as_vector();
+
+    larcv::EventImage2D* ev_instance_v
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
+    auto const& instance_v = ev_instance_v->as_vector();
     
     // build particle graph and assign pixels
     ublarcvapp::mctools::MCPixelPGraph mcpg;
@@ -841,7 +854,7 @@ namespace spatialembed {
         int idx = it->second;
         auto& ballot = voxel_votes.at(idx);
 
-        // decide on the instance id, ancestor id, and pid this spacepoint will vote for
+        // decide on the voxel's instance id, ancestor id, and pid this spacepoint will vote for
         
         int iid = _triplet_maker._instance_id_v[itrip];
         if ( iid>0 ) {
@@ -896,9 +909,8 @@ namespace spatialembed {
       instance_pid[iballot.id] = maxpid;
     }
 
-    // we know that the instance ids are incomplete,
-    // and we need to use the values from the likelihood showerbuilder,
-    // which tries to fix these
+    // we know that the instance ids are incomplete/busted.
+    // we use the values from the likelihood showerbuilder to fix these
     for ( size_t ishower=0; ishower<mcshowerbuilder._shower_info_v.size(); ishower++ ) {
       auto const& showerinfo = mcshowerbuilder._shower_info_v[ishower];
       int shower_instanceid = showerinfo.trackid;
@@ -910,7 +922,7 @@ namespace spatialembed {
         auto it = voxel_coord_2_index_v.find(voxid);
         if ( it!=voxel_coord_2_index_v.end() ) {
           auto& ballot = voxel_votes.at(it->second);
-          // tampering with the instance-id vote
+          // tampering with the instance-id vote by changing voxel instance id and (shower) pid
           ballot.instance_votes.clear();
           ballot.instance_votes[shower_instanceid] = 1;
           if ( showerinfo.pid==22 )
@@ -956,7 +968,7 @@ namespace spatialembed {
       
     }
 
-    // we cull instances of shower pixels with less then some small threshold
+    // we cull instances with small numbers of voxels
     // we dont want the network getting penalized for small little depositions
     std::map<int,int> shower_instance_count;
     std::map<int,int> track_instance_count;
@@ -979,6 +991,11 @@ namespace spatialembed {
       }
     }
 
+    // getting sparse voxel clusters where the showerlikelihood builder does not have hits
+    // that go into voxels with shower spacepoints that have unrecognized ids.
+    // use shower-likelihood builder elements to absorb those?
+
+
     // debugging: Print instance count totals for both shower(shape==0) and track(shape==1)
     struct IDCount_t {
       int idx;
@@ -998,25 +1015,29 @@ namespace spatialembed {
       idcnt.shape = 0;
       count_v.push_back( idcnt );
     }
+
+    int max_nhits_track = 0;
     for ( auto it=track_instance_count.begin(); it!=track_instance_count.end(); it++ ) {
       IDCount_t idcnt;
       idcnt.idx = it->first;
       idcnt.ncounts = it->second;
-      idcnt.shape = 1;      
+      idcnt.shape = 1;
+      if (max_nhits_track<idcnt.ncounts)
+        max_nhits_track = idcnt.ncounts;
       count_v.push_back( idcnt );
     }
     std::sort( count_v.begin(), count_v.end() );
-    std::cout << "///////// INSTANCE COUNTS //////////////////////////" << std::endl;
-    for ( auto& idcnt : count_v ) {
-      std::cout << "[" << idcnt.idx << "] shape=" << idcnt.shape << " counts=" << idcnt.ncounts << std::endl;
-    }
-    std::cout << "////////////////////////////////////////////////////" << std::endl;
+    // std::cout << "///////// INSTANCE COUNTS //////////////////////////" << std::endl;
+    // for ( auto& idcnt : count_v ) {
+    //   std::cout << "[" << idcnt.idx << "] shape=" << idcnt.shape << " counts=" << idcnt.ncounts << std::endl;
+    // }
+    // std::cout << "////////////////////////////////////////////////////" << std::endl;
     
 
-    // zero out instance ids
+    // zero out shower instance ids
     int nzerod = 0;
     for ( auto it=shower_instance_count.begin(); it!=shower_instance_count.end(); it++ ) {
-      if ( it->second<20 ) {
+      if ( it->second<100 ) {
         // set to background instance id, 0
         for ( auto& voxel : voxel_v ) {
           if ( voxel.truth_instance_index==it->first ) {
@@ -1028,6 +1049,18 @@ namespace spatialembed {
       }
     }
     std::cout << "num zero'd: " << nzerod << std::endl;
+
+    // assign track ids
+    // set threshold at number of hits of largest track
+    // as long as threshold is above 10
+    float threshold = 25.0;
+    if ( max_nhits_track<(int)threshold+1 )
+      threshold = (float)max_nhits_track-1;
+    if ( threshold<10.0 )
+      threshold = 10.0;
+    std::cout << "max_nhits_track=" << max_nhits_track << " set hit threshold @ " << threshold << std::endl;
+    
+    _reassignSmallTrackClusters( voxel_v, mcpg, instance_v, track_instance_count, threshold );
     
 
     // reassign id
@@ -1239,9 +1272,113 @@ namespace spatialembed {
   }
 
   /**
-   * @brief use ancestor image to remove corsika pixels
+   * @brief use neighboring pixels to reassign track clusters with small number of voxels
+   *
+   * These are often secondary protons or pions created by proton/pion reinteractions.
+   * Small proton/pion will usually have some larger track with a proper instance nearby
    *
    */
+  void Prep3DSpatialEmbed::_reassignSmallTrackClusters( Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
+                                                        ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                        const std::vector< larcv::Image2D >& instanceimg_v,
+                                                        std::map<int,int>& track_instance_count,
+                                                        const float threshold )
+  {
+
+    const int dvoxel = 4;
+    const int nrows = instanceimg_v.front().meta().rows();
+    const int ncols = instanceimg_v.front().meta().cols();    
+    auto const& meta = instanceimg_v.front().meta(); // assuming metas the same for all planes
+    
+    struct ReplacementTally_t {
+      int orig_instanceid;
+      std::set<int> replacement_ids;
+      ReplacementTally_t()
+        : orig_instanceid(0) {};
+      ReplacementTally_t(int id)
+        : orig_instanceid(id) {};
+    };
+    std::map<int,ReplacementTally_t> replacement_tally_v;
+    
+    for ( auto& voxel : voxel_v ) {
+      auto it=track_instance_count.find( voxel.truth_instance_index );
+      if ( it==track_instance_count.end() )
+        continue; /// unexpected (should throw an error)
+      
+      if ( it->second>threshold )
+        continue; // above threshold for reassignment
+      
+      auto it_t = replacement_tally_v.find( voxel.truth_instance_index );
+      if ( it_t==replacement_tally_v.end() )
+        replacement_tally_v[voxel.truth_instance_index] = ReplacementTally_t(voxel.truth_instance_index);
+
+      auto& tally = replacement_tally_v[voxel.truth_instance_index];
+      
+      for (int dr=-dvoxel; dr<=dvoxel; dr++) {
+        int row = (int)meta.row( voxel.imgcoord_v[3] ); // tick to row
+        if (row<=0 || row>=nrows ) continue;
+        
+        for (int p=0; p<3; p++) {
+          for (int dc=-dvoxel; dc<=dvoxel; dc++) {
+            int col = voxel.imgcoord_v[p]+dc;
+            if (col<0 || col>=ncols ) continue;
+
+            int iid = instanceimg_v[p].pixel(row,col,__FILE__,__LINE__);
+
+            // ignore own instanceid
+            if ( iid==voxel.truth_instance_index || iid<0)
+              continue;
+
+            if ( track_instance_count.find(iid)!=track_instance_count.end() )
+              tally.replacement_ids.insert( iid );
+            else {
+              //std::cout << "trying to replace id=" << voxel.truth_instance_index << " but id=" << iid << " not in track count dict" << std::endl;
+            }
+          }//end of col loop
+        }//end of plane loop
+      }//end of row loop
+    }
+    
+    // choose the replacement id
+    // we pick the id associated to the largest track cluster
+    std::map<int,int> replace_trackid;
+    for ( auto it=track_instance_count.begin(); it!=track_instance_count.end(); it++ ) {
+      if ( it->second>threshold)
+        continue;
+      
+      auto& tally = replacement_tally_v[it->first];
+      int max_nhits = 0;
+      int max_replacement_id = 0;
+      for (auto& id : tally.replacement_ids ) {
+        if ( track_instance_count[id]>max_nhits ) {
+          max_nhits = track_instance_count[id];
+          max_replacement_id = id;
+        }
+      }
+      replace_trackid[it->first] = max_replacement_id;
+      if ( max_replacement_id>0 ) {
+        std::cout << "successfully replace trackid=" << it->first
+                  << "( w/ " << it->second << " counts)"
+                  << " with " << max_replacement_id << " (w/ " << max_nhits << ")"
+                  << std::endl;
+        track_instance_count[max_replacement_id] += it->second;
+        it->second = 0;
+        // need to propagate this reassignment to past reassignments
+        for ( auto it_r=replace_trackid.begin(); it_r!=replace_trackid.end(); it_r++ ) {
+          if ( it_r->second==it->first )
+            it_r->second = max_replacement_id;
+        }
+      }
+    }
+    
+    // execute the replacement
+    for ( auto& voxel : voxel_v ) {
+      if ( replace_trackid.find( voxel.truth_instance_index )!=replace_trackid.end() ) {
+        voxel.truth_instance_index = replace_trackid[voxel.truth_instance_index];
+      }
+    }
+    
+  }
   
 }
 }

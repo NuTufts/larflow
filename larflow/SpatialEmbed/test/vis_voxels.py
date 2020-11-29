@@ -163,7 +163,7 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
                 "mode":"markers",
                 "name":"c[%d]"%(iid),
                 "marker":{"color":strcolor,
-                          "size":1,
+                          "size":3,
                           "opacity":0.5}}
             traces_v.append(voxtrace)            
     elif plotby=="pid":

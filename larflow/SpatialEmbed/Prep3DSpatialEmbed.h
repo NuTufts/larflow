@@ -11,6 +11,7 @@
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/Voxelizer/VoxelizeTriplets.h"
 
@@ -158,6 +159,13 @@ namespace spatialembed {
     std::vector< float >* _in_pq_u;
     std::vector< float >* _in_pq_v;
     std::vector< float >* _in_pq_y;
+
+    void _reassignSmallTrackClusters( Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
+                                      ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                      const std::vector< larcv::Image2D >& instanceimg_v,
+                                      std::map<int,int>& track_instance_count,
+                                      const float threshold );
+    
     
   private:
 

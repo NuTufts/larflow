@@ -17,7 +17,8 @@ namespace reco {
    * @brief default constructor 
    */
   ShowerLikelihoodBuilder::ShowerLikelihoodBuilder()
-    : _wire_tree_name("wiremc")
+    : _wire_tree_name("wiremc"),
+      _kExcludeCosmicShowers(true)
   {
     _hll          = new TH2F("lfshower_ll","",2000, -10, 190, 1000, 0, 100 );
     _hll_weighted = new TH2F("lfshower_ll_weighted","",2000, -10, 190, 1000, 0, 100 );
@@ -72,7 +73,7 @@ namespace reco {
       larcv::Image2D masked(adc.meta());
       masked.paint(0.0);
 
-      // dummy badch, where every channel is a dummy channel
+      // dummy badch, where every channel with showerpixel is a dummy channel
       larcv::Image2D badch(adc.meta());
       badch.paint(0.0);
       
@@ -151,20 +152,24 @@ namespace reco {
     // we loop over the different MC showers
     // we try to associate a truehit cluster to the mc shower object
     _shower_info_v.clear();
-    _make_shower_info( *ev_mcshower, _shower_info_v );
-    // std::cout << "============================================================" << std::endl;
-    // std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers to use as anchors" << std::endl;
-    // for ( auto const& info : _shower_info_v ) {
-    //   std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
-    //   std::cout << " highq_plane: " << info.highq_plane << std::endl;
-    //   std::cout << " pid=" << info.pid << std::endl;
-    //   std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
-    //   //std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
-    //   std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
-    //   std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
-    //   //std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
-    // }
-
+    _make_shower_info( *ev_mcshower, _shower_info_v, _kExcludeCosmicShowers );
+    std::cout << "============================================================" << std::endl;
+    std::cout << "[ShowerLikelihoodBuilder] saved " << _shower_info_v.size() << " showers to use as anchors" << std::endl;
+    for ( auto const& info : _shower_info_v ) {
+      std::cout << "[ShowerLikelihoodBuilder] true shower " << std::endl;
+      std::cout << " index=" << info.idx << std::endl;      
+      std::cout << " trackid=" << info.trackid << std::endl;
+      std::cout << " origin=" << info.origin << std::endl;            
+      std::cout << " highq_plane: " << info.highq_plane << std::endl;
+      std::cout << " pid=" << info.pid << std::endl;
+      std::cout << " dir-truth=(" << info.shower_dir[0] << "," << info.shower_dir[1] << "," << info.shower_dir[2] << ")" << std::endl;
+      //std::cout << " dir-sce=(" << info.shower_dir_sce[0] << "," << info.shower_dir_sce[1] << "," << info.shower_dir_sce[2] << ")" << std::endl;
+      std::cout << " cos(truth*sce)=" << info.cos_sce << std::endl;
+      std::cout << " vertex-truth=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
+      //std::cout << " vertex-sce=(" << info.shower_vtx_sce[0] << "," << info.shower_vtx_sce[1] << "," << info.shower_vtx_sce[2] << ")" << std::endl;
+    }
+    std::cout << "============================================================" << std::endl;
+    
     // assignment of pixel cluster to shower info objects (which were tied to mcshower objects)
     std::vector<int> claimed_cluster_v( cluster_v.size(), 0 );
     int iidx = 0;
@@ -727,8 +732,8 @@ namespace reco {
         // cut-off at 1 MeV
         float f_E = 0.001/info.E_MeV;
         float maxlen_cm = -log(f_E)*14.0;
-        if ( maxlen_cm<200.0 )
-          maxlen_cm = 200.0;
+        if ( maxlen_cm<500.0 )
+          maxlen_cm = 500.0;
         
         int nhits_in_cone = 0;
         float min_dist = 1e9;
@@ -770,10 +775,12 @@ namespace reco {
             closest_shower_dist = min_dist;
           }
         }
-
+        
       }//end of shower loop
 
       float frac = float(max_nhits_in_cone)/float(cluster.points_v.size());
+      //std::cout << "ShowerLikelihoodBuilder:: cluster[" << icluster << "] most frac inside shower cone info[" << best_shower_index << "] = " << frac << std::endl;
+      
       if ( frac>0.5 && best_shower_index>=0 ) {
         // add cluster
         cluster_used_v[icluster] = 1;
@@ -848,12 +855,16 @@ namespace reco {
   }
 
   void ShowerLikelihoodBuilder::_make_shower_info( const larlite::event_mcshower& ev_mcshower,
-                                                   std::vector< ShowerLikelihoodBuilder::ShowerInfo_t>& info_v )
+                                                   std::vector< ShowerLikelihoodBuilder::ShowerInfo_t>& info_v,
+                                                   bool exclude_cosmic_showers )
   {
 
     for ( size_t idx=0; idx<ev_mcshower.size(); idx++ ) {
       auto const& mcsh = ev_mcshower.at( idx );
 
+      if ( exclude_cosmic_showers && mcsh.Origin()==2 )
+        continue;
+      
       ShowerInfo_t info;
       info.idx = idx;
       info.trackid = mcsh.TrackID();
