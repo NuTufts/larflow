@@ -75,8 +75,8 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
 TRAIN_DATA_FOLDER="/home/twongj01/working/spatial_embed_net/ubdl/larflow/larflow/SpatialEmbed/net/"
 #TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlab/twongj01/ubdl/larflow/larflow/SpatialEmbed/net/"
-INPUTFILE_TRAIN=["spatialembed_voxels-Run000001-SubRun000002-jobid0000_s3dembed.root"]
-INPUTFILE_VALID=["spatialembed_voxels-Run000001-SubRun000002-jobid0000_s3dembed.root"]
+INPUTFILE_TRAIN=["spatialembed_nueintrinsics_truehits_train.root"]
+INPUTFILE_VALID=["spatialembed_nueintrinsics_truehits_valid.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS

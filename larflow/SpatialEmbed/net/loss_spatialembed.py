@@ -117,6 +117,7 @@ class SpatialEmbedLoss(nn.Module):
 
             if verbose: print "Instance Losses"
             ninstances = len(masks)
+            if verbose or True: print "Number of instances: ",ninstances
             fnpix_tot  = 0.0
             bloss_instance = 0.0
             bloss_var      = 0.0
@@ -146,6 +147,7 @@ class SpatialEmbedLoss(nn.Module):
                 if verbose:
                     print "  iou=",instance_iou," weight=",fnpix.item()
                     print "  npix-instance inside=",(prob[idmask].detach()>0.5).sum().float().item()/float(idmask.sum().item())
+                if verbose and (~idmask).detach().sum()>0:
                     print "  outside=: ",(prob[~idmask].detach()>0.5).sum().float().item()/float((~idmask).detach().sum().item())
                     
                 ave_iou += instance_iou*fnpix.item()
@@ -156,9 +158,10 @@ class SpatialEmbedLoss(nn.Module):
                     cmask = iclass.eq(c+1)
                     if cmask.sum()>0:
                         closs[c] += torch.pow( prob[cmask]-iseed[cmask,c], 2 ).sum()
-                        
-            bloss_instance /= fnpix_tot
-            bloss_var /= fnpix_tot
+
+            if fnpix_tot>0:
+                bloss_instance /= fnpix_tot
+                bloss_var /= fnpix_tot
 
             _loss_instance += bloss_instance
             _loss_var      += bloss_var
