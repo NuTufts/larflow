@@ -47,7 +47,7 @@ GPUMODE=True
 RESUME_FROM_CHECKPOINT=False
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.76000th.tar"
+CHECKPOINT_FILE="checkpoint.29000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=True
@@ -148,7 +148,7 @@ def main():
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=10.0,w_sigma_var=1.0)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=5.0,w_sigma_var=1.0)
     
     model_dict = {"embed":model}
     parameters = []
@@ -220,7 +220,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-4
+    lr = 1e-3
     momentum = 0.9
     weight_decay = 1.0e-5
 
