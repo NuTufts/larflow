@@ -31,7 +31,9 @@ NCLASSES=7
 color_by_options = []
 for iclass in range(NCLASSES):
     color_by_options.append("cluster-%d"%(iclass))
-    
+    color_by_options.append("embed-%d"%(iclass))
+    color_by_options.append("seed_embed-%d"%(iclass))    
+        
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -72,9 +74,9 @@ def make_figures(entry,plotby="cluster-0",minprob=0.0):
     print("get data")
     data      = voxelloader.getEntryDataAsNDarray(entry)
     print("get embed")    
-    #embed     = voxelloader.getEntryEmbedPosAsNDarray(entry)
+    embed     = voxelloader.getEntryEmbedPosAsNDarray(entry)
     print("get seed")        
-    #seed      = voxelloader.getEntrySeedScoreAsNDarray(entry)
+    seed      = voxelloader.getEntrySeedScoreAsNDarray(entry)
     print("voxel entries: ",data.shape)
     print(data)
 
@@ -84,7 +86,7 @@ def make_figures(entry,plotby="cluster-0",minprob=0.0):
     print("plot class: ",iclass)
 
     tracelist = []
-    if option in ["cluster","embed","seed-cluster","seed-embed"]:
+    if option in ["cluster","embed","seed-cluster","seed_embed"]:
         # color by instance index
         color = np.zeros( (data.shape[0],3) )
         ninstances = data[:,3+iclass].max()
@@ -106,13 +108,13 @@ def make_figures(entry,plotby="cluster-0",minprob=0.0):
                 if option in ["cluster","seed-cluster"]:
                     print("data[idmask,i]: ",data[idmask,i].shape)
                     fcoord_t[:,i] = data[idmask,i]*conversion+origin[i]
-                elif option in ["embed","seed-embed"]:
+                elif option in ["embed","seed_embed"]:
                     fcoord_t[:,i] = embed[idmask,i]*conversion+origin[i]
                 else:
                     raise ValueError("unrecognized option")
             colordata = strcolor
-            if option in ["seed-cluster","seed-embed"]:
-                colordata = seed[idmask,0]
+            if option in ["seed-cluster","seed_embed"]:
+                colordata = seed[idmask,iclass]
             opa = 0.5
             if iid==0:
                 opa = 0.1
@@ -133,7 +135,7 @@ def make_figures(entry,plotby="cluster-0",minprob=0.0):
             
 
     for voxtrace in tracelist:
-        if option in ["seed-cluster","seed-embed"]:
+        if option in ["seed-cluster","seed_embed"]:
             voxtrace["marker"]["colorscale"]="Viridis"
         if option in ["embed"]:
             voxtrace["marker"]["size"] = 3
