@@ -311,8 +311,6 @@ namespace spatialembed {
     for (size_t i=0; i<nvoxels; i++ ) {
       for (size_t j=0; j<3; j++)
         *((float*)PyArray_GETPTR2(embed_t,i,j)) = (*_in_embed_pos_v)[i][j];
-      // for (size_t c=0; c<7; c++)
-      //   *((long*)PyArray_GETPTR2(embed_t,i,3+c)) = (*_in_cluster_id)[c][i];
     }
           
     return (PyObject*)embed_t;

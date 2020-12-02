@@ -17,6 +17,7 @@ parser.add_argument("-w","--weight-file",type=str,required=True,help="weight fil
 parser.add_argument("-o","--output-file",type=str,required=True,help="output root file")
 parser.add_argument("-b","--batchsize",type=int,default=5,help="batchsize [default: 4]")
 parser.add_argument("-v","--verbose",action='store_true',default=False,help="verbose operation in cluster formation")
+parser.add_argument("-t","--test-perfect",action='store_true',default=False,help="Use truth to make perfect output to test inference output")
 
 args = parser.parse_args()
 
@@ -55,7 +56,7 @@ model = SpatialEmbedNet(3, voxel_dims,
 
 checkpoint = torch.load( args.weight_file, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
 model.load_state_dict( checkpoint["state_embed"] )
-model.train()
+model.eval()
 
 if False:
     # DUMP MODEL (for debugging)
@@ -75,6 +76,8 @@ input_file_v = rt.std.vector("std::string")()
 input_file_v.push_back( args.input_file )
 voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_file_v)
 nentries = voxelloader.getTree().GetEntries()
+voxel_dims_v = rt.std.vector("int")(3)
+for i in range(3): voxel_dims_v[i] = voxel_dims[i]
 print("NENTRIES: ",nentries)
 
 # output
@@ -89,32 +92,47 @@ datafiller.set_verbosity(1)
 entry = 0
 while entry<nentries:
 
-    start_entry = voxelloader.getCurrentEntry()     
-    data = voxelloader.getTrainingDataBatch(int(args.batchsize))
-    after_entry = voxelloader.getCurrentEntry()
-    print("loaded entry: ",[start_entry,after_entry-1])
-    
-    # convert into torch tensors
-    coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
-    feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
-    instance_t = torch.from_numpy( data["instance_t"] ).to(device)
-    coord_t.requires_grad = False
-    feat_t.requires_grad = False
-    instance_t.requires_grad = False        
+    if not args.test_perfect:
+        start_entry = voxelloader.getCurrentEntry()        
+        data = voxelloader.getTrainingDataBatch(int(args.batchsize))
+        after_entry = voxelloader.getCurrentEntry()
+        print("loaded entry: ",[start_entry,after_entry-1])
 
+        # convert into torch tensors
+        coord_t    = torch.from_numpy( data["coord_t"] ).to(device)
+        feat_t     = torch.from_numpy( data["feat_t"] ).to(device)
+        instance_t = torch.from_numpy( data["instance_t"] ).to(device)
+        coord_t.requires_grad = False
+        feat_t.requires_grad = False
+        instance_t.requires_grad = False        
+        
+        # run network
+        start = time.time()
+        if not args.test_perfect:
+            embed_t,seed_t = model( coord_t, feat_t, device, verbose=NET_VERBOSE )
+        dt_forward = time.time()-start
+        print("embed_t: ",embed_t.shape)
+        print("seed_t: ",seed_t.shape," mean=",seed_t.mean()," min=",seed_t.min()," max=",seed_t.max())
+    else:
+        voxdata = voxelloader.getTreeEntry(entry)
+        data = voxelloader.makePerfectNetOutput( voxdata, voxel_dims_v )
+        print("loaded entry: ",entry)
+        coord_t = torch.from_numpy( data["coord_t"] ).to(device)
+        embed_t = torch.from_numpy( data["embed_t"] ).to(device)
+        seed_t  = torch.from_numpy( data["seed_t"]  ).to(device)
+        start_entry = entry
+        after_entry = entry
     
-    # run network
-    start = time.time()    
-    embed_t,seed_t = model( coord_t, feat_t, device, verbose=NET_VERBOSE )
-    dt_forward = time.time()-start
-    print("embed_t: ",embed_t.shape)
-    print("seed_t: ",seed_t.shape," mean=",seed_t.mean()," min=",seed_t.min()," max=",seed_t.max())
+    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=args.verbose, sigma_scale=5.0, seed_threshold=0.75 )
 
-    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=args.verbose )
-    
-    entry += args.batchsize
+    if not args.test_perfect:
+        entry += args.batchsize
+        nreturn = args.batchsize        
+    else:
+        entry += 1
+        nreturn = 1
 
-    nreturn = args.batchsize
+
     if after_entry<start_entry:
         # wrapped around        
         nreturn = args.batchsize-after_entry
@@ -128,7 +146,7 @@ while entry<nentries:
                                        batch_clusters[ib][1].numpy(),
                                        batch_clusters[ib][2].numpy() )
 
-    if False:
+    if True:
         break # for debug
     
     if after_entry<start_entry:
