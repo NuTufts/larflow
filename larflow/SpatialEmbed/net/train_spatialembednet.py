@@ -44,10 +44,10 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
-RESUME_OPTIM_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
+RESUME_OPTIM_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.29000th.tar"
+CHECKPOINT_FILE="checkpoint.74000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=True
@@ -81,7 +81,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
+START_ITER  = 74001
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
@@ -220,7 +220,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 5e-5
     momentum = 0.9
     weight_decay = 1.0e-5
 
