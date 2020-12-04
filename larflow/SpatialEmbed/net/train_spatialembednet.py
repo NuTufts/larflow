@@ -44,10 +44,10 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
-RESUME_OPTIM_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
+RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.74000th.tar"
+CHECKPOINT_FILE="checkpoint.150000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=True
@@ -81,11 +81,11 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 74001
+START_ITER  = 0
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=4  # batches per training iteration
-BATCHSIZE_VALID=8  # batches per validation iteration
+BATCHSIZE_VALID=16 # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
 
@@ -220,9 +220,9 @@ def main():
         
 
     # training parameters
-    lr = 5e-5
+    lr = 1e-3
     momentum = 0.9
-    weight_decay = 1.0e-5
+    weight_decay = 1.0e-4
 
     # training variables
     itersize_train         = BATCHSIZE_TRAIN*NBATCHES_per_itertrain # number of images per iteration
@@ -401,7 +401,7 @@ def train(train_loader, device, batchsize,
     acc_time      = AverageMeter()
 
     # accruacy and loss meters
-    lossnames    = ["total","instance","seed","var"]
+    lossnames    = ["total","instance","seed","var","discr"]
     flowaccnames = ["iou"]
 
     acc_meters  = {}
@@ -512,6 +512,7 @@ def train(train_loader, device, batchsize,
             loss_meters["instance"].update( _loss[0],  ninstances )
             loss_meters["seed"].update( _loss[1],  ninstances )
             loss_meters["var"].update( _loss[2], ninstances )
+            loss_meters["discr"].update( _loss[3], ninstances )            
         
         # update acc meters
         if iou_out is not None:
@@ -558,7 +559,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     global valid_entry
 
     # accruacy and loss meters
-    lossnames    = ["total","instance","seed","var"]
+    lossnames    = ["total","instance","seed","var","discr"]
     flowaccnames = ["iou"]
 
     acc_meters  = {}
@@ -627,6 +628,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
             loss_meters["instance"].update( _loss[0],  ninstances )
             loss_meters["seed"].update( _loss[1],  ninstances )
             loss_meters["var"].update( _loss[2], ninstances )
+            loss_meters["discr"].update( _loss[3], ninstances )            
         
         # update acc meters
         if iou_out is not None:
