@@ -48,12 +48,12 @@ class SpatialEmbedLoss(nn.Module):
         probs = []
         for iid,(center_i,idmask) in enumerate(zip(centroids,masks)):
             sigma_i = sigma_t[idmask,:]
-            if verbose or True: print "instance[",iid,"] npixs=",idmask.sum().item()
-            if verbose or True: print "  centroid[",iid,"]: ",center_i.detach().cpu().numpy().tolist()
+            if verbose: print "instance[",iid,"] npixs=",idmask.sum().item()
+            if verbose: print "  centroid[",iid,"]: ",center_i.detach().cpu().numpy().tolist()
             
             # mean
             s = sigma_i.mean(0).view(1,nsigma) # 1 dimensions
-            if verbose or True: print "  margin[",iid,"]: ",s.detach().cpu().numpy().tolist()
+            if verbose: print "  margin[",iid,"]: ",s.detach().cpu().numpy().tolist()
 
             # calculate instance centroid
             dist = torch.pow(embed_t[:,0:ndims] - center_i, 2)
