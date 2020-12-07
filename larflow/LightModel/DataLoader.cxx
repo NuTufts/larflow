@@ -33,7 +33,6 @@ namespace lightmodel {
   void DataLoader::load_tree() {
     std::cout << "[DataLoader::load_tree()]" << std::endl;
 
-    // @@@ Edit and put tree name??
     tclusterflash  = new TChain("preppedTree");
     //    tkeypoint = new TChain("keypointlabels");
     //    tssnet    = new TChain("ssnetlabels");
@@ -45,17 +44,19 @@ namespace lightmodel {
       //      tssnet->Add(infile.c_str());
     }
 
-    voxel_row_v = 0;
-    voxel_col_v = 0;
-    voxel_depth_v = 0;
-    voxel_charge_v = 0;
-    flash_v = 0;
+    voxel_row = 0;
+    voxel_col = 0;
+    voxel_depth = 0;
+    voxel_charge = 0;
+    flash_vector = 0;
     
-    tclusterflash->SetBranchAddress(  "voxel_row_v",           &voxel_row_v );
-    tclusterflash->SetBranchAddress(  "voxel_col_v",           &voxel_col_v );
-    tclusterflash->SetBranchAddress(  "voxel_depth_v",           &voxel_depth_v );
-    tclusterflash->SetBranchAddress(  "voxel_charge_v",           &voxel_charge_v );
-    tclusterflash->SetBranchAddress(  "flash_v",           &flash_v );
+    tclusterflash->SetBranchAddress(  "voxel_row",           &voxel_row );
+    tclusterflash->SetBranchAddress(  "voxel_col",           &voxel_col );
+    tclusterflash->SetBranchAddress(  "voxel_depth",           &voxel_depth );
+    tclusterflash->SetBranchAddress(  "voxel_charge",           &voxel_charge );
+    tclusterflash->SetBranchAddress(  "flash_vector",           &flash_vector );
+
+    std::cout << "Initialized tree" << std::endl;
     
   }
 
@@ -68,7 +69,12 @@ namespace lightmodel {
   unsigned long DataLoader::load_entry( int entry )
   {
     unsigned long bytes = tclusterflash->GetEntry(entry);
+    
+    std::cout << "Got entry " << entry << std::endl;
+
     return bytes;
+
+
   }
 
   /**
@@ -103,13 +109,15 @@ namespace lightmodel {
    * @return Python dictionary object with various numpy arrays
    *                        
    */
-  
-  PyObject* DataLoader::sample_data( const int& num_max_samples,
-                                             int& nfilled,
-                                             bool withtruth )
-  {
 
-
+  /*
+    
+    PyObject* DataLoader::sample_data( const int& num_max_samples,
+    int& nfilled,
+    bool withtruth ) {
+  */
+  PyArrayObject* DataLoader::make_arrays() {
+    
     if ( !_setup_numpy ) {
       import_array1(0);
       _setup_numpy = true;
@@ -202,7 +210,9 @@ namespace lightmodel {
     
     // FLASH INFO ARRAY
     PyArrayObject* flashinfo_label = nullptr;
-    make_flashinfo_arrays( flashinfo_label );
+
+    return make_flashinfo_arrays( flashinfo_label );
+    
   }
     /*
     PyObject *d = PyDict_New();
@@ -501,7 +511,7 @@ namespace lightmodel {
   }
   */
   
-  int DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
+  PyArrayObject DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
 
 
     
@@ -513,14 +523,16 @@ namespace lightmodel {
     // loop through the 32 PMT values
     for (int i = 0; i < flashinfo_dims[0]; i++ ) {
 
-      float label = flash_v->at( i );
+      float label = flash_vector->at( i );
 
       *((float*)PyArray_GETPTR1(flashinfo_label,i)) = (float)label;
       
     }
+
+    std::cout << "End of make array fn" << std::endl;
     
-    return 0;
+    return flashinfo_label;
   }
 
-} 
+}
 }

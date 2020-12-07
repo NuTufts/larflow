@@ -31,25 +31,26 @@ namespace lightmodel {
    * 
    */
   class DataLoader {
-
+    
   public:
-
+    
     /*
-  DataLoader()
-    : ttriplet(nullptr),
+      DataLoader()
+      : ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr),
       _exclude_neg_examples(true)
-	{};
+      {};
     */
     
+    
   DataLoader()
-    : tclusterflash(nullptr){};
+    : tclusterflash(nullptr){};     // constructor w/ initialization list
     
     DataLoader( std::vector<std::string>& input_v );
-
+    
     virtual ~DataLoader();
-
+    
     std::vector<std::string> input_files; ///< list of input ROOT files to load
 
     /** @brief add an individual ROOT file to be loaded */
@@ -68,21 +69,25 @@ namespace lightmodel {
     std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree
     */
 
-    std::vector<int>*         voxel_row_v;    ///< pointer to voxel row loaded from tclusterflash ROOT tree
-    std::vector<int>*         voxel_col_v;    ///< pointer to voxel col loaded from tclusterflash ROOT tree
-    std::vector<int>*         voxel_depth_v;     ///< pointer to voxel depth loaded from tclusterflash ROOT tree
-    std::vector<float>*       voxel_charge_v; ///< pointer to voxel charge loaded from tclusterflash ROOT tree
-    std::vector<float>*       flash_v; ///< pointer to flash info loaded from tclusterflash ROOT tree
+    std::vector<int>*         voxel_row;    ///< pointer to voxel row loaded from tclusterflash ROOT tree
+    std::vector<int>*         voxel_col;    ///< pointer to voxel col loaded from tclusterflash ROOT tree
+    std::vector<int>*         voxel_depth;     ///< pointer to voxel depth loaded from tclusterflash ROOT tree
+    std::vector<float>*       voxel_charge; ///< pointer to voxel charge loaded from tclusterflash ROOT tree
+    std::vector<float>*       flash_vector; ///< pointer to flash info loaded from tclusterflash ROOT tree
 
     /** @brief set flag that, if True, only loads true (non-ghost) spacepoints for training ssnet and keypoint labels (default is false)*/
     //    void exclude_false_triplets( bool exclude ) { _exclude_neg_examples = exclude; };
     void load_tree();
     unsigned long load_entry( int entry );
     unsigned long GetEntries();    
-    // @@@ Edit w/ changed arguments?
+
+    /*
     PyObject* sample_data( const int& num_max_samples,
                            int& nfilled,
                            bool withtruth );
+    */
+
+    PyArrayObject* make_arrays();
     
   protected:
     /*    
