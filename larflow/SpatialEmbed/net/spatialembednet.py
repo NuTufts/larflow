@@ -221,7 +221,7 @@ class SpatialEmbedNet(nn.Module):
         x_embed_out = {}
         for ishape in range(self.embedout_shapes):
             x_embed = self.embed_out_v[ishape](decode_out["embed-shape%d"%(ishape)][-1])
-            if verbose: print "embed-shape%d-out: "%(ishape),x_embedout[ishape].features.shape," num-nan=",torch.isnan(x_embedout[ishape].features.detach()).sum()
+            if verbose: print "embed-shape%d-out: "%(ishape),x_embed.features.shape," num-nan=",torch.isnan(x_embed.features.detach()).sum()
             # sparse to dense            
             x_embed = self.embed_sparse2dense_v[ishape](x_embed)
             # normalize x,y,z shifts within [-1,1]            
