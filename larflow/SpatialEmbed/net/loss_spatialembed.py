@@ -32,7 +32,7 @@ class SpatialEmbedLoss(nn.Module):
         centroids = []
         masks = []
         for iid in range(1,num_instances+1):
-            idmask = instance_t.eq(iid)
+            idmask = instance_t.detach().eq(iid)
             if idmask.sum()<50.0:
                 continue
             icentroid = embed_t[idmask,:ndims].mean(0)
@@ -72,28 +72,31 @@ class SpatialEmbedLoss(nn.Module):
         inter_loss = torch.zeros( margins[0].shape ).to( device )
         
         #define margin as mean_s per dimension
-        s_mean = torch.zeros( margins[0].shape ).to(device)
-        for s in margins:
-            s_mean += s
-            #s_mean += s.detach()
-        s_mean /=float(ninstances)
-        
-        if verbose: print "s_mean: ",s_mean.detach()
+        #s_mean = torch.zeros( margins[0].shape ).to(device)
+        #for s in margins:
+        #    s_mean += s
+        #    #s_mean += s.detach()
+        #s_mean /=float(ninstances)
+        #if verbose: print "s_mean: ",s_mean.detach()        
+        fixed_margin = 0.2
+        if verbose: print "fixed_margin: ",fixed_margin
+
         # convert s into a margin distance-x such that gaus=0.5
         # our s is related to sigma by: s*self.sigma_scale=0.5/sigma^2
         # distance that makes gaus=0.5 is
         # margin = sigma * sqrt( -2.0*ln(0.5) )
         # so: margin = sqrt( -2*ln(0.5) / 2.0*self.sigma_scale*s )
         # margin = torch.clamp( torch.sqrt( 0.69/(1.0e-2+self.sigma_scale*s_mean) ), min=1.0e-2 )
-        inv_margin = torch.sqrt( self.sigma_scale*s_mean/0.69 )
-        if verbose: print "inv_margin: ",inv_margin.detach().cpu().numpy().tolist()
+        #inv_margin = torch.sqrt( self.sigma_scale*s_mean/0.69 )
+        #if verbose: print "inv_margin: ",inv_margin.detach().cpu().numpy().tolist()
 
         for i in range(ninstances):
             for j in range(i+1,ninstances):
                 #pair_dist = torch.sqrt( torch.pow( centroids[i]-centroids[j], 2 ) )
                 #pair_dist = torch.sqrt( torch.pow( (centroids[i]-centroids[j])*inv_margin.detach(), 2 ) ) # L2 norm
-                pair_dist = torch.sqrt( torch.pow( (centroids[i]-centroids[j])*inv_margin, 2 ) ) # L2 norm
-                hinge = torch.clamp( 2.0 - pair_dist, min=0.0 )
+                #pair_dist = torch.sqrt( torch.pow( (centroids[i]-centroids[j])*inv_margin, 2 ) ) # L2 norm
+                pair_dist = torch.norm( centroids[i]-centroids[j], p=2 )
+                hinge = torch.clamp( 2.0*fixed_margin - pair_dist, min=0.0 )
                 if verbose: print " pair[",(i,j),"]-hinge: ",hinge.detach()," scaled-pair-dist=",pair_dist.detach()
                 inter_loss += torch.pow( hinge, 2 ).mean()
         inter_loss /= float(ninstances)*float(ninstances-1)
@@ -173,7 +176,7 @@ class SpatialEmbedLoss(nn.Module):
                 iclass   = particle[idmask]
                 iseed    = seed[idmask]
 
-                fnpix_pos = idmask.float().sum()     # number of positive examples
+                fnpix_pos = idmask.float().sum()    # number of positive examples
                 fnpix_neg = (~idmask).float().sum() # number of negative examples
                 iloss    = self.bce( prob, idmask.float() )
                 iloss_pos = iloss[idmask].sum()

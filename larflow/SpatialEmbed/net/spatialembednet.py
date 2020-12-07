@@ -13,6 +13,7 @@ class SpatialEmbedNet(nn.Module):
                  num_unet_layers=5,
                  nclasses=7,
                  nsigma=3,
+                 embedout_shapes=1,
                  leakiness=0.001 ):
         """
         parameters
@@ -34,6 +35,7 @@ class SpatialEmbedNet(nn.Module):
         self.input_shape = inputshape
         self.nsigma = nsigma
         self.nclasses = nclasses
+        self.embedout_shapes = embedout_shapes
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -50,54 +52,96 @@ class SpatialEmbedNet(nn.Module):
             feat_per_layers = [(2+n)*stem_nfeatures]
 
         nlayers = len(feat_per_layers)
-        
-        self.encoding_layers = resnet_encoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
-        self.embed_layers,self.embed_up = resnet_decoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
-        self.seed_layers,self.seed_up   = resnet_decoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
 
+        # ENCODER
+        self.encoding_layers = resnet_encoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
         # register the layers into the module
         for i,en in enumerate(self.encoding_layers):
             setattr(self,"encoder_%d"%(i),en)
-        for i,(conv,up) in enumerate(zip(self.embed_layers,self.embed_up)):
-            setattr(self,"embed_conv_%d"%(i),conv)
-            setattr(self,"embed_upsample_%d"%(i),up)
+
+        # SEED OUTPUT/CLASS PREDICTION
+        self.seed_layers,self.seed_up   = resnet_decoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
         for i,(conv,up) in enumerate(zip(self.seed_layers,self.seed_up)):
             setattr(self,"seed_conv_%d"%(i),conv)
             setattr(self,"seed_upsample_%d"%(i),up)
-
         # make skip connections that feed into embed and seed decoders
-        self.embed_skip = []
         self.seed_skip  = []
-        for i in range(len(self.encoding_layers)):
-            self.embed_skip.append( scn.Identity() )
+        for i in range(len(self.encoding_layers)):        
             self.seed_skip.append( scn.Identity() )            
-            setattr(self,"embed_skip_%d"%(i),self.embed_skip[-1])
             setattr(self,"seed_skip_%d"%(i),self.seed_skip[-1])
-
         # seed output, each pixel produces score for each class
         self.seed_out = scn.Sequential()
         residual_block(self.seed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
         residual_block(self.seed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
-        #residual_block(self.seed_out,stem_nfeatures,nclasses,leakiness=leakiness)
         self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )
-        # the last layer is a standard conv layer so we can manipulate it
-        #self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        #self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )
+        self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )        
+        self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
+                
+        # EMBEDDING OUTPUT
+        if False:
+            """ same layers output embedding for all particle shapes, kept for backwards compat
+            """
+            self.embed_classes = [0]
+            self.embed_layers,self.embed_up = resnet_decoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
+            for i,(conv,up) in enumerate(zip(self.embed_layers,self.embed_up)):
+                setattr(self,"embed_conv_%d"%(i),conv)
+                setattr(self,"embed_upsample_%d"%(i),up)
+            # make skip connections that feed into embed and seed decoders
+            self.embed_skip = []
+            for i in range(len(self.encoding_layers)):
+                self.embed_skip.append( scn.Identity() )
+                setattr(self,"embed_skip_%d"%(i),self.embed_skip[-1])
+        else:
+            """ different embedding output for track/shower topologies """
+            self.embed_classes = [0]*self.embedout_shapes
+            self.embed_layers = {}
+            self.embed_up    = {}            
+            self.embed_skip  = {}
+            self.embed_out_v = {}
+            self.embed_sparse2dense_v = {}
+            for ishape in range(self.embedout_shapes):
+                # embedding decoder
+                embed_layers,embed_up = resnet_decoding_layers( stem_nfeatures, feat_per_layers, 2, dimensions=3 )
+                self.embed_layers[ishape] = embed_layers
+                self.embed_up[ishape] = embed_up
+                for i,(conv,up) in enumerate(zip(self.embed_layers[ishape],self.embed_up[ishape])):
+                    if self.embedout_shapes>1:
+                        setattr(self,"embed_shape%d_conv_%d"%(ishape,i),conv)
+                        setattr(self,"embed_shape%d_upsample_%d"%(ishape,i),up)
+                    else:
+                        """ backwards compat. want to deprecate """
+                        setattr(self,"embed_conv_%d"%(i),conv)
+                        setattr(self,"embed_upsample_%d"%(i),up)                        
+                    
+                # make skip connections that feed into embed decoders
+                self.embed_skip[ishape] = []
+                for i in range(len(self.encoding_layers)):
+                    self.embed_skip[ishape].append( scn.Identity() )
+                    if self.embedout_shapes>1:
+                        setattr(self,"embed_shape%d_skip_%d"%(ishape,i),self.embed_skip[ishape][-1])
+                    else:
+                        setattr(self,"embed_skip_%d"%(i),self.embed_skip[ishape][-1])
+                        
+                # instance/embed out, each pixel needs 3 dimension shift and 1 sigma
+                self.embed_out_v[ishape] = scn.Sequential()
+                residual_block(self.embed_out_v[ishape],stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
+                self.embed_out_v[ishape].add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
+                self.embed_out_v[ishape].add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, 3+nsigma, 3, True) )
+                if self.embedout_shapes>1:
+                    setattr(self,"embed_shape%d_out"%(ishape),self.embed_out_v[ishape])
+                else:
+                    setattr(self,"embed_out",self.embed_out_v[ishape])
+
+                # sparse to dense
+                self.embed_sparse2dense_v[ishape] = scn.OutputLayer(ndimensions)
+                if self.embedout_shapes>1:
+                    setattr(self,"embed_shape%d_sparse2dense"%(ishape),self.embed_sparse2dense_v[ishape])
+                else:
+                    setattr(self,"embed_sparse2dense",self.embed_sparse2dense_v[ishape])
 
         # a cat function
         self.cat = scn.JoinTable()
 
-        # instance/embed out, each pixel needs 3 dimension shift and 1 sigma
-        self.embed_out = scn.Sequential()
-        residual_block(self.embed_out,stem_nfeatures*2,stem_nfeatures,leakiness=leakiness)
-        #residual_block(self.embed_out,stem_nfeatures,stem_nfeatures,leakiness=leakiness)
-        #residual_block(self.embed_out,stem_nfeatures,4,leakiness=leakiness)
-        self.embed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
-        self.embed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, 3+nsigma, 3, True) )
-
-        self.embed_sparse2dense = scn.OutputLayer(ndimensions)
-        self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
 
     def init_embedout(self,nsigma=1):
         """
@@ -115,12 +159,13 @@ class SpatialEmbedNet(nn.Module):
             output_conv.bias[2:2+n_sigma].fill_(1)
         """
         with torch.no_grad():
-            print self.embed_out[-1]
-            for n,p in self.embed_out[-1].named_parameters():
-                print n,": pars: ",p.shape
-            self.embed_out[-1].weight.fill_(0)
-            self.embed_out[-1].bias[0:3].fill_(0)
-            self.embed_out[-1].bias[3:].fill_(0.0)
+            for ishape in range(self.embedout_shapes):
+                print self.embed_out_v[ishape][-1]
+                for n,p in self.embed_out_v[ishape][-1].named_parameters():
+                    print n,": pars: ",p.shape
+                self.embed_out_v[ishape][-1].weight.fill_(0)
+                self.embed_out_v[ishape][-1].bias[0:3].fill_(0)
+                self.embed_out_v[ishape][-1].bias[3:].fill_(0.0)
             
     def forward( self, coord_t, feat_t, device, verbose=False ):
         """
@@ -146,9 +191,14 @@ class SpatialEmbedNet(nn.Module):
         # embed decoder
         if verbose: print " len(x_encode): ",len(x_encode)
         
-        decode_out = {"embed":[],"seed":[]}
-        for name,conv_layers,up_layers,skip_layers in [("embed",self.embed_layers,self.embed_up,self.embed_skip),
-                                                       ("seed",self.seed_layers,self.seed_up,self.seed_skip)]:
+        decode_out = {"seed":[]}
+        decode_list = [("seed",self.seed_layers,self.seed_up,self.seed_skip)]
+        for ishape in range(self.embedout_shapes):
+            decode_list.append( ("embed-shape%d"%(ishape),self.embed_layers[ishape],
+                                 self.embed_up[ishape],self.embed_skip[ishape]) )
+            decode_out["embed-shape%d"%(ishape)] = []
+            
+        for name,conv_layers,up_layers,skip_layers in decode_list:
             decode_input = x_encode[-1]
             for i,(conv,up) in enumerate(zip(conv_layers,up_layers)):
                 # up sample the input
@@ -167,26 +217,30 @@ class SpatialEmbedNet(nn.Module):
                 if verbose: print " ",name,"-decoder[",i,"]-conv: ",decode_input.features.shape
             if verbose: print " ",name,"-out: isname=",torch.isnan(decode_out[name][-1].features.detach()).sum(),torch.isinf(decode_out[name][-1].features.detach()).sum()
 
-        x_embed = self.embed_out(decode_out["embed"][-1])
-        if verbose: print "embed-out: ",x_embed.features.shape," num-nan=",torch.isnan(x_embed.features.detach()).sum()
-        
+        # FINISH EMBED OUT
+        x_embed_out = {}
+        for ishape in range(self.embedout_shapes):
+            x_embed = self.embed_out_v[ishape](decode_out["embed-shape%d"%(ishape)][-1])
+            if verbose: print "embed-shape%d-out: "%(ishape),x_embedout[ishape].features.shape," num-nan=",torch.isnan(x_embedout[ishape].features.detach()).sum()
+            # sparse to dense            
+            x_embed = self.embed_sparse2dense_v[ishape](x_embed)
+            # normalize x,y,z shifts within [-1,1]            
+            x_embed_shift = torch.tanh( x_embed[:,0:self.ndimensions] )
+            # margin output is predicting ln(0.5/sigma^2)
+            x_embed_margin = x_embed[:,self.ndimensions:]
+            x_embed_out[ishape] = torch.cat( [x_embed_shift,x_embed_margin], dim=1 )
+            
+            
         x_seed  = self.seed_out(decode_out["seed"][-1])
         if verbose: print "seed-out:  ",x_seed.features.shape," num-nan=",torch.isnan(x_seed.features.detach()).sum()
-
-        # go back to dense array now
-        x_embed = self.embed_sparse2dense(x_embed)
         x_seed  = self.seed_sparse2dense(x_seed)
-
-        # normalize x,y,z shifts within [-1,1]
-        x_embed_shift = torch.tanh( x_embed[:,0:self.ndimensions] )
-        # sigma output is predicting ln(0.5/sigma^2)
-        x_embed_sigma = x_embed[:,self.ndimensions:]
-        x_embed_out = torch.cat( [x_embed_shift,x_embed_sigma], dim=1 )
-
         # normalize seed map output between [0,1]
-        x_seed  = torch.sigmoid( x_seed )
-        
-        return x_embed_out,x_seed
+        x_seed  = torch.sigmoid( x_seed ) # remove this?
+
+        if self.embedout_shapes==1:
+            return x_embed_out[0],x_seed # backwards compat
+        else:
+            return x_embed_out,x_seed
 
     def make_clusters(self,coord_t,embed_t,seed_t,verbose=False):
 
