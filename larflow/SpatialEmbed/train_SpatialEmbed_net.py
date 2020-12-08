@@ -150,6 +150,7 @@ for loop in range(0, loops):
 
                     # skip if there's no instances
                     if instances.numel() == 0:
+                        print "no instances!"
                         continue
 
                     # DELETE ALL NON-NEUTRINO PIXELS
@@ -161,6 +162,9 @@ for loop in range(0, loops):
                     instances = instances.t()[folded_instances].t()
                     class_maps = class_maps.t()[folded_instances].t()
                     #################################
+                    if instances.detach().sum() == 0:
+                        print "no instances2!"
+                        continue
 
                     offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
 
