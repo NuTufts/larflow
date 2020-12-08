@@ -124,10 +124,6 @@ for loop in range(0, loops):
 
                     optimizer.zero_grad()
 
-                    coord_plane = torch.from_numpy(coord_dict[plane]).float().to(device)
-                    feat_plane =  torch.from_numpy(feat_dict[plane]).float().to(device)
-
-                    offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
 
 
                     # get positions of instance pixels per instance
@@ -147,11 +143,34 @@ for loop in range(0, loops):
                     class_maps = torch.Tensor(class_maps).float().to(device)
                     class_maps.requires_grad_(False)
 
+
+
+                    coord_plane = torch.from_numpy(coord_dict[plane]).float().to(device)
+                    feat_plane =  torch.from_numpy(feat_dict[plane]).float().to(device)
+
+                    # skip if there's no instances
+                    if instances.numel() == 0:
+                        continue
+
+                    # DELETE ALL NON-NEUTRINO PIXELS
+                    folded_instances = torch.max(instances, dim=0)[0]
+                    folded_instances = folded_instances.type(torch.uint8)
+
+                    coord_plane = coord_plane[folded_instances]
+                    feat_plane = feat_plane[folded_instances]
+                    instances = instances.t()[folded_instances].t()
+                    class_maps = class_maps.t()[folded_instances].t()
+                    #################################
+
+                    offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
+
+
                     offsets = offsets.to(device)
                     seeds = seeds.to(device)
                     
                     offsets.requires_grad_(True)
                     seeds.requires_grad_(True)
+
 
                     loss_tot = criterion(coord_plane, offsets, seeds, instances, class_maps, num_instances, types, device, verbose=args.verbose, iterator=iterate)
                     
