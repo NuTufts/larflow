@@ -40,6 +40,7 @@ net = SpatialEmbedNet(3, voxel_dims,
                       num_unet_layers=6,
                       nsigma=3,
                       nclasses=nparticles,
+                      embedout_shapes=2,
                       stem_nfeatures=32).to(device)
 net.init_embedout()
 
@@ -61,6 +62,7 @@ if not use_random_tensor:
     input_file_v = rt.std.vector("std::string")()
     input_file_v.push_back( args.input_file )
     voxelloader = larflow.spatialembed.Prep3DSpatialEmbed(input_file_v)
+    voxelloader.setShuffle(True)
     nentries = voxelloader.getTree().GetEntries()
     print("NENTRIES: ",nentries)
 
@@ -96,6 +98,7 @@ for ientry in range(0,1):
     if not use_random_tensor:
         # get entry data (numpy arrays)
         data = voxelloader.getTrainingDataBatch(nbatches)
+        print("loader current entry: ",voxelloader.getCurrentEntry())
         print("voxel entries: ",data["coord_t"].shape)
         print("num batches: ",data["coord_t"][:,3].max())
         
@@ -126,8 +129,9 @@ for ientry in range(0,1):
         start = time.time()    
         embed_t,seed_t = net( coord_t, feat_t, device, verbose=verbose )
         dt_forward += time.time()-start
-        print " embed_t[shift].sum()=",embed_t[:,0:3].detach().sum().item()
-        print " embed_t[sigma].mean()=",embed_t[:,3:].detach().mean().item() 
+        for ishape in range(len(embed_t)):
+            print " embed_t-shape%d-[shift].sum()="%(ishape),embed_t[ishape][:,0:3].detach().sum().item()
+            print " embed_t-shape%d-[sigma].mean()="%(ishape),embed_t[ishape][:,3:].detach().mean().item() 
 
         # loss
         start = time.time()

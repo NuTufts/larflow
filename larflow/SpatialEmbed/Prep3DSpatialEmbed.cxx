@@ -3,6 +3,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
 
+#include "TRandom3.h"
 #include "LArUtil/Geometry.h"
 #include "LArUtil/LArProperties.h"
 #include "DataFormat/larflow3dhit.h"
@@ -25,7 +26,8 @@ namespace spatialembed {
     : larcv::larcv_base("Prep3DSpatialEmbed"),
     _filter_by_instance_image(false),
     _tree(nullptr),
-    _current_entry(0),          
+    _current_entry(0),
+    _num_entries(0),
     _kowner(true),
     _adc_image_treename("wire"),
     _truth_image_treename("segment"),    
@@ -37,7 +39,8 @@ namespace spatialembed {
     _in_pparticle_id(nullptr),          
     _in_pq_u(nullptr),
     _in_pq_v(nullptr),
-    _in_pq_y(nullptr)
+    _in_pq_y(nullptr),
+    _rand(nullptr)
   {
     TChain* chain = new TChain("s3dembed");
     for ( auto const& input_file : input_root_files ) {
@@ -46,6 +49,12 @@ namespace spatialembed {
     loadTreeBranches( (TTree*)chain );
   }
   
+  Prep3DSpatialEmbed::~Prep3DSpatialEmbed()
+  {
+    if (_kowner) delete (TChain*)_tree;
+    if ( _rand)  delete _rand;
+  }
+
   
   /**
    * @brief convert larmatch info voxel data list, including truth
@@ -477,6 +486,12 @@ namespace spatialembed {
       
       nvoxels_filled += nvoxels;
     }
+
+    // set own data flag
+    PyArray_ENABLEFLAGS(coord_t,    NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(feat_t,     NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(instance_t, NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(class_t,    NPY_ARRAY_OWNDATA);
     
     // Create and fill dictionary
     PyObject *d = PyDict_New();
@@ -508,18 +523,39 @@ namespace spatialembed {
     std::vector< VoxelDataList_t > data_batch;
     data_batch.reserve(batch_size);
 
+    if ( _shuffle && _num_entries==0 ) {
+      _num_entries = _tree->GetEntries();
+      _rand = new TRandom3(0);
+    }
+
     int ntries = 0;
     while ( ntries<batch_size*10 && data_batch.size()<batch_size ) {
-      try {
-	auto data = getTreeEntry(_current_entry);
-	_current_entry++;
-	if (data.size()>0) {
-	  data_batch.emplace_back( std::move(data) );
+
+      if ( !_shuffle ) {
+	try {
+	  auto data = getTreeEntry(_current_entry);
+	  _current_entry++;
+	  if (data.size()>0) {
+	    data_batch.emplace_back( std::move(data) );
+	  }
+	}
+	catch (...) {
+	  // reset entry index and try again
+	  _current_entry = 0;
 	}
       }
-      catch (...) {
-	// reset entry index and try again
-	_current_entry = 0;
+      else {
+	// shuffle, dumb
+	try {
+	  _current_entry = _rand->Integer(_num_entries);
+	  auto data = getTreeEntry(_current_entry);
+	  if (data.size()>0) {
+	    data_batch.emplace_back( std::move(data) );
+	  }
+	}
+	catch (...) {
+	  _current_entry = 0;
+	}
       }
       ntries++;
     }

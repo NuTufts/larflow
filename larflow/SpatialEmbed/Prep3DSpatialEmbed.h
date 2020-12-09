@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 
+#include "TRandom3.h"
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/Base/larcv_base.h"
@@ -33,7 +34,9 @@ namespace spatialembed {
       _filter_by_instance_image(false),
       _filter_out_non_nu_pixels(false),      
       _tree(nullptr),
-      _current_entry(0),      
+      _current_entry(0),
+      _num_entries(0),
+      _shuffle(false),
       _kowner(false),
       _adc_image_treename("wire"),
       _truth_image_treename("segment"),
@@ -45,10 +48,11 @@ namespace spatialembed {
       _in_pparticle_id(nullptr),      
       _in_pq_u(nullptr),
       _in_pq_v(nullptr),
-      _in_pq_y(nullptr)
+      _in_pq_y(nullptr),
+      _rand(nullptr)
       {};
     Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files ); 
-    virtual ~Prep3DSpatialEmbed() { if (_kowner) delete (TChain*)_tree; };
+    virtual ~Prep3DSpatialEmbed(); 
 
     void set_adc_image_treename( std::string name ) { _adc_image_treename=name; };
     void set_truth_image_treename( std::string name ) { _truth_image_treename=name; };    
@@ -119,6 +123,9 @@ namespace spatialembed {
 
     /** @brief set flag determining if we should filter out non-neutrino pixels */
     void setFilterOutNonNuPixelsFlag( bool filter ) { _filter_out_non_nu_pixels = filter; };
+
+    /** @brief set flag determining if we should read random entry */
+    void setShuffle( bool shuffle ) { _shuffle=shuffle; };
     
     VoxelDataList_t filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
                                                  const std::vector<larcv::Image2D>& instance_v );
@@ -137,6 +144,8 @@ namespace spatialembed {
     larflow::voxelizer::VoxelizeTriplets _voxelizer; ///< class that defines voxelization
     TTree* _tree;
     unsigned long _current_entry;
+    unsigned long _num_entries;
+    bool _shuffle;
     bool _kowner; //< indicates if we own the tree
     std::string _adc_image_treename;
     std::string _truth_image_treename;    
@@ -160,6 +169,8 @@ namespace spatialembed {
     std::vector< float >* _in_pq_u;
     std::vector< float >* _in_pq_v;
     std::vector< float >* _in_pq_y;
+
+    TRandom3* _rand;
 
     void _reassignSmallTrackClusters( Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
                                       ublarcvapp::mctools::MCPixelPGraph& mcpg,

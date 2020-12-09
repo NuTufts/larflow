@@ -44,15 +44,15 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
-RESUME_OPTIM_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
+RESUME_OPTIM_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.150000th.tar"
+CHECKPOINT_FILE="checkpoint.6000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
 TRAIN_LOSS_VERBOSE=True
 VALID_NET_VERBOSE=False
-VALID_LOSS_VERBOSE=False
+VALID_LOSS_VERBOSE=True
 FREEZE_LAYERS=False
 
 # Hard example training parameters (not yet implemented)
@@ -81,10 +81,10 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
+START_ITER  = 6001
 NUM_ITERS   = 1000000
 
-BATCHSIZE_TRAIN=4  # batches per training iteration
+BATCHSIZE_TRAIN=16  # batches per training iteration
 BATCHSIZE_VALID=16 # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
@@ -142,13 +142,14 @@ def main():
     model = SpatialEmbedNet(3, voxel_dims,
                             input_nfeatures=3,
                             nclasses=7,
+                            embedout_shapes=2,
                             num_unet_layers=6,
                             nsigma=3,
                             stem_nfeatures=32).to(DEVICE)
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,sigma_scale=5.0,w_sigma_var=1.0)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,embed_nshapes=2,sigma_scale=10.0,w_sigma_var=1.0)
     
     model_dict = {"embed":model}
     parameters = []
@@ -192,7 +193,8 @@ def main():
                 #    continue
                 print "LOAD PARAMETER FROM CHECKPOINT: model ",n
                 m.load_state_dict(checkpoint["state_"+n])
-                print "embedout bias: ",m.embed_out[-1].bias
+                for ishape in range(model.embedout_shapes):
+                    print "embedout-shape[%d] bias: "%(ishape),m.embed_out_v[ishape][-1].bias
 
     # data parallel training -- does not work
     if GPUMODE and not CHECKPOINT_FROM_DATA_PARALLEL and len(DEVICE_IDS)>1:
@@ -245,6 +247,7 @@ def main():
     for x in INPUTFILE_TRAIN:
         traindata_v.push_back( TRAIN_DATA_FOLDER+"/"+x )
     iotrain = {"spatialembed":larflow.spatialembed.Prep3DSpatialEmbed(traindata_v)}
+    iotrain["spatialembed"].setShuffle(True)
     
     validdata_v = std.vector("std::string")()
     for x in INPUTFILE_VALID:
