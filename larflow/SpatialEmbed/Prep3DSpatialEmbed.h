@@ -89,7 +89,8 @@ namespace spatialembed {
     PyObject* makeTrainingDataDict( const std::vector<VoxelDataList_t>& voxeldata_v ) const;    
     PyObject* makePerfectNetOutput( const VoxelDataList_t& voxeldata,
                                     const std::vector<int>& nvoxels_dim,
-                                    const int nsigma=3) const;
+                                    const int nsigma,
+                                    const float seed_sigma ) const;
 
     PyObject* process_numpy_arrays( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,

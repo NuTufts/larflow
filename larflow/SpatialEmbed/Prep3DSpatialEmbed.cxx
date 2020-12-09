@@ -1149,7 +1149,8 @@ namespace spatialembed {
    */
   PyObject* Prep3DSpatialEmbed::makePerfectNetOutput( const VoxelDataList_t& voxeldata,
                                                       const std::vector<int>& nvoxels_dim,
-                                                      const int nsigma ) const
+                                                      const int nsigma,
+                                                      const float seed_sigma ) const
   {
 
     if ( !Prep3DSpatialEmbed::_setup_numpy ) {
@@ -1189,15 +1190,18 @@ namespace spatialembed {
 
     for (int id=0; id<max_instance_id+1; id++) {
       if ( num_instance_voxels[id]>0 ) {
-        std::cout << "centroid[" << id << "] class[" << voxel_class[id] << "]: (";
+        std::vector<float> fcoord(3,0);
+        std::cout << "centroid[" << id << "] nvoxels=" << num_instance_voxels[id];
+        std::cout << "  class[" << voxel_class[id] << "]: (";
         for (int j=0; j<3; j++) {
           centroid[id][j] /= float(num_instance_voxels[id]);
           std::cout << centroid[id][j];
           if (j+1<3 ) std::cout << ",";
+          fcoord[j] = centroid[id][j]/float(nvoxels_dim[j]);
         }
-        std::cout << ") "
-                  << "from " << num_instance_voxels[id]
-                  << std::endl;
+        std::cout << "normalized-centroid[" << id << "] ( ";
+        for (int j=0; j<3; j++) std::cout << fcoord[j] << "  ";
+        std::cout << ")" << std::endl;
       }
     }
     
@@ -1263,8 +1267,11 @@ namespace spatialembed {
 	for (int c=0; c<7; c++)
 	  *((float*)PyArray_GETPTR2(seed_t,i,c)) = 0.0;
         // then set proper class entry with target seed value
-	if ( pid>0 )
-	  *((float*)PyArray_GETPTR2(seed_t,i,pid-1)) = exp(-3.0*voxel_diff*voxel_diff );
+	if ( pid>0 ) {
+          //std::cout << "[" << i << "," << pid-1 << "] " << exp(-0.5*voxel_diff*voxel_diff/(seed_sigma*seed_sigma) ) << " " << voxel_diff << std::endl;
+	  //*((float*)PyArray_GETPTR2(seed_t,i,pid-1)) = exp(-0.5*voxel_diff*voxel_diff/(seed_sigma*seed_sigma) );
+          *((float*)PyArray_GETPTR2(seed_t,i,pid-1)) = 1.0;
+        }
       }
       else {
         // not part of any true instance
