@@ -2,10 +2,10 @@ import os,sys,time
 import numpy as np
 import torch
 import torch.nn as nn
-from lovasz_losses import lovasz_hinge
+from lovasz_losses import lovasz_hinge, lovasz_hinge_flat
 
 class SpatialEmbedLoss(nn.Module):
-    def __init__(self, dim_nvoxels=(1,1,1), nsigma=3, nclasses=7,
+    def __init__(self, dim_nvoxels=(1,1,1), nsigma=3, nclasses=7, embed_nshapes=1,
                  w_embed=1.0, w_seed=1.0, w_sigma_var=1.0, w_discr=1.0, sigma_scale=1.0 ):
         super(SpatialEmbedLoss,self).__init__()
         self.dim_nvoxels = np.array( dim_nvoxels, dtype=np.float32 )
@@ -20,10 +20,31 @@ class SpatialEmbedLoss(nn.Module):
         self.nclasses = nclasses
         self.sigma_scale = sigma_scale
         self.bce = torch.nn.BCELoss(reduction='none')
+        self.embed_nshapes = embed_nshapes
+        self.class_to_name = {1:"electron",
+                              2:"shower",
+                              3:"pizero",
+                              4:"muon",
+                              5:"kaon",
+                              6:"pion",
+                              7:"proton"}
+        if embed_nshapes==1:
+            self.class_to_shape = {}
+            for iclass in range(self.nclasses+1):
+                self.class_to_shape[iclass] = 0
+        else:
+            self.class_to_shape = {1:0,
+                                   2:0,
+                                   3:1,
+                                   4:1,
+                                   5:1,
+                                   6:1,
+                                   7:1}
+        
         
         print "dim_nvoxels_t: ",self.dim_nvoxels_t
 
-    def get_instance_centroids( self, embed_t, instance_t, ndims=3 ):
+    def get_instance_centroids( self, embed_t, instance_t, class_t, ndims=3 ):
         """
         embed_t: embedding coordinates
         instance_t: instance labels
@@ -31,24 +52,32 @@ class SpatialEmbedLoss(nn.Module):
         num_instances = instance_t.max()
         centroids = []
         masks = []
+        class_shape = []
         for iid in range(1,num_instances+1):
             idmask = instance_t.detach().eq(iid)
             if idmask.sum()<50.0:
                 continue
-            icentroid = embed_t[idmask,:ndims].mean(0)
+            true_pid = class_t[idmask][0].item()
+            if true_pid==0:
+                continue
+            true_shape = self.class_to_shape[true_pid]
+            icentroid = embed_t[true_shape][idmask,:ndims].mean(0)
             centroids.append(icentroid)
             masks.append(idmask)
-        return centroids,masks
+            class_shape.append( (true_pid,true_shape) )
+        return centroids,masks,class_shape
 
-    def get_instance_probs( self, embed_t, sigma_t, instance_t, verbose=False, ndims=3, nsigma=3 ):
+    def get_instance_probs( self, embed_v, sigma_v, instance_t, class_t, verbose=False, ndims=3, nsigma=3 ):
         """
         """
-        centroids,masks = self.get_instance_centroids(embed_t,instance_t,ndims=ndims)
+        centroids,masks,class_shape = self.get_instance_centroids(embed_v,instance_t,class_t,ndims=ndims)
         sigmas = []
         probs = []
-        for iid,(center_i,idmask) in enumerate(zip(centroids,masks)):
-            sigma_i = sigma_t[idmask,:]
+        for iid,(center_i,idmask,(iclass,ishape)) in enumerate(zip(centroids,masks,class_shape)):
+            sigma_i = sigma_v[ishape][idmask,:]
             if verbose: print "instance[",iid,"] npixs=",idmask.sum().item()
+            if verbose: print "  class[",iid,"]: ",iclass
+            if verbose: print "  shape[",iid,"]: ",ishape
             if verbose: print "  centroid[",iid,"]: ",center_i.detach().cpu().numpy().tolist()
             
             # mean
@@ -56,12 +85,12 @@ class SpatialEmbedLoss(nn.Module):
             if verbose: print "  margin[",iid,"]: ",s.detach().cpu().numpy().tolist()
 
             # calculate instance centroid
-            dist = torch.pow(embed_t[:,0:ndims] - center_i, 2)
+            dist = torch.pow(embed_v[ishape][:,0:ndims] - center_i, 2)
             gaus = torch.exp(-self.sigma_scale*torch.sum(dist*s,1))
-
             sigmas.append(s)
             probs.append(gaus)
-        return probs,centroids,sigmas,masks
+            
+        return probs,centroids,sigmas,masks,class_shape
 
     def calc_discr_cluster_loss(self, centroids, margins, device, verbose=False ):
 
@@ -78,7 +107,7 @@ class SpatialEmbedLoss(nn.Module):
         #    #s_mean += s.detach()
         #s_mean /=float(ninstances)
         #if verbose: print "s_mean: ",s_mean.detach()        
-        fixed_margin = 0.2
+        fixed_margin = 0.01
         if verbose: print "fixed_margin: ",fixed_margin
 
         # convert s into a margin distance-x such that gaus=0.5
@@ -115,17 +144,18 @@ class SpatialEmbedLoss(nn.Module):
         ave_iou = 0.
         batch_ninstances = 0
         ftot_pixels = 0.0
+        device = embed_t[0].device
 
-        _loss_var      = torch.zeros(1).to(embed_t.device) # contribution from sigma-variation, all batches
-        _loss_seed     = torch.zeros(1).to(embed_t.device) # contribution from seed map, all batches, all classes
-        _loss_seed_pos = torch.zeros(self.nclasses).to(embed_t.device) # contribution from seed map, all batches, positive examples
-        _loss_seed_neg = torch.zeros(self.nclasses).to(embed_t.device) # contribution from seed map, all batches, negative examples
-        _loss_instance = torch.zeros(1).to(embed_t.device) # contribution from proper clustering
-        _loss_discr    = torch.zeros(1).to(embed_t.device) # contribution to push centroids apart
+        _loss_var      = torch.zeros(1).to(device) # contribution from sigma-variation, all batches
+        _loss_seed     = torch.zeros(1).to(device) # contribution from seed map, all batches, all classes
+        _loss_seed_pos = torch.zeros(self.nclasses).to(device) # contribution from seed map, all batches, positive examples
+        _loss_seed_neg = torch.zeros(self.nclasses).to(device) # contribution from seed map, all batches, negative examples
+        _loss_instance = torch.zeros(1).to(device) # contribution from proper clustering
+        _loss_discr    = torch.zeros(1).to(device) # contribution to push centroids apart
 
-        seed_pospix_count = torch.zeros(self.nclasses).to(embed_t.device) # number of total pixels used in seed count
-        seed_negpix_count = torch.zeros(self.nclasses).to(embed_t.device) # number of total pixels used in seed count
-        npix_posinstance  = torch.zeros(1).to(embed_t.device)        # total number of positive instances
+        seed_pospix_count = torch.zeros(self.nclasses).to(device) # number of total pixels used in seed count
+        seed_negpix_count = torch.zeros(self.nclasses).to(device) # number of total pixels used in seed count
+        npix_posinstance  = torch.zeros(1).to(device)        # total number of positive instances
         
         for b in range(batch_size):
             if verbose: print "==== BATCH ",b," =================="
@@ -135,7 +165,7 @@ class SpatialEmbedLoss(nn.Module):
 
             # get data for batch
             coord    = fcoord_t[bmask,:]
-            embed    = embed_t[bmask,:]
+            embed    = [ embed_t[iclass][bmask,:] for iclass in range(self.embed_nshapes) ]
             seed     = seed_t[bmask,:]
             instance = instance_t[bmask]
             particle = class_t[bmask]
@@ -150,12 +180,13 @@ class SpatialEmbedLoss(nn.Module):
             if verbose: print "Num of pix per particle type: ",npix_particles
 
             # calc embeded position
-            spembed = coord[:,0:3]+embed[:,0:3] # coordinate + shift
+            spembed = [ coord[:,0:3]+embed[iclass][:,0:3] for iclass in range(self.embed_nshapes) ] # coordinate + shift
             #sigma   = torch.sigmoid(embed[:,3:3+self.nsigma]) # keep range between [0,1]
-            sigma   = torch.exp(embed[:,3:3+self.nsigma]) # keep range between [0,1]
+            sigma   = [ torch.exp(embed[iclass][:,3:3+self.nsigma]) for iclass in range(self.embed_nshapes) ] # keep range between [0,1]
             #sigma = 0.5/(1.0e-2 + torch.pow(embed[:,3:3+self.nsigma],2))
             obj_count = 0
-            probs,centroids,sigmas,masks = self.get_instance_probs(spembed,sigma,instance,verbose=verbose)
+            # the outputs are lists for each instance
+            probs,centroids,sigmas,masks,class_shape = self.get_instance_probs(spembed,sigma,instance,particle,verbose=verbose)
 
             if verbose: print "Instance Losses"
             ninstances = len(masks)
@@ -163,7 +194,7 @@ class SpatialEmbedLoss(nn.Module):
             fnpix_tot  = 0.0
             bloss_instance = 0.0
             bloss_var      = 0.0
-            closs          = torch.zeros( self.nclasses ).to(embed_t.device)
+            closs          = torch.zeros( self.nclasses ).to(device)
             batch_ninstances += ninstances            
             for iid in range(ninstances):
                 # from get-instance-probs
@@ -175,31 +206,38 @@ class SpatialEmbedLoss(nn.Module):
                 # from batch tensors
                 iclass   = particle[idmask]
                 iseed    = seed[idmask]
+                ishape   = class_shape[iid][1]
 
                 fnpix_pos = idmask.float().sum()    # number of positive examples
-                fnpix_neg = (~idmask).float().sum() # number of negative examples
-                iloss    = self.bce( prob, idmask.float() )
-                iloss_pos = iloss[idmask].sum()
-                iloss_neg = iloss[~idmask].sum()
-                fw_pos = 0.0
-                fw_neg = 0.0
-                if fnpix_pos>10.0 and fnpix_neg>10.0:
-                    fw_pos = 0.5/fnpix_pos
-                    fw_neg = 0.5/fnpix_neg
-                elif fnpix_pos>10.0:
-                    fw_pos = 1.0/fnpix_pos
-                elif fnpix_neg>10.0:
-                    fw_neg = 1.0/fnpix_neg
-                iloss = fw_pos*iloss_pos + fw_neg*iloss_neg
-                
-                if verbose: print "instance[",iid,"] npixels(pos)=",fnpix_pos.item()," npixels(neg)=",fnpix_neg.item()
-                if verbose: print "  prob loss: ",iloss.detach().item(),
-                if verbose and fnpix_pos>0: print " loss(pos)=",iloss_pos.detach().item()/fnpix_pos.item(),
-                if verbose and fnpix_neg>0: print " loss(neg)=",iloss_neg.detach().item()/fnpix_neg.item()
+                fnpix_neg = (~idmask).float().sum() # number of negative examples                
+                if False:
+                    # BCE loss                    
+                    iloss    = self.bce( prob, idmask.float() )
+                    iloss_pos = iloss[idmask].sum()
+                    iloss_neg = iloss[~idmask].sum()
+                    fw_pos = 0.0
+                    fw_neg = 0.0
+                    if fnpix_pos>10.0 and fnpix_neg>10.0:
+                        fw_pos = 0.5/fnpix_pos
+                        fw_neg = 0.5/fnpix_neg
+                    elif fnpix_pos>10.0:
+                        fw_pos = 1.0/fnpix_pos
+                    elif fnpix_neg>10.0:
+                        fw_neg = 1.0/fnpix_neg
+                        iloss = fw_pos*iloss_pos + fw_neg*iloss_neg
+                    
+                    if verbose: print "instance[",iid,"] npixels(pos)=",fnpix_pos.item()," npixels(neg)=",fnpix_neg.item()
+                    if verbose: print "  prob loss: ",iloss.detach().item(),
+                    if verbose and fnpix_pos>0: print " BCE loss(pos)=",iloss_pos.detach().item()/fnpix_pos.item(),
+                    if verbose and fnpix_neg>0: print " BCE loss(neg)=",iloss_neg.detach().item()/fnpix_neg.item()
+                else:
+                    # BCE-unweighted + Lovasz-Hinge
+                    iloss = 0.5*( self.bce(prob, idmask.float()).mean() + lovasz_hinge_flat(2*prob-1.0,idmask.float()))
+                    
                 bloss_instance += iloss
                 
                 # variance loss, want the values to be similar. orig author notes to find loss first
-                iloss_var = torch.pow( sigma[idmask,:] - s.detach(), 2).mean()
+                iloss_var = torch.pow( sigma[ishape][idmask,:] - s.detach(), 2).mean()
                 if verbose: print "  variance loss: ",iloss_var.detach().item()
                 #iloss_var = torch.mean(torch.pow( (sigma_i - s.detach())/(s.detach()), 2)) # scale-free variance
                 bloss_var += iloss_var
@@ -222,13 +260,13 @@ class SpatialEmbedLoss(nn.Module):
                     if cmask.sum()>0:
                         _loss_seed_pos[c] += torch.pow( iprob[cmask].detach()-iseed[cmask,c], 2 ).sum()
                         seed_pospix_count[c] += cmask.sum().float()
-                        if verbose: print " class[",c+1,"] cmask.sum(): ",cmask.sum().item()
+                        if verbose: print "  class[",c+1,"] cmask.sum(): ",cmask.sum().item()
 
             _loss_instance += bloss_instance
             _loss_var      += bloss_var
 
             # inter-cluster discrimitative loss
-            bloss_inter = self.calc_discr_cluster_loss( centroids, sigmas, embed_t.device, verbose=verbose )
+            bloss_inter = self.calc_discr_cluster_loss( centroids, sigmas, device, verbose=verbose )
             if verbose: "batch inter-cluster-loss: ",bloss_inter.detach().item()
             _loss_discr += bloss_inter
 
