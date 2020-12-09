@@ -123,7 +123,7 @@ while entry<nentries:
         start_entry = entry
         after_entry = entry
     
-    batch_clusters = model.make_clusters( coord_t, embed_t, seed_t, verbose=args.verbose, sigma_scale=5.0, seed_threshold=0.75 )
+    batch_clusters = model.make_clusters2( coord_t, embed_t, seed_t, verbose=args.verbose, sigma_scale=5.0, seed_threshold=0.75 )
 
     if not args.test_perfect:
         entry += args.batchsize
@@ -146,7 +146,7 @@ while entry<nentries:
                                        batch_clusters[ib][1].numpy(),
                                        batch_clusters[ib][2].numpy() )
 
-    if True:
+    if False:
         break # for debug
     
     if after_entry<start_entry:
