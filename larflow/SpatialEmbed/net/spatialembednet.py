@@ -237,10 +237,7 @@ class SpatialEmbedNet(nn.Module):
         # normalize seed map output between [0,1]
         x_seed  = torch.sigmoid( x_seed ) # remove this?
 
-        if self.embedout_shapes==1:
-            return x_embed_out[0],x_seed # backwards compat
-        else:
-            return x_embed_out,x_seed
+        return x_embed_out,x_seed
 
     def make_clusters(self,coord_t,embed_t,seed_t,verbose=False):
 

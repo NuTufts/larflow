@@ -44,8 +44,8 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
-RESUME_OPTIM_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
+RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="checkpoint.6000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
@@ -81,7 +81,7 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 6001
+START_ITER  = 0
 NUM_ITERS   = 1000000
 
 BATCHSIZE_TRAIN=16  # batches per training iteration
@@ -142,14 +142,14 @@ def main():
     model = SpatialEmbedNet(3, voxel_dims,
                             input_nfeatures=3,
                             nclasses=7,
-                            embedout_shapes=2,
+                            embedout_shapes=1,
                             num_unet_layers=6,
                             nsigma=3,
                             stem_nfeatures=32).to(DEVICE)
     model.init_embedout()
 
     # define loss function (criterion) and optimizer
-    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,embed_nshapes=2,sigma_scale=10.0,w_sigma_var=1.0)
+    criterion = SpatialEmbedLoss(dim_nvoxels=voxel_dims,nsigma=3,nclasses=7,embed_nshapes=1,sigma_scale=10.0,w_sigma_var=1.0)
     
     model_dict = {"embed":model}
     parameters = []
