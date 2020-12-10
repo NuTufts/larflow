@@ -209,7 +209,8 @@ class SpatialEmbedLoss(nn.Module):
                 ishape   = class_shape[iid][1]
 
                 fnpix_pos = idmask.float().sum()    # number of positive examples
-                fnpix_neg = (~idmask).float().sum() # number of negative examples                
+                fnpix_neg = (~idmask).float().sum() # number of negative examples
+                if verbose: print "instance[",iid,"] npixels(pos)=",fnpix_pos.item()," npixels(neg)=",fnpix_neg.item()                
                 if False:
                     # BCE loss                    
                     iloss    = self.bce( prob, idmask.float() )
@@ -226,13 +227,17 @@ class SpatialEmbedLoss(nn.Module):
                         fw_neg = 1.0/fnpix_neg
                         iloss = fw_pos*iloss_pos + fw_neg*iloss_neg
                     
-                    if verbose: print "instance[",iid,"] npixels(pos)=",fnpix_pos.item()," npixels(neg)=",fnpix_neg.item()
                     if verbose: print "  prob loss: ",iloss.detach().item(),
                     if verbose and fnpix_pos>0: print " BCE loss(pos)=",iloss_pos.detach().item()/fnpix_pos.item(),
                     if verbose and fnpix_neg>0: print " BCE loss(neg)=",iloss_neg.detach().item()/fnpix_neg.item()
                 else:
                     # BCE-unweighted + Lovasz-Hinge
-                    iloss = 0.5*( self.bce(prob, idmask.float()).mean() + lovasz_hinge_flat(2*prob-1.0,idmask.float()))
+                    loss_bce = self.bce(prob, idmask.float()).mean()
+                    loss_lovasz = lovasz_hinge_flat(2*prob-1.0,idmask.float())
+                    if verbose: print "  bce-loss: ",loss_bce.detach().item()
+                    if verbose: print "  lovasz-loss: ",loss_lovasz.detach().item()
+                    iloss = 0.5*( loss_bce + loss_lovasz )                    
+                    if verbose: print "  combined-loss: ",iloss.detach().item()
                     
                 bloss_instance += iloss
                 
