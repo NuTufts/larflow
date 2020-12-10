@@ -243,7 +243,7 @@ class SpatialEmbedNet(nn.Module):
         else:
             return x_embed_out,x_seed
 
-    def make_clusters(self,coord_t,embed_t,seed_t,verbose=False,sigma_scale=5.0,seed_threshold=0.5):
+    def make_clusters(self,coord_t,embed_v,seed_t,verbose=False,sigma_scale=5.0,seed_threshold=0.5):
 
         loss = SpatialEmbedLoss( self.input_shape, sigma_scale=sigma_scale )
 
@@ -262,13 +262,13 @@ class SpatialEmbedNet(nn.Module):
                 bmask = coord_t[:,3].eq(ib)
 
                 coord_b = fcoord_t[bmask,:]
-                embed_b = embed_t[bmask,:]
+                embed_b = [embed_t[ishape][bmask,:] for ishape in range(self.embedout_shapes)]
                 seed_b  = seed_t[bmask,:]
                 
                 # calc embeded position
-                spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
-                sigma_b   = torch.exp(embed_b[:,3:3+self.nsigma])
-                nvoxels_b = spembed_b.shape[0]
+                spembed_b = [coord_b[:,0:3]+embed_b[ishape][:,0:3] for ishape in range(self.embedout_shapes)]# coordinate + shift
+                sigma_b   = [torch.exp(embed_b[ishape][:,3:3+self.nsigma]) for ishape in range(self.embedout_shapes)]
+                nvoxels_b = spembed_b[0].shape[0]
                 
                 cluster_id_all = torch.zeros( (nvoxels_b,self.nclasses), dtype=torch.int )
                 
@@ -294,13 +294,14 @@ class SpatialEmbedNet(nn.Module):
 
                         maxseed_idx   = torch.argmax( seed_u )
                         maxseed_value = seed_u[maxseed_idx]
+                        maxseed_shape = loss.class_to_shape[c]
 
                         if verbose: print "maxseed index: ",maxseed_idx.item()," value=",maxseed_value.item()
-                        centroid = spembed_b[maxseed_idx,:] # (1,3)
+                        centroid = spembed_b[loss.class_to_shape[c]][maxseed_idx,:] # (1,3)
                         if verbose: print "centroid: ",centroid
-                        s = 1.0e-6+sigma_b[maxseed_idx,:] # (1,3)
+                        s = 1.0e-6+sigma_b[loss.class_to_shape[c]][maxseed_idx,:] # (1,3)
                         if verbose: print "maxseed sigma: ",s
-                        dist = torch.pow(spembed_b-centroid,2)
+                        dist = torch.pow(spembed_b[loss.class_to_shape[c]]-centroid,2)
                         if verbose:
                             d = torch.sum(dist,1)*mask
                             print "average dist^2: ",d.sum()/mask.sum()," (min,max)=(",d[mask>0.5].min(),",",d[mask>0.5].max(),")"
@@ -349,16 +350,16 @@ class SpatialEmbedNet(nn.Module):
                 if verbose: print "==== BATCH ",b," =================="
                 bmask = coord_t[:,3].eq(b)
                 coord_b = fcoord_t[bmask,:]
-                embed_b = embed_t[bmask,:]
+                embed_b = [embed_t[ishape][bmask,:] for ishape in range(self.embedout_shapes)]                            
                 seed_b  = seed_t[bmask,:]
 
                 # calc embeded position
-                spembed_b = coord_b[:,0:3]+embed_b[:,0:3] # coordinate + shift
-                sigma_b   = torch.exp(embed_b[:,3:3+self.nsigma])
-                nvoxels_b = spembed_b.shape[0]
+                spembed_b = [coord_b[:,0:3]+embed_b[ishape][:,0:3] for ishape in range(self.embedout_shapes)]# coordinate + shift
+                sigma_b   = [torch.exp(embed_b[ishape][:,3:3+self.nsigma]) for ishape in range(self.embedout_shapes)]                            
+                nvoxels_b = spembed_b[0].shape[0]
 
                 # location where we accumulate cluster results
-                cluster_id_all = torch.zeros( (nvoxels_b,self.nclasses), dtype=torch.int ).to( embed_t.device )
+                cluster_id_all = torch.zeros( (nvoxels_b,self.nclasses), dtype=torch.int ).to( embed_t[0].device )
 
                 icluster = 0
                 maxval = 1.0
@@ -376,23 +377,25 @@ class SpatialEmbedNet(nn.Module):
                             maxarg = class_maxarg
                     if maxval<0.5:
                         break
+                    maxshape = loss.class_to_shape[maxclass]
 
                     # we cluster using the class
                     if verbose or True: print "FORM CLUSTER[",icluster,"] max-class=",maxclass+1," ///////"
                     if verbose or True: print " max-voxel-index: ",maxarg
                     if verbose or True: print " max-voxel-value: ",maxval
-                    centroid_i = spembed_b[maxarg,:].view( (1,3) )
-                    sigma_i    = sigma_b[maxarg,:].view( (1,3) )
+                    if verbose or True: print " max-voxel-shape: ",maxshape
+                    centroid_i = spembed_b[maxshape][maxarg,:].view( (1,3) )
+                    sigma_i    = sigma_b[maxshape][maxarg,:].view( (1,3) )
                     if verbose or True: print " centroid: ",centroid_i
                     if verbose or True: print " sigma: ",sigma_i
-                    if verbose or True: print " spembed_b: ",spembed_b.shape
-                    prob = torch.exp( -sigma_scale*torch.sum( torch.pow( spembed_b-centroid_i, 2 )*sigma_i, 1 ) )*(unused_pixels.float())
+                    if verbose or True: print " spembed_b: ",spembed_b[maxshape].shape
+                    prob = torch.exp( -sigma_scale*torch.sum( torch.pow( spembed_b[maxshape]-centroid_i, 2 )*sigma_i, 1 ) )*(unused_pixels.float())
                     # no cluster made
                     if (prob>0.5).sum()==0:
                         break
                     cluster_id_all[ prob>0.5, 0 ] = icluster+1
                     icluster += 1
-                batch_clusters.append( (cluster_id_all,spembed_b,seed_b) )
+                batch_clusters.append( (cluster_id_all,spembed_b[0],seed_b) )
                 
         return batch_clusters
 
