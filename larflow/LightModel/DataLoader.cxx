@@ -1,5 +1,8 @@
 #include "DataLoader.h"
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+
 #include <iostream>
 
 namespace larflow {
@@ -116,32 +119,38 @@ namespace lightmodel {
     int& nfilled,
     bool withtruth ) {
   */
-  PyArrayObject* DataLoader::make_arrays() {
+  PyObject* DataLoader::make_arrays() {
     
     if ( !_setup_numpy ) {
       import_array1(0);
       _setup_numpy = true;
     }
-  
     /*
     // CLUSTER INFO ARRAYS
-    PyArrayObject* index_array = nullptr;
-    PyArrayObject* feature_array = nullptr;
-    make_clusterinfo_arrays( index_array, feature_array );
+    PyArrayObject* voxel_coord_array = nullptr; // row, col, depth 
+    PyArrayObject* voxel_feature_array = nullptr; // charge values
+    make_clusterinfo_arrays( voxel_coord_array, voxel_feature_array );
     */
-    
     // FLASH INFO ARRAY
     PyArrayObject* flashinfo_label = nullptr;
-
-    std::cout << "Made arrays n all that" << std::endl;
+    make_flashinfo_arrays( flashinfo_label );
+    PyObject *flash_label_key = Py_BuildValue("s","flash_info");
     
-    return make_flashinfo_arrays( flashinfo_label );
+    std::cout << "Made arrays n all that" << std::endl;
+
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, flash_label_key, (PyObject*)flashinfo_label);
+
+    Py_DECREF(flashinfo_label);
+    
+    //    return make_flashinfo_arrays( flashinfo_label );
+    return d;
     
   }
 
   /*
-  int DataLoader::make_clusterinfo_arrays( PyArrayObject*& index_array,
-					   PyArrayObject*& feature_array ) {
+  int DataLoader::make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
+					   PyArrayObject*& voxel_feature_array ) {
     
     // make feature (charge) array
     int feature_nd = 1;
@@ -161,10 +170,8 @@ namespace lightmodel {
   }
   */
   
-  PyArrayObject* DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
+  int DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
 
-
-    
     // make flash array
     int flashinfo_nd = 1;
     npy_intp flashinfo_dims[] = { 32 };
@@ -181,7 +188,7 @@ namespace lightmodel {
 
     std::cout << "End of make array fn" << std::endl;
     
-    return flashinfo_label;
+    return 0;
   }
 
 }

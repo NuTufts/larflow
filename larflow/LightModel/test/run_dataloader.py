@@ -48,8 +48,13 @@ dataloader.load_entry(ientry)
 #    dataloader.make_arrays()
 
 #arr = []
-arr = dataloader.make_arrays()
+data_dict = dataloader.make_arrays()
+print("data_dict['flash_info']: ", data_dict["flash_info"])
+print("shape:", data_dict["flash_info"].shape)
+#print(data_dict.items())
 
-print(arr.shape)
+#arr = dataloader.make_arrays()
+
+#print(arr.shape)
 
 print("== FIN ==")

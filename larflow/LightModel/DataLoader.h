@@ -87,7 +87,7 @@ namespace lightmodel {
                            bool withtruth );
     */
 
-    PyArrayObject* make_arrays();
+    PyObject* make_arrays();
     
   protected:
     /*    
@@ -110,7 +110,7 @@ namespace lightmodel {
                              PyArrayObject* match_array,
                              PyArrayObject*& kpshift_label );
     */
-    PyArrayObject* make_flashinfo_arrays( PyArrayObject*& flashinfo_label );
+    int make_flashinfo_arrays( PyArrayObject*& flashinfo_label );
     
     
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
