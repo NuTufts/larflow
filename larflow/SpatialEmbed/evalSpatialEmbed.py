@@ -16,7 +16,7 @@ import torch.optim as optim
 import pickle
 from evalMetric import Evaluation
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from SpatialEmbed import SpatialEmbed, spatialembed_loss, post_process
 from particle_list import *
 from SpatialEmbedVisualization import *
@@ -30,8 +30,10 @@ args = parser.parse_args()
 
 dtype = torch.float
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device('cpu')
-
+if torch.cuda.is_available():
+    print "On GPU"
+else:
+    print "On CPU"
 
 # I=0, U=0, return 1, label "fake"
 # I=0, U>0, return 0, label "real"
@@ -47,16 +49,16 @@ def IoU(outputs, labels):
     elif (isum == 0) and (usum > 0): return (0, "I0U1")
     else: return (((isum + epsilon)/(float(usum) + epsilon)), "I1U1")
 
-
 def all_instances_from_seedmap(seeds):
     folded_binary = (seeds > 0.5).any(axis=1)
     return folded_binary
 
 def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname, verbose=False):
     # Three different evaluation metrics:
-    #     1) Binary "yes or no" this pixel is in any instance
-    #     2) Evaluation for each type, purely based on what the offsets and seeds give
-    #     3) Evaluation for each type, where overlaps between types are eliminated
+    #     1) Binary "yes or no" this pixel is in any instance, from seedmap
+    #     2) Binary "yes or no" this pixel is in any instance, from post-processing process
+    #     3) Evaluation for each type, purely based on what the offsets and seeds give
+    #     4) Evaluation for each type, where overlaps between types are eliminated
 
     dtype={'names':['f{}'.format(i) for i in range(2)],  # for fast union of arrays holding tuples
            'formats':2*[numpy.float32]}                  # https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
@@ -113,42 +115,6 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     if verbose: print "types_individual: ", ', '.join([str(elem) for elem in types_individual_values])
     if verbose: print "types_collective: ", ', '.join([str(elem) for elem in types_collective_values])
 
-    # ============================ debugging
-    # temp_coord_t = numpy.array(coord_t)
-    # x, y, dummy = zip(*numpy.array(coord_t))
-
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[0]), cmap=plt.cm.bwr)
-    # plt.title("Type 1 greedy")
-    # plt.savefig("type1greedy.png")
-    # plt.clf()
-
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[1]), cmap=plt.cm.bwr)
-    # plt.title("Type 2 greedy")
-    # plt.savefig("type2greedy.png")
-    # plt.clf()
-    
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[2]), cmap=plt.cm.bwr)
-    # plt.title("Type 3 greedy")
-    # plt.savefig("type3greedy.png")
-    # plt.clf()
-    
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[3]), cmap=plt.cm.bwr)
-    # plt.title("Type 4 greedy")
-    # plt.savefig("type4greedy.png")
-    # plt.clf()
-
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[4]), cmap=plt.cm.bwr)
-    # plt.title("Type 5 greedy")
-    # plt.savefig("type5greedy.png")
-    # plt.clf()
-
-    # plt.scatter(x, y, marker='.', c=list(learned_binary_maps[5]), cmap=plt.cm.bwr)
-    # plt.title("Type 6 greedy")
-    # plt.savefig("type6greedy.png")
-    # plt.clf()
-
-    # exit()
-    # ============================ debugging 
 
     return Evaluation(of_any_instance_seeds=of_any_instance_seeds,
                       of_any_instance_class=of_any_instance_class,
@@ -207,6 +173,18 @@ for filenum, filename in enumerate(test_files):
             coord_plane = torch.from_numpy(coord_dict[plane]).float().to(device)
             feat_plane =  torch.from_numpy(feat_dict[plane]).float().to(device)
 
+    
+            # DELETE ALL NON-NEUTRINO PIXELS
+            folded_instances = torch.max(instances, dim=0)[0]
+            folded_instances = folded_instances.type(torch.uint8)
+
+            coord_plane = coord_plane[folded_instances]
+            feat_plane = feat_plane[folded_instances]
+            instances = instances.t()[folded_instances].t()
+            class_maps = class_maps.t()[folded_instances].t()
+            #################################
+
+
             offsets, seeds = model.forward_features(coord_plane, feat_plane, 1)
 
             results = numpy.array(post_process(coord_plane.to('cpu'), offsets.detach().cpu(), seeds.detach().cpu()))
@@ -248,19 +226,17 @@ for filenum, filename in enumerate(test_files):
                                                         verbose=True))
             
         events += 1
-        if events == 3:
-            break
 
-        if (events % 1) == 0:
+        if (events % 10) == 0:
             print("saving")
             save_dict = {"scores": evaluation_metrics}
             save_name = "{}_test_evaluations.pickle".format(os.path.splitext(args.model)[0])
             pickle.dump(save_dict, open(save_name, 'wb'))
                 
 
-
-print evaluation_metrics
-
 save_dict = {"scores": evaluation_metrics}
 save_name = "{}_test_evaluations.pickle".format(os.path.splitext(args.model)[0])
 pickle.dump(save_dict, open(save_name, 'wb'))
+
+print "== Fin =="
+
