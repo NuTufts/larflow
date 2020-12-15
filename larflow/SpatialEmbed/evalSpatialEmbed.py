@@ -91,10 +91,6 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
 
     learned_binary_maps_collective = numpy.transpose(learned_binary_maps_collective)  # to get each type as a row
     
-    seeds = seeds.t() # to get each type as a row
-
-
-
     # 1
     folded_instance_binary_truth = numpy.array(entry.DataBranch.get_instance_binaries(plane)).any(axis=0)
     
@@ -106,10 +102,40 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     folded_neutrino_instances = folded_instances.type(torch.bool)
 
     folded_instance_binary_truth = torch.from_numpy(folded_instance_binary_truth).to(device)
-    folded_instance_binary_truth = folded_instance_binary_truth[neutrino_instances]
+    folded_instance_binary_truth = folded_instance_binary_truth[folded_neutrino_instances]
     folded_instance_binary_truth = numpy.array(folded_instance_binary_truth)
+
+    folded_learned_binary_maps = torch.from_numpy(folded_learned_binary_maps).to(device)
+    folded_learned_binary_maps = folded_learned_binary_maps[folded_neutrino_instances]
+    folded_learned_binary_maps = numpy.array(folded_learned_binary_maps)
+
+    # Make the binary maps
+    neutrino_learned_binary_maps = []
+    for class_map in learned_class_maps: # convert the learned_class_map sparse arrays to a binary map
+                                         # of the same size as coord_t. aka un-sparsify
+        binary_set = set([(elem[0], elem[1]) for elem in class_map])
+        binary_map = numpy.array([((p1, p2) in binary_set) for (p1, p2, p3) in coord_t])
+
+        binary_map = torch.from_numpy(binary_map)[folded_neutrino_instances]
+        binary_map = list(numpy.array(binary_map))
+
+        neutrino_learned_binary_maps.append(binary_map)
+    neutrino_learned_binary_maps = numpy.array(neutrino_learned_binary_maps)
+
+    neutrino_learned_binary_maps_collective = []
+    for row in learned_binary_maps_collective:
+        torch_row = torch.from_numpy(row)
+        neutrino_learned_binary_maps.append(list(numpy.array(torch_row[folded_neutrino_instances])))
+    neutrino_learned_binary_maps_collective = numpy.array(neutrino_learned_binary_maps_collective)
+
+    learned_binary_maps = neutrino_learned_binary_maps
+    learned_binary_maps_collective = neutrino_learned_binary_maps_collective
+
     ##########################################
 
+
+
+    seeds = seeds.t() # to get each type as a row
     folded_seeds = numpy.array(seeds > 0.5).any(axis=0)
     of_any_instance_seeds = IoU(folded_seeds, folded_instance_binary_truth)
 
