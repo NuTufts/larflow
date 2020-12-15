@@ -142,7 +142,7 @@ class SpatialEmbed(nn.Module):
 
         # generate offset map features
         offset_map = self.source_inputlayer_offset(input_plane0)
-        offset_map = self.stem_offset( offset_map )         
+        offset_map = self.stem_offset( offset_map )
         if verbose: print "stem_offset=   ",offset_map.features.shape
         if self.use_unet: 
             offset_map = self.unet_layers_offset(offset_map)        
@@ -189,6 +189,7 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
         print "      binary_maps: ",binary_maps.shape
         print "      class seg: ",class_segmentation.shape
         print
+
 
     epsilon = 0.01
 
@@ -359,6 +360,8 @@ def post_process(coord_t, offsets, seeds):
 
         # initialize first max pixel
         max_idx, max_val = max_with_index(instance_type, visited)
+        if max_idx == -1:
+            continue
         c_kx, c_ky  = coord_t[max_idx][0], coord_t[max_idx][1]
         cent_eix, cent_eiy = c_kx + offsets[max_idx][0], c_ky + offsets[max_idx][1]
         sigma_x, sigma_y  = offsets[max_idx][2], offsets[max_idx][3]
