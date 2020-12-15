@@ -63,6 +63,7 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     dtype={'names':['f{}'.format(i) for i in range(2)],  # for fast union of arrays holding tuples
            'formats':2*[numpy.float32]}                  # https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
 
+
     learned_class_maps = []
     for class_type in results:  # union together all instances of each type, and put that into one array learned_class_maps
         folded_class = []
@@ -85,17 +86,37 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     # 1
     folded_instance_binary_truth = numpy.array(entry.DataBranch.get_instance_binaries(plane)).any(axis=0)
     
-    #  REMOVE NON NEUTRINO
+    #################  REMOVE NON NEUTRINO
     neutrino_instances = entry.DataBranch.get_instance_binaries(plane)
-    neutrino_instances = torch.Tensor(instances).float().to(device)
+    neutrino_instances = torch.Tensor(neutrino_instances).float().to(device)
 
-    folded_neutrino_instances = torch.max(instances, dim=0)[0]
+    folded_neutrino_instances = torch.max(neutrino_instances, dim=0)[0]
     folded_neutrino_instances = folded_instances.type(torch.bool)
 
     folded_instance_binary_truth = torch.from_numpy(folded_instance_binary_truth).to(device)
     folded_instance_binary_truth = folded_instance_binary_truth[folded_neutrino_instances]
     folded_instance_binary_truth = numpy.array(folded_instance_binary_truth)
 
+
+    if numpy.size(numpy.array(results)) == 0:
+        of_any_instance_seeds = IoU(folded_seeds, folded_instance_binary_truth)
+        of_any_instance_class = IoU(numpy.array(torch.from_numpy(folded_instance_binary_truth)*0), folded_instance_binary_truth)
+        types_individual_values = []
+        types_collective_values = []
+        for i, particle_name in enumerate(particle_list):
+            class_map = entry.DataBranch.get_class_map(plane, particle_name, 1)
+            class_map = numpy.array(torch.from_numpy(class_map)[folded_neutrino_instances])
+            types_individual_values.append(IoU(numpy.array(torch.from_numpy(class_map)*0), class_map))
+            types_collective_values.append(IoU(numpy.array(torch.from_numpy(class_map)*0), class_map))
+
+        return Evaluation(of_any_instance_seeds=of_any_instance_seeds,
+                            of_any_instance_class=of_any_instance_class,
+                            types_individual=types_individual_values,
+                            types_collective=types_collective_values,
+                            num_truth_pixels=int(folded_instance_binary_truth.sum()),
+                            name=entryname)
+
+    folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
     folded_learned_binary_maps = torch.from_numpy(folded_learned_binary_maps).to(device)
     folded_learned_binary_maps = folded_learned_binary_maps[folded_neutrino_instances]
     folded_learned_binary_maps = numpy.array(folded_learned_binary_maps)
@@ -118,13 +139,12 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
 
     # make the segregated binary maps
     learned_binary_maps_collective = numpy.zeros(numpy.shape(seeds))
-    folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
+    # folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
     for i in range(numpy.shape(seeds)[0]):  # make a binary map like above, except with no overlaps in a pixel
         if folded_learned_binary_maps[i]:   # reach into the seeds and pick out the highest probability to determine class
             learned_binary_maps_collective[i][numpy.argmax(numpy.array(seeds[i]) * learned_binary_maps[:,i])] = 1  # class the duplicates belong to. multiply by 
     learned_binary_maps_collective = numpy.transpose(learned_binary_maps_collective)  # to get each type as a row
     
-
 
     seeds = seeds.t() # to get each type as a row
     folded_seeds = numpy.array(seeds > 0.5).any(axis=0)
@@ -141,6 +161,8 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     types_collective_values = []
     for i, particle_name in enumerate(particle_list):
         class_map = entry.DataBranch.get_class_map(plane, particle_name, 1)
+        class_map = numpy.array(torch.from_numpy(class_map)[folded_neutrino_instances])
+
         types_individual_values.append(IoU(learned_binary_maps[i], class_map))
         types_collective_values.append(IoU(learned_binary_maps_collective[i], class_map))
 
