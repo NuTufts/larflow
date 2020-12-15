@@ -93,8 +93,20 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
     
     seeds = seeds.t() # to get each type as a row
 
+
+
     # 1
     folded_instance_binary_truth = numpy.array(entry.DataBranch.get_instance_binaries(plane)).any(axis=0)
+    
+    #  REMOVE NON NEUTRINO
+    neutrino_instances = entry.DataBranch.get_instance_binaries(plane)
+    neutrino_instances = torch.Tensor(instances).float().to(device)
+
+    folded_neutrino_instances = torch.max(instances, dim=0)[0]
+    folded_neutrino_instances = folded_instances.type(torch.bool)
+    folded_instance_binary_truth = folded_instance_binary_truth[neutrino_instances]
+    ##########################################
+
     folded_seeds = numpy.array(seeds > 0.5).any(axis=0)
     of_any_instance_seeds = IoU(folded_seeds, folded_instance_binary_truth)
 
