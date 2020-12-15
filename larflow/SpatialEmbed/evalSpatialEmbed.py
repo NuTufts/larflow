@@ -104,7 +104,10 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
 
     folded_neutrino_instances = torch.max(instances, dim=0)[0]
     folded_neutrino_instances = folded_instances.type(torch.bool)
+
+    folded_instance_binary_truth = torch.from_numpy(folded_instance_binary_truth).to(device)
     folded_instance_binary_truth = folded_instance_binary_truth[neutrino_instances]
+    folded_instance_binary_truth = numpy.array(folded_instance_binary_truth)
     ##########################################
 
     folded_seeds = numpy.array(seeds > 0.5).any(axis=0)
