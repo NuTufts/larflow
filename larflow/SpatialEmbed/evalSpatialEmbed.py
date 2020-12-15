@@ -175,6 +175,14 @@ for filenum, filename in enumerate(test_files):
 
     
             # DELETE ALL NON-NEUTRINO PIXELS
+            instances = entry.DataBranch.get_instance_binaries(plane)
+            instances = torch.Tensor(instances).float().to(device)
+
+            # skip if there's no instances
+            if instances.numel() == 0:
+                print "no instances!"
+                continue
+                
             folded_instances = torch.max(instances, dim=0)[0]
             folded_instances = folded_instances.type(torch.uint8)
 
