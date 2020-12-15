@@ -182,14 +182,13 @@ for filenum, filename in enumerate(test_files):
             if instances.numel() == 0:
                 print "no instances!"
                 continue
-                
+
             folded_instances = torch.max(instances, dim=0)[0]
-            folded_instances = folded_instances.type(torch.uint8)
+            folded_instances = folded_instances.type(torch.bool)
 
             coord_plane = coord_plane[folded_instances]
             feat_plane = feat_plane[folded_instances]
             instances = instances.t()[folded_instances].t()
-            class_maps = class_maps.t()[folded_instances].t()
             #################################
 
 
