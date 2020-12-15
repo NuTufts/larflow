@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 import sparseconvnet as scn
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import math
 import particle_list
 
