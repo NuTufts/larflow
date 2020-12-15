@@ -99,7 +99,10 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
 
 
     if numpy.size(numpy.array(results)) == 0:
+        seeds = seeds.t() # to get each type as a row
+        folded_seeds = numpy.array(seeds > 0.5).any(axis=0)
         of_any_instance_seeds = IoU(folded_seeds, folded_instance_binary_truth)
+        seeds = seeds.t()
         of_any_instance_class = IoU(numpy.array(torch.from_numpy(folded_instance_binary_truth)*0), folded_instance_binary_truth)
         types_individual_values = []
         types_collective_values = []
@@ -115,6 +118,7 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
                             types_collective=types_collective_values,
                             num_truth_pixels=int(folded_instance_binary_truth.sum()),
                             name=entryname)
+
 
     folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
     folded_learned_binary_maps = torch.from_numpy(folded_learned_binary_maps).to(device)
