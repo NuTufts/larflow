@@ -82,15 +82,6 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
         learned_binary_maps.append(binary_map)
     learned_binary_maps = numpy.array(learned_binary_maps)
 
-    # make the segregated binary maps
-    learned_binary_maps_collective = numpy.zeros(numpy.shape(seeds))
-    folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
-    for i in range(numpy.shape(seeds)[0]):  # make a binary map like above, except with no overlaps in a pixel
-        if folded_learned_binary_maps[i]:   # reach into the seeds and pick out the highest probability to determine class
-            learned_binary_maps_collective[i][numpy.argmax(numpy.array(seeds[i]) * learned_binary_maps[:,i])] = 1  # class the duplicates belong to. multiply by 
-
-    learned_binary_maps_collective = numpy.transpose(learned_binary_maps_collective)  # to get each type as a row
-    
     # 1
     folded_instance_binary_truth = numpy.array(entry.DataBranch.get_instance_binaries(plane)).any(axis=0)
     
@@ -122,17 +113,17 @@ def evaluation_metric(coord_t, entry, results, offsets, seeds, plane, entryname,
         neutrino_learned_binary_maps.append(binary_map)
     neutrino_learned_binary_maps = numpy.array(neutrino_learned_binary_maps)
 
-    neutrino_learned_binary_maps_collective = []
-    for row in learned_binary_maps_collective:
-        torch_row = torch.from_numpy(row)
-        neutrino_learned_binary_maps.append(list(numpy.array(torch_row[folded_neutrino_instances])))
-    neutrino_learned_binary_maps_collective = numpy.array(neutrino_learned_binary_maps_collective)
-
     learned_binary_maps = neutrino_learned_binary_maps
-    learned_binary_maps_collective = neutrino_learned_binary_maps_collective
-
     ##########################################
 
+    # make the segregated binary maps
+    learned_binary_maps_collective = numpy.zeros(numpy.shape(seeds))
+    folded_learned_binary_maps = numpy.array(learned_binary_maps).any(axis=0)
+    for i in range(numpy.shape(seeds)[0]):  # make a binary map like above, except with no overlaps in a pixel
+        if folded_learned_binary_maps[i]:   # reach into the seeds and pick out the highest probability to determine class
+            learned_binary_maps_collective[i][numpy.argmax(numpy.array(seeds[i]) * learned_binary_maps[:,i])] = 1  # class the duplicates belong to. multiply by 
+    learned_binary_maps_collective = numpy.transpose(learned_binary_maps_collective)  # to get each type as a row
+    
 
 
     seeds = seeds.t() # to get each type as a row
