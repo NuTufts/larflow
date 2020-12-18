@@ -937,7 +937,79 @@ namespace prep {
     return make_triplet_array( nsamples, saved_idx_v, 0, withtruth, nfilled );
 
   }
+
+  /**
+   * @brief Make ndarray using only true triplets
+   */
+  PyObject* PrepMatchTriplets::make_truthonly_triplet_ndarray()
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+    
+    int ntruepts = 0;
+    for (auto const& truth : _truth_v ) {
+      if ( truth ) ntruepts++;
+    }
+
+    std::cout << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] number of true points: " << ntruepts << std::endl;
+    
+    // space point
+    npy_intp spacepoint_t_dim[] = { (long int)ntruepts, 3 };
+    PyArrayObject* spacepoint_t = (PyArrayObject*)PyArray_SimpleNew( 2, spacepoint_t_dim, NPY_FLOAT );
+    PyObject *spacepoint_t_key = Py_BuildValue("s", "spacepoint_t");
+
+    int ifilled = 0;
+    std::vector<int> idx_v(ntruepts);
+    for (size_t i=0; i<_truth_v.size(); i++) {
+      if ( _truth_v[i]==1 ) {
+        for (int j=0; j<3; j++) {
+          *((float*)PyArray_GETPTR2(spacepoint_t,ifilled,j)) = _pos_v[i][j];
+        }
+        idx_v[ifilled] = i;
+        ifilled++;
+      }
+    }
+    
+    // image coords
+    npy_intp imgcoord_t_dim[] = { (long int)ntruepts, 4 };
+    PyArrayObject* imgcoord_t = (PyArrayObject*)PyArray_SimpleNew( 2, imgcoord_t_dim, NPY_LONG );
+    PyObject *imgcoord_t_key = Py_BuildValue("s", "imgcoord_t");
+
+    // instance label
+    npy_intp instance_t_dim[] = { (long int)ntruepts };
+    PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
+    PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
+
+    // particle class label
+    npy_intp segment_t_dim[] = { (long int)ntruepts };
+    PyArrayObject* segment_t = (PyArrayObject*)PyArray_SimpleNew( 1, segment_t_dim, NPY_LONG );
+    PyObject *segment_t_key = Py_BuildValue("s", "segment_t");
+
+    ifilled = 0;
+    for (auto& idx : idx_v ) {
+      auto const& triplet = _triplet_v[idx];
+      *((long*)PyArray_GETPTR2(imgcoord_t,ifilled,3)) = triplet[3];
+      for (int p=0; p<3; p++ ) {
+        *((long*)PyArray_GETPTR2(imgcoord_t,ifilled,p)) = _sparseimg_vv[p][triplet[p]].col;
+      }
+      *((long*)PyArray_GETPTR1(instance_t,ifilled)) = _instance_id_v[idx];
+      *((long*)PyArray_GETPTR1(segment_t,ifilled))  = _pdg_v[idx];
+      ifilled++;
+    }
+
+    // Create and fill dictionary
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, spacepoint_t_key, (PyObject*)spacepoint_t);
+    PyDict_SetItem(d, imgcoord_t_key,   (PyObject*)imgcoord_t);
+    PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
+    PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t); 
+    
+
+    return d;
+  }
   
- 
 }  
 }

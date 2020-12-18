@@ -118,7 +118,10 @@ namespace prep {
                                            const int& nhard_samples,
                                            PyObject* triplet_scores,                                                            
                                            int& nfilled,
-                                           bool withtruth );    
+                                           bool withtruth );
+
+    // Truth Info
+    PyObject* make_truthonly_triplet_ndarray();
     
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 
