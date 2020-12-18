@@ -88,11 +88,16 @@ namespace lightmodel {
     */
 
     PyObject* make_arrays();
+
+  private:
+
+    long size; // size of a given entry
     
   protected:
         
     int make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
-				 PyArrayObject*& voxel_feature_array );
+				 PyArrayObject*& voxel_feature_array,
+				 int N );
     
     /*    
     int make_flashinfo_arrays( const int& num_max_samples,

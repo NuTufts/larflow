@@ -74,7 +74,11 @@ namespace lightmodel {
     unsigned long bytes = tclusterflash->GetEntry(entry);
     
     std::cout << "Got entry " << entry << std::endl;
-    
+
+    // after grabbing entry, check size of vectors
+    size = voxel_row->size();
+
+    std::cout << "Voxel vector size: " << size << std::endl;
     
     return bytes;
 
@@ -130,7 +134,7 @@ namespace lightmodel {
     // CLUSTER INFO ARRAYS
     PyArrayObject* voxel_coord_array = nullptr; // row, col, depth 
     PyArrayObject* voxel_feature_array = nullptr; // charge values
-    make_clusterinfo_arrays( voxel_coord_array, voxel_feature_array );
+    make_clusterinfo_arrays( voxel_coord_array, voxel_feature_array, size );
     PyObject *coord_array_key = Py_BuildValue("s","coord_array");
     PyObject *charge_array_key = Py_BuildValue("s","charge_array");
     
@@ -157,12 +161,13 @@ namespace lightmodel {
 
   
   int DataLoader::make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
-					   PyArrayObject*& voxel_feature_array ) {
+					   PyArrayObject*& voxel_feature_array,
+					   int N) {
 
 
     // make coordinate array
     int coord_nd = 2;
-    npy_intp coord_dims[] = { 10, 4 };
+    npy_intp coord_dims[] = { N, 4 };
     voxel_coord_array = (PyArrayObject*)PyArray_SimpleNew( coord_nd, coord_dims, NPY_LONG );
     
     // loop through each coord value
@@ -200,7 +205,7 @@ namespace lightmodel {
     
     // make feature (charge) array
     int feature_nd = 1;
-    npy_intp feature_dims[] = { 10 };
+    npy_intp feature_dims[] = { N };
     voxel_feature_array = (PyArrayObject*)PyArray_SimpleNew( feature_nd, feature_dims, NPY_FLOAT );
 
     // loop through each charge values
