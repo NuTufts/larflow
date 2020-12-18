@@ -90,10 +90,10 @@ namespace lightmodel {
     PyObject* make_arrays();
     
   protected:
-    /*    
-    int make_clusterinfo_arrays( PyArrayObject*& index_array,
-				 PyArrayObject*& feature_array );
-    */
+        
+    int make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
+				 PyArrayObject*& voxel_feature_array );
+    
     /*    
     int make_flashinfo_arrays( const int& num_max_samples,
 			   int& nfilled,

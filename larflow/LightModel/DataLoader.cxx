@@ -74,7 +74,8 @@ namespace lightmodel {
     unsigned long bytes = tclusterflash->GetEntry(entry);
     
     std::cout << "Got entry " << entry << std::endl;
-
+    
+    
     return bytes;
 
 
@@ -125,50 +126,95 @@ namespace lightmodel {
       import_array1(0);
       _setup_numpy = true;
     }
-    /*
+    
     // CLUSTER INFO ARRAYS
     PyArrayObject* voxel_coord_array = nullptr; // row, col, depth 
     PyArrayObject* voxel_feature_array = nullptr; // charge values
     make_clusterinfo_arrays( voxel_coord_array, voxel_feature_array );
-    */
+    PyObject *coord_array_key = Py_BuildValue("s","coord_array");
+    PyObject *charge_array_key = Py_BuildValue("s","charge_array");
+    
     // FLASH INFO ARRAY
     PyArrayObject* flashinfo_label = nullptr;
     make_flashinfo_arrays( flashinfo_label );
     PyObject *flash_label_key = Py_BuildValue("s","flash_info");
-    
+
     std::cout << "Made arrays n all that" << std::endl;
 
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, flash_label_key, (PyObject*)flashinfo_label);
+    PyDict_SetItem(d, coord_array_key, (PyObject*)voxel_coord_array);
+    PyDict_SetItem(d, charge_array_key, (PyObject*)voxel_feature_array);
 
     Py_DECREF(flashinfo_label);
+    Py_DECREF(voxel_coord_array);
+    Py_DECREF(voxel_feature_array);
     
     //    return make_flashinfo_arrays( flashinfo_label );
     return d;
     
   }
 
-  /*
+  
   int DataLoader::make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
 					   PyArrayObject*& voxel_feature_array ) {
+
+
+    // make coordinate array
+    int coord_nd = 2;
+    npy_intp coord_dims[] = { 10, 4 };
+    voxel_coord_array = (PyArrayObject*)PyArray_SimpleNew( coord_nd, coord_dims, NPY_LONG );
+    
+    // loop through each coord value
+
+    for (int j = 0; j < coord_dims[0]; j++) {
+      
+      //      for (int i = 0; i < coord_dims[1]; i++ ) {
+      long row = voxel_row->at( j );
+      long col = voxel_col->at( j );
+      long depth = voxel_depth->at( j );
+      long batch = 0;
+      *((long*)PyArray_GETPTR2(voxel_coord_array,j,0)) = (long)row;
+      *((long*)PyArray_GETPTR2(voxel_coord_array,j,1)) = (long)col;
+      *((long*)PyArray_GETPTR2(voxel_coord_array,j,2)) = (long)depth;
+      *((long*)PyArray_GETPTR2(voxel_coord_array,j,3)) = (long)batch;
+      //      }
+      
+    }
+    /*
+    for (int i = 0; i < coord_dims[1]; i++ ) {
+      long label = voxel_col->at( i );
+      *((long*)PyArray_GETPTR2(voxel_coord_array,1,i)) = (long)label;
+    }
+    
+    for (int i = 0; i < coord_dims[1]; i++ ) {
+      long label = voxel_depth->at( i );
+      *((long*)PyArray_GETPTR2(voxel_coord_array,2,i)) = (long)label;
+    }
+    
+    for (int i = 0; i < coord_dims[1]; i++ ) {
+      long label = 0;
+      *((long*)PyArray_GETPTR2(voxel_coord_array,3,i)) = (long)label;
+    }
+    */
     
     // make feature (charge) array
     int feature_nd = 1;
-    npy_intp feature_dims[] = { 32 };
-    flashinfo_label = (PyArrayObject*)PyArray_SimpleNew( flashinfo_nd, flashinfo_dims, NPY_FLOAT );
+    npy_intp feature_dims[] = { 10 };
+    voxel_feature_array = (PyArrayObject*)PyArray_SimpleNew( feature_nd, feature_dims, NPY_FLOAT );
 
-    // loop through the 32 PMT values
-    for (int i = 0; i < flashinfo_dims[0]; i++ ) {
+    // loop through each charge values
+    for (int i = 0; i < feature_dims[0]; i++ ) {
 
-      float label = flash_v->at( i );
+      float label = voxel_charge->at( i );
 
-      *((float*)PyArray_GETPTR1(flashinfo_label,i)) = (float)label;
+      *((float*)PyArray_GETPTR1(voxel_feature_array,i)) = (float)label;
       
     }
     
     return 0;
   }
-  */
+  
   
   int DataLoader::make_flashinfo_arrays( PyArrayObject*& flashinfo_label ) {
 

@@ -52,6 +52,16 @@ data_dict = dataloader.make_arrays()
 print("data_dict['flash_info']: ", data_dict["flash_info"])
 print("shape:", data_dict["flash_info"].shape)
 #print(data_dict.items())
+print("data_dict['charge_array']: ", data_dict["charge_array"])
+print("shape:", data_dict["charge_array"].shape)
+
+print("data_dict['coord_array']: ", data_dict["coord_array"])
+print("shape:", data_dict["coord_array"].shape)
+
+#arr = data_dict["coord_array"].reshape((10,4))
+
+#print("arr: ",arr)
+#print(arr.shape)
 
 #arr = dataloader.make_arrays()
 
