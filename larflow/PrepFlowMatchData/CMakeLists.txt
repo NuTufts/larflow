@@ -12,6 +12,7 @@ set( HEADERS WireOverlap.h
   #MatchTripletProcessor.h
   #PyFlowMatchData.hh
   PrepSSNetTriplet.h
+  #TripletIO.h
   )
 
 add_library( ${LIBNAME} SHARED
@@ -24,6 +25,7 @@ add_library( ${LIBNAME} SHARED
   #PrepFlowMatchData.cxx
   #PyFlowMatchData.cxx
   PrepSSNetTriplet.cxx
+  #TripletIO.cxx
   )
 
 # create a property to hold our headers

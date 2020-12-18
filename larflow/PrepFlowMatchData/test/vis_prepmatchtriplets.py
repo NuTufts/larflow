@@ -1,6 +1,11 @@
 from __future__ import print_function
 import os,sys,argparse,json
 
+parser = argparse.ArgumentParser(description='Run Prep LArFlow Match Data')
+parser.add_argument("-i","--input-larmatch",required=True,type=str,help="Input larmatch file")
+parser.add_argument("-ll","--input-larlite",required=False,type=str,default=False,help="Input larlite file")
+args = parser.parse_args(sys.argv[1:])
+
 import numpy as np
 import ROOT as rt
 from larlite import larlite
@@ -27,12 +32,15 @@ detdata = lardly.DetectorOutline()
 crtdet  = lardly.CRTOutline()
 
 # LARLITE
-ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
-ioll.add_in_filename( larlite_input )
-ioll.open()
+if args.input_larlite:
+    ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+    ioll.add_in_filename( args.input_larlite )
+    ioll.open()
+else:
+    ioll = None
 
 # LARMATCH DATA
-tfile = rt.TFile(inputfile,"read")
+tfile = rt.TFile(args.input_larmatch,"read")
 tfile.ls()
 tree = tfile.Get("larmatchtriplet")
 nentries = tree.GetEntries()
@@ -46,10 +54,7 @@ def make_figures(entry):
     larcv.SetPyUtil()    
     print("making figures for entry={}".format(entry))
     global tree
-    global ioll
     tree.GetEntry(entry)
-    ioll.go_to(entry)
-    
 
     npts = tree.triplet_v.front()._pos_v.size()
     pos_v = np.zeros( (npts, 4) )
@@ -73,9 +78,12 @@ def make_figures(entry):
 
 
     # MC info to compare
-    ev_mctrack = ioll.get_data(larlite.data.kMCTrack, "mcreco" )
-    print("number of mctracks: ",ev_mctrack.size())
-    cluster_traces_v += lardly.data.visualize_larlite_event_mctrack( ev_mctrack )
+    if ioll:
+        global ioll
+        ioll.go_to(entry)        
+        ev_mctrack = ioll.get_data(larlite.data.kMCTrack, "mcreco" )
+        print("number of mctracks: ",ev_mctrack.size())
+        cluster_traces_v += lardly.data.visualize_larlite_event_mctrack( ev_mctrack )
 
     return detdata.getlines()+cluster_traces_v
 
@@ -113,7 +121,7 @@ plot_layout = {
         "xaxis": axis_template,
         "yaxis": axis_template,
         "zaxis": axis_template,
-        #"aspectratio": {"x": 3, "y": 1, "z": 3},
+        "aspectratio": {"x": 1, "y": 1, "z": 3},
         "camera": {"eye": {"x": 1, "y": 1, "z": 1},
                    "up":dict(x=0, y=1, z=0)},
         "annotations": [],

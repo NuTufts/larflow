@@ -52,7 +52,7 @@ namespace prep {
                   std::string chstatus_producer,
                   const float adc_threshold=10.0,
                   const bool check_wire_intersection=false );
-    
+
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
     void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
