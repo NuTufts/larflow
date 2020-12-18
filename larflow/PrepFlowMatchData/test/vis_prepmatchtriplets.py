@@ -33,22 +33,26 @@ detdata = lardly.DetectorOutline()
 crtdet  = lardly.CRTOutline()
 
 particle_id_color = {0:(0,0,0),     # no label
-                     1:(255,0,0),   # electron
-                     2:(0,255,0),   # gamma
-                     3:(0,125,125), # pi0
-                     4:(255,0,255), # Muon
-                     5:(255,255,0), # Kaon
-                     6:(255,165,0), # pion                     
-                     7:(0,0,255)}   # proton
+                     1:(0,0,0),     # Cosmic
+                     2:(0,0,0),     # BNB
+                     3:(255,0,0),   # electron
+                     4:(0,255,0),   # gamma
+                     5:(0,125,125), # pi0
+                     6:(255,0,255), # Muon
+                     7:(255,255,0), # Kaon
+                     8:(255,165,0), # pion                     
+                     9:(0,0,255)}   # proton
 
 particle_id_name = {0:"nolabel",  # no label
-                    1:"electron", # electron
-                    2:"gamma",    # gamma
-                    3:"pi0",  # pi0
-                    4:"muon", # Muon
-                    5:"kaon", # Kaon
-                    6:"pion", # proton
-                    7:"proton"}   # pion
+                    1:"nolabel",  # no label
+                    2:"nolabel",  # no label
+                    3:"electron", # electron
+                    4:"gamma",    # gamma
+                    5:"pi0",  # pi0
+                    6:"muon", # Muon
+                    7:"kaon", # Kaon
+                    8:"pion", # proton
+                    9:"proton"}   # pion
 
 # LARLITE
 if args.input_larlite:
@@ -119,7 +123,7 @@ def make_figures(entry,plotby="larmatch"):
             cluster_traces_v.append( trace )
         elif plotby=="class":
             print("class values: ",np.unique(data["segment_t"]))
-            for pid in range(0,7+1):
+            for pid in range(0,9+1):
                 idmask = data["segment_t"]==pid
                 print("class_t[",pid,"] num=",idmask.sum())                
                 if idmask.sum()>0:                
@@ -165,11 +169,16 @@ def make_figures(entry,plotby="larmatch"):
 
     # MC info to compare
     if ioll:
+        print("draw mc track and shower truth")
         global ioll
-        ioll.go_to(entry)        
-        ev_mctrack = ioll.get_data(larlite.data.kMCTrack, "mcreco" )
-        print("number of mctracks: ",ev_mctrack.size())
-        cluster_traces_v += lardly.data.visualize_larlite_event_mctrack( ev_mctrack )
+        ioll.go_to(entry)
+
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( ioll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        cluster_traces_v += mctrack_v
+
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( ioll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        cluster_traces_v += mcshower_v        
+
 
     return detdata.getlines()+cluster_traces_v
 

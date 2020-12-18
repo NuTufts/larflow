@@ -35,7 +35,7 @@ io.reverse_all_products()
 io.initialize()
 
 nentries = io.get_n_entries()
-nentries = 1
+nentries = 5
 
 #out = larflow.prep.TripletIO.makeTripletOutputFile( args.output )
 out = rt.TFile(args.output,"recreate")
