@@ -35,7 +35,7 @@ io.reverse_all_products()
 io.initialize()
 
 nentries = io.get_n_entries()
-nentries = 5
+nentries = 20
 
 #out = larflow.prep.TripletIO.makeTripletOutputFile( args.output )
 out = rt.TFile(args.output,"recreate")
@@ -59,6 +59,10 @@ for ientry in xrange(nentries):
     tripmaker.make_instanceid_vector( ev_instance.as_vector() )
     tripmaker.make_ancestorid_vector( ev_ancestor.as_vector() )
     tripmaker.make_segmentid_vector(  ev_segment.as_vector() )
+
+    truthfixer = larflow.prep.TripletTruthFixer()
+    truthfixer.calc_reassignments( tripmaker, io )
+    
     outtree.Fill()
     
     if True:

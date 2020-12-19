@@ -177,7 +177,9 @@ def make_figures(entry,plotby="larmatch"):
         cluster_traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( ioll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        cluster_traces_v += mcshower_v        
+        #print("mcshower_v: ",len(mcshower_v))        
+        for ishr in range( len(mcshower_v)/3 ):
+            cluster_traces_v.append( mcshower_v[3*ishr+2] )
 
 
     return detdata.getlines()+cluster_traces_v

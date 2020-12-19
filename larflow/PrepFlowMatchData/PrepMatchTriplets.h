@@ -57,6 +57,8 @@ namespace prep {
     void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v );
+
+    std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
     std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
                                           
