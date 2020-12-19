@@ -877,6 +877,35 @@ namespace reco {
     return r;
   }
 
+  /**
+   * @brief append hits of cluster to another
+   *
+   * This modifies one cluster by copying contents of other cluster into it
+   * 
+   * @param[inout] clust_a First cluster that will be appended to
+   * @param[in] clust_b Second cluster.
+   *
+   */
+  void cluster_append( cluster_t& merge, const cluster_t& clust_b ) {
+
+    merge.points_v.reserve(   merge.points_v.size()+clust_b.points_v.size() );
+    if ( merge.imgcoord_v.size()+clust_b.imgcoord_v.size()>0 )
+      merge.imgcoord_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
+    if ( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() >0 )
+      merge.hitidx_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
+    
+    for ( size_t i=0; i<clust_b.points_v.size(); i++ ) {
+      merge.points_v.push_back(   clust_b.points_v[i] );
+      if ( clust_b.imgcoord_v.size()>0 )
+        merge.imgcoord_v.push_back( clust_b.imgcoord_v[i] );
+      if ( clust_b.hitidx_v.size()>0 )
+        merge.hitidx_v.push_back( clust_b.hitidx_v[i] );
+    }
+
+    cluster_pca( merge );
+  }
+  
+
   
 }
 }

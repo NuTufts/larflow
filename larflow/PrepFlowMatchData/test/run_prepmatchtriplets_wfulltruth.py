@@ -8,10 +8,12 @@ parser.add_argument("-ll","--input-larlite",required=True,type=str,help="Input l
 parser.add_argument('-o','--output',required=True,type=str,help="Filename for LArCV output")
 parser.add_argument("-adc","--adc-name",default="wire",type=str,help="Name of Tree containing wire images")
 parser.add_argument("-mc","--has-mc",default=False,action="store_true",help="Has MC information")
+parser.add_argument("-n","--nentries",default=None,type=int,help="Set number of events to run [default: all in file]")
 args = parser.parse_args(sys.argv[1:])
 
 import ROOT as rt
 from ROOT import std
+from larlite import larlite
 from larcv import larcv
 larcv.load_pyutil()
 from ublarcvapp import ublarcvapp
@@ -34,10 +36,17 @@ io.specify_data_read( larcv.kProductImage2D,  "larflow" )
 io.reverse_all_products()
 io.initialize()
 
-nentries = io.get_n_entries()
-nentries = 20
+ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+ioll.add_in_filename( args.input_larlite )
+ioll.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
+ioll.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+ioll.set_data_to_read( larlite.data.kMCTruth,  "generator" )
+ioll.open()
 
-#out = larflow.prep.TripletIO.makeTripletOutputFile( args.output )
+nentries = io.get_n_entries()
+if args.nentries is not None and args.nentries<nentries:
+    nentries = args.nentries
+
 out = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larmatchtriplet","triplet data")
 triplet_v = std.vector("larflow::prep::PrepMatchTriplets")(1)
@@ -46,6 +55,7 @@ outtree.Branch("triplet_v",triplet_v)
 for ientry in xrange(nentries):
 
     io.read_entry(ientry)
+    ioll.go_to(ientry)
 
     tripmaker = triplet_v.at(0)
     tripmaker.clear()
@@ -61,7 +71,7 @@ for ientry in xrange(nentries):
     tripmaker.make_segmentid_vector(  ev_segment.as_vector() )
 
     truthfixer = larflow.prep.TripletTruthFixer()
-    truthfixer.calc_reassignments( tripmaker, io )
+    truthfixer.calc_reassignments( tripmaker, io, ioll )
     
     outtree.Fill()
     
@@ -133,7 +143,8 @@ for ientry in xrange(nentries):
 
 #out.write_file()
 out.Write()
-
+io.finalize()
+ioll.close()
 
 print("End of event loop")
 print("[FIN]")
