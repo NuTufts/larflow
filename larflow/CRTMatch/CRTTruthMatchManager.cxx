@@ -8,7 +8,6 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
-#include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
 namespace crtmatch {
@@ -63,9 +62,9 @@ namespace crtmatch {
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraph( iolcv, ioll );
 
-    larflow::reco::ShowerLikelihoodBuilder sllb;
-    sllb.process( iolcv, ioll );
-    sllb.updateMCPixelGraph( mcpg, iolcv );
+    // larflow::reco::ShowerLikelihoodBuilder sllb;
+    // sllb.process( iolcv, ioll );
+    // sllb.updateMCPixelGraph( mcpg, iolcv );
     
     std::vector< larlite::larflowcluster > truth_cluster_v;
     //void makeTruthTrackClusters( iolcv, ioll, mcpg );

@@ -27,8 +27,7 @@ set( HEADERS cluster_functions.h
   ShowerTruthRecoAna.h
   TrackTruthRecoAna.h
   TrackdQdx.h
-  KPSRecoManager.h
-  ShowerLikelihoodBuilder.h )
+  KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
@@ -55,8 +54,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ShowerTruthRecoAna.cxx
   TrackTruthRecoAna.cxx
   TrackdQdx.cxx
-  KPSRecoManager.cxx  
-  ShowerLikelihoodBuilder.cxx )
+  KPSRecoManager.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

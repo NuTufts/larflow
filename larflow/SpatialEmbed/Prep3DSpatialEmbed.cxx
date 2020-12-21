@@ -8,7 +8,7 @@
 #include "LArUtil/LArProperties.h"
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "larflow/Reco/ShowerLikelihoodBuilder.h"
+//#include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
 namespace spatialembed {
@@ -686,34 +686,34 @@ namespace spatialembed {
     // additional algorithm to fix the shower instances
     // the showerlikelihood builder will also find the true larmatch points
     // which we will use
-    larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
-    mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
-    mcshowerbuilder.process( iolcv, ioll );
-    mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
+    // larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
+    // mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
+    // mcshowerbuilder.process( iolcv, ioll );
+    // mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
     LARCV_INFO() << "post-shower builder graph" << std::endl;
     mcpg.printGraph();
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> node_v = mcpg.getNeutrinoParticles();
 
     // we make a list of true point voxels
     std::set< std::array<int,3> > true_voxel_set;
-    for ( size_t ipt=0; ipt<mcshowerbuilder.tripletalgo._truth_v.size(); ipt++ ) {
-      if ( mcshowerbuilder.tripletalgo._truth_v[ipt]>0 ) {
-        const std::vector<float>& spacepoint = mcshowerbuilder.tripletalgo._pos_v.at(ipt);
+    // for ( size_t ipt=0; ipt<mcshowerbuilder.tripletalgo._truth_v.size(); ipt++ ) {
+    //   if ( mcshowerbuilder.tripletalgo._truth_v[ipt]>0 ) {
+    //     const std::vector<float>& spacepoint = mcshowerbuilder.tripletalgo._pos_v.at(ipt);
 
-        // add some slop allowance
-        for (int dx=-2;dx<=2; dx++) {
-          int vx = _voxelizer.get_axis_voxel(0,spacepoint[0])+dx;
-          for (int dy=-2;dy<=2;dy++) {
-            int vy = _voxelizer.get_axis_voxel(1,spacepoint[1])+dy;
-            for (int dz=-2;dz<=2;dz++) {
-              int vz = _voxelizer.get_axis_voxel(2,spacepoint[2])+dz;
-              std::array<int,3> true_voxel = { vx,vy,vz };
-              true_voxel_set.insert(true_voxel);
-            }
-          }
-        }
-      }
-    }
+    //     // add some slop allowance
+    //     for (int dx=-2;dx<=2; dx++) {
+    //       int vx = _voxelizer.get_axis_voxel(0,spacepoint[0])+dx;
+    //       for (int dy=-2;dy<=2;dy++) {
+    //         int vy = _voxelizer.get_axis_voxel(1,spacepoint[1])+dy;
+    //         for (int dz=-2;dz<=2;dz++) {
+    //           int vz = _voxelizer.get_axis_voxel(2,spacepoint[2])+dz;
+    //           std::array<int,3> true_voxel = { vx,vy,vz };
+    //           true_voxel_set.insert(true_voxel);
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
     
     std::map<int,int> instance_2_index;
     std::vector<int> instance_v;
@@ -849,9 +849,9 @@ namespace spatialembed {
 
     // the showerlikelihood builder will make true shower larmatch points
     // and associate clusters of true shower points to showerinfo truth
-    larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
-    mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
-    mcshowerbuilder.process( iolcv, ioll );
+    // larflow::reco::ShowerLikelihoodBuilder mcshowerbuilder;
+    // mcshowerbuilder.set_wire_tree_name( _adc_image_treename );
+    // mcshowerbuilder.process( iolcv, ioll );
     //mcshowerbuilder.updateMCPixelGraph( mcpg, iolcv );
     LARCV_INFO() << "post-shower builder graph" << std::endl;
     //mcpg.printGraph();
@@ -947,27 +947,28 @@ namespace spatialembed {
 
     // we know that the instance ids are incomplete/busted.
     // we use the values from the likelihood showerbuilder to fix these
-    for ( size_t ishower=0; ishower<mcshowerbuilder._shower_info_v.size(); ishower++ ) {
-      auto const& showerinfo = mcshowerbuilder._shower_info_v[ishower];
-      int shower_instanceid = showerinfo.trackid;
-      // find the voxel
-      for ( auto const& hit : mcshowerbuilder._larflow_cluster_v[ishower] ) {
-        std::vector<float> xyz = { hit[0], hit[1], hit[2] };
-        std::vector<int> voxid = _voxelizer.get_voxel_indices( xyz );
-        // we are going to muck with the voxel totals
-        auto it = voxel_coord_2_index_v.find(voxid);
-        if ( it!=voxel_coord_2_index_v.end() ) {
-          auto& ballot = voxel_votes.at(it->second);
-          // tampering with the instance-id vote by changing voxel instance id and (shower) pid
-          ballot.instance_votes.clear();
-          ballot.instance_votes[shower_instanceid] = 1;
-          if ( showerinfo.pid==22 )
-            instance_pid[shower_instanceid] = 4; // gamma
-          else
-            instance_pid[shower_instanceid] = 3; // electron
-        }
-      }
-    }
+    // for ( size_t ishower=0; ishower<mcshowerbuilder._shower_info_v.size(); ishower++ ) {
+    //   auto const& showerinfo = mcshowerbuilder._shower_info_v[ishower];
+    //   int shower_instanceid = showerinfo.trackid;
+    //   // find the voxel
+    //   // for ( auto const& hit : mcshowerbuilder._larflow_cluster_v[ishower] ) {
+    //   //   std::vector<float> xyz = { hit[0], hit[1], hit[2] };
+    //   //   std::vector<float> xyz = { hit[0], hit[1], hit[2] };
+    //   //   std::vector<int> voxid = _voxelizer.get_voxel_indices( xyz );
+    //   //   // we are going to muck with the voxel totals
+    //   //   auto it = voxel_coord_2_index_v.find(voxid);
+    //   //   if ( it!=voxel_coord_2_index_v.end() ) {
+    //   //     auto& ballot = voxel_votes.at(it->second);
+    //   //     // tampering with the instance-id vote by changing voxel instance id and (shower) pid
+    //   //     ballot.instance_votes.clear();
+    //   //     ballot.instance_votes[shower_instanceid] = 1;
+    //   //     if ( showerinfo.pid==22 )
+    //   //       instance_pid[shower_instanceid] = 4; // gamma
+    //   //     else
+    //   //       instance_pid[shower_instanceid] = 3; // electron
+    //   //   }
+    //   // }
+    // }
     
     // now we can decide on the voxel truth labels, accumulating the votes
     for (int idx=0; idx<(int)voxel_v.size(); idx++) {
