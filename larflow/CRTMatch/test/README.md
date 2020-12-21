@@ -38,3 +38,10 @@ Example:
 
 
 
+## `run_crttrack_match.py
+
+This is *deprecated*, using thru-mu only reconstruction code
+that tries to avoid using larmatch-based reco to find tracks.
+Not accurate or efficiency enough.
+
+Paired script: `vis_crttrack_match.py`.
