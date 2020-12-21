@@ -70,7 +70,8 @@ namespace reco {
                            const std::vector<larcv::Image2D>& adc_v,
                            const int hitidx, 
                            const float r,
-                           const float s,
+                           const float local_s,
+                           const float global_s,                           
                            const float lm_score,
                            TrackdQdx::TrackPt_t& trkpt ) const;
     

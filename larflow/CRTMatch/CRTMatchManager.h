@@ -14,6 +14,7 @@
 #include "larflow/Reco/ChooseMaxLArFlowHit.h"
 #include "larflow/Reco/KeypointReco.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
+#include "larflow/Reco/TrackdQdx.h"
 //#include "larflow/Reco/TrackTruthRecoAna.h"
 #include "larflow/Reco/CosmicTrackBuilder.h"
 
@@ -73,6 +74,9 @@ namespace crtmatch {
     larflow::reco::ProjectionDefectSplitter _projsplitter;   ///< split wirecell filtered track clusters into straight clusters
     larflow::reco::CosmicTrackBuilder _cosmic_track_builder; ///< construct cosmic tracks
     CRTHitMatch _crthit_match;                               ///< algorithm for matching hits to tracks
+
+    // algorithm to calculate dqdx of tracks
+    larflow::reco::TrackdQdx _dqdx_algo;
 
     // mc algorithms
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker;       ///< extracts mc event info and saves info to tree    

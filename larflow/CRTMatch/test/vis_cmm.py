@@ -124,6 +124,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 #cluster_trace["marker"]["color"] = rgbcolor
                 cluster_trace["marker"]["opacity"] = opa
                 cluster_trace["marker"]["width"] = 1.0
+                cluster_trace["marker"]["width"] = 1.0
                 traces_v.append(cluster_trace)            
                 
                 pcaxis = ev_pcacluster.at( icluster )
@@ -135,8 +136,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 traces_v.append( pcatrace )
 
     # TRACK RECO
-    tracks = [("CMT","cosmictrack","rgb(0,100,50)",False,True),
-              ("SIM","simplecosmictrack","rgb(0,100,50)",False,True),
+    tracks = [("CMT","cosmictrack","rgb(0,100,50)",True,False),
+              ("SIM","simplecosmictrack","rgb(0,100,50)",False,False),
               ("CON","containedcosmic","rgb(100,0,50)",False,False)]
     
     if plotall:
@@ -145,11 +146,17 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 continue
             ev_track = io.get_data(larlite.data.kTrack,track_producer)
             for itrack in xrange(ev_track.size()):
-                trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
+                trktrace = lardly.data.visualize_larlite_track( ev_track[itrack],color="dqdx-3" )
                 trktrace["name"] = "LN-%s[%d]"%(name,itrack)
+                print("dqdx: ",trktrace["line"]["color"])
+                trktrace["marker"]["color"] = np.clip(trktrace["marker"]["color"],0.0,200.0)
+                
                 trktrace["line"]["color"] = zrgb
-                trktrace["line"]["width"] = 5
-                trktrace["line"]["opacity"] = 1.0
+                trktrace["line"]["width"] = 1
+                trktrace["line"]["opacity"] = 0.3
+                trktrace["marker"]["size"] = 3
+                trktrace["marker"]["opacity"] = 1.0
+                trktrace["marker"]["colorscale"] = colorscale
                 traces_v.append( trktrace )
             if not plotcluster:
                 continue
