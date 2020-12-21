@@ -15,7 +15,8 @@ class SpatialEmbedNet(nn.Module):
                  nclasses=7,
                  nsigma=3,
                  embedout_shapes=1,
-                 leakiness=0.001 ):
+                 leakiness=0.001,
+                 smooth_inference=False ):
         """
         parameters
         -----------
@@ -37,6 +38,7 @@ class SpatialEmbedNet(nn.Module):
         self.nsigma = nsigma
         self.nclasses = nclasses
         self.embedout_shapes = embedout_shapes
+        self.smooth_inference = smooth_inference
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.inputlayer  = scn.InputLayer(ndimensions,inputshape,mode=0)
@@ -77,6 +79,14 @@ class SpatialEmbedNet(nn.Module):
         self.seed_out.add( scn.BatchNormLeakyReLU(stem_nfeatures,leakiness=leakiness) )
         self.seed_out.add( scn.SubmanifoldConvolution(ndimensions, stem_nfeatures, nclasses, 3, True) )        
         self.seed_sparse2dense  = scn.OutputLayer(ndimensions)
+        # At inference, we want to smooth things out
+        self.seed_smooth_layers = []
+        self.seed_smooth_layers.append( scn.InputLayer(ndimensions,inputshape,mode=0) )
+        self.seed_smooth_layers.append( scn.SubmanifoldConvolution(ndimensions,nclasses,nclasses,9,False,groups=nclasses) )
+        self.seed_smooth_layers.append( scn.OutputLayer(ndimensions) )
+        with torch.no_grad():        
+            self.seed_smooth_layers[1].weight.fill_(1.0)
+        
                 
         # EMBEDDING OUTPUT
         if False:
@@ -236,7 +246,15 @@ class SpatialEmbedNet(nn.Module):
         if verbose: print "seed-out:  ",x_seed.features.shape," num-nan=",torch.isnan(x_seed.features.detach()).sum()
         x_seed  = self.seed_sparse2dense(x_seed)
         # normalize seed map output between [0,1]
-        x_seed  = torch.sigmoid( x_seed ) # remove this?
+        x_seed = torch.sigmoid( x_seed ) # remove this?
+
+        if self.smooth_inference:
+            with torch.no_grad():                    
+                x_seed[x_seed<0.5] = 0.0
+                print "[inference-only] x_seed-dense: ",x_seed.shape
+                x_seed = self.seed_smooth_layers[0]( (coord_t,x_seed) )
+                x_seed = self.seed_smooth_layers[1]( x_seed )
+                x_seed = self.seed_smooth_layers[2]( x_seed )
 
         return x_embed_out,x_seed
 

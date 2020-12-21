@@ -16,6 +16,8 @@ parser.add_argument("-i","--input-file",type=str,required=True,help="file produc
 parser.add_argument("-w","--weight-file",type=str,required=True,help="weight file")
 parser.add_argument("-o","--output-file",type=str,required=True,help="output root file")
 parser.add_argument("-b","--batchsize",type=int,default=5,help="batchsize [default: 4]")
+parser.add_argument("-s","--start-entry",type=int,default=0,help="starting entry [default: 0]")
+parser.add_argument("-n","--num-entries",type=int,default=-1,help="number of entries [default: -1 (all)]")
 parser.add_argument("-v","--verbose",action='store_true',default=False,help="verbose operation in cluster formation")
 parser.add_argument("-t","--test-perfect",action='store_true',default=False,help="Use truth to make perfect output to test inference output")
 
@@ -52,7 +54,9 @@ model = SpatialEmbedNet(3, voxel_dims,
                         nclasses=7,
                         num_unet_layers=6,
                         nsigma=3,
-                        stem_nfeatures=32).to(device)
+                        embedout_shapes=1,
+                        stem_nfeatures=32,
+                        smooth_inference=True).to(device)
 
 checkpoint = torch.load( args.weight_file, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
 model.load_state_dict( checkpoint["state_embed"] )
@@ -89,7 +93,13 @@ datafiller.bindSimpleOutputVariables(tree)
 datafiller.set_verbosity(1)
 
 # Event loop
-entry = 0
+entry = args.start_entry
+voxelloader.getTreeEntry(entry)
+if args.num_entries>0:
+    nentries = entry + args.num_entries
+else:
+    nentries = voxelloader.getTree().GetEntries()
+    
 while entry<nentries:
 
     if not args.test_perfect:
@@ -109,21 +119,25 @@ while entry<nentries:
         # run network
         start = time.time()
         if not args.test_perfect:
-            embed_t,seed_t = model( coord_t, feat_t, device, verbose=NET_VERBOSE )
+            embed_v,seed_t = model( coord_t, feat_t, device, verbose=NET_VERBOSE )
         dt_forward = time.time()-start
-        print("embed_t: ",embed_t.shape)
+        print("embed_v: len=",len(embed_v))
         print("seed_t: ",seed_t.shape," mean=",seed_t.mean()," min=",seed_t.min()," max=",seed_t.max())
+
+        # apply convolutional kernal to sum and smooth seed map
+        
+        
     else:
         voxdata = voxelloader.getTreeEntry(entry)
         data = voxelloader.makePerfectNetOutput( voxdata, voxel_dims_v )
         print("loaded entry: ",entry)
         coord_t = torch.from_numpy( data["coord_t"] ).to(device)
-        embed_t = torch.from_numpy( data["embed_t"] ).to(device)
+        embed_v = [torch.from_numpy( data["embed_t"] ).to(device)]
         seed_t  = torch.from_numpy( data["seed_t"]  ).to(device)
         start_entry = entry
         after_entry = entry
     
-    batch_clusters = model.make_clusters2( coord_t, embed_t, seed_t, verbose=args.verbose, sigma_scale=5.0, seed_threshold=0.75 )
+    batch_clusters = model.make_clusters2( coord_t, embed_v, seed_t, verbose=args.verbose, sigma_scale=5.0, seed_threshold=0.75 )
 
     if not args.test_perfect:
         entry += args.batchsize
