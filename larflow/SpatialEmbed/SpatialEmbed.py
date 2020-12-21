@@ -321,24 +321,27 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
     # seeds_x_sigma = binary_maps * sigma_x.detach()
     # seeds_y_sigma = binary_maps * sigma_y.detach()
     
-    truth_avg_sigma_x = (binary_maps * sigma_kx.view(num_instances, 1))[binary_maps==True]
-    truth_avg_sigma_y = (binary_maps * sigma_ky.view(num_instances, 1))[binary_maps==True]
-    learned_sigma_x = (binary_maps * sigma_x)[binary_maps==True]
-    learned_sigma_y = (binary_maps * sigma_y)[binary_maps==True]
-    loss_sigma = mseloss(torch.div(3, torch.abs(truth_avg_sigma_x)+1), torch.div(3, torch.abs(learned_sigma_x)+1)) 
-    loss_sigma += mseloss(torch.div(3, torch.abs(truth_avg_sigma_y)+1), torch.div(3, torch.abs(learned_sigma_y)+1)) 
+    ##############
+    # truth_avg_sigma_x = (binary_maps * sigma_kx.view(num_instances, 1))[binary_maps==True]
+    # truth_avg_sigma_y = (binary_maps * sigma_ky.view(num_instances, 1))[binary_maps==True]
+    # learned_sigma_x = (binary_maps * sigma_x)[binary_maps==True]
+    # learned_sigma_y = (binary_maps * sigma_y)[binary_maps==True]
+    # loss_sigma = mseloss(torch.div(3, torch.abs(truth_avg_sigma_x)+1), torch.div(3, torch.abs(learned_sigma_x)+1)) 
+    # loss_sigma += mseloss(torch.div(3, torch.abs(truth_avg_sigma_y)+1), torch.div(3, torch.abs(learned_sigma_y)+1)) 
+    ##############
+
 
     #if verbose: print "        Sigma: ", (sigma_smooth_weight * mseloss(sigma_x, avg_x_sigma_flattened) + sigma_smooth_weight * mseloss(sigma_y, avg_y_sigma_flattened)).detach()
     
-    if verbose: print "    Loss Sigma:  ", loss_sigma.detach()
+    # if verbose: print "    Loss Sigma:  ", loss_sigma.detach()
 
     # print "Loss sigma: ", loss_sigma.detach()
 
     # ===========================================
     # loss_sigma = loss_gaus.detach() * 0
 
-
-    loss = (10*loss_gaus)+(2*loss_seed)+(1*loss_sigma)
+    loss = loss_gaus + (0.2*loss_seed)
+    # loss = (loss_gaus)+(0.2*loss_seed)+(0.1*loss_sigma)
     if verbose: print "    Total Loss:  ", loss.detach()
     # print "Loss: ", loss.detach()
 
@@ -347,7 +350,8 @@ def spatialembed_loss(coord_t, offsets, seeds, binary_maps, class_segmentation, 
         loss *= 0
         # exit(1)
 
-    return loss, loss_gaus, loss_seed, loss_sigma
+    return loss, loss_gaus, loss_seed, loss_gaus.detach()*0
+    # return loss, loss_gaus, loss_seed, loss_sigma
     # return loss
 
 

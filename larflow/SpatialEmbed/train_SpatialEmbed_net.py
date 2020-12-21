@@ -162,6 +162,8 @@ for loop in range(0, loops):
                     instances = instances.t()[folded_instances].t()
                     class_maps = class_maps.t()[folded_instances].t()
                     #################################
+
+                    
                     if instances.detach().sum() == 0:
                         print "no instances2!"
                         continue

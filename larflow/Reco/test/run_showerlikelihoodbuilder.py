@@ -60,8 +60,9 @@ mcpg.set_adc_treename("wiremc")
     
 nentries = iolcv.get_n_entries()
 print "Number of entries: ",nentries
-start = 18
-nentries = 1
+# start = 18
+start = 0
+# nentries = 1
 
 print "Start loop."
 #raw_input()
@@ -86,8 +87,9 @@ for ientry in xrange( start, start+nentries ):
     
     builder.process( iolcv, io )
 
+    builder.updateMCPixelGraph( mcpg, iolcv )
+
     if plot_2d_clusters:
-        builder.updateMCPixelGraph( mcpg, iolcv )
 
         # make histogram
         hist_v = larcv.rootutils.as_th2d_v( adc_v, "hentry%d"%(ientry) )
