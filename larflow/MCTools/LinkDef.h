@@ -16,7 +16,7 @@
 #pragma link off all namespaces;
 
 //#pragma link C++ namespace larflow;
-#pragma link C++ namespace larflow::reco;
+#pragma link C++ namespace larflow::mctools;
 #pragma link C++ class larflow::mctools::ShowerLikelihoodBuilder+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
