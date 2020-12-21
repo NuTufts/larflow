@@ -403,6 +403,7 @@ namespace prep {
   /**
    * @brief Find closest cluster to given shower start and direction
    *
+   * @param[in] shower_fragment_v sub-clusters of shower space points.
    * @param[in] claimed_cluster_v Clusters to search
    * @param[in] shower_vtx Vector giving 3D shower start point/vertex for which we find the closest cluster
    * @param[in] shower_dir Vector describing initial 3D shower direction. Not used.
@@ -472,9 +473,11 @@ namespace prep {
   /**
    * @brief absorb other clusters to true mcshower-matched clusters
    *
-   * @param[in]  shower_info_v    List of true shower objects
-   * @param[out] merged_cluster_v Output merged clusters
-   * @param[in]  truehit_v        List of true space points
+   * @param[in]  shower_info_v     List of true shower objects
+   * @param[in]  shower_fragment_v sub-clusters of shower space points.
+   * @param[in]  fragment_pid_v    true particle id for shower fragments.
+   * @param[in]  cluster_used_v    flag indicating with cluster was merged into another cluster
+   * @param[out] merged_cluster_v  Output merged clusters
    */
   void TripletTruthFixer::_trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
                                                         std::vector<larflow::reco::cluster_t>& shower_fragment_v,

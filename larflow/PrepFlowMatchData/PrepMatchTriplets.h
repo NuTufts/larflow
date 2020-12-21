@@ -57,6 +57,7 @@ namespace prep {
     void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v );
+    void process_truth_labels( larcv::IOManager& iolcv );
 
     std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     

@@ -15,6 +15,7 @@ namespace prep {
    * @ingroup PrepFlowMatchData
    * @class TripletTruthFixer
    * @brief Uses clustering and larlite truth to repair triplet spacepoint instance labels
+   *
    */
   class TripletTruthFixer {
 

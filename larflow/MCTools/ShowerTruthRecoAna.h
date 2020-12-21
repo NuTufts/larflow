@@ -9,6 +9,7 @@
 namespace larflow {
 namespace reco {
 
+  
   class ShowerTruthRecoInfo {
     
   public:

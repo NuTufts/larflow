@@ -16,7 +16,7 @@
 
 
 namespace larflow {
-namespace reco {
+namespace mctools {
 
   class TrackTruthRecoInfo {
     

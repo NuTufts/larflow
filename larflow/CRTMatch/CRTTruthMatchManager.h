@@ -14,7 +14,7 @@
 #include "larflow/Reco/ChooseMaxLArFlowHit.h"
 #include "larflow/Reco/KeypointReco.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
-#include "larflow/Reco/TrackTruthRecoAna.h"
+//#include "larflow/Reco/TrackTruthRecoAna.h"
 
 #include "CRTTrackMatch.h"
 #include "CRTHitMatch.h"
@@ -73,7 +73,7 @@ namespace crtmatch {
 
     // mc algorithms
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker;       ///< extracts mc event info and saves info to tree    
-    larflow::reco::TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
+    //larflow::reco::TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
     
   };
   

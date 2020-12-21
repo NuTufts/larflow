@@ -11,8 +11,8 @@ namespace reco {
   /**
    * @brief calculate dqdx along the 3d track using space points and charge on the plane
    *
-   * @param[inout] track We get the track path here
-   * @param[in] trackhits Spacepoints associated to the track
+   * @param[in] lltrack We get the track path here
+   * @param[in] lfcluster Spacepoints associated to the track
    * @param[in] adc_v Wireplane images to get the charge from
    * @return larlite::track with points corresponding to locations along original track that space points projected onto
    */

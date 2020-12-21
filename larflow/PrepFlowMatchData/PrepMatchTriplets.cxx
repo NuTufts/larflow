@@ -49,7 +49,6 @@ namespace prep {
   /**
    * @brief convenience function that gets the data needed from an larcv::IOManager instance and runs the process method.
    *
-   *
    * @param[in] iolcv   larcv::IOManager instance containing needed data objects
    * @param[in] wire_producer     Name of tree containing event ADC images
    * @param[in] chstatus_producer Name of tree containing badch status
@@ -637,8 +636,15 @@ namespace prep {
   /**
    * @brief return a numpy array with indices to the sparse matrix object.
    *
-   * use a vector with index of match pair to choose matches.   
+   * use a vector with indices of match pair to choose matches.   
    *
+   * @param[in]  kdir Two-plane  flow direction to return data for
+   * @param[in]  max_num_samples maximum number of flow samples to return
+   * @param[in]  idx_v           list of indices. can be larger than the requested number of samples.
+   * @param[in]  start_idx       index of idx_v to start samples
+   * @param[in]  withtruth       return array with truth label
+   * @param[out] nsamples        number of flow samples returned
+   * @return numpy array with indices
    */
   PyObject* PrepMatchTriplets::make_2plane_match_array( larflow::FlowDir_t kdir,
                                                         const int max_num_samples,
@@ -708,6 +714,12 @@ namespace prep {
    *
    * @brief randomly select a set of 2 plane indices
    *
+   * @param[in]  kdir      Two-plane flow direction to return data for
+   * @param[in]  nsamples  maximum number of samples requested
+   * @param[in]  nfilled   number of samples returned
+   * @param[in]  withtruth array should return truth label
+   * @return numpy array with indices
+   * 
    */
   PyObject* PrepMatchTriplets::sample_2plane_matches( larflow::FlowDir_t kdir,
                                                       const int& nsamples,
@@ -939,7 +951,43 @@ namespace prep {
   }
 
   /**
+   * @brief make all the initial truth labels
+   *
+   * runs all the truth label making functions. 
+   *
+   * @param[in] iolcv larcv IO manager containing event data
+   */
+  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv )
+  {
+    
+    larcv::EventImage2D* ev_larflow =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");
+    larcv::EventImage2D* ev_instance =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
+    larcv::EventImage2D* ev_ancestor =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
+    larcv::EventImage2D* ev_segment =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
+
+    make_truth_vector( ev_larflow->as_vector() );
+    make_instanceid_vector( ev_instance->as_vector() );
+    make_ancestorid_vector( ev_ancestor->as_vector() );
+    make_segmentid_vector( ev_segment->as_vector() );
+    
+  }
+
+  /**
    * @brief Make ndarray using only true triplets
+   * 
+   * the dictionary contains the following:
+   * @verbatim embed:rst:leading-asterisk 
+   *  * `imgcoord_t`: (N,4) numpy array containing (col,col,col,row) in 2D dimension.
+   *  * `instance_t`: (N,1) instance labels. ID is the geant4 track id.
+   *  * `segment_t`:  (N,1) particle class labels. labels follow values in larcv/core/DataFormat/DataFormatTypes.h.
+   *  * `ancestor_t`: (N,1) ancestor labels. ID is the geant4 ancestor id (not yet implemented).
+   * @endverbatim
+   *
+   * @return dictionary with numpy arrays
    */
   PyObject* PrepMatchTriplets::make_truthonly_triplet_ndarray()
   {
@@ -947,6 +995,17 @@ namespace prep {
     if ( !_setup_numpy ) {
       import_array1(0);
       _setup_numpy = true;
+    }
+
+
+    if ( _triplet_v.size()!=_truth_v.size()
+         || _triplet_v.size()!=_instance_id_v.size()
+         || _triplet_v.size()!=_pdg_v.size() ) {
+      std::stringstream ss;
+      ss << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] "
+         << "truth vectors (truth,instance_id,pdg) do not match triplet_v size"
+         << std::endl;
+      throw std::runtime_error( ss.str() );
     }
     
     int ntruepts = 0;

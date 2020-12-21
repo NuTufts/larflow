@@ -120,8 +120,9 @@ namespace crtmatch {
     // the input data type to match can either be clusters or larlite tracks
     // we will convert clusters into a track representation in the end
     // because we need a line to point back to the CRT
+    /** @brief defines kind of input class use */
     typedef enum { kInputCluster=0, kInputTrack } InputDataType_t;
-    InputDataType_t _kInputDataType;
+    InputDataType_t _kInputDataType; ///< sets the input type we are parsing
     
     // clusters, if using clusters
     std::string _input_cluster_treename; ///< root tree name from which we get track clusters to match

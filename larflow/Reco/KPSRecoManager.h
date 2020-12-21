@@ -33,7 +33,7 @@
 #include "NuVertexShowerReco.h"
 
 // truth analysis
-#include "TrackTruthRecoAna.h"
+// #include "TrackTruthRecoAna.h"
 
 namespace larflow {
 namespace reco {
@@ -76,7 +76,7 @@ namespace reco {
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
-    TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
+    //TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
 
     // MC event info
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree

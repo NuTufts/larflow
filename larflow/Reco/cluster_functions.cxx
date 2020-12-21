@@ -882,9 +882,8 @@ namespace reco {
    *
    * This modifies one cluster by copying contents of other cluster into it
    * 
-   * @param[inout] clust_a First cluster that will be appended to
-   * @param[in] clust_b Second cluster.
-   *
+   * @param[inout] merge    cluster that will be appended to
+   * @param[in]    clust_b  cluster we copy data from
    */
   void cluster_append( cluster_t& merge, const cluster_t& clust_b ) {
 

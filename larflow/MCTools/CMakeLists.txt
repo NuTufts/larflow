@@ -3,10 +3,14 @@ set(MODULE_NAME MCTools )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS ShowerLikelihoodBuilder.h
+set( HEADERS TrackTruthRecoAna.h
+  ShowerTruthRecoAna.h
+  ShowerLikelihoodBuilder.h
   )
 
 add_library( ${LIBNAME} SHARED
+  TrackTruthRecoAna.h
+  ShowerTruthRecoAna.h
   ShowerLikelihoodBuilder.cxx
   )
 
