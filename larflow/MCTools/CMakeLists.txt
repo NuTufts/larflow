@@ -9,8 +9,8 @@ set( HEADERS TrackTruthRecoAna.h
   )
 
 add_library( ${LIBNAME} SHARED
-  TrackTruthRecoAna.h
-  ShowerTruthRecoAna.h
+  TrackTruthRecoAna.cxx
+  ShowerTruthRecoAna.cxx
   ShowerLikelihoodBuilder.cxx
   )
 

@@ -1,11 +1,26 @@
 #include "TripletTruthFixer.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "larflow/Reco/geofuncs.h"
 
 namespace larflow {
 namespace prep {
 
+
+  TripletTruthFixer::TripletTruthFixer()
+    : _kExcludeCosmicShowers(true),
+      _p_sce(nullptr)
+  {
+    _p_sce = new larutil::SpaceChargeMicroBooNE();
+  }
+
+  TripletTruthFixer::~TripletTruthFixer()
+  {
+    delete _p_sce;
+    _p_sce = nullptr;
+  }
+  
   /**
    * @brief calculate reassignments for larmatch triplet instance labels
    *
@@ -17,14 +32,25 @@ namespace prep {
                                               larcv::IOManager& iolcv,
                                               larlite::storage_manager& ioll ) 
   {
-    // start off by separately clustering points with different segment ids
-    // then match clusters with mcshower objects using shower profile
-    // these seed shower objects to which we assign instance labels
+
+    
+    // get the mc pixel graph
+    ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.buildgraphonly( ioll );
+    mcpg.printGraph(nullptr,false);
+    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> nu_v = mcpg.getNeutrinoParticles();
 
     larlite::event_mcshower* ev_mcshower
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
-
-    // gather true shower data
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );
+    
+    // we start by resolving instance and class consistency checks
+    _enforce_instance_and_class_consistency( tripmaker, mcpg, *ev_mctrack );    
+    
+    // start off by separately clustering points with different segment ids
+    // then match clusters with mcshower objects using shower profile
+    // these seed shower objects to which we assign instance labels
     _shower_info_v.clear();
     _make_shower_info( *ev_mcshower, _shower_info_v, _kExcludeCosmicShowers );
     
@@ -34,7 +60,7 @@ namespace prep {
     std::vector<int> pid_v;
     std::vector<int> shower_instance_v;
     std::vector<larflow::reco::cluster_t> cluster_v;
-    _cluster_same_showerpid_spacepoints( cluster_v, pid_v, shower_instance_v, tripmaker, true );
+    _cluster_same_showerpid_spacepoints( _shower_info_v, cluster_v, pid_v, shower_instance_v, tripmaker, true );
 
 
     // fix up proton id to not have such small clusters,
@@ -49,23 +75,21 @@ namespace prep {
     std::vector<larflow::reco::cluster_t> merged_showers_v;    
     _merge_shower_fragments( cluster_v, pid_v, shower_instance_v, merged_showers_v );
     _reassign_merged_shower_instance_labels( merged_showers_v, _shower_info_v, tripmaker );
-    
-    // we need to relabel instance ids so that instances go from
-    // [1,numinstances+1)
-
-    
+        
   }
 
   /**
    * @brief make clusters for electron and gamma labeled points
    *
+   * @param[in]  shower_info_v container of shower info objects, use it protect shower fragments
    * @param[out] cluster_v container of clusters to be returned
    * @param[out] pid_v     container of PID labels for the clusters
    * @param[out] shower_instance_v container of shower ID labels for the clusters
    * @param[inout] tripmaker larmatch triplet proposals and truth labels
    * @param[in] reassign_instance_labels if true, reassign instance labels in PrepMatchTriplets instance
    */
-  void TripletTruthFixer::_cluster_same_showerpid_spacepoints( std::vector<larflow::reco::cluster_t>& cluster_v,
+  void TripletTruthFixer::_cluster_same_showerpid_spacepoints( const std::vector<ShowerInfo_t>& shower_info_v,
+                                                               std::vector<larflow::reco::cluster_t>& cluster_v,
                                                                std::vector<int>& pid_v,
                                                                std::vector<int>& shower_instance_v,
                                                                larflow::prep::PrepMatchTriplets& tripmaker,
@@ -75,6 +99,24 @@ namespace prep {
     cluster_v.clear();
     pid_v.clear();
     shower_instance_v.clear();
+
+    // make a list of instance id's from mcshower instances
+    // we do this to protect the fragment. this will
+    // prevent showers close enough to get clustered together
+    // from being merged incorrectly. eg. includes
+    // parallel gamma-showers converting around the same distance
+    // and gamma-showers converting at the vertex.
+
+    std::cout << "[TripletTruthFixer::_cluster_same_showerpid_spacepoints.L" << __LINE__ << "] "
+              << " protected instances: ";
+    std::set<int> mcshower_instances;
+    std::map<int,larflow::reco::cluster_t> mcshower_fragments;
+    for ( auto const& info : shower_info_v ) {
+      mcshower_instances.insert( info.trackid );
+      mcshower_fragments[info.trackid] = larflow::reco::cluster_t();
+      std::cout << info.trackid << " ";
+    }
+    std::cout << std::endl;
 
     const float maxdist = 0.75;
     const int minsize = 10;
@@ -91,9 +133,19 @@ namespace prep {
 
       for ( int ipt=0; ipt<(int)tripmaker._pos_v.size(); ipt++) {
         if ( tripmaker._pdg_v[ipt]==pid ) {
-          std::vector<float> pos = tripmaker._pos_v[ipt];
-          point_v.push_back(pos);
-          tripmaker_idx_v.push_back(ipt);
+          int instanceid = tripmaker._instance_id_v[ipt];
+          if ( mcshower_instances.find(instanceid)!=mcshower_instances.end() ) {
+            // protected instance id
+            auto& mcshower_fragment = mcshower_fragments[instanceid];
+            mcshower_fragment.points_v.push_back( tripmaker._pos_v[ipt] );
+            mcshower_fragment.hitidx_v.push_back( ipt );
+          }
+          else  {
+            // unprotected instance id
+            std::vector<float> pos = tripmaker._pos_v[ipt];
+            point_v.push_back(pos);
+            tripmaker_idx_v.push_back(ipt);
+          }
         }
       }
 
@@ -135,6 +187,29 @@ namespace prep {
       }//end of loop over found clusters
       
     }//end of loop over pid
+
+    // add mcshower fragments into cluster list                
+    for ( auto const& info : shower_info_v ) {
+      auto& mcshower_fragment = mcshower_fragments[info.trackid];
+      std::cout << "[TripletTruthFixer.L" << __LINE__ << "] "
+                << "mcshower fragment trackid[" << info.trackid << "] "
+                << "size=" << mcshower_fragment.points_v.size()
+                << std::endl;
+      cluster_v.emplace_back( std::move(mcshower_fragment) );
+      switch (info.pid) {
+      case -11:
+      case 11:        
+        pid_v.push_back( 3 );
+        break;
+      case 111:
+        pid_v.push_back( 5 );
+        break;
+      default:
+        pid_v.push_back( 4 );
+        break;
+      }
+      shower_instance_v.push_back( info.trackid );
+    }
     
   }
 
@@ -305,7 +380,8 @@ namespace prep {
                   << " tid=" << info.trackid
                   << " origin=" << info.origin
                   << " vtx=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")"
-                  << "   matched cluster index: " << match_cluster_idx << std::endl;
+                  << "   matched cluster index: " << match_cluster_idx
+                  << std::endl;
       }
       iidx++;        
     }
@@ -571,7 +647,9 @@ namespace prep {
           float rovers = 0;
           if ( s>0.0 )
             rovers = r/s;
-
+          
+          //std::cout << " s=" << s << " rovers=" << rovers << std::endl;
+                                                             
           if ( s>0 && rovers<9.0/14.0 && ( !apply_max_len || s<maxlen_cm ) )
             nhits_in_cone++;
           
@@ -599,16 +677,22 @@ namespace prep {
       
       if ( frac>0.5 && best_shower_index>=0 ) {
         // add cluster
-        std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
-                  << " merge fragment into shower[" << best_shower_index << "]"
-                  << " nhits-before-merge=" << merged_cluster_v[best_shower_index].points_v.size()
-                  << " fragment-size=" << cluster.points_v.size()
-                  << std::endl;
+        // std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
+        //           << " merge fragment into shower[" << best_shower_index << "]"
+        //           << " nhits-before-merge=" << merged_cluster_v[best_shower_index].points_v.size()
+        //           << " fragment-size=" << cluster.points_v.size()
+        //           << std::endl;
 
         cluster_used_v[icluster] = 1;
         shower_info_v[best_shower_index].absorbed_cluster_index_v.push_back(icluster);
         // merged_cluster_v[best_shower_index].push_back( truehit_v[hitidx] ); // copy of hit
         larflow::reco::cluster_append( merged_cluster_v[best_shower_index], cluster );
+      }
+      else  {
+        // std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
+        //           << " do not merge fragment. frac=" << frac
+        //           << " best_shower_index=" << best_shower_index
+        //           << std::endl;
       }
       
     }//end of cluster loop
@@ -617,7 +701,10 @@ namespace prep {
 
   /**
    * @brief reassign instance labels for merged clusters
-   *
+   * 
+   * @param[in] merged_showers_v
+   * @param[in] shower_info_v
+   * @param[inout] tripmaker
    */
   void TripletTruthFixer::_reassign_merged_shower_instance_labels( std::vector<larflow::reco::cluster_t>& merged_showers_v,
                                                                    std::vector<ShowerInfo_t>& shower_info_v,
@@ -643,6 +730,141 @@ namespace prep {
     
   }
 
+  /**
+   * @brief enforce instance and class consistency
+   * 
+   * make sure instance spacepoints are associated with only one type of class
+   *
+   */
+  void TripletTruthFixer::_enforce_instance_and_class_consistency( larflow::prep::PrepMatchTriplets& tripmaker,
+                                                                   ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                                   const larlite::event_mctrack& ev_mctrack )
+  {
+    int max_iid_value = 0;
+    std::map<int,std::vector<int> > instance_segment_counts;
+    for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
+      int iid = tripmaker._instance_id_v[idx];
+      int pid = tripmaker._pdg_v[idx];
+      if ( iid<=0 ) continue;
+
+      if ( instance_segment_counts.find( iid )==instance_segment_counts.end() ) {
+        instance_segment_counts[iid] = std::vector<int>( larcv::kROITypeMax, 0 );
+      }
+
+      if ( pid<0 ) pid = 0;
+      instance_segment_counts[iid][pid]++;
+      if ( iid>max_iid_value )
+        max_iid_value = iid;
+    }
+
+    for ( auto it=instance_segment_counts.begin(); it!=instance_segment_counts.end(); it++ ) {
+      int n_non_zero = 0;
+      int max_pid = 0;
+      int num_max_pid = 0;
+      for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+        if ( it->second[pid]>0 ) n_non_zero++;
+        if ( pid>=larcv::kROIEminus && it->second[pid]>num_max_pid ) {
+          num_max_pid = it->second[pid];
+          max_pid = pid;
+        }
+      }
+
+      int second_pid = 0;
+      int num_second_pid = 0;
+      if ( n_non_zero>1 ) {
+        for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+          if ( pid!=max_pid && it->second[pid]>num_second_pid ) {
+            second_pid = pid;
+            num_second_pid = it->second[pid];
+          }
+        }
+      }
+
+      if ( n_non_zero>1 ) {
+
+        if ( max_pid<larcv::kROIEminus )
+          max_pid = larcv::kROIGamma;
+
+        ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode = mcpg.findTrackID( it->first );
+        if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
+          // is a track!
+          // no need to vote
+          if ( max_pid==larcv::kROIEminus || max_pid==larcv::kROIGamma ) {
+            // switch the labels
+            second_pid = max_pid;
+          }
+          switch( pNode->pid ) {
+          case 2212:
+            max_pid = larcv::kROIProton;
+            break;
+          default:
+            max_pid = larcv::kROIPiminus;
+            break;
+          }
+        }
+        
+        if ( max_pid>larcv::kROIGamma && (second_pid==larcv::kROIEminus || second_pid==larcv::kROIGamma )) {
+          // we are going to shave off shower points into new instance id
+          // get direction of proton
+          if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
+
+            int nrelabeled = 0;
+            std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+                      << "using proton truth direction to relabel pixels as shower" << std::endl;
+
+            ublarcvapp::mctools::TruthTrackSCE trackutil( _p_sce );
+            trackutil.set_verbosity( larcv::msg::kDEBUG );
+            auto const& mct = ev_mctrack.at( pNode->vidx );
+            larlite::track sce_track = trackutil.applySCE( mct );
+            std::cout << "debug: " << sce_track.NumberTrajectoryPoints() << std::endl;
+            std::cin.get();
+
+            for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
+              if ( tripmaker._instance_id_v[idx]==it->first ) {
+                const std::vector<float>& pos = tripmaker._pos_v[idx];
+                float min_r = 1.0e9;
+                int min_step = -1;
+                trackutil.dist2track( pos, sce_track, min_r, min_step );
+                
+                if ( min_r>2.0 ) {
+                  tripmaker._pdg_v[idx] = second_pid;
+                  tripmaker._instance_id_v[idx] = max_iid_value+1;
+                  nrelabeled++;
+                }
+              }
+            }
+
+            std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+                      << "number relabeled=" << nrelabeled
+                      << " to instance-id=" << max_iid_value+1
+                      << " and pid=" << second_pid
+                      << std::endl;
+            max_iid_value++;
+          }//end of node found, so make modifications
+        }
+
+        
+        // majority wins
+        std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+                  << "instance[" << it->first << "] has " << n_non_zero << " classes: ";
+        for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+          if ( it->second[pid]>0 )
+            std::cout << "[" << pid << "](" << it->second[pid] << ") ";
+        }
+        std::cout << " :: set to " << max_pid << std::endl;
+        
+        for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
+          if ( tripmaker._instance_id_v[idx]==it->first ) {
+            tripmaker._pdg_v[idx] = max_pid;
+          }
+        }
+      }
+      else {
+      }
+      
+    }//end of loop over instances
+    
+  }
   
 }
 }

@@ -519,7 +519,8 @@ namespace prep {
    * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
    *
    */
-  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v )
+  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+                                                 const std::vector<larcv::Image2D>& adc_v )
   {
 
     _pdg_v.resize( _triplet_v.size(), 0);
@@ -534,19 +535,21 @@ namespace prep {
         imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
       }
 
-      std::map< int, int > id_votes;
+      std::map< int, float > id_votes;
 
       for (int p=0; p<3; p++ ) {
         int plane_id = segment_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        float pixval = adc_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
         if ( id_votes.find(plane_id)==id_votes.end() )
           id_votes[plane_id] = 0;
+        //id_votes[plane_id] += pixval;
         id_votes[plane_id] += 1;
       }
 
       int maxid = 0;
-      int nvotes = 0;
+      float nvotes = 0;
       for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
-        if ( it->first>0 && it->second>nvotes) {
+        if ( it->first>0 && it->second>0 && (it->second>nvotes) ) {
           nvotes = it->second;
           maxid = it->first;
         }
@@ -957,9 +960,11 @@ namespace prep {
    *
    * @param[in] iolcv larcv IO manager containing event data
    */
-  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv )
+  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer )
   {
     
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,wire_producer);
     larcv::EventImage2D* ev_larflow =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");
     larcv::EventImage2D* ev_instance =
@@ -972,7 +977,7 @@ namespace prep {
     make_truth_vector( ev_larflow->as_vector() );
     make_instanceid_vector( ev_instance->as_vector() );
     make_ancestorid_vector( ev_ancestor->as_vector() );
-    make_segmentid_vector( ev_segment->as_vector() );
+    make_segmentid_vector( ev_segment->as_vector(), ev_adc->as_vector() );
     
   }
 

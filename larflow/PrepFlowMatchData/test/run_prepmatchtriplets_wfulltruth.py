@@ -9,6 +9,7 @@ parser.add_argument('-o','--output',required=True,type=str,help="Filename for LA
 parser.add_argument("-adc","--adc-name",default="wire",type=str,help="Name of Tree containing wire images")
 parser.add_argument("-mc","--has-mc",default=False,action="store_true",help="Has MC information")
 parser.add_argument("-n","--nentries",default=None,type=int,help="Set number of events to run [default: all in file]")
+parser.add_argument("-e","--start-entry",default=0,type=int,help="Set entry to start at [default: entry 0]")
 args = parser.parse_args(sys.argv[1:])
 
 import ROOT as rt
@@ -44,15 +45,20 @@ ioll.set_data_to_read( larlite.data.kMCTruth,  "generator" )
 ioll.open()
 
 nentries = io.get_n_entries()
+start_entry = args.start_entry
 if args.nentries is not None and args.nentries<nentries:
-    nentries = args.nentries
+    end_entry = start_entry + args.nentries-1
+    if end_entry>=nentries:
+        end_entry = nentries-1
+else:
+    end_entry = nentries-start_entry-1
 
 out = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larmatchtriplet","triplet data")
 triplet_v = std.vector("larflow::prep::PrepMatchTriplets")(1)
 outtree.Branch("triplet_v",triplet_v)
 
-for ientry in xrange(nentries):
+for ientry in xrange(start_entry, end_entry+1):
 
     io.read_entry(ientry)
     ioll.go_to(ientry)
@@ -60,15 +66,7 @@ for ientry in xrange(nentries):
     tripmaker = triplet_v.at(0)
     tripmaker.clear()
     tripmaker.process( io, args.adc_name, args.adc_name, 10.0, True )
-
-    ev_larflow = io.get_data( larcv.kProductImage2D, "larflow" )
-    ev_instance = io.get_data( larcv.kProductImage2D, "instance" )
-    ev_ancestor = io.get_data( larcv.kProductImage2D, "ancestor" )
-    ev_segment = io.get_data( larcv.kProductImage2D, "segment" )    
-    tripmaker.make_truth_vector(      ev_larflow.as_vector()  )
-    tripmaker.make_instanceid_vector( ev_instance.as_vector() )
-    tripmaker.make_ancestorid_vector( ev_ancestor.as_vector() )
-    tripmaker.make_segmentid_vector(  ev_segment.as_vector() )
+    tripmaker.process_truth_labels( io, args.adc_name ) 
 
     truthfixer = larflow.prep.TripletTruthFixer()
     truthfixer.calc_reassignments( tripmaker, io, ioll )
