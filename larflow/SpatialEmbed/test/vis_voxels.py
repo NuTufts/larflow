@@ -139,10 +139,11 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         traces_v.append(voxtrace)        
     elif plotby=="cluster":
         # color by instance index
-        ninstances = data_dict["instance_t"].max()
+        iid_v = np.unique( data_dict["instance_t"] )
+        ninstances = len(iid_v)        
         print("Number of instances: ",ninstances)
         #raw_input()
-        for iid in range(0,ninstances+1):
+        for n,iid in enumerate(iid_v.tolist()):
             print("== instance [",iid,"] ===")
             idmask = data_dict["instance_t"]==iid
             pids = np.unique( data_dict["class_t"][idmask] )

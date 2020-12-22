@@ -14,6 +14,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/TripletTruthFixer.h"
 #include "larflow/Voxelizer/VoxelizeTriplets.h"
 
 namespace larflow {
@@ -62,10 +63,11 @@ namespace spatialembed {
      *
      */
     struct VoxelData_t {
-      std::vector<int> voxel_index; ///< voxel index (row,col,depth)
-      std::vector<float> feature_v; ///< feature, possible values: (q_u, q_v, q_z, f_u, f_v, f_z)
-      std::vector<float> ave_xyz_v; ///< weighted average (x,y,z) position
-      std::vector<int> imgcoord_v;
+      std::vector<int> voxel_index;  ///< voxel index (row,col,depth)
+      std::vector<float> feature_v;  ///< feature, possible values: (q_u, q_v, q_z, f_u, f_v, f_z)
+      std::vector<float> ave_xyz_v;  ///< weighted average (x,y,z) position
+      std::vector<int> imgcoord_v;   ///< 2D plane coordinages (col,col,col,row)
+      std::vector<int> tripletidx_v; ///< indices of spacepoints contributing to voxel. indices are to PrepMatchTriplets._triplet_v.
       int npts;   ///< number of space points we've added to this voxel
       float totw; ///< total weight of points
       int truth_instance_index;
@@ -112,7 +114,9 @@ namespace spatialembed {
     
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,
+                              larflow::prep::PrepMatchTriplets& triplet_maker,                              
                               Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
+    
     void generateTruthLabels_using_trueflowhits( larcv::IOManager& iolcv,
                                                  larlite::storage_manager& ioll,                                                 
                                                  Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
@@ -141,6 +145,7 @@ namespace spatialembed {
     bool _filter_out_non_nu_pixels; ///< if true, will remove voxels with non-neutrino origin
 
     larflow::prep::PrepMatchTriplets _triplet_maker; ///< class that makes triplets
+    larflow::prep::TripletTruthFixer _triplet_truth_fixer; ///< class that fixes missing instance labels
     larflow::voxelizer::VoxelizeTriplets _voxelizer; ///< class that defines voxelization
     TTree* _tree;
     unsigned long _current_entry;
@@ -173,7 +178,6 @@ namespace spatialembed {
     TRandom3* _rand;
 
     void _reassignSmallTrackClusters( Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
-                                      ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                       const std::vector< larcv::Image2D >& instanceimg_v,
                                       std::map<int,int>& track_instance_count,
                                       const float threshold );
