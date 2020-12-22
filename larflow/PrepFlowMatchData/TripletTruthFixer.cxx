@@ -813,11 +813,11 @@ namespace prep {
                       << "using proton truth direction to relabel pixels as shower" << std::endl;
 
             ublarcvapp::mctools::TruthTrackSCE trackutil( _p_sce );
-            trackutil.set_verbosity( larcv::msg::kDEBUG );
+            //trackutil.set_verbosity( larcv::msg::kDEBUG );
             auto const& mct = ev_mctrack.at( pNode->vidx );
             larlite::track sce_track = trackutil.applySCE( mct );
-            std::cout << "debug: " << sce_track.NumberTrajectoryPoints() << std::endl;
-            std::cin.get();
+            //std::cout << "debug: " << sce_track.NumberTrajectoryPoints() << std::endl;
+            //std::cin.get();
 
             for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
               if ( tripmaker._instance_id_v[idx]==it->first ) {
