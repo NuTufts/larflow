@@ -8,6 +8,7 @@
 #include "LArUtil/LArProperties.h"
 #include "DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/MCTools/NeutrinoVertex.h"
 //#include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
@@ -40,6 +41,8 @@ namespace spatialembed {
     _in_pq_u(nullptr),
     _in_pq_v(nullptr),
     _in_pq_y(nullptr),
+    _in_ptriplet_idx_v(nullptr),    
+    _in_psubcluster_id(nullptr),
     _rand(nullptr)
   {
     TChain* chain = new TChain("s3dembed");
@@ -178,8 +181,6 @@ namespace spatialembed {
     // loop over triplet, assigning instance ids
     generateTruthLabels( iolcv, ioll, _triplet_maker, data );
 
-    // 
-
     return data;
   }
   
@@ -306,6 +307,7 @@ namespace spatialembed {
     _tree->Branch( "ancestorid", &ancestor_id );    
     _tree->Branch( "particleid", &particle_id );
     _tree->Branch( "triplet_idx_v", &triplet_idx_v );
+    _tree->Branch( "subclusterid",  &subcluster_id );    
   }
 
   void Prep3DSpatialEmbed::fillTree( const Prep3DSpatialEmbed::VoxelDataList_t& data )
@@ -321,6 +323,7 @@ namespace spatialembed {
     q_v.resize(data.size());
     q_y.resize(data.size());
     triplet_idx_v.resize( data.size() );
+    subcluster_id.resize( data.size() );
 
     for (size_t i=0; i<data.size(); i++) {
 
@@ -350,7 +353,8 @@ namespace spatialembed {
       triplet_idx_v[i].resize(ntrip);
       for (int ii=0; ii<ntrip; ii++)
         triplet_idx_v[i][ii] = d.tripletidx_v[ii];
-      
+
+      subcluster_id[i] = d.subclusterid;
     }
 
   }
@@ -607,7 +611,8 @@ namespace spatialembed {
     _tree->SetBranchAddress("q_u",&_in_pq_u);
     _tree->SetBranchAddress("q_v",&_in_pq_v);
     _tree->SetBranchAddress("q_y",&_in_pq_y);
-    _tree->SetBranchAddress("triplet_idx_v",&_in_ptriplet_idx_v);    
+    _tree->SetBranchAddress("triplet_idx_v",&_in_ptriplet_idx_v);
+    _tree->SetBranchAddress("triplet_idx_v",&_in_psubcluster_id);        
   }
 
   Prep3DSpatialEmbed::VoxelDataList_t Prep3DSpatialEmbed::getTreeEntry(int entry)
@@ -640,6 +645,7 @@ namespace spatialembed {
       voxel.truth_pid = (*_in_pparticle_id)[i];
       voxel.truth_ancestor_index = (*_in_pancestor_id)[i];
       voxel.tripletidx_v = (*_in_ptriplet_idx_v)[i];
+      voxel.subclusterid = (*_in_psubcluster_id)[i];      
       data.emplace_back( std::move(voxel) );
     }
 
@@ -723,6 +729,7 @@ namespace spatialembed {
       std::map<int,int> instance2segment;
       
       for ( auto const& idx : hitidx_v ) {
+        
         if ( triplet_maker._truth_v[idx]==1 )
           istrue = 1;
 
@@ -1216,6 +1223,131 @@ namespace spatialembed {
       }
     }
     
+  }
+
+  /**
+   * @brief use dbscan to form subclusters
+   *
+   * we use dbscan to form subclusters of voxels.
+   * the goal of this is to then use a network to split the subcluster
+   * into components from different particles.
+   *
+   * limit clustering algorithms to this case, so that algorithm not trying to cluster
+   * the shower fragments together, which might have to much spatial variation.
+   *
+   * instead if we can split a cluster into correct particle pieces, we can use this
+   * to seed the final particle reconstruction.
+   *
+   * we use the truth flag to limit the voxels considered.
+   * eventually, we would want to replace this with the output of larmatch.
+   *
+   */
+  void Prep3DSpatialEmbed::_generate_subcluster_labels( Prep3DSpatialEmbed::VoxelDataList_t& data,
+                                                        larlite::storage_manager& ioll,
+                                                        bool use_only_true_voxels )
+  {
+    // params (need to make class attribute and provide set functions
+    const float maxdist = 0.75;
+    const int minsize = 5;
+    const int maxkd = 50;      
+    const int _kcheckradius = 3.0;
+    
+    // collect points
+    std::vector< std::vector<float> > pos_v;
+    std::vector<int> point2voxelidx_v; // map from position in pos_v to original index in VoxelDataList_t data
+    pos_v.reserve( data.size() );
+    point2voxelidx_v.reserve( data.size() );
+    
+    for ( size_t ivoxel=0; ivoxel<data.size(); ivoxel++ ) {
+      auto & voxel = data[ivoxel];
+      voxel.subclusterid = 0; // initialize to zero
+      if ( use_only_true_voxels && voxel.truth_realmatch!=1 )
+        continue;
+
+      pos_v.push_back( voxel.ave_xyz_v );
+      point2voxelidx_v.push_back( ivoxel );
+    }
+
+    std::vector< larflow::reco::cluster_t > cluster_v;
+    larflow::reco::cluster_sdbscan_spacepoints( pos_v, cluster_v, maxdist, minsize, maxkd );
+    LARCV_INFO() << "dbscan produced " << cluster_v.size() << " clusters" << std::endl;
+    for ( auto& cluster : cluster_v ) {
+      larflow::reco::cluster_bbox( cluster );
+    }
+    
+    // now we find the vertex
+    std::vector<float> vtxpos_w_tick = ublarcvapp::mctools::NeutrinoVertex::getPos3DwSCE( ioll, _triplet_truth_fixer.getSCE() );
+    float cluster_min_dist2 = 1.0e9;
+    int cluster_min_cidx = -1;
+    
+    for (int cidx=0; cidx<(int)cluster_v.size(); cidx++) {
+      auto& cluster = cluster_v[cidx];
+      float dist2box = larflow::reco::cluster_dist_to_bbox( cluster, vtxpos_w_tick );
+      if ( dist2box<=_kcheckradius ) {
+        // sigh, have to check
+        float mindist = 1.0e9;
+        for ( auto& hitpos : cluster.points_v ) {
+          float testdist = 0;
+          for ( int i=0; i<3; i++)
+            testdist += ( hitpos[i]-vtxpos_w_tick[i] )*( hitpos[i]-vtxpos_w_tick[i] );
+          if (testdist<mindist )
+            mindist = testdist;
+        }
+        if ( cluster_min_dist2>mindist ) {
+          cluster_min_cidx = cidx;
+          cluster_min_dist2 = mindist;
+        }
+      }
+    }
+      
+    // ok, we find the cluster with the vertex in it.
+    // we will label this cluster with the 1 label.
+    // then we label the rest by size
+    struct ClusterRank_t {
+      int cidx;
+      int count;
+      bool operator<( const ClusterRank_t& rhs ) {
+        if ( count<rhs.count )
+          return true;
+        return false;
+      };
+      ClusterRank_t()
+        : cidx(-1), count(-1)
+      {};
+    };
+    std::vector<ClusterRank_t> rank_v(cluster_v.size());
+    for (int cidx=0; cidx<(int)cluster_v.size(); cidx++) {
+      rank_v[cidx].cidx = cidx;
+      rank_v[cidx].count = (int)cluster_v[cidx].points_v.size();
+    }
+    std::sort( rank_v.begin(), rank_v.end() );
+
+    // now we can add the labels finally
+    int currentlabel = 1;
+    bool found_vtx_cluster = false;
+    float checkr2 = _kcheckradius*_kcheckradius;
+    if ( cluster_min_cidx>=0 && cluster_min_dist2<checkr2 ) {
+      auto& cluster = cluster_v[cluster_min_cidx];
+      for ( auto& hitidx : cluster.hitidx_v ) {
+        int orig_idx = point2voxelidx_v[hitidx];
+        data[orig_idx].subclusterid = currentlabel;
+      }
+      found_vtx_cluster = true;
+      currentlabel++;
+    }
+    
+    for (auto&  crank : rank_v ) {
+      if ( found_vtx_cluster && crank.cidx==cluster_min_cidx )
+        continue;
+      auto& cluster = cluster_v[crank.cidx];
+      for ( auto& hitidx : cluster.hitidx_v ) {
+        int orig_idx = point2voxelidx_v[hitidx];
+        data[orig_idx].subclusterid = currentlabel;
+      }
+      currentlabel++;
+    }
+
+    // done!
   }
   
 }

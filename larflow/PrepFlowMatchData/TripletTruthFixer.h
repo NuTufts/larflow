@@ -63,6 +63,8 @@ namespace prep {
       };
     };
 
+    larutil::SpaceChargeMicroBooNE* getSCE() { return _p_sce; };
+    
   protected:
 
     void _cluster_same_showerpid_spacepoints( const std::vector<ShowerInfo_t>& shower_info_v,
