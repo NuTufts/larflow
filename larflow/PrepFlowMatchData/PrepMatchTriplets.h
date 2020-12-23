@@ -78,6 +78,7 @@ namespace prep {
     std::vector< int >                                    _instance_id_v;  ///< instance ID label for each space point
     std::vector< int >                                    _ancestor_id_v;  ///< ancestor ID label for each space point
     std::vector< int >                                    _pdg_v;          ///< PDG label for each space point
+    std::vector< int >                                    _origin_v;       ///< 0: unknown, 1:neutrino, 2:cosmic
     void clear();
 
     // python/numpy functions, to help network interface

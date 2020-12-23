@@ -32,19 +32,19 @@ for opt in color_by_options:
 detdata = lardly.DetectorOutline()
 crtdet  = lardly.CRTOutline()
 
-particle_id_color = {0:(0,0,0),     # no label
-                     1:(0,0,0),     # Cosmic
-                     2:(0,0,0),     # BNB
-                     3:(255,0,0),   # electron
-                     4:(0,255,0),   # gamma
-                     5:(0,125,125), # pi0
-                     6:(255,0,255), # Muon
-                     7:(255,255,0), # Kaon
-                     8:(255,165,0), # pion                     
-                     9:(0,0,255)}   # proton
+particle_id_color = {0:(0,0,0),      # no label
+                     1:(255,125,50), # Cosmic
+                     2:(0,0,0),      # BNB
+                     3:(255,0,0),    # electron
+                     4:(0,255,0),    # gamma
+                     5:(0,125,125),  # pi0
+                     6:(155,0,155),  # Muon
+                     7:(255,255,0),  # Kaon
+                     8:(255,165,0),  # pion                     
+                     9:(0,0,255)}    # proton
 
 particle_id_name = {0:"nolabel",  # no label
-                    1:"nolabel",  # no label
+                    1:"delta",    # no label
                     2:"nolabel",  # no label
                     3:"electron", # electron
                     4:"gamma",    # gamma

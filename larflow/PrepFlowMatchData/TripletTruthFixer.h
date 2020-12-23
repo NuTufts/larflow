@@ -107,6 +107,9 @@ namespace prep {
                                                   ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                   const larlite::event_mctrack& ev_mctrack );
     
+    void _label_cosmic_pid( PrepMatchTriplets& tripmaker,
+                            ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                            larcv::IOManager& iolcv );
 
     larutil::SpaceChargeMicroBooNE* _p_sce;
     

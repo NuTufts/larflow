@@ -524,6 +524,7 @@ namespace prep {
   {
 
     _pdg_v.resize( _triplet_v.size(), 0);
+    _origin_v.resize( _triplet_v.size(), 0 );
 
     int nids = 0;
     
@@ -559,6 +560,11 @@ namespace prep {
         nids++;
 
       _pdg_v[itrip] = maxid;
+      
+      if ( maxid>0 )
+        _origin_v[itrip] = 1;
+      else
+        _origin_v[itrip] = 0;
       
     }//end of trips loop
     

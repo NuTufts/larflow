@@ -44,6 +44,9 @@ namespace prep {
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
     larlite::event_mctrack* ev_mctrack
       = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );
+
+    // fix up missing cosmic pixels if any
+    _label_cosmic_pid( tripmaker, mcpg, iolcv );
     
     // we start by resolving instance and class consistency checks
     _enforce_instance_and_class_consistency( tripmaker, mcpg, *ev_mctrack );    
@@ -132,7 +135,7 @@ namespace prep {
       tripmaker_idx_v.reserve( tripmaker._pos_v.size() );
 
       for ( int ipt=0; ipt<(int)tripmaker._pos_v.size(); ipt++) {
-        if ( tripmaker._pdg_v[ipt]==pid ) {
+        if ( tripmaker._pdg_v[ipt]==pid && tripmaker._origin_v[ipt]==1 ) {
           int instanceid = tripmaker._instance_id_v[ipt];
           if ( mcshower_instances.find(instanceid)!=mcshower_instances.end() ) {
             // protected instance id
@@ -281,8 +284,10 @@ namespace prep {
 
       
       for (int dr=-dvoxel; dr<=dvoxel; dr++) {
+
+        if ( imgcoord[3]<=meta.min_y() || imgcoord[3]>=meta.max_y() )
+          continue;
         int row = (int)meta.row( imgcoord[3] ); // tick to row
-        if (row<=0 || row>=nrows ) continue;
         
         for (int p=0; p<3; p++) {
           for (int dc=-dvoxel; dc<=dvoxel; dc++) {
@@ -742,6 +747,8 @@ namespace prep {
   {
     int max_iid_value = 0;
     std::map<int,std::vector<int> > instance_segment_counts;
+    std::map<int,int> instance_origin_counts;
+    
     for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
       int iid = tripmaker._instance_id_v[idx];
       int pid = tripmaker._pdg_v[idx];
@@ -749,12 +756,15 @@ namespace prep {
 
       if ( instance_segment_counts.find( iid )==instance_segment_counts.end() ) {
         instance_segment_counts[iid] = std::vector<int>( larcv::kROITypeMax, 0 );
+        instance_origin_counts[iid] = 0;
       }
 
       if ( pid<0 ) pid = 0;
       instance_segment_counts[iid][pid]++;
       if ( iid>max_iid_value )
         max_iid_value = iid;
+      if ( tripmaker._origin_v[idx]==1 )
+        instance_origin_counts[iid]++;
     }
 
     for ( auto it=instance_segment_counts.begin(); it!=instance_segment_counts.end(); it++ ) {
@@ -763,7 +773,7 @@ namespace prep {
       int num_max_pid = 0;
       for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
         if ( it->second[pid]>0 ) n_non_zero++;
-        if ( pid>=larcv::kROIEminus && it->second[pid]>num_max_pid ) {
+        if ( pid>0 && it->second[pid]>num_max_pid ) {
           num_max_pid = it->second[pid];
           max_pid = pid;
         }
@@ -782,8 +792,8 @@ namespace prep {
 
       if ( n_non_zero>1 ) {
 
-        if ( max_pid<larcv::kROIEminus )
-          max_pid = larcv::kROIGamma;
+        // if ( max_pid<larcv::kROIEminus )
+        //   max_pid = larcv::kROIGamma;
 
         ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode = mcpg.findTrackID( it->first );
         if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
@@ -795,8 +805,17 @@ namespace prep {
           }
           switch( pNode->pid ) {
           case 2212:
+          case 2112:            
             max_pid = larcv::kROIProton;
             break;
+          case 13:
+          case -13:
+            max_pid = larcv::kROIMuminus;
+            break;
+          case 321:
+          case -321:          
+            max_pid = larcv::kROIKminus;
+            break;            
           default:
             max_pid = larcv::kROIPiminus;
             break;
@@ -806,7 +825,8 @@ namespace prep {
         if ( max_pid>larcv::kROIGamma && (second_pid==larcv::kROIEminus || second_pid==larcv::kROIGamma )) {
           // we are going to shave off shower points into new instance id
           // get direction of proton
-          if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
+          if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 && pNode->origin==1) {
+            // do this for neutrino for now -- come back to cosmic later
 
             int nrelabeled = 0;
             std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
@@ -852,10 +872,18 @@ namespace prep {
             std::cout << "[" << pid << "](" << it->second[pid] << ") ";
         }
         std::cout << " :: set to " << max_pid << std::endl;
+
+        float origin_frac = 0.;
+        if ( n_non_zero>0 )
+          origin_frac = float( instance_origin_counts[it->first] )/float(n_non_zero);
+        int origin_label = 0;
+        if ( origin_frac>0.05 )
+          origin_label = 1;
         
         for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
           if ( tripmaker._instance_id_v[idx]==it->first ) {
             tripmaker._pdg_v[idx] = max_pid;
+            tripmaker._origin_v[idx] = origin_label;
           }
         }
       }
@@ -864,6 +892,118 @@ namespace prep {
       
     }//end of loop over instances
     
+  }
+
+  /**
+   * @brief provide missing pid labels to true cosmic pixels
+   *
+   * truth for corsika tracks are missing the PID/segment labels (of course).
+   * but they do have instance and ancestor labels.
+   * setting track labels based on presence in pgraph.
+   * setting shower labels based on missing presence in pgraph.
+   *
+   */
+  void TripletTruthFixer::_label_cosmic_pid( PrepMatchTriplets& tripmaker,
+                                             ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                             larcv::IOManager& iolcv )
+  {
+
+    int nrelabels = 0;
+    for ( size_t itrip=0; itrip<tripmaker._instance_id_v.size(); itrip++ ) {
+      int trueflow = tripmaker._truth_v[itrip];
+      if ( trueflow==0 )
+        continue;
+      
+      int iid = tripmaker._instance_id_v[itrip]; // instance id
+      int aid = tripmaker._ancestor_id_v[itrip]; // ancestor id
+
+      // look for track id in graph
+      bool has_graphnode = false;
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_instance = mcpg.findTrackID( iid );
+      if ( pNode_instance!=nullptr && pNode_instance->tid==iid )
+        has_graphnode = true;
+
+      if ( has_graphnode && pNode_instance->origin==2) {
+
+        nrelabels++;
+        int relabel = 0;
+        
+        // fix up cosmic only
+        switch ( pNode_instance->pid ) {
+        case 13:
+        case -13:
+          relabel = larcv::kROIMuminus;
+          break;
+        case 2212:
+        case 2112:
+          relabel = larcv::kROIProton;
+          break;
+        case 11:
+        case -11:
+          relabel = larcv::kROIEminus;
+          break;
+        case 22:
+          relabel = larcv::kROIGamma;
+          break;
+        case 111:
+          relabel = larcv::kROIPizero;
+          break;
+        case 321:
+        case -321:          
+          relabel = larcv::kROIKminus;
+          break;
+        default:
+          relabel = larcv::kROIPiminus;
+          break;
+        }
+
+        //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
+        tripmaker._pdg_v[itrip] = relabel;
+        continue;
+      }
+
+      // no graph node for track id, but node for ancestor
+      bool has_ancestornode = false;
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_ancestor = mcpg.findTrackID( aid );
+      if ( pNode_ancestor!=nullptr && pNode_ancestor->tid==aid )
+        has_ancestornode = true;
+
+      if ( has_ancestornode && pNode_ancestor->origin==2 ) {
+        nrelabels++;
+        int relabel = 0;        
+        // fix up cosmic-secondary
+        switch ( pNode_ancestor->pid ) {
+        case 13:
+        case -13:
+          relabel = larcv::kROICosmic; //delta
+          break;
+        case 2212:
+        case 2112:
+        case 321:
+        case -321:
+          relabel = larcv::kROIProton;
+          break;
+        case 11:
+        case -11:
+          relabel = larcv::kROIEminus;
+          break;
+        case 22:
+        case 111:          
+          relabel = larcv::kROIGamma;
+          break;
+        default:
+          relabel = larcv::kROICosmic;
+          break;
+        }
+
+        //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
+        tripmaker._pdg_v[itrip] = relabel;
+        continue;        
+      }
+      
+    }//end of triplet loop
+
+    std::cout << "number of cosmic-relables: " << nrelabels << std::endl;
   }
   
 }
