@@ -41,8 +41,6 @@ io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
 
 iolcv.add_in_file(   args.input_larcv )
 iolcv.specify_data_read( larcv.kProductImage2D, args.adc );
-#iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
-#iolcv.specify_data_read( larcv.kProductImage2D, "wiremc" );
 iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
 iolcv.specify_data_read( larcv.kProductChStatus, "wiremc" );
 iolcv.specify_data_read( larcv.kProductImage2D, "thrumu" );

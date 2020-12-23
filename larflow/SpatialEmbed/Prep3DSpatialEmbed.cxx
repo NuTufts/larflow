@@ -117,7 +117,7 @@ namespace spatialembed {
 
     _triplet_maker.clear();
     _triplet_maker.process( iolcv, _adc_image_treename, _adc_image_treename, 10.0, true );
-    _triplet_maker.process_truth_labels( iolcv );
+    _triplet_maker.process_truth_labels( iolcv, _adc_image_treename );
     _triplet_truth_fixer.calc_reassignments( _triplet_maker, iolcv, ioll );
 
     larcv::EventImage2D* ev_adc_v
@@ -177,6 +177,8 @@ namespace spatialembed {
 
     // loop over triplet, assigning instance ids
     generateTruthLabels( iolcv, ioll, _triplet_maker, data );
+
+    // 
 
     return data;
   }
@@ -303,6 +305,7 @@ namespace spatialembed {
     _tree->Branch( "instanceid", &instance_id );
     _tree->Branch( "ancestorid", &ancestor_id );    
     _tree->Branch( "particleid", &particle_id );
+    _tree->Branch( "triplet_idx_v", &triplet_idx_v );
   }
 
   void Prep3DSpatialEmbed::fillTree( const Prep3DSpatialEmbed::VoxelDataList_t& data )
@@ -317,6 +320,7 @@ namespace spatialembed {
     q_u.resize(data.size());
     q_v.resize(data.size());
     q_y.resize(data.size());
+    triplet_idx_v.resize( data.size() );
 
     for (size_t i=0; i<data.size(); i++) {
 
@@ -335,20 +339,18 @@ namespace spatialembed {
         q_y[i] = 0.;
       }
 
-      //if ( d.truth_realmatch==1 ) {
       instance_id[i] = d.truth_instance_index;
       ancestor_id[i] = d.truth_ancestor_index;
       if ( d.truth_pid>=2 )
         particle_id[i] = d.truth_pid-2;
       else
         particle_id[i] = 0;
-      // }
-      // else {
-      //   instance_id[i] = 0;
-      //   ancestor_id[i] = 0;
-      //   particle_id[i] = 0;        
-      // }
-
+      
+      int ntrip = (int)d.tripletidx_v.size();
+      triplet_idx_v[i].resize(ntrip);
+      for (int ii=0; ii<ntrip; ii++)
+        triplet_idx_v[i][ii] = d.tripletidx_v[ii];
+      
     }
 
   }
@@ -462,18 +464,73 @@ namespace spatialembed {
     PyArray_ENABLEFLAGS(feat_t,     NPY_ARRAY_OWNDATA);
     PyArray_ENABLEFLAGS(instance_t, NPY_ARRAY_OWNDATA);
     PyArray_ENABLEFLAGS(class_t,    NPY_ARRAY_OWNDATA);
+
+    PyObject* tripletmap_list = PyList_New(0);
+    PyObject* tripletmapweight_list = PyList_New(0);
+    PyObject *tm_t_key  = Py_BuildValue("s", "tripletmap_t");
+    PyObject *tmw_t_key = Py_BuildValue("s", "tripletmapweight_t");
+    for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) {
+      // triplet to voxel map tensor
+      auto const& voxeldata = voxeldata_v[ibatch];
+      size_t nvoxels = voxeldata.size();
+      
+      npy_intp tripletmap_t_dim[] = { (long int)nvoxels, (long int)_kMaxTripletPerVoxel };
+      PyArrayObject* tripletmap_t = (PyArrayObject*)PyArray_SimpleNew( 2, tripletmap_t_dim, NPY_LONG );
+
+      npy_intp tripletmapweight_t_dim[] = { (long int)nvoxels, (long int)_kMaxTripletPerVoxel };
+      PyArrayObject* tripletmapweight_t = (PyArrayObject*)PyArray_SimpleNew( 2, tripletmapweight_t_dim, NPY_FLOAT );
+      
+      // fill triplet map
+      // we use the previous two tensors to make an average sum of the triplet feature tensors
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+        int ntrips = (int)voxel.tripletidx_v.size();
+        if ( ntrips>_kMaxTripletPerVoxel )
+          ntrips = _kMaxTripletPerVoxel;
+
+        float weight = 0;
+        if ( ntrips>0 )
+          weight = 1.0/float(ntrips);
+        
+        for (int j=0; j<ntrips; j++) {
+          *((long*)PyArray_GETPTR2(tripletmap_t,i,j)) = voxel.tripletidx_v[j];
+          *((float*)PyArray_GETPTR2(tripletmapweight_t,i,j)) = weight;
+        }
+        for (int j=ntrips;j<_kMaxTripletPerVoxel;j++) {
+          *((long*)PyArray_GETPTR2(tripletmap_t,i,j)) = 0;
+          *((float*)PyArray_GETPTR2(tripletmapweight_t,i,j)) = 0;
+        }
+      }
+
+      PyList_Append(tripletmap_list,       (PyObject*)tripletmap_t);
+      PyList_Append(tripletmapweight_list, (PyObject*)tripletmapweight_t);
+      Py_DECREF(tripletmap_t);
+      Py_DECREF(tripletmapweight_t);
+    }
+    
     
     // Create and fill dictionary
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, coord_t_key,    (PyObject*)coord_t);
     PyDict_SetItem(d, feat_t_key,     (PyObject*)feat_t);
     PyDict_SetItem(d, instance_t_key, (PyObject*)instance_t);
-    PyDict_SetItem(d, class_t_key,    (PyObject*)class_t);         
+    PyDict_SetItem(d, class_t_key,    (PyObject*)class_t);
+    PyDict_SetItem(d, tm_t_key,       (PyObject*)tripletmap_list);
+    PyDict_SetItem(d, tmw_t_key,      (PyObject*)tripletmapweight_list);
     
     Py_DECREF(coord_t_key);
     Py_DECREF(feat_t_key);
     Py_DECREF(instance_t_key);
-    Py_DECREF(class_t_key);    
+    Py_DECREF(class_t_key);
+    Py_DECREF(tm_t_key);
+    Py_DECREF(tmw_t_key);        
+    // do i need to do this?
+    Py_DECREF(coord_t);
+    Py_DECREF(feat_t);
+    Py_DECREF(instance_t);
+    Py_DECREF(class_t);
+    Py_DECREF(tripletmap_list);
+    Py_DECREF(tripletmapweight_list);
     
     return d;
     
@@ -550,6 +607,7 @@ namespace spatialembed {
     _tree->SetBranchAddress("q_u",&_in_pq_u);
     _tree->SetBranchAddress("q_v",&_in_pq_v);
     _tree->SetBranchAddress("q_y",&_in_pq_y);
+    _tree->SetBranchAddress("triplet_idx_v",&_in_ptriplet_idx_v);    
   }
 
   Prep3DSpatialEmbed::VoxelDataList_t Prep3DSpatialEmbed::getTreeEntry(int entry)
@@ -581,6 +639,7 @@ namespace spatialembed {
       voxel.truth_instance_index = (*_in_pinstance_id)[i];
       voxel.truth_pid = (*_in_pparticle_id)[i];
       voxel.truth_ancestor_index = (*_in_pancestor_id)[i];
+      voxel.tripletidx_v = (*_in_ptriplet_idx_v)[i];
       data.emplace_back( std::move(voxel) );
     }
 

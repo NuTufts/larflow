@@ -39,6 +39,7 @@ namespace spatialembed {
       _num_entries(0),
       _shuffle(false),
       _kowner(false),
+      _kMaxTripletPerVoxel(5),
       _adc_image_treename("wire"),
       _truth_image_treename("segment"),
       _in_pvid_row(nullptr),
@@ -50,6 +51,7 @@ namespace spatialembed {
       _in_pq_u(nullptr),
       _in_pq_v(nullptr),
       _in_pq_y(nullptr),
+      _in_ptriplet_idx_v(nullptr),
       _rand(nullptr)
       {};
     Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files ); 
@@ -117,11 +119,6 @@ namespace spatialembed {
                               larflow::prep::PrepMatchTriplets& triplet_maker,                              
                               Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
     
-    void generateTruthLabels_using_trueflowhits( larcv::IOManager& iolcv,
-                                                 larlite::storage_manager& ioll,                                                 
-                                                 Prep3DSpatialEmbed::VoxelDataList_t& voxel_v );
-    
-
     /** @brief set flag determining if we filter the voxels by overlap with instance image pixels */
     void setFilterByInstanceImageFlag( bool filter ) { _filter_by_instance_image = filter; };
 
@@ -133,6 +130,9 @@ namespace spatialembed {
     
     VoxelDataList_t filterVoxelsByInstanceImage( const Prep3DSpatialEmbed::VoxelDataList_t& voxel_v,
                                                  const std::vector<larcv::Image2D>& instance_v );
+
+    /** @brief set maximum number of spacepoints (aka triplets) that get assigned to voxel */
+    void setMaximumTripletPerVoxel(  int maxtriplets ) { _kMaxTripletPerVoxel = maxtriplets; };
 
     const larflow::voxelizer::VoxelizeTriplets& getVoxelizer() const { return _voxelizer; };
 
@@ -150,30 +150,34 @@ namespace spatialembed {
     TTree* _tree;
     unsigned long _current_entry;
     unsigned long _num_entries;
-    bool _shuffle;
-    bool _kowner; //< indicates if we own the tree
+    bool _shuffle; ///< if true, shuffle entry when loading batch
+    bool _kowner;  ///< indicates if we own the tree (and must delete in destructor)
+    int  _kMaxTripletPerVoxel; ///< maximum number of spacepoints contributing to voxel
     std::string _adc_image_treename;
-    std::string _truth_image_treename;    
-    std::vector< int > vid_row;
-    std::vector< int > vid_col;
-    std::vector< int > vid_depth;
-    std::vector< int > instance_id;
-    std::vector< int > ancestor_id;    
-    std::vector< int > particle_id;    
-    std::vector< float > q_u;
-    std::vector< float > q_v;
-    std::vector< float > q_y;
+    std::string _truth_image_treename;
+    // voxel-indexed information
+    std::vector< int > vid_row;      ///< voxel row
+    std::vector< int > vid_col;      ///< voxel col
+    std::vector< int > vid_depth;    ///< voxel depth
+    std::vector< int > instance_id;  ///< instance label
+    std::vector< int > ancestor_id;  ///< ancestor label (not implemented)
+    std::vector< int > particle_id;  ///< particle id label
+    std::vector< float > q_u;        ///< charge on u-plane
+    std::vector< float > q_v;        ///< charge on v-plane
+    std::vector< float > q_y;        ///< charge on y-plane
+    std::vector< std::vector<int> > triplet_idx_v; ///< indices of triplets in _triplet_maker that contribute to voxel
 
     // pointers used to load vector branches when reading a tree
-    std::vector< int >* _in_pvid_row;
-    std::vector< int >* _in_pvid_col;
-    std::vector< int >* _in_pvid_depth;
-    std::vector< int >* _in_pinstance_id;
-    std::vector< int >* _in_pancestor_id;
-    std::vector< int >* _in_pparticle_id;        
-    std::vector< float >* _in_pq_u;
-    std::vector< float >* _in_pq_v;
-    std::vector< float >* _in_pq_y;
+    std::vector< int >* _in_pvid_row;     ///< voxel row
+    std::vector< int >* _in_pvid_col;     ///< voxel col
+    std::vector< int >* _in_pvid_depth;   ///< voxel depth
+    std::vector< int >* _in_pinstance_id; ///< instance label
+    std::vector< int >* _in_pancestor_id; ///< ancestor label
+    std::vector< int >* _in_pparticle_id; ///< particle id label
+    std::vector< float >* _in_pq_u;       ///< charge on u-plane
+    std::vector< float >* _in_pq_v;       ///< charge on v-plane
+    std::vector< float >* _in_pq_y;       ///< charge on y-plane
+    std::vector< std::vector<int> >* _in_ptriplet_idx_v; ///< indices of triplets in _triplet_maker that contribute to voxel
 
     TRandom3* _rand;
 
