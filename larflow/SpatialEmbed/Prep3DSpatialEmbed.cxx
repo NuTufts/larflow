@@ -181,6 +181,8 @@ namespace spatialembed {
     // loop over triplet, assigning instance ids
     generateTruthLabels( iolcv, ioll, _triplet_maker, data );
 
+    _generate_subcluster_labels( data, ioll, true );
+
     return data;
   }
   
@@ -419,7 +421,12 @@ namespace spatialembed {
     npy_intp class_t_dim[] = { (long int)nvoxels_tot };
     PyArrayObject* class_t = (PyArrayObject*)PyArray_SimpleNew( 1, class_t_dim, NPY_LONG );
     PyObject *class_t_key = Py_BuildValue("s", "class_t");
-    
+
+    // subcluster tensor
+    npy_intp subcluster_t_dim[] = { (long int)nvoxels_tot };
+    PyArrayObject* subcluster_t = (PyArrayObject*)PyArray_SimpleNew( 1, subcluster_t_dim, NPY_LONG );
+    PyObject *subcluster_t_key = Py_BuildValue("s", "subcluster_t");
+        
     // FILL TENSORS
     size_t nvoxels_filled = 0;
     for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) {
@@ -459,15 +466,23 @@ namespace spatialembed {
 	auto const& voxel = voxeldata[i];
 	*((long*)PyArray_GETPTR1(class_t,nvoxels_filled+i)) = voxel.truth_pid;
       }
+
+      // fill subcluster tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	*((long*)PyArray_GETPTR1(subcluster_t,nvoxels_filled+i)) = voxel.subclusterid;
+      }
+      
       
       nvoxels_filled += nvoxels;
     }
 
     // set own data flag
-    PyArray_ENABLEFLAGS(coord_t,    NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(feat_t,     NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(instance_t, NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(class_t,    NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(coord_t,      NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(feat_t,       NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(instance_t,   NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(class_t,      NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(subcluster_t, NPY_ARRAY_OWNDATA);    
 
     PyObject* tripletmap_list = PyList_New(0);
     PyObject* tripletmapweight_list = PyList_New(0);
@@ -515,17 +530,19 @@ namespace spatialembed {
     
     // Create and fill dictionary
     PyObject *d = PyDict_New();
-    PyDict_SetItem(d, coord_t_key,    (PyObject*)coord_t);
-    PyDict_SetItem(d, feat_t_key,     (PyObject*)feat_t);
-    PyDict_SetItem(d, instance_t_key, (PyObject*)instance_t);
-    PyDict_SetItem(d, class_t_key,    (PyObject*)class_t);
-    PyDict_SetItem(d, tm_t_key,       (PyObject*)tripletmap_list);
-    PyDict_SetItem(d, tmw_t_key,      (PyObject*)tripletmapweight_list);
+    PyDict_SetItem(d, coord_t_key,      (PyObject*)coord_t);
+    PyDict_SetItem(d, feat_t_key,       (PyObject*)feat_t);
+    PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
+    PyDict_SetItem(d, class_t_key,      (PyObject*)class_t);
+    PyDict_SetItem(d, subcluster_t_key, (PyObject*)subcluster_t);    
+    PyDict_SetItem(d, tm_t_key,         (PyObject*)tripletmap_list);
+    PyDict_SetItem(d, tmw_t_key,        (PyObject*)tripletmapweight_list);
     
     Py_DECREF(coord_t_key);
     Py_DECREF(feat_t_key);
     Py_DECREF(instance_t_key);
     Py_DECREF(class_t_key);
+    Py_DECREF(subcluster_t_key);    
     Py_DECREF(tm_t_key);
     Py_DECREF(tmw_t_key);        
     // do i need to do this?
@@ -533,6 +550,7 @@ namespace spatialembed {
     Py_DECREF(feat_t);
     Py_DECREF(instance_t);
     Py_DECREF(class_t);
+    Py_DECREF(subcluster_t);
     Py_DECREF(tripletmap_list);
     Py_DECREF(tripletmapweight_list);
     
@@ -612,7 +630,7 @@ namespace spatialembed {
     _tree->SetBranchAddress("q_v",&_in_pq_v);
     _tree->SetBranchAddress("q_y",&_in_pq_y);
     _tree->SetBranchAddress("triplet_idx_v",&_in_ptriplet_idx_v);
-    _tree->SetBranchAddress("triplet_idx_v",&_in_psubcluster_id);        
+    _tree->SetBranchAddress("subclusterid",&_in_psubcluster_id);
   }
 
   Prep3DSpatialEmbed::VoxelDataList_t Prep3DSpatialEmbed::getTreeEntry(int entry)
@@ -1307,7 +1325,7 @@ namespace spatialembed {
       int cidx;
       int count;
       bool operator<( const ClusterRank_t& rhs ) {
-        if ( count<rhs.count )
+        if ( count>rhs.count )
           return true;
         return false;
       };
@@ -1333,6 +1351,7 @@ namespace spatialembed {
         data[orig_idx].subclusterid = currentlabel;
       }
       found_vtx_cluster = true;
+      LARCV_INFO() << "Found vertex cluster. closest cluster index=" << cluster_min_cidx << " mindist=" << sqrt(cluster_min_dist2) << std::endl;
       currentlabel++;
     }
     
