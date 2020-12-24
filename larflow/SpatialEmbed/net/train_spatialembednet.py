@@ -44,13 +44,13 @@ from loss_spatialembed import SpatialEmbedLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=False
-RESUME_OPTIM_FROM_CHECKPOINT=False
+RESUME_FROM_CHECKPOINT=True
+RESUME_OPTIM_FROM_CHECKPOINT=True
 RUNPROFILER=False
-CHECKPOINT_FILE="checkpoint.6000th.tar"
+CHECKPOINT_FILE="checkpoint.16000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
 TRAIN_NET_VERBOSE=False
-TRAIN_LOSS_VERBOSE=True
+TRAIN_LOSS_VERBOSE=False
 VALID_NET_VERBOSE=False
 VALID_LOSS_VERBOSE=True
 FREEZE_LAYERS=False
@@ -81,10 +81,10 @@ TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER  = 0
+START_ITER  = 16001
 NUM_ITERS   = 1000000
 
-BATCHSIZE_TRAIN=16  # batches per training iteration
+BATCHSIZE_TRAIN=32  # batches per training iteration
 BATCHSIZE_VALID=16 # batches per validation iteration
 NWORKERS_TRAIN=2   # number of threads data loader will use for training set
 NWORKERS_VALID=2   # number of threads data loader will use for validation set
@@ -108,7 +108,7 @@ HARDEX_MAP_LOCATIONS={"cuda:0":"cuda:0",
                       "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS=None
 CHECKPOINT_FROM_DATA_PARALLEL=False
-ITER_PER_CHECKPOINT=1000
+ITER_PER_CHECKPOINT=500
 PREDICT_CLASSVEC=True
 # ===================================================
 
@@ -222,7 +222,7 @@ def main():
         
 
     # training parameters
-    lr = 1e-3
+    lr = 1e-4
     momentum = 0.9
     weight_decay = 1.0e-4
 
