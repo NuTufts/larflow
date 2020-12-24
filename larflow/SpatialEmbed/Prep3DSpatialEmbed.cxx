@@ -134,10 +134,13 @@ namespace spatialembed {
     // we keep only those hits on neutrino pixels, using the segment image to filter out cosmic pixels
     ev_prep->reserve( _triplet_maker._triplet_v.size() );
     for ( int itriplet=0; itriplet<_triplet_maker._triplet_v.size(); itriplet++ ) {
-      int truth = _triplet_maker._truth_v[itriplet];
+      int truth  = _triplet_maker._truth_v[itriplet];
+      int origin = _triplet_maker._origin_v[itriplet];
 
       // check: is true hit
       if ( truth==0 ) continue;
+      // check: is of neutrino origin
+      if ( _filter_out_non_nu_pixels && origin!=1 ) continue;
 
       auto const& triplet = _triplet_maker._triplet_v[itriplet];      
       std::vector<int> imgcoord = _triplet_maker.get_triplet_imgcoord_rowcol( itriplet );      
@@ -1265,7 +1268,7 @@ namespace spatialembed {
                                                         bool use_only_true_voxels )
   {
     // params (need to make class attribute and provide set functions
-    const float maxdist = 0.75;
+    const float maxdist = 1.5;
     const int minsize = 5;
     const int maxkd = 50;      
     const int _kcheckradius = 3.0;

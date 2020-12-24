@@ -8,6 +8,7 @@ parser.add_argument("-o","--output",required=True,type=str,help="output (ROOT) f
 parser.add_argument("-n", "--nentries",type=int,default=None,help="Number of entries to run [default: None (all)]")
 parser.add_argument("-s", "--start-entry",type=int,default=0,help="starting entry")
 parser.add_argument("-adc","--adc",type=str,default="wire",help="ADC image name")
+parser.add_argument("-nu","--nu-only",default=False,action='store_true',help='if provided, save only neutrino voxels [default: False]')
 args = parser.parse_args()
 
 import ROOT as rt
@@ -22,7 +23,7 @@ voxelmaker.set_verbosity(larcv.msg.kDEBUG)
 voxelmaker.set_adc_image_treename( args.adc )
 voxelmaker.set_truth_image_treename( "segment" )
 voxelmaker.setFilterByInstanceImageFlag( True )
-voxelmaker.setFilterOutNonNuPixelsFlag( True )
+voxelmaker.setFilterOutNonNuPixelsFlag( args.nu_only )
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )

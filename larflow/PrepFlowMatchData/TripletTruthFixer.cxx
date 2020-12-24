@@ -857,12 +857,22 @@ namespace prep {
             std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
                       << "number relabeled=" << nrelabeled
                       << " to instance-id=" << max_iid_value+1
-                      << " and pid=" << second_pid
+                      << " with pid=" << second_pid
                       << std::endl;
             max_iid_value++;
           }//end of node found, so make modifications
         }
 
+        float origin_denom = 0.;
+        for (auto& ncount : instance_segment_counts[it->first] )
+          origin_denom += (float)ncount;
+               
+        float origin_frac = 0.;
+        if ( n_non_zero>0 )
+          origin_frac = float( instance_origin_counts[it->first] )/origin_denom;
+        int origin_label = 0;
+        if ( origin_frac>0.9 )
+          origin_label = 1;
         
         // majority wins
         std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
@@ -871,14 +881,9 @@ namespace prep {
           if ( it->second[pid]>0 )
             std::cout << "[" << pid << "](" << it->second[pid] << ") ";
         }
+        std::cout << " origin[" << origin_label << "," << origin_frac << "] ";
         std::cout << " :: set to " << max_pid << std::endl;
 
-        float origin_frac = 0.;
-        if ( n_non_zero>0 )
-          origin_frac = float( instance_origin_counts[it->first] )/float(n_non_zero);
-        int origin_label = 0;
-        if ( origin_frac>0.05 )
-          origin_label = 1;
         
         for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
           if ( tripmaker._instance_id_v[idx]==it->first ) {
