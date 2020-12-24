@@ -23,7 +23,10 @@ namespace reco {
     TrackdQdx() {};
     ~TrackdQdx() {};
 
-    /** @brief info we collect for each space point matched to a track's set of line segments */
+    /** 
+     * @struct TrackPt_t
+     * @brief info we collect for each space point matched to a track's set of line segments 
+     */
     struct TrackPt_t {
       int hitidx; ///< index in the space point container
       int pid;  ///< assigned pid to points
@@ -37,11 +40,11 @@ namespace reco {
       float lm; ///< muon-likelihood value
       float ll; ///< likelihood
       float llw; ///< likelihood weight
-      std::vector<float> linept; // point on current track line
-      std::vector<float> pt;     // space point location
-      std::vector<float> dir;    // direction of track line segment
-      std::vector<float> err_v;  // vector from linept to space point (pt)
-      std::vector<double> dqdx_v; /// dqdx on all three planes
+      std::vector<float> linept;  ///< point on current track line
+      std::vector<float> pt;      ///< space point location
+      std::vector<float> dir;     ///< direction of track line segment
+      std::vector<float> err_v;   ///< vector from linept to space point (pt)
+      std::vector<double> dqdx_v; ///< dqdx on all three planes
       /** @brief comparison operator used to sort by path along track */
       bool operator<( const TrackPt_t& rhs ) const
       {
@@ -67,7 +70,8 @@ namespace reco {
                            const std::vector<larcv::Image2D>& adc_v,
                            const int hitidx, 
                            const float r,
-                           const float s,
+                           const float local_s,
+                           const float global_s,                           
                            const float lm_score,
                            TrackdQdx::TrackPt_t& trkpt ) const;
     

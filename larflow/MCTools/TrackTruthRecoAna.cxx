@@ -7,7 +7,7 @@
 #include "larflow/Reco/geofuncs.h"
 
 namespace larflow {
-namespace reco {
+namespace mctools {
 
   TrackTruthRecoAna::TrackTruthRecoAna()
     : larcv::larcv_base("TrackTruthRecoAna")
@@ -77,7 +77,8 @@ namespace reco {
   /**
    * @brief Get SCE-corrected path for a true track trajectory
    *
-   * @param[in] mct Given true track
+   * @param[in] mct  Given true track
+   * @param[in] psce pointer to space charge calculation class
    * @return vector of (x,y,z) 3D space points with x-relative to the event trigger
    *
    */

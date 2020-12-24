@@ -52,11 +52,15 @@ namespace prep {
                   std::string chstatus_producer,
                   const float adc_threshold=10.0,
                   const bool check_wire_intersection=false );
-    
+
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
     void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
-    void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v );
+    void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+                                const std::vector<larcv::Image2D>& adc_v );
+    void process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer="wire" );
+
+    std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
     std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
                                           
@@ -74,6 +78,7 @@ namespace prep {
     std::vector< int >                                    _instance_id_v;  ///< instance ID label for each space point
     std::vector< int >                                    _ancestor_id_v;  ///< ancestor ID label for each space point
     std::vector< int >                                    _pdg_v;          ///< PDG label for each space point
+    std::vector< int >                                    _origin_v;       ///< 0: unknown, 1:neutrino, 2:cosmic
     void clear();
 
     // python/numpy functions, to help network interface
@@ -118,7 +123,10 @@ namespace prep {
                                            const int& nhard_samples,
                                            PyObject* triplet_scores,                                                            
                                            int& nfilled,
-                                           bool withtruth );    
+                                           bool withtruth );
+
+    // Truth Info
+    PyObject* make_truthonly_triplet_ndarray();
     
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 

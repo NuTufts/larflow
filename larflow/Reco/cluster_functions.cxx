@@ -877,6 +877,95 @@ namespace reco {
     return r;
   }
 
+  /**
+   * @brief append hits of cluster to another
+   *
+   * This modifies one cluster by copying contents of other cluster into it
+   * 
+   * @param[inout] merge    cluster that will be appended to
+   * @param[in]    clust_b  cluster we copy data from
+   */
+  void cluster_append( cluster_t& merge, const cluster_t& clust_b ) {
+
+    merge.points_v.reserve(   merge.points_v.size()+clust_b.points_v.size() );
+    if ( merge.imgcoord_v.size()+clust_b.imgcoord_v.size()>0 )
+      merge.imgcoord_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
+    if ( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() >0 )
+      merge.hitidx_v.reserve( merge.imgcoord_v.size()+clust_b.imgcoord_v.size() );
+    
+    for ( size_t i=0; i<clust_b.points_v.size(); i++ ) {
+      merge.points_v.push_back(   clust_b.points_v[i] );
+      if ( clust_b.imgcoord_v.size()>0 )
+        merge.imgcoord_v.push_back( clust_b.imgcoord_v[i] );
+      if ( clust_b.hitidx_v.size()>0 )
+        merge.hitidx_v.push_back( clust_b.hitidx_v[i] );
+    }
+
+    cluster_pca( merge );
+  }
+  
+  /**
+   * @brief populate cluster bbox info
+   *
+   * @param[inout] cluster cluster to modify
+   *
+   */
+  void cluster_bbox( cluster_t& cluster )
+  {
+    //std::cout << "[cluster_pca]" << std::endl;
+    cluster.bbox_v.resize(3);
+    for (size_t i=0; i<3; i++ ) {
+      cluster.bbox_v[i].resize(2,0);
+      cluster.bbox_v[i][0] = 1.0e9;  // initial min value
+      cluster.bbox_v[i][1] = -1.0e9; // initial max value
+    }
+
+    // determine axis-aligned bounding box values    
+    for ( auto const& hit : cluster.points_v ) {
+      for (int i=0; i<3; i++ ) {
+        if ( hit[i]<cluster.bbox_v[i][0] ) cluster.bbox_v[i][0] = hit[i];
+        if ( hit[i]>cluster.bbox_v[i][1] ) cluster.bbox_v[i][1] = hit[i];
+      }
+    }
+  }
+
+  /** 
+   *@brief distance to bounding box
+   *
+   */
+  float cluster_dist_to_bbox( const cluster_t& cluster, const std::vector<float>& testpt  )
+  {
+    bool isinside = true;
+    float mindist2plane[3] = { 1.0e9, 1.0e9, 1.0e9 };
+
+    for ( int i=0; i<3; i++ ) {
+      float lowdist  = testpt[i]-cluster.bbox_v[i][0];
+      float highdist = testpt[i]-cluster.bbox_v[i][1];
+      if ( lowdist>0 && highdist<0 ) {
+        mindist2plane[i] = 0;
+      }
+      else if ( lowdist<0 ) {
+        mindist2plane[i] = fabs(lowdist);
+        isinside = false;
+      }
+      else if ( highdist>0 ) {
+        mindist2plane[i] = fabs(highdist);
+        isinside = false;        
+      }
+    }
+
+    if ( isinside )
+      return 0.0;
+    
+    float maxdist = 0;
+    for (int i=0; i<3; i++ ) {
+      if ( maxdist<mindist2plane[i] )
+        maxdist = mindist2plane[i];
+    }
+
+    return maxdist;
+  }
+  
   
 }
 }

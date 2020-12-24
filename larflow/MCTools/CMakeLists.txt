@@ -1,33 +1,17 @@
-set(MODULE_NAME PrepFlowMatchData )
+set(MODULE_NAME MCTools )
 
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS WireOverlap.h
-  FlowTriples.h
-  PrepMatchTriplets.h
-  FlowMatchHitMaker.h
-  #FlowMatchMap.hh  
-  #PrepFlowMatchData.hh
-  #MatchTripletProcessor.h
-  #PyFlowMatchData.hh
-  PrepSSNetTriplet.h
-  #TripletIO.h
-  TripletTruthFixer.h
+set( HEADERS TrackTruthRecoAna.h
+  ShowerTruthRecoAna.h
+  ShowerLikelihoodBuilder.h
   )
 
 add_library( ${LIBNAME} SHARED
-  WireOverlap.cxx
-  FlowTriples.cxx
-  PrepMatchTriplets.cxx
-  FlowMatchHitMaker.cxx  
-  #MatchTripletProcessor.cxx  
-  #FlowMatchMap.cxx
-  #PrepFlowMatchData.cxx
-  #PyFlowMatchData.cxx
-  PrepSSNetTriplet.cxx
-  #TripletIO.cxx
-  TripletTruthFixer.cxx
+  TrackTruthRecoAna.cxx
+  ShowerTruthRecoAna.cxx
+  ShowerLikelihoodBuilder.cxx
   )
 
 # create a property to hold our headers
@@ -43,7 +27,7 @@ set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVCo
 set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
 
 # larflow libs
-set(LARFLOW_LIBS_USED LArFlow_LArFlowConstants)
+set(LARFLOW_LIBS_USED LArFlow_LArFlowConstants LArFlow_Reco LArFlow_PrepFlowMatchData )
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
@@ -56,7 +40,6 @@ target_include_directories(${LIBNAME}
   ${PYTHON_INCLUDE_PATH}
   ${NUMPY_INCLUDES}
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/mrcnnmatch
   ${PROJECT_SOURCE_DIR}
   )
 target_link_libraries(${LIBNAME} ${LARFLOW_LIBS_USED} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )

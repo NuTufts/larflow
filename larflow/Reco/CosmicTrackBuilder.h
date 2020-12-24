@@ -48,10 +48,10 @@ namespace reco {
     void _boundary_analysis_wflash( larlite::storage_manager& ioll );
     void _boundary_analysis_noflash( larlite::storage_manager& ioll );
 
-    bool _using_default_cluster;
+    bool _using_default_cluster; ///< if true, replace the default cluster tree
     std::vector<std::string> _cluster_tree_v; ///< tree clusters to use
 
-    std::string producer_keypoint;    
+    std::string producer_keypoint; ///< keypoints to start building tracks with
     
   };
   

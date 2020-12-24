@@ -6,9 +6,9 @@
 
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
-#include "larflow/Reco/ShowerLikelihoodBuilder.h"
 
 namespace larflow {
 namespace crtmatch {
@@ -63,9 +63,9 @@ namespace crtmatch {
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraph( iolcv, ioll );
 
-    larflow::reco::ShowerLikelihoodBuilder sllb;
-    sllb.process( iolcv, ioll );
-    sllb.updateMCPixelGraph( mcpg, iolcv );
+    // larflow::reco::ShowerLikelihoodBuilder sllb;
+    // sllb.process( iolcv, ioll );
+    // sllb.updateMCPixelGraph( mcpg, iolcv );
     
     std::vector< larlite::larflowcluster > truth_cluster_v;
     //void makeTruthTrackClusters( iolcv, ioll, mcpg );
@@ -274,7 +274,7 @@ namespace crtmatch {
   void CRTTruthMatchManager::saveEventMCinfo( bool savemc )
   {
     if ( !_save_event_mc_info && savemc )  {
-      _track_truthreco_ana.bindAnaVariables( _ana_tree );
+      //_track_truthreco_ana.bindAnaVariables( _ana_tree );
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
@@ -284,7 +284,7 @@ namespace crtmatch {
   /** @brief run Truth-Reco analyses for studying performance **/
   void CRTTruthMatchManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
-    _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
+    //_track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     //_track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
 
@@ -301,6 +301,21 @@ namespace crtmatch {
 
     
   // }
+
+  /** @brief store match information into larcv and larlite format
+   *
+   * not yet implemented.
+   *
+   * @param[out] outlcv Store data into larcv IO manager
+   * @param[out] outll  Store data into larlite IO manager
+   * @param[in]  remove_if_no_flash Does not store tracks if no flash-match made to CRT hit/track [default: true]
+   */
+  void CRTTruthMatchManager::store_output( larcv::IOManager& outlcv,
+                                           larlite::storage_manager& outll,
+                                           bool remove_if_no_flash )
+  {
+  }
+  
   
 }
 }

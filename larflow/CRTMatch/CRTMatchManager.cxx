@@ -7,6 +7,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
+#include "larflow/Reco/TrackdQdx.h"
 
 namespace larflow {
 namespace crtmatch {
@@ -103,14 +104,18 @@ namespace crtmatch {
 
     // At this point we have track clusters in 'cosmictrackclusters' tree
     
-    // // COSMIC RECO
+    // COSMIC RECO
     _cosmic_track_builder.clear();
-    // //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
+    // this algorithm produces two sets of tracks stored in two event_larlite
+    // cosmictrack: track is fitted with segments
+    // simplecosmictrack: track is not fitted with segments
 
     // CRT HIT MATCH
+    // we use the none fitted tracks in order to avoid a bad fit at the end
+    // causing a missed match between track and CRT hit
     bool remove_track_if_no_flash = true;
     _crthit_match.set_verbosity(larcv::msg::kDEBUG);
     //_crthit_match.setInputTrackTreename( "simplecosmictrack" );
@@ -123,6 +128,27 @@ namespace crtmatch {
       throw e;
     }
     _crthit_match.save_to_file( ioll, remove_track_if_no_flash );
+
+    // DQDX ALGO
+    LARCV_INFO() << "Run dQdx algorithms" << std::endl;
+    //std::string dqdx_input = "simplecosmictrack";
+    std::string dqdx_input = "cosmictrack";
+    larlite::event_track* fitted_cosmic_track
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,dqdx_input);
+    larlite::event_larflowcluster* fitted_cosmic_cluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster,dqdx_input);
+    for ( size_t itrack=0; itrack<fitted_cosmic_track->size(); itrack++ ) {
+      auto& cosmic_track   = fitted_cosmic_track->at(itrack);
+      auto& cosmic_cluster = fitted_cosmic_cluster->at(itrack);
+      try {
+        larlite::track track_wdqdx = _dqdx_algo.calculatedQdx( cosmic_track, cosmic_cluster, adc_v );
+        std::swap( cosmic_track, track_wdqdx );
+      }
+      catch (std::exception& e) {
+        LARCV_WARNING() << "Track dQdx failed to reconstruction cosmictrack[" << itrack << "]: " << e.what() << std::endl;
+        continue;
+      }
+    }
 
     // // MULTI-PRONG INTERNAL RECO
     // multiProngReco( iolcv, ioll );
@@ -285,7 +311,7 @@ namespace crtmatch {
   void CRTMatchManager::saveEventMCinfo( bool savemc )
   {
     if ( !_save_event_mc_info && savemc )  {
-      _track_truthreco_ana.bindAnaVariables( _ana_tree );
+      //_track_truthreco_ana.bindAnaVariables( _ana_tree );
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
@@ -295,8 +321,22 @@ namespace crtmatch {
   /** @brief run Truth-Reco analyses for studying performance **/
   void CRTMatchManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
-    _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
+    //_track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     //_track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+  }
+
+  /** @brief store match information into larcv and larlite format
+   *
+   * not yet implemented.
+   *
+   * @param[out] outlcv Store data into larcv IO manager
+   * @param[out] outll  Store data into larlite IO manager
+   * @param[in]  remove_if_no_flash Does not store tracks if no flash-match made to CRT hit/track [default: true]
+   */
+  void CRTMatchManager::store_output( larcv::IOManager& outlcv,
+                                      larlite::storage_manager& outll,
+                                      bool remove_if_no_flash )
+  {
   }
   
 }

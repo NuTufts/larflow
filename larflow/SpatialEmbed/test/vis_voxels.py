@@ -43,7 +43,7 @@ particle_id_name = {1:"electron",
                     6:"pion", # proton
                     7:"proton"}   # pion
 
-color_by_options = ["q_yplane","cluster","pid"]
+color_by_options = ["q_yplane","cluster","pid","subcluster"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -139,10 +139,11 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
         traces_v.append(voxtrace)        
     elif plotby=="cluster":
         # color by instance index
-        ninstances = data_dict["instance_t"].max()
+        iid_v = np.unique( data_dict["instance_t"] )
+        ninstances = len(iid_v)        
         print("Number of instances: ",ninstances)
         #raw_input()
-        for iid in range(0,ninstances+1):
+        for n,iid in enumerate(iid_v.tolist()):
             print("== instance [",iid,"] ===")
             idmask = data_dict["instance_t"]==iid
             pids = np.unique( data_dict["class_t"][idmask] )
@@ -191,6 +192,37 @@ def make_figures(entry,plotby="cluster",minprob=0.0):
                               "size":1,
                               "opacity":0.5}}
                 traces_v.append(voxtrace)
+    elif plotby=="subcluster":
+        # color by instance index
+        iid_v = np.unique( data_dict["subcluster_t"] )
+        ninstances = len(iid_v)        
+        print("Number of sub-cluster instances: ",ninstances)
+        #raw_input()
+        for n,iid in enumerate(iid_v.tolist()):
+            print("== subcluster [",iid,"] ===")
+            idmask = data_dict["subcluster_t"]==iid
+            pids = np.unique( data_dict["class_t"][idmask] )
+            print(" subcluster_t size: ",idmask.sum())
+            print(" idmask: ",idmask.shape)
+            print(" pids: ",pids.tolist())
+            if iid>0:
+                randcolor = np.random.rand(3)*255
+                print("subcluster[",iid,"] color: ",randcolor)
+                strcolor = "rgb(%d,%d,%d)"%(randcolor[0],randcolor[1],randcolor[2])
+            else:
+                strcolor = "rgb(0,0,0)"
+            voxtrace = {
+                "type":"scatter3d",
+                "x":fcoord_t[idmask,0],
+                "y":fcoord_t[idmask,1],
+                "z":fcoord_t[idmask,2],
+                "mode":"markers",
+                "name":"c[%d]"%(iid),
+                "marker":{"color":strcolor,
+                          "size":3,
+                          "opacity":0.5}}
+            traces_v.append(voxtrace)            
+
             
         
     else:

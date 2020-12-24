@@ -49,7 +49,6 @@ namespace prep {
   /**
    * @brief convenience function that gets the data needed from an larcv::IOManager instance and runs the process method.
    *
-   *
    * @param[in] iolcv   larcv::IOManager instance containing needed data objects
    * @param[in] wire_producer     Name of tree containing event ADC images
    * @param[in] chstatus_producer Name of tree containing badch status
@@ -520,10 +519,12 @@ namespace prep {
    * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
    *
    */
-  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v )
+  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+                                                 const std::vector<larcv::Image2D>& adc_v )
   {
 
     _pdg_v.resize( _triplet_v.size(), 0);
+    _origin_v.resize( _triplet_v.size(), 0 );
 
     int nids = 0;
     
@@ -535,19 +536,21 @@ namespace prep {
         imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
       }
 
-      std::map< int, int > id_votes;
+      std::map< int, float > id_votes;
 
       for (int p=0; p<3; p++ ) {
         int plane_id = segment_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        float pixval = adc_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
         if ( id_votes.find(plane_id)==id_votes.end() )
           id_votes[plane_id] = 0;
+        //id_votes[plane_id] += pixval;
         id_votes[plane_id] += 1;
       }
 
       int maxid = 0;
-      int nvotes = 0;
+      float nvotes = 0;
       for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
-        if ( it->first>0 && it->second>nvotes) {
+        if ( it->first>0 && it->second>0 && (it->second>nvotes) ) {
           nvotes = it->second;
           maxid = it->first;
         }
@@ -557,6 +560,11 @@ namespace prep {
         nids++;
 
       _pdg_v[itrip] = maxid;
+      
+      if ( maxid>0 )
+        _origin_v[itrip] = 1;
+      else
+        _origin_v[itrip] = 0;
       
     }//end of trips loop
     
@@ -637,8 +645,15 @@ namespace prep {
   /**
    * @brief return a numpy array with indices to the sparse matrix object.
    *
-   * use a vector with index of match pair to choose matches.   
+   * use a vector with indices of match pair to choose matches.   
    *
+   * @param[in]  kdir Two-plane  flow direction to return data for
+   * @param[in]  max_num_samples maximum number of flow samples to return
+   * @param[in]  idx_v           list of indices. can be larger than the requested number of samples.
+   * @param[in]  start_idx       index of idx_v to start samples
+   * @param[in]  withtruth       return array with truth label
+   * @param[out] nsamples        number of flow samples returned
+   * @return numpy array with indices
    */
   PyObject* PrepMatchTriplets::make_2plane_match_array( larflow::FlowDir_t kdir,
                                                         const int max_num_samples,
@@ -708,6 +723,12 @@ namespace prep {
    *
    * @brief randomly select a set of 2 plane indices
    *
+   * @param[in]  kdir      Two-plane flow direction to return data for
+   * @param[in]  nsamples  maximum number of samples requested
+   * @param[in]  nfilled   number of samples returned
+   * @param[in]  withtruth array should return truth label
+   * @return numpy array with indices
+   * 
    */
   PyObject* PrepMatchTriplets::sample_2plane_matches( larflow::FlowDir_t kdir,
                                                       const int& nsamples,
@@ -937,7 +958,154 @@ namespace prep {
     return make_triplet_array( nsamples, saved_idx_v, 0, withtruth, nfilled );
 
   }
+
+  /**
+   * @brief make all the initial truth labels
+   *
+   * runs all the truth label making functions. 
+   *
+   * @param[in] iolcv larcv IO manager containing event data
+   */
+  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer )
+  {
+    
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,wire_producer);
+    larcv::EventImage2D* ev_larflow =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");
+    larcv::EventImage2D* ev_instance =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
+    larcv::EventImage2D* ev_ancestor =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
+    larcv::EventImage2D* ev_segment =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
+
+    make_truth_vector( ev_larflow->as_vector() );
+    make_instanceid_vector( ev_instance->as_vector() );
+    make_ancestorid_vector( ev_ancestor->as_vector() );
+    make_segmentid_vector( ev_segment->as_vector(), ev_adc->as_vector() );
+    
+  }
+
+  /**
+   * @brief Make ndarray using only true triplets
+   * 
+   * the dictionary contains the following:
+   * @verbatim embed:rst:leading-asterisk 
+   *  * `imgcoord_t`: (N,4) numpy array containing (col,col,col,row) in 2D dimension.
+   *  * `instance_t`: (N,1) instance labels. ID is the geant4 track id.
+   *  * `segment_t`:  (N,1) particle class labels. labels follow values in larcv/core/DataFormat/DataFormatTypes.h.
+   *  * `ancestor_t`: (N,1) ancestor labels. ID is the geant4 ancestor id (not yet implemented).
+   * @endverbatim
+   *
+   * @return dictionary with numpy arrays
+   */
+  PyObject* PrepMatchTriplets::make_truthonly_triplet_ndarray()
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+
+    if ( _triplet_v.size()!=_truth_v.size()
+         || _triplet_v.size()!=_instance_id_v.size()
+         || _triplet_v.size()!=_pdg_v.size() ) {
+      std::stringstream ss;
+      ss << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] "
+         << "truth vectors (truth,instance_id,pdg) do not match triplet_v size"
+         << std::endl;
+      throw std::runtime_error( ss.str() );
+    }
+    
+    int ntruepts = 0;
+    for (auto const& truth : _truth_v ) {
+      if ( truth ) ntruepts++;
+    }
+
+    std::cout << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] number of true points: " << ntruepts << std::endl;
+    
+    // space point
+    npy_intp spacepoint_t_dim[] = { (long int)ntruepts, 3 };
+    PyArrayObject* spacepoint_t = (PyArrayObject*)PyArray_SimpleNew( 2, spacepoint_t_dim, NPY_FLOAT );
+    PyObject *spacepoint_t_key = Py_BuildValue("s", "spacepoint_t");
+
+    int ifilled = 0;
+    std::vector<int> idx_v(ntruepts);
+    for (size_t i=0; i<_truth_v.size(); i++) {
+      if ( _truth_v[i]==1 ) {
+        for (int j=0; j<3; j++) {
+          *((float*)PyArray_GETPTR2(spacepoint_t,ifilled,j)) = _pos_v[i][j];
+        }
+        idx_v[ifilled] = i;
+        ifilled++;
+      }
+    }
+    
+    // image coords
+    npy_intp imgcoord_t_dim[] = { (long int)ntruepts, 4 };
+    PyArrayObject* imgcoord_t = (PyArrayObject*)PyArray_SimpleNew( 2, imgcoord_t_dim, NPY_LONG );
+    PyObject *imgcoord_t_key = Py_BuildValue("s", "imgcoord_t");
+
+    // instance label
+    npy_intp instance_t_dim[] = { (long int)ntruepts };
+    PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
+    PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
+
+    // particle class label
+    npy_intp segment_t_dim[] = { (long int)ntruepts };
+    PyArrayObject* segment_t = (PyArrayObject*)PyArray_SimpleNew( 1, segment_t_dim, NPY_LONG );
+    PyObject *segment_t_key = Py_BuildValue("s", "segment_t");
+
+    ifilled = 0;
+    for (auto& idx : idx_v ) {
+      auto const& triplet = _triplet_v[idx];
+      *((long*)PyArray_GETPTR2(imgcoord_t,ifilled,3)) = triplet[3];
+      for (int p=0; p<3; p++ ) {
+        *((long*)PyArray_GETPTR2(imgcoord_t,ifilled,p)) = _sparseimg_vv[p][triplet[p]].col;
+      }
+      *((long*)PyArray_GETPTR1(instance_t,ifilled)) = _instance_id_v[idx];
+      *((long*)PyArray_GETPTR1(segment_t,ifilled))  = _pdg_v[idx];
+      ifilled++;
+    }
+
+    // Create and fill dictionary
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, spacepoint_t_key, (PyObject*)spacepoint_t);
+    PyDict_SetItem(d, imgcoord_t_key,   (PyObject*)imgcoord_t);
+    PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
+    PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t); 
+    
+
+    return d;
+  }
+
+  /**
+   * @brief utility function to get imgcoord of triplet
+   *
+   * @param[in] idx_triplet Index of triplet to return info for.
+   * @return a vector<int> containing (col,col,col,row)
+   *
+   */
+  std::vector<int> PrepMatchTriplets::get_triplet_imgcoord_rowcol( int idx_triplet )
+  {
+    if ( idx_triplet<0 || idx_triplet>=(int)_triplet_v.size() ) {
+      std::stringstream msg;
+      msg << "[PrepMatchTriplets::get_triplet_imgcoord_rowcol.L" << __LINE__ << "] "
+          << "triplet index requested (" << idx_triplet << ") is out of bounds. "
+          << "values should be between [0," << _triplet_v.size() << ")."
+          << std::endl;
+      throw std::runtime_error(msg.str());
+    }
+
+    auto const& triplet = _triplet_v[idx_triplet];
+    std::vector<int> imgcoord = {0,0,0,triplet[3]};
+    for (int p=0; p<3; p++ ) {
+      imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
+    }
+    return imgcoord;
+  }
   
- 
 }  
 }

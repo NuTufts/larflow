@@ -114,6 +114,11 @@ namespace reco {
   float cluster_dist_from_pcaline( const cluster_t& cluster,
                                    const std::vector<float>& pt );
 
+  void cluster_append( cluster_t& merge, const cluster_t& clust_b );
+
+  void cluster_bbox( cluster_t& cluster );
+    
+  float cluster_dist_to_bbox( const cluster_t& cluster, const std::vector<float>& testpt  );
 }
 }
 

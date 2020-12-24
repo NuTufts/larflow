@@ -11,8 +11,8 @@ namespace reco {
   /**
    * @brief calculate dqdx along the 3d track using space points and charge on the plane
    *
-   * @param[inout] track We get the track path here
-   * @param[in] trackhits Spacepoints associated to the track
+   * @param[in] lltrack We get the track path here
+   * @param[in] lfcluster Spacepoints associated to the track
    * @param[in] adc_v Wireplane images to get the charge from
    * @return larlite::track with points corresponding to locations along original track that space points projected onto
    */
@@ -85,6 +85,10 @@ namespace reco {
       }
       
       for (int ii=0; ii<(int)point_v.size(); ii++) {
+
+        if ( used_pt_v[ii]==1 )
+          continue;
+        
         auto const& pt = point_v[ii];
         auto const& imgcoord = imgcoord_v[ii];
         int hitidx = search_index_v[ii];
@@ -92,7 +96,7 @@ namespace reco {
         float s = larflow::reco::pointRayProjection3f( start, dir, pt );
         //std::cout << "  point: r=" << r << " s=" << s << std::endl;
           
-        if ( r>5.0 || s<0 || s>len || used_pt_v[ii]==1 ) {
+        if ( r>5.0 || s<0 || s>len ) {
           continue;
         }
 
@@ -102,7 +106,7 @@ namespace reco {
         TrackPt_t trkpt;
         _makeTrackPtInfo( start, end, pt, imgcoord, adc_v,
                           hitidx,
-                          r, current_s, lm, trkpt );        
+                          r, s, current_s, lm, trkpt );        
         
         // std::vector<float> linept(3,0);
         // std::vector<float> rad_v(3,0); // vector from line pt to space point
@@ -276,7 +280,8 @@ namespace reco {
                                     const std::vector<larcv::Image2D>& adc_v,
                                     const int hitidx, 
                                     const float r,
-                                    const float s,
+                                    const float local_s,
+                                    const float global_s,
                                     const float lm_score,
                                     TrackdQdx::TrackPt_t& trkpt ) const
   {
@@ -315,7 +320,7 @@ namespace reco {
     std::vector<float> linept(3,0); // point on the line segment
     std::vector<float> rad_v(3,0); // vector from line pt to space point
     for (int i=0; i<3; i++) {
-      linept[i] = start[i] + s*dir[i];
+      linept[i] = start[i] + local_s*dir[i];
       rad_v[i] = pt[i]-linept[i];
     }
     
@@ -328,7 +333,7 @@ namespace reco {
     trkpt.pid = 0;
     trkpt.r = r;
     //trkpt.s = s+current_len;
-    trkpt.s = s;
+    trkpt.s = global_s;
     trkpt.q = 0.;            
     trkpt.dqdx = 0.;
     trkpt.q_med = 0.;
