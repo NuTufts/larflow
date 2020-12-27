@@ -67,8 +67,8 @@ if (USE_PYTHON3)
 elseif(USE_PYTHON2)
   find_package( PythonInterp 2.7 REQUIRED )
   find_package( PythonLibs 2.7 REQUIRED )
-  #execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
-  find_package( Numpy REQUIRED )    
+  execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
+  #find_package( Numpy REQUIRED )    
 endif()
 
 #---Eigen
