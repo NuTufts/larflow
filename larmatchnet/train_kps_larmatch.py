@@ -7,7 +7,8 @@ TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 ## IMPORT
 
 # python,numpy
-import os,sys,commands
+from __future__ import print_function
+import os,sys
 import shutil
 import time
 import traceback
@@ -37,7 +38,7 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 # dataset interface
-from larcvdataset.larcvserver import LArCVServer
+#from larcvdataset.larcvserver import LArCVServer
 
 from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
@@ -50,7 +51,7 @@ from loss_larmatch_kps import SparseLArMatchKPSLoss
 # ===================================================
 # TOP-LEVEL PARAMETERS
 GPUMODE=True
-RESUME_FROM_CHECKPOINT=True
+RESUME_FROM_CHECKPOINT=False
 RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
@@ -70,8 +71,9 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-#TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_data/"
-#INPUTFILE_TRAIN=["larmatch_kps_train_p06.root",
+#TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_training_data/"
+TRAIN_DATA_FOLDER="/home/twongj01/working/larbys/ubdl/larflow/larmatchnet/"
+INPUTFILE_TRAIN=["larmatch_valid_p02.root"]
 #                 "larmatch_kps_train_p07.root",
 #                 "larmatch_kps_train_p08.root",
 #                 "larmatch_kps_train_p09.root",
@@ -79,10 +81,10 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 #                 "larmatch_kps_train_p02.root",
 #                 "larmatch_kps_train_p03.root",
 #                 "larmatch_kps_train_p04.root"]
-#INPUTFILE_VALID=["larmatch_kps_train_p05.root"]
-TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
-INPUTFILE_TRAIN=["output_alldata.root"]
-INPUTFILE_VALID=["output_alldata.root"]
+INPUTFILE_VALID=["larmatch_valid_p02.root"]
+#TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
+#INPUTFILE_TRAIN=["output_alldata.root"]
+#INPUTFILE_VALID=["output_alldata.root"]
 TICKBACKWARD=False # Is data in tick-backward format (typically no)
 
 # TRAINING PARAMETERS
@@ -162,21 +164,21 @@ def main():
     
     if True:
         # DUMP MODEL (for debugging)
-        print model
-        print ssnet_head
-        print kplabel_head
-        print kpshift_head
+        print(model)
+        print(ssnet_head)
+        print(kplabel_head)
+        print(kpshift_head)
 
         # uncomment to dump model parameters
         if False:
-            print model.module.parameters
+            print(model.module.parameters)
             return
         
         if False: sys.exit(-1)
     
     # Resume training option
     if RESUME_FROM_CHECKPOINT:
-        print "RESUMING FROM CHECKPOINT FILE ",CHECKPOINT_FILE
+        print("RESUMING FROM CHECKPOINT FILE ",CHECKPOINT_FILE)
         checkpoint = torch.load( CHECKPOINT_FILE, map_location=CHECKPOINT_MAP_LOCATIONS ) # load weights to gpuid
 
         # hack to be able to load sparseconvnet<1.3
@@ -194,7 +196,7 @@ def main():
         for n,m in model_dict.items():
             if "state_"+n in checkpoint:
                 if n in ["kplabel"]:
-                    print "skip re-loading keypoint"
+                    print("skip re-loading keypoint")
                     continue
                 m.load_state_dict(checkpoint["state_"+n])
 
@@ -273,16 +275,16 @@ def main():
     epochs = float(NUM_ITERS)/float(TRAIN_NENTRIES)
     VALID_NENTRIES = iovalid["kps"].GetEntries()
 
-    print "Number of iterations to run: ",NUM_ITERS
-    print "Entries in the training set: ",TRAIN_NENTRIES
-    print "Entries in the validation set: ",VALID_NENTRIES
-    print "Entries per iter (train): ",itersize_train
-    print "Entries per iter (valid): ",itersize_valid
-    print "Number of (training) Epochs to run: ",epochs    
-    print "Iterations per epoch: ",iter_per_epoch
+    print("Number of iterations to run: ",NUM_ITERS)
+    print("Entries in the training set: ",TRAIN_NENTRIES)
+    print("Entries in the validation set: ",VALID_NENTRIES)
+    print("Entries per iter (train): ",itersize_train)
+    print("Entries per iter (valid): ",itersize_valid)
+    print("Number of (training) Epochs to run: ",epochs)
+    print("Iterations per epoch: ",iter_per_epoch)
 
     if False:
-        print "passed setup successfully"
+        print("passed setup successfully")
         sys.exit(0)
 
     # TRAINING LOOP
@@ -293,10 +295,10 @@ def main():
 
             # modify learning rate based on interation number (not used)
             adjust_learning_rate(optimizer, ii, lr)
-            print "MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),
+            print("MainLoop Iter:%d Epoch:%d.%d "%(ii,ii/iter_per_epoch,ii%iter_per_epoch),)
             for param_group in optimizer.param_groups:
-                print "lr=%.3e"%(param_group['lr']),
-                print
+                print("lr=%.3e"%(param_group['lr']),)
+                print()
 
             # train for one iteration
             try:
@@ -305,10 +307,10 @@ def main():
                           NBATCHES_per_itertrain, NBATCHES_per_step,
                           ii, trainbatches_per_print, hardex_model=hardex_model)
                 
-            except Exception,e:
-                print "Error in training routine!"            
-                print e.message
-                print e.__class__.__name__
+            except Exception as e:
+                print("Error in training routine!")
+                print(e.message)
+                print(e.__class__.__name__)
                 traceback.print_exc(e)
                 break
 
@@ -319,10 +321,10 @@ def main():
                                                model_dict, criterion,
                                                NBATCHES_per_itervalid, ii,
                                                validbatches_per_print)
-                except Exception,e:
-                    print "Error in validation routine!"            
-                    print e.message
-                    print e.__class__.__name__
+                except Exception as e:
+                    print("Error in validation routine!")
+                    print(e.message)
+                    print(e.__class__.__name__)
                     traceback.print_exc(e)
                     break
 
@@ -333,7 +335,7 @@ def main():
 
                 # check point for best model
                 if is_best:
-                    print "Saving best model"
+                    print("Saving best model")
                     save_checkpoint({
                         'iter':ii,
                         'epoch': ii/iter_per_epoch,
@@ -348,7 +350,7 @@ def main():
 
             # periodic checkpoint
             if ii>0 and ii%ITER_PER_CHECKPOINT==0:
-                print "saving periodic checkpoint"
+                print("saving periodic checkpoint")
                 save_checkpoint({
                     'iter':ii,
                     'epoch': ii/iter_per_epoch,
@@ -364,7 +366,7 @@ def main():
             sys.stdout.flush()
                 
         # end of profiler context
-        print "saving last state"
+        print("saving last state")
         save_checkpoint({
             'iter':NUM_ITERS,
             'epoch': float(NUM_ITERS)/iter_per_epoch,
@@ -378,10 +380,10 @@ def main():
         }, False, NUM_ITERS)
 
 
-    print "FIN"
-    print "PROFILER"
+    print("FIN")
+    print("PROFILER")
     if RUNPROFILER:
-        print prof
+        print(prof)
     writer.close()
 
 
@@ -480,10 +482,10 @@ def train(train_loader, device, batchsize,
         paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
         paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)
 
-        for p in xrange(3):
+        for p in range(3):
             feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
 
-        print "loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs
+        print("loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs)
         if train_entry+1<TRAIN_NENTRIES:
             train_entry += 1
         else:
@@ -545,29 +547,29 @@ def train(train_loader, device, batchsize,
         feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                              match_t, flowdata['npairs'],
                                                              device, verbose=TRAIN_VERBOSE )
-        print "[larmatch train] feat_triplet_t=",feat_triplet_t.shape
+        print("[larmatch train] feat_triplet_t=",feat_triplet_t.shape)
 
         # evaluate larmatch match classifier
         match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
         match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-        print "[larmatch train] match-pred=",match_pred_t.shape
+        print("[larmatch train] match-pred=",match_pred_t.shape)
 
         # evaluate ssnet classifier
         if TRAIN_SSNET:
             ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
             ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
             ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-            print "[larmatch train] ssnet-pred=",ssnet_pred_t.shape
+            print("[larmatch train] ssnet-pred=",ssnet_pred_t.shape)
         else:
             ssnet_pred_t = None
         
         # next evaluate keypoint classifier
         if TRAIN_KP:
             kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape            
+            print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
             kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
             kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-            print "[larmatch train] kplabel-pred=",kplabel_pred_t.shape
+            print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
         else:
             kplabel_pred_t = None
         
@@ -576,17 +578,17 @@ def train(train_loader, device, batchsize,
             kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
             kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
             kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-            print "[larmatch train] kpshift-pred=",kpshift_pred_t.shape
+            print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
         else:
             kpshift_pred_t = None
 
         # next evaluate affinity field predictor
         if TRAIN_PAF:
             paf_pred_t = model["paf"].forward( feat_triplet_t )
-            print "[larmatch train]: paf pred=",paf_pred_t.shape
+            print("[larmatch train]: paf pred=",paf_pred_t.shape)
             paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
             paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-            print "[larmatch train]: paf pred=",paf_pred_t.shape
+            print("[larmatch train]: paf pred=",paf_pred_t.shape)
         else:
             paf_pred_t = None
 
@@ -609,7 +611,7 @@ def train(train_loader, device, batchsize,
         # allow for gradient accumulation
         if nbatches_per_step>1:
             # if we apply gradient accumulation, we average over accumulation steps
-            print "average over batches per step when gradient accumulating."
+            print("average over batches per step when gradient accumulating.")
             totloss /= float(nbatches_per_step)
         
         # of course, we calculate gradients for this batch
@@ -621,13 +623,13 @@ def train(train_loader, device, batchsize,
         
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
-            print "batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step)
+            print("batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step))
             optimizer.step()
 
             for n,p in model["kplabel"].named_parameters():
                 if "out" in n:
-                    print n,": grad: ",p.grad
-                    print n,": ",p
+                    print(n,": grad: ",p.grad)
+                    print(n,": ",p)
             
             optimizer.zero_grad()
             
@@ -750,10 +752,10 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)        
         
         # CLAMP ADC VALUES
-        for p in xrange(3):
+        for p in range(3):
             feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
         
-        print "loaded valid entry: ",flowdata["entry"]
+        print("loaded valid entry: ",flowdata["entry"])
         time_meters["data"].update( time.time()-tdata_start )
         
         # compute model output
@@ -777,7 +779,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
             # next evaluate larmatch match classifier
             match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
             match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-            print "[larmatch valid] match-pred=",match_pred_t.shape
+            print("[larmatch valid] match-pred=",match_pred_t.shape)
 
             # evaluate ssnet classifier
             if TRAIN_SSNET:
@@ -785,7 +787,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                 ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
                 ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
                 #ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[-1]) )
-                print "[ssnet valid] ssnet-pred=",ssnet_pred_t.shape
+                print("[ssnet valid] ssnet-pred=",ssnet_pred_t.shape)
             else:
                 ssnet_pred_t = None
         
@@ -794,7 +796,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                 kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
                 kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
                 kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-                print "[keypoint valid] kplabel-pred=",kplabel_pred_t.shape
+                print("[keypoint valid] kplabel-pred=",kplabel_pred_t.shape)
             else:
                 kplabel_pred_t = None
         
@@ -803,17 +805,17 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
                 kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
                 kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
                 kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-                print "[keypoint shift valid] kpshift-pred=",kpshift_pred_t.shape
+                print("[keypoint shift valid] kpshift-pred=",kpshift_pred_t.shape)
             else:
                 kpshift_pred_t = None
 
             # next evaluate affinity field predictor
             if TRAIN_PAF:
                 paf_pred_t = model["paf"].forward( feat_triplet_t )
-                print "[larmatch valid]: paf pred=",paf_pred_t.shape
+                print("[larmatch valid]: paf pred=",paf_pred_t.shape)
                 paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
                 paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-                print "[larmatch valid]: paf pred=",paf_pred_t.shape
+                print("[larmatch valid]: paf pred=",paf_pred_t.shape)
             else:
                 paf_pred_t = None            
 
@@ -945,10 +947,10 @@ def accuracy(match_pred_t, match_label_t,
             kp_pred  = kp_pred_t.detach()
             kp_label = kp_label_t.detach()[:npairs]
         names = ["nu","trk","shr"]
-        for c in xrange(3):
+        for c in range(3):
             kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
             kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
-            print "kp[",c,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos
+            print("kp[",c,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
             acc_meters["kp_"+names[c]].update( kp_pos/kp_n_pos )
 
     # PARTICLE AFFINITY FLOW
@@ -970,7 +972,7 @@ def accuracy(match_pred_t, match_label_t,
         paf_npos  = paf_cos.shape[0]
         paf_ncorr = paf_cos.gt(0.94).sum().item()
         paf_acc = float(paf_ncorr)/float(paf_npos)
-        print "paf: npos=",paf_npos," acc=",paf_acc
+        print("paf: npos=",paf_npos," acc=",paf_acc)
         if paf_npos>0:
             acc_meters["paf"].update( paf_acc )
     
@@ -981,26 +983,26 @@ def dump_lr_schedule( startlr, numepochs ):
     for epoch in range(0,numepochs):
         lr = startlr*(0.5**(epoch//300))
         if epoch%10==0:
-            print "Epoch [%d] lr=%.3e"%(epoch,lr)
-    print "Epoch [%d] lr=%.3e"%(epoch,lr)
+            print("Epoch [%d] lr=%.3e"%(epoch,lr))
+    print("Epoch [%d] lr=%.3e"%(epoch,lr))
     return
 
 def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers, istrain ):
-    print "------------------------------------------------------------------------"
-    print " Iter[",iternum,"] ",descripter
-    print "  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Acc[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
+    print("------------------------------------------------------------------------")
+    print(" Iter[",iternum,"] ",descripter)
+    print("  Time (secs): iter[%.2f] batch[%.3f] Forward[%.3f/batch] Backward[%.3f/batch] Acc[%.3f/batch] Data[%.3f/batch]"%(timers["batch"].sum,
                                                                                                                              timers["batch"].avg,
                                                                                                                              timers["forward"].avg,
                                                                                                                              timers["backward"].avg,
                                                                                                                              timers["accuracy"].avg,
-                                                                                                                             timers["data"].avg)    
-    print "  Losses: "
+                                                                                                                             timers["data"].avg))
+    print("  Losses: ")
     for name,meter in loss_meters.items():
-        print "    ",name,": ",meter.avg
-    print "  Accuracies: "
+        print("    ",name,": ",meter.avg)
+    print("  Accuracies: ")
     for name,meter in acc_meters.items():
-        print "    ",name,": ",meter.avg
-    print "------------------------------------------------------------------------"    
+        print("    ",name,": ",meter.avg)
+    print("------------------------------------------------------------------------")
 
 
 if __name__ == '__main__':

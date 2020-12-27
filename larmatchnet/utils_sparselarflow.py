@@ -45,7 +45,7 @@ def create_resnet_layer(nreps, ninputchs, noutputchs,
     [scn.Sequential] module with residual blocks
     """
     m = scn.Sequential()
-    for iblock in xrange(nreps):
+    for iblock in range(nreps):
         if iblock==0:
             # in first repitition we change
             # number of features from input to output

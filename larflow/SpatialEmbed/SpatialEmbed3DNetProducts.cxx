@@ -112,7 +112,7 @@ namespace spatialembed {
   {
 
     if ( !_setup_numpy ) {
-      import_array();
+      import_array1();
       _setup_numpy = true;
     }
 

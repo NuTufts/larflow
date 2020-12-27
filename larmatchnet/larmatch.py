@@ -1,3 +1,4 @@
+from __future__ import print_function
 from collections import OrderedDict
 import torch
 import torch.nn as nn
@@ -113,10 +114,10 @@ class LArMatch(nn.Module):
         tuple containing 3 feature tensors [torch tensors with shapes ((N_0,C), (N_1,C), (N_2,C))]
         """
         if verbose:
-            print "[larmatch::make feature vectors] "
-            print "  coord[plane0]=",coord_plane0_t.shape," feat[plane0]=",plane0_feat_t.shape
-            print "  coord[plane1]=",coord_plane1_t.shape," feat[plane1]=",plane1_feat_t.shape
-            print "  coord[plane2]=",coord_plane2_t.shape," feat[plane2]=",plane2_feat_t.shape            
+            print("[larmatch::make feature vectors] ")
+            print("  coord[plane0]=",coord_plane0_t.shape," feat[plane0]=",plane0_feat_t.shape)
+            print("  coord[plane1]=",coord_plane1_t.shape," feat[plane1]=",plane1_feat_t.shape)
+            print("  coord[plane2]=",coord_plane2_t.shape," feat[plane2]=",plane2_feat_t.shape)
 
         # Form input tuples for input layers
         # adds torch tensors to SparseConvTensor object
@@ -127,33 +128,33 @@ class LArMatch(nn.Module):
         # generate plane0 features
         xplane0 = self.source_inputlayer(input_plane0)
         xplane0 = self.stem( xplane0 )
-        if verbose: print "  stem[plane0]=",xplane0.features.shape            
+        if verbose: print("  stem[plane0]=",xplane0.features.shape)
         if self.use_unet: xplane0 =self.unet_layers(xplane0)            
-        if verbose: print "  unet[plane0]=",xplane0.features.shape
+        if verbose: print("  unet[plane0]=",xplane0.features.shape)
         xplane0 = self.resnet_layers( xplane0 )
-        if verbose: print "  resnet[plane0]=",xplane0.features.shape
+        if verbose: print("  resnet[plane0]=",xplane0.features.shape)
         xplane0 = self.feature_layer( xplane0 )
-        if verbose: print "  feature[plane0]=",xplane0.features.shape
+        if verbose: print("  feature[plane0]=",xplane0.features.shape)
         
         xplane1 = self.target1_inputlayer(input_plane1)
         xplane1 = self.stem( xplane1 )
-        if verbose: print "  stem[plane1]=",xplane1.features.shape                    
+        if verbose: print("  stem[plane1]=",xplane1.features.shape)
         if self.use_unet: xplane1 =self.unet_layers(xplane1)
-        if verbose: print "  unet[plane1]=",xplane1.features.shape        
+        if verbose: print("  unet[plane1]=",xplane1.features.shape)
         xplane1 = self.resnet_layers( xplane1 )
-        if verbose: print "  resnet[plane1]=",xplane1.features.shape        
+        if verbose: print("  resnet[plane1]=",xplane1.features.shape)
         xplane1 = self.feature_layer( xplane1 )
-        if verbose: print "  feature[plane1]=",xplane1.features.shape        
+        if verbose: print("  feature[plane1]=",xplane1.features.shape)
 
         xplane2 = self.target2_inputlayer(input_plane2)
         xplane2 = self.stem( xplane2 )
-        if verbose: print "  stem[plane2]=",xplane2.features.shape                            
+        if verbose: print("  stem[plane2]=",xplane2.features.shape)
         if self.use_unet: xplane2 =self.unet_layers(xplane2)
-        if verbose: print "  unet[plane2]=",xplane2.features.shape        
+        if verbose: print("  unet[plane2]=",xplane2.features.shape)
         xplane2 = self.resnet_layers( xplane2 )
-        if verbose: print "  resnet[plane2]=",xplane2.features.shape                
+        if verbose: print("  resnet[plane2]=",xplane2.features.shape)
         xplane2 = self.feature_layer( xplane2 )
-        if verbose: print "  feature[plane2]=",xplane2.features.shape                
+        if verbose: print("  feature[plane2]=",xplane2.features.shape)
 
         # extracts torch tensors from SparseConvTensor object        
         xplane0  = self.source_outlayer( xplane0 )
@@ -184,24 +185,24 @@ class LArMatch(nn.Module):
         feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
         """
         if verbose:
-            print "[larmatch::extract_features]"
-            print "  index-shape=",index_t.shape,
-            print " feat-u-shape=",feat_u_t.shape
-            print " feat-v-shape=",feat_v_t.shape
-            print " feat-y-shape=",feat_y_t.shape            
+            print("[larmatch::extract_features]")
+            print("  index-shape=",index_t.shape,)
+            print(" feat-u-shape=",feat_u_t.shape)
+            print(" feat-v-shape=",feat_v_t.shape)
+            print(" feat-y-shape=",feat_y_t.shape)
 
         feats   = [ feat_u_t, feat_v_t, feat_y_t ]
         for f in feats:
             f = f.to(DEVICE)
-        feats_t = [ torch.index_select( feats[x], 0, index_t[:npts,x] ) for x in xrange(0,3) ]
+        feats_t = [ torch.index_select( feats[x], 0, index_t[:npts,x] ) for x in range(0,3) ]
         if verbose:
-            print "  index-selected feats_t[0]=",feats_t[0].shape
+            print("  index-selected feats_t[0]=",feats_t[0].shape)
         
         veclen = feats_t[0].shape[1]+feats_t[1].shape[1]+feats_t[2].shape[1]
         catvec = torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=1 )
-        if verbose: print "  concat out: ",catvec.shape
+        if verbose: print("  concat out: ",catvec.shape)
         matchvec = torch.transpose( catvec, 1, 0 ).reshape(1,veclen,npts)
-        if verbose: print "  output-triplet-tensor: ",matchvec.shape
+        if verbose: print("  output-triplet-tensor: ",matchvec.shape)
             
 
         return matchvec

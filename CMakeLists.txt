@@ -60,9 +60,16 @@ set( LAROPENCV_LIB_DIR "$ENV{LARLITE_LIBDIR}" )
 file( GLOB LAROPENCV_LIBS "$ENV{LARLITE_LIBDIR}/libLArOpenCV_*.so" )
 
 #---Python
-find_package( PythonInterp 2.7 REQUIRED )
-find_package( PythonLibs 2.7 REQUIRED )
-execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
+if (USE_PYTHON3)
+  find_package( PythonInterp 3 REQUIRED )
+  find_package( PythonLibs 3 REQUIRED )
+  execute_process( COMMAND python3 -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )    
+elseif(USE_PYTHON2)
+  find_package( PythonInterp 2.7 REQUIRED )
+  find_package( PythonLibs 2.7 REQUIRED )
+  #execute_process( COMMAND python -c "import numpy; print(numpy.get_include())" OUTPUT_VARIABLE NUMPY_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
+  find_package( Numpy REQUIRED )    
+endif()
 
 #---Eigen
 find_package(Eigen3 REQUIRED)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os,sys
 import torch
 import torch.nn as nn
@@ -68,9 +69,9 @@ class SparseLArMatchKPSLoss(nn.Module):
         npairs     = larmatch_pred.shape[0]
 
         if verbose:
-            print "[SparseLArMatchKPSLoss::larmatch_loss]"
-            print "  pred num triplets: ",npairs
-            print "  larmatch weight: ",larmatch_weight.shape
+            print("[SparseLArMatchKPSLoss::larmatch_loss]")
+            print("  pred num triplets: ",npairs)
+            print("  larmatch weight: ",larmatch_weight.shape)
             
         # convert int to float for subsequent calculations
         fmatchlabel = larmatch_truth[:npairs].type(torch.float).requires_grad_(False)
@@ -80,7 +81,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         loss      = (bce( larmatch_pred, fmatchlabel )*larmatch_weight[:npairs]).sum()
         if verbose:
             lm_floss = loss.detach().item()            
-            print "  loss-larmatch: ",lm_floss
+            print("  loss-larmatch: ",lm_floss)
         return loss
                        
 
@@ -103,17 +104,17 @@ class SparseLArMatchKPSLoss(nn.Module):
             sel_kpweight     = keypoint_weight[:npairs,:]
             sel_kplabel      = keypoint_score_truth[:npairs,:]
         if verbose:
-            print "  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred[:10]
-            print "  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10]
-            print "  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10]
+            print("  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred[:10])
+            print("  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10])
+            print("  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10])
         fn_kp    = torch.nn.MSELoss( reduction='none' )
         fnout = fn_kp( sel_kplabel_pred, sel_kplabel )
         if verbose:
-            print "  fnout shape: ",fnout.shape
+            print("  fnout shape: ",fnout.shape)
         kp_loss  = (fnout*sel_kpweight).sum()
         kp_floss = kp_loss.detach().item()
         if verbose:
-            print " loss-kplabel: ",kp_floss
+            print(" loss-kplabel: ",kp_floss)
 
         return kp_loss
 
@@ -123,8 +124,8 @@ class SparseLArMatchKPSLoss(nn.Module):
                              truematch_index,
                              verbose=False ):
         if verbose:
-            print "  kpshift_pred: ",kpshift_pred.shape
-            print "  kpshift_label: ",kpshift_label.shape
+            print("  kpshift_pred: ",kpshift_pred.shape)
+            print("  kpshift_label: ",kpshift_label.shape)
         raise RuntimeError("dont trust this mode of calculation right now")
         #kpshift_loss = fn_kpshift(kpshift_pred,kpshift_label)
         #kpshift_loss[:,0] *= fmatchlabel
@@ -134,7 +135,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         #kpshift_loss = 0.1*kpshift_loss.sum()/(3.0*fmatchlabel.sum())
 
         if verbose:
-            print " loss-kpshift: ",kpshift_loss.item()
+            print(" loss-kpshift: ",kpshift_loss.item())
             
         return kpshift_loss
 
@@ -151,14 +152,14 @@ class SparseLArMatchKPSLoss(nn.Module):
         else:
             sel_ssnet_pred   = ssnet_pred
         if verbose:
-            print "  sel_ssnet_pred: ",sel_ssnet_pred.shape
-            print "  ssnet_truth: ",ssnet_truth.shape
-            print "  ssnet_weight: ",ssnet_weight.shape
+            print("  sel_ssnet_pred: ",sel_ssnet_pred.shape)
+            print("  ssnet_truth: ",ssnet_truth.shape)
+            print("  ssnet_weight: ",ssnet_weight.shape)
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
         ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()
         if verbose:
             ssnet_floss = ssnet_loss.detach().item()            
-            print " loss-ssnet: ",ssnet_floss
+            print(" loss-ssnet: ",ssnet_floss)
 
         return ssnet_loss
                     
@@ -181,18 +182,18 @@ class SparseLArMatchKPSLoss(nn.Module):
             sel_truth  = affinity_field_truth
 
         if verbose:
-            print "  affinity pred: ",sel_pred.shape," ",sel_pred[:20,:]#,torch.sum(sel_pred*sel_pred,1)[:20]
-            print "  affinity truth: ",sel_truth.shape," ",torch.sum(sel_truth*sel_truth,1)[:20]
-            print "  affinity weight: ",sel_weight.shape,"  ",sel_weight[:20]
+            print("  affinity pred: ",sel_pred.shape," ",sel_pred[:20,:])#,torch.sum(sel_pred*sel_pred,1)[:20]
+            print("  affinity truth: ",sel_truth.shape," ",torch.sum(sel_truth*sel_truth,1)[:20])
+            print("  affinity weight: ",sel_weight.shape,"  ",sel_weight[:20])
 
         fn_mse = torch.nn.MSELoss( reduction='none' )
         fn_out = torch.sum(fn_mse( sel_pred, sel_truth ),1)
         if verbose:
-            print "  affinity fn: ",fn_out.shape
+            print("  affinity fn: ",fn_out.shape)
         af_loss = (fn_out*sel_weight).sum()
         if verbose:
             af_floss = af_loss.detach().item()
-            print " loss-affinity-field: ",af_floss
+            print(" loss-affinity-field: ",af_floss)
         return af_loss
 
 
@@ -220,7 +221,7 @@ if __name__ == "__main__":
     for name,loader in loaders.items():
         loader.exclude_false_triplets( False )
     nentries = loaders["kps"].GetEntries()
-    print "num entries: ",nentries
+    print("num entries: ",nentries)
 
     device  = torch.device("cpu")    
     nmax    = c_int()
@@ -234,19 +235,19 @@ if __name__ == "__main__":
                                     eval_affinity_field=True )
 
     for ientry in xrange(0,nentries,batchsize):
-        print "[LOAD ENTRY ",ientry,"]"
+        print("[LOAD ENTRY ",ientry,"]")
         data = load_larmatch_kps( loaders, ientry, batchsize,
                                   npairs=10000,
                                   exclude_neg_examples=False,
                                   verbose=True,
                                   single_batch_mode=True )
         if ientry==0:
-            print "data contents:"
+            print("data contents:")
             for name in data:
-                print "  ",name
+                print("  ",name)
 
         # we copy the truth to make the "predictions"
-        print "num positive examples: ",data["positive_indices"].shape[0]
+        print("num positive examples: ",data["positive_indices"].shape[0])
 
         # larmatch
         larmatch_truth   = torch.from_numpy( data["larmatchlabels"] )

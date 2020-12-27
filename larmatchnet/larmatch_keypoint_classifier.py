@@ -15,7 +15,7 @@ class LArMatchKeypointClassifier(nn.Module):
 
         # SCORE PREDICTION
         self.class_layers = {}
-        for iclass in xrange(nclasses):
+        for iclass in range(nclasses):
             keypoint_layers = OrderedDict()
             keypoint_layers["keypoint0conv_class%d"%(iclass)] = torch.nn.Conv1d(ninput_planes*features_per_layer,
                                                                                 keypoint_nfeatures[0],1)
