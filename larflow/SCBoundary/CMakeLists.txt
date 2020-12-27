@@ -36,7 +36,7 @@ target_include_directories(${LIBNAME}
   )
 target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} )
 
-include_directories( ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 

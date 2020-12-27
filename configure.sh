@@ -51,6 +51,6 @@ export EIGEN_INC_DIR=/usr/include/eigen3
 export EIGEN_LIB_DIR=
 
 # SETUP LARCVDATASET
-cd ${LARFLOW_BASEDIR}/larcvdataset
-source setenv.sh
+#cd ${LARFLOW_BASEDIR}/larcvdataset
+#source setenv.sh
 cd ${__larflow_configure_startdir__}
