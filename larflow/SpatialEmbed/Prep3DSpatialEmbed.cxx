@@ -313,7 +313,8 @@ namespace spatialembed {
     _tree->Branch( "ancestorid", &ancestor_id );    
     _tree->Branch( "particleid", &particle_id );
     _tree->Branch( "triplet_idx_v", &triplet_idx_v );
-    _tree->Branch( "subclusterid",  &subcluster_id );    
+    _tree->Branch( "subclusterid",  &subcluster_id );
+    _tree->Branch( "subinstanceid",  &subinstance_id );        
   }
 
   void Prep3DSpatialEmbed::fillTree( const Prep3DSpatialEmbed::VoxelDataList_t& data )
@@ -432,7 +433,12 @@ namespace spatialembed {
     npy_intp subcluster_t_dim[] = { (long int)nvoxels_tot };
     PyArrayObject* subcluster_t = (PyArrayObject*)PyArray_SimpleNew( 1, subcluster_t_dim, NPY_LONG );
     PyObject *subcluster_t_key = Py_BuildValue("s", "subcluster_t");
-        
+
+    // subinstance tensor
+    npy_intp subinstance_t_dim[] = { (long int)nvoxels_tot };
+    PyArrayObject* subinstance_t = (PyArrayObject*)PyArray_SimpleNew( 1, subinstance_t_dim, NPY_LONG );
+    PyObject *subinstance_t_key = Py_BuildValue("s", "subinstance_t");
+    
     // FILL TENSORS
     size_t nvoxels_filled = 0;
     for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) {
@@ -478,17 +484,23 @@ namespace spatialembed {
 	auto const& voxel = voxeldata[i];
 	*((long*)PyArray_GETPTR1(subcluster_t,nvoxels_filled+i)) = voxel.subclusterid;
       }
-      
+
+      // fill subcluster tensor
+      for (size_t i=0; i<nvoxels; i++ ) {
+	auto const& voxel = voxeldata[i];
+	*((long*)PyArray_GETPTR1(subinstance_t,nvoxels_filled+i)) = voxel.truth_subinstance_index;
+      }
       
       nvoxels_filled += nvoxels;
     }
 
     // set own data flag
-    PyArray_ENABLEFLAGS(coord_t,      NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(feat_t,       NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(instance_t,   NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(class_t,      NPY_ARRAY_OWNDATA);
-    PyArray_ENABLEFLAGS(subcluster_t, NPY_ARRAY_OWNDATA);    
+    PyArray_ENABLEFLAGS(coord_t,       NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(feat_t,        NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(instance_t,    NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(class_t,       NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(subcluster_t,  NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(subinstance_t, NPY_ARRAY_OWNDATA);        
 
     PyObject* tripletmap_list = PyList_New(0);
     PyObject* tripletmapweight_list = PyList_New(0);
@@ -540,7 +552,8 @@ namespace spatialembed {
     PyDict_SetItem(d, feat_t_key,       (PyObject*)feat_t);
     PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
     PyDict_SetItem(d, class_t_key,      (PyObject*)class_t);
-    PyDict_SetItem(d, subcluster_t_key, (PyObject*)subcluster_t);    
+    PyDict_SetItem(d, subcluster_t_key, (PyObject*)subcluster_t);
+    PyDict_SetItem(d, subinstance_t_key, (PyObject*)subinstance_t);        
     PyDict_SetItem(d, tm_t_key,         (PyObject*)tripletmap_list);
     PyDict_SetItem(d, tmw_t_key,        (PyObject*)tripletmapweight_list);
     
@@ -548,7 +561,8 @@ namespace spatialembed {
     Py_DECREF(feat_t_key);
     Py_DECREF(instance_t_key);
     Py_DECREF(class_t_key);
-    Py_DECREF(subcluster_t_key);    
+    Py_DECREF(subcluster_t_key);
+    Py_DECREF(subinstance_t_key);        
     Py_DECREF(tm_t_key);
     Py_DECREF(tmw_t_key);        
     // do i need to do this?
@@ -557,6 +571,7 @@ namespace spatialembed {
     Py_DECREF(instance_t);
     Py_DECREF(class_t);
     Py_DECREF(subcluster_t);
+    Py_DECREF(subinstance_t);    
     Py_DECREF(tripletmap_list);
     Py_DECREF(tripletmapweight_list);
     
