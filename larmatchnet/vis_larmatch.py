@@ -20,6 +20,7 @@ parser.add_argument("-p","--minprob",type=float,default=0.0,help="score threshol
 parser.add_argument("-mc","--has-mc",action='store_true',default=False,help="If given, will try and plot MC tracks")
 parser.add_argument("--use-black-bg",action='store_true',default=False,help="If true, use black background, else use white background [default: false]")
 parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
+parser.add_argument("-t","--tree-name",type=str,default="larmatch",help="Name of tree of larflow3dhits to plot")
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -76,9 +77,9 @@ def make_figures(entry):
     traces_v += detdata.getlines(color=(10,10,10))
     
     # LARFLOW HITS
-    ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    ev_lfhits = io_ll.get_data(larlite.data.kLArFlow3DHit,args.tree_name)
     print("num larflow hits: ",ev_lfhits.size())
-    lfhit_trace = lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=args.minprob)
+    lfhit_trace = lardly.data.visualize_larlite_larflowhits( ev_lfhits,args.tree_name, score_threshold=args.minprob)
     lfhit_trace["marker"]["colorscale"] = colorscale
     traces_v +=  [ lfhit_trace ]
 
