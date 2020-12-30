@@ -43,6 +43,7 @@ namespace spatialembed {
     _in_pq_y(nullptr),
     _in_ptriplet_idx_v(nullptr),    
     _in_psubcluster_id(nullptr),
+    _in_psubinstance_id(nullptr),    
     _rand(nullptr)
   {
     TChain* chain = new TChain("s3dembed");
@@ -329,6 +330,7 @@ namespace spatialembed {
     q_y.resize(data.size());
     triplet_idx_v.resize( data.size() );
     subcluster_id.resize( data.size() );
+    subinstance_id.resize( data.size() );    
 
     for (size_t i=0; i<data.size(); i++) {
 
@@ -360,6 +362,7 @@ namespace spatialembed {
         triplet_idx_v[i][ii] = d.tripletidx_v[ii];
 
       subcluster_id[i] = d.subclusterid;
+      subinstance_id[i] = d.truth_subinstance_index;
     }
 
   }
@@ -634,6 +637,7 @@ namespace spatialembed {
     _tree->SetBranchAddress("q_y",&_in_pq_y);
     _tree->SetBranchAddress("triplet_idx_v",&_in_ptriplet_idx_v);
     _tree->SetBranchAddress("subclusterid",&_in_psubcluster_id);
+    _tree->SetBranchAddress("subinstanceid",&_in_psubinstance_id);
   }
 
   Prep3DSpatialEmbed::VoxelDataList_t Prep3DSpatialEmbed::getTreeEntry(int entry)
@@ -666,7 +670,8 @@ namespace spatialembed {
       voxel.truth_pid = (*_in_pparticle_id)[i];
       voxel.truth_ancestor_index = (*_in_pancestor_id)[i];
       voxel.tripletidx_v = (*_in_ptriplet_idx_v)[i];
-      voxel.subclusterid = (*_in_psubcluster_id)[i];      
+      voxel.subclusterid = (*_in_psubcluster_id)[i];
+      voxel.truth_subinstance_index = (*_in_psubinstance_id)[i];
       data.emplace_back( std::move(voxel) );
     }
 
@@ -1278,6 +1283,7 @@ namespace spatialembed {
     std::vector<int> point2voxelidx_v; // map from position in pos_v to original index in VoxelDataList_t data
     pos_v.reserve( data.size() );
     point2voxelidx_v.reserve( data.size() );
+
     
     for ( size_t ivoxel=0; ivoxel<data.size(); ivoxel++ ) {
       auto & voxel = data[ivoxel];
@@ -1369,6 +1375,24 @@ namespace spatialembed {
       currentlabel++;
     }
 
+    // subinstance label: unique pairs of (instance id,subcluster id) -- where both instance id and subcluster id are not zero
+    std::map< std::pair<int,int>, int > subinstance_labels;    
+    for ( size_t ivoxel=0; ivoxel<data.size(); ivoxel++ ) {
+      auto & voxel = data[ivoxel];
+      if ( voxel.truth_instance_index!=0 && voxel.subclusterid!=0 ) {
+        std::pair<int,int> subinstance(voxel.truth_instance_index,voxel.subclusterid);
+        if ( subinstance_labels.find( subinstance )==subinstance_labels.end() ) {
+          int si_label = (int)subinstance_labels.size()+1;
+          subinstance_labels[ subinstance ] = si_label;
+        }
+        voxel.truth_subinstance_index = subinstance_labels[ subinstance ];
+      }
+      else {
+        voxel.truth_subinstance_index = 0;
+      }
+    }
+
+    
     // done!
   }
 

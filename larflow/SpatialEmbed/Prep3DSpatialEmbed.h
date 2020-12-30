@@ -53,6 +53,7 @@ namespace spatialembed {
       _in_pq_y(nullptr),
       _in_ptriplet_idx_v(nullptr),
       _in_psubcluster_id(nullptr),
+      _in_psubinstance_id(nullptr),
       _rand(nullptr)
       {};
     Prep3DSpatialEmbed( const std::vector<std::string>& input_root_files ); 
@@ -78,6 +79,7 @@ namespace spatialembed {
       int truth_realmatch;
       int truth_pid;
       int subclusterid; ///< reco-ish
+      int truth_subinstance_index; ///< unique pairs of (truth_instance_index,subclusterid)
     };
 
     typedef std::vector<VoxelData_t> VoxelDataList_t;
@@ -171,7 +173,8 @@ namespace spatialembed {
     std::vector< float > q_v;        ///< charge on v-plane
     std::vector< float > q_y;        ///< charge on y-plane
     std::vector< std::vector<int> > triplet_idx_v; ///< indices of triplets in _triplet_maker that contribute to voxel
-    std::vector< int > subcluster_id;
+    std::vector< int > subcluster_id;  ///< labels from dbscan clustering
+    std::vector< int > subinstance_id; ///< labels from unique (instance,dbscan cluster) pairs
 
     // pointers used to load vector branches when reading a tree
     std::vector< int >* _in_pvid_row;     ///< voxel row
@@ -184,7 +187,8 @@ namespace spatialembed {
     std::vector< float >* _in_pq_v;       ///< charge on v-plane
     std::vector< float >* _in_pq_y;       ///< charge on y-plane
     std::vector< std::vector<int> >* _in_ptriplet_idx_v; ///< indices of triplets in _triplet_maker that contribute to voxel
-    std::vector< int >* _in_psubcluster_id;
+    std::vector< int >* _in_psubcluster_id;  ///< labels from dbscan clustering
+    std::vector< int >* _in_psubinstance_id; ///< labels from unique (instance,dbscan cluster) pairs
 
     TRandom3* _rand;
 
