@@ -115,6 +115,9 @@ namespace spatialembed {
     PyObject*       getNextTreeEntryDataAsArray();
     PyObject*       getTrainingDataBatch(int batch_size);
     unsigned long   getCurrentEntry() { return _current_entry; };
+
+    PyObject* makeSubclusterTrainingDataDict( const std::vector<VoxelDataList_t>& voxeldata ) const;
+    PyObject* getSubclusterTrainingDataBatch(int nevents);
     
     void generateTruthLabels( larcv::IOManager& iolcv,
                               larlite::storage_manager& ioll,

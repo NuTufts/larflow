@@ -1371,6 +1371,324 @@ namespace spatialembed {
 
     // done!
   }
+
+  PyObject* Prep3DSpatialEmbed::getSubclusterTrainingDataBatch(int nevents) {
+    
+    std::vector< VoxelDataList_t > data_batch;
+    data_batch.reserve(nevents);
+
+    if ( _shuffle && _num_entries==0 ) {
+      _num_entries = _tree->GetEntries();
+      _rand = new TRandom3(0);
+    }
+
+    int ntries = 0;
+    while ( ntries<nevents*10 && data_batch.size()<nevents ) {
+
+      if ( !_shuffle ) {
+	try {
+	  auto data = getTreeEntry(_current_entry);
+	  _current_entry++;
+	  if (data.size()>0) {
+	    data_batch.emplace_back( std::move(data) );
+	  }
+	}
+	catch (...) {
+	  // reset entry index and try again
+	  _current_entry = 0;
+	}
+      }
+      else {
+	// shuffle, dumb way because we can draw the same event twice
+	try {
+	  _current_entry = _rand->Integer(_num_entries);
+	  auto data = getTreeEntry(_current_entry);
+	  if (data.size()>0) {
+	    data_batch.emplace_back( std::move(data) );
+	  }
+	}
+	catch (...) {
+	  _current_entry = 0;
+	}
+      }
+      ntries++;
+    }
+    
+    if ( data_batch.size()==nevents ) {
+      return makeSubclusterTrainingDataDict( data_batch );
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+
+  /**
+   * @brief return a python dictionary with numpy arrays for single event
+   *
+   * contents of dictionary:
+   * "coord_t":coordinate tensor
+   * "feat_t":feature tensor
+   */  
+  PyObject* Prep3DSpatialEmbed::makeSubclusterTrainingDataDict( const std::vector<VoxelDataList_t>& voxeldata_v ) const
+  {
+
+    if ( !Prep3DSpatialEmbed::_setup_numpy ) {
+      import_array1(0);
+      Prep3DSpatialEmbed::_setup_numpy = true;
+    }
+
+    size_t nevents = voxeldata_v.size();
+    int max_subclusters_per_event = 3;
+    int _min_subcluster_size = 10;
+
+    // we have to go through and select the subclusters in each event
+    // rules:
+    //  (1) we always return the neutrino-vertex subcluster, always listed as subcluster index=1
+    //  (2) we return a max of N random subclusters -- as long as above some threshold
+    
+    std::vector< std::vector<int> > subcluster_indices(nevents);
+    std::vector< std::vector<int> > subcluster_nvoxels(nevents);    
+    int ntotvoxels = 0;
+    int nsubclusters = 0;
+    for ( size_t ievent=0; ievent<nevents; ievent++ ) {
+      // for each event, we need to count the voxels in each subcluster
+      subcluster_indices[ievent].reserve(max_subclusters_per_event);
+      subcluster_nvoxels[ievent].reserve(max_subclusters_per_event);      
+
+      std::map<int,int> nvoxel_counter;
+      for ( auto const& voxelinfo : voxeldata_v[ievent] ) {
+        if ( voxelinfo.subclusterid==0 ) continue; // this is null cluster index
+        if ( nvoxel_counter.find( voxelinfo.subclusterid )==nvoxel_counter.end() ) {
+          nvoxel_counter[voxelinfo.subclusterid] = 0;
+        }
+        nvoxel_counter[voxelinfo.subclusterid]++;
+      }
+      std::vector<int> sample_from;
+      sample_from.reserve( nvoxel_counter.size() );
+      for (auto it=nvoxel_counter.begin(); it!=nvoxel_counter.end(); it++) {
+        if ( it->second>_min_subcluster_size || it->first==1) {
+          sample_from.push_back(it->first);
+          subcluster_indices[ievent].push_back(it->first);
+          subcluster_nvoxels[ievent].push_back(it->second);
+          ntotvoxels += it->second;
+          nsubclusters += 1;
+          LARCV_DEBUG() << "adding subcluster [" << ievent << "," << it->first << "] nvoxels=" << it->second << std::endl;
+        }
+      }
+      
+      int nsampled = sample_from.size();
+     
+      if ( sample_from.size()>max_subclusters_per_event ) {
+        while ( nsampled<max_subclusters_per_event ) {
+          int index = _rand->Integer(sample_from.size());
+          if ( index>1 ) {
+            subcluster_indices[ievent].push_back(index);
+            subcluster_nvoxels[ievent].push_back(nvoxel_counter[index]);
+            ntotvoxels += nvoxel_counter[index];
+            LARCV_DEBUG() << "adding subcluster [" << ievent << "," << index << "] nvoxels=" << nvoxel_counter[index] << std::endl;            
+            nsampled++;
+            nsubclusters++;
+          }
+        }
+      }
+      else {
+        // copy
+        subcluster_indices[ievent] = sample_from;
+      }
+    }
+    
+    LARCV_INFO() << "Converting data for " << nsubclusters << " subclusters over " << ntotvoxels << " voxels from " << nevents << " events" << std::endl;
+
+    // DECLARE TENSORS and dict keys
+
+    // need to return nsubclusters, which is the batch size
+    PyObject* pybatch_size = PyLong_FromLong((long)nsubclusters);
+    PyObject *pybatch_key  = Py_BuildValue("s", "batch_size");
+    
+    // coord tensor
+    npy_intp coord_t_dim[] = { (long int)ntotvoxels, 4 };
+    PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
+    PyObject *coord_t_key = Py_BuildValue("s", "coord_t");        
+
+    // feature tensor
+    npy_intp feat_t_dim[] = { (long int)ntotvoxels, 3 };
+    PyArrayObject* feat_t = (PyArrayObject*)PyArray_SimpleNew( 2, feat_t_dim, NPY_FLOAT );
+    PyObject *feat_t_key = Py_BuildValue("s", "feat_t");    
+
+    // instance tensor
+    npy_intp instance_t_dim[] = { (long int)ntotvoxels };
+    PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
+    PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
+
+    // class tensor
+    npy_intp class_t_dim[] = { (long int)ntotvoxels };
+    PyArrayObject* class_t = (PyArrayObject*)PyArray_SimpleNew( 1, class_t_dim, NPY_LONG );
+    PyObject *class_t_key = Py_BuildValue("s", "class_t");
+
+    // subcluster tensor
+    npy_intp subcluster_t_dim[] = { (long int)ntotvoxels };
+    PyArrayObject* subcluster_t = (PyArrayObject*)PyArray_SimpleNew( 1, subcluster_t_dim, NPY_LONG );
+    PyObject *subcluster_t_key = Py_BuildValue("s", "subcluster_t");
+
+    // triplet maps and weights
+    PyObject* tripletmap_list = PyList_New(0);
+    PyObject* tripletmapweight_list = PyList_New(0);
+    PyObject *tm_t_key  = Py_BuildValue("s", "tripletmap_t");
+    PyObject *tmw_t_key = Py_BuildValue("s", "tripletmapweight_t");
+        
+    // FILL TENSORS
+    size_t nvoxels_filled = 0;
+    int subclusters_filled = 0;
+    for ( int ievent=0; ievent<(int)nevents; ievent++ ) {
+      auto const& subcluster_list = subcluster_indices[ievent];
+      auto const& subcluster_nvox = subcluster_nvoxels[ievent];
+      auto const& voxeldata = voxeldata_v[ievent];
+      LARCV_DEBUG() << "fill event[" << ievent << "] ------------" << std::endl;
+      for ( int isubc=0; isubc<(int)subcluster_list.size(); isubc++ ) {
+        
+        int subclusteridx = subcluster_list[isubc];
+        int nsubc_voxels  = subcluster_nvox[isubc];
+
+        LARCV_DEBUG() << "fill subcluster[" << ievent << "," << isubc << "] index=" << subclusteridx << " nvoxels=" << nsubc_voxels << std::endl;
+
+        if ( subclusteridx<= 0 ) continue;
+        
+        size_t nvoxels = voxeldata.size();
+
+        npy_intp tripletmap_t_dim[] = { (long int)nsubc_voxels, (long int)_kMaxTripletPerVoxel };
+        PyArrayObject* tripletmap_t = (PyArrayObject*)PyArray_SimpleNew( 2, tripletmap_t_dim, NPY_LONG );
+
+        npy_intp tripletmapweight_t_dim[] = { (long int)nsubc_voxels, (long int)_kMaxTripletPerVoxel };
+        PyArrayObject* tripletmapweight_t = (PyArrayObject*)PyArray_SimpleNew( 2, tripletmapweight_t_dim, NPY_FLOAT );
+
+        int nsubc_filled = 0;
+
+        // within each subcluster, we must reindex the instance ids
+        std::map<int,int> instance_relabel;
+        std::vector<int> instance_list;
+        
+        // fill coord tensor
+        for (size_t i=0; i<nvoxels; i++ ) {
+          auto const& voxel = voxeldata[i];
+
+          if ( voxel.subclusterid!=subclusteridx ) continue;
+          
+          for (size_t j=0; j<3; j++)
+            *((long*)PyArray_GETPTR2(coord_t,nvoxels_filled,j)) = voxel.voxel_index[j];
+          *((long*)PyArray_GETPTR2(coord_t,nvoxels_filled,3))   = subclusters_filled; // the batch number
+
+      
+          // fill feat tensor
+          if ( voxel.totw>0 ) {
+            for (size_t j=0; j<3; j++)
+              *((float*)PyArray_GETPTR2(feat_t,nvoxels_filled,j)) = voxel.feature_v[j];
+          }
+          else {
+            for (size_t j=0; j<3; j++)
+              *((float*)PyArray_GETPTR2(feat_t,nvoxels_filled,j)) = 0.;
+          }
+
+          // fill instance tensor          
+          int iid = voxel.truth_instance_index;
+          if ( instance_relabel.find(iid)==instance_relabel.end() ) {
+            instance_relabel[iid] = (int)instance_list.size()+1;
+            instance_list.push_back(iid);
+          }
+          *((long*)PyArray_GETPTR1(instance_t,nvoxels_filled)) = instance_relabel[iid];
+
+          // fill class tensor
+          *((long*)PyArray_GETPTR1(class_t,nvoxels_filled)) = voxel.truth_pid;
+
+          // fill subcluster tensor
+          *((long*)PyArray_GETPTR1(subcluster_t,nvoxels_filled)) = voxel.subclusterid;
+
+
+          // triplet map and weights
+          int ntrips = (int)voxel.tripletidx_v.size();
+          if ( ntrips>_kMaxTripletPerVoxel )
+            ntrips = _kMaxTripletPerVoxel;
+
+          float weight = 0;
+          if ( ntrips>0 )
+            weight = 1.0/float(ntrips);
+        
+          for (int j=0; j<ntrips; j++) {
+            *((long*)PyArray_GETPTR2(tripletmap_t,nsubc_filled,j)) = voxel.tripletidx_v[j];
+            *((float*)PyArray_GETPTR2(tripletmapweight_t,nsubc_filled,j)) = weight;
+          }
+          for (int j=ntrips;j<_kMaxTripletPerVoxel;j++) {
+            *((long*)PyArray_GETPTR2(tripletmap_t,nsubc_filled,j)) = 0;
+            *((float*)PyArray_GETPTR2(tripletmapweight_t,nsubc_filled,j)) = 0;
+          }
+          
+          
+          nvoxels_filled++;
+          nsubc_filled++;
+          
+        }//end of voxel loop
+
+        if ( nsubc_filled!=nsubc_voxels ) {
+          throw std::runtime_error("number of subcluster voxels filled does not match the number expected");
+        }
+
+        subclusters_filled++;
+        PyArray_ENABLEFLAGS(tripletmap_t,       NPY_ARRAY_OWNDATA);
+        PyArray_ENABLEFLAGS(tripletmapweight_t, NPY_ARRAY_OWNDATA);                
+        PyList_Append(tripletmap_list,       (PyObject*)tripletmap_t);
+        PyList_Append(tripletmapweight_list, (PyObject*)tripletmapweight_t);
+        Py_DECREF(tripletmap_t);
+        Py_DECREF(tripletmapweight_t);
+        
+      }//end of subcluster loop
+    }//end of event loop
+
+    if ( nvoxels_filled!=ntotvoxels ) {
+      std::stringstream msg;
+      msg << "number of minibatch total voxels filled (" << nvoxels_filled << "), "
+          << "does not match the number expected (" << ntotvoxels << ")" << std::endl;
+      throw std::runtime_error(msg.str());
+    }
+
+    // set own data flag
+    PyArray_ENABLEFLAGS(coord_t,      NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(feat_t,       NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(instance_t,   NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(class_t,      NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(subcluster_t, NPY_ARRAY_OWNDATA);    
+    
+    // Create and fill dictionary
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, pybatch_key,      (PyObject*)pybatch_size);
+    PyDict_SetItem(d, coord_t_key,      (PyObject*)coord_t);
+    PyDict_SetItem(d, feat_t_key,       (PyObject*)feat_t);
+    PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
+    PyDict_SetItem(d, class_t_key,      (PyObject*)class_t);
+    PyDict_SetItem(d, subcluster_t_key, (PyObject*)subcluster_t);    
+    PyDict_SetItem(d, tm_t_key,         (PyObject*)tripletmap_list);
+    PyDict_SetItem(d, tmw_t_key,        (PyObject*)tripletmapweight_list);
+
+    Py_DECREF(pybatch_key);
+    Py_DECREF(coord_t_key);
+    Py_DECREF(feat_t_key);
+    Py_DECREF(instance_t_key);
+    Py_DECREF(class_t_key);
+    Py_DECREF(subcluster_t_key);    
+    Py_DECREF(tm_t_key);
+    Py_DECREF(tmw_t_key);
+    
+    // do i need to do this? (yes)
+    Py_DECREF(pybatch_size);
+    Py_DECREF(coord_t);
+    Py_DECREF(feat_t);
+    Py_DECREF(instance_t);
+    Py_DECREF(class_t);
+    Py_DECREF(subcluster_t);
+    Py_DECREF(tripletmap_list);
+    Py_DECREF(tripletmapweight_list);
+    
+    return d;
+    
+  }
   
 }
 }
