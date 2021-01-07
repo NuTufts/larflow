@@ -5,6 +5,8 @@
 
 #include <iostream>
 
+#include "TRandom3.h"
+
 namespace larflow {
 namespace lightmodel {
 
@@ -37,14 +39,10 @@ namespace lightmodel {
     std::cout << "[DataLoader::load_tree()]" << std::endl;
 
     tclusterflash  = new TChain("preppedTree");
-    //    tkeypoint = new TChain("keypointlabels");
-    //    tssnet    = new TChain("ssnetlabels");
 
     for (auto const& infile : input_files ) {
       std::cout << "add " << infile << " to chains" << std::endl;
       tclusterflash->Add(infile.c_str());
-      //      tkeypoint->Add(infile.c_str());
-      //      tssnet->Add(infile.c_str());
     }
 
     voxel_row = 0;
@@ -67,7 +65,7 @@ namespace lightmodel {
    * @brief load event data for the different trees
    *
    * @param[in] entry number
-   * @return number of bytes loaded from the tkeypoint tree data. returns 0 if end of file or error.
+   * @return number of bytes loaded from tree data. returns 0 if end of file or error.
    */
   unsigned long DataLoader::load_entry( int entry )
   {
@@ -82,6 +80,29 @@ namespace lightmodel {
     
     return bytes;
 
+  }
+
+  // load entry and return some data
+  // for use in making batches
+  DataLoader::ClusterFlashPair_t DataLoader::getTreeEntry(int entry) {
+    
+    unsigned long bytes = tclusterflash->GetEntry(entry);
+    
+    if ( !bytes ) {
+      throw std::runtime_error("out of file-bounds");
+    }
+
+    size = voxel_row->size();
+    _current_entry = entry;
+    
+    DataLoader::ClusterFlashPair_t data;    
+    data.voxel_row_v = *voxel_row;
+    data.voxel_col_v = *voxel_col;
+    data.voxel_depth_v = *voxel_depth;
+    data.voxel_charge_v = *voxel_charge;
+    data.flash_vector_v = *flash_vector;
+    
+    return data;
 
   }
 
@@ -95,35 +116,7 @@ namespace lightmodel {
     return tclusterflash->GetEntries();
   }
 
-  /**
-   * @brief return a ground truth data, return a subsample of all truth matches
-   *
-   * returns a python dictionary. The dictionary contents are:
-   * \verbatim embed:rst:leading-asterisk
-   *  * "matchtriplet":numpy array with sparse image indices for each place, representing pixels a candidate space point project into
-   *  * "match_weight":weight of "matchtriplet" examples
-   *  * "positive_indices":indices of entries in "matchtriplet" array that correspond to good/true spacepoints
-   *  * "ssnet_label":class label for space point
-   *  * "ssnet_top_weight":weight based on topology (i.e. on boundary, near nu-vertex)
-   *  * "ssnet_class_weight":weight based on class frequency
-   *  * "kplabel":keypoint score numpy array
-   *  * "kplabel_weight":weight for keypoint label
-   *  * "kpshift":shift in 3D from space point position to nearest keypoint
-   * \endverbatim
-   *
-   * @param[in]  num_max_samples maximum number of space points for which we return ground truth data
-   * @param[out] nfilled The number of space points, for which we actually return data
-   * @param[in]  withtruth withtruth If true, return info on whether space point is true (i.e. good)
-   * @return Python dictionary object with various numpy arrays
-   *                        
-   */
-
-  /*
-    
-    PyObject* DataLoader::sample_data( const int& num_max_samples,
-    int& nfilled,
-    bool withtruth ) {
-  */
+  // uses info from one entry of tree
   PyObject* DataLoader::make_arrays() {
     
     if ( !_setup_numpy ) {
@@ -159,6 +152,58 @@ namespace lightmodel {
     
   }
 
+  PyObject* DataLoader::getTrainingDataBatch(int batch_size) {
+    
+    
+    //ClusterFlashPair_t hi;
+
+    std::vector< DataLoader::ClusterFlashPair_t > data_batch;
+    data_batch.reserve(batch_size);
+    
+    // the below vectors should all be the same size
+    //    std::vector< std::vector< int > > data_batch_voxel_row;
+    /*
+    std::vector< std::vector< int > > data_batch_voxel_col;
+    std::vector< std::vector< int > > data_batch_voxel_depth;
+    std::vector< std::vector< float > > data_batch_voxel_charge;
+    std::vector< std::vector< float > > data_batch_voxel_flash;
+    */
+    //    data_batch_voxel_row.reserve(batch_size);
+    /*
+    data_batch_voxel_col.reserve(batch_size);
+    data_batch_voxel_depth.reserve(batch_size);
+    data_batch_voxel_charge.reserve(batch_size);
+    data_batch_voxel_flash.reserve(batch_size);
+    */
+
+    
+    int ntries = 0;
+
+    // for an arb number of tries
+    while ( ntries<batch_size*10 && data_batch.size()<batch_size ) {
+
+      // try shuffle, dumb
+      try {
+	_current_entry = _rand->Integer(_num_entries);
+	auto data = getTreeEntry(_current_entry);
+	if (data.voxel_row_v.size() > 0) 
+	  data_batch.emplace_back( std::move(data) );
+	} catch (...) {
+	//	std::cout << "Hi" << std::endl;
+	_current_entry = 0;
+	}
+      
+	ntries++;
+    }
+
+    if ( data_batch.size()==batch_size ) {
+      return make_arrays( data_batch );
+    }
+    
+    Py_INCREF(Py_None);
+    return Py_None;
+    
+  }
   
   int DataLoader::make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
 					   PyArrayObject*& voxel_feature_array,
@@ -186,23 +231,7 @@ namespace lightmodel {
       //      }
       
     }
-    /*
-    for (int i = 0; i < coord_dims[1]; i++ ) {
-      long label = voxel_col->at( i );
-      *((long*)PyArray_GETPTR2(voxel_coord_array,1,i)) = (long)label;
-    }
-    
-    for (int i = 0; i < coord_dims[1]; i++ ) {
-      long label = voxel_depth->at( i );
-      *((long*)PyArray_GETPTR2(voxel_coord_array,2,i)) = (long)label;
-    }
-    
-    for (int i = 0; i < coord_dims[1]; i++ ) {
-      long label = 0;
-      *((long*)PyArray_GETPTR2(voxel_coord_array,3,i)) = (long)label;
-    }
-    */
-    
+
     // make feature (charge) array
     int feature_nd = 1;
     npy_intp feature_dims[] = { N };

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "TRandom3.h"
 #include "TChain.h"
 
 namespace larflow {
@@ -34,16 +35,6 @@ namespace lightmodel {
     
   public:
     
-    /*
-      DataLoader()
-      : ttriplet(nullptr),
-      tkeypoint(nullptr),
-      tssnet(nullptr),
-      _exclude_neg_examples(true)
-      {};
-    */
-    
-    
   DataLoader()
     : tclusterflash(nullptr){};     // constructor w/ initialization list
     
@@ -57,17 +48,6 @@ namespace lightmodel {
     void add_input_file( std::string input ) { input_files.push_back(input); };
 
     TChain* tclusterflash;   ///< TTree containing cluster and flash info (TChain can be thought of as a TTree loading data over several input files)
-    
-     //    TChain* tkeypoint;  ///< TTree containing keypoint information (TChain can be thought of as a TTree loading data over several input files)
-    //TChain* tssnet;     ///< TTree containing sssnet information (TChain can be though of as a TTree loading data over several input files)
-
-    /*
-    // @@@ Replace these below w/ each branch in the tree? (all vectors)
-    std::vector< std::vector<float> >*       kplabel_v[3];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
-    std::vector< std::vector<float> >*       kpshift_v;       ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
-    std::vector< int   >*                    ssnet_label_v;   ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
-    std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree
-    */
 
     std::vector<int>*         voxel_row;    ///< pointer to voxel row loaded from tclusterflash ROOT tree
     std::vector<int>*         voxel_col;    ///< pointer to voxel col loaded from tclusterflash ROOT tree
@@ -75,51 +55,48 @@ namespace lightmodel {
     std::vector<float>*       voxel_charge; ///< pointer to voxel charge loaded from tclusterflash ROOT tree
     std::vector<float>*       flash_vector; ///< pointer to flash info loaded from tclusterflash ROOT tree
 
-    /** @brief set flag that, if True, only loads true (non-ghost) spacepoints for training ssnet and keypoint labels (default is false)*/
-    //    void exclude_false_triplets( bool exclude ) { _exclude_neg_examples = exclude; };
+    // struct to contain info for one cluster+flash pair
+    struct ClusterFlashPair_t {
+      std::vector<int>         voxel_row_v;    ///< vector of voxel row values for one cluster
+      std::vector<int>         voxel_col_v;    ///< vector of voxel col values for one cluster
+      std::vector<int>         voxel_depth_v;     ///< vector of voxel depth values for one cluster
+      std::vector<float>       voxel_charge_v; ///< vector of voxel charge values for one cluster
+
+      std::vector<float>       flash_vector_v; ///< vector of flash info associated to the cluster
+    };
+
+    // list containing all cluster+flash pairs
+    //typedef std::vector<ClusterFlashPair_t> PairList_t;
+    
     void load_tree();
     unsigned long load_entry( int entry );
+    ClusterFlashPair_t getTreeEntry(int entry); // return data for 1 entry in tree
     unsigned long GetEntries();    
 
-    /*
-    PyObject* sample_data( const int& num_max_samples,
-                           int& nfilled,
-                           bool withtruth );
-    */
+    PyObject* getTrainingDataBatch(int batch_size);
 
-    PyObject* make_arrays();
+    PyObject* make_arrays(); // makes for just one entry
+    PyObject* make_arrays( const std::vector< ClusterFlashPair_t >& data_v );
 
   private:
 
     long size; // size of a given entry
     
   protected:
-        
+
+    unsigned long _current_entry;
+    unsigned long _num_entries;
+    TRandom3* _rand;
+    
     int make_clusterinfo_arrays( PyArrayObject*& voxel_coord_array,
 				 PyArrayObject*& voxel_feature_array,
 				 int N );
     
-    /*    
-    int make_flashinfo_arrays( const int& num_max_samples,
-			   int& nfilled,
-                             bool withtruth,
-                             std::vector<int>& pos_match_index,
-                             PyArrayObject* match_array,
-                             PyArrayObject*& kplabel_label,
-                             PyArrayObject*& kplabel_weight );
-    */
-    /*
-    int make_kpshift_arrays( const int& num_max_samples,
-                             int& nfilled,
-                             bool withtruth,
-                             PyArrayObject* match_array,
-                             PyArrayObject*& kpshift_label );
-    */
     int make_flashinfo_arrays( PyArrayObject*& flashinfo_label );
+
     
     
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
-    //    bool _exclude_neg_examples;  ///< if flag set to true, only true (i.e. non-ghost) spacepoints are loaded for training ssnet and keypoint labels
     
   };
   
