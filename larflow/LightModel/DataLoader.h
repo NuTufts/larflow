@@ -76,7 +76,7 @@ namespace lightmodel {
     PyObject* getTrainingDataBatch(int batch_size);
 
     PyObject* make_arrays(); // makes for just one entry
-    PyObject* make_arrays( const std::vector< ClusterFlashPair_t >& data_v );
+    PyObject* make_arrays( const std::vector< ClusterFlashPair_t >& data_v ) const;
 
   private:
 

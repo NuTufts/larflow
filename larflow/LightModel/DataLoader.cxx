@@ -70,6 +70,10 @@ namespace lightmodel {
   unsigned long DataLoader::load_entry( int entry )
   {
     unsigned long bytes = tclusterflash->GetEntry(entry);
+
+    if ( !bytes ) {
+      throw std::runtime_error("out of file-bounds");
+    }
     
     std::cout << "Got entry " << entry << std::endl;
 
@@ -124,7 +128,7 @@ namespace lightmodel {
       _setup_numpy = true;
     }
     
-    // CLUSTER INFO ARRAYS
+    // CLUSTER INFO ARRAYS: COORD & FEATURE TENSOR
     PyArrayObject* voxel_coord_array = nullptr; // row, col, depth 
     PyArrayObject* voxel_feature_array = nullptr; // charge values
     make_clusterinfo_arrays( voxel_coord_array, voxel_feature_array, size );
@@ -152,44 +156,132 @@ namespace lightmodel {
     
   }
 
+  // Make arrays given a batch
+  PyObject* DataLoader::make_arrays( const std::vector< ClusterFlashPair_t >& data_v ) const
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+    size_t nbatches = data_v.size(); // number of elements (clusterflash pairs) in the batch
+    size_t nvoxels_tot = 0; // total number of voxels (this is our new "N")
+    
+    std::cout << "Converting data for " << nbatches << " clusters" << std::endl;
+
+    for (size_t ibatch=0; ibatch < nbatches; ibatch++) { // for each element in the batch
+      
+      auto const& clusterdata = data_v[ibatch]; // grab 1 cluster
+      size_t nvoxels = clusterdata.voxel_row_v.size(); // N for that 1 cluster
+      nvoxels_tot += nvoxels; // total added up N (will be dimension for coord + feature array for batch)
+      
+    }
+
+    std::cout << "Converting data for " << nvoxels_tot << " total voxels into numpy arrays" << std::endl;
+
+    // COORD TENSOR: CONTAINS voxel row, col, depth, batch
+    npy_intp coord_t_dim[] = { (long int)nvoxels_tot, 4 };
+    PyArrayObject* coord_t = (PyArrayObject*)PyArray_SimpleNew( 2, coord_t_dim, NPY_LONG );
+    PyObject *coord_t_key = Py_BuildValue("s", "coord_t");
+
+    
+    // FEATURE TENSOR: voxel charge
+    npy_intp feat_t_dim[] = { (long int)nvoxels_tot };
+    PyArrayObject* feat_t = (PyArrayObject*)PyArray_SimpleNew( 1, feat_t_dim, NPY_FLOAT );
+    PyObject *feat_t_key = Py_BuildValue("s", "feat_t");
+
+    // FLASHINFO TENSOR: 32 flash values for the PMTs
+    npy_intp flash_t_dim[] = { 32*(int)nbatches };
+    PyArrayObject* flash_t = (PyArrayObject*)PyArray_SimpleNew( 1, flash_t_dim, NPY_FLOAT );
+    PyObject *flash_t_key = Py_BuildValue("s", "flash_t");
+
+    // Loop through and fill arrays
+    size_t nvoxels_filled = 0;
+    
+    for ( size_t ibatch=0; ibatch<nbatches; ibatch++ ) { // for each cluster
+
+      auto const& clusterdata = data_v[ibatch];
+      size_t nvoxels = clusterdata.voxel_row_v.size(); // N
+      std::cout << "The N for this batch is: " << nvoxels << std::endl;
+
+      // fill coord tensor
+      for (size_t i = 0; i < nvoxels; i++ ) {
+
+	long row = clusterdata.voxel_row_v.at(i);
+	long col = clusterdata.voxel_col_v.at(i);
+	long depth = clusterdata.voxel_depth_v.at(i);
+	long batch = ibatch;
+	*((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,0)) = (long)row;
+	*((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,1)) = (long)col;
+	*((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,2)) = (long)depth;
+	*((long*)PyArray_GETPTR2(coord_t,nvoxels_filled+i,3)) = (long)batch;
+
+      }
+
+      // fill feature tensor
+      for (size_t i = 0; i < nvoxels; i++ ) {
+
+	float label = clusterdata.voxel_charge_v.at( i );
+	*((float*)PyArray_GETPTR1(feat_t,nvoxels_filled+i)) = (float)label;
+	
+      }
+
+      // fill flash tensor
+      for (size_t i = 0; i < 32; i++ ) {
+	
+        float label = clusterdata.flash_vector_v.at( i );
+        *((float*)PyArray_GETPTR1(flash_t,32*ibatch+i)) = (float)label;
+	
+      }
+      
+      nvoxels_filled += nvoxels;
+      
+    }
+
+    PyArray_ENABLEFLAGS(coord_t,      NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(feat_t,       NPY_ARRAY_OWNDATA);
+    PyArray_ENABLEFLAGS(flash_t,       NPY_ARRAY_OWNDATA);
+
+    // Create and fill dictionary
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, coord_t_key,      (PyObject*)coord_t);
+    PyDict_SetItem(d, feat_t_key,       (PyObject*)feat_t);
+    PyDict_SetItem(d, flash_t_key,       (PyObject*)flash_t);
+
+    Py_DECREF(coord_t_key);
+    Py_DECREF(feat_t_key);
+    Py_DECREF(flash_t_key);
+    
+    return d;
+    
+  }
+  
   PyObject* DataLoader::getTrainingDataBatch(int batch_size) {
     
-    
-    //ClusterFlashPair_t hi;
-
     std::vector< DataLoader::ClusterFlashPair_t > data_batch;
     data_batch.reserve(batch_size);
-    
-    // the below vectors should all be the same size
-    //    std::vector< std::vector< int > > data_batch_voxel_row;
-    /*
-    std::vector< std::vector< int > > data_batch_voxel_col;
-    std::vector< std::vector< int > > data_batch_voxel_depth;
-    std::vector< std::vector< float > > data_batch_voxel_charge;
-    std::vector< std::vector< float > > data_batch_voxel_flash;
-    */
-    //    data_batch_voxel_row.reserve(batch_size);
-    /*
-    data_batch_voxel_col.reserve(batch_size);
-    data_batch_voxel_depth.reserve(batch_size);
-    data_batch_voxel_charge.reserve(batch_size);
-    data_batch_voxel_flash.reserve(batch_size);
-    */
 
+    _num_entries = tclusterflash->GetEntries();
+    _rand = new TRandom3(0);
     
     int ntries = 0;
 
     // for an arb number of tries
     while ( ntries<batch_size*10 && data_batch.size()<batch_size ) {
 
+      std::cout << "batch_size: " << batch_size << std::endl;
+      std::cout << "data_batch.size(): " << data_batch.size() << std::endl;
+      
       // try shuffle, dumb
       try {
+	std::cout << "_num_entries: " <<  _num_entries << std::endl;
 	_current_entry = _rand->Integer(_num_entries);
 	auto data = getTreeEntry(_current_entry);
 	if (data.voxel_row_v.size() > 0) 
 	  data_batch.emplace_back( std::move(data) );
 	} catch (...) {
-	//	std::cout << "Hi" << std::endl;
+	std::cout << "CATCH!" << std::endl;
 	_current_entry = 0;
 	}
       
@@ -197,6 +289,7 @@ namespace lightmodel {
     }
 
     if ( data_batch.size()==batch_size ) {
+      std::cout << "data_batch.size()==batch_size, making arrays now..." << std::endl;
       return make_arrays( data_batch );
     }
     
