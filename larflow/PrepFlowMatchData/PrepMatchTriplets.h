@@ -38,6 +38,8 @@ namespace prep {
   public:
 
     PrepMatchTriplets()
+      : _kStopAtTripletMax(false),
+      _kTripletLimit(1000000)
     {};
     virtual ~PrepMatchTriplets() {};
 
@@ -59,6 +61,7 @@ namespace prep {
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
                                 const std::vector<larcv::Image2D>& adc_v );
     void process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer="wire" );
+    void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
 
     std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
@@ -129,6 +132,11 @@ namespace prep {
     PyObject* make_truthonly_triplet_ndarray();
     
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
+
+  protected:
+
+    bool _kStopAtTripletMax;
+    int  _kTripletLimit;
 
   private:
     
