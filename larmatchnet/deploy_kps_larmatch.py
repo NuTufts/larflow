@@ -15,6 +15,7 @@ parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of AD
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument("--use-unet","-unet",default=False,action='store_true',help="Use UNet version")
+parser.add_argument("--use-skip-limit",default=None,type=int,help="Specify a max triplet let. If surpassed, skip network eval.")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -54,6 +55,9 @@ BATCHSIZE = 1
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
 preplarmatch = larflow.prep.PrepMatchTriplets()
+if args.use_skip_limit is not None:
+    print("Set Triplet Max where we will skip event: ",args.use_skip_limit)
+    preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
 
 # MULTI-HEAD LARMATCH MODEL
 model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
@@ -148,7 +152,7 @@ for ientry in range(NENTRIES):
         start_wcmask = time.time()
         ev_wcthrumu = io.get_data(larcv.kProductImage2D,"thrumu")
         ev_wcwire   = io.get_data(larcv.kProductImage2D,"wirewc")
-        for p in xrange(adc_v.size()):            
+        for p in range(adc_v.size()):            
             adc = larcv.Image2D(adc_v[p]) # a copy
             np_adc = larcv.as_ndarray(adc)
             np_wc  = larcv.as_ndarray(ev_wcthrumu.Image2DArray()[p])
@@ -163,8 +167,8 @@ for ientry in range(NENTRIES):
     badch_v = badchmaker.makeBadChImage( 4, 3, 2400, 6*1008, 3456, 6, 1, ev_badch )
     print("Number of badcv images: ",badch_v.size())
     gapch_v = badchmaker.findMissingBadChs( adc_v, badch_v, 10.0, 100 )
-    for p in xrange(badch_v.size()):
-        for c in xrange(badch_v[p].meta().cols()):
+    for p in range(badch_v.size()):
+        for c in range(badch_v[p].meta().cols()):
             if ( gapch_v[p].pixel(0,c)>0 ):
                 badch_v[p].paint_col(c,255);
     dt_badch = time.time()-t_badch
@@ -186,9 +190,9 @@ for ientry in range(NENTRIES):
     #sys.exit(0)
     
     # Prep sparse ADC numpy arrays
-    sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in xrange(3) ]
-    coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ).to(DEVICE) for p in xrange(3) ]
-    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ).to(DEVICE) for p in xrange(3) ]
+    sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in range(3) ]
+    coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ).to(DEVICE) for p in range(3) ]
+    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ).to(DEVICE) for p in range(3) ]
 
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate
@@ -215,6 +219,12 @@ for ientry in range(NENTRIES):
     tstart = time.time()
 
     ntriplets = preplarmatch._triplet_v.size()
+    print("number of proposed triplets: ",ntriplets)
+    print("use skip limit: ",args.use_skip_limit)
+    if args.use_skip_limit is not None and ntriplets>args.use_skip_limit:
+        print("Hit no-process limit: ",ntriplets," > ",args.triplet_max_skip)
+        ntriplets = -1
+    
     startidx = 0
     while startidx<ntriplets:
         print("create matchpairs: startidx=",startidx," of ",ntriplets)

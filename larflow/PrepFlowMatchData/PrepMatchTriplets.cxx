@@ -105,11 +105,16 @@ namespace prep {
                                    const bool check_wire_intersection )
   {
 
+    _triplet_v.clear();
+    _flowdir_v.clear();
+    _triarea_v.clear();
+    _pos_v.clear();
+    _imgmeta_v.clear();    
+    
     std::clock_t start = std::clock();
     
     // first we make a common sparse image
     _sparseimg_vv = larflow::prep::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
-    _imgmeta_v.clear();
     for ( auto const& img : adc_v )
       _imgmeta_v.push_back( img.meta() );
       
@@ -120,6 +125,8 @@ namespace prep {
     FlowDir_t flow_order[] = { kY2V, kY2U, kV2Y, kU2Y, kU2V, kV2U };
     
     std::vector< larflow::prep::FlowTriples > triplet_v( larflow::kNumFlows );
+    int total_triplets = 0;
+    int max_flow_triplets = 0;
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
 
       // if ( flowindex!=kV2Y )
@@ -132,6 +139,14 @@ namespace prep {
       triplet_v[flowindex]  = FlowTriples( sourceplane, targetplane,
                                            adc_v, badch_v,
                                            _sparseimg_vv, 10.0, false );
+      total_triplets += triplet_v[flowindex].getTriples().size();
+      if ( (int)triplet_v[flowindex].getTriples().size()>max_flow_triplets ) {
+	max_flow_triplets = (int)triplet_v[flowindex].getTriples().size();
+      }
+      if ( _kStopAtTripletMax && max_flow_triplets > _kTripletLimit ) {
+	std::cout << "Reached triplet limit. Not worth analyzing this event. Return." << std::endl;	
+	return;
+      }
     }
 
     // collect the unique dead channel additions to each plane
@@ -172,10 +187,6 @@ namespace prep {
     
     // condense and reindex matches
     std::set< std::vector<int> > triplet_set;
-    _triplet_v.clear();
-    _flowdir_v.clear();
-    _triarea_v.clear();
-    _pos_v.clear();
     _triplet_v.reserve( 200000 );
     _flowdir_v.reserve( 200000 );
     _triarea_v.reserve( 200000 );
