@@ -45,8 +45,10 @@ for ientry in range(nentries):
     iolcv.read_entry(ientry)
 
     mrcnnreco.process( iolcv, ioll )
+    ioll.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )    
     ioll.next_event()
-    break
+    if ientry>=2:
+        break
 
 ioll.close()
 iolcv.finalize()

@@ -51,7 +51,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("mrcnn","mrcnn","rgb(10,10,150)",0.1,True)]
+    clusters = [("unused","notmrcnn","rgb(10,10,10,0.1)",0.1,True),
+                ("mrcnn","mrcnn","rgb(10,10,150)",0.3,True)]
+    
     for (name,producer,rgbcolor,opa,plotme) in clusters:
         if not plotme:
             continue
@@ -61,9 +63,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             lfcluster = ev_trackcluster.at( icluster )
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
             
-            # random color
-            randcol = np.random.randint(0,high=255,size=3)
-            zcol = "rgb(%d,%d,%d)"%(randcol[0],randcol[1],randcol[2])
+            if name in ["unused"]:
+                # fixed color
+                zcol = rgbcolor
+            else:
+                # random color
+                randcol = np.random.randint(0,high=255,size=3)
+                zcol = "rgb(%d,%d,%d)"%(randcol[0],randcol[1],randcol[2])
             
             cluster_trace["marker"]["color"] = zcol
             cluster_trace["marker"]["opacity"] = opa
