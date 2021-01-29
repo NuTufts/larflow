@@ -49,6 +49,7 @@
 #pragma link C++ class larflow::reco::CosmicTrackBuilder+;
 #pragma link C++ class larflow::reco::TrackOTFit+;
 #pragma link C++ class larflow::reco::NuVertexMaker+;
+#pragma link C++ class larflow::reco::NuVertexActivityReco+;
 #pragma link C++ class larflow::reco::NuTrackBuilder+;
 #pragma link C++ class larflow::reco::VertexTrackTruthRecoInfo+;
 #pragma link C++ class larflow::reco::TrackdQdx+;

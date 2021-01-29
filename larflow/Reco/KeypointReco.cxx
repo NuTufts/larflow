@@ -190,7 +190,8 @@ namespace reco {
                   << " maxkd=" <<  maxkd
                   << std::endl;
     
-    cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );
+    //cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );
+    cluster_sdbscan_spacepoints( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );    
 
     float sigma = _sigma; // bandwidth
 
