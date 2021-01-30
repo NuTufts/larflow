@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser("Run larflow3dhit clustering algorith")
 # required
 parser.add_argument('-i','--input-dlmerged',type=str,required=True,help="Input file containing ADC, ssnet, badch images/info")
 parser.add_argument('-l','--input-larflow',type=str,required=True,help="Input file containing larlite::larflow3dhit objects")
+parser.add_argument('-t','--input-mcinfo',type=str,default=None,help="Input file containing larlite mc truth objects")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 
 args = parser.parse_args()
@@ -26,10 +27,14 @@ iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBa
 
 print("[INPUT: DL MERGED] ",args.input_dlmerged)
 print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
+print("[INPUT (optional): MCINFO]  ",args.input_mcinfo)
 print("[OUTPUT]    ",args.output)
 
 io.add_in_filename(  args.input_dlmerged )
-io.add_in_filename(  args.input_larflow )
+if args.input_dlmerged!=args.input_larflow:
+    io.add_in_filename(  args.input_larflow )
+if args.input_mcinfo is not None and args.input_dlmerged!=args.input_mcinfo and args.input_larflow!=args.input_mcinfo:
+    io.add_in_filename( args.input_mcinfo )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
 io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
@@ -66,7 +71,7 @@ else:
     nentries = ll_nentries
 
 algo = larflow.reco.NuVertexActivityReco()
-algo.set_verbosity( larcv.msg.kDEBUG )
+#algo.set_verbosity( larcv.msg.kDEBUG )
 mcdata = ublarcvapp.mctools.LArbysMC()
 
 kpreco = larflow.reco.KeypointReco()
@@ -77,17 +82,31 @@ kpreco.set_keypoint_threshold( 0.5, 0 )
 kpreco.set_min_cluster_size(   20, 1 )
 kpreco.set_keypoint_threshold( 0.5, 1 )
 kpreco.set_larmatch_threshold( 0.5 )
+kpreco.set_verbosity( larcv.msg.kDEBUG )
+
+tfana = rt.TFile( args.output.replace(".root","_ana.root"), "recreate" )
+tfana.cd()
+vatree = rt.TTree("vtxactivityana","Vertex Activity Ana")
+
+mcdata.bindAnaVariables( vatree )
+algo.bind_to_tree( vatree )
 
 
-io.go_to(8)
-for ientry in range(8,nentries):
+start_entry = 0
+io.go_to(start_entry)
+for ientry in range(start_entry,nentries):
     print("[ENTRY ",ientry,"]")
     iolcv.read_entry(ientry)
 
     algo.process( iolcv, io )
-    mcdata.process( io )
-    mcdata.process( iolcv, io )
-    mcdata.printInteractionInfo()
+    if args.input_mcinfo is not None:
+        print("RUN MC ROUTINES")
+        mcdata.process( io )
+        mcdata.process( iolcv, io )
+        mcdata.printInteractionInfo()
+        algo.calcTruthVariables( io, mcdata )
+    else:
+        print("No MC provided")
 
     # process nu keypoints
     kpreco.set_keypoint_type( 0 )
@@ -105,8 +124,11 @@ for ientry in range(8,nentries):
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()
-    break
+    vatree.Fill()
+
 
 io.close()
 iolcv.finalize()
+tfana.cd()
+vatree.Write()
 print("[END]")

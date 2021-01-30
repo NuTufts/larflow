@@ -245,7 +245,7 @@ namespace prep {
    *
    * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
    * [0-2]:   x,y,z
-   * [3-9]:   6 flow direction scores + 1 max scire (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
+   * [3-9]:   6 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
    * [10-12]: 3 ssnet scores, (bg,track,shower)
    * [13-15]: 3 keypoint label score [nu,track,shower]
    * [16-18]: 3D flow direction

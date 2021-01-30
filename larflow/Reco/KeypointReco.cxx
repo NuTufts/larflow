@@ -94,18 +94,19 @@ namespace reco {
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
     for (int i=0; i<_num_passes; i++ ) {
-      std::cout << "[KeypointReco::process] Pass " << i+1 << std::endl;
+      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << std::endl;
       _make_kpclusters( _keypoint_score_threshold_v[i], _min_cluster_size_v[i] );
-      std::cout << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
+      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
       int nabove=0;
       for (auto& posv : _initial_pt_pos_v ) {
         if (posv[3]>_keypoint_score_threshold_v[i]) nabove++;
       }
-      std::cout << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
+      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
     }
 
-    printAllKPClusterInfo();
-    std::cout << "[ KeypointReco::process ] num kpclusters = " << output_pt_v.size() << std::endl;
+    if ( logger().level()<=larcv::msg::kINFO )
+      printAllKPClusterInfo();
+    LARCV_NORMAL() << "[ KeypointReco::process ] num kpclusters = " << output_pt_v.size() << std::endl;
   }
   
   /**
@@ -146,11 +147,11 @@ namespace reco {
 
     _initial_pt_used_v.resize( _initial_pt_pos_v.size(), 0 );
 
-    std::cout << "[larflow::reco::KeypointReco::_make_initial_pt_data] number of points stored for keypoint reco: "
-              << _initial_pt_pos_v.size()
-              << "/"
-              << lfhits.size()
-              << std::endl;
+    LARCV_INFO() << "[larflow::reco::KeypointReco::_make_initial_pt_data] number of points stored for keypoint reco: "
+                 << _initial_pt_pos_v.size()
+                 << "/"
+                 << lfhits.size()
+                 << std::endl;
     
   }
 
@@ -224,7 +225,7 @@ namespace reco {
       
       output_pt_v.emplace_back( std::move(kpc) );
     }
-    std::cout << "[larflow::KeypointReco::_make_kpclusters] number of clusters=" << output_pt_v.size() << std::endl;
+    LARCV_INFO() << "[larflow::KeypointReco::_make_kpclusters] number of clusters=" << output_pt_v.size() << std::endl;
     
   }
 
@@ -324,9 +325,9 @@ namespace reco {
     kpc.max_score       = max_score;
     kpc.max_idx         = max_idx;
     
-    std::cout << "[KeypointReco::_characterize_cluster]" << std::endl;
-    std::cout << "  center: (" << kpc.center_pt_v[0] << "," << kpc.center_pt_v[1] << "," << kpc.center_pt_v[2] << ")" << std::endl;
-    std::cout << "  pca: (" << cluster.pca_axis_v[0][0] << "," << cluster.pca_axis_v[0][1] << "," << cluster.pca_axis_v[0][2] << ")" << std::endl;
+    LARCV_DEBUG() << "[KeypointReco::_characterize_cluster]" << std::endl;
+    LARCV_DEBUG() << "  center: (" << kpc.center_pt_v[0] << "," << kpc.center_pt_v[1] << "," << kpc.center_pt_v[2] << ")" << std::endl;
+    LARCV_DEBUG() << "  pca: (" << cluster.pca_axis_v[0][0] << "," << cluster.pca_axis_v[0][1] << "," << cluster.pca_axis_v[0][2] << ")" << std::endl;
 
     // insert cluster into class continer
     _cluster_v.emplace_back( std::move(cluster) );
