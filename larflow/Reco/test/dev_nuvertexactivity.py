@@ -41,7 +41,9 @@ io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
 io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashBeam" )
 io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
-
+io.set_data_to_write( larlite.data.kLArFlow3DHit, "vacand" )
+io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypoint" )
+io.set_data_to_write( larlite.data.kPCAxis, "keypoint" )
 
 iolcv.add_in_file(   args.input_dlmerged )
 iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
@@ -72,6 +74,7 @@ else:
 
 algo = larflow.reco.NuVertexActivityReco()
 #algo.set_verbosity( larcv.msg.kDEBUG )
+algo.set_verbosity( larcv.msg.kINFO )
 mcdata = ublarcvapp.mctools.LArbysMC()
 
 kpreco = larflow.reco.KeypointReco()
@@ -82,7 +85,7 @@ kpreco.set_keypoint_threshold( 0.5, 0 )
 kpreco.set_min_cluster_size(   20, 1 )
 kpreco.set_keypoint_threshold( 0.5, 1 )
 kpreco.set_larmatch_threshold( 0.5 )
-kpreco.set_verbosity( larcv.msg.kDEBUG )
+#kpreco.set_verbosity( larcv.msg.kDEBUG )
 
 tfana = rt.TFile( args.output.replace(".root","_ana.root"), "recreate" )
 tfana.cd()
@@ -95,9 +98,11 @@ algo.bind_to_tree( vatree )
 start_entry = 0
 io.go_to(start_entry)
 for ientry in range(start_entry,nentries):
-    print("[ENTRY ",ientry,"]")
-    iolcv.read_entry(ientry)
 
+    rse = ( io.run_id(), io.subrun_id(), io.event_id() )
+    print("[ENTRY ",ientry,"]: ",rse)
+    
+    iolcv.read_entry(ientry)    
     algo.process( iolcv, io )
     if args.input_mcinfo is not None:
         print("RUN MC ROUTINES")
