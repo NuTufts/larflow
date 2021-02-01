@@ -400,21 +400,28 @@ namespace reco {
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "vacand");
     
     // get true vertex
-    std::vector<float> vtx = { truedata._vtx_tick, truedata._vtx_sce_y, truedata._vtx_sce_z };
+    std::vector<float> vtx = { truedata._vtx_detx, truedata._vtx_sce_y, truedata._vtx_sce_z };
     // convert tick to x
-    const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
-    vtx[0] = (vtx[0]-3200.0)*cm_per_tick;
-    
+    //const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    //vtx[0] = (vtx[0]-3200.0)*cm_per_tick;
+
+    float min_dist_2_true = -1.0;
     for (size_t iv=0; iv<evout_vacand->size(); iv++ ) {
       const larlite::larflow3dhit& lmhit = evout_vacand->at(iv);
-
+      
       float dist2truth = 0;
       for (int i=0; i<3; i++) {
         dist2truth += ( lmhit[i]-vtx[i] )*( lmhit[i]-vtx[i] );
       }
       dist2truth = sqrt(dist2truth);
+      LARCV_DEBUG() << "reco vtx activity [" << iv << "] dist-to-true-vtx=" << dist2truth << std::endl;
+      if ( min_dist_2_true<0 || dist2truth<min_dist_2_true ) {
+	min_dist_2_true = dist2truth;
+      }
       dist2truescevtx.push_back( dist2truth );
     }
+    min_dist2truescevtx = min_dist_2_true;
+    LARCV_INFO() <<  "min distance to true vtx: " << min_dist2truescevtx << std::endl;
   }
 
   void NuVertexActivityReco::make_tree()
@@ -443,6 +450,7 @@ namespace reco {
     _va_ana_tree->Branch( "dist_closest_forwardshower_v", &dist_closest_forwardshower );
     _va_ana_tree->Branch( "shower_likelihood_v", &shower_likelihood );
     _va_ana_tree->Branch( "dist2truescevtx_v", &dist2truescevtx );
+    _va_ana_tree->Branch( "min_dist2truescevtx", &min_dist2truescevtx, "min_dist2truescevtx/F" );
     
   }
   

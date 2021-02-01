@@ -99,6 +99,7 @@ namespace reco {
     std::vector<float> dist_closest_forwardshower;
     std::vector<float> shower_likelihood;
     std::vector<float> dist2truescevtx;
+    float min_dist2truescevtx;
     
     
   };
