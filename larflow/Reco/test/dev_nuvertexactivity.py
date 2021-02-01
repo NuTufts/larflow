@@ -125,7 +125,7 @@ for ientry in range(start_entry,nentries):
     io.next_event()
     iolcv.save_entry()
     vatree.Fill()
-
+    break
 
 io.close()
 iolcv.finalize()

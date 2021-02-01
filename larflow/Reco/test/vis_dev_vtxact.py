@@ -2,13 +2,16 @@ from __future__ import print_function
 import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
-parser.add_argument("-dl","--input-larflow",required=True,type=str,help="larflow input")
+parser.add_argument("-va","--input-vtxact",required=True,type=str,help="larflow input")
+parser.add_argument("-lm","--input-larmatch",default=None,required=False,type=str,help="larflow input")
+parser.add_argument("-mc","--input-mcinfo",default=None,required=False,type=str,help="larflow input")
 args = parser.parse_args()
 
 import numpy as np
 import ROOT as rt
 from larlite import larlite
 from larcv import larcv
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 larcv.SetPyUtil()
 
@@ -33,7 +36,11 @@ keypoint_colors = { -1:"rgb(50,50,50)",
                     2:"rgb(0,0,255)"}
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
-io.add_in_filename( args.input_larflow )
+io.add_in_filename( args.input_vtxact )
+if args.input_larmatch is not None and args.input_larmatch!=args.input_vtxact:
+    io.add_in_filename( args.input_larmatch )
+if args.input_mcinfo is not None and args.input_mcinfo not in [args.input_vtxact,args.input_larmatch]:
+    io.add_in_filename( args.input_mcinfo )
 io.open()
 
 nentries = io.get_entries()
@@ -70,13 +77,54 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
 
     va_trace = lardly.data.visualize_larlite_larflowhits( ev_vacand, "VA" )
     va_trace["marker"]["size"] = 3.0
-    va_trace["marker"]["color"] = "rgb(255,0,0)"
+    va_trace["marker"]["color"] = "rgb(255,0,255)"
     traces_v.append( va_trace )
 
+    # VA cluster pca
+    for iv in range(ev_vacand.size()):
+        va = ev_vacand.at(iv)
+        vadir = np.zeros( (2,3) )
+        for i in range(3):
+            vadir[0,i] = va[i]
+            vadir[1,i] = va[i] + 10.0*va[19+i]
+        vadir_trace = {"type":"scatter3d",
+                       "x":vadir[:,0],
+                       "y":vadir[:,1],
+                       "z":vadir[:,2],
+                       "mode":"lines",
+                       "name":"VA[%d]"%(iv),
+                           "line":{"color":"rgb(0,0,0)","width":3}
+        }
+        traces_v.append(vadir_trace)
+        
     kp_trace = lardly.data.visualize_larlite_larflowhits( ev_keypoints, "KP" )
     kp_trace["marker"]["size"] = 3.0
-    kp_trace["marker"]["color"] = "rgb(255,0,255)"
-    traces_v.append( kp_trace )
+    kp_trace["marker"]["color"] = "rgb(0,255,0)"
+    #traces_v.append( kp_trace )
+
+    # TRUE VTX
+    if args.input_mcinfo is not None:
+        mcdata = ublarcvapp.mctools.LArbysMC()
+        mcdata.process( io )
+        mcdata.printInteractionInfo()
+        truevtx = np.zeros((1,3))
+        truevtx[0,0] = mcdata._vtx_detx
+        truevtx[0,1] = mcdata._vtx_sce_y
+        truevtx[0,2] = mcdata._vtx_sce_z
+        print("true vtx:",truevtx)
+        vtxtrace = {"type":"scatter3d",
+                    "x":truevtx[:,0],
+                    "y":truevtx[:,1],
+                    "z":truevtx[:,2],
+                    "mode":"markers",
+                    "name":"NuVtx",
+                    "marker":{"color":"rgb(0,255,255)",
+                              "size":"3",
+                              "opacity":1.0}
+        }
+        traces_v.append( vtxtrace )
+        
+               
     
     # end of loop over treenames
     traces_v += detdata.getlines()

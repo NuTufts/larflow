@@ -23,16 +23,23 @@ namespace reco {
     
     // find hot points on cluster ends
     float va_threshold = 1000.0;
-    std::vector< std::vector<float> >  vtxact_dir_v;
-    std::vector<larlite::larflow3dhit> vtxact_v
-      = findVertexActivityCandidates( ioll, iolcv, cluster_v, va_threshold, vtxact_dir_v );
+    std::vector<VACandidate_t> vtxact_v
+      = findVertexActivityCandidates( ioll, iolcv, cluster_v, va_threshold );
 
     // split between points on shower ends and track ends
     larlite::event_larflow3dhit* evout_vacand
-      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "vacand");
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "vacand" );
     for (size_t iv=0; iv<vtxact_v.size(); iv++ ) {
-      analyzeVertexActivityCandidates( vtxact_v[iv], vtxact_dir_v[iv], cluster_v, ioll, iolcv, 10.0 );
-      evout_vacand->emplace_back( std::move(vtxact_v[iv]) );
+      auto& va = vtxact_v[iv];
+      analyzeVertexActivityCandidates( va, cluster_v, ioll, iolcv, 10.0 );
+
+      // hack: jam direction into lfhit definition
+      int n = (int)va.lfhit.size();
+      std::cout << "lfhit[N]=" << n << std::endl;
+      va.lfhit.resize(n+3,0);
+      for (int i=0; i<3; i++)
+        va.lfhit[n+i] =  va.va_dir[i];      
+      evout_vacand->push_back( va.lfhit );
     }
     if ( _va_ana_tree && _kown_tree )
       _va_ana_tree->Fill();
@@ -87,16 +94,13 @@ namespace reco {
     
   }
 
-  std::vector<larlite::larflow3dhit>
+  std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>
   NuVertexActivityReco::findVertexActivityCandidates( larlite::storage_manager& ioll,
                                                       larcv::IOManager& iolcv,
                                                       std::vector<larflow::reco::cluster_t>& cluster_v,
-                                                      const float va_threshold,
-                                                      std::vector< std::vector<float> >& vtxact_dir_v  )
+                                                      const float va_threshold )
   {
 
-    vtxact_dir_v.clear();
-    
     // for each cluster, look for high energy deposit regions
     // if find one, calculate its position on the pca-axis. is it at the end?
 
@@ -108,9 +112,12 @@ namespace reco {
     auto const& adc_v = ev_img->as_vector();
     int nplanes = adc_v.size();
 
-    std::vector<larlite::larflow3dhit> va_candidate_v;
+    std::vector<VACandidate_t> va_candidate_v;
     
-    for ( auto& cluster: cluster_v ) {
+    for ( size_t idx_cluster=0; idx_cluster<cluster_v.size(); idx_cluster++ ) {
+
+      auto& cluster = cluster_v[idx_cluster];
+      
       // loop over hits, find high charge regions
       std::vector<int> index_v;
       
@@ -163,19 +170,28 @@ namespace reco {
         LARCV_DEBUG() << "closest distance high-q region to pca-end[0]=" << min_start_dist << std::endl;
       if ( min_end_idx>=0 )
         LARCV_DEBUG() << "closest distance high-q region to pca-end[1]=" << min_end_dist << std::endl;
+
+      std::vector<float> va_dir(3,0);
+      VACandidate_t va;
+      va.pattached = &cluster;
+      va.attached_cluster_index = (int)idx_cluster;
       
       if ( min_start_idx>=0 && min_start_dist<3.0 ) {
-        std::vector<float> va_dir(3,0);
         float valen = 0.;
         for (int i=0; i<3; i++) {
           va_dir[i] = ( cluster.pca_ends_v[1][i] - cluster.pca_ends_v[0][i] );
           valen += va_dir[i]*va_dir[i];
         }
-        valen += sqrt(valen);
+        valen = sqrt(valen);
         for (int i=0; i<3; i++)
           va_dir[i] /= valen;
-        vtxact_dir_v.push_back( va_dir );
-        va_candidate_v.push_back( (*ev_lm).at(min_start_idx) );        
+        //vtxact_dir_v.push_back( va_dir );
+        //va_candidate_v.push_back( (*ev_lm).at(min_start_idx) );
+
+        va.va_dir = va_dir;        
+        va.lfhit = (*ev_lm).at(min_start_idx);
+        va.hit_index = (int)min_start_idx;
+        va_candidate_v.push_back( va );
       }
       
       if ( min_end_idx>=0 && min_end_dist<3.0 ) {
@@ -185,11 +201,14 @@ namespace reco {
           va_dir[i] = ( cluster.pca_ends_v[0][i] - cluster.pca_ends_v[1][i] );
           valen += va_dir[i]*va_dir[i];
         }
-        valen += sqrt(valen);
+        valen = sqrt(valen);
         for (int i=0; i<3; i++)
           va_dir[i] /= valen;
-        vtxact_dir_v.push_back( va_dir );        
-        va_candidate_v.push_back( (*ev_lm).at(min_end_idx) );
+
+        va.va_dir = va_dir;        
+        va.lfhit = (*ev_lm).at(min_end_idx);
+        va.hit_index = (int)min_end_idx;
+        va_candidate_v.push_back( va );
       }
       
     }//end of cluster loop
@@ -243,8 +262,7 @@ namespace reco {
     return pixelsum;
   }
 
-  void NuVertexActivityReco::analyzeVertexActivityCandidates( larlite::larflow3dhit& va_cand,
-                                                              std::vector<float>& va_dir,
+  void NuVertexActivityReco::analyzeVertexActivityCandidates( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
                                                               std::vector<larflow::reco::cluster_t>& cluster_v,
                                                               larlite::storage_manager& ioll,
                                                               larcv::IOManager& iolcv,
@@ -275,16 +293,18 @@ namespace reco {
     float shw_ll = 0; // shower likelihood
     
     float min_d2 = min_dist2cluster*min_dist2cluster;
-    std::vector< float > vapos = { va_cand[0], va_cand[1], va_cand[2] };
+    std::vector< float > vapos = { vacand.lfhit[0],
+                                   vacand.lfhit[1],
+                                   vacand.lfhit[2] };
     
     for ( size_t icluster=0; icluster<cluster_v.size(); icluster++ ) {
       auto& cluster = cluster_v[icluster];
       std::vector<float> dist(3,0);
 
       for (int i=0; i<3; i++) {
-        dist[0] += (cluster.pca_center[i]-va_cand[i])*(cluster.pca_center[i]-va_cand[i]);
-        dist[1] += (cluster.pca_ends_v[0][i]-va_cand[i])*(cluster.pca_ends_v[0][i]-va_cand[i]);
-        dist[2] += (cluster.pca_ends_v[1][i]-va_cand[i])*(cluster.pca_ends_v[1][i]-va_cand[i]);
+        dist[0] += (cluster.pca_center[i]-vacand.lfhit[i])*(cluster.pca_center[i]-vacand.lfhit[i]);
+        dist[1] += (cluster.pca_ends_v[0][i]-vacand.lfhit[i])*(cluster.pca_ends_v[0][i]-vacand.lfhit[i]);
+        dist[2] += (cluster.pca_ends_v[1][i]-vacand.lfhit[i])*(cluster.pca_ends_v[1][i]-vacand.lfhit[i]);
       }
 
       std::sort( dist.begin(), dist.end() );
@@ -302,10 +322,10 @@ namespace reco {
         std::vector< float > vaend(3,0);
         for (int i=0; i<3; i++) {
           hitpos[i] = lmhit[i];
-          vaend[i] = vapos[i] + 10.0*va_dir[i];
+          vaend[i] = vapos[i] + 10.0*vacand.va_dir[i];
         }        
         float rad = larflow::reco::pointLineDistance3f( vapos, vaend, hitpos );
-        float s   = larflow::reco::pointRayProjection3f( vapos, va_dir, hitpos );
+        float s   = larflow::reco::pointRayProjection3f( vapos, vacand.va_dir, hitpos );
 
         // accept within 45 degree cone
         if ( s==0 || rad/std::fabs(s)>0.707 )
@@ -329,7 +349,7 @@ namespace reco {
         
         float dist2hit = 0.;
         for (int i=0; i<3; i++) {
-          dist2hit += ( lmhit[i]-va_cand[i] )*( lmhit[i]-va_cand[i] );
+          dist2hit += ( lmhit[i]-vacand.lfhit[i] )*( lmhit[i]-vacand.lfhit[i] );
         }
 
         if ( s>=0 ) {

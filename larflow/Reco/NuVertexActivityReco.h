@@ -31,6 +31,32 @@ namespace reco {
         {};
     virtual ~NuVertexActivityReco() { if ( _kown_tree && _va_ana_tree ) delete _va_ana_tree; };
 
+
+    /**
+     * @struct VACandidate_t
+     * @brief Internal struct for storing VACandidate variables for selection
+     */
+    struct VACandidate_t {
+      larlite::larflow3dhit lfhit; ///< the hit we propose
+      std::vector<float> va_dir;   ///< direction of va candidate, from 1st pca-axis of attached cluster
+      int hit_index; ///< index of hit in the source hit container
+      const larflow::reco::cluster_t* pattached; //< pointer to attached cluster
+      int attached_cluster_index; //< index of cluster in cluster container
+
+      float attclust_length; ///< attached cluster: 1st pca-axis length
+      int attclust_nallhits; ///< attached cluster: number of hits
+      int attclust_ntrackhits; ///< attached cluster: number of track hits
+      int attclust_nshowerhits; ///< attached cluster: number of shower hits
+      float backward_length;  ///< length of line of hits in opposite direction
+      int nhits_inside_cone;  ///< num shower hits inside cone around va_dir
+      int nhits_outside_cone; ///< num shower hits outside cone around va_dir
+
+      std::vector< const larflow::reco::cluster_t* > subcluster_v; ///< added shower subclusters
+      int nhits_all; ///< number of hits inside attached + subclusters
+      int nhits_all_shower; ///< number of shower hits inside attached + subclusters
+      int nhits_all_track;  ///< number of track hits inside attached + subclusters      
+    };
+
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void make_tree();
     void bind_to_tree(TTree* tree );
@@ -46,20 +72,18 @@ namespace reco {
                        std::vector<larflow::reco::cluster_t>& cluster_v,
                        const float larmatch_threshold );
 
-    std::vector<larlite::larflow3dhit>
+    
+    std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>      
       findVertexActivityCandidates( larlite::storage_manager& ioll,
                                     larcv::IOManager& iolcv,
                                     std::vector<larflow::reco::cluster_t>& cluster_v,
-                                    const float va_threshold,
-                                    std::vector< std::vector<float> >& vtxact_dir_v );
-      
+                                    const float va_threshold );      
     
     std::vector<float> calcPlanePixSum( const larlite::larflow3dhit& hit,
                                         const std::vector<larcv::Image2D>& adc_v );
 
 
-    void analyzeVertexActivityCandidates( larlite::larflow3dhit& va_cand,
-                                          std::vector<float>& va_dir,
+    void analyzeVertexActivityCandidates( larflow::reco::NuVertexActivityReco::VACandidate_t& va_cand,
                                           std::vector<larflow::reco::cluster_t>& cluster_v,
                                           larlite::storage_manager& ioll,
                                           larcv::IOManager& iolcv,
