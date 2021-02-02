@@ -31,11 +31,11 @@ namespace reco {
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "vacand" );
     for (size_t iv=0; iv<vtxact_v.size(); iv++ ) {
       auto& va = vtxact_v[iv];
+      checkWireCellCosmicMask( va, iolcv );
       analyzeVertexActivityCandidates( va, cluster_v, ioll, iolcv, 10.0 );
 
       // hack: jam direction into lfhit definition
       int n = (int)va.lfhit.size();
-      std::cout << "lfhit[N]=" << n << std::endl;
       va.lfhit.resize(n+3,0);
       for (int i=0; i<3; i++)
         va.lfhit[n+i] =  va.va_dir[i];      
@@ -56,6 +56,7 @@ namespace reco {
     dist_closest_forwardshower.clear();
     shower_likelihood.clear();
     dist2truescevtx.clear();
+    npix_on_cosmic_v.clear();
   }
 
   void NuVertexActivityReco::makeClusters( larlite::storage_manager& ioll,
@@ -424,6 +425,59 @@ namespace reco {
     LARCV_INFO() <<  "min distance to true vtx: " << min_dist2truescevtx << std::endl;
   }
 
+  /**
+   * @brief check WireCell cosmics mask and tag
+   *
+   */
+  void NuVertexActivityReco::checkWireCellCosmicMask( NuVertexActivityReco::VACandidate_t& va,
+                                                      larcv::IOManager& iolcv ) {
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    larcv::EventImage2D* ev_thrumu
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "thrumu" );
+
+    auto const& adc_v    = ev_adc->as_vector();
+    auto const& thrumu_v = ev_thrumu->as_vector();
+
+    int npix_w_charge[3] = {0,0,0};
+    int npix_on_cosmic[3] = {0,0,0};
+
+    const int dpix = 3;
+
+    int hitrow = adc_v[0].meta().row( va.lfhit.tick );
+    
+    for (int dr=-dpix; dr<=dpix; dr++) {
+      int row = hitrow+dr;
+      if ( row<0 || row>=(int)adc_v[0].meta().rows() )
+        continue;
+
+      for (int p=0; p<3; p++) {
+        
+        for (int dc=-dpix; dc<=dpix; dc++) {
+          int col = va.lfhit.targetwire[p]+dc;
+          if ( col<0 || col>=(int)adc_v[p].meta().cols() )
+            continue;
+
+          float pixadc = adc_v[p].pixel(row,col);
+          float pixthrumu = thrumu_v[p].pixel(row,col);
+
+          if ( pixadc>10.0 ) {
+            npix_w_charge[p]++;
+            if ( pixthrumu>10.0 )
+              npix_on_cosmic[p]++;
+          }
+        }
+      }
+    }
+
+    va.num_pix_on_thrumu[3] = 0;
+    for (int p=0; p<3; p++) {
+      va.num_pix_on_thrumu[p] = npix_on_cosmic[p];
+      va.num_pix_on_thrumu[3] += npix_on_cosmic[p];
+    }
+    npix_on_cosmic_v.push_back( va.num_pix_on_thrumu[3] );
+  }
+
   void NuVertexActivityReco::make_tree()
   {
     _va_ana_tree = new TTree("vtxactivityana", "Vertex Activity Analysis Tree");
@@ -447,12 +501,15 @@ namespace reco {
     _va_ana_tree->Branch( "nbackwards_track_pts_v", &nbackwards_track_pts );
     _va_ana_tree->Branch( "nforwards_shower_pts_v", &nforwards_shower_pts );
     _va_ana_tree->Branch( "nforwards_track_pts_v", &nforwards_track_pts );
+    _va_ana_tree->Branch( "npix_on_cosmic_v", &npix_on_cosmic_v );    
     _va_ana_tree->Branch( "dist_closest_forwardshower_v", &dist_closest_forwardshower );
     _va_ana_tree->Branch( "shower_likelihood_v", &shower_likelihood );
     _va_ana_tree->Branch( "dist2truescevtx_v", &dist2truescevtx );
     _va_ana_tree->Branch( "min_dist2truescevtx", &min_dist2truescevtx, "min_dist2truescevtx/F" );
     
   }
+
+
   
 }
 }
