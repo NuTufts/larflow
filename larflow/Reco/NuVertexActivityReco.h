@@ -93,6 +93,10 @@ namespace reco {
 
     void checkWireCellCosmicMask( NuVertexActivityReco::VACandidate_t& va, larcv::IOManager& iolcv );
                                   
+    void analyzeAttachedCluster( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
+                                 std::vector<larflow::reco::cluster_t>& cluster_v,
+                                 larlite::storage_manager& ioll,
+                                 larcv::IOManager& iolcv );
     
     
     TTree* _va_ana_tree;  //< event level tree with data for each reco VA candidate
@@ -102,7 +106,10 @@ namespace reco {
     std::vector<int> nbackwards_track_pts;
     std::vector<int> nforwards_shower_pts;
     std::vector<int> nforwards_track_pts;
-    std::vector<int> npix_on_cosmic_v;    
+    std::vector<int> npix_on_cosmic_v;
+    std::vector<int> attcluster_nall_v;
+    std::vector<int> attcluster_nshower_v;
+    std::vector<int> attcluster_ntrack_v;    
     std::vector<float> dist_closest_forwardshower;
     std::vector<float> shower_likelihood;
     std::vector<float> dist2truescevtx;

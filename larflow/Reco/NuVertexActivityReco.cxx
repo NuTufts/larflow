@@ -33,6 +33,7 @@ namespace reco {
       auto& va = vtxact_v[iv];
       checkWireCellCosmicMask( va, iolcv );
       analyzeVertexActivityCandidates( va, cluster_v, ioll, iolcv, 10.0 );
+      analyzeAttachedCluster( va, cluster_v, ioll, iolcv );
 
       // hack: jam direction into lfhit definition
       int n = (int)va.lfhit.size();
@@ -57,6 +58,9 @@ namespace reco {
     shower_likelihood.clear();
     dist2truescevtx.clear();
     npix_on_cosmic_v.clear();
+    attcluster_nall_v.clear();
+    attcluster_nshower_v.clear();
+    attcluster_ntrack_v.clear();
   }
 
   void NuVertexActivityReco::makeClusters( larlite::storage_manager& ioll,
@@ -484,6 +488,65 @@ namespace reco {
     _kown_tree = true;
     bind_to_tree( _va_ana_tree );
   }
+
+  void NuVertexActivityReco::analyzeAttachedCluster( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
+                                                     std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                     larlite::storage_manager& ioll,
+                                                     larcv::IOManager& iolcv )
+  {
+
+    // get larlite hits
+    larlite::event_larflow3dhit* ev_lm
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
+
+    // track/shower images
+    std::vector< larcv::EventImage2D* > ev_spuburn_v(3,0);
+    std::vector< const larcv::Image2D* > ssnet_v(3,0);
+    for (int p=0; p<3; p++ ) {
+      char tname[50];
+      sprintf( tname, "ubspurn_plane%d", p );
+      ev_spuburn_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, tname );
+      ssnet_v[p] = &(ev_spuburn_v[p]->as_vector()[0]);
+    }
+
+    vacand.attclust_nallhits = 0;
+    vacand.attclust_ntrackhits = 0;
+    vacand.attclust_nshowerhits = 0;
+    
+    auto const& cluster = cluster_v[ vacand.attached_cluster_index ];
+    for (int i=0; i<(int)cluster.hitidx_v.size(); i++) {
+      auto const& lmhit = (*ev_lm)[ cluster.hitidx_v[i] ];
+
+      // check if in bounds
+      if ( lmhit.tick<=ssnet_v[0]->meta().min_y() || lmhit.tick>=ssnet_v[0]->meta().max_y() )
+        continue;
+
+      // get shower prob from ssnet images
+        
+      std::vector<float> shower_prob(3,0);        
+      int row = ssnet_v[0]->meta().row( lmhit.tick, __FILE__, __LINE__ );
+      for (int p=0; p<3; p++) {
+        if ( lmhit.targetwire[p]>(int)ssnet_v[p]->meta().min_x() && lmhit.targetwire[p]<(int)ssnet_v[p]->meta().max_x() ) {
+          int col = ssnet_v[p]->meta().col( lmhit.targetwire[p], __FILE__, __LINE__ );
+          shower_prob[p] = ssnet_v[p]->pixel( row, col );
+        }
+      }
+      std::sort( shower_prob.begin(), shower_prob.end() );
+
+      vacand.attclust_nallhits++;      
+      if( shower_prob.back()>=0.5 )
+        vacand.attclust_nshowerhits++;
+      else
+        vacand.attclust_ntrackhits++;
+      
+    }//end of hit loop
+
+    attcluster_nall_v.push_back( vacand.attclust_nallhits );
+    attcluster_nshower_v.push_back( vacand.attclust_nshowerhits );
+    attcluster_ntrack_v.push_back(  vacand.attclust_ntrackhits );    
+    
+  }
+  
   
   void NuVertexActivityReco::bind_to_tree( TTree* tree )
   {
@@ -501,7 +564,10 @@ namespace reco {
     _va_ana_tree->Branch( "nbackwards_track_pts_v", &nbackwards_track_pts );
     _va_ana_tree->Branch( "nforwards_shower_pts_v", &nforwards_shower_pts );
     _va_ana_tree->Branch( "nforwards_track_pts_v", &nforwards_track_pts );
-    _va_ana_tree->Branch( "npix_on_cosmic_v", &npix_on_cosmic_v );    
+    _va_ana_tree->Branch( "npix_on_cosmic_v", &npix_on_cosmic_v );
+    _va_ana_tree->Branch( "attcluster_nall_v",    &attcluster_nall_v );
+    _va_ana_tree->Branch( "attcluster_nshower_v", &attcluster_nshower_v );
+    _va_ana_tree->Branch( "attcluster_ntrack_v",  &attcluster_ntrack_v );        
     _va_ana_tree->Branch( "dist_closest_forwardshower_v", &dist_closest_forwardshower );
     _va_ana_tree->Branch( "shower_likelihood_v", &shower_likelihood );
     _va_ana_tree->Branch( "dist2truescevtx_v", &dist2truescevtx );
