@@ -57,6 +57,8 @@ namespace reco {
       int nhits_all_track;  ///< number of track hits inside attached + subclusters
 
       int num_pix_on_thrumu[4];
+
+      int truth_num_nupix[4]; ///< number of pixels on true simulated neutrino pixels, each plane + total
     };
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -66,6 +68,7 @@ namespace reco {
     void clear_ana_variables();
     void fill_tree() { _va_ana_tree->Fill(); };
     void calcTruthVariables( larlite::storage_manager& ioll,
+                             larcv::IOManager& iolcv,
                              const ublarcvapp::mctools::LArbysMC& truedata );
 
   protected:
@@ -97,6 +100,11 @@ namespace reco {
                                  std::vector<larflow::reco::cluster_t>& cluster_v,
                                  larlite::storage_manager& ioll,
                                  larcv::IOManager& iolcv );
+
+    void calcTruthNeutrinoPixels( std::vector<VACandidate_t>& valist_v,
+                                  larcv::IOManager& iolcv );
+    
+    std::vector<VACandidate_t> vtxact_v; // The container of found vertex activity candidates
     
     
     TTree* _va_ana_tree;  //< event level tree with data for each reco VA candidate
@@ -109,10 +117,12 @@ namespace reco {
     std::vector<int> npix_on_cosmic_v;
     std::vector<int> attcluster_nall_v;
     std::vector<int> attcluster_nshower_v;
-    std::vector<int> attcluster_ntrack_v;    
+    std::vector<int> attcluster_ntrack_v;
     std::vector<float> dist_closest_forwardshower;
     std::vector<float> shower_likelihood;
     std::vector<float> dist2truescevtx;
+    std::vector<int> ntrue_nupix_v;
+    
 
     float min_dist2truescevtx;
     

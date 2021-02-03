@@ -16,15 +16,15 @@ namespace reco {
   {
 
     clear_ana_variables();
+    vtxact_v.clear();
     
     // cluster
     std::vector<larflow::reco::cluster_t> cluster_v;
     makeClusters( ioll, cluster_v, 0.7 );
     
     // find hot points on cluster ends
-    float va_threshold = 1000.0;
-    std::vector<VACandidate_t> vtxact_v
-      = findVertexActivityCandidates( ioll, iolcv, cluster_v, va_threshold );
+    float va_threshold = 1000.0;    
+    vtxact_v  = findVertexActivityCandidates( ioll, iolcv, cluster_v, va_threshold );
 
     // split between points on shower ends and track ends
     larlite::event_larflow3dhit* evout_vacand
@@ -61,6 +61,7 @@ namespace reco {
     attcluster_nall_v.clear();
     attcluster_nshower_v.clear();
     attcluster_ntrack_v.clear();
+    ntrue_nupix_v.clear();
   }
 
   void NuVertexActivityReco::makeClusters( larlite::storage_manager& ioll,
@@ -398,6 +399,7 @@ namespace reco {
   }
   
   void NuVertexActivityReco::calcTruthVariables( larlite::storage_manager& ioll,
+                                                 larcv::IOManager& iolcv,
                                                  const ublarcvapp::mctools::LArbysMC& truedata )
   {
     // get reconstructed va candidates
@@ -427,7 +429,54 @@ namespace reco {
     }
     min_dist2truescevtx = min_dist_2_true;
     LARCV_INFO() <<  "min distance to true vtx: " << min_dist2truescevtx << std::endl;
+
+    calcTruthNeutrinoPixels( vtxact_v, iolcv );
+    
   }
+
+  void NuVertexActivityReco::calcTruthNeutrinoPixels( std::vector<VACandidate_t>& valist_v,
+                                                      larcv::IOManager& iolcv )
+  {
+
+    const int dpix = 3;
+    
+    larcv::EventImage2D* ev_instance =
+      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "segment" );
+    auto const& seg_v = ev_instance->as_vector();
+
+    for ( auto& va : valist_v ) {
+
+      for (int i=0; i<4; i++)
+        va.truth_num_nupix[i] = 0;
+      
+      int hitrow = seg_v[0].meta().row( va.lfhit.tick );
+    
+      for (int dr=-dpix; dr<=dpix; dr++) {
+        int row = hitrow+dr;
+        if ( row<0 || row>=(int)seg_v[0].meta().rows() )
+          continue;
+
+        for (int p=0; p<3; p++) {
+        
+          for (int dc=-dpix; dc<=dpix; dc++) {
+            int col = va.lfhit.targetwire[p]+dc;
+            if ( col<0 || col>=(int)seg_v[p].meta().cols() )
+              continue;
+
+            float segvalue = seg_v[p].pixel(row,col);
+
+            if ( segvalue>0 ) {
+              va.truth_num_nupix[p]++;
+              va.truth_num_nupix[3]++;
+            }
+          }//end of col loop
+        }//end of plane loop
+      }//end of row loop
+      
+      ntrue_nupix_v.push_back( va.truth_num_nupix[3] );
+    }//end of vertex activity list
+  }
+  
 
   /**
    * @brief check WireCell cosmics mask and tag
@@ -567,7 +616,8 @@ namespace reco {
     _va_ana_tree->Branch( "npix_on_cosmic_v", &npix_on_cosmic_v );
     _va_ana_tree->Branch( "attcluster_nall_v",    &attcluster_nall_v );
     _va_ana_tree->Branch( "attcluster_nshower_v", &attcluster_nshower_v );
-    _va_ana_tree->Branch( "attcluster_ntrack_v",  &attcluster_ntrack_v );        
+    _va_ana_tree->Branch( "attcluster_ntrack_v",  &attcluster_ntrack_v );
+    _va_ana_tree->Branch( "ntrue_nupix_v", &ntrue_nupix_v );
     _va_ana_tree->Branch( "dist_closest_forwardshower_v", &dist_closest_forwardshower );
     _va_ana_tree->Branch( "shower_likelihood_v", &shower_likelihood );
     _va_ana_tree->Branch( "dist2truescevtx_v", &dist2truescevtx );

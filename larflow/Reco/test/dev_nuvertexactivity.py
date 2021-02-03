@@ -109,7 +109,7 @@ for ientry in range(start_entry,nentries):
         mcdata.process( io )
         mcdata.process( iolcv, io )
         mcdata.printInteractionInfo()
-        algo.calcTruthVariables( io, mcdata )
+        algo.calcTruthVariables( io, iolcv, mcdata )
     else:
         print("No MC provided")
 
@@ -130,7 +130,7 @@ for ientry in range(start_entry,nentries):
     io.next_event()
     iolcv.save_entry()
     vatree.Fill()
-    break
+
 
 io.close()
 iolcv.finalize()
