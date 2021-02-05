@@ -126,6 +126,9 @@ hitmaker.set_score_threshold( args.min_score )
 # setup badch maker
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 
+# flush standard out buffer before beginning
+sys.stdout.flush()
+
 for ientry in range(NENTRIES):
 
     evout_lfhits = out.get_data(larlite.data.kLArFlow3DHit,"larmatch")
@@ -202,7 +205,7 @@ for ientry in range(NENTRIES):
         outfeat_u, outfeat_v, outfeat_y = model_dict['larmatch'].forward_features( coord_t[0], feat_t[0],
                                                                                    coord_t[1], feat_t[1],
                                                                                    coord_t[2], feat_t[2],
-                                                                                   1, verbose=True )
+                                                                                   1, verbose=False )
     dt_net_feats = time.time()-t_start
     print("compute features: ",dt_net_feats,"secs")
     dt_net += dt_net_feats
@@ -227,7 +230,7 @@ for ientry in range(NENTRIES):
     
     startidx = 0
     while startidx<ntriplets:
-        print("create matchpairs: startidx=",startidx," of ",ntriplets)
+        #print("create matchpairs: startidx=",startidx," of ",ntriplets)
         t_chunk = time.time()
         matchpair_np = preplarmatch.get_chunk_triplet_matches( startidx,
                                                                NUM_PAIRS,
@@ -235,7 +238,7 @@ for ientry in range(NENTRIES):
                                                                npairs,
                                                                with_truth )
         t_chunk = time.time()-t_chunk
-        print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
+        #print("  made matchpairs: ",matchpair_np.shape," npairs_filled=",npairs.value,"; time to make chunk=",t_chunk," secs") 
         dt_chunk += t_chunk
             
         startidx = int(last_index.value)
@@ -250,7 +253,7 @@ for ientry in range(NENTRIES):
         with torch.no_grad():
             feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
                                                                       matchpair_t, npairs.value,
-                                                                      DEVICE, verbose=True )
+                                                                      DEVICE, verbose=False )
 
         # EVALUATE LARMATCH SCORES
         tstart = time.time()
@@ -259,14 +262,14 @@ for ientry in range(NENTRIES):
         dt_net_classify = time.time()-tstart
         dt_net  += dt_net_classify
         prob_t = sigmoid(pred_t)
-        print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
+        #print("  prob_t=",prob_t.shape," time-elapsed=",dt_net_classify,"secs")
 
         # EVALUATE SSNET SCORES
         with torch.no_grad():
             ssnet_pred_t = model_dict['ssnet'].forward( feat_triplet_t )
         ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
         ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-        print("  ssnet out: ",ssnet_pred_t.shape)
+        #print("  ssnet out: ",ssnet_pred_t.shape)
         ssnet_pred_t = ssnet_softmax( ssnet_pred_t )
 
         # EVALUATE KP-LABEL SCORES
@@ -274,20 +277,20 @@ for ientry in range(NENTRIES):
             kplabel_pred_t = model_dict['kplabel'].forward( feat_triplet_t )
         kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1],kplabel_pred_t.shape[2]) )
         kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-        print("  kplabel-pred: ",kplabel_pred_t.shape)
+        #print("  kplabel-pred: ",kplabel_pred_t.shape)
 
         # EVALUATE PAF SCORES
         with torch.no_grad():
             paf_pred_t = model_dict['paf'].forward( feat_triplet_t )
         paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
         paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
-        print("  paf-pred: ",paf_pred_t.shape)
+        #print("  paf-pred: ",paf_pred_t.shape)
         
 
         tstart = time.time()
         prob_np = prob_t.to(torch.device("cpu")).detach().numpy().reshape( (prob_t.shape[-1]) )
         #prob_np[:] = 1.0 # hack to check
-        print("  add larmatch data to hitmaker(...). probshape=",prob_np.shape)
+        #print("  add larmatch data to hitmaker(...). probshape=",prob_np.shape)
         pos_v = std.vector("std::vector<float>")()
         hitmaker.add_triplet_match_data( prob_np[:int(npairs.value)],
                                          matchpair_np[:int(npairs.value),:],
@@ -297,7 +300,7 @@ for ientry in range(NENTRIES):
                                          pos_v,
                                          adc_v )
 
-        print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
+        #print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
         ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
         hitmaker.add_triplet_ssnet_scores(  matchpair_np[:int(npairs.value),:],
                                             sparse_np_v[0],
@@ -306,7 +309,7 @@ for ientry in range(NENTRIES):
                                             adc_v.front().meta(),
                                             ssnet_np[:int(npairs.value),:] )                                            
 
-        print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
+        #print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
         kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
         hitmaker.add_triplet_keypoint_scores(  matchpair_np[:int(npairs.value),:],
                                                sparse_np_v[0],
@@ -315,7 +318,7 @@ for ientry in range(NENTRIES):
                                                adc_v.front().meta(),
                                                kplabel_np[:int(npairs.value)] )
 
-        print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
+        #print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
         paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
         hitmaker.add_triplet_affinity_field(  matchpair_np[:int(npairs.value),:],
                                               sparse_np_v[0],
@@ -344,6 +347,7 @@ for ientry in range(NENTRIES):
     out.next_event(True)
     io.save_entry()
     io.clear_entry()
+    sys.stdout.flush()
 
 print("Close output")
 out.close()
