@@ -31,6 +31,7 @@
 #include "NuTrackBuilder.h"
 #include "NuShowerBuilder.h"
 #include "NuVertexShowerReco.h"
+#include "NuVertexActivityReco.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -69,8 +70,11 @@ namespace reco {
     ProjectionDefectSplitter _projsplitter_cosmic; ///< split cosmic-track clusters into straight clusters
     ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
     ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score
-    NuVertexMaker       _nuvertexmaker; ///< make proto-vertices from prongs
-    NuVertexShowerReco  _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
+
+    // Nu Vertex Seeds
+    NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
+    NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
+    NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
@@ -81,9 +85,10 @@ namespace reco {
     // MC event info
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
 
-    // Algorithms
+    // Stages
+    void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    void recoParticles( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

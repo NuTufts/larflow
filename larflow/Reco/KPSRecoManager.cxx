@@ -61,48 +61,10 @@ namespace reco {
 
     // PREP SETS OF HITS
     // ------------------
+    prepSpacepoints( iolcv, ioll  );
     
-    // PREP WC-FILTERED HITS
-    _wcfilter.set_verbosity( larcv::msg::kINFO );
-    _wcfilter.set_input_larmatch_tree_name( "larmatch" );
-    _wcfilter.set_output_filteredhits_tree_name( "taggerfilterhit" );
-    _wcfilter.set_save_rejected_hits( true );
-    _wcfilter.process_hits( iolcv, ioll );
-
-    // PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER
-    // input:
-    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
-    //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
-    // output:
-    //  * larflow3dhit_showerhit_tree
-    //  * larflow3dhit_trackhit_tree
-    _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
-    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
-    _splithits_wcfilter.process( iolcv, ioll );    
-
-    // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
-    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    _choosemaxhit.process( iolcv, ioll );
-
-    // CLEAN UP SHOWER HITS BY CHOOSING MAX FROM Y-plane
-    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    _choosemaxhit.process( iolcv, ioll );
-
-    // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
-    _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
-    _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
-    _splithits_full.process( iolcv, ioll );
-
-    // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
-    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
-    _choosemaxhit.process( iolcv, ioll );
-    
-    // Make keypoints
+    // Make keypoint candidates from larmatch vertex
+    // ---------------------------------------------
     recoKeypoints( iolcv, ioll );
 
     if ( false ) {
@@ -115,7 +77,7 @@ namespace reco {
     }
       
     // PARTICLE FRAGMENT RECO
-    recoParticles( iolcv, ioll );
+    clusterSubparticleFragments( iolcv, ioll );
     
     // COSMIC RECO
     _cosmic_track_builder.clear();
@@ -151,6 +113,80 @@ namespace reco {
     
   }
 
+  /**
+   * @brief algorithms for splitting up and filtering larmatch space points
+   *
+   */
+  void KPSRecoManager::prepSpacepoints( larcv::IOManager& iolcv,
+                                        larlite::storage_manager& ioll )
+  {
+
+
+    // PREP WC-FILTERED HITS
+    // filters raw larmatch hits using wire cell thrumu tagger image
+    // input:
+    //  larflow3dhit_larmatch_tree: raw larmatch deploy output
+    // output(s):
+    //  larflow3dhit_taggerfilterhit_tree: in-time hits
+    //  larflow3dhit_taggerrejecthit_tree: out-of-time/cosmic-tagged hits
+    _wcfilter.set_verbosity( larcv::msg::kINFO );
+    _wcfilter.set_input_larmatch_tree_name( "larmatch" );
+    _wcfilter.set_output_filteredhits_tree_name( "taggerfilterhit" );
+    _wcfilter.set_save_rejected_hits( true );
+    _wcfilter.process_hits( iolcv, ioll );
+
+    // PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER
+    // input:
+    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    //  * larflow3dhit_taggerfilterhit_tree: WC in-time space points
+    // output:
+    //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
+    //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
+    _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
+    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
+    _splithits_wcfilter.process( iolcv, ioll );    
+
+    // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
+    // a method to downsample hits: for hits that land on the same plane,
+    //  choose the highest score hit. Return the union of hits on all planes.
+    // input:
+    //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree: in-time track hits
+    // output:
+    //  * larflow3dhit_maxtrackhit_wcfilter_tree: in-time track hits after filter
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+    // input:
+    //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
+    // output:
+    //  * larflow3dhit_maxshowerhit_tree: in-time shower hits after filter
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+
+    // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
+    // input:
+    //  * larflow3dhit_taggerrejecthit_tree: out-of-time hits
+    // output:
+    //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
+    //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
+    _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
+    _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
+    _splithits_full.process( iolcv, ioll );
+
+    // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
+    // input:
+    //  * larflow3dhit_ssnetsplit_full_trackhit_tree: out-of-time track hits
+    // output:
+    //  *  larflow3dhit_full_maxtrackhit_tree: reduced out-of-time track hits
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
+    _choosemaxhit.process( iolcv, ioll );
+    
+  }
+  
   /**
    * @brief make keypoints for use to help make particle track and nu interaction candidates
    *
@@ -216,13 +252,15 @@ namespace reco {
   }
 
   /**
-   * @brief reconstruct tracks and showers
+   * @brief form sub-particle clusters
+   *
+   * Form the subclusters we will piece back together to form track and shower clusters.
    * 
    * @param[in] iolcv LArCV IO manager
    * @param[in] ioll  larlite IO manager
    */
-  void KPSRecoManager::recoParticles( larcv::IOManager& iolcv,
-                                      larlite::storage_manager& ioll )
+  void KPSRecoManager::clusterSubparticleFragments( larcv::IOManager& iolcv,
+                                                    larlite::storage_manager& ioll )
   {
 
     
