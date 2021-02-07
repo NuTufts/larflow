@@ -284,7 +284,7 @@ namespace reco {
     const float _maxdist = 2.0;
     const float _minsize = 20;
     const float _maxkd   = 100;
-    LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time hits)" << std::endl;
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
     _projsplitter.set_verbosity( larcv::msg::kDEBUG );    
     //_projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
@@ -325,6 +325,18 @@ namespace reco {
                                        larlite::storage_manager& ioll )
   {
 
+
+    _nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    std::vector<std::string> input_hit_list
+      = {"taggerfilterhit",            // all in-time hits
+         "ssnetsplit_full_showerhit"}; // out-of-time shower hits
+    std::vector<std::string> input_cluster_list
+      = { "trackprojsplit_full"}; // in-time track clusters
+
+    _nuvertexactivity.set_input_hit_list( input_hit_list );    
+    _nuvertexactivity.set_input_cluster_list( input_cluster_list );
+    _nuvertexactivity.process( iolcv, ioll );
+    
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
     _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
     _nuvertexmaker.clear();

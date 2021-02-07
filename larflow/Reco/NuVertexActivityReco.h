@@ -70,9 +70,11 @@ namespace reco {
     void calcTruthVariables( larlite::storage_manager& ioll,
                              larcv::IOManager& iolcv,
                              const ublarcvapp::mctools::LArbysMC& truedata );
+    void set_input_cluster_list( const std::vector<std::string>& clist ) { _input_clustertree_list = clist; };
+    void set_input_hit_list( const std::vector<std::string>& hlist ) { _input_hittree_list = hlist; };    
 
   protected:
-    
+
     void makeClusters( larlite::storage_manager& ioll,
                        std::vector<larflow::reco::cluster_t>& cluster_v,
                        const float larmatch_threshold );
@@ -103,7 +105,16 @@ namespace reco {
 
     void calcTruthNeutrinoPixels( std::vector<VACandidate_t>& valist_v,
                                   larcv::IOManager& iolcv );
+
+    // parameter data members
+    std::vector<std::string> _input_hittree_list;  ///< list of tress to get input hits
+    std::vector<std::string> _input_clustertree_list; ///< list of trees to get input clusters
+    std::vector<larlite::larflow3dhit>    _input_hit_v; ///< collection of hits from input hit trees
+    std::map< int, int > _input_hit_origin_v; ///< save map back to source of input hits
+    std::vector<larflow::reco::cluster_t> _event_cluster_v; ///< list of clusters for making VA selection variables
     
+    
+    // output data members
     std::vector<VACandidate_t> vtxact_v; // The container of found vertex activity candidates
     
     

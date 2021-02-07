@@ -17,14 +17,16 @@ namespace reco {
 
     clear_ana_variables();
     vtxact_v.clear();
+    _input_hit_v.clear();
+    _input_hit_origin_v.clear();
+    _event_cluster_v.clear();
     
     // cluster
-    std::vector<larflow::reco::cluster_t> cluster_v;
-    makeClusters( ioll, cluster_v, 0.7 );
+    makeClusters( ioll, _event_cluster_v, 0.7 );
     
     // find hot points on cluster ends
     float va_threshold = 1000.0;    
-    vtxact_v  = findVertexActivityCandidates( ioll, iolcv, cluster_v, va_threshold );
+    vtxact_v  = findVertexActivityCandidates( ioll, iolcv, _event_cluster_v, va_threshold );
 
     // split between points on shower ends and track ends
     larlite::event_larflow3dhit* evout_vacand
@@ -32,8 +34,8 @@ namespace reco {
     for (size_t iv=0; iv<vtxact_v.size(); iv++ ) {
       auto& va = vtxact_v[iv];
       checkWireCellCosmicMask( va, iolcv );
-      analyzeVertexActivityCandidates( va, cluster_v, ioll, iolcv, 10.0 );
-      analyzeAttachedCluster( va, cluster_v, ioll, iolcv );
+      analyzeVertexActivityCandidates( va, _event_cluster_v, ioll, iolcv, 10.0 );
+      analyzeAttachedCluster( va, _event_cluster_v, ioll, iolcv );
 
       // hack: jam direction into lfhit definition
       int n = (int)va.lfhit.size();
@@ -69,34 +71,65 @@ namespace reco {
                                            const float larmatch_threshold )
   {
 
-    larlite::event_larflow3dhit* ev_lm
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
-    LARCV_INFO() << "Number of input larmatch hits: " << ev_lm->size() << std::endl;
+    // we have to collect the hits into a single container
+    // we record a map back to the original hit container, if needed
+    _input_hit_v.clear();
+    _input_hit_origin_v.clear();
     
-    std::vector< larlite::larflow3dhit > hit_v;
-    hit_v.reserve( ev_lm->size() );
-    for ( size_t idx=0; idx<ev_lm->size(); idx++ ) {
-      auto const& hit = (*ev_lm)[idx];
-      if ( hit[9]>larmatch_threshold ) {
-        hit_v.push_back( hit );
-        hit_v.back().idxhit = (int)idx; // refers back to original hit vectr
+    for ( size_t ilist=0; ilist<_input_hittree_list.size(); ilist++ ) {
+      
+      auto const& hit_tree_name = _input_hittree_list[ilist];
+      
+      larlite::event_larflow3dhit* ev_lm
+        = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,hit_tree_name);
+      LARCV_INFO() << "Number of input larflow hits from " << hit_tree_name << ": " << ev_lm->size() << std::endl;
+    
+      _input_hit_v.reserve( _input_hit_v.size() + ev_lm->size() );
+      for ( size_t idx=0; idx<ev_lm->size(); idx++ ) {
+        auto const& hit = (*ev_lm)[idx];
+        if ( hit[9]>larmatch_threshold ) {
+          _input_hit_v.push_back( hit );
+          _input_hit_v.back().idxhit = (int)idx; // refers back to original hit vectr
+          _input_hit_origin_v[ (int)_input_hit_v.size()-1 ] = (int)ilist;
+        }
       }
     }
-    LARCV_INFO() << "Number of selected larmatch hits: " << hit_v.size() << std::endl;
+    
+    LARCV_INFO() << "Number of collected larmatch hits: " << _input_hit_v.size() << std::endl;
 
     cluster_v.clear();
-    larflow::reco::cluster_sdbscan_larflow3dhits( hit_v, cluster_v, 2.5, 5, 20 );
+    larflow::reco::cluster_sdbscan_larflow3dhits( _input_hit_v, cluster_v, 2.5, 5, 20 );
     larflow::reco::cluster_runpca( cluster_v );
     // reindex back to original hit vector
     for ( size_t c=0; c<cluster_v.size(); c++ ) {
       auto& cluster = cluster_v[c];
       for ( auto& ih : cluster.hitidx_v ) {
-        ih = hit_v[ih].idxhit;          // assign hitidx_v elements to point back to original vector index
-        ev_lm->at(ih).trackid = (int)c; // assign hit to index of cluster vector
+        _input_hit_v.at(ih).trackid = (int)c; // assign hit to index of cluster vector
       }
     }
     
-    LARCV_INFO() << "Number of clusters: " << cluster_v.size() << std::endl;
+    LARCV_INFO() << "Number of clusters made from input hits: " << cluster_v.size() << std::endl;
+
+    // collect input clusters
+    for (size_t ic=0; ic<(int)_input_clustertree_list.size(); ic++) {
+      std::string cluster_tree_name = _input_clustertree_list[ic];
+      larlite::event_larflowcluster* ev_in_cluster
+        = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, cluster_tree_name );
+      // re-constitute cluster objects, add hits to input collection
+      for ( auto const& lfcluster : *ev_in_cluster ) {
+        larflow::reco::cluster_t clust = larflow::reco::cluster_from_larflowcluster( lfcluster );
+        for ( size_t ihit=0; ihit<clust.hitidx_v.size(); ihit++ ) {
+          larlite::larflow3dhit chit = lfcluster.at(ihit);
+          chit.trackid = cluster_v.size();
+          chit.idxhit = -1;
+          clust.hitidx_v[ihit] = _input_hit_v.size();
+          _input_hit_v.push_back( chit );
+        }
+        cluster_v.push_back( clust );
+      }
+    }
+
+    LARCV_INFO() << "Added clusters from input list. Num clusters=" << cluster_v.size() << " Num Hits=" << _input_hit_v.size() << std::endl;
     
   }
 
@@ -109,9 +142,6 @@ namespace reco {
 
     // for each cluster, look for high energy deposit regions
     // if find one, calculate its position on the pca-axis. is it at the end?
-
-    larlite::event_larflow3dhit* ev_lm
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
 
     larcv::EventImage2D* ev_img
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
@@ -129,7 +159,7 @@ namespace reco {
       
       for ( size_t ihit=0; ihit<cluster.hitidx_v.size(); ihit++ ) {
         // get larflow3dhit
-        auto& lfhit = (*ev_lm).at( cluster.hitidx_v[ihit] );
+        auto& lfhit = _input_hit_v.at( cluster.hitidx_v[ihit] );
 
         std::vector<float> pixsum = calcPlanePixSum( lfhit, adc_v );
 
@@ -149,7 +179,7 @@ namespace reco {
       float min_start_dist = 1e9;
       float min_end_dist   = 1e9;
       for (auto& idx : index_v ) {
-        auto& lfhit = (*ev_lm).at(idx);
+        auto& lfhit = _input_hit_v.at(idx);
 
         float start_dist = 0.;
         float end_dist   = 0.;
@@ -195,7 +225,7 @@ namespace reco {
         //va_candidate_v.push_back( (*ev_lm).at(min_start_idx) );
 
         va.va_dir = va_dir;        
-        va.lfhit = (*ev_lm).at(min_start_idx);
+        va.lfhit = _input_hit_v.at(min_start_idx);
         va.hit_index = (int)min_start_idx;
         va_candidate_v.push_back( va );
       }
@@ -212,7 +242,7 @@ namespace reco {
           va_dir[i] /= valen;
 
         va.va_dir = va_dir;        
-        va.lfhit = (*ev_lm).at(min_end_idx);
+        va.lfhit = _input_hit_v.at(min_end_idx);
         va.hit_index = (int)min_end_idx;
         va_candidate_v.push_back( va );
       }
@@ -274,10 +304,6 @@ namespace reco {
                                                               larcv::IOManager& iolcv,
                                                               const float min_dist2cluster )
   {
-    
-    // the larmatch hits we used to make the clusters
-    larlite::event_larflow3dhit* ev_lm
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
 
     // track/shower images
     std::vector< larcv::EventImage2D* > ev_spuburn_v(3,0);
@@ -322,7 +348,7 @@ namespace reco {
       // analyze this cluster
       for ( size_t ihit=0; ihit<cluster.hitidx_v.size(); ihit++ ) {
         auto& hitidx = cluster.hitidx_v[ihit];
-        auto& lmhit = ev_lm->at(hitidx);
+        auto& lmhit = _input_hit_v.at(hitidx);
 
         std::vector< float > hitpos(3,0);
         std::vector< float > vaend(3,0);
@@ -544,10 +570,6 @@ namespace reco {
                                                      larcv::IOManager& iolcv )
   {
 
-    // get larlite hits
-    larlite::event_larflow3dhit* ev_lm
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"larmatch");
-
     // track/shower images
     std::vector< larcv::EventImage2D* > ev_spuburn_v(3,0);
     std::vector< const larcv::Image2D* > ssnet_v(3,0);
@@ -564,7 +586,7 @@ namespace reco {
     
     auto const& cluster = cluster_v[ vacand.attached_cluster_index ];
     for (int i=0; i<(int)cluster.hitidx_v.size(); i++) {
-      auto const& lmhit = (*ev_lm)[ cluster.hitidx_v[i] ];
+      auto const& lmhit = _input_hit_v[ cluster.hitidx_v[i] ];
 
       // check if in bounds
       if ( lmhit.tick<=ssnet_v[0]->meta().min_y() || lmhit.tick>=ssnet_v[0]->meta().max_y() )
