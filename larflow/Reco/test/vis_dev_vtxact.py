@@ -23,7 +23,7 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
-color_by_options = ["larmatch","keypoint"]
+color_by_options = ["larmatch","shower","keypoint"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -71,37 +71,6 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     
     traces_v = []
 
-    print("Plotting Hits: produername=",lfname)
-    lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, lfname, score_threshold=minprob) ]
-    traces_v += lfhit_v
-
-    va_trace = lardly.data.visualize_larlite_larflowhits( ev_vacand, "VA" )
-    va_trace["marker"]["size"] = 3.0
-    va_trace["marker"]["color"] = "rgb(255,0,255)"
-    traces_v.append( va_trace )
-
-    # VA cluster pca
-    for iv in range(ev_vacand.size()):
-        va = ev_vacand.at(iv)
-        vadir = np.zeros( (2,3) )
-        for i in range(3):
-            vadir[0,i] = va[i]
-            vadir[1,i] = va[i] + 10.0*va[19+i]
-        vadir_trace = {"type":"scatter3d",
-                       "x":vadir[:,0],
-                       "y":vadir[:,1],
-                       "z":vadir[:,2],
-                       "mode":"lines",
-                       "name":"VA[%d]"%(iv),
-                           "line":{"color":"rgb(0,0,0)","width":3}
-        }
-        traces_v.append(vadir_trace)
-        
-    kp_trace = lardly.data.visualize_larlite_larflowhits( ev_keypoints, "KP" )
-    kp_trace["marker"]["size"] = 3.0
-    kp_trace["marker"]["color"] = "rgb(0,255,0)"
-    #traces_v.append( kp_trace )
-
     # TRUE VTX
     if args.input_mcinfo is not None:
         mcdata = ublarcvapp.mctools.LArbysMC()
@@ -119,10 +88,49 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
                     "mode":"markers",
                     "name":"NuVtx",
                     "marker":{"color":"rgb(0,255,255)",
-                              "size":"3",
-                              "opacity":1.0}
+                              "size":"5",
+                              "opacity":0.5}
         }
         traces_v.append( vtxtrace )
+    
+
+    print("Plotting Hits: produername=",lfname)
+    plot_shower_score = False
+    if plotby=="shower":
+        plot_shower_score = True
+    lfhit_v = [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, lfname, score_threshold=minprob, plot_renormed_shower_score=plot_shower_score) ]
+    lfhit_v[0]["marker"]["colorscale"] = "RdBu"
+    traces_v += lfhit_v
+
+    va_trace = lardly.data.visualize_larlite_larflowhits( ev_vacand, "VA" )
+    va_trace["marker"]["size"] = 3.0
+    va_trace["marker"]["opacity"] = 1.0    
+    va_trace["marker"]["color"] = "rgb(255,0,255)"
+    traces_v.append( va_trace )
+
+    # VA cluster pca
+    for iv in range(ev_vacand.size()):
+        va = ev_vacand.at(iv)
+        vadir = np.zeros( (2,3) )
+        for i in range(3):
+            vadir[0,i] = va[i]
+            vadir[1,i] = va[i] + 10.0*va[19+i]
+        vadir_trace = {"type":"scatter3d",
+                       "x":vadir[:,0],
+                       "y":vadir[:,1],
+                       "z":vadir[:,2],
+                       "mode":"lines",
+                       "name":"VA[%d]"%(iv),
+                       "line":{"color":"rgb(0,0,0)","width":3}
+        }
+        traces_v.append(vadir_trace)
+        
+    kp_trace = lardly.data.visualize_larlite_larflowhits( ev_keypoints, "KP" )
+    kp_trace["marker"]["size"] = 5.0
+    kp_trace["marker"]["opacity"] = 0.5    
+    kp_trace["marker"]["color"] = "rgb(0,255,0)"
+    #traces_v.append( kp_trace )
+
         
                
     

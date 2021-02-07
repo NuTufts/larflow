@@ -121,7 +121,18 @@ namespace reco {
                                         larlite::storage_manager& ioll )
   {
 
+    // PREP: LABEL larmatch POINTS WITH 2D SSNET SHOWER SCORE
+    // input:
+    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    //  * larflow3dhit_taggerfilterhit_tree: WC in-time space points
+    // output:
+    //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
+    //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
+    _splithits_wcfilter.set_larmatch_tree_name( "larmatch" );
+    _splithits_wcfilter.process_labelonly( iolcv, ioll );    
 
+    // PREP: ALTER THRUMU IMAGE TO INCLUDE SSNET CLUSTERS OF A CERTAIN SIZE
+    
     // PREP WC-FILTERED HITS
     // filters raw larmatch hits using wire cell thrumu tagger image
     // input:
@@ -144,7 +155,7 @@ namespace reco {
     //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
     _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
     _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
-    _splithits_wcfilter.process( iolcv, ioll );    
+    _splithits_wcfilter.process_splitonly( iolcv, ioll );    
 
     // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
     // a method to downsample hits: for hits that land on the same plane,
@@ -174,7 +185,7 @@ namespace reco {
     //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
     _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
     _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
-    _splithits_full.process( iolcv, ioll );
+    _splithits_full.process_splitonly( iolcv, ioll );
 
     // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
     // input:

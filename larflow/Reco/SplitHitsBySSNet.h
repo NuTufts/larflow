@@ -32,15 +32,33 @@ namespace reco {
       {};
     virtual ~SplitHitsBySSNet() {};
 
-    void split( const std::vector<larcv::Image2D>& ssnet_score_v,
-                const larlite::event_larflow3dhit& lfhit_v,
+    void label_and_split( const std::vector<larcv::Image2D>& ssnet_score_v,
+                          const larlite::event_larflow3dhit& lfhit_v,
+                          const float ssnet_score_threshold,
+                          const float larmatch_score_threshold,
+                          std::vector<larlite::larflow3dhit>& accept_v,
+                          std::vector<larlite::larflow3dhit>& reject_v );
+
+    void label( const std::vector<larcv::Image2D>& ssnet_score_v,
+                larlite::event_larflow3dhit& larmatch_hit_v );
+
+    void split( larlite::event_larflow3dhit& lfhit_v,
                 const float ssnet_score_threshold,
                 const float larmatch_score_threshold,
                 std::vector<larlite::larflow3dhit>& accept_v,
                 std::vector<larlite::larflow3dhit>& reject_v );
 
+    void split_constinput( const larlite::event_larflow3dhit& lfhit_v,
+                           const float ssnet_score_threshold,
+                           const float larmatch_score_threshold,
+                           std::vector<larlite::larflow3dhit>& accept_v,
+                           std::vector<larlite::larflow3dhit>& reject_v );
+    
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-
+    
+    void process_labelonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void process_splitonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll );        
+    
   protected:
     
     // params
