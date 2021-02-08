@@ -412,6 +412,29 @@ namespace reco {
     // _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     // _track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
+
+  /**
+   * @brief run modules to produce selection variables for nu selection
+   *
+   */
+  void KPSRecoManager::makeNuCandidateSelectionVariables()
+  {
+
+    // proton ID variables
+
+    // electron ID variables
+
+    // pi-zero ID variables
+
+    // muon ID variables
+
+    // pion ID variables
+
+    // nu kinematic variables
+
+    
+    
+  }
   
 }
 }

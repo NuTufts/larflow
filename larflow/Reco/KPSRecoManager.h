@@ -90,6 +90,7 @@ namespace reco {
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void makeNuCandidateSelectionVariables();
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
