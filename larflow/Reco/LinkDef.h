@@ -42,6 +42,7 @@
 #pragma link C++ class larflow::reco::KPCluster+;
 #pragma link C++ class larflow::reco::NuVertexCandidate+;
 #pragma link C++ class larflow::reco::SplitHitsBySSNet+;
+#pragma link C++ class larflow::reco::SplitHitsByParticleSSNet+;
 #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
 #pragma link C++ class larflow::reco::DBScanLArMatchHits+;
 #pragma link C++ class larflow::reco::KeypointReco+;

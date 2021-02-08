@@ -6,6 +6,7 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 set( HEADERS cluster_functions.h
   geofuncs.h
   SplitHitsBySSNet.h
+  SplitHitsByParticleSSNet.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   ProjectionDefectSplitter.h  
@@ -31,6 +32,7 @@ set( HEADERS cluster_functions.h
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
   SplitHitsBySSNet.cxx
+  SplitHitsByParticleSSNet.cxx
   ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   ProjectionDefectSplitter.cxx  

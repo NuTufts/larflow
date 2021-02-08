@@ -86,7 +86,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v += lardly.data.visualize_empty_opflash()        
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,True),
+    clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,False),
                 ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,True),
                 ("wcshower","showergoodhit","rgb(200,125,125)",0.1,True)]
     for (name,producer,rgbcolor,opa,plotme) in clusters:
@@ -109,7 +109,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
             pcatrace["line"]["color"] = "rgb(0,0,0)"
             pcatrace["line"]["width"] = 1
-            pcatrace["line"]["opacity"] = 1.0            
+            pcatrace["line"]["opacity"] = opa
             traces_v.append( pcatrace )
             
     # plot vertices
@@ -214,9 +214,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
             
     # TRACK RECO
-    for name,track_producer,zrgb,plotme in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)",False),
-                                     ("CTRK","containedcosmic","rgb(100,0,50)",False),
-                                     ("NUTRK","nutrack_fitted","rgb(0,100,50)",False)]:
+    for name,track_producer,zrgb,plotme in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)",True),
+                                            ("CTRK","containedcosmic","rgb(100,0,50)",True),
+                                            ("NUTRK","nutrack_fitted","rgb(0,100,50)",True)]:
         if False and name in ["NUTRK"]:
             continue
         if not plotme:
@@ -227,7 +227,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trktrace["name"] = "%s[%d]"%(name,itrack)
             trktrace["line"]["color"] = zrgb
             trktrace["line"]["width"] = 5
-            trktrace["line"]["opacity"] = 1.0
+            trktrace["line"]["opacity"] = 0.3
             traces_v.append( trktrace )
     
 

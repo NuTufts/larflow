@@ -215,6 +215,7 @@ namespace reco {
 
     // neutrino
     _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
+    _kpreco_nu.set_output_tree_name( "keypoint" );    
     _kpreco_nu.set_sigma( 10.0 );
     _kpreco_nu.set_min_cluster_size(   50.0, 0 );
     _kpreco_nu.set_keypoint_threshold( 0.5, 0 );
@@ -225,7 +226,8 @@ namespace reco {
     _kpreco_nu.set_lfhit_score_index( 13 );
     _kpreco_nu.process( ioll );
 
-    _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );    
+    _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
+    _kpreco_track.set_output_tree_name( "keypoint" );        
     _kpreco_track.set_sigma( 10.0 );    
     _kpreco_track.set_min_cluster_size(   50.0, 0 );
     _kpreco_track.set_keypoint_threshold( 0.5, 0 );
@@ -237,6 +239,7 @@ namespace reco {
     _kpreco_track.process( ioll );
 
     _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
+    _kpreco_shower.set_output_tree_name( "keypoint" );
     _kpreco_shower.set_sigma( 10.0 );    
     _kpreco_shower.set_min_cluster_size(   50.0, 0 );
     _kpreco_shower.set_keypoint_threshold( 0.5, 0 );
@@ -346,6 +349,7 @@ namespace reco {
 
     _nuvertexactivity.set_input_hit_list( input_hit_list );    
     _nuvertexactivity.set_input_cluster_list( input_cluster_list );
+    _nuvertexactivity.set_output_treename( "keypoint" );
     _nuvertexactivity.process( iolcv, ioll );
     
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );

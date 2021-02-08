@@ -26,6 +26,7 @@ namespace reco {
   public:
     NuVertexActivityReco()
       : larcv::larcv_base("NuVertexActivityReco"),
+      _output_treename("vacand"),      
       _va_ana_tree(nullptr),
       _kown_tree(false)
         {};
@@ -71,7 +72,8 @@ namespace reco {
                              larcv::IOManager& iolcv,
                              const ublarcvapp::mctools::LArbysMC& truedata );
     void set_input_cluster_list( const std::vector<std::string>& clist ) { _input_clustertree_list = clist; };
-    void set_input_hit_list( const std::vector<std::string>& hlist ) { _input_hittree_list = hlist; };    
+    void set_input_hit_list( const std::vector<std::string>& hlist ) { _input_hittree_list = hlist; };
+    void set_output_treename( std::string name ) { _output_treename=name; };
 
   protected:
 
@@ -112,6 +114,7 @@ namespace reco {
     std::vector<larlite::larflow3dhit>    _input_hit_v; ///< collection of hits from input hit trees
     std::map< int, int > _input_hit_origin_v; ///< save map back to source of input hits
     std::vector<larflow::reco::cluster_t> _event_cluster_v; ///< list of clusters for making VA selection variables
+    std::string _output_treename; ///< name of tree to store larlite product
     
     
     // output data members

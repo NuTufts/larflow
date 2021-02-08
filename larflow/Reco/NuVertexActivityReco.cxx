@@ -1,5 +1,6 @@
 #include "NuVertexActivityReco.h"
 #include "LArUtil/LArProperties.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larflow/Reco/geofuncs.h"
 
 namespace larflow {
@@ -30,7 +31,10 @@ namespace reco {
 
     // split between points on shower ends and track ends
     larlite::event_larflow3dhit* evout_vacand
-      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "vacand" );
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _output_treename );
+    larlite::event_pcaxis* evout_pca
+      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, _output_treename );
+    
     for (size_t iv=0; iv<vtxact_v.size(); iv++ ) {
       auto& va = vtxact_v[iv];
       checkWireCellCosmicMask( va, iolcv );
@@ -41,8 +45,15 @@ namespace reco {
       int n = (int)va.lfhit.size();
       va.lfhit.resize(n+3,0);
       for (int i=0; i<3; i++)
-        va.lfhit[n+i] =  va.va_dir[i];      
+        va.lfhit[n+i] =  va.va_dir[i];
+      va.lfhit[3] = larflow::kVertexActivity;
+        
+      // store pca
+      const larflow::reco::cluster_t* cluster = va.pattached;
+      larlite::pcaxis va_pca = larflow::reco::cluster_make_pcaxis( *cluster, iv );
+      
       evout_vacand->push_back( va.lfhit );
+      evout_pca->push_back( va_pca );
     }
     if ( _va_ana_tree && _kown_tree )
       _va_ana_tree->Fill();
