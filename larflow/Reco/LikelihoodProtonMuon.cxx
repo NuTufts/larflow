@@ -31,18 +31,31 @@ namespace reco {
     _sProtonRange2dEdx = nullptr;
   }
   
-  double LikelihoodProtonMuon::calculateLL( const larlite::track& track ) const
+  double LikelihoodProtonMuon::calculateLL( const larlite::track& track, const std::vector<float>& vertex ) const
   {
 
     int npts = track.NumberTrajectoryPoints();
     double current_res_range = 0.;
-    const TVector3* last_pt = &(track.LocationAtPoint(npts-1));
+
+    const TVector3* start_pt = &(track.LocationAtPoint(0));
+    const TVector3* end_pt = &(track.LocationAtPoint(npts-1));
+    float dist[2] = {0,0};
+    for (int i=0; i<3; i++) {
+      dist[0] += ( vertex[i]-(*start_pt)[i] )*( vertex[i]-(*start_pt)[i] );
+      dist[1] += ( vertex[i]-(*end_pt)[i] )*( vertex[i]-(*end_pt)[i] );
+    }
+
+    int istart = (dist[0]<dist[1]) ? npts-1 : 0;
+    int iend   = (dist[0]<dist[1]) ? 0 : npts-1;
+    int dindex = (dist[0]<dist[1]) ? -1 : 1;
     
     // loop in verse order for residual range
     double totw = 0.;
     double totll = 0.;
-    
-    for (int ipt=npts-1; ipt>=0; ipt-- ) {
+    const TVector3* last_pt = &(track.LocationAtPoint(istart));
+
+    int ipt = istart;
+    while ( ipt!=iend ) {
 
       std::vector<double> dqdx_v(4); // one for each plane, plus median value
       for (int p=0; p<4; p++) 
@@ -54,23 +67,27 @@ namespace reco {
       double steplen = (*pt - *last_pt).Mag();
 
       current_res_range += steplen;
+      ipt += dindex;
 
+      last_pt = pt;
 
-      double res = (current_res_range==0) ? 0.15 : current_res_range;
-      
-      // calculate residual range
-      // calculate likelihood
-      double mu_dedx = _sMuonRange2dEdx->Eval(res);
-      double mu_dedx_birks = _q2adc*mu_dedx/(1+mu_dedx*0.0486/0.273/1.38);
-      double p_dedx = _sProtonRange2dEdx->Eval(res);
-      double p_dedx_birks = _q2adc*p_dedx/(1+p_dedx*0.0486/0.273/1.38);
-        
-      double dmu = dqdx_med-mu_dedx_birks;
-      double dp  = dqdx_med-p_dedx_birks;
-
-      double llpt = -0.5*dmu*dmu/100.0 + 0.5*dp*dp/100.0;
-      double w_dedx = (mu_dedx_birks-p_dedx_birks)*(mu_dedx_birks-p_dedx_birks);
       if ( dqdx_med>10.0 ) {
+        
+        double res = (current_res_range<0.15) ? 0.15 : current_res_range;
+      
+        // calculate residual range
+        // calculate likelihood
+        double mu_dedx = _sMuonRange2dEdx->Eval(res);
+        double mu_dedx_birks = _q2adc*mu_dedx/(1+mu_dedx*0.0486/0.273/1.38);
+        double p_dedx = _sProtonRange2dEdx->Eval(res);
+        double p_dedx_birks = _q2adc*p_dedx/(1+p_dedx*0.0486/0.273/1.38);
+        
+        double dmu = dqdx_med-mu_dedx_birks;
+        double dp  = dqdx_med-p_dedx_birks;
+        
+        double llpt = -0.5*dmu*dmu/100.0 + 0.5*dp*dp/100.0;
+        double w_dedx = (mu_dedx_birks-p_dedx_birks)*(mu_dedx_birks-p_dedx_birks);
+        
         totll += llpt*w_dedx;
         totw  += w_dedx;
       }

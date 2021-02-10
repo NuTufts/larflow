@@ -18,7 +18,9 @@ namespace reco {
   public:
 
     NuSelectionVariables()
-      : isTruthMatchedNu(0)
+      : max_proton_pid(0.0),
+      dist2truevtx(1e6),
+      isTruthMatchedNu(0)
       {};
     virtual ~NuSelectionVariables() {};
 
@@ -52,9 +54,12 @@ namespace reco {
       
     };
     std::vector< TrackVar_t > _track_var_v;
-    
+
+    // SUMMARY
+    float max_proton_pid;
 
     // TRUTH
+    float dist2truevtx;   ///< distance to true vertex, sce applied to true vertex
     int isTruthMatchedNu; ///< 1 if truth-matched. provides target for selection training.
     
   };

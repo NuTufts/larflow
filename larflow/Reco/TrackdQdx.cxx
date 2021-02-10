@@ -196,8 +196,8 @@ namespace reco {
       }
     }
       
-    std::cout << "Number of hits assigned to track: " << trackpt_v.size() << std::endl;
-    std::cout << "Total length of track: " << current_len << " cm" << std::endl;
+    LARCV_INFO() << "Number of hits assigned to track: " << trackpt_v.size() << std::endl;
+    LARCV_INFO() << "Total length of track: " << current_len << " cm" << std::endl;
     std::sort( trackpt_v.begin(), trackpt_v.end() );
 
     // make a new larlite track with dq/dx values stored

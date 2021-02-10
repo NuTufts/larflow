@@ -90,7 +90,12 @@ for ientry in xrange( args.start_entry, end_entry ):
     print "[ENTRY ",ientry,"]"
     iolcv.read_entry(ientry)
 
+    print "reco, make nu candidates, calculate selection variables"
     recoman.process( iolcv, io )
+    #print "make selection variables"
+    #recoman.makeNuCandidateSelectionVariables()
+    #print "calculate truth variables"
+    #recoman.truthAna( iolcv, io )
     
   #   # make bad channel image
   #   t_badch = time.time()

@@ -9,7 +9,8 @@ set( HEADERS cluster_functions.h
   SplitHitsByParticleSSNet.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
-  ProjectionDefectSplitter.h  
+  ProjectionDefectSplitter.h
+  ShortProtonClusterReco.h
   PyLArFlow.h
   KPCluster.h KeypointReco.h
   KeypointFilterByClusterSize.h
@@ -37,7 +38,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   SplitHitsByParticleSSNet.cxx
   ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
-  ProjectionDefectSplitter.cxx  
+  ProjectionDefectSplitter.cxx
+  ShortProtonClusterReco.cxx  
   PyLArFlow.cxx
   KPCluster.cxx
   KeypointReco.cxx

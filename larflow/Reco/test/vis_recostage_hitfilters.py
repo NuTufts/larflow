@@ -23,50 +23,65 @@ from dash.exceptions import PreventUpdate
 
 import lardly
 
+filtered_hit_producers = ["ssnetsplit_full_showerhit",
+                          "ssnetsplit_full_trackhit",
+                          "taggerrejecthit",
+                          "full_maxtrackhit",
+                          "maxshowerhit",
+                          "maxtrackhit_wcfilter",
+                          "projsplitnoise",
+                          "hip",
+                          "showerkp",
+                          "ssnetsplit_full_showerhit",
+                          "ssnetsplit_wcfilter_showerhit",
+                          "ssnetsplit_wcfilter_trackhit",
+                          "taggerfilterhit"]
+
 color_by_options = ["larmatch","keypoint"]
-colorscale = "Viridis"
+colorscale = "RdBu"
 option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
-
-# colors for the keypoints
-keypoint_colors = { -1:"rgb(50,50,50)",
-                    0:"rgb(255,0,255)",
-                    1:"rgb(0,255,255)",
-                    2:"rgb(255,0,255)",
-                    3:"rgb(255,255,0)"}    
-keypoint_names = { -1:"UNK",
-                   0:"NU",
-                   1:"TRK",
-                   2:"SHR",
-                   3:"VA"}    
+hit_option_dict = []
+for opt in filtered_hit_producers:
+    hit_option_dict.append( {"label":opt,"value":opt} )
+    
 
 # OPEN LARLITE FILE
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larlite )
-if args.input_mcinfo is not None:
+io.set_verbosity(1)
+if args.input_mcinfo is not None and args.input_mcinfo!=args.input_larlite:
+    print("adding in mc info")
     io.add_in_filename( args.input_mcinfo )
     HAS_MC = True
 else:
     HAS_MC = False
+for hitproducer in filtered_hit_producers:
+    io.set_data_to_read( larlite.data.kLArFlow3DHit, hitproducer )
+io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
+io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
+io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashBeam" )
+io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashCosmic" )
 io.open()
 
 # OPEN VERTEX RECO FILE
 anafile = rt.TFile( args.input_kpsana )
 kpsanatree = anafile.Get("KPSRecoManagerTree")
-nentries = kpsanatree.GetEntries()
+nentries = io.get_entries()
 CURRENT_EVENT = None
 
 print("NENTRIES: ",nentries)
 
-def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
+def make_figures(entry,hitproducer,plotby="larmatch",minprob=0.0):
     from larcv import larcv
     larcv.load_pyutil()
     detdata = lardly.DetectorOutline()
     
     from larflow import larflow
     larcv.SetPyUtil()    
-    print("making figures for entry={} plot-by={}".format(entry,plotby))
+    print("making figures for entry={} producer={} plot-by={}".format(entry,hitproducer,plotby))
     global io
     global kpsanatree
     io.go_to(entry)
@@ -89,90 +104,18 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         if nflashes==0:
             traces_v += lardly.data.visualize_empty_opflash()        
 
-    # PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
-    clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",True),
-                ("wctrack","trackprojsplit_wcfilter","rgb(0,255,0)",True),
-                ("wcshower","showergoodhit","rgb(255,0,0)",False),
-                ("hip","hip","rgb(0,0,255)",True)]    
-    for (name,producer,rgbcolor,plotme) in clusters:
-        if not plotme:
-            continue
-        ev_cosmic_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
-        ev_cosmic_pcacluster   = io.get_data(larlite.data.kPCAxis,         producer )
-        for icluster in range(ev_cosmic_trackcluster.size()):
-            lfcluster = ev_cosmic_trackcluster.at( icluster )
-            cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="%s[%d]"%(name,icluster) )
-            cluster_trace["marker"]["color"] = rgbcolor
-            cluster_trace["marker"]["opacity"] = 0.5
-            cluster_trace["marker"]["size"] = 3
-            traces_v.append(cluster_trace)            
 
-            pcaxis = ev_cosmic_pcacluster.at( icluster )
-            pcatrace = lardly.data.visualize_pcaxis( pcaxis )
-            pcatrace["name"] = "%s-pca[%d]"%(name,icluster)
-            pcatrace["line"]["color"] = "rgb(0,0,0)"
-            pcatrace["line"]["width"] = 3
-            pcatrace["line"]["opacity"] = 1.0            
-            traces_v.append( pcatrace )
-
-    # PLOT FITTED TRACK SEGMENTS
-    lineseg_producer = "trackprojsplit_wcfilter"
-    ev_lineseg_track = io.get_data( larlite.data.kTrack, lineseg_producer )
-    print("Number of line-segment tracks: ",ev_lineseg_track.size())
-    for itrack in range(ev_lineseg_track.size()):
-        lineseg_track = ev_lineseg_track.at(itrack)
-        lineseg_trace = lardly.data.visualize_larlite_track( lineseg_track )
-        traces_v.append( lineseg_trace )
-
-    # KEYPOINTS
-    # ============
-    ev_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypoint" )
-    ev_kpaxis    = io.get_data( larlite.data.kPCAxis, "keypoint" )
-        
-    # KEYPOINT PLOT: WCFILTER KEYPOINTS
-    nkp = ev_keypoints.size()
-    print("Number of reco'd WC-FILTERED Keypoints in event: ",nkp)
-    for ikp in range(nkp):
-        kptype = int(ev_keypoints.at(ikp).at(3))
-        kptrace = {
-            "type":"scatter3d",
-            "x": [ev_keypoints[ikp][0]],
-            "y": [ev_keypoints[ikp][1]],
-            "z": [ev_keypoints[ikp][2]],
-            "mode":"markers",
-            "name":"KP-%s[%d]"%(keypoint_names[kptype],ikp),
-            "marker":{"color":keypoint_colors[kptype],"size":5,"opacity":0.5},
-        }
-        traces_v.append(kptrace)
-        
-    # # PCA-AXIS PLOTS
-    # pca_traces_v = lardly.data.visualize_event_pcaxis( ev_kpaxis, color="rgb(50,50,50)" )
-    # traces_v += pca_traces_v
-
-    # # KEYPOINT PLOT: COSMIC TRACK KEYPOINT
-    # ev_cosmic_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypointcosmic" )
-    # ev_cosmic_kpaxis    = io.get_data( larlite.data.kPCAxis, "keypointcosmic" )    
+    print("hitproducer: ",hitproducer)
+    sys.stdout.flush()
+    ev_hit = io.get_data(larlite.data.kLArFlow3DHit, str(hitproducer) )
+    print("ev_hit: ",ev_hit)
+    sys.stdout.flush()    
+    print("number of hits in '%s': %d"%(hitproducer,ev_hit.size()))
+    sys.stdout.flush()    
+    hit_trace = lardly.data.visualize_larlite_larflowhits( ev_hit )
+    hit_trace["marker"]["colorscale"] = "RdBu"
+    traces_v.append(hit_trace)
     
-    # nkp = ev_cosmic_keypoints.size()
-    # print("Number of reco'd COSMIC Keypoints in event: ",nkp)
-    # for ikp in range(nkp):
-    #     kptype = int(ev_cosmic_keypoints.at(ikp).at(3))
-    #     kptrace = {
-    #         "type":"scatter3d",
-    #         "x": [ev_cosmic_keypoints[ikp][0]],
-    #         "y": [ev_cosmic_keypoints[ikp][1]],
-    #         "z": [ev_cosmic_keypoints[ikp][2]],
-    #         "mode":"markers",
-    #         "name":"KP%d"%(ikp),
-    #         "marker":{"color":"rgb(0,0,200)","size":5,"opacity":0.5},
-    #     }
-    #     traces_v.append(kptrace)
-        
-    # # COSMIC PCA-AXIS PLOTS
-    # pca_traces_v = lardly.data.visualize_event_pcaxis( ev_cosmic_kpaxis, color="rgb(50,50,50)" )
-    # traces_v += pca_traces_v
-    
-
     if HAS_MC:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
         traces_v += mctrack_v
@@ -234,12 +177,10 @@ eventinput = dcc.Input(
     type="number",
     placeholder="Input Event")
 
-# INPUT FORM: VERTEX
+# INPUT FORM: FILTERED HIT CONTAINERS
 plottrack = dcc.Dropdown(
-    options=[
-        {'label':'notloaded','value':'Event not loaded'},
-    ],
-    value='notloaded',
+    options=hit_option_dict,
+    value="maxshowerhit",
     id='plotvertexid',
 )
         
@@ -275,8 +216,6 @@ app.layout = html.Div( [
                        
 @app.callback(
     [Output("det3d","figure"),
-     Output("plotvertexid","options"),
-     Output("plotvertexid","value"),
      Output("out","children")],
     [Input("plot","n_clicks")],
     [State("input_event","value"),
@@ -302,19 +241,13 @@ def cb_render(*vals):
         print("Plot-by option is None")
         raise PreventUpdate
 
-    vertexid = vals[2]
+    hitproducer = vals[2]
     entry    = int(vals[1])
-    if entry!=CURRENT_EVENT:
-        # first time we access an entry, we default to the "all" view of the vertices
-        CURRENT_EVENT = entry
-        vertexid = "all"
-    cluster_traces_v = make_figures(int(vals[1]),vertexid,plotby=vals[2])
-    vtxoptions = []
-    vtxoptions.append( {'label':"all",'value':"all"} )
+    cluster_traces_v = make_figures(int(vals[1]),hitproducer)
     
     # update the figure's traces
     vals[-1]["data"] = cluster_traces_v
-    return vals[-1],vtxoptions,vertexid,"event requested: {}; vertexid: {}; plot-option: {}".format(vals[1],vals[2],vals[3])
+    return vals[-1],"event requested: {}; hit producer: {}; plot-option: {}".format(vals[1],vals[2],vals[3])
 
 if __name__ == "__main__":
     app.run_server(debug=True)

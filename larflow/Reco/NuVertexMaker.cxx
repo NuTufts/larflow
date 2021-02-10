@@ -146,7 +146,8 @@ namespace reco {
     // associate to cluster objects
     for ( size_t vtxid=0; vtxid<seed_v.size(); vtxid++ ) {
       auto& vertex = seed_v[vtxid];
-      
+
+      LARCV_DEBUG() << "=== ATTACH TO (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ") ===" << std::endl;
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
         if ( it->second==nullptr ) continue;
 
@@ -158,6 +159,8 @@ namespace reco {
 
           bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
                                                      ctype, it->first, icluster, true );
+
+          LARCV_DEBUG() << "  cluster " << it->first << "[" << icluster << "] attached=" << attached << std::endl;
 
           
         }//end of cluster loop
@@ -272,7 +275,7 @@ namespace reco {
         if ( cluster.impact>3.0 )
           clust_score *= (1.0/tau_impact_shower)*exp( -cluster.impact/tau_impact_shower );
       }
-      std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
+      //std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
       vtx.score += clust_score;
     }        
   }
@@ -469,15 +472,21 @@ namespace reco {
     std::vector<float> end(3,0);
     float dist[2] = {0,0};
     float pcalen = 0.;
+    float len = 0.;
     for (int v=0; v<3; v++) {
       pcadir[v] = lfpca.getEigenVectors()[0][v];
       start[v]  = lfpca.getEigenVectors()[3][v];
       end[v]    = lfpca.getEigenVectors()[4][v];
       dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
       dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
+      len += (start[v]-end[v])*(start[v]-end[v]);
       pcalen += pcadir[v]*pcadir[v];
     }
     pcalen = sqrt(pcalen);
+    len = sqrt(len);
+    LARCV_DEBUG() << "  s(" << start[0] << "," << start[1] << "," << start[2] << ") "
+                  << "  e(" << end[0] << "," << end[1] << "," << end[2] << ") "
+                  << "  len=" << len << std::endl;    
     if (pcalen<0.1 || std::isnan(pcalen) ) {
       return false;
     }          
@@ -487,7 +496,6 @@ namespace reco {
     float gapdist = dist[closestend];
     float r = pointLineDistance( start, end, vertex.pos );
 
-    LARCV_DEBUG() << "pcadir-len=" << pcalen << std::endl;
     float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
     float ends  = pointRayProjection<float>( start, pcadir, end );
 

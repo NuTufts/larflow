@@ -17,7 +17,7 @@ namespace reco {
     LikelihoodProtonMuon();
     virtual ~LikelihoodProtonMuon();
 
-    double calculateLL( const larlite::track& track ) const;
+    double calculateLL( const larlite::track& track, const std::vector<float>& vertex_pos ) const;
 
   protected:
 

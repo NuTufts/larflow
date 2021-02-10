@@ -259,7 +259,8 @@ namespace reco {
     }
 
     LARCV_DEBUG() << "=== Seed track with point (" << startpoint[0] << "," << startpoint[1] << "," << startpoint[2] << ") ======" << std::endl;
-    LARCV_DEBUG() << " segment found idx=[" << min_segidx << "] to build from " << str(_segment_v[min_segidx]) << std::endl;
+    LARCV_DEBUG() << " segment found idx=[" << min_segidx << "] to build from: " << std::endl;
+    LARCV_DEBUG() << "   " << str(_segment_v[min_segidx]) << std::endl;
     
     // reset the nodes
     for ( auto& node : _nodepos_v )
@@ -663,7 +664,7 @@ namespace reco {
       // allow us to return a collection of paths from the same start point to many different leaves
       for ( auto& ppath : selected_v )
         filtered_v.push_back ( *ppath );
-      std::cout << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;          
+      LARCV_DEBUG() << "Number of leaf-group candidate tracks return: " << (int)filtered_v.size()-nfiltered_before << std::endl;
     }
 
   }

@@ -64,7 +64,7 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     
-    std::cout << "[cluster_larflow3dhit] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+    //std::cout << "[cluster_larflow3dhit] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
   }
 
   /**
@@ -104,7 +104,7 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     
-    std::cout << "[cluster_spacepoint] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+    //std::cout << "[cluster_spacepoint] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
       
   }
 
@@ -165,7 +165,7 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     
-    std::cout << "[cluster_simple_larflow3dhits] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+    //std::cout << "[cluster_simple_larflow3dhits] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
   }
 
   /**
@@ -219,7 +219,7 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
     
-    std::cout << "[cluster_sdbscan_spacepoints] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
+    //std::cout << "[cluster_sdbscan_spacepoints] made clusters: " << dbcluster_v.size() << " elpased=" << elapsed << " secs" << std::endl;    
   }
   
   /**
@@ -409,7 +409,7 @@ namespace reco {
     }
     clock_t end = clock();
     double elapsed = double(end-start)/CLOCKS_PER_SEC;
-    std::cout << "[ cluster_runpca ] elapsed=" << elapsed << " secs" << std::endl;
+    //std::cout << "[ cluster_runpca ] elapsed=" << elapsed << " secs" << std::endl;
   }
 
   /**
@@ -773,7 +773,7 @@ namespace reco {
    */
   cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster ) {
 
-    std::cout << "[cluster_from_larflowcluster] input cluster size=" << lfcluster.size() << std::endl;
+    //std::cout << "[cluster_from_larflowcluster] input cluster size=" << lfcluster.size() << std::endl;
     cluster_t c;
     c.points_v.reserve( 2*lfcluster.size() );
     c.imgcoord_v.reserve( 2*lfcluster.size() );

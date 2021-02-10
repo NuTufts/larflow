@@ -25,6 +25,7 @@
 #include "SplitHitsBySSNet.h"
 #include "ShowerRecoKeypoint.h"
 #include "ProjectionDefectSplitter.h"
+#include "ShortProtonClusterReco.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
 #include "CosmicTrackBuilder.h"
@@ -32,6 +33,9 @@
 #include "NuShowerBuilder.h"
 #include "NuVertexShowerReco.h"
 #include "NuVertexActivityReco.h"
+
+#include "NuSelectionVariables.h"
+#include "LikelihoodProtonMuon.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -68,6 +72,7 @@ namespace reco {
     SplitHitsBySSNet _splithits_wcfilter; ///< splits shower spacepoints from track spacepoints for wc filtered hits
     ProjectionDefectSplitter _projsplitter; ///< split wirecell filtered track clusters into straight clusters
     ProjectionDefectSplitter _projsplitter_cosmic; ///< split cosmic-track clusters into straight clusters
+    ShortProtonClusterReco   _short_proton_reco;   ///< short proton reco using HIP space points only
     ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
     ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score
 
@@ -81,6 +86,9 @@ namespace reco {
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
     //TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
+
+    // Selection Variable Modules
+    LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
 
     // MC event info
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
@@ -106,6 +114,8 @@ namespace reco {
     int _ana_subrun; ///< subrun number for tree entry
     int _ana_event; ///< event number for tree entry
     void make_ana_file();
+
+    std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v;
     
   public:
 

@@ -23,6 +23,7 @@ namespace reco {
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
+    _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -40,6 +41,8 @@ namespace reco {
   {
 
 
+    _nu_sel_v.clear(); ///< clear vertex selection variable container
+    
     // PREP: make bad channel image
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
@@ -99,6 +102,9 @@ namespace reco {
       (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
     for ( auto const& flash : *ev_input_opflash_beam )
       evout_opflash_beam->push_back( flash );
+
+    // make selection variables
+    makeNuCandidateSelectionVariables();
     
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
@@ -296,7 +302,7 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
     const float _maxdist = 2.0;
-    const float _minsize = 20;
+    const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
     _projsplitter.set_verbosity( larcv::msg::kDEBUG );    
@@ -323,6 +329,10 @@ namespace reco {
     _showerkp.set_verbosity( larcv::msg::kINFO );    
     _showerkp.process( iolcv, ioll );
 
+    // SHORT HIP FRAGMENTS
+    _short_proton_reco.set_verbosity( larcv::msg::kDEBUG );
+    _short_proton_reco.process( iolcv, ioll );
+    
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
 
     // SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints
@@ -352,11 +362,12 @@ namespace reco {
     _nuvertexactivity.set_output_treename( "keypoint" );
     _nuvertexactivity.process( iolcv, ioll );
     
-    //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
+    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     _nuvertexmaker.apply_cosmic_veto( true );
@@ -409,6 +420,35 @@ namespace reco {
   /** @brief run Truth-Reco analyses for studying performance **/
   void KPSRecoManager::truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
+
+    ublarcvapp::mctools::LArbysMC truthdata;
+    truthdata.process( ioll );    
+    truthdata.process( iolcv, ioll );
+
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();    
+    std::vector<float> true_vtx = { truthdata._vtx_detx, truthdata._vtx_sce_y, truthdata._vtx_sce_z };
+
+    if ( nuvtx_v.size()!=_nu_sel_v.size() ) {
+      LARCV_CRITICAL() << "Number of NuSelectionVariable instances (" << _nu_sel_v.size() <<  ") "
+                       << "does not match the number of neutrino candidates (" << nuvtx_v.size() << ")" 
+                       << std::endl;
+    }
+    
+    for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
+      larflow::reco::NuVertexCandidate& nuvtx    = nuvtx_v[ivtx];
+      larflow::reco::NuSelectionVariables& nusel = _nu_sel_v[ivtx];
+
+      nusel.dist2truevtx = 0.;
+      for (int i=0; i<3; i++)
+        nusel.dist2truevtx += ( nuvtx.pos[i]-true_vtx[i] )*( nuvtx.pos[i]-true_vtx[i] );
+      nusel.dist2truevtx = sqrt( nusel.dist2truevtx );
+      
+      if (nusel.dist2truevtx<3.0)
+        nusel.isTruthMatchedNu = 1;
+      else
+        nusel.isTruthMatchedNu = 0;
+    }
+      
     // _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
     // _track_truthreco_ana.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
   }
@@ -420,19 +460,65 @@ namespace reco {
   void KPSRecoManager::makeNuCandidateSelectionVariables()
   {
 
-    // proton ID variables
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    LARCV_INFO() << "Make Selection Variables for " << nuvtx_v.size() << " candidates" << std::endl;
+    for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
-    // electron ID variables
+      // nu candidate
+      larflow::reco::NuVertexCandidate& nuvtx = nuvtx_v[ivtx];
+      
+      // make selection variables
+      larflow::reco::NuSelectionVariables nusel;
 
-    // pi-zero ID variables
+      std::cout << "===[ VERTEX " << ivtx << " ]===" << std::endl;
+      std::cout << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
+      std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
+      std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
 
-    // muon ID variables
+      nusel.max_proton_pid = 1e3; // more proton, the more value is negative
+      for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
 
-    // pion ID variables
+        auto& lltrack = nuvtx.track_v.at(itrack);
+        std::cout << "  [track " << itrack << "]" << std::endl;
+        std::cout << "    npts: " << lltrack.NumberTrajectoryPoints() << std::endl;
 
-    // nu kinematic variables
+        larflow::reco::NuSelectionVariables::TrackVar_t trackvars;
 
-    
+        trackvars.proton_ll = _sel_llpmu.calculateLL( lltrack, nuvtx.pos );
+        if ( trackvars.proton_ll<nusel.max_proton_pid )
+          nusel.max_proton_pid = trackvars.proton_ll;
+        std::cout << "    proton-ll: " << trackvars.proton_ll << std::endl;
+        
+        // proton ID variables        
+
+        // muon ID variables
+
+        // muon ID variables
+        
+        // pion ID variables
+
+        nusel._track_var_v.emplace_back( std::move(trackvars) );
+        
+      }//end of track loop
+        
+
+      for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
+
+        auto& llshower = nuvtx.shower_v.at(ishower);
+      
+        // electron ID variables
+      
+        // pi-zero ID variables
+
+      }
+      
+      
+      // nu kinematic variables
+      _nu_sel_v.emplace_back( std::move(nusel) );
+
+    }//end of vertex loop
+
+    LARCV_INFO() << "Selection variables made: " << _nu_sel_v.size() << std::endl;
     
   }
   

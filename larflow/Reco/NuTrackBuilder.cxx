@@ -27,7 +27,8 @@ namespace reco {
     // get clusters, pca-axis
     std::vector< std::string > cluster_producers =
       { "trackprojsplit_full",
-        "trackprojsplit_wcfilter" };
+        "trackprojsplit_wcfilter",
+        "hip" };
     
     for ( auto const& producer : cluster_producers ) {
     
@@ -43,7 +44,7 @@ namespace reco {
 
     buildNodeConnections();
     
-    set_output_one_track_per_startpoint( false );
+    set_output_one_track_per_startpoint( true );
 
     // wire plane images for getting dqdx later
     larcv::EventImage2D* ev_adc =
@@ -65,6 +66,7 @@ namespace reco {
                     << "(" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")"
                     << "/////////////"
                     << std::endl;
+      LARCV_DEBUG() << "  number of clusters: " << nuvtx.cluster_v.size() << std::endl;
 
       // get nodes from each vertex
       std::vector<NodePos_t*> nodes_near_cluster_start;
@@ -79,16 +81,26 @@ namespace reco {
           nodes_near_cluster_start.push_back( nullptr );
           nodes_far_cluster_start.push_back( nullptr );          
           segment_near_cluster_start.push_back(-1);
+          LARCV_DEBUG() << "  * cluster not a track" << std::endl;
           continue;
         }
         
         // veto nodes connected to the segment end closest to the vertexer
-        int min_segidx = findClosestSegment( vtxcluster.pos, 20.0 );
+        int min_segidx = -1;
+        try {
+          min_segidx = findClosestSegment( vtxcluster.pos, 20.0 );
+        }
+        catch ( const std::exception& e ) {
+          LARCV_CRITICAL() << "  * search for closest segment failed" << std::endl;
+          min_segidx = -1;
+          throw e;
+        }
 
         if ( min_segidx<0 ) {
           nodes_near_cluster_start.push_back( nullptr );
           nodes_far_cluster_start.push_back( nullptr );          
-          segment_near_cluster_start.push_back(-1);          
+          segment_near_cluster_start.push_back(-1);
+          LARCV_DEBUG() << "  * track cluster has no close node " << std::endl;
           continue; // no matching segment
         }
         
@@ -106,11 +118,15 @@ namespace reco {
 
         NodePos_t* vtxnode   = ( enddist[0]<enddist[1] ) ? &node0 : &node1;
         NodePos_t* farnode   = ( enddist[0]<enddist[1] ) ? &node1 : &node0;
+
+        LARCV_DEBUG() << "  * setup nodes for track " << std::endl;
         
         nodes_near_cluster_start.push_back(vtxnode);
         nodes_far_cluster_start.push_back(farnode);
         segment_near_cluster_start.push_back(min_segidx);
       }//end of loop over vertex clusters
+
+      LARCV_DEBUG() << "  -- start path search --" << std::endl;
       
       // loop over starting track clusters
       int ivtx = -1;
@@ -128,7 +144,7 @@ namespace reco {
         // transform back to cluster_t type
         larflow::reco::cluster_t cluster = larflow::reco::cluster_from_larflowcluster( lfcluster );
         
-        LARCV_DEBUG() << "[NuTrackBuilder] Vertex Cluster seeding point: "
+        LARCV_DEBUG() << "Finding track paths from cluster seeding point: "
                       << "(" << vtxcluster.pos[0] << "," << vtxcluster.pos[1] << "," << vtxcluster.pos[2] << ")"
                       << std::endl;
         
@@ -152,11 +168,18 @@ namespace reco {
         }
         vtxnode->veto = false;
 
-        LARCV_DEBUG() << "[NuTrackBuilder] Vertex Cluster end near vertex: "
+        LARCV_DEBUG() << "==============================================" << std::endl;        
+        LARCV_DEBUG() << "Start path search from vertex: "
                       << "(" << vtxnode->pos[0] << "," << vtxnode->pos[1] << "," << vtxnode->pos[2] << ")"
                       << std::endl;
+
+        int nbefore = (int)_track_proposal_v.size();
                        
         buildTracksFromPoint( vtxnode->pos );
+        
+        int nafter = (int)_track_proposal_v.size();
+        LARCV_DEBUG() << "After path search, number of proposals: " << nafter-nbefore << std::endl;
+        LARCV_DEBUG() << "==============================================" << std::endl;
         
       }//end of loop over vertex clusters
 
@@ -178,6 +201,7 @@ namespace reco {
       
       // pass the fitted tracks to the nu candidate
       nuvtx.track_v.reserve( fitted_v.size() );
+      std::vector<int> track_saved_v(fitted_v.size(),0);
       for (int itrack=0; itrack<(int)fitted_v.size(); itrack++) {
         auto& fitted = fitted_v.at(itrack);
         auto& hitcluster = fitted_hitcluster_v.at(itrack);
@@ -187,20 +211,30 @@ namespace reco {
         larlite::track track_dqdx;
         try {
           track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
-          nuvtx.track_v.emplace_back( std::move(track_dqdx) );
+          if (track_dqdx.NumberTrajectoryPoints()>0) {
+            track_saved_v[itrack] = 1;
+            nuvtx.track_v.emplace_back( std::move(track_dqdx) );
+          }
         }
         catch ( const std::exception& e ) {
           std::stringstream msg;
           msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << ". filling with original track" << std::endl;
-          nuvtx.track_v.push_back(fitted);
+          if (fitted.NumberTrajectoryPoints()>0) {
+            track_saved_v[itrack] = 1;
+            nuvtx.track_v.push_back(fitted);
+          }
         }
        
       }
 
       // pass the hit clusters on
       nuvtx.track_hitcluster_v.reserve( fitted_v.size() );
-      for ( auto& hitcluster : fitted_hitcluster_v )
+      for ( int itrack=0; itrack<(int)fitted_hitcluster_v.size(); itrack++ ) {
+        if ( track_saved_v[itrack]==0 )
+          continue;
+        auto& hitcluster = fitted_hitcluster_v[itrack];
         nuvtx.track_hitcluster_v.emplace_back( std::move(hitcluster) );
+      }
 
       // pass the tracks to the output container
       for ( auto& unfitted : unfitted_v )
