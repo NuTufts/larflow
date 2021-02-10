@@ -331,6 +331,8 @@ namespace reco {
 
     // SHORT HIP FRAGMENTS
     _short_proton_reco.set_verbosity( larcv::msg::kDEBUG );
+    _short_proton_reco.clear_clustertree_checklist();
+    _short_proton_reco.add_clustertree_forcheck( "trackprojsplit_wcfilter" );
     _short_proton_reco.process( iolcv, ioll );
     
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints

@@ -5,6 +5,7 @@
 #include "DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "cluster_functions.h"
+#include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -99,7 +100,7 @@ namespace reco {
     larflow::reco::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd );
     larflow::reco::cluster_runpca( cluster_v );
 
-    LARCV_INFO() << "number of clusters: " << cluster_v.size() << std::endl;
+    LARCV_INFO() << "number of clusters after dbscan: " << cluster_v.size() << std::endl;
 
     // find short, straight clusters
     std::vector< larflow::reco::cluster_t > proton_candidates_v;
@@ -113,9 +114,14 @@ namespace reco {
       // to do: cut on width somehow?
       proton_candidates_v.emplace_back( std::move(c) );
     }
-
+    LARCV_INFO() << "number of clusters after length and quality cut: " << proton_candidates_v.size() << std::endl;
+    
     // no need for other clusters
     cluster_v.clear();
+
+    // now filter out clusters which overlap with other clusters
+    checkForOverlap( ioll, proton_candidates_v, _input_cluster_tree_checklist_v );
+    LARCV_INFO()  << "number of proton candidates after cluster overlap filter: " << proton_candidates_v.size() << std::endl;    
 
     // save larflowcluster and pcaxis
     larlite::event_larflowcluster* ev_out_cluster
@@ -160,6 +166,85 @@ namespace reco {
       ev_out_pca->emplace_back( std::move(pc) );
       ev_out_track->emplace_back( std::move(lltrack) );
     }
+    
+  }
+
+  void ShortProtonClusterReco::checkForOverlap( larlite::storage_manager& io,
+                                                std::vector< larflow::reco::cluster_t >& proton_cluster_v,
+                                                std::vector< std::string >& cluster_overlap_list )
+  {
+    std::vector<int> has_overlap( proton_cluster_v.size(), 0 );
+    const float overlap_radius = 2.0;
+    const float dlen = 2.0;
+
+    for (auto const& treename : cluster_overlap_list ) {
+
+      larlite::event_pcaxis* ev_pca
+        = (larlite::event_pcaxis*)io.get_data(larlite::data::kPCAxis,treename);
+
+      for ( auto const& pca : *ev_pca ) {
+        
+        std::vector<float> start(3,0);
+        std::vector<float> end(3,0);
+        std::vector<float> dir(3,0);
+        float len = 0.;
+
+        for (int i=0; i<3; i++) {
+          start[i] = pca.getEigenVectors()[3][i]; // one end of the cluster
+          end[i]   = pca.getEigenVectors()[4][i]; // other end of the cluster
+          dir[i] = (end[i]-start[i]);
+          len += dir[i]*dir[i];
+        }
+
+        if ( len==0 )
+          continue;
+
+        len = sqrt(len);
+        for (int i=0; i<3; i++)
+          dir[i] /= len;
+    
+        for (int iproton=0; iproton<(int)proton_cluster_v.size(); iproton++) {
+          if ( has_overlap[iproton]==1 ) continue;
+          
+          auto const& proton = proton_cluster_v.at(iproton);
+
+          int nends_within_threshold = 0;
+          for (int iend=0; iend<2; iend++) {
+
+            const std::vector<float>& endpt = proton.pca_ends_v[iend];
+            float dist = larflow::reco::pointLineDistance3f( start, end, endpt );
+            if ( dist<overlap_radius )
+              nends_within_threshold++;
+          }
+
+          if ( nends_within_threshold==2 ) {
+            // close to parallel
+            // check location along line
+            float s0 = larflow::reco::pointRayProjection3f( start, dir, proton.pca_ends_v[0] );
+            float s1 = larflow::reco::pointRayProjection3f( start, dir, proton.pca_ends_v[1] );
+
+            if ( s0>=-dlen && s0<=len+dlen && s1>=-dlen && s1<=len+dlen )
+              has_overlap[iproton] = 1;
+          }
+        }
+      }//end of loop over checklist cluster pc axis
+
+    }//end of loop over list of cluster trees to utlize
+
+
+    // no we filter
+    std::vector<larflow::reco::cluster_t> filtered_v;
+    filtered_v.reserve( proton_cluster_v.size() );
+    
+    for (int iproton=0; iproton<(int)proton_cluster_v.size(); iproton++) {
+      if ( has_overlap[iproton]==1 ) continue;
+      
+      auto& proton = proton_cluster_v.at(iproton);
+
+      filtered_v.emplace_back( std::move(proton) );
+    }
+
+    std::swap( filtered_v, proton_cluster_v );
     
   }
   
