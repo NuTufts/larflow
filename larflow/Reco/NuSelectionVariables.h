@@ -58,6 +58,14 @@ namespace reco {
     // SUMMARY
     float max_proton_pid;
 
+    // made by NuSelProngVars
+    int   ntracks;
+    int   nshowers;
+    float max_shower_length;
+    float max_track_length;
+    int   max_shower_nhits;
+    int   max_track_nhits;
+
     // TRUTH
     float dist2truevtx;   ///< distance to true vertex, sce applied to true vertex
     int isTruthMatchedNu; ///< 1 if truth-matched. provides target for selection training.

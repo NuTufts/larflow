@@ -312,7 +312,12 @@ namespace reco {
               float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
               float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, showerpt );
 
-              if ( s>0 ) {
+              // set max distance from prong start to the point in question
+              float d2 = 0.;
+              for (int i=0; i<3; i++)
+                d2 += ( rankedprong.axis_start[i]-showerpt[i] )*( rankedprong.axis_start[i]-showerpt[i] );
+
+              if ( s>0.0 && d2<1e4 ) {
                 float rovers = r/s;
                 if ( rovers < 9.0/14.0 ) {
                   // mollier/radiation length
@@ -341,10 +346,16 @@ namespace reco {
                                             rankedprong.axis_end[2]) );
       shower_trunk_dir.add_direction( TVector3(0,0,0) );
       shower_trunk_dir.add_direction( TVector3(0,0,0) );          
+
+      // get pca of shower
+      larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
+      larflow::reco::cluster_pca( shower_cluster_t );
+      larlite::pcaxis shower_hit_pca = larflow::reco::cluster_make_pcaxis( shower_cluster_t );
       
       // save shower to nuvtx candidate object
       nuvtx.shower_v.emplace_back( std::move(shower_hit_v) );
       nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk_dir) );
+      nuvtx.shower_pcaxis_v.emplace_back( std::move(shower_hit_pca) );
 
     }//end of seed prong loop      
     

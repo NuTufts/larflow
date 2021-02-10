@@ -56,6 +56,7 @@
 #pragma link C++ class larflow::reco::TrackdQdx+;
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
 #pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
+#pragma link C++ class larflow::reco::NuSelProngVars+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

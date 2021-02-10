@@ -228,12 +228,12 @@ namespace reco {
     _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 5.0;
 
     // ShowerKP
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 20.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 10.0;
     _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 50.0;
 
     // Shower
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 50.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 100.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 10.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
 
     _apply_cosmic_veto = false;
     
@@ -534,6 +534,7 @@ namespace reco {
     cluster.type = ctype;
     cluster.npts = (int)lfcluster.size();
     vertex.cluster_v.emplace_back( std::move(cluster) );
+    vertex.cluster_pca_v.push_back( lfpca );
     
     return true;
   }

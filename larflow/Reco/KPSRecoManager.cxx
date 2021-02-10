@@ -8,6 +8,8 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
+#include "NuSelProngVars.h"
+
 namespace larflow {
 namespace reco {
 
@@ -372,6 +374,7 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.process( iolcv, ioll );
 
@@ -435,6 +438,8 @@ namespace reco {
                        << "does not match the number of neutrino candidates (" << nuvtx_v.size() << ")" 
                        << std::endl;
     }
+
+    NuSelProngVars prongvars;    
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
       larflow::reco::NuVertexCandidate& nuvtx    = nuvtx_v[ivtx];
@@ -449,6 +454,8 @@ namespace reco {
         nusel.isTruthMatchedNu = 1;
       else
         nusel.isTruthMatchedNu = 0;
+      
+      prongvars.analyze( nuvtx, nusel );
     }
       
     // _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );

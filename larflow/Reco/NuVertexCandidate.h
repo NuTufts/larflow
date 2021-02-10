@@ -6,6 +6,7 @@
 #include <vector>
 #include "DataFormat/track.h"
 #include "DataFormat/larflowcluster.h"
+#include "DataFormat/pcaxis.h"
 
 namespace larflow {
 namespace reco {
@@ -48,7 +49,8 @@ namespace reco {
     std::string keypoint_producer;  ///< name of tree containing keypoints used to seed candidates
     int keypoint_index;             ///< index of vertex candidate in container above
     std::vector<float> pos;         ///< keypoint position
-    std::vector< VtxCluster_t > cluster_v; ///< clusters assigned to vertex
+    std::vector< VtxCluster_t >    cluster_v; ///< clusters assigned to vertex
+    std::vector< larlite::pcaxis > cluster_pca_v; ///< cluster pca assigned to vertex
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster
 
     std::vector<larlite::track>  track_v;  ///< track candidates
@@ -56,6 +58,7 @@ namespace reco {
     
     std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
     std::vector<larlite::track>  shower_trunk_v;   ///< line for shower trunk for plotting
+    std::vector<larlite::pcaxis> shower_pcaxis_v;  ///< pc-axis of whole shower cluster
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {
