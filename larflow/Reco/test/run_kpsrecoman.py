@@ -54,6 +54,7 @@ iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane0" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane1" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane2" )
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" ) 
 #iolcv.addto_storeonly_list( ... )
 iolcv.reverse_all_products()
 

@@ -49,6 +49,9 @@ namespace reco {
     std::string keypoint_producer;  ///< name of tree containing keypoints used to seed candidates
     int keypoint_index;             ///< index of vertex candidate in container above
     std::vector<float> pos;         ///< keypoint position
+    int row;                        ///< vertex row
+    int tick;                       ///< vertex tick
+    std::vector<int> col_v;         ///< image columns
     std::vector< VtxCluster_t >    cluster_v; ///< clusters assigned to vertex
     std::vector< larlite::pcaxis > cluster_pca_v; ///< cluster pca assigned to vertex
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster

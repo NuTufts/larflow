@@ -2,6 +2,9 @@
 
 #include "geofuncs.h"
 #include "DataFormat/track.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
+#include "LArUtil/LArProperties.h"
+#include "LArUtil/Geometry.h"
 
 #include "NuVertexFitter.h"
 
@@ -137,6 +140,8 @@ namespace reco {
         vertex.pos.resize(3,0);
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];
+        vertex.tick  = lf_vertex.tick;
+        vertex.col_v = lf_vertex.targetwire;
         vertex.score = 0.0;
         seed_v.emplace_back( std::move(vertex) );
       }
@@ -292,7 +297,7 @@ namespace reco {
     tree->Branch("nuvertex_v", &_vertex_v );
     tree->Branch("numerged_v", &_merged_v );
     tree->Branch("nuvetoed_v", &_vetoed_v );
-    tree->Branch("nufitted_v", &_fitted_v );    
+    tree->Branch("nufitted_v", &_fitted_v);    
   }
 
 
@@ -652,6 +657,11 @@ namespace reco {
                                         larlite::storage_manager& ioll )                                        
   {
 
+    // need to get a meta
+    larcv::EventImage2D* adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
+    auto const& meta = adc->as_vector().front().meta();
+
     larflow::reco::NuVertexFitter fitter;
     if ( _apply_cosmic_veto )
       fitter.process( iolcv, ioll, get_vetoed_candidates() );
@@ -668,6 +678,16 @@ namespace reco {
       for ( auto const& vtx : _vetoed_v ) {
         NuVertexCandidate fitcand = vtx;
         fitcand.pos = fitted_pos_v[ivtx];
+
+        Double_t dpos[3] = {  fitcand.pos[0], fitcand.pos[1], fitcand.pos[2] };
+        
+        // update row, tick, col
+        fitcand.col_v.resize(3);
+        for  (int p=0; p<3; p++) 
+          fitcand.col_v[p] = larutil::Geometry::GetME()->WireCoordinate( dpos, p );
+        fitcand.tick = fitcand.pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+        fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
+        
         ivtx++;
         _fitted_v.emplace_back( std::move(fitcand) );
       }

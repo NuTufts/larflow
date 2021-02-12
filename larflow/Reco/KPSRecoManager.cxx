@@ -9,6 +9,8 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 #include "NuSelProngVars.h"
+#include "NuSelVertexVars.h"
+#include "SplitHitsByParticleSSNet.h"
 
 namespace larflow {
 namespace reco {
@@ -64,6 +66,12 @@ namespace reco {
       evout_badch->Emplace( std::move(gap) );
     }
 
+    // make five particle ssnet images
+    larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
+    fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
+    fiveparticlealgo.process( iolcv, ioll );
+    
+    
     // PREP SETS OF HITS
     // ------------------
     prepSpacepoints( iolcv, ioll  );
@@ -106,7 +114,7 @@ namespace reco {
       evout_opflash_beam->push_back( flash );
 
     // make selection variables
-    makeNuCandidateSelectionVariables();
+    makeNuCandidateSelectionVariables( iolcv, ioll );
     
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
@@ -438,8 +446,6 @@ namespace reco {
                        << "does not match the number of neutrino candidates (" << nuvtx_v.size() << ")" 
                        << std::endl;
     }
-
-    NuSelProngVars prongvars;    
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
       larflow::reco::NuVertexCandidate& nuvtx    = nuvtx_v[ivtx];
@@ -455,7 +461,6 @@ namespace reco {
       else
         nusel.isTruthMatchedNu = 0;
       
-      prongvars.analyze( nuvtx, nusel );
     }
       
     // _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );
@@ -466,11 +471,17 @@ namespace reco {
    * @brief run modules to produce selection variables for nu selection
    *
    */
-  void KPSRecoManager::makeNuCandidateSelectionVariables()
+  void KPSRecoManager::makeNuCandidateSelectionVariables( larcv::IOManager& iolcv,
+                                                          larlite::storage_manager& ioll )
   {
 
     std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
     LARCV_INFO() << "Make Selection Variables for " << nuvtx_v.size() << " candidates" << std::endl;
+
+    NuSelProngVars prongvars;
+    NuSelVertexVars vertexvars;
+    vertexvars.set_verbosity(larcv::msg::kDEBUG);
+    
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
       // nu candidate
@@ -497,7 +508,7 @@ namespace reco {
         if ( trackvars.proton_ll<nusel.max_proton_pid )
           nusel.max_proton_pid = trackvars.proton_ll;
         std::cout << "    proton-ll: " << trackvars.proton_ll << std::endl;
-        
+
         // proton ID variables        
 
         // muon ID variables
@@ -521,6 +532,8 @@ namespace reco {
 
       }
       
+      prongvars.analyze( nuvtx, nusel );
+      vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
       
       // nu kinematic variables
       _nu_sel_v.emplace_back( std::move(nusel) );

@@ -66,6 +66,13 @@ namespace reco {
     int   max_shower_nhits;
     int   max_track_nhits;
 
+    // made by NuSelVertexVars
+    std::vector<int>   nabove_threshold_vertex_pix_v;
+    std::vector<float> vertex_plane_charge_v;
+    float vertex_hip_fraction;
+    float vertex_charge_per_pixel;
+    int   vertex_type;
+    
     // TRUTH
     float dist2truevtx;   ///< distance to true vertex, sce applied to true vertex
     int isTruthMatchedNu; ///< 1 if truth-matched. provides target for selection training.

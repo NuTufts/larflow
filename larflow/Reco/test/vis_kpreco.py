@@ -195,6 +195,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
             shower = nuvtx.shower_v.at(ishower)
             shower_trunk = nuvtx.shower_trunk_v.at(ishower)
+            shower_pca   = nuvtx.shower_pcaxis_v.at(ishower)
             
             cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d] N[%d]"%(ivtx,ishower,shower.size()) )
             trunk_trace   = lardly.data.visualize_larlite_track( shower_trunk )
@@ -209,7 +210,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trunk_trace["line"]["width"] = 5
             trunk_trace["line"]["opacity"] = 1.0
             trunk_trace["name"] = "V[%s]-S[%d]"%(ivtx,ishower)
-            traces_v.append(trunk_trace)            
+            traces_v.append(trunk_trace)
+
+            pcatrace = lardly.data.visualize_pcaxis( shower_pca )
+            pcatrace["name"] = "SHR[%d]"%(ishower)
+            pcatrace["line"]["color"] = "rgb(255,0,0)"
+            pcatrace["line"]["width"] = 5
+            pcatrace["line"]["opacity"] = 1.0
+            traces_v.append( pcatrace )
+
 
         
 

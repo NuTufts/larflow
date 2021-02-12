@@ -46,7 +46,7 @@ namespace reco {
       va.lfhit.resize(n+3,0);
       for (int i=0; i<3; i++)
         va.lfhit[n+i] =  va.va_dir[i];
-      va.lfhit[3] = larflow::kVertexActivity;
+      va.lfhit[3] = (int)larflow::kVertexActivity;
         
       // store pca
       const larflow::reco::cluster_t* cluster = va.pattached;
