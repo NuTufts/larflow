@@ -156,6 +156,17 @@ namespace reco {
         continue;
       }
 
+      bool foundnan = false;
+      for (int v=0; v<3; v++) {
+        if ( std::isnan(clust.pca_eigenvalues[v]) )
+          foundnan = true;
+      }
+      if ( foundnan ) {
+        LARCV_DEBUG() << " PCA is NAN. no pass." << std::endl;
+        //out_v.emplace_back( std::move(clust) ); //  remove ?
+        continue;
+      }
+
       LARCV_DEBUG() << ss.str() << " do split" << std::endl;
       
       // we split this contour (or at least try)

@@ -36,6 +36,7 @@
 
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
+#include "CosmicProtonFinder.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -84,6 +85,9 @@ namespace reco {
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
+
+    // Edge-case handlers
+    CosmicProtonFinder _cosmic_proton_finder; ///< identifies cosmic tracks that could proton-like, redirect to neutrino-pipeline
 
     //TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
 

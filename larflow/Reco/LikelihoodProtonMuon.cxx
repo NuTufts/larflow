@@ -30,8 +30,29 @@ namespace reco {
     _sMuonRange2dEdx = nullptr;
     _sProtonRange2dEdx = nullptr;
   }
+
+  double LikelihoodProtonMuon::calculateLL( const larlite::track& track,
+                                            bool reverse ) const
+  {
+
+    std::vector<float> startvtx(3,0);
+
+    int npts = track.NumberTrajectoryPoints();
+    int firstpt = 0;
+    if ( reverse ) {
+      firstpt = npts-1;
+    }
+
+    auto const& pt = track.LocationAtPoint(firstpt);
+    for (int i=0; i<3; i++)
+      startvtx[i] = pt[i];
+
+    return calculateLL( track, startvtx );
+    
+  }
   
-  double LikelihoodProtonMuon::calculateLL( const larlite::track& track, const std::vector<float>& vertex ) const
+  double LikelihoodProtonMuon::calculateLL( const larlite::track& track,
+                                            const std::vector<float>& vertex ) const
   {
 
     int npts = track.NumberTrajectoryPoints();

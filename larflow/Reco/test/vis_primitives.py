@@ -93,7 +93,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     clusters = [("cosmic","trackprojsplit_full","rgb(150,150,150)",True),
                 ("wctrack","trackprojsplit_wcfilter","rgb(0,255,0)",True),
                 ("wcshower","showergoodhit","rgb(255,0,0)",False),
-                ("hip","hip","rgb(0,0,255)",True)]    
+                ("hip","hip","rgb(0,0,255)",True),
+                ("cproton","cosmicproton","rgb(0,0,255)",True)]    
     for (name,producer,rgbcolor,plotme) in clusters:
         if not plotme:
             continue

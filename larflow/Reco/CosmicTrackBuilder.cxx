@@ -9,6 +9,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include "larflow/SCBoundary/SCBoundary.h"
+#include "TrackdQdx.h"
 
 namespace larflow {
 namespace reco {
@@ -83,9 +84,28 @@ namespace reco {
 
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
 
-    fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, ev_adc->Image2DArray() );
+    fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, adc_v );
 
+    // apply dqdx calc to fitted track
+    for (int itrack=0; itrack<(int)evout_track->size(); itrack++) {
+      auto& fitted = evout_track->at(itrack);
+      auto& hitcluster = evout_trackcluster->at(itrack);
+      
+      larflow::reco::TrackdQdx dqdx_algo;
+      larlite::track track_dqdx;
+      try {
+        track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
+        // swap it
+        std::swap(fitted,track_dqdx);
+      }
+      catch ( const std::exception& e ) {
+        std::stringstream msg;
+        msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << "." << std::endl;
+      }
+    }
+    
     larlite::event_track* evout_simpletrack
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "simplecosmictrack");
     larlite::event_larflowcluster* evout_simpletrackcluster
@@ -120,6 +140,8 @@ namespace reco {
     // loop over reconstructed tracks
     larlite::event_track* ev_cosmic
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"cosmictrack");
+    larlite::event_larflowcluster* ev_cosmic_hitcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster,"cosmictrack");
 
     // class to calculate distance to space charge boundary
     larflow::scb::SCBoundary scb;
@@ -270,9 +292,14 @@ namespace reco {
       (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"boundarycosmicnoshift");
     larlite::event_track* evout_contained_track =
       (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"containedcosmic");
+    larlite::event_larflowcluster* evout_boundary_noshift_cluster =
+      (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster,"boundarycosmicnoshift");
+    larlite::event_larflowcluster* evout_contained_cluster =
+      (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster,"containedcosmic");
 
     for ( auto const& bm : track_boundary_v ) {
       auto const& track = ev_cosmic->at(bm.track_idx);
+      auto const& clust = ev_cosmic_hitcluster->at(bm.track_idx);
       larlite::track cptrack;
       cptrack.reserve( track.NumberTrajectoryPoints() );
       for ( int ipt=0; ipt<(int)track.NumberTrajectoryPoints(); ipt++ ) {
@@ -284,9 +311,11 @@ namespace reco {
       if ( bm.num_ends_on_boundary==1 ) {
         evout_boundary_track->emplace_back( std::move(cptrack) );
         evout_boundary_noshift_track->push_back( track );
+        evout_boundary_noshift_cluster->push_back( clust );
       }
       else {
         evout_contained_track->emplace_back( std::move(cptrack) );
+        evout_contained_cluster->push_back( clust );
       }
     }
 

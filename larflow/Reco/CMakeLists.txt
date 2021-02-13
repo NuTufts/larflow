@@ -30,6 +30,7 @@ set( HEADERS cluster_functions.h
   TrackdQdx.h
   NuSelectionVariables.h
   LikelihoodProtonMuon.h
+  CosmicProtonFinder.h
   NuSelProngVars.h
   NuSelVertexVars.h  
   KPSRecoManager.h )
@@ -62,6 +63,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   TrackdQdx.cxx
   NuSelectionVariables.cxx
   LikelihoodProtonMuon.cxx
+  CosmicProtonFinder.cxx
   NuSelProngVars.cxx
   NuSelVertexVars.cxx  
   KPSRecoManager.cxx )

@@ -99,6 +99,9 @@ namespace reco {
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
 
+    _cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_proton_finder.process( iolcv, ioll );
+
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
     
@@ -379,6 +382,7 @@ namespace reco {
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
