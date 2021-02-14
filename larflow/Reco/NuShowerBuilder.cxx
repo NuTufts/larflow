@@ -70,7 +70,7 @@ namespace reco {
         
         auto const& vtxcluster = nuvtx.cluster_v[ivtx];
 
-        // only deal with tracks        
+        // only deal with showers
         if ( vtxcluster.type!=NuVertexCandidate::kShower && vtxcluster.type!=NuVertexCandidate::kShowerKP ) {
           continue;
         }
