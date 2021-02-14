@@ -10,6 +10,7 @@
 
 #include "NuSelProngVars.h"
 #include "NuSelVertexVars.h"
+#include "NuSelTruthOnNuPixel.h"
 #include "SplitHitsByParticleSSNet.h"
 
 namespace larflow {
@@ -464,7 +465,9 @@ namespace reco {
         nusel.isTruthMatchedNu = 1;
       else
         nusel.isTruthMatchedNu = 0;
-      
+
+      larflow::reco::NuSelTruthOnNuPixel nupix;
+      nupix.analyze( iolcv, ioll, nuvtx, nusel );
     }
       
     // _track_truthreco_ana.set_verbosity( larcv::msg::kDEBUG );

@@ -32,7 +32,8 @@ set( HEADERS cluster_functions.h
   LikelihoodProtonMuon.h
   CosmicProtonFinder.h
   NuSelProngVars.h
-  NuSelVertexVars.h  
+  NuSelVertexVars.h
+  NuSelTruthOnNuPixel.h    
   KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -65,7 +66,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   LikelihoodProtonMuon.cxx
   CosmicProtonFinder.cxx
   NuSelProngVars.cxx
-  NuSelVertexVars.cxx  
+  NuSelVertexVars.cxx
+  NuSelTruthOnNuPixel.cxx  
   KPSRecoManager.cxx )
 
 # create a property to hold our headers

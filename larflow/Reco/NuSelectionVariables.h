@@ -20,6 +20,7 @@ namespace reco {
     NuSelectionVariables()
       : max_proton_pid(0.0),
       dist2truevtx(1e6),
+      truth_vtxFracNu(0.),
       isTruthMatchedNu(0)
       {};
     virtual ~NuSelectionVariables() {};
@@ -74,8 +75,9 @@ namespace reco {
     int   vertex_type;
     
     // TRUTH
-    float dist2truevtx;   ///< distance to true vertex, sce applied to true vertex
-    int isTruthMatchedNu; ///< 1 if truth-matched. provides target for selection training.
+    float dist2truevtx;    ///< distance to true vertex, sce applied to true vertex
+    float truth_vtxFracNu; ///< fraction of all plane pixels on nu
+    int isTruthMatchedNu;  ///< 1 if truth-matched. provides target for selection training.
     
   };
   
