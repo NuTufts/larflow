@@ -83,10 +83,10 @@ namespace reco {
           reclassified_cluster.push_back( cluster );
           reclassified_track.push_back( track );
           isproton[itrack] = 1;
+          num_reclassified++;
         }
         else if ( ll_backward<0 ) {
           LARCV_DEBUG() << "  found proton, but need to reverse" << std::endl;          
-          reclassified_cluster.push_back( cluster );
           // have to reverse the track
           larlite::track rtrack;
           int npts = track.NumberTrajectoryPoints();
@@ -95,7 +95,7 @@ namespace reco {
           for (int v=0; v<4; v++)
             dqdx_v[v].resize(npts,0);
           
-          for (int ipt=npts-1; ipt>=0; ipt++) {
+          for (int ipt=npts-1; ipt>=0; ipt--) {
             rtrack.add_vertex( track.LocationAtPoint(ipt) );
             TVector3 rdir = track.DirectionAtPoint(ipt);
             for (int i=0; i<3; i++)
@@ -110,6 +110,7 @@ namespace reco {
           reclassified_cluster.push_back( cluster );
           reclassified_track.emplace_back( rtrack );
           isproton[itrack] = 1;
+          num_reclassified++;
         }
 
         // (and remove from cosmic container ...)
@@ -117,24 +118,27 @@ namespace reco {
       }//end of track loop of container
 
       // we need to remove reclassified track in vector
-      std::vector< larlite::track > still_cosmic_v;
-      std::vector< larlite::larflowcluster > still_cluster_v;
-      still_cosmic_v.reserve( ntracks );
-      for (int itrack=0; itrack<ntracks; itrack++) {
-        if ( isproton[itrack]==0 ) {
-          still_cosmic_v.emplace_back( std::move(ev_track->at(itrack)) );
-          still_cluster_v.emplace_back( std::move(ev_cluster->at(itrack)) );
+      if ( num_reclassified>0 ) {
+        std::vector< larlite::track > still_cosmic_v;
+        std::vector< larlite::larflowcluster > still_cluster_v;
+        still_cosmic_v.reserve( ntracks );
+        for (int itrack=0; itrack<ntracks; itrack++) {
+          if ( isproton[itrack]==0 ) {
+            still_cosmic_v.emplace_back( std::move(ev_track->at(itrack)) );
+            still_cluster_v.emplace_back( std::move(ev_cluster->at(itrack)) );
+          }
+        }
+        ev_track->clear();
+        ev_cluster->clear();
+
+        for (int itrack=0; itrack<(int)still_cosmic_v.size(); itrack++) {
+          ev_track->emplace_back( std::move(still_cosmic_v[itrack]) );
+          ev_cluster->emplace_back( std::move(still_cluster_v[itrack]) );        
         }
       }
-      ev_track->clear();
-      ev_cluster->clear();
-
-      for (int itrack=0; itrack<(int)still_cosmic_v.size(); itrack++) {
-        ev_track->emplace_back( std::move(still_cosmic_v[itrack]) );
-        ev_cluster->emplace_back( std::move(still_cluster_v[itrack]) );        
-      }
       
-      LARCV_DEBUG() << cosmic_treename << " now has " << ev_track->size() << " tracks and " << ev_cluster->size() << " clusters" << std::endl;      
+      LARCV_DEBUG() << cosmic_treename << " now has " << ev_track->size() << " tracks and " << ev_cluster->size() << " clusters" << std::endl;
+      LARCV_DEBUG() << "reclassified tracks: " << reclassified_track.size() << std::endl;
     }//loop over input containers
 
     LARCV_INFO() << "Found " << reclassified_cluster.size() << " proton-like tracks from cosmic tracks" << std::endl;
