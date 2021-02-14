@@ -219,11 +219,11 @@ namespace reco {
             pca_dist += dx*dx;
           }
           pca_dist = sqrt(pca_dist);
-          std::cout << "  icontour[" << ictr << "] plane=" << p 
-                    << " pca-dist=" << pca_dist
-                    << " eigenvals [0]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(0)
-                    << " [1]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)
-                    << std::endl;
+          LARCV_DEBUG() << "  icontour[" << ictr << "] plane=" << p 
+                        << " pca-dist=" << pca_dist
+                        << " eigenvals [0]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(0)
+                        << " [1]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)
+                        << std::endl;
 
           cdata c;
           c.index = ictr;
@@ -283,7 +283,7 @@ namespace reco {
           }
         } //end of loop over points in old cluster
 
-        std::cout << "  [ctr=" << c.index << " plane=" << c.plane << " length=" << c.length << " npts=" << contourcluster.points_v.size() << "]" << std::endl;
+        LARCV_DEBUG() << "  [ctr=" << c.index << " plane=" << c.plane << " length=" << c.length << " npts=" << contourcluster.points_v.size() << "]" << std::endl;
         
         // check if big enough
         if ( contourcluster.points_v.size()<5 )
@@ -292,7 +292,7 @@ namespace reco {
         // get pca of new cluster
         larflow::reco::cluster_pca( contourcluster );
 
-        std::cout << "     pca-eigenvalue[1]=" << contourcluster.pca_eigenvalues[1] << std::endl;
+        LARCV_DEBUG() << "     pca-eigenvalue[1]=" << contourcluster.pca_eigenvalues[1] << std::endl;
 
         if ( contourcluster.pca_eigenvalues[1]<5.0 ) {
           // success!
@@ -311,7 +311,7 @@ namespace reco {
         
       }//end of loop over contours
 
-      std::cout << "after split: hits claimed=" << totclaimed << " of " << claimedpts.size() << std::endl;
+      LARCV_DEBUG() << "after split: hits claimed=" << totclaimed << " of " << claimedpts.size() << std::endl;
 
       if ( nnewclusters>0 )
         nsplit++;
@@ -340,7 +340,7 @@ namespace reco {
 
     std::clock_t end = std::clock();
     float elapsed = float( end-begin )/CLOCKS_PER_SEC;
-    std::cout << "[ProjectionDefectSplitter::split_clusters] end; elapsed=" << elapsed << " secs" << std::endl;
+    LARCV_INFO() << "[ProjectionDefectSplitter::split_clusters] end; elapsed=" << elapsed << " secs" << std::endl;
 
 
     return nsplit;
@@ -428,7 +428,7 @@ namespace reco {
       int iorder = cluster.ordered_idx_v[ii];
       int hitidx = cluster.hitidx_v[iorder];
       if ( hitidx<0 || hitidx>=(int)source_lfhit_v.size() ) {
-        std::cout << "Could not retrieve hit with index=" << hitidx << ". Number of input hits=" << source_lfhit_v.size() << std::endl;
+        LARCV_CRITICAL() << "Could not retrieve hit with index=" << hitidx << ". Number of input hits=" << source_lfhit_v.size() << std::endl;
         throw std::runtime_error("Could not retrieve hit index");
       }
       

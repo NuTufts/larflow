@@ -442,6 +442,7 @@ namespace reco {
     ublarcvapp::mctools::LArbysMC truthdata;
     truthdata.process( ioll );    
     truthdata.process( iolcv, ioll );
+    truthdata.printInteractionInfo();
 
     std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();    
     std::vector<float> true_vtx = { truthdata._vtx_detx, truthdata._vtx_sce_y, truthdata._vtx_sce_z };
