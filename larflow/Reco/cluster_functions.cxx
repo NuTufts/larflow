@@ -823,9 +823,9 @@ namespace reco {
       int row = img_v[0].meta().row( cluster.imgcoord_v[ihit][3], __FILE__, __LINE__ );
       for ( size_t p=0; p<img_v.size(); p++ ) {
         int col = img_v[p].meta().col( cluster.imgcoord_v[ihit][p], __FILE__, __LINE__ );
-        float used   = blank_v[p].pixel(row,col);
+        float used   = blank_v[p].pixel(row,col,__FILE__,__LINE__);
         if ( used<1.0 ) {
-          float pixval = img_v[p].pixel(row,col);
+          float pixval = img_v[p].pixel(row,col,__FILE__,__LINE__);
           cluster_adc[p] += pixval;
           // mark it to not be reused
           blank_v[p].set_pixel(row,col,10.0);

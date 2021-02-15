@@ -67,10 +67,10 @@ namespace reco {
           if ( c<0 || c>=(int)img.meta().cols() )
             continue;
           
-          float pixval = adc_v[p].pixel( r, c );
+          float pixval = adc_v[p].pixel( r, c, __FILE__, __LINE__ );
           if ( pixval>10 ) {
             nabove_thresh[p]++;          
-            int maxpid   = (int)ssnet_v[p].pixel( r, c );
+            int maxpid   = (int)ssnet_v[p].pixel( r, c, __FILE__, __LINE__ );
             particle_sum[p][maxpid-1]++; // pid start at 1, so remove 1.
             charge_pixsum[p] += pixval;
           }

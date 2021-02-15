@@ -66,7 +66,9 @@ namespace reco {
             if ( plane_has_hip[p] )
               break;
             int c = col+dc;
-            float pixval = img.pixel( r, c );
+	    if ( c<0 || c>=(int)img.meta().cols() )
+	      continue;
+            float pixval = img.pixel( r, c, __FILE__, __LINE__ );
             if ( pixval>hip_threshold[p] ) {
               plane_has_hip[p] = true;
             }

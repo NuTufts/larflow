@@ -291,7 +291,7 @@ namespace reco {
             continue;
           
           if ( adc_v[p].pixel(row,col)>10.0 )
-            pixelsum[p] += adc_v[p].pixel(row,col);
+            pixelsum[p] += adc_v[p].pixel(row,col,__FILE__,__LINE__);
         }
       }//end of plane loop
     }//end of row loop
@@ -385,7 +385,7 @@ namespace reco {
         for (int p=0; p<3; p++) {
           if ( lmhit.targetwire[p]>(int)ssnet_v[p]->meta().min_x() && lmhit.targetwire[p]<(int)ssnet_v[p]->meta().max_x() ) {
             int col = ssnet_v[p]->meta().col( lmhit.targetwire[p], __FILE__, __LINE__ );
-            shower_prob[p] = ssnet_v[p]->pixel( row, col );
+            shower_prob[p] = ssnet_v[p]->pixel( row, col, __FILE__, __LINE__ );
           }
         }
         std::sort( shower_prob.begin(), shower_prob.end() );
@@ -500,7 +500,7 @@ namespace reco {
             if ( col<0 || col>=(int)seg_v[p].meta().cols() )
               continue;
 
-            float segvalue = seg_v[p].pixel(row,col);
+            float segvalue = seg_v[p].pixel(row,col,__FILE__,__LINE__);
 
             if ( segvalue>0 ) {
               va.truth_num_nupix[p]++;
@@ -548,8 +548,8 @@ namespace reco {
           if ( col<0 || col>=(int)adc_v[p].meta().cols() )
             continue;
 
-          float pixadc = adc_v[p].pixel(row,col);
-          float pixthrumu = thrumu_v[p].pixel(row,col);
+          float pixadc = adc_v[p].pixel(row,col,__FILE__,__LINE__);
+          float pixthrumu = thrumu_v[p].pixel(row,col,__FILE__,__LINE__);
 
           if ( pixadc>10.0 ) {
             npix_w_charge[p]++;
@@ -610,7 +610,7 @@ namespace reco {
       for (int p=0; p<3; p++) {
         if ( lmhit.targetwire[p]>(int)ssnet_v[p]->meta().min_x() && lmhit.targetwire[p]<(int)ssnet_v[p]->meta().max_x() ) {
           int col = ssnet_v[p]->meta().col( lmhit.targetwire[p], __FILE__, __LINE__ );
-          shower_prob[p] = ssnet_v[p]->pixel( row, col );
+          shower_prob[p] = ssnet_v[p]->pixel( row, col, __FILE__, __LINE__ );
         }
       }
       std::sort( shower_prob.begin(), shower_prob.end() );

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os,sys,argparse,time
 
 """
@@ -29,9 +30,9 @@ from larflow import larflow
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
 
-print "[INPUT: DL MERGED] ",args.input_dlmerged
-print "[INPUT: LARMATCH-KPS]  ",args.input_larflow
-print "[OUTPUT]    ",args.output
+print("[INPUT: DL MERGED] ",args.input_dlmerged)
+print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
+print("[OUTPUT]    ",args.output)
 
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
@@ -87,57 +88,18 @@ if args.ismc:
 io.go_to( args.start_entry )
 #io.next_event()
 #io.go_to( args.start_entry )
-for ientry in xrange( args.start_entry, end_entry ):
-    print "[ENTRY ",ientry,"]"
+for ientry in range( args.start_entry, end_entry ):
+    print("[ENTRY ",ientry,"]")
     iolcv.read_entry(ientry)
 
-    print "reco, make nu candidates, calculate selection variables"
+    print("reco, make nu candidates, calculate selection variables")
     recoman.process( iolcv, io )
-    #print "make selection variables"
-    #recoman.makeNuCandidateSelectionVariables()
-    #print "calculate truth variables"
-    #recoman.truthAna( iolcv, io )
-    
-  #   # make bad channel image
-  #   t_badch = time.time()
-  #   """
-  # std::vector<larcv::Image2D> EmptyChannelAlgo::makeGapChannelImage( const std::vector<larcv::Image2D>& img_v,
-  #                                                                    const larcv::EventChStatus& ev_status, int minstatus,
-  #                                                                    int nplanes, int start_tick, int nticks, int nchannels,
-  #                                                                    int time_downsample_factor, int wire_downsample_factor,
-  #                                                                    const float empty_ch_threshold,
-  #                                                                    const int max_empty_gap,
-  #                                                                    const float empty_ch_max ) {
-  #   """
-  #   ev_adc = iolcv.get_data(larcv.kProductImage2D, "wire")
-  #   ev_chstatus = iolcv.get_data(larcv.kProductChStatus, "wire")
-  #   adc_v = ev_adc.Image2DArray()
-  #   gapch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
-  #                                             4, 3, 2400, 6*1008, 3456, 6, 1,
-  #                                             5.0,
-  #                                             50,
-  #                                             -1.0 )
-    
-  #   print("Number of badcv images: ",gapch_v.size())
-  #   dt_badch = time.time()-t_badch
-  #   ev_badch = iolcv.get_data(larcv.kProductImage2D,"badch")
-  #   for iimg in range(gapch_v.size()):
-  #       ev_badch.Append( gapch_v[iimg] )
-  #   print( "Made EVENT Gap Channel Image: ",gapch_v.front().meta().dump(), " elasped=",dt_badch," secs")        
-
-  #   ev_lfhits = io.get_data( larlite.data.kLArFlow3DHit, "larmatch" )
-  #   print("num of hits: ",ev_lfhits.size())
-
-  #   splithits.process( iolcv, io )
-  #   print("number of track hits: ",splithits.get_track_hits().size())
-    
-  #   tracker.process( iolcv, io, kpreco.kpcluster_v )
 
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()
 
-print "Event Loop finished"
+print("Event Loop finished")
 #del kpsrecoman
 
 io.close()

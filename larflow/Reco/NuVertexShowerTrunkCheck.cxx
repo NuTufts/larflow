@@ -241,7 +241,7 @@ namespace reco {
           int col = imgcoord[p] + dc;
           if ( col<0 || col>=(int)adc_v[p].meta().cols() )
             continue;
-          float pixval = adc_v[p].pixel( row, col );
+          float pixval = adc_v[p].pixel( row, col, __FILE__, __LINE__ );
           if ( pixval>10.0 )
             npix++;
         }

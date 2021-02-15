@@ -354,7 +354,7 @@ namespace reco {
         int r = row+dr;
         if ( r<0 || r>=(int)adc_v.front().meta().rows() )
           continue;
-        pixsum += adc_v[p].pixel( r, imgcoord[p] );
+        pixsum += adc_v[p].pixel( r, imgcoord[p], __FILE__, __LINE__ );
         npix++;
       }
       if ( npix>0 )

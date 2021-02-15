@@ -313,7 +313,7 @@ namespace reco {
           continue;      
         for (int p=0; p<(int)nplanes; p++) {
           const larcv::Image2D& img = adc_v[p];
-          qpix[p] += img.pixel( r, imgcoord[p] );
+          qpix[p] += img.pixel( r, imgcoord[p], __FILE__, __LINE__ );
           npix[p]++;
         }
       }

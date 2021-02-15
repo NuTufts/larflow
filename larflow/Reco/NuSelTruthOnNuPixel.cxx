@@ -41,11 +41,11 @@ namespace reco {
         for (int c=-dpix;c<=dpix;c++) {
           int col = nuvtx.col_v[p] + c;
 
-          if ( col<0 || c>=(int)meta.cols() )
+          if ( col<0 || col>=(int)meta.cols() )
             continue;
           
-          float pixval = adc.pixel(row,col);
-          float segval = seg.pixel(row,col);
+          float pixval = adc.pixel(row,col,__FILE__,__LINE__);
+          float segval = seg.pixel(row,col,__FILE__,__LINE__);
 
           if ( pixval>10.0 ) {
             nabove[p]++;

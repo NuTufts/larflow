@@ -686,10 +686,12 @@ namespace reco {
         for  (int p=0; p<3; p++) 
           fitcand.col_v[p] = larutil::Geometry::GetME()->WireCoordinate( dpos, p );
         fitcand.tick = fitcand.pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-        fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
-        
-        ivtx++;
-        _fitted_v.emplace_back( std::move(fitcand) );
+
+	if ( fitcand.tick>meta.min_y() && fitcand.tick<meta.max_y() )  {
+	  fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
+	  _fitted_v.emplace_back( std::move(fitcand) );
+	}
+	ivtx++;
       }
       
     }

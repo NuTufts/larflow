@@ -110,7 +110,7 @@ namespace reco {
                 for (int dc=-1; dc<=1; dc++) {
                   int c = col+dc;
                   if ( c<0 || c>=(int)img.meta().cols() ) continue;
-                  planeq += img.pixel(r,c);
+                  planeq += img.pixel(r,c,__FILE__,__LINE__);
                 }
               }
               planeq_v[p] =  planeq;
