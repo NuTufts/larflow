@@ -66,6 +66,8 @@ namespace reco {
     float max_track_length;
     int   max_shower_nhits;
     int   max_track_nhits;
+    float min_shower_gap;
+    float max_shower_gap;
 
     // made by NuSelVertexVars
     std::vector<int>   nabove_threshold_vertex_pix_v;

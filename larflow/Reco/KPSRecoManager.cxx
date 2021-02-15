@@ -406,6 +406,11 @@ namespace reco {
     _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
     _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    // repair shower trunks by absorbing tracks or creating hits
+    _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() )
+      _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
     
   }
 

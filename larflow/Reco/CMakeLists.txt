@@ -26,6 +26,7 @@ set( HEADERS cluster_functions.h
   NuTrackBuilder.h
   NuShowerBuilder.h
   NuVertexShowerReco.h
+  NuVertexShowerTrunkCheck.h
   NuVertexActivityReco.h
   TrackdQdx.h
   NuSelectionVariables.h
@@ -60,6 +61,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuTrackBuilder.cxx
   NuShowerBuilder.cxx
   NuVertexShowerReco.cxx
+  NuVertexShowerTrunkCheck.cxx  
   NuVertexActivityReco.cxx  
   TrackdQdx.cxx
   NuSelectionVariables.cxx

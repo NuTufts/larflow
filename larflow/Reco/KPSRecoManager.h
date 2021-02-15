@@ -32,6 +32,7 @@
 #include "NuTrackBuilder.h"
 #include "NuShowerBuilder.h"
 #include "NuVertexShowerReco.h"
+#include "NuVertexShowerTrunkCheck.h"
 #include "NuVertexActivityReco.h"
 
 #include "NuSelectionVariables.h"
@@ -81,6 +82,7 @@ namespace reco {
     NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
     NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
     NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
+    NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters

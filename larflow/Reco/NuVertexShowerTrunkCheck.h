@@ -46,19 +46,39 @@ namespace reco {
 
     void checkNuCandidateProngs( larflow::reco::NuVertexCandidate& nuvtx );
 
-    bool isTrackTrunkOfShower( larlite::track& track,
+    bool isTrackTrunkOfShower( const std::vector<float>& vtxpos,
+                               larlite::track& track,
                                larlite::larflowcluster& track_hitcluster,
                                larlite::track&          shower_trunk,
                                larlite::larflowcluster& shower_hitcluster,
-                               larlite::pcaxis& shower_pcaxis );
+                               larlite::pcaxis& shower_pcaxis,
+                               float& frac_path, float& frac_core );
 
     larlite::larflowcluster makeMissingTrunkHits( const std::vector<larcv::Image2D>& adc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
                                                   larlite::pcaxis& shower_pcaxis );
+
+  protected:
+
+    void _addTrackAsNewTrunk(  const std::vector<float>& vtxpos,
+                               larlite::track& track,
+                               larlite::larflowcluster& track_hitcluster,
+                               larlite::track&          shower_trunk,
+                               larlite::larflowcluster& shower_hitcluster,
+                               larlite::pcaxis& shower_pcaxis );
+    
+    void _addTrackToCore(  const std::vector<float>& vtxpos,
+                           larlite::track& track,
+                           larlite::larflowcluster& track_hitcluster,
+                           larlite::track&          shower_trunk,
+                           larlite::larflowcluster& shower_hitcluster,
+                           larlite::pcaxis& shower_pcaxis );
+    
     
   };
   
 }
 }
     
+#endif
