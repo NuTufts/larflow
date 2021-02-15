@@ -1,5 +1,8 @@
 #include "NuVertexShowerTrunkCheck.h"
 
+#include "LArUtil/Geometry.h"
+#include "LArUtil/LArProperties.h"
+
 #include "geofuncs.h"
 #include "cluster_functions.h"
 
@@ -14,6 +17,15 @@ namespace reco {
     for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
       auto& track = nuvtx.track_v[i];
       auto& track_hits = nuvtx.track_hitcluster_v[i];
+
+      // get track length
+      float tracklen = 0.;
+      for (int ipt=0; ipt<(int)track.NumberTrajectoryPoints()-1;ipt++) {
+        tracklen += ( track.LocationAtPoint(ipt)-track.LocationAtPoint(ipt+1) ).Mag();
+      }
+
+      if ( tracklen<7.0 )
+        continue;
 
       for (int j=0; j<(int)nuvtx.shower_v.size(); j++) {
 
@@ -159,12 +171,110 @@ namespace reco {
   }
 
   larlite::larflowcluster
-  NuVertexShowerTrunkCheck::makeMissingTrunkHits( const std::vector<larcv::Image2D>& adc_v,
+  NuVertexShowerTrunkCheck::makeMissingTrunkHits( const std::vector<float>& vtxpos,
+                                                  const std::vector<larcv::Image2D>& adc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
                                                   larlite::pcaxis& shower_pcaxis )
   {
     larlite::larflowcluster added_hit_v;
+
+    // we define a line segment between the vertex and shower
+    TVector3 vstart; // vertex position
+    for (int i=0; i<3; i++)
+      vstart[i] = vtxpos[i];
+
+    // closest point to the shower
+    float dist[2] = { 0, 0 };
+    for (int iend=0; iend<2; iend++) {
+      dist[iend] = (shower_trunk.LocationAtPoint(iend)-vstart).Mag();
+    }
+
+    // define shower trunk start    
+    std::vector<float> shrstart(3,0); 
+    if ( dist[0]<dist[1] ) {
+      for (int i=0; i<3; i++)
+        shrstart[i] = shower_trunk.LocationAtPoint(0)[i];
+    }
+    else {
+      for (int i=0; i<3; i++)
+        shrstart[i] = shower_trunk.LocationAtPoint(1)[i];
+    }
+
+    // define shower dir
+    std::vector<double> showerdir(3,0);
+    float len = 0.;
+    for (int i=0; i<3; i++) {
+      showerdir[i] = shrstart[i]-vtxpos[i];
+      len += showerdir[i]*showerdir[i];
+    }
+    len = sqrt(len);
+    for (int i=0; i<3; i++)
+      showerdir[i] /= len;
+
+    // step through, save unique wire combinations
+    const float max_stepsize = 0.3;
+    int nsteps = len/max_stepsize+1;
+    double stepsize = (double)len/(double)nsteps;
+
+    std::set< std::vector<int> > past_hits;
+    auto const& meta = adc_v.front().meta();
+
+    for (int istep=0; istep<nsteps; istep++) {
+      std::vector<double> pos(3,0);
+      for (int i=0; i<3; i++)
+        pos[i] = (double)vtxpos[i] + stepsize*showerdir[i];
+
+      float tick = pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
+      if ( tick<=meta.min_y() || tick>=meta.max_y() )
+        continue;
+      int row = meta.row(tick,__FILE__,__LINE__);
+
+      int nplanes_w_charge = 0;
+      std::vector<int> imgcoord(4,0);
+      for (int p=0; p<3; p++) {
+        imgcoord[p] = (int)larutil::Geometry::GetME()->WireCoordinate( pos, p );
+        int npix = 0;
+        for (int dc=-2; dc<=2; dc++) {
+          if ( npix>0 )
+            break;
+          int col = imgcoord[p] + dc;
+          if ( col<0 || col>=(int)adc_v[p].meta().cols() )
+            continue;
+          float pixval = adc_v[p].pixel( row, col );
+          if ( pixval>10.0 )
+            npix++;
+        }
+        if (npix>0)
+          nplanes_w_charge++;
+      }//end of plane
+      
+      if ( nplanes_w_charge>=2 ) {
+      
+        imgcoord[3] = row;
+        if ( past_hits.find( imgcoord )==past_hits.end() ) {
+          // create a hit
+          larlite::larflow3dhit lfhit;
+          lfhit.resize(19,0);
+          for (int v=0; v<3; v++)
+            lfhit[v] = pos[v];
+          lfhit.tick = tick;
+          lfhit.targetwire.resize(2,0);          
+          for (int p=0; p<3; p++)
+            lfhit.targetwire[p] = imgcoord[p];
+          // fake larmatch score
+          lfhit[9] = 1.0; 
+          lfhit.track_score = 1.0;
+          // ssnet score
+          lfhit.renormed_shower_score = 1.0;
+          added_hit_v.emplace_back( std::move(lfhit) );
+          past_hits.insert( imgcoord );
+        }
+
+      }
+    }//end of step loop
+
+    
     
     return added_hit_v;
   }
@@ -336,6 +446,7 @@ namespace reco {
     std::swap( shower_pcaxis, new_pca );
     
   }
+  
   
 }
 }

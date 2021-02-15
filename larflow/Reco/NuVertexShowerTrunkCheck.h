@@ -54,7 +54,8 @@ namespace reco {
                                larlite::pcaxis& shower_pcaxis,
                                float& frac_path, float& frac_core );
 
-    larlite::larflowcluster makeMissingTrunkHits( const std::vector<larcv::Image2D>& adc_v,
+    larlite::larflowcluster makeMissingTrunkHits( const std::vector<float>& vtxpos,
+                                                  const std::vector<larcv::Image2D>& adc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
                                                   larlite::pcaxis& shower_pcaxis );
