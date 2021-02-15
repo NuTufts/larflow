@@ -225,7 +225,7 @@ for ientry in range(NENTRIES):
     print("number of proposed triplets: ",ntriplets)
     print("use skip limit: ",args.use_skip_limit)
     if args.use_skip_limit is not None and ntriplets>args.use_skip_limit:
-        print("Hit no-process limit: ",ntriplets," > ",args.triplet_max_skip)
+        print("Hit no-process limit: ",ntriplets," > ",args.use_skip_limit)
         ntriplets = -1
     
     startidx = 0
