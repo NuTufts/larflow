@@ -132,14 +132,17 @@ for ientry in range( args.start_entry, end_entry ):
     iolcv.read_entry(ientry)
 
     print("reco, make nu candidates, calculate selection variables")
+    sys.stdout.flush()
     recoman.process( iolcv, io )
 
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()
+    sys.stdout.flush()
 
 print("Event Loop finished")
 #del kpsrecoman
+sys.stdout.flush()
 
 io.close()
 iolcv.finalize()

@@ -33,7 +33,7 @@ namespace reco {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
-    _ana_tree->Branch( "telapsed", &_t_event_elapsed );
+    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -145,7 +145,7 @@ namespace reco {
     _ana_event  = ev_adc->event();
 
     std::clock_t end_event = std::clock_t();
-    _t_event_elapsed = float(end_event-start_event)/(float)CLOCKS_PER_SEC;
+    _t_event_elapsed = (end_event-start_event)/CLOCKS_PER_SEC;
 
     _ana_tree->Fill();    
     
