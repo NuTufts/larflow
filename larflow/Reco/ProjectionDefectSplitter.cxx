@@ -969,14 +969,30 @@ namespace reco {
       // then we hold the end fixed and vary the start.
       std::vector< std::vector<float> > seg0_endpt_pass1;
       seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[0] );
-      seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );    
-      TrackOTFit::fit_segment( seg0_endpt_pass1, seg0_cluster.points_v, 100, lr );
+      seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );
+      try {
+        TrackOTFit::fit_segment( seg0_endpt_pass1, seg0_cluster.points_v, 100, lr );
+      }
+      catch  (std::exception& e) {
+        // restore
+        seg0_endpt_pass1.clear();
+        seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[0] );
+        seg0_endpt_pass1.push_back( seg0_cluster.pca_ends_v[1] );
+      }
 
       // swap
       std::vector< std::vector<float> > seg0_endpt_pass2;
       seg0_endpt_pass2.push_back( seg0_endpt_pass1[1] );
       seg0_endpt_pass2.push_back( seg0_cluster.pca_ends_v[0] );
-      TrackOTFit::fit_segment( seg0_endpt_pass2, seg0_cluster.points_v, 100, lr );
+      try {
+        TrackOTFit::fit_segment( seg0_endpt_pass2, seg0_cluster.points_v, 100, lr );
+      }
+      catch (std::exception& e) {
+        // restore
+        seg0_endpt_pass2.clear();
+        seg0_endpt_pass2.push_back( seg0_endpt_pass1[1] );
+        seg0_endpt_pass2.push_back( seg0_cluster.pca_ends_v[0] );
+      }
 
       final_segment_v[0] = seg0_endpt_pass2[1];
       final_segment_v[1] = seg0_endpt_pass2[0];
