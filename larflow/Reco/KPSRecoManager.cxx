@@ -24,7 +24,8 @@ namespace reco {
   KPSRecoManager::KPSRecoManager( std::string inputfile_name )
     : larcv::larcv_base("KPSRecoManager"),
     _save_event_mc_info(false),
-    _ana_output_file(inputfile_name)    
+    _ana_output_file(inputfile_name),
+    _kMinize_outputfile_size(false)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -123,6 +124,13 @@ namespace reco {
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
       truthAna( iolcv, ioll );
+    }
+
+    if ( _kMinize_outputfile_size ) {
+      // save only fitted vertex candidates
+      _nuvertexmaker.get_mutable_nu_candidates().clear();
+      _nuvertexmaker.get_mutable_vetoed_candidates().clear();
+      _nuvertexmaker.get_mutable_merged_candidates().clear();            
     }
     
     // Fill Ana Tree

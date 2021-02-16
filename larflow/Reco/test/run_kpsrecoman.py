@@ -16,6 +16,8 @@ parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of e
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
 parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,help="Input larcv images are tick-backward")
 parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
+parser.add_argument("-d","--debug",default=False,action='store_true',help="If true, store many intermediate products")
+parser.add_argument("-min","--minimal",default=False,action='store_true',help="If true, store minimal products")
 
 args = parser.parse_args()
 
@@ -34,6 +36,14 @@ print("[INPUT: DL MERGED] ",args.input_dlmerged)
 print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
 print("[OUTPUT]    ",args.output)
 
+# ALGORITHMS
+recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root") )
+recoman.set_verbosity(larcv.msg.kINFO)
+recoman.minimze_output_size(True)
+if args.ismc:
+    recoman.saveEventMCinfo( args.ismc )
+
+# INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
@@ -62,6 +72,41 @@ iolcv.reverse_all_products()
 io.set_out_filename( args.output.replace(".root","_larlite.root") )
 iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
 
+if args.debug is None or args.debug==False:
+
+    # cosmic reco saved, since nuvertex data in ana file is does not save cosmic info
+    io.set_data_to_write( larlite.data.kTrack, "boundarycosmic" )
+    io.set_data_to_write( larlite.data.kTrack, "boundarycosmicnoshift" )
+    io.set_data_to_write( larlite.data.kTrack, "containedcosmic" )
+
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
+    io.set_data_to_write( larlite.data.kPCAxis, "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
+
+    print("minimal: ",args.minimal)
+    if args.minimal is None or args.minimal==False:
+        # keypoint reco
+        io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypoint" ) # save reco keypoints, used to seed nu candidates
+
+        # cosmic hit clusters:  trade space for time, since can use track paths to pick up hits again
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "boundarycosmicnoshift" )
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "containedcosmic" )
+
+        # cluster reco
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "trackprojsplit_wcfilter" ) # in-time track clusters
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "showerkp" )      # in-time shower clusters, found using shower keypoints
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "showergoodhit" ) # in-time shower clusters
+        io.set_data_to_write( larlite.data.kLArFlowCluster, "hip" )           # in-time proton tracks
+        io.set_data_to_write( larlite.data.kPCAxis, "trackprojsplit_wcfilter" ) # in-time track clusters
+        io.set_data_to_write( larlite.data.kPCAxis, "showerkp" )      # in-time shower clusters, found using shower keypoints
+        io.set_data_to_write( larlite.data.kPCAxis, "showergoodhit" ) # in-time shower clusters
+        io.set_data_to_write( larlite.data.kPCAxis, "hip" )           # in-time proton tracks
+
+        # save flash
+        io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashBeam" )
+        io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashCosmic" )  
+        
+        io.minimze_output_size(False)
+
 io.open()
 iolcv.initialize()
 
@@ -78,12 +123,6 @@ if args.num_entries is not None:
         end_entry = nentries
 else:
     end_entry = nentries
-
-# ALGORITHMS
-recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root") )
-recoman.set_verbosity(1)
-if args.ismc:
-    recoman.saveEventMCinfo( args.ismc )
 
 io.go_to( args.start_entry )
 #io.next_event()

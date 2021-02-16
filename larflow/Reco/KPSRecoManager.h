@@ -122,11 +122,16 @@ namespace reco {
     void make_ana_file();
 
     std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v;
+
+    bool _kMinize_outputfile_size;
     
   public:
 
     /** @brief write the reco products to file */
     void write_ana_file() { _ana_file->cd(); _ana_tree->Write(); };
+
+    /** @brief Minimize the output file size by not saving intermediate vertex candidates */
+    void minimze_output_size( bool domin=true ) { _kMinize_outputfile_size=domin; };
     
   };
 
