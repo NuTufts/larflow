@@ -1,5 +1,7 @@
 #include "KPSRecoManager.h"
 
+#include <ctime>
+
 // larlite
 #include "DataFormat/opflash.h"
 
@@ -25,11 +27,13 @@ namespace reco {
     : larcv::larcv_base("KPSRecoManager"),
     _save_event_mc_info(false),
     _ana_output_file(inputfile_name),
+    _t_event_elapsed(0),
     _kMinize_outputfile_size(false)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
+    _ana_tree->Branch( "telapsed", &_t_event_elapsed );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -46,6 +50,7 @@ namespace reco {
                                 larlite::storage_manager& ioll )
   {
 
+    std::clock_t start_event = std::clock_t();
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
     
@@ -70,9 +75,9 @@ namespace reco {
 
     // make five particle ssnet images
     larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
-    fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
+    //fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
+    fiveparticlealgo.set_verbosity( larcv::msg::kINFO );    
     fiveparticlealgo.process( iolcv, ioll );
-    
     
     // PREP SETS OF HITS
     // ------------------
@@ -101,7 +106,8 @@ namespace reco {
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
 
-    _cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
     _cosmic_proton_finder.process( iolcv, ioll );
 
     // MULTI-PRONG INTERNAL RECO
@@ -137,7 +143,11 @@ namespace reco {
     _ana_run = ev_adc->run();
     _ana_subrun = ev_adc->subrun();
     _ana_event  = ev_adc->event();
-    _ana_tree->Fill();
+
+    std::clock_t end_event = std::clock_t();
+    _t_event_elapsed = float(end_event-start_event)/(float)CLOCKS_PER_SEC;
+
+    _ana_tree->Fill();    
     
   }
 
@@ -327,8 +337,8 @@ namespace reco {
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
-    _projsplitter.set_verbosity( larcv::msg::kDEBUG );    
-    //_projsplitter.set_verbosity( larcv::msg::kINFO );    
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
+    _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_fit_line_segments_to_clusters( true );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
@@ -338,10 +348,10 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
-    //_projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
-    _projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
-    _projsplitter_cosmic.set_fit_line_segments_to_clusters( true );    
+    _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
     _projsplitter_cosmic.process( iolcv, ioll );
 
@@ -352,7 +362,8 @@ namespace reco {
     _showerkp.process( iolcv, ioll );
 
     // SHORT HIP FRAGMENTS
-    _short_proton_reco.set_verbosity( larcv::msg::kDEBUG );
+    //_short_proton_reco.set_verbosity( larcv::msg::kDEBUG );
+    _short_proton_reco.set_verbosity( larcv::msg::kINFO );    
     _short_proton_reco.clear_clustertree_checklist();
     _short_proton_reco.add_clustertree_forcheck( "trackprojsplit_wcfilter" );
     _short_proton_reco.process( iolcv, ioll );
@@ -386,8 +397,8 @@ namespace reco {
     _nuvertexactivity.set_output_treename( "keypoint" );
     _nuvertexactivity.process( iolcv, ioll );
     
-    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
-    //_nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
+    //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
@@ -401,7 +412,8 @@ namespace reco {
 
     // NuTrackBuilder class
     _nu_track_builder.clear();
-    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _nu_track_builder.set_verbosity( larcv::msg::kINFO );    
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
 
     // first attempt
@@ -409,7 +421,8 @@ namespace reco {
     // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
 
     // simpler, cone-based reco
-    _nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    

@@ -254,7 +254,7 @@ namespace reco {
     int   min_segidx = findClosestSegment( startpoint, max_dist );
     
     if ( min_segidx<0 ) {
-      LARCV_INFO() << "No acceptable segment found for startpoint" << std::endl;
+      LARCV_DEBUG() << "No acceptable segment found for startpoint" << std::endl;
       return;
     }
 
@@ -327,7 +327,7 @@ namespace reco {
       _track_proposal_v.push_back( path );
     }
 
-    LARCV_INFO() << "Number of paths now stored: " << _track_proposal_v.size() << std::endl;
+    LARCV_DEBUG() << "Number of paths now stored: " << _track_proposal_v.size() << std::endl;
     
   }  
 
@@ -449,7 +449,7 @@ namespace reco {
 
         if ( complete.size()>=1000 ) {
           //cut this off!
-          std::cout << "  cut off search. track limit reached: " << complete.size() << std::endl;
+          LARCV_DEBUG() << "  cut off search. track limit reached: " << complete.size() << std::endl;
           break;
         }
       }
@@ -745,7 +745,7 @@ namespace reco {
       evout_trackcluster.emplace_back( std::move(trackcluster) );
       
     }//end of loop over tracks
-    LARCV_INFO() << "Number of output tracks made: " << evout_track.size() << std::endl;
+    LARCV_DEBUG() << "Number of output tracks made: " << evout_track.size() << std::endl;
   }
 
   /**
@@ -954,7 +954,7 @@ namespace reco {
       // also collect larflow3dhits
       larlite::larflowcluster track_hitcluster;
 
-      std::cout << "[TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack] PATH " << itrack << std::endl;
+      LARCV_DEBUG() << "[TrackClusterBuilder::fillLarliteTrackContainerWithFittedTrack] PATH " << itrack << std::endl;
       
       for (int inode=1; inode<path.size(); inode++ ) {
 
@@ -1002,7 +1002,7 @@ namespace reco {
         
       }//end of loop over nodes
 
-      std::cout << "  number of sorted track points: " << seg_v.size() << std::endl;
+      LARCV_DEBUG() << "  number of sorted track points: " << seg_v.size() << std::endl;
 
       // now that the points are all realigned, we can look for segment transitions
       std::vector< TrackSeg_t > stitched_v;
@@ -1012,7 +1012,7 @@ namespace reco {
         int segidx = seg_v[istep].segidx;
         if ( segidx!=last_segidx && last_segidx!=-1 ) {
 
-          std::cout << "segment transition: " << last_segidx << "->" << segidx << std::endl;
+          LARCV_DEBUG() << "segment transition: " << last_segidx << "->" << segidx << std::endl;
           
           // segment transition
           int iprev_start=istep-3;
@@ -1024,7 +1024,7 @@ namespace reco {
             inext = (int)seg_v.size()-1;
 
           if ( (inext-iprev_start) <=1 ) {
-            std::cout << "simple transition: fill " << last_fill_step << " to " << istep << std::endl;
+            LARCV_DEBUG() << "simple transition: fill " << last_fill_step << " to " << istep << std::endl;
             // dont do anything fancy with gap
             // simply merge up to current location
             for (int jstep=last_fill_step+1; jstep<=istep; jstep++) {
@@ -1035,7 +1035,7 @@ namespace reco {
           else {
             // we are going to gather the hits between the iprev_start and inext steps
             // and fit them to a new segment
-            std::cout << "fit gap transition" << std::endl;
+            LARCV_DEBUG() << "fit gap transition" << std::endl;
             
             // define a line segment
             std::vector< float > gap_start(3);
@@ -1070,7 +1070,7 @@ namespace reco {
                 }
               }//end of hit loop
             }//end of cluster loop
-            std::cout << "gap cluster has " << gapcluster.points_v.size() << " hits" << std::endl;
+            LARCV_DEBUG() << "gap cluster has " << gapcluster.points_v.size() << " hits" << std::endl;
 
             larlite::track gaptrack;
             if ( gapcluster.points_v.size()>=5 ) {
@@ -1084,7 +1084,7 @@ namespace reco {
               gaptrack.add_direction( TVector3(0,0,0) );
             }
             int npts_gaptrack = gaptrack.NumberTrajectoryPoints();
-            std::cout << "number of points in the fitted gap track: " << npts_gaptrack << std::endl;            
+            LARCV_DEBUG() << "number of points in the fitted gap track: " << npts_gaptrack << std::endl;            
 
             // fill up to the gap
             for (int jstep=last_fill_step+1; jstep<iprev_start; jstep++) {
@@ -1114,7 +1114,7 @@ namespace reco {
                 stitched_v.push_back( gappt );
               }
             }
-            std::cout << "number of hits in stitched track after gap fit: " << stitched_v.size() << std::endl;
+            LARCV_DEBUG() << "number of hits in stitched track after gap fit: " << stitched_v.size() << std::endl;
             last_fill_step = inext;
           }//if valid gap size
 
@@ -1128,7 +1128,7 @@ namespace reco {
       }
       
 
-      std::cout << "  number of stitched track points: " << stitched_v.size() << std::endl;      
+      LARCV_DEBUG() << "  number of stitched track points: " << stitched_v.size() << std::endl;      
 
       larlite::track lltrack;
       lltrack.reserve( stitched_v.size() );
@@ -1136,7 +1136,7 @@ namespace reco {
         lltrack.add_vertex( trkpt.start );
         lltrack.add_direction( TVector3(0,0,0) );
       }
-      std::cout << "Number of track points: " << lltrack.NumberTrajectoryPoints() << std::endl;
+      LARCV_DEBUG() << "Number of track points: " << lltrack.NumberTrajectoryPoints() << std::endl;
 
       evout_track.emplace_back( std::move(lltrack) );
       evout_hitcluster.emplace_back( std::move(track_hitcluster) );

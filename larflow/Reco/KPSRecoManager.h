@@ -119,6 +119,7 @@ namespace reco {
     int _ana_run; ///< run number for tree entry
     int _ana_subrun; ///< subrun number for tree entry
     int _ana_event; ///< event number for tree entry
+    float _t_event_elapsed; ///< runtime for event
     void make_ana_file();
 
     std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v;

@@ -54,7 +54,6 @@ namespace reco {
    */
   void ShowerRecoKeypoint::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
-
     // clear member containers
     _shower_cand_v.clear();
     _recod_shower_v.clear();
@@ -154,11 +153,6 @@ namespace reco {
     // BUILD SHOWERS FROM CLUSTERS + TRUNK CANDIDATES
     _buildShowers( showerhit_cluster_v );
 
-    std::clock_t end_process = std::clock();
-    LARCV_INFO() << "[ShowerRecoKeypoint::process] end; elapsed = "
-                 << float(end_process-begin_process)/CLOCKS_PER_SEC << " secs"      
-                 << std::endl;
-
     larlite::event_larflowcluster* evout_shower_cluster_v
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showerkp" );
 
@@ -230,7 +224,9 @@ namespace reco {
     }
 
     LARCV_INFO() << "Unused hits: " << evout_unused_hit_v->size() << std::endl;
-    
+    std::clock_t end_process = std::clock();
+    float elapsed = (end_process-begin_process)/CLOCKS_PER_SEC;
+    LARCV_INFO() << "end: elasped=" << elapsed  << " secs" << std::endl;
   }
 
   /**
@@ -456,7 +452,7 @@ namespace reco {
         
       }//end of keypoint
 
-      LARCV_INFO() << "Saving shower candidate with " << shower_cand.trunk_candidates_v.size() << " trunk candidates" << std::endl;
+      LARCV_DEBUG() << "Saving shower candidate with " << shower_cand.trunk_candidates_v.size() << " trunk candidates" << std::endl;
 
       // we will pick the best trunk candidate later when we expand the shower candidates with nearby clusters
       
@@ -549,7 +545,7 @@ namespace reco {
     int sidx=0; 
     for ( auto& shower : _recod_shower_v ) {
       _fillShowerObject( shower, showerhit_cluster_v );
-      std::cout << "made shower[" << sidx << "] with " << shower.points_v.size() << std::endl;
+      LARCV_DEBUG() << "made shower[" << sidx << "] with " << shower.points_v.size() << std::endl;
       sidx++;
     }
 

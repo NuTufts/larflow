@@ -70,8 +70,18 @@ namespace reco {
     // Fit linesegments to clusters
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
-    if ( _fit_line_segments_to_clusters )
+    if ( _fit_line_segments_to_clusters ) {
+      std::clock_t t_fit_start = std::clock();
+      LARCV_INFO() << "fit the clusters"  << std::endl;
       fitLineSegmentsToClusters( cluster_track_v, *ev_lfhits, adc_v, *evout_track );
+      std::clock_t t_fit_end = std::clock();
+      float fit_elapsed = ( t_fit_end-t_fit_start )/CLOCKS_PER_SEC;
+      LARCV_INFO() << "fit end; elapsed=" << fit_elapsed << " secs" << std::endl;      
+    }
+    else {
+      // make tracks using pca instead
+      
+    }
     
 
     // FORM OUTPUTS
@@ -340,7 +350,7 @@ namespace reco {
 
     std::clock_t end = std::clock();
     float elapsed = float( end-begin )/CLOCKS_PER_SEC;
-    LARCV_INFO() << "[ProjectionDefectSplitter::split_clusters] end; elapsed=" << elapsed << " secs" << std::endl;
+    LARCV_INFO() << "end; elapsed=" << elapsed << " secs" << std::endl;
 
 
     return nsplit;
@@ -857,6 +867,30 @@ namespace reco {
   {
 
     float pca_len = cluster.pca_len;
+    if ( pca_len<max_line_seg_cm ) {
+      // no need to fit
+      larlite::track seg;
+      seg.reserve(3);
+      TVector3 pts[3];
+      for (int i=0; i<3; i++) {
+        pts[0][i] = cluster.pca_ends_v[0][i];
+        pts[2][i] = cluster.pca_ends_v[1][i];
+        pts[1][i] = 0.5*(pts[0][i] + pts[1][i]);
+      }
+      TVector3 segdir = pts[2]-pts[1];
+      float dirlen = segdir.Mag();
+      if ( dirlen>0 ) {
+        for (int i=0; i<3; i++)
+          segdir[i] /= dirlen;
+      }
+      seg.add_vertex( pts[0] );
+      seg.add_vertex( pts[1] );
+      seg.add_vertex( pts[2] );
+      seg.add_direction( segdir );
+      seg.add_direction( segdir );
+      seg.add_direction( segdir );      
+      return seg;
+    }
 
     int nsegments = pca_len/max_line_seg_cm+1;
     float init_seg_len = pca_len/float(nsegments);
@@ -959,7 +993,7 @@ namespace reco {
     std::vector< std::vector<float> > final_segment_v = init_segments_v;
 
     // learning rate for fit
-      const float lr = 1.0e-1;
+    const float lr = 1.0e-1;
       
     if ( seg0_cluster.points_v.size()>3 ) {
       larflow::reco::cluster_pca( seg0_cluster );

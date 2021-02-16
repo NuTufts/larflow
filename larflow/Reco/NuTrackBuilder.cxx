@@ -3,6 +3,8 @@
 #include "larflow/Reco/TrackdQdx.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
+#include <ctime>
+
 namespace larflow {
 namespace reco {
 
@@ -21,6 +23,8 @@ namespace reco {
                                 std::vector<NuVertexCandidate>& nu_candidate_v )
   {
 
+    std::clock_t t_start = std::clock();
+    
     // clear segments, connections, proposals
     clear();
 
@@ -244,7 +248,11 @@ namespace reco {
       
     }//end of loop over vertex candidates
 
-    LARCV_DEBUG() << "Number of tracks saved: " << evout_track_fitted->size() << std::endl;
+    LARCV_INFO() << "Number of tracks saved: " << evout_track_fitted->size() << std::endl;
+    std::clock_t t_end = std::clock();
+    float elapsed = float( t_end-t_start )/CLOCKS_PER_SEC;
+    LARCV_INFO() << "end; elapsed=" << elapsed << " secs" << std::endl;
+    
   }
   
 }
