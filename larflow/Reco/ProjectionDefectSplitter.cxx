@@ -875,7 +875,7 @@ namespace reco {
       for (int i=0; i<3; i++) {
         pts[0][i] = cluster.pca_ends_v[0][i];
         pts[2][i] = cluster.pca_ends_v[1][i];
-        pts[1][i] = 0.5*(pts[0][i] + pts[1][i]);
+        pts[1][i] = 0.5*(pts[0][i] + pts[2][i]);
       }
       TVector3 segdir = pts[2]-pts[1];
       float dirlen = segdir.Mag();

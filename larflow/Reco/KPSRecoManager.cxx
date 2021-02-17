@@ -100,21 +100,11 @@ namespace reco {
     clusterSubparticleFragments( iolcv, ioll );
     
     // COSMIC RECO
-    _cosmic_track_builder.clear();
-    //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
-    _cosmic_track_builder.do_boundary_analysis( true );
-    _cosmic_track_builder.process( iolcv, ioll );
-
-    //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
-    _cosmic_proton_finder.process( iolcv, ioll );
-
+    cosmicTrackReco( iolcv, ioll );
+    
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
     
-    // Single particle interactions
-
     // Copy larlite contents
     // in-time opflash
     larlite::event_opflash* ev_input_opflash_beam =
@@ -434,6 +424,28 @@ namespace reco {
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
     
   }
+
+  /**
+   * @brief Perform cosmic ray reconstruction
+   *
+   * At some point, execute Mask-RCNN here
+   *
+   */
+  void KPSRecoManager::cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+    
+    _cosmic_track_builder.clear();
+    //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
+    _cosmic_track_builder.do_boundary_analysis( true );
+    _cosmic_track_builder.process( iolcv, ioll );
+
+    //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
+    _cosmic_proton_finder.process( iolcv, ioll );
+    
+  }
+  
 
   /**
    * @brief create ana file and define output tree

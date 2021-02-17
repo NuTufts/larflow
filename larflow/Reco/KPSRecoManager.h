@@ -103,6 +103,7 @@ namespace reco {
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
