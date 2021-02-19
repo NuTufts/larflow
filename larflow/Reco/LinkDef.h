@@ -55,6 +55,7 @@
 #pragma link C++ class larflow::reco::VertexTrackTruthRecoInfo+;
 #pragma link C++ class larflow::reco::TrackdQdx+;
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
+#pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;
 #pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
 #pragma link C++ class larflow::reco::CosmicProtonFinder+;
 #pragma link C++ class larflow::reco::NuSelProngVars+;
