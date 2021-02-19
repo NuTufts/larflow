@@ -60,6 +60,9 @@ namespace reco {
           
   }
 
+  /**
+   * @brief clear variable containers to be stored in ROOT tree
+   */
   void NuVertexActivityReco::clear_ana_variables()
   {
     pca_dir_vv.clear();
@@ -67,16 +70,27 @@ namespace reco {
     nbackwards_track_pts.clear();
     nforwards_shower_pts.clear();
     nforwards_track_pts.clear();
-    dist_closest_forwardshower.clear();
-    shower_likelihood.clear();
-    dist2truescevtx.clear();
     npix_on_cosmic_v.clear();
     attcluster_nall_v.clear();
     attcluster_nshower_v.clear();
     attcluster_ntrack_v.clear();
-    ntrue_nupix_v.clear();
+    ntrue_nupix_v.clear();    
+    dist_closest_forwardshower.clear();
+    shower_likelihood.clear();
+    dist2truescevtx.clear();
+    min_dist2truescevtx = 1000.0;
   }
 
+  /**
+   * @brief make clusters to search for nu vertex activity
+   *
+   * Collects larflow3dhits from trees use names are stored in _input_hittree_list.
+   * Hits are clustered using larflow::reco::cluster_sdbscan_larflow3dhits.
+   *
+   * @param[in] ioll larlite::storage_manager containing event data.
+   * @param[out] cluster_v Output container to be filled by function.
+   * @param[in] larmatch_threshold Minimum larmatch score to include hit.
+   */
   void NuVertexActivityReco::makeClusters( larlite::storage_manager& ioll,
                                            std::vector<larflow::reco::cluster_t>& cluster_v,
                                            const float larmatch_threshold )
@@ -144,6 +158,25 @@ namespace reco {
     
   }
 
+  /** 
+   * @brief Search spacepoints to create Vertex Activity Candidates
+   *
+   * Inputs used from larlite and larcv storage managers:
+   * @verbatim embed:rst:leading-asterisk
+   *  * Image2D containing pixel values (e.g. "wire")
+   *  * No larlite products.
+   * @endverbatim
+   * 
+   * To get charge of each spacepoint, projects down into image.
+   * High charge spacepoints are only accepted if they are within 3 cm of end of clusters.
+   * There is also a 20% consistancey requirement between the two planes with the highest pixel sum.
+   * 
+   * @param[in] ioll larlite::storage_manager with event data
+   * @param[in] iolcv larcv::IOManager with event data
+   * @param[in] cluster_v Clusters of space points
+   * @param[in] va_threshold Minimum pixel sum threshold around vertex to create vertex activity candidate.
+   * @return Container of Vertex Activity candidates.
+   */
   std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>
   NuVertexActivityReco::findVertexActivityCandidates( larlite::storage_manager& ioll,
                                                       larcv::IOManager& iolcv,
@@ -265,6 +298,25 @@ namespace reco {
     return va_candidate_v;
   }
 
+  /**
+   * @brief return the pixel sum and consistency measures
+   *
+   * The vector returned by the function contains the follow:
+   * @verbatim embed:rst:leading-asterisk
+   *  * [0] plane U sum
+   *  * [1] plane V sum
+   *  * [2] plane Y sum
+   *  * [3] consistency: |difference|/average of two larges sum
+   *  * [4] average of two largest pixel sums from planes
+   * @endverbatim
+   *
+   * The projected pixel in the plane for the spacepoint is found
+   * using larlite::larflow3dhit::targetwire and larlite::larflow3dhit::tick.
+   *
+   * @param[in] hit Spacepoint to test.
+   * @param[in] adc_v Container with wire signal Image2D.
+   * @return vector containing (plane U sum, plane V sum, plane Y sum, consistency, average).
+   */
   std::vector<float> NuVertexActivityReco::calcPlanePixSum( const larlite::larflow3dhit& hit,
                                                             const std::vector<larcv::Image2D>& adc_v )
   {
@@ -309,6 +361,15 @@ namespace reco {
     return pixelsum;
   }
 
+  /**
+   * @brief Calculate selection variables for finding true Vertex Activity candidates
+   *
+   * @param[in] vacand The vertex activity candidates.
+   * @param[in] cluster_v Spacepoint clusters. Must be the same ones used to find vertex candidates.
+   * @param[in] ioll larlite::storage_manager with event data.
+   * @param[in] iolcv larcv::IOManager with event data.
+   * @param[in] min_dist2cluster Minimum distance to nearby clusters to include in calculations.
+   */
   void NuVertexActivityReco::analyzeVertexActivityCandidates( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
                                                               std::vector<larflow::reco::cluster_t>& cluster_v,
                                                               larlite::storage_manager& ioll,
@@ -434,7 +495,14 @@ namespace reco {
     shower_likelihood.push_back( shw_ll );
     
   }
-  
+
+  /**
+   * @brief Calculate truth variables to aid in analysis of candidates
+   *
+   * @param[in] ioll larlite::storage_manager with event data.
+   * @param[in] iolcv larcv::IOManager with event data.
+   * @param[in] truedata Object containing truth info for event.
+   */
   void NuVertexActivityReco::calcTruthVariables( larlite::storage_manager& ioll,
                                                  larcv::IOManager& iolcv,
                                                  const ublarcvapp::mctools::LArbysMC& truedata )
@@ -471,6 +539,15 @@ namespace reco {
     
   }
 
+  /**
+   * @brief Get the fraction of pixels near the vertex activity candidates that are on true neutrino pixels
+   *
+   * The function will look for the "segment" tree containing larcv::Image2D.
+   * The content of the segment image tells which pixels are from neutrino pixels.
+   *
+   * @param[in] valist_v Container of vertex acitivity candidates.
+   * @param[in] iolcv larcv::IOManager with event data.
+   */
   void NuVertexActivityReco::calcTruthNeutrinoPixels( std::vector<VACandidate_t>& valist_v,
                                                       larcv::IOManager& iolcv )
   {
@@ -518,6 +595,13 @@ namespace reco {
   /**
    * @brief check WireCell cosmics mask and tag
    *
+   * Finds the number of pixels on each plane that are above ADC threshold of 10 and
+   * are also tagged by the Wire-Cell out-of-time image.
+   * Wire signal image tree name is assumed to be 'wire'.
+   * WireCell out-of-time image is assumed to be 'thrumu'.
+   * 
+   * @param[in] va The vertex candidate.
+   * @param[in] iolcv larcv::IOManager with event data.
    */
   void NuVertexActivityReco::checkWireCellCosmicMask( NuVertexActivityReco::VACandidate_t& va,
                                                       larcv::IOManager& iolcv ) {
@@ -568,6 +652,13 @@ namespace reco {
     npix_on_cosmic_v.push_back( va.num_pix_on_thrumu[3] );
   }
 
+  /**
+   * @brief Make the ROOT tree that will store analysis variables for vertex activity candidates
+   *
+   * Will create a tree named "vtxactivityana" inside the active ROOT file.
+   * Calls `bind_to_tree` to create branches.
+   * Assumes ownership of the tree and will delete it when the destructor is called.
+   */
   void NuVertexActivityReco::make_tree()
   {
     _va_ana_tree = new TTree("vtxactivityana", "Vertex Activity Analysis Tree");
@@ -575,6 +666,17 @@ namespace reco {
     bind_to_tree( _va_ana_tree );
   }
 
+  /**
+   * @brief Calculate metrics pertaining to the cluster the vertex activity candidate is within
+   *
+   * Fills variables within VACandidate_t. 
+   * Also fills variable containers stored in the analysis tree.
+   * 
+   * @param[in] vacand The vertex activity candidate.
+   * @param[in] cluster_v All clusters in the event.
+   * @param[in] ioll larlite::storage_manager with event data.
+   * @param[in] iolcv larcv::IOManager with event data.
+   */
   void NuVertexActivityReco::analyzeAttachedCluster( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
                                                      std::vector<larflow::reco::cluster_t>& cluster_v,
                                                      larlite::storage_manager& ioll,
@@ -629,7 +731,11 @@ namespace reco {
     
   }
   
-  
+
+  /**
+   * @brief Create branches that will store Vertex activity candidate metrics
+   *
+   */
   void NuVertexActivityReco::bind_to_tree( TTree* tree )
   {
 

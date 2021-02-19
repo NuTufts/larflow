@@ -87,9 +87,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
     #  PLOT TRACK PCA-CLUSTERS: FULL/COSMIC
     clusters = [("cosmic","trackprojsplit_full","rgb(10,10,150)",0.1,False),
-                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,True),
-                ("hip","hip","rgb(0,0,255)",0.1,True),                
-                ("wcshower","showergoodhit","rgb(200,125,125)",0.1,True)]
+                ("wctrack","trackprojsplit_wcfilter","rgb(125,200,125)",0.1,False),
+                ("hip","hip","rgb(0,0,255)",0.1,False),                
+                ("wcshower","showergoodhit","rgb(200,125,125)",0.1,False)]
     for (name,producer,rgbcolor,opa,plotme) in clusters:
         if not plotme:
             continue
@@ -125,16 +125,19 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             # skip if asked for specific vertex info
             continue
 
-        vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
+        #vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
         vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
         # Get the keypoint data
         
         # make vertex traces
         kptrace = {
             "type":"scatter3d",
-	    "x": [vertexcand.pos[0],vertexcand_fit.pos[0]],
-            "y": [vertexcand.pos[1],vertexcand_fit.pos[1]],
-            "z": [vertexcand.pos[2],vertexcand_fit.pos[2]],
+	    #"x": [vertexcand.pos[0],vertexcand_fit.pos[0]],
+            #"y": [vertexcand.pos[1],vertexcand_fit.pos[1]],
+            #"z": [vertexcand.pos[2],vertexcand_fit.pos[2]],
+	    "x": [vertexcand_fit.pos[0]],
+            "y": [vertexcand_fit.pos[1]],
+            "z": [vertexcand_fit.pos[2]],
             "mode":"markers",
 	    "name":"KP%d"%(ivtx),
             "marker":{"color":[0.0,1.0],"size":5,"opacity":0.9,"colorscale":"Viridis"},
@@ -226,7 +229,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     # TRACK RECO
     for name,track_producer,zrgb,plotme in [("BTRK","boundarycosmicnoshift","rgb(50,0,100)",True),
                                             ("CTRK","containedcosmic","rgb(100,0,50)",True),
-                                            ("NUTRK","nutrack_fitted","rgb(0,100,50)",True)]:
+                                            ("NUTRK","nutrack_fitted","rgb(0,100,50)",False)]:
         if False and name in ["NUTRK"]:
             continue
         if not plotme:

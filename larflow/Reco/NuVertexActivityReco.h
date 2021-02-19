@@ -24,6 +24,7 @@ namespace reco {
   class NuVertexActivityReco : public larcv::larcv_base {
     
   public:
+    
     NuVertexActivityReco()
       : larcv::larcv_base("NuVertexActivityReco"),
       _output_treename("vacand"),      
@@ -42,7 +43,7 @@ namespace reco {
       std::vector<float> va_dir;   ///< direction of va candidate, from 1st pca-axis of attached cluster
       int hit_index; ///< index of hit in the source hit container
       const larflow::reco::cluster_t* pattached; //< pointer to attached cluster
-      int attached_cluster_index; //< index of cluster in cluster container
+      int attached_cluster_index; ///< index of cluster in cluster container
 
       float attclust_length; ///< attached cluster: 1st pca-axis length
       int attclust_nallhits; ///< attached cluster: number of hits
@@ -57,7 +58,7 @@ namespace reco {
       int nhits_all_shower; ///< number of shower hits inside attached + subclusters
       int nhits_all_track;  ///< number of track hits inside attached + subclusters
 
-      int num_pix_on_thrumu[4];
+      int num_pix_on_thrumu[4]; ///< number of pixels tagged by WC as part of off-time clusters
 
       int truth_num_nupix[4]; ///< number of pixels on true simulated neutrino pixels, each plane + total
     };
@@ -65,14 +66,26 @@ namespace reco {
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void make_tree();
     void bind_to_tree(TTree* tree );
+
+    /** @brief write ana tree to root file */
     void write_tree() { _va_ana_tree->Write(); };
+    
     void clear_ana_variables();
+
+    /** @brief save event variables */
     void fill_tree() { _va_ana_tree->Fill(); };
+    
     void calcTruthVariables( larlite::storage_manager& ioll,
                              larcv::IOManager& iolcv,
                              const ublarcvapp::mctools::LArbysMC& truedata );
+
+    /** @brief set name of larflowcluster trees to search for vertex activity locations on them */
     void set_input_cluster_list( const std::vector<std::string>& clist ) { _input_clustertree_list = clist; };
+
+    /** @brief set name of larflow3dhit tree to search for vertex activity locations */
     void set_input_hit_list( const std::vector<std::string>& hlist ) { _input_hittree_list = hlist; };
+
+    /** @brief set name of larflow3dhit tree to save candidate vertices */
     void set_output_treename( std::string name ) { _output_treename=name; };
 
   protected:
@@ -118,27 +131,25 @@ namespace reco {
     
     
     // output data members
-    std::vector<VACandidate_t> vtxact_v; // The container of found vertex activity candidates
+    std::vector<VACandidate_t> vtxact_v; ///< The container of found vertex activity candidates
     
     
-    TTree* _va_ana_tree;  //< event level tree with data for each reco VA candidate
-    bool _kown_tree;
-    std::vector< std::vector<float> > pca_dir_vv;
-    std::vector<int> nbackwards_shower_pts;
-    std::vector<int> nbackwards_track_pts;
-    std::vector<int> nforwards_shower_pts;
-    std::vector<int> nforwards_track_pts;
-    std::vector<int> npix_on_cosmic_v;
-    std::vector<int> attcluster_nall_v;
-    std::vector<int> attcluster_nshower_v;
-    std::vector<int> attcluster_ntrack_v;
-    std::vector<float> dist_closest_forwardshower;
-    std::vector<float> shower_likelihood;
-    std::vector<float> dist2truescevtx;
-    std::vector<int> ntrue_nupix_v;
-    
-
-    float min_dist2truescevtx;
+    TTree* _va_ana_tree;  ///< event level tree with data for each reco VA candidate
+    bool _kown_tree; ///< if true, then class instance assumes it owns _va_ana_tree
+    std::vector< std::vector<float> > pca_dir_vv;  ///< 1st principle component of cluster VA is attached to
+    std::vector<int> nbackwards_shower_pts; ///< num of shower pixels in the opposite direction of attached cluster
+    std::vector<int> nbackwards_track_pts; ///< number of track pixels in the opposite direction of attached cluster
+    std::vector<int> nforwards_shower_pts; ///< number of shower pixels in the forward cone direction of attached custer
+    std::vector<int> nforwards_track_pts; ///< number of track pixels in the forward cone direction of attached custer
+    std::vector<int> npix_on_cosmic_v; ///< number of pixels on WC-tagged off-time pixels
+    std::vector<int> attcluster_nall_v; ///< number of pixels on attached cluster
+    std::vector<int> attcluster_nshower_v; ///< number of shower pixels on attached cluster
+    std::vector<int> attcluster_ntrack_v; ///< number of track pixels on attached cluster
+    std::vector<float> dist_closest_forwardshower; ///< distance from vertex to start point to closest shower cluster
+    std::vector<float> shower_likelihood; ///< likelihood based on distance of shower hits from trunk axis
+    std::vector<float> dist2truescevtx; ///< distance of reco vertex to space-charge translated true vertex
+    std::vector<int> ntrue_nupix_v; ///< number of pixels around vertex on true neutrino pixels    
+    float min_dist2truescevtx; ///< for an event, min distance to the true neutrino vertex
     
     
   };

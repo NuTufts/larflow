@@ -28,11 +28,17 @@ option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
-# colors for the keypoints
+# colors and labels for the keypoints
 keypoint_colors = { -1:"rgb(50,50,50)",
-                    0:"rgb(255,0,0)",
-                    1:"rgb(0,255,0)",
-                    2:"rgb(0,0,255)"}
+                    0:"rgb(255,0,255)",
+                    1:"rgb(255,0,0)",
+                    2:"rgb(0,0,255)",
+                    3:"rgb(255,255,0)"}    
+keypoint_names = { -1:"UNK",
+                   0:"NU",
+                   1:"TRK",
+                   2:"SHR",
+                   3:"VA"}    
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
@@ -119,7 +125,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
             "y": [ev_keypoints[ikp][1]],
             "z": [ev_keypoints[ikp][2]],
             "mode":"markers",
-	    "name":"KP%d"%(ikp),
+	    "name":"%s[%d]"%(keypoint_names[kptype],ikp),
             "marker":{"color":keypoint_colors[kptype],"size":5,"opacity":0.5},
         }
         traces_v.append(kptrace)
@@ -142,7 +148,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
             "y": [ev_cosmic_keypoints[ikp][1]],
             "z": [ev_cosmic_keypoints[ikp][2]],
             "mode":"markers",
-	    "name":"KP%d"%(ikp),
+	    "name":"X%s[%d]"%(keypoint_names[kptype],ikp),            
             "marker":{"color":"rgb(150,150,150)","size":5,"opacity":0.5},
         }
         traces_v.append(kptrace)
