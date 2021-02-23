@@ -103,6 +103,14 @@ for ientry in range(start_entry,nentries):
         ntracks  = nuvtx.track_v.size()
         nshowers = nuvtx.shower_v.size()
         nusel = tree.nu_sel_v[ivtx]
+
+        # cuts
+        if nusel.ntracks==0 or nusel.ntracks>2:
+            continue
+        if nusel.max_shower_nhits<500:
+            continue
+        if nusel.nshowers==0 or nusel.nshowers>2:
+            continue
         
         print(" VTX %d (%.2f) dist2true=%.2f ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,nusel.dist2truevtx,ntracks,nshowers))
 
