@@ -168,7 +168,7 @@ for ientry in range(start_entry,nentries):
                 else:
                     g.SetLineColor(rt.kBlack)
                     canv["curve"].cd(2)
-                if p==2:
+                if p==3:
                     g.Draw("L")                    
                 curve.append(g)
                 #print("last dist: ",last_dist)

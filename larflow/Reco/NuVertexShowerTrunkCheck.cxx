@@ -122,7 +122,7 @@ namespace reco {
                               shower,
                               shower_pca, max_gapdist );
       
-      if ( add_hits_v.size()>3 && max_gapdist<3.0) {
+      if ( add_hits_v.size()>3 && max_gapdist<10.0 ) {
         // merge the shower trunk
         _mergeNewTrunkHits( nuvtx.pos,
                             add_hits_v,
@@ -266,6 +266,12 @@ namespace reco {
     len = sqrt(len);
     for (int i=0; i<3; i++)
       showerdir[i] /= len;
+
+    // if too far, don't bother
+    if ( len>20.0 ) {
+      LARCV_DEBUG() << "vertex-shower start gap is " << len << " which is too big. don't add hits to this gap" << std::endl;
+      return added_hit_v;
+    }
 
     // step through, save unique wire combinations
     const float max_stepsize = 0.3;

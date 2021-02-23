@@ -36,6 +36,9 @@ namespace reco {
     
     _shower_ll_v.clear();
     _shower_ll_v.resize(4);
+
+    _shower_gapdist_v.clear();
+    _shower_gapdist_v.reserve( nuvtx.shower_v.size() );
     
     for (int p=0; p<4; p++) {
       _shower_avedqdx_v[p].clear();
@@ -56,12 +59,18 @@ namespace reco {
       int closest_end = 0;
       int other_end = 1;
       float end_dist[2] = {0};
+      float gapdist = 0.;
       end_dist[0] = (shower_trunk.LocationAtPoint(0)-tvtx).Mag();
       end_dist[1] = (shower_trunk.LocationAtPoint(1)-tvtx).Mag();
       if ( end_dist[1]<end_dist[0] ) {
         closest_end = 1;
         other_end = 0;
+        gapdist = end_dist[1];
       }
+      else {
+        gapdist = end_dist[0];
+      }
+      _shower_gapdist_v.push_back( gapdist );
       
       TVector3 shower_dir = (shower_trunk.LocationAtPoint(other_end)-shower_trunk.LocationAtPoint(closest_end));
       float shower_trunk_len = shower_dir.Mag();
@@ -101,7 +110,7 @@ namespace reco {
       if ( npts<2 ) {
         _shower_dqdx_v.emplace_back( std::move(shower_dqdx) );
         for (int p=0; p<4; p++) {
-          _shower_avedqdx_v[p].push_back(0);
+          _shower_avedqdx_v[p].push_back(-100);
           _shower_ll_v[p].push_back( 100 );
         }
         continue;
@@ -176,11 +185,47 @@ namespace reco {
     }//end of shower loop
 
 
-    std::stringstream ss_out;
-    ss_out << "output size: " << _shower_dqdx_v.size() << " :: ";
-    for (int p=0; p<4; p++)
-      ss_out << " " << _shower_avedqdx_v[p].size() << " " << _shower_ll_v[p].size() << " ";
-    LARCV_DEBUG() << ss_out.str() << std::endl;
+    // store into output class
+    output._shower_var_v.clear();
+    output._shower_var_v.reserve(nuvtx.shower_v.size());
+
+    int max_nhits = 0;
+    float min_gap_dist = 1e6;
+    output.largest_shower_ll = 100.0;
+    output.closest_shower_ll = 100.0;
+    output.largest_shower_avedqdx = -100;
+    output.closest_shower_avedqdx = -100;
+    
+    for ( size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++) {
+
+      // save shower variables
+      larflow::reco::NuSelectionVariables::ShowerVar_t shrvar;
+      shrvar.dqdx_ave = _shower_avedqdx_v[3][ishower];
+      shrvar.llshower = _shower_ll_v[3][ishower];
+      output._shower_var_v.emplace_back( std::move(shrvar) );
+
+      // determine summary variables above
+      int nhits = nuvtx.shower_v[ishower].size();
+
+      // but only use showers above hit threshold
+      if ( nhits<500 ) // hmmmmm
+        continue;
+      
+      if ( nhits>max_nhits ) {
+        max_nhits = nhits;
+        output.largest_shower_ll = _shower_ll_v[3][ishower];
+        output.largest_shower_avedqdx = _shower_avedqdx_v[3][ishower];
+      }
+
+      float dist = _shower_gapdist_v[ishower];
+      if ( dist<min_gap_dist ) {
+        min_gap_dist = dist;
+        output.closest_shower_ll = _shower_ll_v[3][ishower];
+        output.closest_shower_avedqdx = _shower_avedqdx_v[3][ishower];
+      }
+      
+    }//loop over shower instances to make output variables
+    
   }
   
   

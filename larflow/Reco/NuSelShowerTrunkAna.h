@@ -30,6 +30,7 @@ namespace reco {
     std::vector<larlite::track>       _shower_dqdx_v;
     std::vector< std::vector<float> > _shower_avedqdx_v;
     std::vector< std::vector<float> > _shower_ll_v;
+    std::vector<float>                _shower_gapdist_v;    
     
   };
   

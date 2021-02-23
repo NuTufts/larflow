@@ -58,7 +58,8 @@ namespace reco {
 
     /** @brief struct to store shower-level variables */
     struct ShowerVar_t {
-      float dqdx_3_cm;
+      float dqdx_ave; ///< filled by NuSelShowerTrunkAna
+      float llshower; ///< filled by NuSelShowerTrunkAna
     };
     std::vector< ShowerVar_t > _shower_var_v;
 
@@ -74,6 +75,12 @@ namespace reco {
     int   max_track_nhits;
     float min_shower_gap;
     float max_shower_gap;
+
+    // filled by NuSelShowerTrunkAna
+    float closest_shower_ll; 
+    float largest_shower_ll; 
+    float closest_shower_avedqdx; 
+    float largest_shower_avedqdx; 
 
     // made by NuSelVertexVars
     std::vector<int>   nabove_threshold_vertex_pix_v;
