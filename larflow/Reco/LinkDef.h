@@ -60,6 +60,8 @@
 #pragma link C++ class larflow::reco::CosmicProtonFinder+;
 #pragma link C++ class larflow::reco::NuSelProngVars+;
 #pragma link C++ class larflow::reco::NuSelVertexVars+;
+#pragma link C++ class std::vector<larlite::track>+;
+#pragma link C++ class larflow::reco::NuSelShowerTrunkAna+;
 #pragma link C++ class larflow::reco::NuSelTruthOnNuPixel+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line

@@ -199,6 +199,10 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             shower = nuvtx.shower_v.at(ishower)
             shower_trunk = nuvtx.shower_trunk_v.at(ishower)
             shower_pca   = nuvtx.shower_pcaxis_v.at(ishower)
+
+            #print(" trunk length: ",(shower_trunk.LocationAtPoint(1)-shower_trunk.LocationAtPoint(0)).Mag())
+            #print(" trunk start: ",(shower_trunk.LocationAtPoint(0)[0],shower_trunk.LocationAtPoint(0)[1],shower_trunk.LocationAtPoint(0)[2]))
+            #print(" trunk end: ",(shower_trunk.LocationAtPoint(1)[0],shower_trunk.LocationAtPoint(1)[1],shower_trunk.LocationAtPoint(1)[2]))            
             
             cluster_trace = lardly.data.visualize_larlite_larflowhits( shower, name="V[%s]-S[%d] N[%d]"%(ivtx,ishower,shower.size()) )
             trunk_trace   = lardly.data.visualize_larlite_track( shower_trunk )
@@ -212,7 +216,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trunk_trace["line"]["color"] = "rgb(200,0,200)"
             trunk_trace["line"]["width"] = 5
             trunk_trace["line"]["opacity"] = 1.0
-            trunk_trace["name"] = "V[%s]-S[%d]"%(ivtx,ishower)
+            trunk_trace["name"] = "TRNK[%s,%d]"%(ivtx,ishower)
             traces_v.append(trunk_trace)
 
             pcatrace = lardly.data.visualize_pcaxis( shower_pca )

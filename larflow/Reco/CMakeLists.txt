@@ -34,6 +34,7 @@ set( HEADERS cluster_functions.h
   CosmicProtonFinder.h
   NuSelProngVars.h
   NuSelVertexVars.h
+  NuSelShowerTrunkAna.h
   NuSelTruthOnNuPixel.h    
   KPSRecoManager.h )
 
@@ -69,6 +70,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   CosmicProtonFinder.cxx
   NuSelProngVars.cxx
   NuSelVertexVars.cxx
+  NuSelShowerTrunkAna.cxx  
   NuSelTruthOnNuPixel.cxx  
   KPSRecoManager.cxx )
 

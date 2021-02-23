@@ -56,6 +56,12 @@ namespace reco {
     };
     std::vector< TrackVar_t > _track_var_v;
 
+    /** @brief struct to store shower-level variables */
+    struct ShowerVar_t {
+      float dqdx_3_cm;
+    };
+    std::vector< ShowerVar_t > _shower_var_v;
+
     // SUMMARY
     float max_proton_pid;
 
