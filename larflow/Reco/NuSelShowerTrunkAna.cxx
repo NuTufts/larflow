@@ -81,16 +81,72 @@ namespace reco {
       }      
       LARCV_DEBUG() << "shower trunk length = " << shower_trunk_len << std::endl;
 
-      // gather points around the trunk
+      // finish defining trunk
       std::vector<float> fend(3,0);
       std::vector<float> fstart(3,0);
-      std::vector<float> fdir(3,0);
-      for (int i=0; i<3; i++) {
-        fstart[i] = shower_trunk.LocationAtPoint(0)[i];
-        fend[i]   = shower_trunk.LocationAtPoint(1)[i];
-        fdir[i]   = shower_dir[i];
+      std::vector<float> fdir(3,0);        
+      
+      
+      if ( shower_trunk_len<0.5 ) {
+        // trunk too short, try pca?
+        float pcalen = 0.;
+        float dx = 0.;
+        try {
+          for (int i=0; i<3; i++) {
+            dx = (shower_pca.getEigenVectors()[3][i]-shower_pca.getEigenVectors()[4][i]);          
+            pcalen += dx*dx;
+          }
+        }
+        catch (...) {
+          pcalen = 0.;
+        }
+        if ( pcalen<0.5 ) {
+          // admit defeat for this shower
+          larlite::track shower_dqdx_empty;
+          _shower_dqdx_v.emplace_back( std::move(shower_dqdx_empty) );
+          for (int p=0; p<4; p++) {
+            _shower_avedqdx_v[p].push_back(-100);
+            _shower_ll_v[p].push_back( 100 );
+          }
+          continue;
+        }//end of if pca is too short
+        else {
+          // good enough, find closest end
+          end_dist[0] = 0.;
+          end_dist[1] = 0.;
+          for (int i=0; i<3; i++) {
+            end_dist[0] += ( shower_pca.getEigenVectors()[3][i]-vtxpos[i] )*( shower_pca.getEigenVectors()[3][i]-vtxpos[i] );
+            end_dist[1] += ( shower_pca.getEigenVectors()[4][i]-vtxpos[i] )*( shower_pca.getEigenVectors()[4][i]-vtxpos[i] );            
+          }
+          shower_trunk_len = pcalen;
+          if ( end_dist[0]<end_dist[1] ) {
+            for (int i=0; i<3; i++) {
+              shower_dir[i] = ( shower_pca.getEigenVectors()[4][i]-shower_pca.getEigenVectors()[3][i] )/pcalen;
+              fstart[i] = shower_pca.getEigenVectors()[3][i];
+              fend[i]   = shower_pca.getEigenVectors()[4][i];
+            }
+          }
+          else {
+            for (int i=0; i<3; i++) {
+              shower_dir[i] = ( shower_pca.getEigenVectors()[3][i]-shower_pca.getEigenVectors()[4][i] )/pcalen;
+              fstart[i] = shower_pca.getEigenVectors()[4][i];
+              fend[i]   = shower_pca.getEigenVectors()[3][i];              
+            }            
+          }
+        }//end of else pca len is long enough
+
+      }// if original trunk is bad
+      else {
+        for (int i=0; i<3; i++) {
+          fstart[i] = shower_trunk.LocationAtPoint(0)[i];
+          fend[i]   = shower_trunk.LocationAtPoint(1)[i];
+          fdir[i]   = shower_dir[i];
+        }
       }
 
+      
+      // gather points around the trunk
+      
       larlite::larflowcluster trunk_hits;
       for ( auto& hit : shower ) {
         std::vector<float> fhit = { hit[0], hit[1], hit[2] };
