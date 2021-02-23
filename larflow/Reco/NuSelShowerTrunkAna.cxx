@@ -89,6 +89,7 @@ namespace reco {
       
       if ( shower_trunk_len<0.5 ) {
         // trunk too short, try pca?
+        LARCV_DEBUG() << "original trunk too shower: " << shower_trunk_len << ", try using pca instead" << std::endl;
         float pcalen = 0.;
         float dx = 0.;
         try {
@@ -100,8 +101,10 @@ namespace reco {
         catch (...) {
           pcalen = 0.;
         }
+        
         if ( pcalen<0.5 ) {
           // admit defeat for this shower
+          LARCV_DEBUG() << "PCA also too shower: " << pcalen << ", stopped." << std::endl;          
           larlite::track shower_dqdx_empty;
           _shower_dqdx_v.emplace_back( std::move(shower_dqdx_empty) );
           for (int p=0; p<4; p++) {
@@ -112,6 +115,7 @@ namespace reco {
         }//end of if pca is too short
         else {
           // good enough, find closest end
+          LARCV_DEBUG() << "PCA len, " << pcalen << ", is acceptable" << std::endl;
           end_dist[0] = 0.;
           end_dist[1] = 0.;
           for (int i=0; i<3; i++) {
