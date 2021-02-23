@@ -761,6 +761,48 @@ namespace reco {
     return llpca;
   }
 
+  /**
+   * @brief convert PC axis information in cluster into larlite::pcaxis object
+   *
+   * Note, pcaxis objects typically have only 3 vectors.
+   * Here we add an additional 2 vectors (total 5) in the larlite::pcaxis object.
+   * These include info on the start and end pca line points: cluster_t.pca_ends_v
+   * 
+   * @param[in] c     The cluster to convert.
+   * @param[in] cidx  An ID number the user is free to set.
+   * @return larlite::pcaxis containing cluster PCA info.
+   */
+  larlite::pcaxis cluster_make_pcaxis_wrt_point( const cluster_t& c,
+                                                 const std::vector<float>& refpt,
+                                                 int cidx ) {
+
+    // pca-axis
+    larlite::pcaxis::EigenVectors e_v;
+    // just std::vector< std::vector<double> >
+    // we store axes (3) and then the 1st axis end points. So five vectors.
+    for ( auto const& a_v : c.pca_axis_v ) {
+      std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
+        e_v.push_back( da_v );
+    }
+    // start and end points
+    int closest_end = larflow::reco::cluster_closest_pcaend( c, refpt );
+    int other_end = (closest_end==0) ? 1 : 0;
+    std::vector<double> start_v(3,0);
+    std::vector<double> end_v(3,0);
+    for (int i=0; i<3; i++) {
+      start_v[i] = c.pca_ends_v[closest_end][i];
+      end_v[i]   = c.pca_ends_v[other_end][i];
+    }
+    e_v.push_back( start_v );
+    e_v.push_back( end_v );
+
+    double eigenval[3] = { c.pca_eigenvalues[0], c.pca_eigenvalues[1], c.pca_eigenvalues[2] };
+    double centroid[3] = { c.pca_center[0], c.pca_center[1], c.pca_center[2] };
+    larlite::pcaxis llpca( true, c.points_v.size(), eigenval, e_v, centroid, 0, cidx );
+
+    return llpca;
+  }
+  
 
   /**
    * @brief convert larflow cluster back into a cluster_t object.
@@ -966,6 +1008,31 @@ namespace reco {
     return maxdist;
   }
   
+  /**
+   * @brief give index of pca end that is closest
+   *
+   */
+  int cluster_closest_pcaend( const cluster_t& cluster, const std::vector<float>& testpt )
+  {
+    if ( cluster.pca_ends_v.size()!=2 ) {
+      throw std::runtime_error( "[larflow::reco::cluster_closest_pcaend] pca_end_v in cluster is not size 2");
+    }
+    
+    float enddist[2] = {0};
+    for (int iend=0; iend<2; iend++) {
+      for (int v=0; v<3; v++) {
+        enddist[iend] += ( cluster.pca_ends_v[iend][v] - testpt[v] )*( cluster.pca_ends_v[iend][v] - testpt[v] );
+      }
+    }
+
+    if ( enddist[0]<enddist[1] )
+      return 0;
+    else
+      return 1;
+
+    // should never get here
+    return 0;
+  }
   
 }
 }

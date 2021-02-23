@@ -420,8 +420,10 @@ namespace reco {
 
     // repair shower trunks by absorbing tracks or creating hits
     _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
-    for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() )
+    for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+      _nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+    }    
     
   }
 
@@ -571,7 +573,7 @@ namespace reco {
       for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
 
         auto& llshower = nuvtx.shower_v.at(ishower);
-      
+        
         // electron ID variables
       
         // pi-zero ID variables
@@ -580,6 +582,9 @@ namespace reco {
       
       prongvars.analyze( nuvtx, nusel );
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
+
+      std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
+      std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
       
       // nu kinematic variables
       _nu_sel_v.emplace_back( std::move(nusel) );

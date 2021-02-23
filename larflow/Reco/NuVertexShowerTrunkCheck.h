@@ -46,6 +46,11 @@ namespace reco {
 
     void checkNuCandidateProngs( larflow::reco::NuVertexCandidate& nuvtx );
 
+    void checkNuCandidateProngsForMissingCharge( larflow::reco::NuVertexCandidate& nuvtx,
+                                                 larcv::IOManager& iolcv,
+                                                 larlite::storage_manager& ioll );
+    
+
     bool isTrackTrunkOfShower( const std::vector<float>& vtxpos,
                                larlite::track& track,
                                larlite::larflowcluster& track_hitcluster,
@@ -54,11 +59,12 @@ namespace reco {
                                larlite::pcaxis& shower_pcaxis,
                                float& frac_path, float& frac_core );
 
-    larlite::larflowcluster makeMissingTrunkHits( const std::vector<float>& vtxpos,
+    larlite::larflowcluster makeMissingTrunkHits( larflow::reco::NuVertexCandidate& nuvtx, 
                                                   const std::vector<larcv::Image2D>& adc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
-                                                  larlite::pcaxis& shower_pcaxis );
+                                                  larlite::pcaxis& shower_pcaxis,
+                                                  float& max_gapdist );
 
   protected:
 
@@ -75,6 +81,13 @@ namespace reco {
                            larlite::track&          shower_trunk,
                            larlite::larflowcluster& shower_hitcluster,
                            larlite::pcaxis& shower_pcaxis );
+
+    void _mergeNewTrunkHits( const std::vector<float>& vtxpos,
+                             const larlite::larflowcluster& newhits,
+                             larlite::track& shower_trunk,                                                  
+                             larlite::larflowcluster& shower_hitcluster,
+                             larlite::pcaxis& shower_pcaxis );
+    
     
     
   };

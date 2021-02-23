@@ -3,6 +3,8 @@
 #include "LArUtil/Geometry.h"
 #include "LArUtil/LArProperties.h"
 
+#include "larcv/core/DataFormat/EventImage2D.h"
+
 #include "geofuncs.h"
 #include "cluster_functions.h"
 
@@ -93,8 +95,43 @@ namespace reco {
       std::swap( nuvtx.track_v, keep_track_v );
       std::swap( nuvtx.track_hitcluster_v, keep_cluster_v );
     }
-    
+
+
   }
+
+  void NuVertexShowerTrunkCheck::checkNuCandidateProngsForMissingCharge( larflow::reco::NuVertexCandidate& nuvtx,
+                                                                         larcv::IOManager& iolcv,
+                                                                         larlite::storage_manager& ioll )
+  {
+
+    larcv::EventImage2D* ev_img
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
+    const std::vector<larcv::Image2D>& adc_v = ev_img->as_vector();
+    
+    // now run missing shower trunk charge algo
+    for ( size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++ ) {
+      LARCV_DEBUG() << "Check Shower[" << ishower << "] for missing trunk hits" << std::endl;
+      auto& shower = nuvtx.shower_v[ishower];
+      auto& shower_trunk = nuvtx.shower_trunk_v[ishower];
+      auto& shower_pca   = nuvtx.shower_pcaxis_v[ishower];
+      float max_gapdist = 10.;
+      larlite::larflowcluster add_hits_v =
+        makeMissingTrunkHits( nuvtx, adc_v,
+                              shower_trunk,
+                              shower,
+                              shower_pca, max_gapdist );
+
+      if ( add_hits_v.size()>3 && max_gapdist<3.0) {
+        // merge the shower trunk
+        _mergeNewTrunkHits( nuvtx.pos,
+                            add_hits_v,
+                            shower_trunk,
+                            shower,
+                            shower_pca);
+      }
+    }
+    
+  }    
 
   bool NuVertexShowerTrunkCheck::isTrackTrunkOfShower( const std::vector<float>& vtxpos,
                                                        larlite::track& track,
@@ -170,13 +207,21 @@ namespace reco {
     return false;
   }
 
+  /**
+   * @brief supplement missing shower trunk hits
+   */
   larlite::larflowcluster
-  NuVertexShowerTrunkCheck::makeMissingTrunkHits( const std::vector<float>& vtxpos,
+  NuVertexShowerTrunkCheck::makeMissingTrunkHits( larflow::reco::NuVertexCandidate& nuvtx,
                                                   const std::vector<larcv::Image2D>& adc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
-                                                  larlite::pcaxis& shower_pcaxis )
+                                                  larlite::pcaxis& shower_pcaxis,
+                                                  float& max_gapdist )
   {
+
+    const std::vector<float>& vtxpos = nuvtx.pos;
+    max_gapdist = -1;
+    
     larlite::larflowcluster added_hit_v;
 
     // we define a line segment between the vertex and shower
@@ -191,15 +236,24 @@ namespace reco {
     }
 
     // define shower trunk start    
-    std::vector<float> shrstart(3,0); 
+    std::vector<float> shrstart(3,0);
+    std::vector<float> shrend(3,0);
     if ( dist[0]<dist[1] ) {
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         shrstart[i] = shower_trunk.LocationAtPoint(0)[i];
+        shrend[i]   = shower_trunk.LocationAtPoint(1)[i];
+      }
     }
     else {
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         shrstart[i] = shower_trunk.LocationAtPoint(1)[i];
+        shrend[i]   = shower_trunk.LocationAtPoint(0)[i];
+      }
     }
+    LARCV_DEBUG() << "search between "
+                  << " start=(" << shrstart[0] << "," << shrstart[1] << "," << shrstart[2] << ")"
+                  << " end=(" << shrend[0] << "," << shrend[1] << "," << shrend[2] << ")"
+                  << std::endl;
 
     // define shower dir
     std::vector<double> showerdir(3,0);
@@ -217,13 +271,39 @@ namespace reco {
     int nsteps = len/max_stepsize+1;
     double stepsize = (double)len/(double)nsteps;
 
-    std::set< std::vector<int> > past_hits;
-    auto const& meta = adc_v.front().meta();
+    LARCV_DEBUG() << "num steps=" << nsteps << " stepsize=" << stepsize << std::endl;
 
-    for (int istep=0; istep<nsteps; istep++) {
+    auto const& meta = adc_v.front().meta();    
+    std::set< std::vector<int> > past_hits;
+
+    // load up past hits from the current shower and track
+    std::vector<const larlite::larflowcluster*> vtx_cluster_v;    
+    for ( auto const& vtxshower : nuvtx.shower_v )
+      vtx_cluster_v.push_back( &vtxshower );
+    for ( auto const& vtxtrack : nuvtx.track_hitcluster_v )
+      vtx_cluster_v.push_back( &vtxtrack );
+
+    for ( auto& pcluster : vtx_cluster_v ) {
+      for (auto const& lfhit : *pcluster ) {
+        if ( lfhit.tick<=meta.min_y() || lfhit.tick>=meta.max_y() )
+          continue;
+        std::vector<int> hitcoord(4);
+        for (int p=0; p<3; p++)
+          hitcoord[p] = lfhit.targetwire[p];      
+        hitcoord[3] = meta.row(lfhit.tick,__FILE__,__LINE__);
+        past_hits.insert(hitcoord);
+      }
+    }//end of cluster loop
+
+    TVector3 last_addition( vtxpos[0], vtxpos[1], vtxpos[2] );
+    max_gapdist = -1.0;
+    
+    for (int istep=0; istep<=nsteps; istep++) {
+      
       std::vector<double> pos(3,0);
       for (int i=0; i<3; i++)
-        pos[i] = (double)vtxpos[i] + stepsize*showerdir[i];
+        pos[i] = (double)vtxpos[i] + (istep*stepsize)*showerdir[i];
+
 
       float tick = pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
       if ( tick<=meta.min_y() || tick>=meta.max_y() )
@@ -248,7 +328,8 @@ namespace reco {
         if (npix>0)
           nplanes_w_charge++;
       }//end of plane
-      
+
+      bool added_pt = false;
       if ( nplanes_w_charge>=2 ) {
       
         imgcoord[3] = row;
@@ -269,12 +350,25 @@ namespace reco {
           lfhit.renormed_shower_score = 1.0;
           added_hit_v.emplace_back( std::move(lfhit) );
           past_hits.insert( imgcoord );
-        }
+          added_pt = true;
+        }// if added
+      }//end of if nplanes with charge        
+      
+      if ( added_pt || istep==nsteps ) {
+        // added hit, calc gap dist since last addition.
+        // update last position
+        TVector3 addedpos( pos[0], pos[1], pos[2] );
+        float gapdist = (addedpos-last_addition).Mag();
 
-      }
+        // wait to update gap dist after first 1 cm from vertex?
+        if ( istep*stepsize>0.0 && (max_gapdist<gapdist || max_gapdist<0) )
+          max_gapdist = gapdist;
+      }//end of if added, then update last added pos and calc gapdist
+
+      
     }//end of step loop
 
-    
+    LARCV_DEBUG() << "proposed " << added_hit_v.size() << " hits with max gap dist of " << max_gapdist << " cm" << std::endl;
     
     return added_hit_v;
   }
@@ -447,6 +541,105 @@ namespace reco {
     
   }
   
+  void NuVertexShowerTrunkCheck::_mergeNewTrunkHits( const std::vector<float>& vtxpos,
+                                                     const larlite::larflowcluster& newhits,
+                                                     larlite::track& shower_trunk,                                                  
+                                                     larlite::larflowcluster& shower_hitcluster,
+                                                     larlite::pcaxis& shower_pcaxis )
+  {
+    
+    larlite::larflowcluster combined;
+    larlite::larflowcluster new_trunk;
+    combined.reserve( newhits.size()+shower_hitcluster.size() );
+    for ( auto& hit : newhits ) {
+      float dist = 0.;
+      for (int i=0; i<3; i++)
+        dist += ( hit[i]-vtxpos[i] )*( hit[i]-vtxpos[i] );
+      if ( dist<25.0 )
+        new_trunk.push_back( hit );
+      combined.emplace_back( std::move(hit) );      
+    }
+
+    // need shower start
+    float shower_end_dist[2] = {0};
+    int npts = (int)shower_trunk.NumberTrajectoryPoints();
+    for (int i=0; i<3; i++) {
+      shower_end_dist[0] += ( shower_trunk.LocationAtPoint(0)[i] - vtxpos[i] )*( shower_trunk.LocationAtPoint(0)[i] - vtxpos[i] );
+      shower_end_dist[1] += ( shower_trunk.LocationAtPoint(npts-1)[i] - vtxpos[i] )*( shower_trunk.LocationAtPoint(npts-1)[i] - vtxpos[i] );
+    }
+    int shower_endpt_index = ( shower_end_dist[0]<shower_end_dist[1] ) ? 0 : npts-1;
+    
+    std::vector<float> shower_startpt(3,0);
+    for (int i=0; i<3; i++)
+      shower_startpt[i] = shower_trunk.LocationAtPoint(shower_endpt_index)[i];
+    
+    for ( auto& hit : shower_hitcluster ) {
+      // fill trunk container
+      float dist = 0.;
+      for (int i=0; i<3; i++)
+        dist += ( hit[i]-shower_startpt[i] )*( hit[i]-shower_startpt[i] );
+      if ( dist<25.0 )
+        new_trunk.push_back( hit );
+
+      // fill all
+      combined.emplace_back( std::move(hit) );      
+    }
+
+    // cluster: will calc pca for us
+    larflow::reco::cluster_t cluster_all   = larflow::reco::cluster_from_larflowcluster( combined );
+    larflow::reco::cluster_t cluster_trunk = larflow::reco::cluster_from_larflowcluster( new_trunk );    
+
+    // resort points
+    larlite::larflowcluster combined_sorted;
+
+    // determine order based on pca ends
+    int closest_end = larflow::reco::cluster_closest_pcaend( cluster_all, vtxpos );
+    int index_start = 0;
+    int index_end = (int)cluster_all.points_v.size()-1;
+    int index_dir = 1;    
+    if ( closest_end==1 ) {
+      index_start = (int)cluster_all.points_v.size()-1;
+      index_end = 0;
+      index_dir = -1;
+    }
+      
+    
+    for ( int i=index_start; i!=index_end; i += index_dir ) {
+      combined_sorted.emplace_back( std::move(combined[cluster_all.ordered_idx_v[i]]));
+    }
+
+    // replace hit cluster
+    std::swap( combined_sorted, shower_hitcluster );
+
+    // make replace trunk and pc axis
+    int closest_trunkend = larflow::reco::cluster_closest_pcaend( cluster_trunk, vtxpos );
+    int other_end = (closest_trunkend==0) ? 1 : 0;
+    larlite::track llnewtrunk;
+    llnewtrunk.reserve(2);
+    TVector3 newtrunk_start;
+    TVector3 newtrunk_end;
+    for (int i=0; i<3; i++) {
+      newtrunk_start[i] = cluster_trunk.pca_ends_v[closest_trunkend][i];
+      newtrunk_end[i]   = cluster_trunk.pca_ends_v[closest_trunkend][i];      
+    }
+    TVector3 newtrunk_dir = newtrunk_end-newtrunk_start;
+    float len = newtrunk_dir.Mag();
+    if ( len>0 )
+      for (int i=0; i<3; i++)
+        newtrunk_dir[i] /= len;
+
+    llnewtrunk.add_vertex( newtrunk_start );
+    llnewtrunk.add_vertex( newtrunk_end );
+    llnewtrunk.add_direction( newtrunk_dir );
+    llnewtrunk.add_direction( newtrunk_dir );
+    
+    larlite::pcaxis newtrunk_pca = larflow::reco::cluster_make_pcaxis_wrt_point( cluster_trunk, vtxpos );
+
+    std::swap( shower_trunk, llnewtrunk );
+    std::swap( shower_pcaxis, newtrunk_pca );
+    
+  }
+
   
 }
 }

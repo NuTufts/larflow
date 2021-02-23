@@ -69,6 +69,7 @@ for ientry in range(start_entry,nentries):
             for ipt in range(npts):
                 dqdx = lltrack.DQdxAtPoint( ipt, 2 )
                 currentpt = lltrack.LocationAtPoint(ipt)
+                #print("    track[%d] %d = %.1f"%(itrack,npts,dqdx))
                 g.SetPoint(ipt,resrange,dqdx)
                 resrange += (currentpt-lastpt).Mag()
                 lastpt = currentpt

@@ -105,6 +105,10 @@ namespace reco {
   cluster_t cluster_merge( const cluster_t& clust_a, const cluster_t& clust_b );
 
   larlite::pcaxis cluster_make_pcaxis( const cluster_t& cluster, int id=0 );
+ 
+  larlite::pcaxis cluster_make_pcaxis_wrt_point( const cluster_t& c,
+                                                 const std::vector<float>& refpt,
+                                                 int cidx=0 );
 
   cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster );
   
@@ -119,6 +123,8 @@ namespace reco {
   void cluster_bbox( cluster_t& cluster );
     
   float cluster_dist_to_bbox( const cluster_t& cluster, const std::vector<float>& testpt  );
+
+  int cluster_closest_pcaend( const cluster_t& cluster, const std::vector<float>& testpt );
 }
 }
 
