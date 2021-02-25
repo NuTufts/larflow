@@ -19,11 +19,17 @@ namespace reco {
 
     NuSelectionVariables()
       : max_proton_pid(0.0),
+      frac_trackhits_on_cosmic(0),
+      frac_showerhits_on_cosmic(0),
+      frac_allhits_on_cosmic(0),
+      nshower_pts_on_cosmic(0),
+      ntrack_pts_on_cosmic(0),
       dist2truevtx(1e6),
-      truth_vtxFracNu(0.),
+      truth_vtxFracNu(0),
       isTruthMatchedNu(0)
       {};
-    virtual ~NuSelectionVariables() {};
+    virtual ~NuSelectionVariables() {
+    };
 
 
     /**
@@ -88,6 +94,13 @@ namespace reco {
     float vertex_hip_fraction;
     float vertex_charge_per_pixel;
     int   vertex_type;
+
+    // filled by NuSelWCTaggerOverlap
+    float frac_trackhits_on_cosmic;
+    float frac_showerhits_on_cosmic;
+    float frac_allhits_on_cosmic;
+    int nshower_pts_on_cosmic;
+    int ntrack_pts_on_cosmic;
     
     // TRUTH
     float dist2truevtx;    ///< distance to true vertex, sce applied to true vertex

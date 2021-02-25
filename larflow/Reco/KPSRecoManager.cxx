@@ -14,6 +14,7 @@
 #include "NuSelVertexVars.h"
 #include "NuSelTruthOnNuPixel.h"
 #include "NuSelShowerTrunkAna.h"
+#include "NuSelWCTaggerOverlap.h"
 #include "SplitHitsByParticleSSNet.h"
 
 namespace larflow {
@@ -530,7 +531,9 @@ namespace reco {
     NuSelProngVars prongvars;
     NuSelVertexVars vertexvars;
     NuSelShowerTrunkAna showertrunkvars;
+    NuSelWCTaggerOverlap wcoverlapvars;
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
+    wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -585,6 +588,7 @@ namespace reco {
       prongvars.analyze( nuvtx, nusel );
       showertrunkvars.analyze( nuvtx, nusel, iolcv );
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
+      wcoverlapvars.analyze( nuvtx, nusel, iolcv );
 
       std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
       std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
