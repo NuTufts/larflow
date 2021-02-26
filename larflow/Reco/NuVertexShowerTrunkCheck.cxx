@@ -129,6 +129,15 @@ namespace reco {
                             shower_trunk,
                             shower,
                             shower_pca);
+
+	// check objects
+	LARCV_DEBUG() << "After merger: " << std::endl;
+	LARCV_DEBUG() << "Trunk: npts=" << shower_trunk.NumberTrajectoryPoints() << std::endl;
+	LARCV_DEBUG() << "Trunk: ("
+		      << shower_trunk.LocationAtPoint(0)[0] << "," << shower_trunk.LocationAtPoint(0)[1] << "," << shower_trunk.LocationAtPoint(0)[2] << ") to ("
+		      << shower_trunk.LocationAtPoint(1)[0] << "," << shower_trunk.LocationAtPoint(1)[1] << "," << shower_trunk.LocationAtPoint(1)[2] << ")"
+		      << std::endl;
+	LARCV_DEBUG() << "PCA num eigenvectors: " << shower_pca.getEigenVectors().size() << std::endl;
       }
     }
     
@@ -629,6 +638,41 @@ namespace reco {
       trunk_has_pca = false;
     }
 
+    // check the ends
+    if ( cluster_trunk.pca_ends_v.size()!=2 ) {
+      trunk_has_pca = false;
+    }
+    else {
+      if( cluster_trunk.pca_ends_v[0].size()!=3
+	  || cluster_trunk.pca_ends_v[1].size()!=3 ) {
+	trunk_has_pca = false;
+      }
+      else {
+	for (int i=0; i<3; i++) {
+	  if ( std::isnan( cluster_trunk.pca_ends_v[0][i] ) )
+	    trunk_has_pca = false;
+	  if( std::isnan( cluster_trunk.pca_ends_v[1][i] ) )
+	    trunk_has_pca = false;
+	}
+      }
+    }
+    
+    if ( trunk_has_pca ) {
+      LARCV_DEBUG() << "Trunk made ok PC-axis" << std::endl;
+      std::stringstream ss_end1;
+      std::stringstream ss_end2;
+      for (int i=0; i<3; i++) {
+	ss_end1 << cluster_trunk.pca_ends_v[0][i] << " ";
+	ss_end2 << cluster_trunk.pca_ends_v[1][i] << " ";
+      }
+      LARCV_DEBUG() << "pca-end[0] (" << ss_end1.str() << ")" << std::endl;
+      LARCV_DEBUG() << "pca-end[1] (" << ss_end2.str() << ")" << std::endl;
+    }
+    else {
+      LARCV_DEBUG() << "Trunk cluster could not make good PC-axis" << std::endl;
+    }
+
+
     // resort points from closest to vertex to furthest
     larlite::larflowcluster combined_sorted;
 
@@ -648,7 +692,7 @@ namespace reco {
       combined_sorted.emplace_back( std::move(combined[cluster_all.ordered_idx_v[i]]));
     }
 
-    // make replace trunk and pc axis
+    // make replacement trunk and pc axis
     larlite::track llnewtrunk;
     llnewtrunk.reserve(2);
     
@@ -682,7 +726,18 @@ namespace reco {
       llnewtrunk.add_vertex( tvtx );
       llnewtrunk.add_vertex( shower_endpt );
       llnewtrunk.add_direction( newtrunk_dir );
-      llnewtrunk.add_direction( newtrunk_dir );      
+      llnewtrunk.add_direction( newtrunk_dir );
+
+      // use old pca
+      LARCV_DEBUG() << "Use old PCA-axis" << std::endl;
+      std::stringstream ss_end1;
+      std::stringstream ss_end2;
+      for (int i=0; i<3; i++) {
+	ss_end1 << shower_pcaxis.getEigenVectors()[3][i] << " ";
+	ss_end2 << shower_pcaxis.getEigenVectors()[4][i] << " ";
+      }
+      LARCV_DEBUG() << "pca-end[0] (" << ss_end1.str() << ")" << std::endl;
+      LARCV_DEBUG() << "pca-end[1] (" << ss_end2.str() << ")" << std::endl;
     }
     
     std::swap( combined_sorted, shower_hitcluster ); // exchange new cluster

@@ -423,9 +423,12 @@ namespace reco {
 
     // repair shower trunks by absorbing tracks or creating hits
     _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    int ivtx = 0;
     for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+      LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
       //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+      ivtx++;
     }    
     
   }
