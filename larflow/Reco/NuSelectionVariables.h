@@ -19,6 +19,18 @@ namespace reco {
 
     NuSelectionVariables()
       : max_proton_pid(0.0),
+      ntracks(0),
+      nshowers(0),
+      max_shower_length(0),
+      max_track_length(0),
+      max_shower_nhits(0),
+      max_track_nhits(0),
+      min_shower_gap(0),
+      max_shower_gap(0),
+      closest_shower_ll(0),
+      largest_shower_ll(0),
+      closest_shower_avedqdx(0),
+      largest_shower_avedqdx(0),
       frac_trackhits_on_cosmic(0),
       frac_showerhits_on_cosmic(0),
       frac_allhits_on_cosmic(0),
@@ -28,7 +40,9 @@ namespace reco {
       dist2truevtx(1e6),
       truth_vtxFracNu(0),
       isTruthMatchedNu(0)
-      {};
+      {
+        plane_connected_on_pass.resize(3,-1);
+      };
     virtual ~NuSelectionVariables() {
     };
 
@@ -82,6 +96,8 @@ namespace reco {
     int   max_track_nhits;
     float min_shower_gap;
     float max_shower_gap;
+    float min_track_gap;
+    float max_track_gap;
 
     // filled by NuSelShowerTrunkAna
     float closest_shower_ll; 

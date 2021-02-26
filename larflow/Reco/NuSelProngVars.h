@@ -13,7 +13,11 @@ namespace reco {
   public:
 
     NuSelProngVars()
-      : larcv::larcv_base("NuSelProngVars")
+      : larcv::larcv_base("NuSelProngVars"),
+      _min_shower_nhits(3),
+      _min_shower_length(1),
+      _min_track_nhits(3),
+      _min_track_length(1)
       {};
     virtual ~NuSelProngVars() {};
 

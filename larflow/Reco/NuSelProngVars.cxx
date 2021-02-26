@@ -42,6 +42,7 @@ namespace reco {
 
     float min_shower_gap = 1e6;
     float max_shower_gap = 0;
+
     for ( int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++ ) {
       auto const& cluster = nuvtx.shower_v[ishower];
       auto const& pca     = nuvtx.shower_pcaxis_v[ishower];
@@ -76,7 +77,44 @@ namespace reco {
 
     output.min_shower_gap = min_shower_gap;
     output.max_shower_gap = max_shower_gap;
+
     
+    float min_track_gap = 1e6;
+    float max_track_gap = 0;
+        
+    for ( int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++ ) {
+      auto const& track   = nuvtx.track_v[itrack];      
+      auto const& cluster = nuvtx.track_hitcluster_v[itrack];
+      float tracklen[2] = {0.};
+      int npts = (int)track.NumberTrajectoryPoints();
+      for (int i=0; i<3; i++) {
+        tracklen[0] += ( track.LocationAtPoint(0)[i] - nuvtx.pos[i] )*( track.LocationAtPoint(0)[i] - nuvtx.pos[i] );
+        tracklen[1] += ( track.LocationAtPoint(npts-1)[i] - nuvtx.pos[i] )*( track.LocationAtPoint(npts-1)[i] - nuvtx.pos[i] );
+      }
+
+      float track_dist = ( tracklen[0]<tracklen[1] ) ? tracklen[0] : tracklen[1];
+
+      if ( track_dist<min_track_gap )
+        min_track_gap = track_dist;
+
+      if ( track_dist>max_track_gap )
+        max_track_gap = track_dist;
+    }    
+
+    output.min_track_gap = min_track_gap;
+    output.max_track_gap = max_track_gap;
+    
+    LARCV_DEBUG() << "ntracks: " << output.ntracks << std::endl;
+    LARCV_DEBUG() << "nshowers: " << output.nshowers << std::endl;
+    LARCV_DEBUG() << "max_shower_length: " << output.max_shower_length << std::endl;
+    LARCV_DEBUG() << "max_track_length: " << output.max_track_length << std::endl;
+    LARCV_DEBUG() << "max_shower_nhits: " << output.max_shower_nhits << std::endl;
+    LARCV_DEBUG() << "max_track_nhits: " << output.max_track_nhits << std::endl;
+    LARCV_DEBUG() << "min_shower_gap: " << output.min_shower_gap << std::endl;
+    LARCV_DEBUG() << "min_track_gap: " << output.min_track_gap << std::endl;    
+    LARCV_DEBUG() << "max_shower_gap: " << output.max_shower_gap << std::endl;
+    LARCV_DEBUG() << "max_track_gap: " << output.max_track_gap << std::endl;    
+
     
   }
   

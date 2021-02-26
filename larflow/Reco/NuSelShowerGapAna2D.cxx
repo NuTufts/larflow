@@ -46,8 +46,8 @@ namespace reco {
 
     // check bounds
     if (min_row<0) min_row = 0;
-    if ( min_row>=(int)meta.rows() )
-      min_row = (int)meta.rows()-1;
+    if ( max_row>=(int)meta.rows() )
+      max_row = (int)meta.rows()-1;
 
     float min_tick = meta.pos_y(min_row);
     float max_tick = meta.pos_y(max_row);
@@ -105,7 +105,7 @@ namespace reco {
         for (auto& contour2d : contour_v) {
           double dist = cv::pointPolygonTest( contour2d, vtxpt, true );
           LARCV_DEBUG() << " ctr[" << ictr << "] test dist = " << dist << std::endl;
-          if ( dist>best_dist ) {
+          if ( dist>-5 && dist>best_dist ) {
             vtx_ctr_index = ictr;
             best_dist = dist;
           }

@@ -537,6 +537,7 @@ namespace reco {
     NuSelShowerTrunkAna showertrunkvars;
     NuSelWCTaggerOverlap wcoverlapvars;
     NuSelShowerGapAna2D showergapana2d;
+    prongvars.set_verbosity(larcv::msg::kDEBUG);
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
     showergapana2d.set_verbosity(larcv::msg::kDEBUG);
