@@ -2,8 +2,8 @@ from __future__ import print_function
 import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
-parser.add_argument("-ll","--input-larlite",required=True,type=str,help="kpsrecomanager larlite output file")
 parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
+parser.add_argument("-ll","--input-larlite",type=str,default=None,help="kpsrecomanager larlite output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
 parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
 args = parser.parse_args()
@@ -30,14 +30,22 @@ for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
 # OPEN LARLITE FILE
-io = larlite.storage_manager( larlite.storage_manager.kREAD )
-io.add_in_filename( args.input_larlite )
+if args.input_larlite is not None:
+    io = larlite.storage_manager( larlite.storage_manager.kREAD )
+    io.add_in_filename( args.input_larlite )
+    HAS_LARLITE = True
+    print("HAS_LARLITE")
+else:
+    HAS_LARLITE = False
+    
 if args.input_mcinfo is not None:
     io.add_in_filename( args.input_mcinfo )
     HAS_MC = True
 else:
     HAS_MC = False
-io.open()
+
+if HAS_LARLITE:
+    io.open()
 
 # OPEN VERTEX RECO FILE
 anafile = rt.TFile( args.input_kpsana )
@@ -55,9 +63,12 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     from larflow import larflow
     larcv.SetPyUtil()    
     print("making figures for entry={} plot-by={}".format(entry,plotby))
-    global io
     global kpsanatree
-    io.go_to(entry)
+    
+    if HAS_LARLITE:
+        global io
+        io.go_to(entry)
+        
     nbytes = kpsanatree.GetEntry(entry)
     if nbytes==0:
         return []
@@ -72,7 +83,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         vtxid = int(vtxid)
         plotall = False
 
-    if args.draw_flash:
+    if args.draw_flash and HAS_LARLITE:
         ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
         nflashes = 0
         for iflash in range(ev_flash.size()):
@@ -91,7 +102,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 ("hip","hip","rgb(0,0,255)",0.1,False),                
                 ("wcshower","showergoodhit","rgb(200,125,125)",0.1,False)]
     for (name,producer,rgbcolor,opa,plotme) in clusters:
-        if not plotme:
+        if not plotme or not HAS_LARLITE:
             continue
         
         ev_trackcluster = io.get_data(larlite.data.kLArFlowCluster, producer )
@@ -148,7 +159,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         # we want to plot the clusters associated with this
         # if in all mode, we plot pca-axis only (else too messy)
         # we plot hits by plot-by option?
-        if False:
+        if False and HAS_LARLITE:
             cluster_list = []
             for icluster in range(vertexcand.cluster_v.size()):
                 clustinfo = vertexcand.cluster_v.at(icluster)
@@ -238,6 +249,10 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             continue
         if not plotme:
             continue
+        if not HAS_LARLITE:
+            print("no larlite, skipping the plotting of ",name)
+            continue
+        
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
         for itrack in xrange(ev_track.size()):
             trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
@@ -248,7 +263,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( trktrace )
     
 
-    if HAS_MC:
+    if HAS_MC and HAS_LARLITE:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
         traces_v += mctrack_v
 
