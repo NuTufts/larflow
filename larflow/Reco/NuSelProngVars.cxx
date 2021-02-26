@@ -67,7 +67,7 @@ namespace reco {
       if ( path_len>max_shower_gap )
         max_shower_gap = path_len;
 
-      std::cout << " shower[" << ishower << "] pca-len=" << showerlen << std::endl;
+      LARCV_DEBUG() << " shower[" << ishower << "] pca-len=" << showerlen << std::endl;
 
       if ( showerlen>_min_shower_length && cluster.size()>10 )
         output.nshowers++;

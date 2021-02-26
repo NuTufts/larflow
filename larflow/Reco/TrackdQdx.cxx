@@ -346,21 +346,26 @@ namespace reco {
 
     std::vector< PtQ_t > pixq_v(3);
         
-    for ( int p=0; p<3; p++) {
-          
+    for ( int p=0; p<3; p++) {      
       float pixsum = 0.;
       int npix = 0;
-      for (int dr=-2; dr<=2; dr++ ) {
-        int r = row+dr;
-        if ( r<0 || r>=(int)adc_v.front().meta().rows() )
-          continue;
-        pixsum += adc_v[p].pixel( r, imgcoord[p], __FILE__, __LINE__ );
-        npix++;
+
+      if ( imgcoord[p]>=0 && imgcoord[p]<(int)adc_v[p].meta().cols() ) {
+	for (int dr=-2; dr<=2; dr++ ) {
+	  int r = row+dr;
+	  if ( r<0 || r>=(int)adc_v.front().meta().rows() )
+	    continue;
+	  pixsum += adc_v[p].pixel( r, imgcoord[p], __FILE__, __LINE__ );
+	  npix++;
+	}
+	if ( npix>0 )
+	  pixq_v[p].q = pixsum/float(npix);
+	else
+	  pixq_v[p].q = 0;
       }
-      if ( npix>0 )
-        pixq_v[p].q = pixsum/float(npix);
-      else
-        pixq_v[p].q = 0;
+      else {
+	pixq_v[p].q = 0.;
+      }
       
       float dcos_yz = fabs(dir[1]*orthy[p] + dir[2]*orthz[p]);
       float dcos_x  = fabs(dir[0]);
