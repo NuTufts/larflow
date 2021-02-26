@@ -24,6 +24,7 @@ namespace reco {
       frac_allhits_on_cosmic(0),
       nshower_pts_on_cosmic(0),
       ntrack_pts_on_cosmic(0),
+      nplanes_connected(0),
       dist2truevtx(1e6),
       truth_vtxFracNu(0),
       isTruthMatchedNu(0)
@@ -86,7 +87,11 @@ namespace reco {
     float closest_shower_ll; 
     float largest_shower_ll; 
     float closest_shower_avedqdx; 
-    float largest_shower_avedqdx; 
+    float largest_shower_avedqdx;
+
+    // filled by NuSelShowerGapAna2D;
+    std::vector<int> plane_connected_on_pass;
+    int nplanes_connected;
 
     // made by NuSelVertexVars
     std::vector<int>   nabove_threshold_vertex_pix_v;
@@ -106,6 +111,8 @@ namespace reco {
     float dist2truevtx;    ///< distance to true vertex, sce applied to true vertex
     float truth_vtxFracNu; ///< fraction of all plane pixels on nu
     int isTruthMatchedNu;  ///< 1 if truth-matched. provides target for selection training.
+
+    
     
   };
   

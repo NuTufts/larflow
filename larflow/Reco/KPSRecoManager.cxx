@@ -15,6 +15,7 @@
 #include "NuSelTruthOnNuPixel.h"
 #include "NuSelShowerTrunkAna.h"
 #include "NuSelWCTaggerOverlap.h"
+#include "NuSelShowerGapAna2D.h"
 #include "SplitHitsByParticleSSNet.h"
 
 namespace larflow {
@@ -424,7 +425,7 @@ namespace reco {
     _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
     for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
-      _nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+      //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
     }    
     
   }
@@ -532,8 +533,10 @@ namespace reco {
     NuSelVertexVars vertexvars;
     NuSelShowerTrunkAna showertrunkvars;
     NuSelWCTaggerOverlap wcoverlapvars;
+    NuSelShowerGapAna2D showergapana2d;
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
+    showergapana2d.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -547,6 +550,13 @@ namespace reco {
       std::cout << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
       std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
       std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
+
+      // check if showers are connected to vertex      
+      showergapana2d.analyze( iolcv, ioll, nuvtx, nusel );
+
+      // if so, check for need of repair
+      if ( nusel.nplanes_connected>=2 )
+        _nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( nuvtx, iolcv, ioll );
 
       nusel.max_proton_pid = 1e3; // more proton, the more value is negative
       for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
@@ -589,13 +599,14 @@ namespace reco {
       showertrunkvars.analyze( nuvtx, nusel, iolcv );
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
       wcoverlapvars.analyze( nuvtx, nusel, iolcv );
-
+      
       std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
       std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
       
       // nu kinematic variables
       _nu_sel_v.emplace_back( std::move(nusel) );
 
+      
     }//end of vertex loop
 
     LARCV_INFO() << "Selection variables made: " << _nu_sel_v.size() << std::endl;
