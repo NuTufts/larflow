@@ -10,4 +10,4 @@ add_subdirectory(CRTMatch)
 add_subdirectory(MaskRCNNreco)
 add_subdirectory(KeyPoints)
 add_subdirectory(SpatialEmbed)
-
+add_subdirectory(CosmicRemovalSuite)
