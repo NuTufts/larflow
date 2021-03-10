@@ -1048,7 +1048,7 @@ std::vector<double> CRVarsMaker::run_varsmaker_arrsout(bool IsMC,
 	std::cout << "\n\n\n";
 
 
-	print_signal();
+	// print_signal();
 	return output_vector;
 	}//End of main
 

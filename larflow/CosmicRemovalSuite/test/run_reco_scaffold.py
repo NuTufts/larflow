@@ -23,12 +23,40 @@ def main():
 
     #Lets assume we start with dlreco file:
     bdtmodelfile="/cluster/tufts/wongjiradlab/jmills09/ubdl_gen2/gen2_checks/bdtweights/cosmictag_BDTweights_test.pickle"
-    # infile_dlreco  = "/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9_v29e_dl_run3b_bnb_intrinsic_nue_overlay_nocrtremerge/data/00/01/37/64/merged_dlreco_001361e0-3306-491f-9098-1d08eee8458b.root"
-    infile_dlreco = "/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9_v29e_dl_run3_G1_extbnb_dlana/data/mcc9_v29e_dl_run3_G1_extbnb_dlana/merged_dlana_d9679e9b-3be3-4411-bc25-6e2cea860827.root"
+    # BDT Variables
+    n_bdtvars = 16
+    bdtvars_list = ["adc_pix_count", \
+        "wc_frac", \
+        "mrcnn_frac_020",\
+        "mrcnn_frac_090",\
+        "combined_frac_020",\
+        "combined_frac_090",\
+        "hip_count_050",\
+        "hip_count_090",\
+        "mip_count_050",\
+        "mip_count_090",\
+        "shower_count_050",\
+        "shower_count_090",\
+        "michel_count_050",\
+        "michel_count_090",\
+        "delta_count_050",\
+        "delta_count_090",\
+        ]
+
+    # Nue Intrinsic File Example
+    infile_dlreco  = "/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9_v29e_dl_run3b_bnb_intrinsic_nue_overlay_nocrtremerge/data/00/01/37/64/merged_dlreco_001361e0-3306-491f-9098-1d08eee8458b.root"
+    # ExtBnB File Example
+    # infile_dlreco = "/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9_v29e_dl_run3_G1_extbnb_dlana/data/mcc9_v29e_dl_run3_G1_extbnb_dlana/merged_dlana_d9679e9b-3be3-4411-bc25-6e2cea860827.root"
+    # Output Directory for MRCNN Single Event Files
+    mrcnn_outdir = "/cluster/tufts/wongjiradlab/jmills09/ubdl_gen2/larflow/larflow/CosmicRemovalSuite/test/"
+    # This grabs more variables from the BDTVars Getter script if set to True.
+    # Information about the segment image, and a 21x21 box around then neutrino vertex
     ismc = False
+    # Dictionaries to go from BDTVars -> idx in the array from the
+    # CRVarsMaker output, and reverse
     var_str2idx_dict, var_idx2str_dict = return_dicts()
 
-
+    # Load in dlreco file into io methods
     io_dlreco  =  larcv.IOManager(larcv.IOManager.kREAD,"IOManager_DLRECO", larcv.IOManager.kTickBackward)
     io_dlreco.reverse_all_products()
     io_dlreco.add_in_file(infile_dlreco)
@@ -37,15 +65,17 @@ def main():
     ioll_dlreco  = larlite.storage_manager(larlite.storage_manager.kREAD)
     ioll_dlreco.add_in_filename(infile_dlreco)
     ioll_dlreco.open()
-
-    for ev_num in range(1,2):
-
+    nentries = io_dlreco.get_n_entries()
+    ev_probs = []
+    for ev_num in range(0,nentries):
+        print("Running Event", ev_num)
         ###########################
         # Create MaskRCNN File for one entry
-
-        mrcnn_outdir = "/cluster/tufts/wongjiradlab/jmills09/ubdl_gen2/larflow/larflow/CosmicRemovalSuite/test/"
+        # Execute MaskRCNN script. Using MaskRCNN build in jmills09/maskrcnn_gen2/
+        # Permissions set to available for all.
         mrcnn_exec_string = "cd /cluster/tufts/wongjiradlab/jmills09/maskrcnn_gen2/ ; python tools/save_output_objects.py --dataset particle --cfg configs/tuftscluster_config_2.yaml --load_ckpt weights/y_plane.pth --input_file "+ infile_dlreco +" --output_dir "+ mrcnn_outdir  + " --one_entry "+ str(ev_num)
         os.system(mrcnn_exec_string)
+        # Grab output file path+name
         ev_string = str(ev_num)
         if (len(str(ev_num)) < 2):
             ev_string = "0"+str(ev_num)
@@ -53,20 +83,14 @@ def main():
         infile_mrcnn = glob.glob(mrcnn_outdir+"mrcnnproposals_"+str(ev_string)+"*")[0]
         ###########################
 
-        # infile_mrcnn   = "/cluster/tufts/wongjiradlab/jmills09/mrcnn_processed_outs/mcc9_v29e_dl_run3b_bnb_intrinsic_nue_overlay_nocrtremerge/0/0069/000/2/hadd_mrcnnproposals_merged_dlreco_001361e0-3306-491f-9098-1d08eee8458b.root"
 
-
-        # Now we take the dlreco file and the mrcnn file and create the cosmic removal bdt variables
+        ###########################
+        # Calculate Cosmic Removal BDT Variables with CRVarsMaker
         CRVarsMaker = larflow.cosmicremovalsuite.CRVarsMaker()
-
 
         io_mrcnn  =  larcv.IOManager(larcv.IOManager.kREAD,"IOManager_MRCNN", larcv.IOManager.kTickBackward)
         io_mrcnn.add_in_file(infile_mrcnn)
         io_mrcnn.initialize()
-
-
-
-        print("Running Event", ev_num)
         io_dlreco.read_entry(ev_num)
         ioll_dlreco.go_to(ev_num)
         io_mrcnn.read_entry(0) #file only has one event, was made in this loop
@@ -74,36 +98,34 @@ def main():
         crvars_np = np.zeros((outvec.size()))
         for i in range(outvec.size()):
             crvars_np[i] = outvec.at(i)
+        ############################
 
-        print("Loading Model")
+
+        ############################
+        # Run Event through BDT Model
+        print("Loading BDT Model")
         cosmictag_BDT = pickle.load(open(bdtmodelfile, "rb"))
-        n_vars = 16
-        bdtvars_list = ["adc_pix_count", \
-            "wc_frac", \
-            "mrcnn_frac_020",\
-            "mrcnn_frac_090",\
-            "combined_frac_020",\
-            "combined_frac_090",\
-            "hip_count_050",\
-            "hip_count_090",\
-            "mip_count_050",\
-            "mip_count_090",\
-            "shower_count_050",\
-            "shower_count_090",\
-            "michel_count_050",\
-            "michel_count_090",\
-            "delta_count_050",\
-            "delta_count_090",\
-            ]
-        bdtvars = np.zeros((1,n_vars))
-        for bdtvar_idx in range(n_vars):
+
+        bdtvars = np.zeros((1,n_bdtvars))
+        for bdtvar_idx in range(n_bdtvars):
             bdtvars[0][bdtvar_idx] = crvars_np[var_str2idx_dict[bdtvars_list[bdtvar_idx]]]
+        # Predict Probability, [0] -> Cosmic [1] -> Nue
+        ev_prob = cosmictag_BDT.predict_proba(bdtvars)
+        print(ev_prob)
+        ev_probs.append(ev_prob[0])
+        # Simple cut assuming single BDT model, placeholder
+        ev_kept = (ev_prob[0][1] > 0.5)
+        if ev_kept:
+            # Reconstruct Event
+            print()
+        else:
+            # Save proof of event for bookkeeping but ignore event.
+            print()
 
-        print(cosmictag_BDT.predict_proba(bdtvars))
-
-        # Do Later Reco
-
-
+        ##########################
+        # Do Later LArMatch
+        ####################
+    print(ev_probs)
     return "\nFinishing Main"
 
 def return_dicts():
