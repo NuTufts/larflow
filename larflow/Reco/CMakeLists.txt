@@ -29,6 +29,7 @@ set( HEADERS cluster_functions.h
   NuVertexShowerTrunkCheck.h
   NuVertexActivityReco.h
   TrackdQdx.h
+  ClusterImageMask.h
   NuSelectionVariables.h
   LikelihoodProtonMuon.h
   CosmicProtonFinder.h
@@ -38,6 +39,7 @@ set( HEADERS cluster_functions.h
   NuSelShowerTrunkAna.h
   NuSelTruthOnNuPixel.h
   NuSelShowerGapAna2D.h
+  NuSelUnrecoCharge.h  
   KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -67,6 +69,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuVertexShowerTrunkCheck.cxx  
   NuVertexActivityReco.cxx  
   TrackdQdx.cxx
+  ClusterImageMask.cxx  
   NuSelectionVariables.cxx
   LikelihoodProtonMuon.cxx
   CosmicProtonFinder.cxx
@@ -75,7 +78,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuSelShowerTrunkAna.cxx
   NuSelWCTaggerOverlap.cxx
   NuSelTruthOnNuPixel.cxx
-  NuSelShowerGapAna2D.cxx  
+  NuSelShowerGapAna2D.cxx
+  NuSelUnrecoCharge.cxx  
   KPSRecoManager.cxx )
 
 # create a property to hold our headers

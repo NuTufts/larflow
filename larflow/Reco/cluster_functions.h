@@ -125,6 +125,7 @@ namespace reco {
   float cluster_dist_to_bbox( const cluster_t& cluster, const std::vector<float>& testpt  );
 
   int cluster_closest_pcaend( const cluster_t& cluster, const std::vector<float>& testpt );
+
 }
 }
 
