@@ -12,6 +12,7 @@ import numpy as np
 import ROOT as rt
 from larlite import larlite
 from larcv import larcv
+from ublarcvapp import ublarcvapp
 from larflow import larflow
 larcv.SetPyUtil()
 
@@ -264,11 +265,56 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     
 
     if HAS_MC and HAS_LARLITE:
+
+        mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        mcpg.buildgraphonly( io )
+        mcpg.printGraph(0,False)
+        
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
         traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
         traces_v += mcshower_v
+
+        if kpsanatree.nu_perfect_v.size()>0:
+            # perfect nu vtx
+            print("Perfect Vertex Plotted")
+            nuperfect = kpsanatree.nu_perfect_v.at(0)
+            for itrack in range(nuperfect.track_v.size()):
+                per_cluster = nuperfect.track_hitcluster_v.at(itrack)
+                per_track   = nuperfect.track_v.at(itrack)
+                print("  true-track[%d] nhits=%d"%(itrack,per_cluster.size()))
+                cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tTRK[%d]"%(itrack) )
+                cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
+                cluster_trace["marker"]["opacity"] = 0.2
+                cluster_trace["marker"]["width"] = 1.0
+                traces_v.append( cluster_trace )
+                
+                trktrace = lardly.data.visualize_larlite_track( per_track )
+                trktrace["name"] = "tT[%d]"%(itrack)
+                trktrace["line"]["color"] = "rgb(0,0,0)"
+                trktrace["line"]["width"] = 1
+                trktrace["line"]["opacity"] = 1.0
+                traces_v.append( trktrace )
+                
+            for ishower in range(nuperfect.shower_v.size()):
+                per_cluster = nuperfect.shower_v.at(ishower)
+                per_track   = nuperfect.shower_trunk_v.at(ishower)
+                print("  true-shower[%d] nhits=%d"%(ishower,per_cluster.size()))
+                cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tSHR[%d]"%(ishower) )
+                cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
+                cluster_trace["marker"]["opacity"] = 0.2
+                cluster_trace["marker"]["width"] = 1.0
+                traces_v.append( cluster_trace )
+                
+                trktrace = lardly.data.visualize_larlite_track( per_track )
+                trktrace["name"] = "tS[%d]"%(ishower)
+                trktrace["line"]["color"] = "rgb(0,0,0)"
+                trktrace["line"]["width"] = 1
+                trktrace["line"]["opacity"] = 1.0
+                traces_v.append( trktrace )
+                
+            
         
     
     # add detector outline
