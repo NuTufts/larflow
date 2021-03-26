@@ -51,13 +51,14 @@
 #pragma link C++ class larflow::reco::TrackOTFit+;
 #pragma link C++ class larflow::reco::NuVertexMaker+;
 #pragma link C++ class larflow::reco::NuVertexActivityReco+;
-#pragma link C++ class larflow::reco::NuTrackBuilder+;
+#pragma link C++ class larflow::reco::NuTrackBuilder+
 #pragma link C++ class larflow::reco::VertexTrackTruthRecoInfo+;
 #pragma link C++ class larflow::reco::TrackdQdx+;
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
 #pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;
 #pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
 #pragma link C++ class larflow::reco::CosmicProtonFinder+;
+#pragma link C++ class larflow::reco::PerfectTruthNuReco+;
 #pragma link C++ class larflow::reco::NuSelProngVars+;
 #pragma link C++ class larflow::reco::NuSelVertexVars+;
 #pragma link C++ class std::vector<larlite::track>+;
