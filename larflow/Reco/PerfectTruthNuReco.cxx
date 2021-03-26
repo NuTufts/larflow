@@ -30,9 +30,9 @@ namespace reco {
     std::vector<int> used_v( ev_lm->size(), 0 );
     // get tracks
     NuVertexCandidate nuvtx;
-
     makeTracks( nuvtx, *ev_mctrack, *ev_lm, adc_v, used_v );
-    
+    makeShowers(  nuvtx, *ev_mcshower, *ev_lm, adc_v, used_v );
+    return nuvtx;
   }
 
 
@@ -42,6 +42,8 @@ namespace reco {
                                        const std::vector<larcv::Image2D>& adc_v,
                                        std::vector<int>& used_v  )
   {
+
+    LARCV_DEBUG() << "Make Tracks" << std::endl;    
     ublarcvapp::mctools::TruthTrackSCE track_convertor;
     TrackdQdx dqdxalgo;
     
@@ -64,11 +66,11 @@ namespace reco {
         if (used_v[idx]!=0 )
           continue;
         auto const& hit = ev_lm[idx];
-        float dist = 0;
+        float dist = 1e9;
         int min_step = -1;
         std::vector<float> pt = { hit[0], hit[1], hit[2] };
         track_convertor.dist2track( pt, sce_track, dist, min_step );
-        if ( dist<1.5 || (min_step>=0 && min_step<npts) ) {
+        if ( dist<1.5 && (min_step>=0 && min_step<npts) ) {
           used_v[idx]=1;
           track_cluster.push_back( hit );
         }
@@ -144,7 +146,7 @@ namespace reco {
 
         float max_r = (s<0) ? 1.0 : s*ar_molier_rad_cm/ar_rad_length_cm;
         
-        if ( s>-0.5 && r<max_r && r<100.0 ) {        
+        if ( s>-0.5 && r<max_r && s<50.0 ) {
           shower_cluster.push_back( hit );
           used_v[idx] = 1;
         }        
