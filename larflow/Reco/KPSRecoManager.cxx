@@ -37,6 +37,7 @@ namespace reco {
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
     _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
+    _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -56,6 +57,7 @@ namespace reco {
     std::clock_t start_event = std::clock_t();
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
+    _nu_perfect_v.clear(); ///< clear perfect reco
     
     // PREP: make bad channel image
     larcv::EventImage2D* ev_adc =
@@ -122,6 +124,8 @@ namespace reco {
     
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
+      NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
+      _nu_perfect_v.emplace_back( std::move(nuperfect) );
       truthAna( iolcv, ioll );
     }
 

@@ -34,6 +34,7 @@
 #include "NuVertexShowerReco.h"
 #include "NuVertexShowerTrunkCheck.h"
 #include "NuVertexActivityReco.h"
+#include "PerfectTruthNuReco.h"
 
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
@@ -70,13 +71,20 @@ namespace reco {
     KeypointReco     _kpreco_track_cosmic; ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
     KeypointFilterByClusterSize _kpfilter; ///< filter out reconstructed keypoints on small clusters
     KeypointFilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
+
+    // larflow hit classification
+    ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score    
     SplitHitsBySSNet _splithits_full; ///< splits shower space points from track spacepoints
     SplitHitsBySSNet _splithits_wcfilter; ///< splits shower spacepoints from track spacepoints for wc filtered hits
+
+    // clustering
     ProjectionDefectSplitter _projsplitter; ///< split wirecell filtered track clusters into straight clusters
     ProjectionDefectSplitter _projsplitter_cosmic; ///< split cosmic-track clusters into straight clusters
-    ShortProtonClusterReco   _short_proton_reco;   ///< short proton reco using HIP space points only
+    ShortProtonClusterReco   _short_proton_reco;   ///< short proton reco using HIP space points only    
     ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
-    ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score
+
+    // mc-based reco
+    PerfectTruthNuReco _perfect_reco; ///< make nuvertexcandidate using true trajectories and showers
 
     // Nu Vertex Seeds
     NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
@@ -98,6 +106,7 @@ namespace reco {
 
     // MC event info
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
+    
 
     // Stages
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -123,7 +132,8 @@ namespace reco {
     float _t_event_elapsed; ///< runtime for event
     void make_ana_file();
 
-    std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v;
+    std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v; ///< selection variables for nuvtx candidates
+    std::vector< larflow::reco::NuVertexCandidate >    _nu_perfect_v; ///< store reco based on true trajectories
 
     bool _kMinize_outputfile_size;
     
