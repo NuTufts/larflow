@@ -40,7 +40,8 @@ set( HEADERS cluster_functions.h
   NuSelShowerTrunkAna.h
   NuSelTruthOnNuPixel.h
   NuSelShowerGapAna2D.h
-  NuSelUnrecoCharge.h  
+  NuSelUnrecoCharge.h
+  NuSel1e1pEventSelection.h
   KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -81,7 +82,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuSelWCTaggerOverlap.cxx
   NuSelTruthOnNuPixel.cxx
   NuSelShowerGapAna2D.cxx
-  NuSelUnrecoCharge.cxx  
+  NuSelUnrecoCharge.cxx
+  NuSel1e1pEventSelection.cxx
   KPSRecoManager.cxx )
 
 # create a property to hold our headers

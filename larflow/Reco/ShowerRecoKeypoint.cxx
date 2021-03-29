@@ -53,7 +53,6 @@ namespace reco {
    * @param[in] ioll  larlite storage_manager
    */
   void ShowerRecoKeypoint::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
-
     // clear member containers
     _shower_cand_v.clear();
     _recod_shower_v.clear();
@@ -639,7 +638,8 @@ namespace reco {
                                                                    const std::vector< const cluster_t*>& showerhit_cluster_v )
   {
 
-    const float ar_molier_rad_cm = 9.04;
+    const float ar_moliere_rad_cm = 9.04;
+    
     
     std::set<int> clusteridx_v;
 
@@ -682,7 +682,7 @@ namespace reco {
         proj /= pcalen;
 
         
-        if ( dist<1.0*ar_molier_rad_cm && fabs(proj)<50.0 ) {
+        if ( dist<ar_moliere_rad_cm && fabs(proj)<50.0 ) {
           testcluster = true;
           break;
         }
@@ -707,7 +707,7 @@ namespace reco {
       }
 
       // if bbox pt close, we test to see if we absorb cluster
-      // defined as 10% of points inside molier radius (this needs tuning)
+      // defined as 10% of points inside shower threshold (this needs tuning)
       int npts_inside = 0;
       int npts_outside = 0;
       int npts_threshold = int( 0.1*cluster.points_v.size() );
@@ -723,7 +723,7 @@ namespace reco {
           proj += ( hit[v]-trunk_cand.keypoint->at(v) )*trunk_cand.pcaxis_v[v];
         proj /= pcalen;
         
-        if ( (proj>0.0 && dist<0.5*ar_molier_rad_cm && proj<50.0 )
+        if ( (proj>0.0 && dist<_shower_rad_threshold_cm && proj<50.0 )
              || (proj<=0.0 && proj>-3.0 && dist<3.0 ) ) {
           npts_inside++;
         }

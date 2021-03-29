@@ -39,6 +39,7 @@
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
 #include "CosmicProtonFinder.h"
+#include "NuSel1e1pEventSelection.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -104,6 +105,9 @@ namespace reco {
     // Selection Variable Modules
     LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
 
+    // Event Selection modules (only for development)
+    NuSel1e1pEventSelection _eventsel_1e1p;
+
     // MC event info
     ublarcvapp::mctools::LArbysMC _event_mcinfo_maker; ///< extracts mc event info and saves info to tree
     
@@ -115,10 +119,12 @@ namespace reco {
     void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void runNuVtxSelection();
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     void saveEventMCinfo(bool savemc);
+    void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
 
   protected:
 
@@ -130,6 +136,7 @@ namespace reco {
     int _ana_subrun; ///< subrun number for tree entry
     int _ana_event; ///< event number for tree entry
     float _t_event_elapsed; ///< runtime for event
+    bool _save_selected_only; ///< if true, save only selected nu vertex candidates
     void make_ana_file();
 
     std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v; ///< selection variables for nuvtx candidates

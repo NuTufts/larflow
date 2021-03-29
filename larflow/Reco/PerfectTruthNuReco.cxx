@@ -18,9 +18,9 @@ namespace reco {
     larcv::EventImage2D* ev_adc
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
-    
+
     larlite::event_larflow3dhit* ev_lm
-      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "taggerfilterhit" );
 
     larlite::event_mctrack* ev_mctrack
       = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );

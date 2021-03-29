@@ -266,17 +266,29 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
 
     if HAS_MC and HAS_LARLITE:
 
-        mcpg = ublarcvapp.mctools.MCPixelPGraph()
-        mcpg.buildgraphonly( io )
-        mcpg.printGraph(0,False)
+        #mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        #mcpg.buildgraphonly( io )
+        #mcpg.printGraph(0,False)
+
+        larbysmc = ublarcvapp.mctools.LArbysMC()
+        larbysmc.process( io )
+        larbysmc.printInteractionInfo()
         
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
         traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        traces_v += mcshower_v
+        traces_v.append( mcshower_v[2] )
 
-        if kpsanatree.nu_perfect_v.size()>0:
+        num_nu_perfect = 0
+        try:
+            num_nu_perfect = kpsanatree.nu_perfect_v.size()
+        except:
+            num_nu_perfect = 0
+            print("no perfect vertex info")
+            pass
+        
+        if num_nu_perfect>0:
             # perfect nu vtx
             print("Perfect Vertex Plotted")
             nuperfect = kpsanatree.nu_perfect_v.at(0)

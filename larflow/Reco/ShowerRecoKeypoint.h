@@ -27,11 +27,14 @@ namespace reco {
     ShowerRecoKeypoint()
       : larcv::larcv_base("ShowerRecoKeypoint"),
       _ssnet_lfhit_tree_name("showerhit"),
-      _larmatch_score_threshold(0.5)
+      _larmatch_score_threshold(0.5),
+      _shower_rad_threshold_cm(3.0)
       {};    
     virtual ~ShowerRecoKeypoint() {};
     
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+
+    void setShowerRadiusThresholdcm( float thresh ) { _shower_rad_threshold_cm=thresh; };    
 
   protected:
 
@@ -111,12 +114,12 @@ namespace reco {
                                      const std::vector< const cluster_t* >& showerhit_cluster_v );
 
     
-    
   protected:
     
     // PARAMETERS
     std::string _ssnet_lfhit_tree_name; ///< name of tree to get input larflow3dhit
     float _larmatch_score_threshold;    ///< threshold of larmatch score to use larflow3dhit
+    float _shower_rad_threshold_cm;        ///< radius from trunk to absorb clusters
     
   public:
 

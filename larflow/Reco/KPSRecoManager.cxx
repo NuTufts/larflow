@@ -28,9 +28,10 @@ namespace reco {
    */
   KPSRecoManager::KPSRecoManager( std::string inputfile_name )
     : larcv::larcv_base("KPSRecoManager"),
-    _save_event_mc_info(false),
+    _save_event_mc_info(false),    
     _ana_output_file(inputfile_name),
     _t_event_elapsed(0),
+    _save_selected_only(false),
     _kMinize_outputfile_size(false)
   {
     make_ana_file();
@@ -121,9 +122,13 @@ namespace reco {
 
     // make selection variables
     makeNuCandidateSelectionVariables( iolcv, ioll );
+
+    // run selection and filter events
     
+    runNuVtxSelection();    
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
+      LARCV_DEBUG() << "Run perfect reco." << std::endl;
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
       truthAna( iolcv, ioll );
@@ -353,6 +358,8 @@ namespace reco {
     _projsplitter_cosmic.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
+    // class: larflow::reco::ShowerRecoKeypoint
+    _showerkp.setShowerRadiusThresholdcm( 5.0 );
     _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
     //_showerkp.set_verbosity( larcv::msg::kDEBUG );
     _showerkp.set_verbosity( larcv::msg::kINFO );    
@@ -619,6 +626,50 @@ namespace reco {
 
     LARCV_INFO() << "Selection variables made: " << _nu_sel_v.size() << std::endl;
     
+  }
+
+  void KPSRecoManager::runNuVtxSelection()
+  {
+    
+    if ( !_save_selected_only )
+      return;
+
+    LARCV_INFO() << "run 1e1p development selection" << std::endl;
+
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v
+      = _nuvertexmaker.get_mutable_fitted_candidates();
+    
+    if ( _nu_sel_v.size()!=nuvtx_v.size() ) {
+      LARCV_CRITICAL() << "mismatch in selection and vertex candidates" << std::endl;
+      return;
+    }
+    
+    std::vector<larflow::reco::NuSelectionVariables> pass_nusel_v;
+    std::vector<larflow::reco::NuVertexCandidate>    pass_nuvtx_v;
+
+    for ( int ivtx=0; ivtx<(int)nuvtx_v.size(); ivtx++ ) {
+      auto& nusel = _nu_sel_v[ivtx];
+      auto& nuvtx = nuvtx_v[ivtx];
+      
+      int pass = _eventsel_1e1p.runSelection( nusel, nuvtx );
+      LARCV_DEBUG() << " vtx[" << ivtx << "] pass=" << pass << std::endl;
+      if ( pass==1 ) {
+        pass_nusel_v.emplace_back( std::move( nusel ) );
+        pass_nuvtx_v.emplace_back( std::move( nuvtx ) );
+      }
+    }
+
+    // now clear and replace
+    LARCV_DEBUG() << "clear and replace vertices" << std::endl;
+    nuvtx_v.clear();
+    _nu_sel_v.clear();
+    for ( int ivtx=0; ivtx<(int)pass_nusel_v.size(); ivtx++ ) {
+      nuvtx_v.emplace_back( std::move(pass_nuvtx_v[ivtx]) );
+      _nu_sel_v.emplace_back( std::move(pass_nusel_v[ivtx]) );
+    }
+    LARCV_INFO() << "Applied 1e1p selection. Passing vertices: " << nuvtx_v.size() << std::endl;
+    
+    return;
   }
   
 }

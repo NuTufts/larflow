@@ -18,6 +18,7 @@ parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,he
 parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
 parser.add_argument("-d","--debug",default=False,action='store_true',help="If true, store many intermediate products")
 parser.add_argument("-min","--minimal",default=False,action='store_true',help="If true, store minimal products")
+parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
 
 args = parser.parse_args()
 
@@ -42,6 +43,8 @@ recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
 if args.ismc:
     recoman.saveEventMCinfo( args.ismc )
+if args.event_filter:
+    recoman.saveSelectedNuVerticesOnly( args.event_filter )
 
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )
