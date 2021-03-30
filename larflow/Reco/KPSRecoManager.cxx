@@ -671,6 +671,13 @@ namespace reco {
     
     return;
   }
-  
+
+
+  void KPSRecoManager::clear()
+  {
+    _nu_sel_v.clear();
+    _nu_perfect_v.clear();
+    
+  }
 }
 }

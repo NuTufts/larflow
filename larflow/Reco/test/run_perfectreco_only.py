@@ -46,6 +46,13 @@ if args.ismc:
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
 
+perfect_file = rt.TFile( args.output.replace(".root","_perfectreco.root"), "recreate" )
+perfect_tree = rt.TTree("perfect_reco","Perfect Reco Tree")
+nu_perfect_v = std.vector("larflow::reco::NuVertexCandidate")()
+perfect_tree.Branch( "nu_perfect_v", nu_perfect_v )
+
+nuperfect_maker = larflow.reco.PerfectTruthNuReco()
+
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
@@ -109,6 +116,9 @@ if args.debug is None or args.debug==False:
         io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashCosmic" )  
         
         recoman.minimze_output_size(False)
+elif args.minimal:
+    iolcv.addto_storeonly_list( larcv.kProductImage2D, "dummy" )
+
 
 io.open()
 iolcv.initialize()
@@ -132,15 +142,22 @@ io.go_to( args.start_entry )
 #io.go_to( args.start_entry )
 for ientry in range( args.start_entry, end_entry ):
     print("[ENTRY ",ientry,"]")
+
+    nu_perfect_v.clear()
+    
     iolcv.read_entry(ientry)
 
     print("reco, make nu candidates, calculate selection variables")
     sys.stdout.flush()
-    recoman.process( iolcv, io )
+    
+    recoman.prepSpacepoints( iolcv, io )
+    nuvtx = nuperfect_maker.makeNuVertex( iolcv, io )
+    nu_perfect_v.push_back( nuvtx )
+    perfect_tree.Fill()
 
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
-    iolcv.save_entry()
+    #iolcv.save_entry()
     sys.stdout.flush()
 
 print("Event Loop finished")
@@ -150,3 +167,5 @@ sys.stdout.flush()
 io.close()
 iolcv.finalize()
 recoman.write_ana_file()
+perfect_file.cd()
+perfect_tree.Write()

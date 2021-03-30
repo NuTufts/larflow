@@ -8,6 +8,7 @@
 #include "DataFormat/mctrack.h"
 #include "DataFormat/mcshower.h"
 #include "DataFormat/larflow3dhit.h"
+#include "LArUtil/SpaceChargeMicroBooNE.h"
 
 #include "NuVertexCandidate.h"
 
@@ -29,10 +30,8 @@ namespace reco {
   {
 
   public:
-    PerfectTruthNuReco()
-      : larcv::larcv_base("PerfectTruthNuReco")
-      {};
-    virtual ~PerfectTruthNuReco() {};
+    PerfectTruthNuReco();
+    virtual ~PerfectTruthNuReco();
 
     NuVertexCandidate
       makeNuVertex( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -50,6 +49,8 @@ namespace reco {
                       const std::vector<larcv::Image2D>& adc_v,
                       std::vector<int>& used_v  );
     
+
+    larutil::SpaceChargeMicroBooNE* _psce;
     
   };
   

@@ -126,6 +126,8 @@ namespace reco {
     void saveEventMCinfo(bool savemc);
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
 
+    void clear();
+
   protected:
 
     bool _save_event_mc_info; ///< if true, save event-level mc info to ana tree

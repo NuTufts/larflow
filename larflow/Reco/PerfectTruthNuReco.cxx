@@ -1,7 +1,9 @@
 #include "PerfectTruthNuReco.h"
 
+#include "LArUtil/LArProperties.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
+#include "ublarcvapp/MCTools/NeutrinoVertex.h"
 #include "TrackdQdx.h"
 
 #include "geofuncs.h"
@@ -10,6 +12,18 @@
 namespace larflow {
 namespace reco {
 
+  PerfectTruthNuReco::PerfectTruthNuReco()
+    : larcv::larcv_base("PerfectTruthNuReco")
+  {
+    _psce = new larutil::SpaceChargeMicroBooNE;
+  }
+
+  PerfectTruthNuReco::~PerfectTruthNuReco()
+  {
+    delete _psce;
+    _psce = nullptr;
+  }
+  
   NuVertexCandidate
   PerfectTruthNuReco::makeNuVertex( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll )
@@ -32,6 +46,12 @@ namespace reco {
     NuVertexCandidate nuvtx;
     makeTracks( nuvtx, *ev_mctrack, *ev_lm, adc_v, used_v );
     makeShowers(  nuvtx, *ev_mcshower, *ev_lm, adc_v, used_v );
+
+    nuvtx.keypoint_producer = "perfectreco";
+    nuvtx.keypoint_index = 0;
+    nuvtx.pos = ublarcvapp::mctools::NeutrinoVertex::getPos3DwSCE( ioll, _psce );
+    nuvtx.tick = 3200 + nuvtx.pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+    
     return nuvtx;
   }
 
@@ -44,7 +64,7 @@ namespace reco {
   {
 
     LARCV_DEBUG() << "Make Tracks" << std::endl;    
-    ublarcvapp::mctools::TruthTrackSCE track_convertor;
+    ublarcvapp::mctools::TruthTrackSCE track_convertor( _psce );
     TrackdQdx dqdxalgo;
     
     for ( auto const& track : ev_mctrack ) {
@@ -109,6 +129,11 @@ namespace reco {
       auto const& profile = shower.DetProfile();
       float pmom = profile.Momentum().Vect().Mag();
       TVector3 dir = profile.Momentum().Vect();
+
+
+      if ( dir.Mag()<0.1 )
+        continue;
+      
       std::vector<float> fdir(3,0);
       std::vector<float> fstart(3,0);
       std::vector<float> fend(3,0);
