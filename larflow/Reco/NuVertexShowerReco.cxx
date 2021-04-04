@@ -78,7 +78,11 @@ namespace reco {
     };
 
     const float r_mollier = 9.04; // cm, liquid argon
+    const float r_trunk   = 3.0;
     const float tau_startpt = 3.0; // cm
+
+    const float max_showerpt_dist = 200.0;
+    const float max_showerpt_d2 = max_showerpt_dist*max_showerpt_dist;
     
     std::vector<ProngRank_t> seed_rank_v; //< rank how we will seed the hits
     
@@ -278,10 +282,7 @@ namespace reco {
           shower_hit_v.push_back(hit);
       }
       
-
-
-
-      // absorb shower clusters within cone
+      // absorb shower clusters within cone. we sample from all producers given, not just within vertex.
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
 
         auto const& cluster_type = _cluster_type[it->first];
@@ -317,9 +318,10 @@ namespace reco {
               for (int i=0; i<3; i++)
                 d2 += ( rankedprong.axis_start[i]-showerpt[i] )*( rankedprong.axis_start[i]-showerpt[i] );
 
-              if ( s>0.0 && d2<1e4 ) {
+              if ( s>0.0 && d2<max_showerpt_d2 ) {
                 float rovers = r/s;
-                if ( rovers < 9.0/14.0 ) {
+                //if ( rovers < 9.0/14.0 ) {
+                if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
                   // mollier/radiation length
                   nhits_within_cone++;
                 }
@@ -377,8 +379,9 @@ namespace reco {
                                              float& shower_ll )
   {
 
+    // calculate distance to vertex for every hit in the cluster
     std::vector<float> dist2vertex(lfcluster.size(),0);
-    float min_dist = 1e9;
+    float min_dist = 1e9; // the 
     for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
       float dist = 0.;
       for (int i=0; i<3; i++) {
