@@ -16,11 +16,12 @@ parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of e
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
 parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,help="Input larcv images are tick-backward")
 parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
-parser.add_argument("-d","--debug",default=False,action='store_true',help="If true, store many intermediate products")
-parser.add_argument("-min","--minimal",default=False,action='store_true',help="If true, store minimal products")
+parser.add_argument("-p","--products",default="rerun",help="output products saved. choices: {rerun[default],min,debug}")
 parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
 
 args = parser.parse_args()
+if args.products not in ["rerun","min","debug"]:
+    raise ValueError("--product argument must either be {rerun,min,debug}")
 
 import ROOT as rt
 from ROOT import std
@@ -75,40 +76,64 @@ iolcv.reverse_all_products()
 io.set_out_filename( args.output.replace(".root","_larlite.root") )
 iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
 
-if args.debug is None or args.debug==False:
 
+    
+if args.products in ["rerun"]:
+    print("Save enough info to allow rerunning")
+    #larcv
+    iolcv.addto_storeonly_list( larcv.kProductImage2D,  "wire" )
+    iolcv.addto_storeonly_list( larcv.kProductImage2D,  "thrumu" )
+    iolcv.addto_storeonly_list( larcv.kProductChStatus, "wire" )          
+    for p in range(3):
+        iolcv.addto_storeonly_list( larcv.kProductImage2D, "ubspurn_plane%d"%(p) )
+    iolcv.addto_storeonly_list( larcv.kProductSparseImage, "sparseuresnetout" )
+    for truthproduct in ["instance","segment","ancestor","larflow"]:
+        iolcv.addto_storeonly_list( larcv.kProductImage2D, truthproduct )
+         
+    #larlite
+    io.set_data_to_write( larlite.data.kLArFlow3DHit, "larmatch" )
+    io.set_data_to_write( larlite.data.kMCTruth, "generator" )
+    io.set_data_to_write( larlite.data.kMCShower, "mcreco" )
+    io.set_data_to_write( larlite.data.kMCTrack,  "mcreco" )
+
+if args.products in ["rerun","min"]:
+
+    print("Save minimal amount of data, enough to plot in vis_kpreco.py")
+    
     # cosmic reco saved, since nuvertex data in ana file is does not save cosmic info
     io.set_data_to_write( larlite.data.kTrack, "boundarycosmic" )
     io.set_data_to_write( larlite.data.kTrack, "boundarycosmicnoshift" )
     io.set_data_to_write( larlite.data.kTrack, "containedcosmic" )
-
+    io.set_data_to_write( larlite.data.kTrack, "nutrack_fitted" )  
     io.set_data_to_write( larlite.data.kLArFlowCluster, "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
     io.set_data_to_write( larlite.data.kPCAxis, "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
 
-    print("minimal: ",args.minimal)
-    if args.minimal is None or args.minimal==False:
-        # keypoint reco
-        io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypoint" ) # save reco keypoints, used to seed nu candidates
+    # keypoint reco
+    io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypoint" ) # save reco keypoints, used to seed nu candidates
 
-        # cosmic hit clusters:  trade space for time, since can use track paths to pick up hits again
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "boundarycosmicnoshift" )
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "containedcosmic" )
+    # cosmic hit clusters:  trade space for time, since can use track paths to pick up hits again
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "boundarycosmicnoshift" )
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "containedcosmic" )
 
-        # cluster reco
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "trackprojsplit_wcfilter" ) # in-time track clusters
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "showerkp" )      # in-time shower clusters, found using shower keypoints
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "showergoodhit" ) # in-time shower clusters
-        io.set_data_to_write( larlite.data.kLArFlowCluster, "hip" )           # in-time proton tracks
-        io.set_data_to_write( larlite.data.kPCAxis, "trackprojsplit_wcfilter" ) # in-time track clusters
-        io.set_data_to_write( larlite.data.kPCAxis, "showerkp" )      # in-time shower clusters, found using shower keypoints
-        io.set_data_to_write( larlite.data.kPCAxis, "showergoodhit" ) # in-time shower clusters
-        io.set_data_to_write( larlite.data.kPCAxis, "hip" )           # in-time proton tracks
+    # cluster reco
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "trackprojsplit_wcfilter" ) # in-time track clusters
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "showerkp" )      # in-time shower clusters, found using shower keypoints
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "showergoodhit" ) # in-time shower clusters
+    io.set_data_to_write( larlite.data.kLArFlowCluster, "hip" )           # in-time proton tracks
+    io.set_data_to_write( larlite.data.kPCAxis, "trackprojsplit_wcfilter" ) # in-time track clusters
+    io.set_data_to_write( larlite.data.kPCAxis, "showerkp" )      # in-time shower clusters, found using shower keypoints
+    io.set_data_to_write( larlite.data.kPCAxis, "showergoodhit" ) # in-time shower clusters
+    io.set_data_to_write( larlite.data.kPCAxis, "hip" )           # in-time proton tracks
+    
+    # save flash
+    io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashBeam" )
+    io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashCosmic" )  
+    
+    recoman.minimze_output_size(False)
 
-        # save flash
-        io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashBeam" )
-        io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashCosmic" )  
-        
-        recoman.minimze_output_size(False)
+if args.products in ["debug"]:
+    print("Saving all products loaded and made by reconstruction code")
+    # no output specify, so io managers will default to saving everything
 
 io.open()
 iolcv.initialize()

@@ -122,6 +122,11 @@ namespace reco {
     float frac_allhits_on_cosmic;
     int nshower_pts_on_cosmic;
     int ntrack_pts_on_cosmic;
+
+    // filled by NuSelUnrecoCharge
+    std::vector<int>   intime_count_v; /// number of in-time pixels per plane
+    std::vector<int>   unreco_count_v; /// number of un-reconstructed pixels per plane
+    std::vector<float> unreco_fraction_v; /// fraction of in-time pixels, un-reco'd
     
     // TRUTH
     float dist2truevtx;    ///< distance to true vertex, sce applied to true vertex

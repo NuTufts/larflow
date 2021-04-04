@@ -66,7 +66,7 @@ namespace reco {
         for (int p=0; p<(int)adc_v.size(); p++) {
           for (int dc=-(int)abs(dpix); dc<=(int)abs(dpix); dc++) {
             int c = sp.targetwire[p] + dc;
-            if ( dc<0 || dc>=(int)adc_v[p].meta().cols() ) continue;
+            if ( c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
 
             if ( adc_v[p].pixel(r,c,__FILE__,__LINE__)>thresh
                  && mask_v[p].pixel(r,c)==0 ) {
