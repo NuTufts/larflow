@@ -555,6 +555,7 @@ namespace reco {
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
     showergapana2d.set_verbosity(larcv::msg::kDEBUG);
     unrecocharge.setSaveMask(false);
+    unrecocharge.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -618,6 +619,7 @@ namespace reco {
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
       wcoverlapvars.analyze( nuvtx, nusel, iolcv );
       unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );
+
       
       // std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
       // std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      

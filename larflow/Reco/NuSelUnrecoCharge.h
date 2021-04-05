@@ -49,6 +49,7 @@ namespace reco {
                                const std::vector<larcv::Image2D>& adc_v,
                                const std::vector<larcv::Image2D>& thrumu_v,
                                const float adc_threshold,
+			       std::vector<int>& unreco_intime_counts,			       
                                std::vector<int>& unreco_counts,
                                std::vector<float>& unreco_fraction );
 

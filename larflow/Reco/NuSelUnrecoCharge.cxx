@@ -46,10 +46,15 @@ namespace reco {
     larcv::EventImage2D* ev_thrumu
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "thrumu");
     auto const& thrumu_v =  ev_thrumu->as_vector();
+    std::vector<int> intime_counts(adc_v.size(),0);    
     std::vector<int> unreco_counts(adc_v.size(),0);
     std::vector<float> unreco_fraction(adc_v.size(),0);
     _count_unreco_pixels( nuvtx_mask_v, adc_v, thrumu_v, adc_threshold,
-                          unreco_counts, unreco_fraction );
+                          intime_counts, unreco_counts, unreco_fraction );
+
+    output.intime_count_v = intime_counts;
+    output.unreco_count_v = unreco_counts;
+    output.unreco_fraction_v = unreco_fraction;
 
     // get/define mask container
     larcv::EventImage2D* evout_mask
@@ -83,13 +88,14 @@ namespace reco {
                                                 const std::vector<larcv::Image2D>& adc_v,
                                                 const std::vector<larcv::Image2D>& thrumu_v,
                                                 const float adc_threshold,
+						std::vector<int>& unreco_intime_counts,
                                                 std::vector<int>& unreco_counts,
                                                 std::vector<float>& unreco_fraction )
   {
 
+    unreco_intime_counts.resize(adc_v.size(),0);
     unreco_counts.resize( adc_v.size(), 0 );
     unreco_fraction.resize( adc_v.size(), 0 );
-    std::vector<int> unreco_intime_counts(adc_v.size(), 0);
     clearVars();
     
     for (int p=0; p<(int)adc_v.size(); p++) {
