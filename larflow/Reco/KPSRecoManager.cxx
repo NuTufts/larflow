@@ -123,9 +123,6 @@ namespace reco {
     // make selection variables
     makeNuCandidateSelectionVariables( iolcv, ioll );
 
-    // run selection and filter events
-    
-    runNuVtxSelection();    
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
@@ -133,6 +130,9 @@ namespace reco {
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
       truthAna( iolcv, ioll );
     }
+
+    // run selection and filter events    
+    runNuVtxSelection();    
 
     if ( _kMinize_outputfile_size ) {
       // save only fitted vertex candidates
@@ -647,12 +647,20 @@ namespace reco {
     std::vector<larflow::reco::NuSelectionVariables> pass_nusel_v;
     std::vector<larflow::reco::NuVertexCandidate>    pass_nuvtx_v;
 
+    
     for ( int ivtx=0; ivtx<(int)nuvtx_v.size(); ivtx++ ) {
       auto& nusel = _nu_sel_v[ivtx];
       auto& nuvtx = nuvtx_v[ivtx];
+
+      if ( nusel.dist2truevtx<3.0 ) {
+        _eventsel_1e1p.set_verbosity( larcv::msg::kDEBUG ); // for debug
+        LARCV_NORMAL() << "--------------------------------" << std::endl;
+        LARCV_NORMAL() << "vtx[" << ivtx << "]  dist2true: "  << nusel.dist2truevtx << " cm" << std::endl;
+      }
+      else
+        _eventsel_1e1p.set_verbosity( larcv::msg::kNORMAL ); // for debug
       
       int pass = _eventsel_1e1p.runSelection( nusel, nuvtx );
-      LARCV_DEBUG() << " vtx[" << ivtx << "] pass=" << pass << std::endl;
       if ( pass==1 ) {
         pass_nusel_v.emplace_back( std::move( nusel ) );
         pass_nuvtx_v.emplace_back( std::move( nuvtx ) );
