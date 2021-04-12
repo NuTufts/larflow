@@ -17,6 +17,7 @@
 #include "NuSelWCTaggerOverlap.h"
 #include "NuSelShowerGapAna2D.h"
 #include "NuSelUnrecoCharge.h"
+#include "NuSelCosmicTagger.h"
 #include "SplitHitsByParticleSSNet.h"
 
 namespace larflow {
@@ -549,13 +550,15 @@ namespace reco {
     NuSelShowerTrunkAna showertrunkvars;
     NuSelWCTaggerOverlap wcoverlapvars;
     NuSelShowerGapAna2D showergapana2d;
-    NuSelUnrecoCharge   unrecocharge;    
+    NuSelUnrecoCharge   unrecocharge;
+    NuSelCosmicTagger   cosmictagger;
     prongvars.set_verbosity(larcv::msg::kDEBUG);
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
     showergapana2d.set_verbosity(larcv::msg::kDEBUG);
     unrecocharge.setSaveMask(false);
     unrecocharge.set_verbosity(larcv::msg::kDEBUG);
+    cosmictagger.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -619,7 +622,7 @@ namespace reco {
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
       wcoverlapvars.analyze( nuvtx, nusel, iolcv );
       unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );
-
+      cosmictagger.analyze( nuvtx, nusel );
       
       // std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
       // std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      

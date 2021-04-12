@@ -11,35 +11,83 @@
 namespace larflow {
 namespace reco {
 
+  /**
+   * @brief check the candidate prongs
+   * 
+   * absorb tracks that are just a core within shower
+   * 
+   * @param[inout] nuvtx Neutrino candidate vertex to modify.
+   */
   void NuVertexShowerTrunkCheck::checkNuCandidateProngs( larflow::reco::NuVertexCandidate& nuvtx )
   {
 
-    std::vector<int> trunk_absorbed( nuvtx.track_v.size(), 0 );
+    LARCV_DEBUG() << "start" << std::endl;
+    
+    std::vector<int> trunk_absorbed( nuvtx.track_v.size(), 0 ); // mark if we absorbed the track prong
     int num_absorbed = 0;
-    for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
-      auto& track = nuvtx.track_v[i];
-      auto& track_hits = nuvtx.track_hitcluster_v[i];
 
-      // get track length
-      float tracklen = 0.;
-      for (int ipt=0; ipt<(int)track.NumberTrajectoryPoints()-1;ipt++) {
-        tracklen += ( track.LocationAtPoint(ipt)-track.LocationAtPoint(ipt+1) ).Mag();
-      }
+    TVector3 vtx( nuvtx.pos[0], nuvtx.pos[1], nuvtx.pos[2] );
 
-      if ( tracklen<7.0 )
-        continue;
+    // loop over showers
+    for (int j=0; j<(int)nuvtx.shower_v.size(); j++) {
+      
+      auto& shower = nuvtx.shower_v[j];
+      auto& shower_trunk = nuvtx.shower_trunk_v[j];
+      auto& shower_pca   = nuvtx.shower_pcaxis_v[j];
 
-      for (int j=0; j<(int)nuvtx.shower_v.size(); j++) {
+      LARCV_DEBUG() << "shower[" << j << "] check for tracks to absorb" << std::endl;
+    
+      // loop over tracks, see if we should absorb it into the shower
+      for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
 
         if ( trunk_absorbed[i]==1 )
           continue;
+              
+        auto& track = nuvtx.track_v[i];
+        auto& track_hits = nuvtx.track_hitcluster_v[i];
         
-        auto& shower = nuvtx.shower_v[j];
-        auto& shower_trunk = nuvtx.shower_trunk_v[j];
-        auto& shower_pca   = nuvtx.shower_pcaxis_v[j];
+        // decide to absorb or not
+        // (1) cosine direction
+        // (2) max distance from vertex
+        // (3) min distance from vertex
+        
+        // get track length
+        float tracklen = 0.;
+        float maxvtxdist = 0;
+        float minvtxdist = 1e9;
+        int npts = (int)track.NumberTrajectoryPoints();
+        for (int ipt=0; ipt<(int)track.NumberTrajectoryPoints()-1;ipt++) {
+          tracklen += ( track.LocationAtPoint(ipt)-track.LocationAtPoint(ipt+1) ).Mag();
+          float ptdist = (track.LocationAtPoint(ipt)-vtx).Mag();
+          if ( ptdist > maxvtxdist ) maxvtxdist = ptdist;
+          if ( ptdist < minvtxdist ) minvtxdist = ptdist;
+        }
+        TVector3 start_to_end_dir = track.LocationAtPoint( npts-1 )-track.LocationAtPoint(0);
+        float s2edist = start_to_end_dir.Mag();
+        for (int v=0; v<3; v++)
+          start_to_end_dir[v] /= s2edist;
+
+        float cos_track = 0.;
+        for (int v=0; v<3; v++) {
+          cos_track += start_to_end_dir[v]*shower_trunk.DirectionAtPoint(0)[v];
+        }
+        
+        cos_track = fabs(cos_track);
+        float ang_track = acos(cos_track)*180.0/3.14159;
+
+        LARCV_DEBUG() << "  track[" << i << "] min=" << minvtxdist << " max=" << maxvtxdist
+                      << " ang=" << ang_track
+                      << " s2edist=" << s2edist
+                      << " dirlen=" << shower_trunk.DirectionAtPoint(0).Mag()
+                      << std::endl;
+
+        if ( minvtxdist<0.3 && (ang_track>30.0 || maxvtxdist<1.5) )
+          continue;
+
+            
         float frac_path = 0.;
         float frac_core = 0.;
-        bool add_to_shower = isTrackTrunkOfShower( nuvtx.pos,
+        bool within_shower = isTrackTrunkOfShower( nuvtx.pos,
                                                    track,
                                                    track_hits,
                                                    shower_trunk,
@@ -48,7 +96,9 @@ namespace reco {
                                                    frac_path,
                                                    frac_core );
 
-        if ( add_to_shower ) {
+        LARCV_DEBUG() << "  track[" << i << "] frac_core=" << frac_core << std::endl;
+
+        if ( within_shower ) {
           trunk_absorbed[i] = 1;
           num_absorbed++;
           if ( frac_path>0.8 ) {
@@ -68,10 +118,9 @@ namespace reco {
                              shower,
                              shower_pca );
         }
-      }//end of shower loop
-    }//end of track loop
+      }//end of track loop
+    }//end of shower loop
 
-        
     if ( num_absorbed>0 ) {
       LARCV_DEBUG() << "Zero out " << num_absorbed << " tracks" << std::endl;
       // for (int ii=0; ii<(int)nuvtx.track_v.size(); ii ) {
@@ -143,6 +192,10 @@ namespace reco {
     
   }    
 
+  /**
+   * @brief asks what fraction of track is near trunk of shower
+   *
+   */
   bool NuVertexShowerTrunkCheck::isTrackTrunkOfShower( const std::vector<float>& vtxpos,
                                                        larlite::track& track,
                                                        larlite::larflowcluster& track_hitcluster,
@@ -167,46 +220,49 @@ namespace reco {
     }
 
     std::vector<float> shrstart(3,0); // shower trunk start
+    std::vector<float> shrend(3,0);   // shower trunk end
     if ( dist[0]<dist[1] ) {
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         shrstart[i] = shower_trunk.LocationAtPoint(0)[i];
+        shrend[i]   = shower_trunk.LocationAtPoint(1)[i];
+      }
     }
     else {
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         shrstart[i] = shower_trunk.LocationAtPoint(1)[i];
+        shrend[i]   = shower_trunk.LocationAtPoint(0)[i];        
+      }
     }
 
 
     std::vector<float> showerdir(3,0);
     float len = 0.;
     float pcalen = 0.;
-    float dx = 0.;
+    float pcadx = 0.;
     for (int i=0; i<3; i++) {
-      showerdir[i] = shrstart[i]-vtxpos[i];
+      showerdir[i] = shrend[i]-shrstart[i];
       len += showerdir[i]*showerdir[i];
-      dx = (shower_pcaxis.getEigenVectors()[3][i]-shower_pcaxis.getEigenVectors()[4][i]);
-      pcalen += dx*dx;
+      pcadx = ( shower_pcaxis.getEigenVectors()[3][i] - shower_pcaxis.getEigenVectors()[4][i] );
+      pcalen += pcadx*pcadx;
     }
     len = sqrt(len);
+    pcalen = sqrt(pcalen);
     for (int i=0; i<3; i++)
       showerdir[i] /= len;
-    pcalen = sqrt(pcalen);
 
     int nhits_within_startpath = 0.;
     int nhits_within_shower = 0.;
     for (size_t ihit=0; ihit<track_hitcluster.size(); ihit++) {
       auto const& hit = track_hitcluster[ihit];
-      float r = larflow::reco::pointLineDistance3f( vtxpos, shrstart, hit );
-      float s_start = larflow::reco::pointRayProjection3f( vtxpos, showerdir, hit );
-      if ( r<2.0 ) {
-        if ( s_start>-2.0 && s_start<len )
-          nhits_within_startpath++;
-        else if ( s_start>len && s_start<len+pcalen+5.0 )
-          nhits_within_shower++;
+      float r = larflow::reco::pointLineDistance3f( shrstart, shrend, hit );
+      float s_start = larflow::reco::pointRayProjection3f( shrstart, showerdir, hit );
+      if ( r<3.0 && s_start>-1.0 && s_start<pcalen ) {
+        nhits_within_startpath++;
+        nhits_within_shower++;
       }
     }
 
-    frac_path = (float)nhits_within_startpath/(float)track_hitcluster.size();
+    frac_path = (float)nhits_within_shower/(float)track_hitcluster.size();
     frac_core = (float)nhits_within_shower/(float)track_hitcluster.size();    
     LARCV_DEBUG() << " fraction of track hits within cylinder of vtx-to-shower start path: " << frac_path << std::endl;
     LARCV_DEBUG() << " fraction of track hits within cylinder of shower core: " << frac_core << std::endl;    

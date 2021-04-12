@@ -41,6 +41,7 @@ set( HEADERS cluster_functions.h
   NuSelTruthOnNuPixel.h
   NuSelShowerGapAna2D.h
   NuSelUnrecoCharge.h
+  NuSelCosmicTagger.h
   NuSel1e1pEventSelection.h
   KPSRecoManager.h )
 
@@ -83,6 +84,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuSelTruthOnNuPixel.cxx
   NuSelShowerGapAna2D.cxx
   NuSelUnrecoCharge.cxx
+  NuSelCosmicTagger.cxx  
   NuSel1e1pEventSelection.cxx
   KPSRecoManager.cxx )
 

@@ -66,6 +66,7 @@
 #pragma link C++ class larflow::reco::NuSelTruthOnNuPixel+;
 #pragma link C++ class larflow::reco::NuSelUnrecoCharge+;
 #pragma link C++ class larflow::reco::NuSel1e1pEventSelection+;
+#pragma link C++ class larflow::reco::NuSelCosmicTagger+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
