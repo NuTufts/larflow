@@ -16,6 +16,16 @@ namespace reco {
   void NuSelCosmicTagger::analyze( larflow::reco::NuVertexCandidate& nuvtx,
                                    larflow::reco::NuSelectionVariables& nusel )
   {
+
+    _showercosmictag_mindwall_dwall = 1000.;
+    _showercosmictag_mindwall_costrack = 1.0;
+    _showercosmictag_maxbacktoback_costrack = 1.0;
+    _showercosmictag_maxbacktoback_dwall = 1000.0;
+
+    _showercosmictag_maxboundarytrack_length = 0.;
+    _showercosmictag_maxboundarytrack_verticalcos = 0;
+    _showercosmictag_maxboundarytrack_showercos = 1.0;
+    
     tagShoweringMuon2Track( nuvtx, nusel );
     tagShoweringMuon1Track( nuvtx, nusel );
     
@@ -108,12 +118,12 @@ namespace reco {
     
     // populate the selection variable
     // the dwall and costrack of the pair with track closest to the edge
-    nusel.showercosmictag_mindwall_dwall = 1000;   // sentinal, should trigger replacement
-    nusel.showercosmictag_mindwall_costrack = 1.0;
+    _showercosmictag_mindwall_dwall = 1000;   // sentinal, should trigger replacement
+    _showercosmictag_mindwall_costrack = 1.0;
 
     // the dwall and costrack of the pair with most backtoback
-    nusel.showercosmictag_maxbacktoback_dwall = 0;
-    nusel.showercosmictag_maxbacktoback_costrack = 1.0; // sentinal, should trigger replacement
+    _showercosmictag_maxbacktoback_dwall = 0;
+    _showercosmictag_maxbacktoback_costrack = 1.0; // sentinal, should trigger replacement
     
     for ( auto& trackpair : trackpair_v ) {
       // minimum length in tracks considered
@@ -122,27 +132,27 @@ namespace reco {
       float pair_mindwall = ( trackpair.dwall1 < trackpair.dwall2 ) ? trackpair.dwall1 : trackpair.dwall2;
 
       // save info on pair with straightest line
-      if ( trackpair.cos_track < nusel.showercosmictag_maxbacktoback_costrack ) {
-        nusel.showercosmictag_maxbacktoback_costrack = trackpair.cos_track;
-        nusel.showercosmictag_maxbacktoback_dwall    = pair_mindwall;
+      if ( trackpair.cos_track < _showercosmictag_maxbacktoback_costrack ) {
+        _showercosmictag_maxbacktoback_costrack = trackpair.cos_track;
+        _showercosmictag_maxbacktoback_dwall    = pair_mindwall;
       }
 
       // save info on pair with closest boundary
       
-      if ( pair_mindwall < nusel.showercosmictag_mindwall_dwall ) {
-        nusel.showercosmictag_mindwall_dwall    = pair_mindwall;
-        nusel.showercosmictag_mindwall_costrack = trackpair.cos_track;
+      if ( pair_mindwall < _showercosmictag_mindwall_dwall ) {
+        _showercosmictag_mindwall_dwall    = pair_mindwall;
+        _showercosmictag_mindwall_costrack = trackpair.cos_track;
       }
       
     }
 
-    LARCV_DEBUG() << "mindwall pair: dwall=" << nusel.showercosmictag_mindwall_dwall
-                  << " costrack=" << nusel.showercosmictag_mindwall_costrack
-                  << " ang-track=" << acos(nusel.showercosmictag_mindwall_costrack)*180/3.14159
+    LARCV_DEBUG() << "mindwall pair: dwall=" << _showercosmictag_mindwall_dwall
+                  << " costrack=" << _showercosmictag_mindwall_costrack
+                  << " ang-track=" << acos(_showercosmictag_mindwall_costrack)*180/3.14159
                   << std::endl;
-    LARCV_DEBUG() << "best cos-track pair: dwall=" << nusel.showercosmictag_maxbacktoback_dwall
-                  << " costrack=" << nusel.showercosmictag_maxbacktoback_costrack
-                  << " ang-track=" << acos(nusel.showercosmictag_maxbacktoback_costrack)*180/3.14159      
+    LARCV_DEBUG() << "best cos-track pair: dwall=" << _showercosmictag_maxbacktoback_dwall
+                  << " costrack=" << _showercosmictag_maxbacktoback_costrack
+                  << " ang-track=" << acos(_showercosmictag_maxbacktoback_costrack)*180/3.14159      
                   << std::endl;
     
   }
@@ -165,9 +175,9 @@ namespace reco {
     
     larflow::scb::SCBoundary scb; /// space charge boundary utility
 
-    nusel.showercosmictag_maxboundarytrack_length = 0;
-    nusel.showercosmictag_maxboundarytrack_verticalcos = 0;
-    nusel.showercosmictag_maxboundarytrack_showercos = -1.;
+    _showercosmictag_maxboundarytrack_length = 0;
+    _showercosmictag_maxboundarytrack_verticalcos = 0;
+    _showercosmictag_maxboundarytrack_showercos = -1.;
     
     
     // the strategy only works for candidates with 2 or more tracks
@@ -246,9 +256,9 @@ namespace reco {
         
       } // end of shower loop
 
-      nusel.showercosmictag_maxboundarytrack_length = maxlen_boundary_track;
-      nusel.showercosmictag_maxboundarytrack_verticalcos = max_boundary_track_verticalcos;
-      nusel.showercosmictag_maxboundarytrack_showercos = max_boundary_track_showercos;
+      _showercosmictag_maxboundarytrack_length = maxlen_boundary_track;
+      _showercosmictag_maxboundarytrack_verticalcos = max_boundary_track_verticalcos;
+      _showercosmictag_maxboundarytrack_showercos = max_boundary_track_showercos;
             
       LARCV_DEBUG() << "boundary track found. index=" << max_boundary_track_index << std::endl;
       LARCV_DEBUG() << "  length=" << maxlen_boundary_track << " cm" << std::endl;

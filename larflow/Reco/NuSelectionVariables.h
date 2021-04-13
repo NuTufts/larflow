@@ -125,14 +125,14 @@ namespace reco {
 
     // filled by NuSelCosmicTagger
     // track-track pair variables
-    float showercosmictag_mindwall_dwall;
-    float showercosmictag_mindwall_costrack;
-    float showercosmictag_maxbacktoback_dwall;
-    float showercosmictag_maxbacktoback_costrack;
-    // track-shower pair variables
-    float showercosmictag_maxboundarytrack_length;
-    float showercosmictag_maxboundarytrack_verticalcos;
-    float showercosmictag_maxboundarytrack_showercos;
+    /* float showercosmictag_mindwall_dwall; */
+    /* float showercosmictag_mindwall_costrack; */
+    /* float showercosmictag_maxbacktoback_dwall; */
+    /* float showercosmictag_maxbacktoback_costrack; */
+    /* // track-shower pair variables */
+    /* float showercosmictag_maxboundarytrack_length; */
+    /* float showercosmictag_maxboundarytrack_verticalcos; */
+    /* float showercosmictag_maxboundarytrack_showercos; */
 
     // filled by NuSelUnrecoCharge
     std::vector<int>   intime_count_v; /// number of in-time pixels per plane

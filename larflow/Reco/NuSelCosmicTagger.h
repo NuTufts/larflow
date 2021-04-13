@@ -31,6 +31,18 @@ namespace reco {
     
     void tagStoppingMuon( larflow::reco::NuVertexCandidate& nuvtx,
                           larflow::reco::NuSelectionVariables& nusel );
+
+    // 2-track showering muon tagger
+    float _showercosmictag_mindwall_dwall;
+    float _showercosmictag_mindwall_costrack;
+    float _showercosmictag_maxbacktoback_dwall;
+    float _showercosmictag_maxbacktoback_costrack;
+    
+    // 1-track showering muon tagger
+    float _showercosmictag_maxboundarytrack_length;
+    float _showercosmictag_maxboundarytrack_verticalcos;
+    float _showercosmictag_maxboundarytrack_showercos;
+    
     
   protected:
     
