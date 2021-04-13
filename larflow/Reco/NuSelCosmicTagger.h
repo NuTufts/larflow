@@ -23,16 +23,20 @@ namespace reco {
     void analyze( larflow::reco::NuVertexCandidate& nuvtx,
                   larflow::reco::NuSelectionVariables& nusel );
 
-    void tagShoweringMuon( larflow::reco::NuVertexCandidate& nuvtx,
-                           larflow::reco::NuSelectionVariables& nusel );
-
+    void tagShoweringMuon2Track( larflow::reco::NuVertexCandidate& nuvtx,
+                                 larflow::reco::NuSelectionVariables& nusel );
+    
+    void tagShoweringMuon1Track( larflow::reco::NuVertexCandidate& nuvtx,
+                                 larflow::reco::NuSelectionVariables& nusel );
+    
     void tagStoppingMuon( larflow::reco::NuVertexCandidate& nuvtx,
                           larflow::reco::NuSelectionVariables& nusel );
     
   protected:
     
     TVector3 _defineTrackDirection( const larlite::track& track );
-
+    float _getTrackLength( const larlite::track& track );
+    
   };
   
 }

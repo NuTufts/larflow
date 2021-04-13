@@ -11,6 +11,7 @@ parser.add_argument('-dl','--input-dlmerged',type=str,required=True,help="Input 
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 parser.add_argument("-n",'--nentries',default=None,type=int,help="Number of entries to run")
 parser.add_argument("-tf","--tick-forward",default=False,action='store_true',help="If true, run in tick-forward mode")
+parser.add_argument("-s","--start-entry",default=0,type=int,help="Start entry [default 0]")
 
 args = parser.parse_args()
 
@@ -81,7 +82,8 @@ SAVE_ALL = False
 if args.nentries is not None and args.nentries<nentries:
     nentries = args.nentries
 
-start_entry = 21
+start_entry = args.start_entry
+    
 for ientry in range(start_entry,start_entry+nentries):
 
     tree.GetEntry(ientry)

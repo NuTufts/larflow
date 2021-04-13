@@ -16,7 +16,9 @@ namespace reco {
   void NuSelCosmicTagger::analyze( larflow::reco::NuVertexCandidate& nuvtx,
                                    larflow::reco::NuSelectionVariables& nusel )
   {
-    tagShoweringMuon( nuvtx, nusel );
+    tagShoweringMuon2Track( nuvtx, nusel );
+    tagShoweringMuon1Track( nuvtx, nusel );
+    
   }
   
   /**
@@ -26,11 +28,11 @@ namespace reco {
    * check if one or more of the track ends are on the space-charge boundary.
    *
    */
-  void NuSelCosmicTagger::tagShoweringMuon( larflow::reco::NuVertexCandidate& nuvtx,
-                                            larflow::reco::NuSelectionVariables& nusel )
+  void NuSelCosmicTagger::tagShoweringMuon2Track( larflow::reco::NuVertexCandidate& nuvtx,
+                                                  larflow::reco::NuSelectionVariables& nusel )
   {
 
-    LARCV_DEBUG() << "start: number of tracks in vertex = " << nuvtx.track_v.size() << std::endl;
+    LARCV_DEBUG() << "2-track variables: ntracks = " << nuvtx.track_v.size() << std::endl;
     
     struct TrackPair_t
     {
@@ -145,6 +147,124 @@ namespace reco {
     
   }
 
+  /**
+   * @brief check if candidate neutrino interaction is a showering cosmic muon
+   *
+   * variables for nu candidates with at least 1 track and 1 shower.
+   * look for the most downward muon track that is near the boundary.
+   *
+   */
+  void NuSelCosmicTagger::tagShoweringMuon1Track( larflow::reco::NuVertexCandidate& nuvtx,
+                                                  larflow::reco::NuSelectionVariables& nusel )
+  {
+
+    LARCV_DEBUG() << "1-track/1-shower tagger: "
+                  << " ntracks = " << nuvtx.track_v.size()
+                  << " nshowers = " << nuvtx.shower_v.size()
+                  << std::endl;
+    
+    larflow::scb::SCBoundary scb; /// space charge boundary utility
+
+    nusel.showercosmictag_maxboundarytrack_length = 0;
+    nusel.showercosmictag_maxboundarytrack_verticalcos = 0;
+    nusel.showercosmictag_maxboundarytrack_showercos = -1.;
+    
+    
+    // the strategy only works for candidates with 2 or more tracks
+    if ( nuvtx.track_v.size()==0 )
+      return;
+
+    int ntracks  = nuvtx.track_v.size();
+    int nshowers = nuvtx.shower_v.size();
+
+
+    // get the longest boundary muon
+    float maxlen_boundary_track = 0;
+    int max_boundary_track_index = -1;
+    float boundary_track_dwall = 1000.0;
+    
+    // we'll need the last point distance to the space-charge boundary    
+    for (int itrack=0; itrack<ntracks; itrack++) {
+      int npts = nuvtx.track_v[itrack].NumberTrajectoryPoints();
+      //auto const& lastpt = nuvtx.track_v[itrack].LocationAtPoint(npts-1);
+      auto const& lastpt = nuvtx.track_v[itrack].LocationAtPoint(0);      
+      int boundary_type = -1;
+      float track_dwall = scb.dist2boundary( lastpt[0], lastpt[1], lastpt[2], boundary_type );
+
+      if ( track_dwall<5.0 ) {
+
+        float tracklen = _getTrackLength( nuvtx.track_v[itrack] );
+        
+        if ( tracklen>maxlen_boundary_track ) {
+          max_boundary_track_index = itrack;
+          boundary_track_dwall = track_dwall;
+          maxlen_boundary_track = tracklen;
+        }
+      }
+    }
+
+    LARCV_DEBUG() << "longest boundary track[" << max_boundary_track_index << "] "
+                  << "length=" << maxlen_boundary_track
+                  << std::endl;
+
+    float max_boundary_track_verticalcos = 0.;
+    float max_boundary_track_showercos = -1.0;
+    
+    if ( max_boundary_track_index>=0 ) {
+
+      auto const& track_i = nuvtx.track_v[max_boundary_track_index];
+      
+      // define the direction.
+      // take the average of the first steps
+      TVector3 idir = _defineTrackDirection( track_i );
+
+      // make it downward going
+      if ( idir[1]>0 ) {
+        idir *= -1.0;
+      }
+
+      // get projection along vertical axis (y-axis)
+      max_boundary_track_verticalcos = idir[1];
+
+      // get shower cosine with respect to this track direction
+
+      for (int ishower=0; ishower<nshowers; ishower++) {
+
+        auto const& shower_trunk = nuvtx.shower_trunk_v[ishower];
+
+        TVector3 trunk_dir =
+          shower_trunk.LocationAtPoint( shower_trunk.NumberTrajectoryPoints()-1 ) - shower_trunk.LocationAtPoint(0);
+
+        float trunk_mag = trunk_dir.Mag();
+
+        float showercos = 0.;
+        for (int v=0; v<3; v++)
+          showercos += idir[v]*trunk_dir[v]/trunk_mag;
+        
+        if ( showercos>max_boundary_track_showercos )
+          max_boundary_track_showercos = showercos;
+        
+      } // end of shower loop
+
+      nusel.showercosmictag_maxboundarytrack_length = maxlen_boundary_track;
+      nusel.showercosmictag_maxboundarytrack_verticalcos = max_boundary_track_verticalcos;
+      nusel.showercosmictag_maxboundarytrack_showercos = max_boundary_track_showercos;
+            
+      LARCV_DEBUG() << "boundary track found. index=" << max_boundary_track_index << std::endl;
+      LARCV_DEBUG() << "  length=" << maxlen_boundary_track << " cm" << std::endl;
+      LARCV_DEBUG() << "  dwall=" << boundary_track_dwall << " cm" << std::endl;
+      LARCV_DEBUG() << "  max-shower-cos=" << max_boundary_track_showercos
+                    << " ang=" << acos(max_boundary_track_showercos)*180/3.14159
+                    << std::endl;
+      LARCV_DEBUG() << "  vertical cosine=" << max_boundary_track_verticalcos << std::endl;
+
+      
+    }//end of if booundary muon found
+
+       
+  }
+
+
   TVector3 NuSelCosmicTagger::_defineTrackDirection( const larlite::track& track )
   {
     TVector3 avedir(0,0,0);
@@ -192,6 +312,34 @@ namespace reco {
     return avedir;
   }
 
+  /**
+   * @brief get track length from larlite track object
+   *
+   */
+  float NuSelCosmicTagger::_getTrackLength( const larlite::track& track )
+  {
+    int npts = track.NumberTrajectoryPoints();
+
+    // return null direction (shouldnt happen)
+    if (npts<2)
+      return 0;
+
+    float tracklen = 0.;
+    //for (int i=0; i<npts-1; i++) {
+    for (int i=npts-1; i>=1; i--) {
+      const TVector3& start = track.LocationAtPoint(i);
+      const TVector3& end   = track.LocationAtPoint(i-1);
+      TVector3 stepdir = end-start;
+      float mag = stepdir.Mag();
+
+      tracklen += mag;
+    }
+    
+    return tracklen;
+  }
+  
+
+  
   /**
    * @brief check if candidate neutrino interaction is a stopping muon
    *
