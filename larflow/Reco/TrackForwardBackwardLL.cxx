@@ -4,6 +4,22 @@ namespace larflow {
 namespace reco {
 
 
+  TrackForwardBackwardLL::TrackForwardBackwardLL()
+    : larcv::larcv_base("TrackForwardBackwardLL")
+  {
+    _load_data();
+  }
+
+ 
+  TrackForwardBackwardLL::~TrackForwardBackwardLL()
+  {
+    delete _sMuonRange2dEdx;
+    delete _sProtonRange2dEdx;
+    _splinefile_rootfile->Close();
+  }
+    
+
+
   /**
    * @brief analyze tracks in neutrino candidate. provide variables to cut out decay muon events.
    *
@@ -17,6 +33,8 @@ namespace reco {
 
     graph_vv.clear();
     graph_vv.resize(3);
+    proton_v.clear();
+    muon_v.clear();
     
     for ( int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++ ) {
       auto& track_segments = nuvtx.track_v[itrack];
@@ -46,7 +64,6 @@ namespace reco {
           pt.x = tracklen;
           pt.dqdx = track_segments.DQdxAtPoint( ipt, (larlite::geo::View_t)p );
           pt.ipt = npts-ipt-1;
-          
           dqdx_v[p].push_back(pt);
         }
 
@@ -54,6 +71,33 @@ namespace reco {
         
       }//end of point loop
 
+      // make corresponding expectation curves, forward proton, forward muon, backward muon
+      Track_t dedx_forward_proton;
+      dedx_forward_proton.reserve( dqdx_v[0].size() );
+      Track_t dedx_backward_muon;
+      dedx_backward_muon.reserve( dqdx_v[0].size() );
+
+
+      for (int ipt=0; ipt<(int)dqdx_v[0].size(); ipt++) {
+        auto& pt = dqdx_v[0][ipt];
+        float range = tracklen - pt.x; // if forward
+        float proton_dedx = _sProtonRange2dEdx->Eval(range); // forward proton assumption
+        float mu_dedx     = _sMuonRange2dEdx->Eval(pt.x); // backward muon assumption
+
+        Pt_t p_pt;
+        p_pt.ipt = ipt;
+        p_pt.x   = pt.x;
+        p_pt.dqdx = proton_dedx*(93.2/2.2);
+        dedx_forward_proton.push_back( p_pt );
+
+        Pt_t mu_pt;
+        mu_pt.ipt = ipt;
+        mu_pt.x   = pt.x;
+        mu_pt.dqdx = mu_dedx*(93.2/2.2);
+        dedx_backward_muon.push_back( mu_pt );
+      }
+
+      // for debug
       for (int p=0; p<nplanes; p++) {
         Track_t smoothed = _smooth( dqdx_v[p], 1.0, 10 );
         TGraphErrors g(smoothed.size());
@@ -63,6 +107,16 @@ namespace reco {
         }
         graph_vv[p].emplace_back( std::move(g) );
       }
+
+      TGraph gproton( dqdx_v[0].size());
+      TGraph gmuon( dqdx_v[0].size() );
+      for (int ipt=0; ipt<(int)dqdx_v[0].size(); ipt++) {
+        gproton.SetPoint( ipt ,dedx_forward_proton[ipt].x, dedx_forward_proton[ipt].dqdx );
+        gmuon.SetPoint(   ipt ,dedx_backward_muon[ipt].x,  dedx_backward_muon[ipt].dqdx );        
+      }
+      proton_v.emplace_back( std::move(gproton) );
+      muon_v.emplace_back( std::move(gmuon) );
+      
     }//end of track loop
     
   }
@@ -119,6 +173,17 @@ namespace reco {
     }
 
     return smoothed;
+  }
+
+  void TrackForwardBackwardLL::_load_data()
+  {    
+    
+    std::string larflowdir = std::getenv("LARFLOW_BASEDIR");
+    std::string splinefile = larflowdir + "/larflow/Reco/data/Proton_Muon_Range_dEdx_LAr_TSplines.root";
+
+    _splinefile_rootfile = new TFile( splinefile.c_str(), "open" );
+    _sMuonRange2dEdx = (TSpline3*)_splinefile_rootfile->Get("sMuonRange2dEdx");
+    _sProtonRange2dEdx = (TSpline3*)_splinefile_rootfile->Get("sProtonRange2dEdx");      
   }
 }
 }

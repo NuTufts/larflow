@@ -129,7 +129,11 @@ for ientry in range(start_entry,start_entry+nentries):
     c.Draw()
     h.Draw("hist")    
     for ii in range( algo.graph_vv[2].size() ):
-        algo.graph_vv[2].at(ii).Draw("L")
+        algo.graph_vv[1].at(ii).Draw("L")
+        algo.proton_v.at(ii).SetLineColor(rt.kBlue)
+        algo.muon_v.at(ii).SetLineColor(rt.kRed)
+        algo.proton_v.at(ii).Draw("L")
+        algo.muon_v.at(ii).Draw("L")
     c.Update()
     
     if True:
