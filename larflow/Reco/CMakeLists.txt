@@ -34,6 +34,7 @@ set( HEADERS cluster_functions.h
   NuSelectionVariables.h
   LikelihoodProtonMuon.h
   CosmicProtonFinder.h
+  TrackForwardBackwardLL.h
   NuSelProngVars.h
   NuSelVertexVars.h
   NuSelWCTaggerOverlap.h  
@@ -77,6 +78,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuSelectionVariables.cxx
   LikelihoodProtonMuon.cxx
   CosmicProtonFinder.cxx
+  TrackForwardBackwardLL.cxx  
   NuSelProngVars.cxx
   NuSelVertexVars.cxx
   NuSelShowerTrunkAna.cxx
