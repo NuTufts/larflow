@@ -79,7 +79,7 @@ anatree = rt.TTree("fbll","Forward versus backward LL")
 
 SAVE_ALL = False
 
-c = rt.TCanvas("ctrack","",800,600)
+c = rt.TCanvas("ctrack","",1000,1000)
 h = rt.TH2D("hdqdx","",100,0,1000,100,0,1000)
 
 if args.nentries is not None and args.nentries<nentries:
@@ -126,10 +126,22 @@ for ientry in range(start_entry,start_entry+nentries):
         #anatree.Fill()
 
     c.Clear()
+    c.Divide(1,2)
     c.Draw()
+    c.cd(1)
     h.Draw("hist")    
     for ii in range( algo.graph_vv[2].size() ):
-        algo.graph_vv[1].at(ii).Draw("L")
+        pidx =  algo.muon_bestfit_plane_v[ii]
+        algo.graph_vv[pidx].at(ii).Draw("L")
+        algo.proton_v.at(ii).SetLineColor(rt.kBlue)
+        algo.muon_v.at(ii).SetLineColor(rt.kRed)
+        algo.proton_v.at(ii).Draw("L")
+        algo.muon_v.at(ii).Draw("L")
+    c.cd(2)
+    h.Draw("hist")    
+    for ii in range( algo.graph_vv[2].size() ):
+        pidx =  algo.proton_bestfit_plane_v[ii]
+        algo.graph_vv[pidx].at(ii).Draw("L")
         algo.proton_v.at(ii).SetLineColor(rt.kBlue)
         algo.muon_v.at(ii).SetLineColor(rt.kRed)
         algo.proton_v.at(ii).Draw("L")

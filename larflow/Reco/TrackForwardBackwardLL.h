@@ -36,11 +36,34 @@ namespace reco {
     std::vector< std::vector<TGraphErrors> > graph_vv; ///< for debugging
     std::vector< TGraph > proton_v; // forward proton dedx curves
     std::vector< TGraph > muon_v;   // backward muon dedx curves
-    
+    std::vector< int >    muon_bestfit_plane_v;
+    std::vector< int >    proton_bestfit_plane_v;
+    std::vector< float >  muon_chi2_v;
+    std::vector< float >  proton_chi2_v;
 
     Track_t _smooth( Track_t& track, const float maxdist, const int nn );    
 
 
+    Track_t _generate_muon_expectation( const Track_t& data_track,
+                                        float x_shift, float y_scale );
+    
+    Track_t _generate_proton_expectation( const Track_t& data_track,
+                                          float x_shift, float y_scale );
+
+    float _calc_chi2( const TrackForwardBackwardLL::Track_t& data_track,
+                      const TrackForwardBackwardLL::Track_t& expect_track );
+
+    Track_t _scan_muon_comparison( const Track_t& data_track,
+                                   const int nx, const float xstep,
+                                   const int ny, const float ystep,
+                                   float& best_xshift, float& best_yscale, float& min_chi2 );
+
+    Track_t _scan_proton_comparison( const Track_t& data_track,
+                                     const int nx, const float xstep,
+                                     const int ny, const float ystep,
+                                     float& best_xshift, float& best_yscale, float& min_chi2 );
+    
+    
     // data for de/dx versus range
     TFile*    _splinefile_rootfile;
     TSpline3* _sMuonRange2dEdx;
