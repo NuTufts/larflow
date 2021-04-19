@@ -36,6 +36,7 @@ set( HEADERS cluster_functions.h
   CosmicProtonFinder.h
   TrackForwardBackwardLL.h
   NuTrackKinematics.h
+  NuShowerKinematics.h  
   NuSelProngVars.h
   NuSelVertexVars.h
   NuSelWCTaggerOverlap.h  
@@ -81,6 +82,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   CosmicProtonFinder.cxx
   TrackForwardBackwardLL.cxx
   NuTrackKinematics.cxx
+  NuShowerKinematics.cxx  
   NuSelProngVars.cxx
   NuSelVertexVars.cxx
   NuSelShowerTrunkAna.cxx

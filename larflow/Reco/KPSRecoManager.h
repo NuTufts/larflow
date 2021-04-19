@@ -35,6 +35,8 @@
 #include "NuVertexShowerTrunkCheck.h"
 #include "NuVertexActivityReco.h"
 #include "PerfectTruthNuReco.h"
+#include "NuTrackKinematics.h"
+#include "NuShowerKinematics.h"
 
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
@@ -97,6 +99,10 @@ namespace reco {
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
+    // Prong kinematics
+    NuTrackKinematics   _nu_track_kine;  ///< calculate kinematics of tracks
+    NuShowerKinematics  _nu_shower_kine; ///< calculate kinematics of showers
+    
     // Edge-case handlers
     CosmicProtonFinder _cosmic_proton_finder; ///< identifies cosmic tracks that could proton-like, redirect to neutrino-pipeline
 

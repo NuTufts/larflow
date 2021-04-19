@@ -443,8 +443,8 @@ namespace reco {
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
       //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
       ivtx++;
-    }    
-    
+    }
+
   }
 
   /**
@@ -562,6 +562,8 @@ namespace reco {
     unrecocharge.set_verbosity(larcv::msg::kDEBUG);
     cosmictagger.set_verbosity(larcv::msg::kDEBUG);
     muvsproton.set_verbosity(larcv::msg::kINFO);
+    _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
+    _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -575,6 +577,10 @@ namespace reco {
       std::cout << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
       std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
       std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
+
+      // prong kinematic calculators
+      _nu_track_kine.analyze( nuvtx, nusel );
+      _nu_shower_kine.analyze( nuvtx, nusel, iolcv );
 
       // check if showers are connected to vertex      
       showergapana2d.analyze( iolcv, ioll, nuvtx, nusel );
