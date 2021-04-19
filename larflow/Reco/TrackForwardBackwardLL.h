@@ -40,6 +40,7 @@ namespace reco {
     std::vector< int >    proton_bestfit_plane_v;
     std::vector< float >  muon_chi2_v;
     std::vector< float >  proton_chi2_v;
+    std::vector< float >  best_llr_v;    
 
     Track_t _smooth( Track_t& track, const float maxdist, const int nn );    
 
@@ -63,6 +64,9 @@ namespace reco {
                                      const int ny, const float ystep,
                                      float& best_xshift, float& best_yscale, float& min_chi2 );
     
+    float _get_backwardmu_vs_forwardproton_ll( const TrackForwardBackwardLL::Track_t& data_track,
+                                               const TrackForwardBackwardLL::Track_t& backmu,
+                                               const TrackForwardBackwardLL::Track_t& forwp );
     
     // data for de/dx versus range
     TFile*    _splinefile_rootfile;

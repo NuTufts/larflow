@@ -39,6 +39,7 @@ namespace reco {
     proton_bestfit_plane_v.clear();
     muon_chi2_v.clear();
     proton_chi2_v.clear();
+    best_llr_v.clear();
     
     for ( int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++ ) {
       auto& track_segments = nuvtx.track_v[itrack];
@@ -111,8 +112,8 @@ namespace reco {
         float plane_yscale;
 
         Track_t plane_mu_track = _scan_muon_comparison( smoothed_v[p],
-                                                        10, 0.5,
-                                                        5, 0.1,
+                                                        10, 0.2,
+                                                        0, 0.1,
                                                         plane_xshift,
                                                         plane_yscale,
                                                         plane_chi2 );
@@ -134,6 +135,15 @@ namespace reco {
                     << " y-scale=" << best_yscale
                     << std::endl;
 
+      // now we calc mu-versus proton likelihood for muon fit, using plane and shift found above
+      Track_t proton_expect_for_bestmu
+        = _generate_proton_expectation( smoothed_v[min_plane], best_xshift, best_yscale );
+      float llr_mufit
+        = _get_backwardmu_vs_forwardproton_ll( smoothed_v[min_plane],
+                                               dedx_backward_muon,
+                                               proton_expect_for_bestmu );
+      LARCV_DEBUG() << "track[" << itrack << "] LLR using muon fit: " << llr_mufit << std::endl;
+
       // scan for best proton curve
       Track_t dedx_forward_proton;
       dedx_forward_proton.reserve( dqdx_v[0].size() );      
@@ -148,8 +158,8 @@ namespace reco {
         float plane_yscale;
 
         Track_t plane_p_track = _scan_proton_comparison( smoothed_v[p],
-                                                         10, 0.5,
-                                                         5, 0.1,
+                                                         10, 0.2,
+                                                         0, 0.1,
                                                          plane_xshift,
                                                          plane_yscale,
                                                          plane_chi2 );
@@ -169,7 +179,24 @@ namespace reco {
                     << " x-shift=" << p_best_xshift
                     << " y-scale=" << p_best_yscale
                     << std::endl;
-      
+
+      // now we calc mu-versus proton likelihood for proton fit, using plane and shift found above
+      Track_t muon_expect_for_bestp
+        = _generate_muon_expectation( smoothed_v[p_min_plane], p_best_xshift, p_best_yscale );
+      float llr_protonfit
+        = _get_backwardmu_vs_forwardproton_ll( smoothed_v[p_min_plane],
+                                               muon_expect_for_bestp,
+                                               dedx_forward_proton );
+      LARCV_DEBUG() << "track[" << itrack << "] LLR using proton fit: " << llr_protonfit << std::endl;
+
+      if ( min_chi2 < p_min_chi2 ) {
+        best_llr_v.push_back( llr_mufit );
+        LARCV_INFO() << "track[" << itrack << "] best LLR=" << llr_mufit << std::endl;
+      }
+      else {
+        best_llr_v.push_back( llr_protonfit );
+        LARCV_INFO() << "track[" << itrack << "] best LLR=" << llr_protonfit << std::endl;        
+      }
 
       // for debug
       for (int p=0; p<nplanes; p++) {
@@ -281,6 +308,7 @@ namespace reco {
       if ( x>=0 ) {
         float mu_dedx = _sMuonRange2dEdx->Eval(x); // backward muon assumption
         float mu_dqdx_birks = (y_scale*q2adc)*mu_dedx/(1+mu_dedx*0.0486/0.273/1.38); //modified box model
+        //float mu_dqdx_birks = (y_scale*q2adc)*mu_dedx;
         mu_pt.dqdx = mu_dqdx_birks;
       }
       else {
@@ -315,7 +343,8 @@ namespace reco {
       
       if ( range>=0 ) {
         float proton_dedx = _sProtonRange2dEdx->Eval(range); // forward proton assumption
-        float proton_dqdx_birks = (y_scale*q2adc)*proton_dedx/(1+proton_dedx*0.0486/0.273/1.38); //modified box model        
+        float proton_dqdx_birks = (y_scale*q2adc)*proton_dedx/(1+proton_dedx*0.0486/0.273/1.38); //modified box model
+        //float proton_dqdx_birks = (y_scale*q2adc)*proton_dedx;
         p_pt.dqdx = proton_dqdx_birks;
       }
       else {
@@ -474,5 +503,70 @@ namespace reco {
     return best_expectation;
   }
   
+  float TrackForwardBackwardLL::_get_backwardmu_vs_forwardproton_ll( const TrackForwardBackwardLL::Track_t& data_track,
+                                                                     const TrackForwardBackwardLL::Track_t& backmu,
+                                                                     const TrackForwardBackwardLL::Track_t& forwp )
+  {
+
+    if ( data_track.size()!=backmu.size()
+         || data_track.size()!=forwp.size() ) {
+      LARCV_CRITICAL() << "data track points (" << data_track.size() << "), "
+                       << "backmu points (" << backmu.size() << "), "
+                       << "and forward proton points (" << forwp.size() << ")"
+                       << std::endl;
+    }
+    
+    float llr_tot = 0.; // chi2
+    float w_tot = 0.; // total weight of points.
+
+    int npt_badexpect = 0;
+    int npt_badvar = 0;
+    int npt_nan = 0;
+
+    for (int ipt=0; ipt<(int)data_track.size(); ipt++) {
+
+      auto const& data_pt   = data_track[ipt];
+      auto const& expect_mu = backmu[ipt];
+      auto const& expect_p  = forwp[ipt];
+      
+      if ( expect_mu.dqdx<0 || expect_p.dqdx<0 ) {
+        npt_badexpect++;
+        continue;
+      }
+      
+      if ( data_pt.var<=0 ) {
+        npt_badvar++;
+        continue;
+      }
+      
+      if ( std::isnan(data_pt.var) ) {
+        npt_nan++;
+        continue;
+      }
+      
+      float diff_p  = data_pt.dqdx - expect_p.dqdx;
+      float diff_mu = data_pt.dqdx - expect_mu.dqdx;      
+      
+      float diff_expect = fabs(expect_p.dqdx - expect_mu.dqdx);
+      
+      float llr = -diff_p*diff_p/(2*data_pt.var*data_pt.var) + diff_mu*diff_mu/(2*data_pt.var*data_pt.var);
+      
+      llr_tot += llr*diff_expect;
+      w_tot += diff_expect;
+    }
+    
+    // LARCV_DEBUG() << " npts=" << npts
+    //               << " badexpect=" << npt_badexpect
+    //               << " badvar=" << npt_badvar
+    //               << " badnan=" << npt_nan
+    //               <<  " chi2=" << chi2 << std::endl;
+    
+    if ( w_tot>0 )
+      llr_tot /= w_tot;
+    
+    return llr_tot;
+    
+  }
+    
 }
 }
