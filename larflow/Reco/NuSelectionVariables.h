@@ -134,6 +134,9 @@ namespace reco {
     /* float showercosmictag_maxboundarytrack_verticalcos; */
     /* float showercosmictag_maxboundarytrack_showercos; */
 
+    // filled by TrackForwardBackwardLL
+    //float backmu_forwproton_llr;
+
     // filled by NuSelUnrecoCharge
     std::vector<int>   intime_count_v; /// number of in-time pixels per plane
     std::vector<int>   unreco_count_v; /// number of un-reconstructed pixels per plane

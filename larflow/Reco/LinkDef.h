@@ -60,6 +60,7 @@
 #pragma link C++ class larflow::reco::CosmicProtonFinder+;
 #pragma link C++ class larflow::reco::PerfectTruthNuReco+;
 #pragma link C++ class larflow::reco::TrackForwardBackwardLL+;
+#pragma link C++ class larflow::reco::NuTrackKinematics+;
 #pragma link C++ class larflow::reco::NuSelProngVars+;
 #pragma link C++ class larflow::reco::NuSelVertexVars+;
 #pragma link C++ class std::vector<larlite::track>+;

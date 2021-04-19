@@ -19,6 +19,7 @@
 #include "NuSelUnrecoCharge.h"
 #include "NuSelCosmicTagger.h"
 #include "SplitHitsByParticleSSNet.h"
+#include "TrackForwardBackwardLL.h"
 
 namespace larflow {
 namespace reco {
@@ -552,6 +553,7 @@ namespace reco {
     NuSelShowerGapAna2D showergapana2d;
     NuSelUnrecoCharge   unrecocharge;
     NuSelCosmicTagger   cosmictagger;
+    TrackForwardBackwardLL muvsproton;
     prongvars.set_verbosity(larcv::msg::kDEBUG);
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
@@ -559,6 +561,7 @@ namespace reco {
     unrecocharge.setSaveMask(false);
     unrecocharge.set_verbosity(larcv::msg::kDEBUG);
     cosmictagger.set_verbosity(larcv::msg::kDEBUG);
+    muvsproton.set_verbosity(larcv::msg::kINFO);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -623,6 +626,7 @@ namespace reco {
       wcoverlapvars.analyze( nuvtx, nusel, iolcv );
       unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );
       cosmictagger.analyze( nuvtx, nusel );
+      muvsproton.analyze( nuvtx, nusel );
       
       // std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
       // std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
