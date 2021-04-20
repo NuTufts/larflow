@@ -9,12 +9,13 @@ namespace reco {
   {
 
     _shower_mom_v.clear();
-    _shower_mom_v.resize(3);    
 
     larcv::EventImage2D* ev_img =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
 
     auto const& adc_v = ev_img->as_vector();
+
+    _shower_mom_v.resize(adc_v.size());
     
     for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
       auto const& cluster = nuvtx.shower_v[ishower];
@@ -24,9 +25,15 @@ namespace reco {
       std::vector<float> pixsum_v = GetADCSum( cluster,
                                                adc_v,
                                                10.0, 2);
-      TVector3 showerdir = get_showerdir( trunk, nuvtx.pos );
+
+      LARCV_DEBUG() << "shower[" << ishower << "] pixsum=(" << pixsum_v[0] << "," << pixsum_v[1] << "," << pixsum_v[2] << ")" << std::endl;
       
-      std::vector< TLorentzVector > mom_v;
+      TVector3 showerdir = get_showerdir( trunk, nuvtx.pos );
+      LARCV_DEBUG() << "shower[" << ishower << "] "
+		    << "dir=(" << showerdir[0] << "," << showerdir[1] << "," << showerdir[2] <<")"
+		    << std::endl;
+      
+      std::vector< TLorentzVector > mom_v(adc_v.size());
       for (int p=0; p<(int)adc_v.size(); p++) {
         float MeV = (400.0/100.0e3)*pixsum_v[p];
         mom_v[p].SetPxPyPzE( MeV*showerdir[0], MeV*showerdir[1], MeV*showerdir[2], MeV );
@@ -85,7 +92,10 @@ namespace reco {
         int tick =  shower_c[ihit].tick;
         
         // add a check for projection failures
-        if (tick <= meta.min_y() || wire<= meta.min_x() || wire >= meta.max_y() ){
+        if (tick <= meta.min_y()
+	    || tick >= meta.max_y()
+	    || wire<= meta.min_x()
+	    || wire >= meta.max_x() ){
           noutpix +=1.0;
           continue;
         }
@@ -142,7 +152,7 @@ namespace reco {
     float end2 = (shower_trunk.LocationAtPoint(1)-vecpos).Mag();
 
     TVector3 dir;
-    if ( end1 )
+    if ( end1<end2 )
       dir = shower_trunk.LocationAtPoint(1)-shower_trunk.LocationAtPoint(0);
     else
       dir = shower_trunk.LocationAtPoint(0)-shower_trunk.LocationAtPoint(1);

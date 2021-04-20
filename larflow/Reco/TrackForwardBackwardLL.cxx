@@ -5,7 +5,8 @@ namespace reco {
 
 
   TrackForwardBackwardLL::TrackForwardBackwardLL()
-    : larcv::larcv_base("TrackForwardBackwardLL")
+    : larcv::larcv_base("TrackForwardBackwardLL"),
+      _save_graphs(false)
   {
     _load_data();
   }
@@ -48,6 +49,8 @@ namespace reco {
 
       std::vector< Track_t > dqdx_v(nplanes);           
       int npts = track_segments.NumberTrajectoryPoints();
+      if ( npts<3 )
+	continue;
 
       for (int p=0; p<nplanes; p++)
         dqdx_v[p].reserve( npts );
@@ -136,12 +139,15 @@ namespace reco {
                     << std::endl;
 
       // now we calc mu-versus proton likelihood for muon fit, using plane and shift found above
-      Track_t proton_expect_for_bestmu
-        = _generate_proton_expectation( smoothed_v[min_plane], best_xshift, best_yscale );
-      float llr_mufit
-        = _get_backwardmu_vs_forwardproton_ll( smoothed_v[min_plane],
-                                               dedx_backward_muon,
-                                               proton_expect_for_bestmu );
+      Track_t proton_expect_for_bestmu;
+      float llr_mufit = 1000;
+      if ( min_plane>=0 ) {
+	proton_expect_for_bestmu = _generate_proton_expectation( smoothed_v[min_plane], best_xshift, best_yscale );
+	llr_mufit
+	  = _get_backwardmu_vs_forwardproton_ll( smoothed_v[min_plane],
+						 dedx_backward_muon,
+						 proton_expect_for_bestmu );
+      }
       LARCV_DEBUG() << "track[" << itrack << "] LLR using muon fit: " << llr_mufit << std::endl;
 
       // scan for best proton curve
@@ -181,12 +187,15 @@ namespace reco {
                     << std::endl;
 
       // now we calc mu-versus proton likelihood for proton fit, using plane and shift found above
-      Track_t muon_expect_for_bestp
-        = _generate_muon_expectation( smoothed_v[p_min_plane], p_best_xshift, p_best_yscale );
-      float llr_protonfit
-        = _get_backwardmu_vs_forwardproton_ll( smoothed_v[p_min_plane],
-                                               muon_expect_for_bestp,
-                                               dedx_forward_proton );
+      Track_t muon_expect_for_bestp;
+      float llr_protonfit = 1000.0;
+      if ( p_min_plane>=0 ) {
+        muon_expect_for_bestp = _generate_muon_expectation( smoothed_v[p_min_plane], p_best_xshift, p_best_yscale );
+	llr_protonfit
+	  = _get_backwardmu_vs_forwardproton_ll( smoothed_v[p_min_plane],
+						 muon_expect_for_bestp,
+						 dedx_forward_proton );
+      }
       LARCV_DEBUG() << "track[" << itrack << "] LLR using proton fit: " << llr_protonfit << std::endl;
 
       if ( min_chi2 < p_min_chi2 ) {
@@ -199,24 +208,26 @@ namespace reco {
       }
 
       // for debug
-      for (int p=0; p<nplanes; p++) {
-        auto const& smoothed = smoothed_v[p];
-        TGraphErrors g(smoothed.size());
-        for (int i=0; i<(int)smoothed.size(); i++) {
-          g.SetPoint(i,smoothed[i].x,smoothed[i].dqdx);
-          g.SetPointError(i,0,smoothed[i].var);
-        }
-        graph_vv[p].emplace_back( std::move(g) );
-      }
+      if ( _save_graphs ) {
+	for (int p=0; p<nplanes; p++) {
+	  auto const& smoothed = smoothed_v[p];
+	  TGraphErrors g(smoothed.size());
+	  for (int i=0; i<(int)smoothed.size(); i++) {
+	    g.SetPoint(i,smoothed[i].x,smoothed[i].dqdx);
+	    g.SetPointError(i,0,smoothed[i].var);
+	  }
+	  graph_vv[p].emplace_back( std::move(g) );
+	}
 
-      TGraph gproton( dqdx_v[0].size());
-      TGraph gmuon( dqdx_v[0].size() );
-      for (int ipt=0; ipt<(int)dqdx_v[0].size(); ipt++) {
-        gproton.SetPoint( ipt ,dedx_forward_proton[ipt].x, dedx_forward_proton[ipt].dqdx );
-        gmuon.SetPoint(   ipt ,dedx_backward_muon[ipt].x,  dedx_backward_muon[ipt].dqdx );        
+	TGraph gproton( dqdx_v[0].size());
+	TGraph gmuon( dqdx_v[0].size() );
+	for (int ipt=0; ipt<(int)dqdx_v[0].size(); ipt++) {
+	  gproton.SetPoint( ipt ,dedx_forward_proton[ipt].x, dedx_forward_proton[ipt].dqdx );
+	  gmuon.SetPoint(   ipt ,dedx_backward_muon[ipt].x,  dedx_backward_muon[ipt].dqdx );        
+	}
+	proton_v.emplace_back( std::move(gproton) );
+	muon_v.emplace_back( std::move(gmuon) );
       }
-      proton_v.emplace_back( std::move(gproton) );
-      muon_v.emplace_back( std::move(gmuon) );
       
     }//end of track loop
     

@@ -32,6 +32,8 @@ namespace reco {
     void analyze( larflow::reco::NuVertexCandidate& nuvtx,
                   larflow::reco::NuSelectionVariables& nusel );
 
+    void set_save_graphs( bool save ) { _save_graphs = save; };
+
     // graphs for plotting/debugging/validating
     std::vector< std::vector<TGraphErrors> > graph_vv; ///< for debugging
     std::vector< TGraph > proton_v; // forward proton dedx curves
@@ -40,7 +42,8 @@ namespace reco {
     std::vector< int >    proton_bestfit_plane_v;
     std::vector< float >  muon_chi2_v;
     std::vector< float >  proton_chi2_v;
-    std::vector< float >  best_llr_v;    
+    std::vector< float >  best_llr_v;
+    bool _save_graphs;
 
     Track_t _smooth( Track_t& track, const float maxdist, const int nn );    
 
