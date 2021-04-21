@@ -65,10 +65,10 @@ namespace reco {
       }
 
       float Emu = 105.7 + ke_mu;
-      float Ep  = 941.0 + ke_p;
+      float Ep  = 938.3 + ke_p;
 
       float pmu = sqrt(Emu*Emu - 105.7*105.7);
-      float pp  = sqrt(Ep*Ep - 940.1*940.1);
+      float pp  = sqrt(Ep*Ep - 938.3*938.3);
       
       TLorentzVector v_mu;
       v_mu.SetPxPyPzE( pmu*trunkdir[0], pmu*trunkdir[1], pmu*trunkdir[2], Emu );
