@@ -146,6 +146,20 @@ namespace reco {
         vend[i] = fend[i];
       }
 
+      // space charge correction
+      //_psce;
+      TVector3 vstart = { fstart[0], fstart[1], fstart[2] };
+      std::vector<double> s_offset = _psce->GetPosOffsets(vstart[0],vstart[1],vstart[2]);
+      fstart[0] = fstart[0] - s_offset[0] + 0.7;
+      fstart[1] = fstart[1] + s_offset[1];
+      fstart[2] = fstart[2] + s_offset[2];
+
+      TVector3 v3end = { vend[0], vend[1], vend[2] };
+      s_offset = _psce->GetPosOffsets(v3end[0],v3end[1],v3end[2]);
+      v3end[0] = vend[0] - s_offset[0] + 0.7;
+      v3end[1] = vend[1] + s_offset[1];
+      v3end[2] = vend[2] + s_offset[2];
+
       // make shower trunk object
       larlite::track trunk;
       trunk.reserve(2);
