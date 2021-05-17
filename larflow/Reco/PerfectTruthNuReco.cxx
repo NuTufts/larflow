@@ -127,8 +127,11 @@ namespace reco {
       }
       
       auto const& profile = shower.DetProfile();
-      float pmom = profile.Momentum().Vect().Mag();
-      TVector3 dir = profile.Momentum().Vect();
+      //float pmom = profile.Momentum().Vect().Mag();
+      //TVector3 dir = profile.Momentum().Vect();
+      TVector3 dir = shower.Start().Momentum().Vect();
+      float pmom = dir.Mag();
+      TVector3 vstart = shower.Start().Position().Vect();
 
 
       if ( dir.Mag()<0.1 )
@@ -141,32 +144,38 @@ namespace reco {
       for (int i=0; i<3; i++) {
         dir[i] /= pmom;
         fdir[i] = (float)dir[i];
-        fstart[i] = profile.Position().Vect()[i];
+        fstart[i] = vstart[i];
         fend[i] = fstart[i] + 10.0*fdir[i];
         vend[i] = fend[i];
       }
 
       // space charge correction
       //_psce;
-      TVector3 vstart = { fstart[0], fstart[1], fstart[2] };
       std::vector<double> s_offset = _psce->GetPosOffsets(vstart[0],vstart[1],vstart[2]);
-      fstart[0] = fstart[0] - s_offset[0] + 0.7;
-      fstart[1] = fstart[1] + s_offset[1];
-      fstart[2] = fstart[2] + s_offset[2];
+      vstart[0] = fstart[0] - s_offset[0] + 0.7;
+      vstart[1] = fstart[1] + s_offset[1];
+      vstart[2] = fstart[2] + s_offset[2];
 
       TVector3 v3end = { vend[0], vend[1], vend[2] };
-      s_offset = _psce->GetPosOffsets(v3end[0],v3end[1],v3end[2]);
-      v3end[0] = vend[0] - s_offset[0] + 0.7;
-      v3end[1] = vend[1] + s_offset[1];
-      v3end[2] = vend[2] + s_offset[2];
+      std::vector<double> e_offset = _psce->GetPosOffsets(v3end[0],v3end[1],v3end[2]);
+      v3end[0] = vend[0] - e_offset[0] + 0.7;
+      v3end[1] = vend[1] + e_offset[1];
+      v3end[2] = vend[2] + e_offset[2];
+
+      TVector3 sce_dir = v3end-vstart;
+      float sce_dir_len = sce_dir.Mag();
+      if ( sce_dir_len>0 ) {
+        for (int i=0; i<3; i++)
+          sce_dir[i] /= sce_dir_len;
+      }      
 
       // make shower trunk object
       larlite::track trunk;
       trunk.reserve(2);
-      trunk.add_vertex( profile.Position().Vect() );
-      trunk.add_vertex( vend );
-      trunk.add_direction( dir );
-      trunk.add_direction( dir );      
+      trunk.add_vertex( vstart );
+      trunk.add_vertex( v3end );
+      trunk.add_direction( sce_dir );
+      trunk.add_direction( sce_dir );      
       
       // make shower cluster object
       larlite::larflowcluster shower_cluster;
