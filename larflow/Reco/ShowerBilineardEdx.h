@@ -2,7 +2,10 @@
 #define __LARFLOW_RECO_SHOWER_BILINEAR_DEDX_H__
 
 #include <vector>
+#include <map>
 #include "TGraph.h"
+#include "TTree.h"
+#include "TH2D.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -53,11 +56,76 @@ namespace reco {
     std::vector<float> sumChargeAlongTrunk( const std::vector<float>& start3d,
                                             const std::vector<float>& end3d,
                                             const std::vector<larcv::Image2D>& img_v,
-                                            const float threshold );
+                                            const float threshold,
+                                            const int dcol,
+                                            const int drow );
     
 
+    void bindVariablesToTree( TTree* outtree );
+    
     // for debug
     std::vector< std::vector<TGraph> > bilinear_path_vv;
+    std::vector< float > _shower_dir;
+    std::vector< float > _pixsum_dqdx_v;
+    std::vector< float > _bilin_dqdx_v;
+
+    // pixel lists, sorted by position on trunk
+    struct TrunkPix_t {
+      int row;
+      int col;      
+      float smin;
+      float smax;
+      float s;
+      TrunkPix_t()
+      : row(0),
+        col(0),
+        smin(0),
+        smax(0),
+        s(0)
+      {};
+      TrunkPix_t( int r, int c, float s1, float s2 )
+      : row(r),
+        col(c),
+        smin(s1),
+        smax(s2),
+        s(s1)
+      {};
+      bool operator<( const TrunkPix_t&  rhs ) const {
+        if (s<rhs.s)
+          return true;
+        return false;
+      };
+    };
+    typedef std::vector<TrunkPix_t> TrunkPixList_t;
+    
+    typedef std::map< std::pair<int,int>, TrunkPix_t > TrunkPixMap_t;
+    std::vector< TrunkPixMap_t > _visited_v;
+    std::vector< TrunkPixList_t > _plane_trunkpix_v;
+    void _createDistLabels( const std::vector<float>& start3d,
+                            const std::vector<float>& end3d,
+                            const std::vector<larcv::Image2D>& img_v,
+                            const float threshold );
+    void maskPixels( int plane, TH2D* hist );
+
+    struct Seg_t {
+      float s;
+      float smin;
+      float smax;
+      int itp1;
+      int itp2;
+      int plane;            
+      float endpt[2][3];
+      float pixsum;
+      float dqdx;
+    };
+    typedef std::vector<Seg_t> SegList_t;
+    std::vector< SegList_t > _plane_seg_dedx_v;
+    void _makeSegments();
+    void _sumChargeAlongSegments( const std::vector<float>& start3d,
+                                  const std::vector<float>& end3d,
+                                  const std::vector<larcv::Image2D>& img_v,
+                                  const float threshold,
+                                  const int dcol, const int drow );
     
   };
   
