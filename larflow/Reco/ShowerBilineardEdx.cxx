@@ -82,14 +82,14 @@ namespace reco {
       _pixsum_dqdx_v[p] = pixsum_v[p]/dist;
       
       // projection
-      LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;
-      auto const& img = adc_v.at(p);
-      std::vector<float> grad(6,0);
-      LARCV_DEBUG() << "Get Bilinear Charge w/ grad, plane " << p << std::endl;
-      float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
-      _bilin_dqdx_v[p] = avedQdx;
+      //LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;
+      //auto const& img = adc_v.at(p);
+      //std::vector<float> grad(6,0);
+      //LARCV_DEBUG() << "Get Bilinear Charge w/ grad, plane " << p << std::endl;
+      //float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
+      //_bilin_dqdx_v[p] = avedQdx;
       
-      LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
+      //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
       LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
     }
 
