@@ -8,13 +8,14 @@ parser = argparse.ArgumentParser("Run larflow3dhit clustering algorith")
 # required
 parser.add_argument('-kps','--input-kpsana',type=str,required=True,help="Input file containing the Ana products of KPSRecoManager")
 parser.add_argument('-dl','--input-dlmerged',type=str,required=True,help="Input file containing larcv images")
-#parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
+parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 
 args = parser.parse_args()
 
 import ROOT as rt
 from ROOT import std
 from larlite import larlite
+from ROOT import larutil
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
@@ -27,6 +28,8 @@ except NameError:
     pass
 
 rt.gStyle.SetOptStat(0)
+
+PLOTME=False
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
@@ -55,40 +58,21 @@ anafile = rt.TFile( args.input_kpsana )
 tree = anafile.Get("KPSRecoManagerTree")
 nentries = tree.GetEntries()
 
-algo = larflow.reco.ShowerBilineardEdx()
-algo.set_verbosity( larcv.msg.kDEBUG )
-#algo.set_verbosity( larcv.msg.kINFO )
-#mcdata = ublarcvapp.mctools.LArbysMC()
+# Setup algorithm to run on reco showers
+reco_algo = larflow.reco.ShowerBilineardEdx()
+reco_algo.set_verbosity( larcv.msg.kDEBUG )
+# Setup algorithm to run on perfect reconstruction showers
+perfect_algo = larflow.reco.ShowerBilineardEdx()
+perfect_algo.set_verbosity( larcv.msg.kDEBUG )
+# Truth data for analysis
+mcdata = ublarcvapp.mctools.LArbysMC()
 
-#tfana = rt.TFile( args.output.replace(".root","_ana.root"), "recreate" )
-#tfana.cd()
-#vatree = rt.TTree("vtxactivityana","Vertex Activity Ana")
-#mcdata.bindAnaVariables( vatree )
-#algo.bind_to_tree( vatree )
-
-curve = []
-hist_dqdx_ave = {}
-hist_ll = {}
-hist_2d = {}
-canv = {}
-for p in range(4):
-    c = rt.TCanvas("c_%d"%(p),"Plane %d"%(p),1500,800)
-    #c.Divide(3,2)
-    canv[p] = c    
-    for vtx in ["good","bad"]:
-        hist_dqdx_ave[(p,vtx)] = rt.TH1D( "hdqdx_ave_%d_%s"%(p,vtx), "", 100, 0, 200)
-        hist_ll[(p,vtx)] = rt.TH1D( "hll_%d_%s"%(p,vtx), "", 50, -25, 25 )
-        hist_2d[(p,vtx)] = rt.TH2D( "h2d_%d_%s"%(p,vtx), "", 20, 0, 10, 25, 0, 300 )
-
-canv["curve"] = rt.TCanvas("ccurve","Curves",1200,500)
-canv["curve"].Divide(2,1)
-
-hbg1 = rt.TH2D("hbg1","", 50, 0, 10, 50, 0, 300)
-hbg2 = rt.TH2D("hbg2","", 50, 0, 10, 50, 0, 300)
-canv["curve"].cd(1)
-hbg1.Draw()
-canv["curve"].cd(2)
-hbg2.Draw()
+tfana = rt.TFile( args.output, "recreate" )
+tfana.cd()
+algotree = rt.TTree("showerbilinear","ShowerBilineardEdx output variables")
+reco_algo.bindVariablesToTree( algotree )
+perfect_tree = rt.TTree("perfectreco","ShowerBilineardEdx output variables on Perfect reco")
+perfect_algo.bindVariablesToTree( perfect_tree )
 
 start_entry = 0
 for ientry in range(start_entry,nentries):
@@ -101,7 +85,23 @@ for ientry in range(start_entry,nentries):
 
     ev_adc = iolcv.get_data(larcv.kProductImage2D,"wire")
     adc_v = ev_adc.as_vector()
-    hist_v = larcv.rootutils.as_th2d_v( adc_v, "histentry%d"%ientry )
+
+    if PLOTME:
+        hist_v = larcv.rootutils.as_th2d_v( adc_v, "histentry%d"%ientry )
+        mask_v = {}
+        graphs = []        
+        for p in range(3):
+            m = hist_v[p].Clone( "maskentry%d_plane%d"%(ientry,p))
+            m.Reset()
+            mask_v[p] = m
+
+        c = rt.TCanvas("c","",1500,400)
+        c.Divide(3,2)
+        for p in range(3):
+            c.cd(p+1)
+            hist_v[p].Draw("colz")
+            c.cd(3+1+p)
+            mask_v[p].Draw("colz")
     
     vertex_v = tree.nufitted_v
     print(" Number of vertices: ",vertex_v.size())
@@ -110,35 +110,38 @@ for ientry in range(start_entry,nentries):
 
     maxlen = 0
 
-    for (name,vertices) in [("RECO",vertex_v),("PERFECT",nuperfect_v)]:
+    for (name,vertices,algo,outtree) in [("RECO",vertex_v,reco_algo,algotree),("PERFECT",nuperfect_v,perfect_algo,perfect_tree)]:
+        nvertices = vertices.size()
         print("=====================")
-        print("%s VERTICES"%(name))
-        for ivtx in range( vertices.size() ):
+        print("%s VERTICES"%(name),": n=",nvertices)
+        if nvertices==0:
+            continue
+        for ivtx in range( nvertices ):
 
             nuvtx = vertices.at(ivtx)        
             ntracks  = nuvtx.track_v.size()
             nshowers = nuvtx.shower_v.size()
-            nusel = tree.nu_sel_v[ivtx]
 
             # cuts
-            if name in ("RECO"):
+            if name in ("RECO"):                            
+                nusel = tree.nu_sel_v[ivtx]
                 if nusel.ntracks==0 or nusel.ntracks>2:
                     continue
                 if nusel.max_shower_nhits<500:
                     continue
                 if nusel.nshowers==0 or nusel.nshowers>2:
                     continue
-        
-            print(" VTX %d (%.2f) dist2true=%.2f ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,nusel.dist2truevtx,ntracks,nshowers))
+
+                if nusel.dist2truevtx<3.0:
+                    goodvtx = "good"
+                else:
+                    goodvtx = "bad"
+                
+                print(" VTX %d (%.2f) dist2true=%.2f ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,nusel.dist2truevtx,ntracks,nshowers))
 
             tvtx = rt.TVector3()
             for i in range(3):
                 tvtx[i] = nuvtx.pos[i]
-
-            if nusel.dist2truevtx<3.0:
-                goodvtx = "good"
-            else:
-                goodvtx = "bad"
 
             for ishower in range(nshowers):
                 shower = nuvtx.shower_v[ishower]
@@ -146,30 +149,63 @@ for ientry in range(start_entry,nentries):
                 shpca  = nuvtx.shower_pcaxis_v[ishower]
                 algo.processShower( shower, trunk, shpca, adc_v )
 
-                for p in range(3):
-                    print(canv[p])
-                    canv[p].Draw()
-                    print(hist_v[p])
-                    hist_v[p].Draw("colz")
-                    for ipath in range(algo.bilinear_path_vv.at(p).size()):
-                        path = algo.bilinear_path_vv.at(p).at(ipath)
-                        path.Draw("Lsame")
-                    canv[p].Draw()
-                    canv[p].Update()
-                    if True:
-                        print("[ENTER] to continue to next plane for shower")
-                        x = input()
+                if PLOTME:
+                    for p in range(3):
+                        c.cd(p+1)
+                        for ipath in range(algo.bilinear_path_vv.at(p).size()):
+                            path = algo.bilinear_path_vv.at(p).at(ipath)
+                            path.SetLineWidth(2)
+                            if name in ["PERFECT"]:
+                                path.SetLineColor(rt.kRed)
+                            else:
+                                path.SetLineColor(rt.kMagenta)                                
+                            path.Draw("Lsame")
+                            graphs.append(path)
+                        c.Update()
 
-
-                if True:
+                outtree.Fill()
+                    
+                if False:
                     print("[ENTER] to continue")
                     x = input()
-            if True:
+            # end of reoc vertex loop
+            if False:
                 break
     
-    if True:
+            if name in ["PERFECT"] and PLOTME:
+                tick1 = nuvtx.tick - 6*50
+                tick2 = nuvtx.tick + 6*50
+                dpos = std.vector("double")(3)
+                for i in range(3):
+                    dpos[i] = nuvtx.pos[i]
+                for p in range(3):
+                    c.cd(3+p+1)
+                    #algo.maskPixels( p, mask_v[p] )
+                    algo._debug_crop_v[p].Draw("colz")
+                    c.cd(p+1)                    
+                    wire = larutil.Geometry.GetME().WireCoordinate(dpos,p)
+                    col1 = wire-50
+                    col2 = wire+50
+                    hist_v[p].GetXaxis().SetRangeUser(col1,col2)
+                    hist_v[p].GetYaxis().SetRangeUser(tick1,tick2)
+                    hist_v[p].GetZaxis().SetRangeUser(0,200.0)
+                    mask_v[p].GetXaxis().SetRangeUser(col1,col2)
+                    mask_v[p].GetYaxis().SetRangeUser(tick1,tick2)
+                    mask_v[p].GetZaxis().SetRangeUser(0,10.0)
+                    c.cd(p+1).Update()
+                    
+    if PLOTME:
+        c.Update()
+        c.Draw()
+        x = input("[ENTER] to go to next event")
+    if False:
         break
+    # end of entry
 
+print("WRITE")
+tfana.cd()
+algotree.Write()
+perfect_tree.Write()
 
 if True:
     sys.exit(0)

@@ -68,6 +68,7 @@ namespace reco {
     std::vector< float > _shower_dir;
     std::vector< float > _pixsum_dqdx_v;
     std::vector< float > _bilin_dqdx_v;
+    std::vector< std::vector<float> > _plane_dqdx_seg_v;
 
     // pixel lists, sorted by position on trunk
     struct TrunkPix_t {
@@ -126,6 +127,10 @@ namespace reco {
                                   const std::vector<larcv::Image2D>& img_v,
                                   const float threshold,
                                   const int dcol, const int drow );
+
+    std::vector<TH2D> _debug_crop_v;
+
+    static int ndebugcount;
     
   };
   
