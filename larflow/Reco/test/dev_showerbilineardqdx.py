@@ -29,7 +29,7 @@ except NameError:
 
 rt.gStyle.SetOptStat(0)
 
-PLOTME=True
+PLOTME=False
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 

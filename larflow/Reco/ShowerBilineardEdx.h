@@ -72,8 +72,6 @@ namespace reco {
     std::vector< float > _shower_dir;
     std::vector< float > _pixsum_dqdx_v;
     std::vector< float > _bilin_dqdx_v;
-    std::vector< std::vector<float> > _plane_dqdx_seg_v;
-    std::vector< std::vector<float> > _plane_s_seg_v;    
 
     // pixel lists, sorted by position on trunk
     struct TrunkPix_t {
@@ -127,6 +125,8 @@ namespace reco {
     };
     typedef std::vector<Seg_t> SegList_t;
     std::vector< SegList_t > _plane_seg_dedx_v;
+    std::vector< std::vector<float> > _plane_dqdx_seg_v;
+    std::vector< std::vector<float> > _plane_s_seg_v;        
     void _makeSegments( float starting_s );
     void _sumChargeAlongSegments( const std::vector<float>& start3d,
                                   const std::vector<float>& end3d,
@@ -136,7 +136,24 @@ namespace reco {
 
     std::vector<TH2D> _debug_crop_v;
 
-    void _findRangedQdx();
+    std::vector< std::vector<float> > _plane_electron_srange_v;
+    std::vector< float > _plane_electron_dqdx_v;
+    std::vector< float > _plane_electron_dx_v;
+    
+    std::vector< std::vector<float> > _plane_gamma_srange_v;    
+    std::vector< std::vector<float> > _plane_gamma_dqdx_v;
+    std::vector< std::vector<float> > _plane_gamma_dx_v;
+    
+    void _findRangedQdx( const std::vector<float>& start3d,
+                         const std::vector<float>& end3d,
+                         const std::vector<larcv::Image2D>& adc_v,
+                         const float dqdx_max,
+                         const float dqdx_threshold );
+    float _sumChargeAlongOneSegment( ShowerBilineardEdx::Seg_t& seg,
+                                     const int plane,
+                                     const std::vector<larcv::Image2D>& img_v,
+                                     const float threshold,
+                                     const int dcol, const int drow );
 
     static int ndebugcount;
     

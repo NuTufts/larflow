@@ -102,7 +102,7 @@ namespace reco {
       //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
       LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
     }
-
+    _findRangedQdx( fstart, fend, adc_v, 350.0, 150.0 );
 
     
   }
@@ -825,7 +825,8 @@ namespace reco {
           seg.dqdx = pixsum/ds;        
           seg.pixsum = pixsum;
           seg.ds = ds;
-          out_dqdx_seg_v.push_back( seg.dqdx );          
+          out_dqdx_seg_v.push_back( seg.dqdx );
+          out_s_seg_v.push_back( seg.s );
         }
         else {
           // bad
@@ -848,6 +849,154 @@ namespace reco {
 
   }
   
+  float ShowerBilineardEdx::_sumChargeAlongOneSegment( ShowerBilineardEdx::Seg_t& seg,
+                                                       const int plane,
+                                                       const std::vector<larcv::Image2D>& img_v,
+                                                       const float threshold,
+                                                       const int dcol, const int drow )
+  {
+
+    auto const& img = img_v[plane];
+    auto const& tplist = _plane_trunkpix_v[plane];
+
+    // get min,max bounds
+    int colbounds[2] = {-1};
+    int rowbounds[2] = {-1};
+    for (auto const& tp : tplist ) {
+      if ( colbounds[0]>tp.col || colbounds[0]<0 )
+        colbounds[0] = tp.col;
+      if ( colbounds[1]<tp.col || colbounds[1]<0 )
+        colbounds[1] = tp.col;
+      if ( rowbounds[0]>tp.row || rowbounds[0]<0 )
+        rowbounds[0] = tp.row;
+      if ( rowbounds[1]<tp.row || rowbounds[1]<0 )
+        rowbounds[1] = tp.row;        
+    }
+
+    // crop width with padding added
+    int colwidth = (colbounds[1]-colbounds[0]+1) + 2*dcol;
+    int rowwidth = (rowbounds[1]-rowbounds[0]+1) + 2*drow;
+    int rowlen   = (rowbounds[1]-rowbounds[0]+1);
+    int col_origin = colbounds[0]-dcol;
+    int row_origin = rowbounds[0]-drow;
+    LARCV_DEBUG() << "colbounds: [" << colbounds[0] << "," << colbounds[1] << "]" << std::endl;
+    LARCV_DEBUG() << "rowbounds: [" << rowbounds[0] << "," << rowbounds[1] << "]" << std::endl;      
+    LARCV_DEBUG() << "Crop meta. Origin=(" << col_origin << "," << row_origin << ")"
+                  << " ncol=" << colwidth << " nrow=" << rowwidth
+                  << std::endl;
+
+    if ( colwidth<=0 || rowwidth<=0 ) {
+      throw std::runtime_error("Bad cropped window size");
+    }
+
+    // make data array
+    std::vector<float> crop(colwidth*rowwidth,0);
+    std::vector<float> mask(colwidth*rowwidth,0);
+    std::vector<float> smin_img(colwidth*rowwidth,0);
+    std::vector<float> smax_img(colwidth*rowwidth,0);
+
+    // copy the data into the cropped matrix
+    // preserve the row-ordered data
+    for (int c=0; c<(int)(colbounds[1]-colbounds[0]); c++) {
+      // for the larcv image, the row-dimension is the contiguous element
+      size_t origin_index = img.meta().index( rowbounds[0], colbounds[0]+c, __FILE__, __LINE__ );
+      const float* source_ptr = img.as_vector().data() + origin_index;
+      float* dest_ptr   = crop.data() + (c+dcol)*rowwidth + drow;
+      memcpy( dest_ptr, source_ptr, sizeof(float)*rowlen );
+    }
+
+    for (int itp=0; itp<(int)tplist.size(); itp++) {
+      auto const& tp = tplist[itp];
+      // change (col,row) from original image to mask image (with padding)
+      // then add kernal shift
+      int icol = (int)tp.col-col_origin;
+      int irow = (int)tp.row-row_origin;
+      smin_img[icol*rowwidth+irow] = tp.smin;
+      smax_img[icol*rowwidth+irow] = tp.smax;          
+    }
+           
+    float seen_smin = 1e9;
+    float seen_smax = -1e9;
+    float pixsum = 0.;
+    float masksum = 0.;
+
+    // blank out mask
+    memset( mask.data(),    0, sizeof(float)*mask.size() );
+
+    // kernal loop, making mask
+    // trying to write in a way that is easy to accelerate
+    int N = (2*dcol+1)*(2*drow+1);
+    int itp1 = seg.itp1;
+    int Nitp = (seg.itp2-seg.itp1)+1;
+
+    // parallelize masking with block kernel
+    #pragma omp parallel for         
+    for (int ikernel=0; ikernel<N; ikernel++) {
+
+      int dr = ikernel%(2*drow+1) - drow;
+      int dc = ikernel/(2*drow+1) - dcol;          
+
+      for (int itp=0; itp<Nitp; itp++) {
+        int idx = itp1+itp;
+        auto const& tp = tplist[idx];
+        // change (col,row) from original image to mask image (with padding)
+        // then add kernal shift
+        int icol = (int)tp.col-col_origin + dc;
+        int irow = (int)tp.row-row_origin + dr;
+        if ( icol>=colwidth || irow>=rowwidth || icol<0 || irow<0) {
+          std::stringstream ss;
+          ss << "OUT OF CROP BOUNDS (" << icol << "," << irow << ") TP[" << idx << "] orig=(" << tp.col << "," << tp.row << ")" << std::endl;
+          throw std::runtime_error(ss.str());
+        }
+
+        int cropindex = icol*rowwidth+irow;
+        float pixval = crop[ cropindex ];
+        if ( pixval>threshold ) {
+          #pragma omp atomic
+          mask[ cropindex ] += 1.0;
+        }
+      }
+    }
+    #pragma omp barrier
+        
+    // now sum charge
+    for (size_t ii=0; ii<mask.size(); ii++ ) {
+      if ( mask[ii]>0.5 ) {
+        mask[ii] = 1.0;
+        pixsum +=  crop[ii];          
+        masksum += mask[ii];
+      }
+    }
+
+    // find smin and smax along path
+    for (size_t ii=0; ii<mask.size(); ii++ ) {
+      if ( mask[ii]>0 ) {
+        int ic = ii/rowwidth;
+        int ir = ii%rowwidth;
+        //_debug_crop_v.back().SetBinContent(ic+1,ir+1,1.0);            
+        float pix_smin = smin_img[ic*rowwidth+ir];
+        float pix_smax = smax_img[ic*rowwidth+ir];
+        if ( pix_smin>0 && seen_smin>pix_smin ) {
+          seen_smin = pix_smin;
+        }
+        if ( pix_smax>0 && seen_smax<pix_smax ) {
+          seen_smax = pix_smax;
+        }
+      }
+    }
+
+    float ds = seen_smax - seen_smin;
+    if ( ds>0 && ds<10.0 ) {
+      return pixsum/ds;
+    }
+    else {
+      // bad
+      return 0;
+    }
+        
+    return 0;
+  }
+  
   
   void ShowerBilineardEdx::bindVariablesToTree( TTree* outtree )
   {
@@ -855,7 +1004,10 @@ namespace reco {
     outtree->Branch( "bilin_dqdx_v",  &_bilin_dqdx_v );
     outtree->Branch( "shower_dir", &_shower_dir );
     outtree->Branch( "plane_dqdx_seg_vv", &_plane_dqdx_seg_v );
-    outtree->Branch( "plane_s_seg_vv",    &_plane_s_seg_v );     
+    outtree->Branch( "plane_s_seg_vv",    &_plane_s_seg_v );
+    outtree->Branch( "plane_electron_srange_vv", &_plane_electron_srange_v );
+    outtree->Branch( "plane_electron_dqdx_v", &_plane_electron_dqdx_v );
+    outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );        
   }
 
   void ShowerBilineardEdx::maskPixels( int plane, TH2D* hist )
@@ -885,8 +1037,95 @@ namespace reco {
     return g;
   }
 
-  void ShowerBilineardEdx::_findRangedQdx()
+  void ShowerBilineardEdx::_findRangedQdx( const std::vector<float>& start3d,
+                                           const std::vector<float>& end3d,
+                                           const std::vector<larcv::Image2D>& adc_v,
+                                           const float dqdx_max,
+                                           const float dqdx_threshold )
   {
+    _plane_electron_srange_v.clear();
+    _plane_electron_dqdx_v.clear();
+    _plane_electron_dx_v.clear();
+    
+    _plane_gamma_srange_v.clear();
+
+    const int nplanes = adc_v.size();
+    _plane_electron_srange_v.resize( nplanes );
+    _plane_electron_dqdx_v.resize( nplanes );
+    _plane_electron_dx_v.resize( nplanes );    
+    
+    _plane_gamma_srange_v.resize( nplanes );
+
+    // get distance between start and end points
+    float dist = 0.;
+    std::vector<float> dir(3,0);
+    for (int i=0; i<3; i++) {
+      dir[i] = end3d[i]-start3d[i];
+      dist += (end3d[i]-start3d[i])*(end3d[i]-start3d[i]);
+    }
+    dist = sqrt(dist);
+    if ( dist>0 ) {
+      for (int i=0; i<3; i++)
+        dir[i] /= dist;
+    }    
+
+    for (int p=0; p<nplanes; p++) {
+      auto const& seg_v = _plane_seg_dedx_v[p];
+      int iseg_start = 0;
+      int iseg_end = (int)seg_v.size()-1;
+      // find first value below 
+      for (int iseg=0; iseg<(int)seg_v.size(); iseg++) {
+        auto const& seg = seg_v[iseg];
+        if ( seg.dqdx>dqdx_threshold && seg.dqdx<dqdx_max ) {
+          iseg_start = iseg;
+          break;
+        }
+      }
+
+      for (int iseg=(int)seg_v.size()-1; iseg>=0; iseg-- ) {
+        auto const& seg = seg_v[iseg];
+        if ( seg.dqdx>dqdx_threshold && seg.dqdx<dqdx_max ) {
+          iseg_end = iseg;
+          break;
+        }
+      }
+
+      float s_min = seg_v[iseg_start].smin;
+      float s_max = seg_v[iseg_end].smax;
+
+      std::vector<float> srange = { s_min, s_max };
+
+      _plane_electron_srange_v[p] = srange;
+
+      std::vector<float> s3d(3,0);
+      std::vector<float> e3d(3,0);
+      for (int i=0; i<3; i++) {
+        s3d[i] = start3d[i] + s_min*dir[i];
+        e3d[i] = start3d[i] + s_max*dir[i];
+      }
+
+      // make a new segment to sum charge over
+      Seg_t seg;
+      seg.smin = s_min;
+      seg.smax = s_max;
+      seg.s = 0.5*(s_min+s_max);
+      seg.itp1 = seg_v[iseg_start].itp1;
+      seg.itp2 = seg_v[iseg_end].itp1;
+      seg.plane = p;
+      for  (int i=0; i<3; i++) {
+        seg.endpt[0][i] = s3d[i]; 
+        seg.endpt[1][i] = e3d[i];
+      }
+      seg.pixsum = 0;
+      seg.dqdx = 0;
+      seg.ds = s_max-s_min;           
+      seg.dqdx = _sumChargeAlongOneSegment( seg, p, adc_v, 10.0, 1, 3 );
+      LARCV_DEBUG() << "Plane[" << p << "] range dqdx s=(" << s_min << "," << s_max << ") dqdx=" << seg.dqdx << std::endl;
+
+      _plane_electron_dqdx_v[p] = seg.dqdx;
+      _plane_electron_dx_v[p] = seg.ds;
+      
+    }//end of plane loop
     
   }
 
