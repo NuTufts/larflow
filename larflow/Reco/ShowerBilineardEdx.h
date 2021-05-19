@@ -62,6 +62,10 @@ namespace reco {
     
 
     void bindVariablesToTree( TTree* outtree );
+
+    TGraph makeSegdQdxGraphs(int plane);
+
+    void clear();
     
     // for debug
     std::vector< std::vector<TGraph> > bilinear_path_vv;
@@ -69,6 +73,7 @@ namespace reco {
     std::vector< float > _pixsum_dqdx_v;
     std::vector< float > _bilin_dqdx_v;
     std::vector< std::vector<float> > _plane_dqdx_seg_v;
+    std::vector< std::vector<float> > _plane_s_seg_v;    
 
     // pixel lists, sorted by position on trunk
     struct TrunkPix_t {
@@ -118,10 +123,11 @@ namespace reco {
       float endpt[2][3];
       float pixsum;
       float dqdx;
+      float ds;
     };
     typedef std::vector<Seg_t> SegList_t;
     std::vector< SegList_t > _plane_seg_dedx_v;
-    void _makeSegments();
+    void _makeSegments( float starting_s );
     void _sumChargeAlongSegments( const std::vector<float>& start3d,
                                   const std::vector<float>& end3d,
                                   const std::vector<larcv::Image2D>& img_v,
@@ -129,6 +135,8 @@ namespace reco {
                                   const int dcol, const int drow );
 
     std::vector<TH2D> _debug_crop_v;
+
+    void _findRangedQdx();
 
     static int ndebugcount;
     

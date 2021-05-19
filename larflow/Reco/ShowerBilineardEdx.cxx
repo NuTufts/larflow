@@ -19,6 +19,16 @@ namespace reco {
   ShowerBilineardEdx::~ShowerBilineardEdx()
   {
   }
+
+  void ShowerBilineardEdx::clear()
+  {
+    bilinear_path_vv.clear();
+    _shower_dir.clear();
+    _pixsum_dqdx_v.clear();
+    _bilin_dqdx_v.clear();
+    _plane_dqdx_seg_v.clear();
+    _plane_s_seg_v.clear();    
+  }
   
   void ShowerBilineardEdx::processShower( larlite::larflowcluster& shower,
                                           larlite::track& trunk,
@@ -57,7 +67,7 @@ namespace reco {
     std::vector<float> fstart = { (float)start_pos[0], (float)start_pos[1], (float)start_pos[2] };
     std::vector<float> fend   = { (float)end_pos[0],   (float)end_pos[1],   (float)end_pos[2] };          
     _createDistLabels( fstart, fend, adc_v, 10.0 );
-    _makeSegments();
+    _makeSegments( -3.0 );
     _sumChargeAlongSegments( fstart, fend, adc_v, 10.0, 1, 3 );
     
     std::vector<float> pixsum_v = sumChargeAlongTrunk( fstart, fend, adc_v, 10.0, 1, 3 );    
@@ -83,11 +93,11 @@ namespace reco {
       
       // projection
       //LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;
-      //auto const& img = adc_v.at(p);
-      //std::vector<float> grad(6,0);
+      auto const& img = adc_v.at(p);
+      std::vector<float> grad(6,0);
       //LARCV_DEBUG() << "Get Bilinear Charge w/ grad, plane " << p << std::endl;
-      //float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
-      //_bilin_dqdx_v[p] = avedQdx;
+      float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
+      _bilin_dqdx_v[p] = avedQdx;
       
       //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
       LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
@@ -180,7 +190,7 @@ namespace reco {
       
       std::vector<float> pix_grad(3,0);
       float pix = bilinearPixelValue_and_grad( pt, plane, img, pix_grad );
-      LARCV_DEBUG() << "  bilinear-pixval[" << istep << "] " << pix << " (col,tick)=(" << ptx << "," << pty << ")" << std::endl;
+      //LARCV_DEBUG() << "  bilinear-pixval[" << istep << "] " << pix << " (col,tick)=(" << ptx << "," << pty << ")" << std::endl;
 
       // dpix/dx_s = dpix/dx*dx/dx_s
       std::vector<float> pt_grad(6,0);
@@ -544,7 +554,7 @@ namespace reco {
     
   }
 
-  void ShowerBilineardEdx::_makeSegments()
+  void ShowerBilineardEdx::_makeSegments( float starting_s )
   {
 
     _plane_seg_dedx_v.clear();
@@ -561,10 +571,10 @@ namespace reco {
       float smax = 0;
       for ( size_t i=0; i<tplist.size(); i++ ) {
         auto& tp = tplist[i];
-        if ( tp.smin<0 && tp.smax>0 ) {
+        if ( tp.smin<starting_s && tp.smax>starting_s ) {
           isegz = (int)i;
         }
-        else if ( tp.smin>0 && isegz<0 ) {
+        else if ( tp.smin>starting_s && isegz<0 ) {
           isegz = (int)i;
         }        
         if ( 0.5*(tp.smin+tp.smax)>smax )
@@ -612,6 +622,7 @@ namespace reco {
           seg.plane = p;
           seg.pixsum = 0.;
           seg.dqdx = 0.;
+          seg.ds = 0.;
           seg.itp1 = itp1;
           seg.itp2 = itp2;
           
@@ -638,9 +649,13 @@ namespace reco {
   {
 
     _plane_dqdx_seg_v.clear();
-    const int nplanes = img_v.size();
-    _plane_dqdx_seg_v.resize(nplanes);
+    _plane_s_seg_v.clear();
     _debug_crop_v.clear();
+    
+    const int nplanes = img_v.size();
+    
+    _plane_dqdx_seg_v.resize(nplanes);
+    _plane_s_seg_v.resize(nplanes);    
 
     float dist = 0.;
     std::vector<float> dir(3,0);
@@ -723,15 +738,12 @@ namespace reco {
         hcrop.SetBinContent(ic+1,ir+1,crop[ii]);
       }
       _debug_crop_v.emplace_back( std::move(hcrop) );
-      
-      
-      TrunkPixMap_t& visited_m = _visited_v[p];
-      // for ( auto it=visited_m.begin(); it!=visited_m.end(); it++ ) {
-      //   std::cout << "pixmap dump plane[" << p << "]: (" << it->first.first << "," << it->first.second << "): " << it->second.smin << "-" << it->second.smax << std::endl;
-      // }
-
+           
       // store dqdx for each segment in vector to be used for TTree
       std::vector<float>& out_dqdx_seg_v = _plane_dqdx_seg_v[p];
+      std::vector<float>& out_s_seg_v    = _plane_s_seg_v[p];
+      out_dqdx_seg_v.reserve( _plane_seg_dedx_v[p].size() );
+      out_s_seg_v.reserve( _plane_seg_dedx_v[p].size() );
 
       int iseg = 0;
       for ( auto& seg : _plane_seg_dedx_v[p] ) {
@@ -795,7 +807,7 @@ namespace reco {
           if ( mask[ii]>0 ) {
             int ic = ii/rowwidth;
             int ir = ii%rowwidth;
-            _debug_crop_v.back().SetBinContent(ic+1,ir+1,1.0);            
+            //_debug_crop_v.back().SetBinContent(ic+1,ir+1,1.0);            
             float pix_smin = smin_img[ic*rowwidth+ir];
             float pix_smax = smax_img[ic*rowwidth+ir];
             if ( pix_smin>0 && seen_smin>pix_smin ) {
@@ -808,8 +820,20 @@ namespace reco {
         }
 
         float ds = seen_smax - seen_smin;
-        seg.pixsum = pixsum;
-        seg.dqdx = pixsum/ds;
+        if ( ds>0 && ds<10.0 ) {
+          // good
+          seg.dqdx = pixsum/ds;        
+          seg.pixsum = pixsum;
+          seg.ds = ds;
+          out_dqdx_seg_v.push_back( seg.dqdx );          
+        }
+        else {
+          // bad
+          seg.dqdx = 0.;
+          seg.pixsum = pixsum;
+          seg.ds = 0.;
+        }
+        
         LARCV_DEBUG() << "plane[" << p << "]-seg[" << iseg << "] "
                       << " tp-index=[" << seg.itp1 << "-" << seg.itp2 << "]"
                       << " pixsum=" << seg.pixsum
@@ -817,8 +841,6 @@ namespace reco {
           //<< " npix=" << npix << " nskip=" << nskip << " nvisited=" << nvisited
                       << " dx=" << ds
                       << " dqdx=" << seg.dqdx << std::endl;
-        if ( masksum>0 && ds>0) 
-          out_dqdx_seg_v.push_back( seg.dqdx );
         
         iseg++;
       }//end of seg loop
@@ -832,7 +854,8 @@ namespace reco {
     outtree->Branch( "pixsum_dqdx_v", &_pixsum_dqdx_v );
     outtree->Branch( "bilin_dqdx_v",  &_bilin_dqdx_v );
     outtree->Branch( "shower_dir", &_shower_dir );
-    outtree->Branch( "plane_dqdx_seg_vv", &_plane_dqdx_seg_v ); 
+    outtree->Branch( "plane_dqdx_seg_vv", &_plane_dqdx_seg_v );
+    outtree->Branch( "plane_s_seg_vv",    &_plane_s_seg_v );     
   }
 
   void ShowerBilineardEdx::maskPixels( int plane, TH2D* hist )
@@ -843,6 +866,28 @@ namespace reco {
       auto const& tp  = tplist[itp];
       hist->SetBinContent( tp.col+1, tp.row+1, tp.smin );
     }
+  }
+
+  TGraph ShowerBilineardEdx::makeSegdQdxGraphs(int plane)
+  {
+
+    if ( plane<0 || plane>=(int)_plane_seg_dedx_v.size() ) {
+      TGraph g(1);
+      return g;
+    }
+    
+    auto const& seglist = _plane_seg_dedx_v.at(plane);
+    int N = (int)seglist.size();
+    TGraph g(N);
+    for (int i=0; i<N; i++) {
+      g.SetPoint(i,seglist[i].s,seglist[i].dqdx);
+    }
+    return g;
+  }
+
+  void ShowerBilineardEdx::_findRangedQdx()
+  {
+    
   }
 
   

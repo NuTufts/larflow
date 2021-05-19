@@ -29,7 +29,7 @@ except NameError:
 
 rt.gStyle.SetOptStat(0)
 
-PLOTME=False
+PLOTME=True
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
@@ -95,8 +95,8 @@ for ientry in range(start_entry,nentries):
             m.Reset()
             mask_v[p] = m
 
-        c = rt.TCanvas("c","",1500,400)
-        c.Divide(3,2)
+        c = rt.TCanvas("c","",1500,1200)
+        c.Divide(3,3)
         for p in range(3):
             c.cd(p+1)
             hist_v[p].Draw("colz")
@@ -192,7 +192,16 @@ for ientry in range(start_entry,nentries):
                     mask_v[p].GetXaxis().SetRangeUser(col1,col2)
                     mask_v[p].GetYaxis().SetRangeUser(tick1,tick2)
                     mask_v[p].GetZaxis().SetRangeUser(0,10.0)
-                    c.cd(p+1).Update()
+                    c.cd(6+p+1)
+                    g = algo.makeSegdQdxGraphs(p)
+                    g.Draw("APL")                    
+                    graphs.append(g)
+                    g_reco = reco_algo.makeSegdQdxGraphs(p)
+                    if g_reco.GetN()>1:
+                        g_reco.SetLineColor(rt.kRed)
+                        g_reco.Draw("PL")                        
+                        graphs.append(g_reco)                        
+                    c.Update()
                     
     if PLOTME:
         c.Update()
