@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser("Run larflow3dhit clustering algorith")
 parser.add_argument('-kps','--input-kpsana',type=str,required=True,help="Input file containing the Ana products of KPSRecoManager")
 parser.add_argument('-dl','--input-dlmerged',type=str,required=True,help="Input file containing larcv images")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
+parser.add_argument('-mc','--has-mc',default=False,action='store_true',help='If flag given, will calculate truth-based quantities')
 
 args = parser.parse_args()
 
@@ -53,6 +54,12 @@ iolcv.specify_data_read( larcv.kProductImage2D, "wire" );
 iolcv.reverse_all_products()
 iolcv.initialize()
 
+if args.has_mc:
+    ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+    ioll.add_in_filename( args.input_dlmerged )
+    ioll.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+    ioll.open()
+
 # OPEN VERTEX RECO FILE
 anafile = rt.TFile( args.input_kpsana )
 tree = anafile.Get("KPSRecoManagerTree")
@@ -79,12 +86,18 @@ for ientry in range(start_entry,nentries):
 
     tree.GetEntry(ientry)
     iolcv.read_entry(ientry)
-    
+
     rse = ( tree.run, tree.subrun, tree.event )
     print("[ENTRY ",ientry,"]: ",rse)
 
     ev_adc = iolcv.get_data(larcv.kProductImage2D,"wire")
     adc_v = ev_adc.as_vector()
+
+
+    if args.has_mc:
+        ioll.go_to(ientry)
+        ev_mcshower = ioll.get_data( larlite.data.kMCShower, "mcreco" )
+    
 
     if PLOTME:
         hist_v = larcv.rootutils.as_th2d_v( adc_v, "histentry%d"%ientry )
@@ -149,6 +162,9 @@ for ientry in range(start_entry,nentries):
                 shpca  = nuvtx.shower_pcaxis_v[ishower]
                 algo.processShower( shower, trunk, shpca, adc_v )
 
+                if name=="RECO" and args.has_mc:
+                    algo.calcGoodShowerTaggingVariables( shower, trunk, shpca, adc_v, ev_mcshower )
+                
                 if PLOTME:
                     for p in range(3):
                         c.cd(p+1)

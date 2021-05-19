@@ -12,6 +12,8 @@
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/pcaxis.h"
 #include "DataFormat/track.h"
+#include "DataFormat/mcshower.h"
+#include "LArUtil/SpaceChargeMicroBooNE.h"
 
 namespace larflow {
 namespace reco {
@@ -155,7 +157,19 @@ namespace reco {
                                      const float threshold,
                                      const int dcol, const int drow );
 
+    float _true_min_feat_dist;
+    float _true_vertex_err_dist;
+    float _true_dir_cos;
+    void calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
+                                         const larlite::track& trunk,
+                                         const larlite::pcaxis& pca,
+                                         const std::vector<larcv::Image2D>& adc_v,
+                                         const std::vector<larlite::mcshower>& mcshower_v );
+
+  private:
+    
     static int ndebugcount;
+    static larutil::SpaceChargeMicroBooNE* _psce;
     
   };
   

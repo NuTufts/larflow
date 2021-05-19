@@ -5,11 +5,13 @@
 #include <omp.h>
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
+#include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
 
   int ShowerBilineardEdx::ndebugcount = 0;
+  larutil::SpaceChargeMicroBooNE* ShowerBilineardEdx::_psce  = nullptr;
   
   ShowerBilineardEdx::ShowerBilineardEdx()
     : larcv::larcv_base("ShowerBilineardEdx")
@@ -1007,7 +1009,10 @@ namespace reco {
     outtree->Branch( "plane_s_seg_vv",    &_plane_s_seg_v );
     outtree->Branch( "plane_electron_srange_vv", &_plane_electron_srange_v );
     outtree->Branch( "plane_electron_dqdx_v", &_plane_electron_dqdx_v );
-    outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );        
+    outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );
+    outtree->Branch( "true_min_feat_dist", &_true_min_feat_dist );
+    outtree->Branch( "true_vertex_err_dist", &_true_vertex_err_dist );
+    outtree->Branch( "true_dir_cos", &_true_dir_cos );
   }
 
   void ShowerBilineardEdx::maskPixels( int plane, TH2D* hist )
@@ -1126,6 +1131,123 @@ namespace reco {
       _plane_electron_dx_v[p] = seg.ds;
       
     }//end of plane loop
+    
+  }
+
+  void ShowerBilineardEdx::calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
+                                                           const larlite::track& trunk,
+                                                           const larlite::pcaxis& pca,
+                                                           const std::vector<larcv::Image2D>& adc_v,
+                                                           const std::vector<larlite::mcshower>& mcshower_v )
+  {
+
+    if ( ShowerBilineardEdx::_psce==nullptr ) {
+      ShowerBilineardEdx::_psce = new larutil::SpaceChargeMicroBooNE;
+    }
+    
+    auto const& meta = adc_v.front().meta();
+
+    TVector3 vstart = trunk.LocationAtPoint(0);
+    std::vector<float> fstart = { (float)trunk.LocationAtPoint(0)[0],
+                                  (float)trunk.LocationAtPoint(0)[1],
+                                  (float)trunk.LocationAtPoint(0)[2] };
+    float start_tick = fstart[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
+      throw std::runtime_error("out of bounds shower trunk starting point");
+    }    
+    float start_row = (float)meta.row(start_tick);
+
+    TVector3 vend = trunk.LocationAtPoint(1);
+    std::vector<float> fend = { (float)trunk.LocationAtPoint(1)[0],
+                                (float)trunk.LocationAtPoint(1)[1],
+                                (float)trunk.LocationAtPoint(1)[2] };
+    float end_tick = fend[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
+      throw std::runtime_error("out of bounds shower trunk starting point");
+    }
+    float end_row = (float)meta.row(end_tick);
+
+    float dist = 0.;
+    std::vector<float> dir(3,0);
+    for (int i=0; i<3; i++) {
+      dir[i] = fend[i]-fstart[i];
+      dist += dir[i]*dir[i];
+    }
+    dist = sqrt(dist);
+    for (int i=0; i<3; i++)
+      dir[i] /= dist;
+
+    float min_feat_dist = 1e9;
+    float vertex_err_dist = 0;
+    float dir_cos = 0.;
+
+    for ( auto const& mcshower : mcshower_v ) {
+
+      if ( mcshower.Origin()!=1 )
+        continue; // not neutrino origin
+
+      TVector3 shower_dir = mcshower.Start().Momentum().Vect();
+      float pmom = shower_dir.Mag();
+      TVector3 mcstart = mcshower.Start().Position().Vect();
+
+      std::vector<float> mcdir(3,0);
+      std::vector<float> fmcstart(3,0);
+      std::vector<float> fmcend(3,0);
+      TVector3 mcend;
+      for (int i=0; i<3; i++) {
+        shower_dir[i] /= pmom;
+        mcdir[i] = (float)shower_dir[i];
+        fmcstart[i] = mcstart[i];
+        fmcend[i] = fmcstart[i] + 10.0*mcdir[i];
+        mcend[i] = fmcend[i];
+      }
+
+            // space charge correction
+      std::vector<double> s_offset = _psce->GetPosOffsets(mcstart[0],mcstart[1],mcstart[2]);
+      fmcstart[0] = fmcstart[0] - s_offset[0] + 0.7;
+      fmcstart[1] = fmcstart[1] + s_offset[1];
+      fmcstart[2] = fmcstart[2] + s_offset[2];
+
+      std::vector<double> e_offset = _psce->GetPosOffsets(mcend[0],mcend[1],mcend[2]);
+      fmcend[0] = fmcend[0] - e_offset[0] + 0.7;
+      fmcend[1] = fmcend[1] + e_offset[1];
+      fmcend[2] = fmcend[2] + e_offset[2];
+
+      TVector3 sce_dir = mcend-mcstart;
+      std::vector<float> fsce_dir(3,0);
+      float sce_dir_len = sce_dir.Mag();
+      if ( sce_dir_len>0 ) {
+        for (int i=0; i<3; i++) {
+          sce_dir[i] /= sce_dir_len;
+          fsce_dir[i] = sce_dir[i];
+        }
+      }      
+
+
+      // finally!
+      float dvertex = larflow::reco::pointRayProjection3f( fmcstart, fsce_dir, fstart );
+      float fcos = 0.;
+      for (int i=0; i<3; i++) {
+        fcos += fsce_dir[i]*dir[i];
+      }
+
+      float goodmetric = (1.0-fcos)*(1.0-fcos) + (dvertex*dvertex/9.0); // dvertex has a sigma of 3 cm
+      if ( min_feat_dist>goodmetric ) {
+        dir_cos = fcos;
+        vertex_err_dist = dvertex;
+        min_feat_dist = goodmetric;
+      }
+    }
+    
+    // store in member variables
+    _true_min_feat_dist   = min_feat_dist;
+    _true_vertex_err_dist = vertex_err_dist;
+    _true_dir_cos = dir_cos;
+
+    LARCV_DEBUG() << "Best true shower match: " << std::endl;
+    LARCV_DEBUG() << " - feat_dist=" << _true_min_feat_dist << std::endl;
+    LARCV_DEBUG() << " - vertex_dist="<< _true_vertex_err_dist << std::endl;
+    LARCV_DEBUG() << " - true-dir-cos=" << _true_dir_cos << std::endl;
     
   }
 
