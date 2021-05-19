@@ -1010,6 +1010,7 @@ namespace reco {
     outtree->Branch( "plane_electron_srange_vv", &_plane_electron_srange_v );
     outtree->Branch( "plane_electron_dqdx_v", &_plane_electron_dqdx_v );
     outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );
+    outtree->Branch( "true_match_pdg", &_true_match_pdg );
     outtree->Branch( "true_min_feat_dist", &_true_min_feat_dist );
     outtree->Branch( "true_vertex_err_dist", &_true_vertex_err_dist );
     outtree->Branch( "true_dir_cos", &_true_dir_cos );
@@ -1179,6 +1180,7 @@ namespace reco {
 
     float min_feat_dist = 1e9;
     float vertex_err_dist = 0;
+    int   match_pdg = 0;
     float dir_cos = 0.;
 
     for ( auto const& mcshower : mcshower_v ) {
@@ -1236,6 +1238,7 @@ namespace reco {
         dir_cos = fcos;
         vertex_err_dist = dvertex;
         min_feat_dist = goodmetric;
+        match_pdg = mcshower.PdgCode();
       }
     }
     
@@ -1243,11 +1246,13 @@ namespace reco {
     _true_min_feat_dist   = min_feat_dist;
     _true_vertex_err_dist = vertex_err_dist;
     _true_dir_cos = dir_cos;
+    _true_match_pdg = match_pdg;
 
     LARCV_DEBUG() << "Best true shower match: " << std::endl;
     LARCV_DEBUG() << " - feat_dist=" << _true_min_feat_dist << std::endl;
     LARCV_DEBUG() << " - vertex_dist="<< _true_vertex_err_dist << std::endl;
     LARCV_DEBUG() << " - true-dir-cos=" << _true_dir_cos << std::endl;
+    LARCV_DEBUG() << " - match PDG code=" << match_pdg << std::endl;
     
   }
 

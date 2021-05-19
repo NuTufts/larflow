@@ -160,6 +160,7 @@ namespace reco {
     float _true_min_feat_dist;
     float _true_vertex_err_dist;
     float _true_dir_cos;
+    int _true_match_pdg;
     void calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
                                          const larlite::track& trunk,
                                          const larlite::pcaxis& pca,
