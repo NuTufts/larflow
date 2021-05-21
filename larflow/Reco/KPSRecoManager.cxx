@@ -129,6 +129,7 @@ namespace reco {
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
+      _perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
       truthAna( iolcv, ioll );

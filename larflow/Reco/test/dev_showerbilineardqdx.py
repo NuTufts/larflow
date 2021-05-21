@@ -135,8 +135,8 @@ for ientry in range(start_entry,nentries):
             ntracks  = nuvtx.track_v.size()
             nshowers = nuvtx.shower_v.size()
 
-            # cuts
-            if name in ("RECO"):                            
+            # cuts, apply selection-like cuts on RECO vertices
+            if name in ("RECO") and False:
                 nusel = tree.nu_sel_v[ivtx]
                 if nusel.ntracks==0 or nusel.ntracks>2:
                     continue
@@ -155,6 +155,21 @@ for ientry in range(start_entry,nentries):
             tvtx = rt.TVector3()
             for i in range(3):
                 tvtx[i] = nuvtx.pos[i]
+
+            if PLOTME:
+                tick1 = nuvtx.tick - 6*50
+                tick2 = nuvtx.tick + 6*50
+                dpos = std.vector("double")(3)
+                for i in range(3):
+                    dpos[i] = nuvtx.pos[i]
+                for p in range(3):
+                    c.cd(p+1)                    
+                    wire = larutil.Geometry.GetME().WireCoordinate(dpos,p)
+                    col1 = wire-50
+                    col2 = wire+50
+                    hist_v[p].GetXaxis().SetRangeUser(col1,col2)
+                    hist_v[p].GetYaxis().SetRangeUser(tick1,tick2)
+                    hist_v[p].GetZaxis().SetRangeUser(0,200.0)            
 
             for ishower in range(nshowers):
                 shower = nuvtx.shower_v[ishower]
@@ -177,52 +192,36 @@ for ientry in range(start_entry,nentries):
                                 path.SetLineColor(rt.kMagenta)                                
                             path.Draw("Lsame")
                             graphs.append(path)
-                        c.Update()
+
+                        c.cd(3+p+1)
+                        #algo.maskPixels( p, mask_v[p] )
+                        algo._debug_crop_v[p].Draw("colz")
+
+
+                        c.cd(6+p+1)
+                        g = algo.makeSegdQdxGraphs(p)
+                        if g.GetN()>1:
+                            if name in ["PERFECT"]:
+                                g.SetLineColor(rt.kRed)
+                                g.Draw("PL")                                                    
+                            else:
+                                g.SetLineColor(rt.kMagenta)
+                                g.Draw("APL")                                
+                            graphs.append(g)
+                    c.Update()
 
                 outtree.Fill()
                     
-                if False:
-                    print("[ENTER] to continue")
+                if PLOTME:
+                    print("[ENTER] to continue to next shower")
                     x = input()
-            # end of reoc vertex loop
-            if False:
-                break
-    
-            if name in ["PERFECT"] and PLOTME:
-                tick1 = nuvtx.tick - 6*50
-                tick2 = nuvtx.tick + 6*50
-                dpos = std.vector("double")(3)
-                for i in range(3):
-                    dpos[i] = nuvtx.pos[i]
-                for p in range(3):
-                    c.cd(3+p+1)
-                    #algo.maskPixels( p, mask_v[p] )
-                    algo._debug_crop_v[p].Draw("colz")
-                    c.cd(p+1)                    
-                    wire = larutil.Geometry.GetME().WireCoordinate(dpos,p)
-                    col1 = wire-50
-                    col2 = wire+50
-                    hist_v[p].GetXaxis().SetRangeUser(col1,col2)
-                    hist_v[p].GetYaxis().SetRangeUser(tick1,tick2)
-                    hist_v[p].GetZaxis().SetRangeUser(0,200.0)
-                    mask_v[p].GetXaxis().SetRangeUser(col1,col2)
-                    mask_v[p].GetYaxis().SetRangeUser(tick1,tick2)
-                    mask_v[p].GetZaxis().SetRangeUser(0,10.0)
-                    c.cd(6+p+1)
-                    g = algo.makeSegdQdxGraphs(p)
-                    g.Draw("APL")                    
-                    graphs.append(g)
-                    g_reco = reco_algo.makeSegdQdxGraphs(p)
-                    if g_reco.GetN()>1:
-                        g_reco.SetLineColor(rt.kRed)
-                        g_reco.Draw("PL")                        
-                        graphs.append(g_reco)                        
-                    c.Update()
+
                     
     if PLOTME:
         c.Update()
         c.Draw()
         x = input("[ENTER] to go to next event")
+        
     if False:
         break
     # end of entry

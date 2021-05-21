@@ -132,7 +132,17 @@ namespace reco {
       TVector3 dir = shower.Start().Momentum().Vect();
       float pmom = dir.Mag();
       TVector3 vstart = shower.Start().Position().Vect();
+      TVector3 pstart = shower.DetProfile().Position().Vect();
 
+      LARCV_DEBUG() << "shower start, mcstep[0]: (" << vstart[0] << "," << vstart[1] << "," << vstart[2] << ")" << std::endl;
+      LARCV_DEBUG() << "shower start, profile: (" << pstart[0] << "," << pstart[1] << "," << pstart[2] << ")" << std::endl;
+
+      if ( shower.PdgCode()==22 ) {
+        LARCV_DEBUG() << "For gamma, use profile" << std::endl;
+        vstart = pstart;
+        dir = profile.Momentum().Vect();
+        pmom = dir.Mag();
+      }
 
       if ( dir.Mag()<0.1 )
         continue;
@@ -149,18 +159,21 @@ namespace reco {
         vend[i] = fend[i];
       }
 
-      // space charge correction
+      // space charge correction if not gamma
       //_psce;
-      std::vector<double> s_offset = _psce->GetPosOffsets(vstart[0],vstart[1],vstart[2]);
-      vstart[0] = fstart[0] - s_offset[0] + 0.7;
-      vstart[1] = fstart[1] + s_offset[1];
-      vstart[2] = fstart[2] + s_offset[2];
-
       TVector3 v3end = { vend[0], vend[1], vend[2] };
-      std::vector<double> e_offset = _psce->GetPosOffsets(v3end[0],v3end[1],v3end[2]);
-      v3end[0] = vend[0] - e_offset[0] + 0.7;
-      v3end[1] = vend[1] + e_offset[1];
-      v3end[2] = vend[2] + e_offset[2];
+      
+      if ( shower.PdgCode()!=22 ) {
+        std::vector<double> s_offset = _psce->GetPosOffsets(vstart[0],vstart[1],vstart[2]);
+        vstart[0] = fstart[0] - s_offset[0] + 0.7;
+        vstart[1] = fstart[1] + s_offset[1];
+        vstart[2] = fstart[2] + s_offset[2];
+
+        std::vector<double> e_offset = _psce->GetPosOffsets(v3end[0],v3end[1],v3end[2]);
+        v3end[0] = vend[0] - e_offset[0] + 0.7;
+        v3end[1] = vend[1] + e_offset[1];
+        v3end[2] = vend[2] + e_offset[2];
+      }
 
       TVector3 sce_dir = v3end-vstart;
       float sce_dir_len = sce_dir.Mag();
