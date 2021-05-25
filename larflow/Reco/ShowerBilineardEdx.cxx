@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <sstream>
 #include <omp.h>
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
@@ -24,12 +25,26 @@ namespace reco {
 
   void ShowerBilineardEdx::clear()
   {
-    bilinear_path_vv.clear();
-    _shower_dir.clear();
+
+    bilinear_path_vv.clear();    
     _pixsum_dqdx_v.clear();
-    _bilin_dqdx_v.clear();
+    _bilin_dqdx_v.clear();    
+    _shower_dir.clear();
     _plane_dqdx_seg_v.clear();
-    _plane_s_seg_v.clear();    
+    _plane_s_seg_v.clear();
+    
+    _plane_electron_srange_v.clear();
+    _plane_electron_dqdx_v.clear();
+    _plane_electron_dx_v.clear();
+    _plane_gamma_srange_v.clear();
+    _plane_gamma_dqdx_v.clear();
+    _plane_gamma_dx_v.clear();
+
+    _true_min_feat_dist = -1.0;
+    _true_vertex_err_dist = -1.0;
+    _true_dir_cos = -2.0;
+    _true_match_pdg = 0;    
+    
   }
   
   void ShowerBilineardEdx::processShower( larlite::larflowcluster& shower,
@@ -39,30 +54,105 @@ namespace reco {
   {
     
     // clear variables
+    clear();
     bilinear_path_vv.clear();
     bilinear_path_vv.resize( adc_v.size() );
-    _pixsum_dqdx_v.clear();
-    _bilin_dqdx_v.clear();
-    _shower_dir.clear();
-    _plane_dqdx_seg_v.clear();
     
     auto const& meta = adc_v.front().meta();
     
     std::vector<double> start_pos = { trunk.LocationAtPoint(0)[0],
                                       trunk.LocationAtPoint(0)[1],
                                       trunk.LocationAtPoint(0)[2] };
-    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
-      throw std::runtime_error("out of bounds shower trunk starting point");
-    }    
-    float start_row = (float)meta.row(start_tick);
-    
     std::vector<double> end_pos = { trunk.LocationAtPoint(1)[0],
                                     trunk.LocationAtPoint(1)[1],
                                     trunk.LocationAtPoint(1)[2] };
-    float end_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+
+    float dist = 0.;
+    std::vector<float> shower_dir(3,0);
+    for (int i=0; i<3; i++) {
+      shower_dir[i] = (end_pos[i]-start_pos[i]);
+      dist += shower_dir[i]*shower_dir[i];
+    }
+    dist = sqrt(dist);
+    if ( dist>0 ) {
+      for (int i=0; i<3; i++)
+        shower_dir[i] /= dist;
+    }
+
+    
+    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
+
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      if ( start_tick<=meta.min_y() && shower_dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (mintick-start_pos[0])/shower_dir[0];
+
+	fix = true;
+	for (int i=0; i<3; i++)
+	  start_pos[i] = start_pos[i] + s*shower_dir[i];
+	start_tick = meta.pos_y(1);
+	
+      }
+      else if ( start_tick>=meta.max_y() && shower_dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (maxtick-start_pos[0])/shower_dir[0];
+	
+	fix = true;
+	for (int i=0; i<3; i++)
+	  start_pos[i] = start_pos[i] + s*shower_dir[i];
+	start_tick = meta.pos_y( (int)meta.rows()-1 );
+	
+      }
+
+      if ( !fix ) {	      
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk starting point "
+	       << " (" << start_pos[0] << "," << start_pos[1] << "," << start_pos[2] << ") "
+	       << " start_tick=" << start_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;
+	throw std::runtime_error(errmsg.str());
+      }
+    }    
+    float start_row = (float)meta.row(start_tick);
+    
+    
+    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
     if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
-      throw std::runtime_error("out of bounds shower trunk starting point");
+
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      float s = 0.0;
+      if ( end_tick<=meta.min_y() && shower_dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (mintick-start_pos[0])/shower_dir[0];
+	fix = true;
+	for (int i=0; i<3; i++)
+	  end_pos[i] = start_pos[i] + s*shower_dir[i];
+	end_tick = meta.pos_y(1);
+
+      }
+      else if ( end_tick>=meta.max_y() && shower_dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (maxtick-start_pos[0])/shower_dir[0];
+
+	fix = true;
+	for (int i=0; i<3; i++)
+	  end_pos[i] = start_pos[i] + s*shower_dir[i];
+	end_tick = meta.pos_y( (int)meta.rows()-1 );
+
+      }
+
+      if ( !fix ) {
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk ending point "
+	       << " s=" << s
+	       << " (" << end_pos[0] << "," << end_pos[1] << "," << end_pos[2] << ") "
+	       << " end_tick=" << end_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;      
+	throw std::runtime_error(errmsg.str());
+      }
     }
     float end_row = (float)meta.row(end_tick);
 
@@ -74,7 +164,7 @@ namespace reco {
     
     std::vector<float> pixsum_v = sumChargeAlongTrunk( fstart, fend, adc_v, 10.0, 1, 3 );    
 
-    float dist = 0.;
+    dist = 0.;
     _shower_dir.resize(3,0);
     for (int i=0; i<3; i++) {
       _shower_dir[i] = (fend[i]-fstart[i]);
@@ -362,7 +452,7 @@ namespace reco {
     for ( int p=0; p<nplanes; p++ ) {
       auto const& img = img_v[p];
       auto& tplist = _plane_trunkpix_v[p];
-
+      LARCV_DEBUG() << "Number in trunkpixel list, plane " << p << ": " << tplist.size() << std::endl;
       // we use the trunkpix list made in _createDistLabels
       // to degine min,max bounds for col and row
       int colbounds[2] = {-1};
@@ -375,7 +465,11 @@ namespace reco {
         if ( rowbounds[0]>tp.row || rowbounds[0]<0 )
           rowbounds[0] = tp.row;
         if ( rowbounds[1]<tp.row || rowbounds[1]<0 )
-          rowbounds[1] = tp.row;        
+          rowbounds[1] = tp.row;
+	LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
+		      << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
+		      << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
+		      << std::endl;
       }
 
       // crop width with padding added
@@ -865,6 +959,7 @@ namespace reco {
     int colbounds[2] = {-1};
     int rowbounds[2] = {-1};
     for (auto const& tp : tplist ) {
+      
       if ( colbounds[0]>tp.col || colbounds[0]<0 )
         colbounds[0] = tp.col;
       if ( colbounds[1]<tp.col || colbounds[1]<0 )
@@ -872,7 +967,12 @@ namespace reco {
       if ( rowbounds[0]>tp.row || rowbounds[0]<0 )
         rowbounds[0] = tp.row;
       if ( rowbounds[1]<tp.row || rowbounds[1]<0 )
-        rowbounds[1] = tp.row;        
+        rowbounds[1] = tp.row;
+
+      LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
+		    << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
+		    << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
+		    << std::endl;      
     }
 
     // crop width with padding added
@@ -881,6 +981,7 @@ namespace reco {
     int rowlen   = (rowbounds[1]-rowbounds[0]+1);
     int col_origin = colbounds[0]-dcol;
     int row_origin = rowbounds[0]-drow;
+    LARCV_DEBUG() << "seg itp: [" << seg.itp1 << "," << seg.itp2 << "]" << std::endl;
     LARCV_DEBUG() << "colbounds: [" << colbounds[0] << "," << colbounds[1] << "]" << std::endl;
     LARCV_DEBUG() << "rowbounds: [" << rowbounds[0] << "," << rowbounds[1] << "]" << std::endl;      
     LARCV_DEBUG() << "Crop meta. Origin=(" << col_origin << "," << row_origin << ")"
@@ -1077,6 +1178,7 @@ namespace reco {
 
     for (int p=0; p<nplanes; p++) {
       auto const& seg_v = _plane_seg_dedx_v[p];
+      auto& tplist = _plane_trunkpix_v[p];
       int iseg_start = 0;
       int iseg_end = (int)seg_v.size()-1;
       // find first value below 
@@ -1116,7 +1218,7 @@ namespace reco {
       seg.smax = s_max;
       seg.s = 0.5*(s_min+s_max);
       seg.itp1 = seg_v[iseg_start].itp1;
-      seg.itp2 = seg_v[iseg_end].itp1;
+      seg.itp2 = seg_v[iseg_end].itp2;
       seg.plane = p;
       for  (int i=0; i<3; i++) {
         seg.endpt[0][i] = s3d[i]; 
@@ -1124,7 +1226,14 @@ namespace reco {
       }
       seg.pixsum = 0;
       seg.dqdx = 0;
-      seg.ds = s_max-s_min;           
+      seg.ds = s_max-s_min;
+
+      LARCV_DEBUG() << "Plane[" << p << "] define range with iseg=[" << iseg_start << "," << iseg_end << "] itp=[" << seg.itp1 << "," << seg.itp2 << "]" << std::endl;
+      if ( seg.itp2>(int)tplist.size() ) {
+	LARCV_DEBUG() << "Correct bad segment trunkpix index. itp2=" << seg.itp2 << std::endl;
+	seg.itp2 = (int)tplist.size()-1;
+      }
+      
       seg.dqdx = _sumChargeAlongOneSegment( seg, p, adc_v, 10.0, 1, 3 );
       LARCV_DEBUG() << "Plane[" << p << "] range dqdx s=(" << s_min << "," << s_max << ") dqdx=" << seg.dqdx << std::endl;
 
@@ -1148,30 +1257,106 @@ namespace reco {
     
     auto const& meta = adc_v.front().meta();
 
-    TVector3 vstart = trunk.LocationAtPoint(0);
-    std::vector<float> fstart = { (float)trunk.LocationAtPoint(0)[0],
-                                  (float)trunk.LocationAtPoint(0)[1],
-                                  (float)trunk.LocationAtPoint(0)[2] };
-    float start_tick = fstart[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
-      throw std::runtime_error("out of bounds shower trunk starting point");
-    }    
-    float start_row = (float)meta.row(start_tick);
 
-    TVector3 vend = trunk.LocationAtPoint(1);
-    std::vector<float> fend = { (float)trunk.LocationAtPoint(1)[0],
-                                (float)trunk.LocationAtPoint(1)[1],
-                                (float)trunk.LocationAtPoint(1)[2] };
-    float end_tick = fend[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-    if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
-      throw std::runtime_error("out of bounds shower trunk starting point");
-    }
-    float end_row = (float)meta.row(end_tick);
+    std::vector<float> start_pos = { (float)trunk.LocationAtPoint(0)[0],
+				     (float)trunk.LocationAtPoint(0)[1],
+				     (float)trunk.LocationAtPoint(0)[2] };
+    std::vector<float> end_pos = { (float)trunk.LocationAtPoint(1)[0],
+				   (float)trunk.LocationAtPoint(1)[1],
+				   (float)trunk.LocationAtPoint(1)[2] };
 
     float dist = 0.;
     std::vector<float> dir(3,0);
     for (int i=0; i<3; i++) {
-      dir[i] = fend[i]-fstart[i];
+      dir[i] = (end_pos[i]-start_pos[i]);
+      dist += dir[i]*dir[i];
+    }
+    dist = sqrt(dist);
+    if ( dist>0 ) {
+      for (int i=0; i<3; i++)
+        dir[i] /= dist;
+    }
+    
+    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
+
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      if ( start_tick<=meta.min_y() && dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (mintick-start_pos[0])/dir[0];
+	
+	fix = true;
+	for (int i=0; i<3; i++)
+	  start_pos[i] = start_pos[0] + s*dir[i];
+	start_tick = meta.pos_y(1);
+	
+      }
+      else if ( start_tick>=meta.max_y() && dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (maxtick-start_pos[0])/dir[0];
+	
+	fix = true;
+	for (int i=0; i<3; i++)
+	  start_pos[i] = start_pos[0] + s*dir[i];
+	start_tick = meta.pos_y( (int)meta.rows()-1 );
+	
+      }
+
+      if ( !fix ) {	      
+      
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk starting point "
+	       << " (" << start_pos[0] << "," << start_pos[1] << "," << start_pos[2] << ") "
+	       << " start_tick=" << start_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;
+	throw std::runtime_error(errmsg.str());
+      }
+    }    
+    float start_row = (float)meta.row(start_tick);
+        
+    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
+      
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      float s = 0.;
+      if ( end_tick<=meta.min_y() && dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (mintick-start_pos[0])/dir[0];
+
+	fix = true;
+	for (int i=0; i<3; i++)
+	  end_pos[i] = start_pos[0] + s*dir[i];
+	end_tick = meta.pos_y(1);
+
+      }
+      else if ( end_tick>=meta.max_y() && dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (maxtick-start_pos[0])/dir[0];
+
+	fix = true;
+	for (int i=0; i<3; i++)
+	  end_pos[i] = start_pos[0] + s*dir[i];
+	end_tick = meta.pos_y( (int)meta.rows()-1 );
+
+      }
+
+      if ( !fix ) {
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk ending point "
+	       << " s=" << s
+	       << " (" << end_pos[0] << "," << end_pos[1] << "," << end_pos[2] << ") "
+	       << " end_tick=" << end_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;      
+	throw std::runtime_error(errmsg.str());
+      }
+    }
+    float end_row = (float)meta.row(end_tick);
+  
+    dist = 0.;
+    for (int i=0; i<3; i++) {
+      dir[i] = end_pos[i]-start_pos[i];
       dist += dir[i]*dir[i];
     }
     dist = sqrt(dist);
@@ -1227,7 +1412,7 @@ namespace reco {
 
 
       // finally!
-      float dvertex = larflow::reco::pointRayProjection3f( fmcstart, fsce_dir, fstart );
+      float dvertex = larflow::reco::pointRayProjection3f( fmcstart, fsce_dir, start_pos );
       float fcos = 0.;
       for (int i=0; i<3; i++) {
         fcos += fsce_dir[i]*dir[i];

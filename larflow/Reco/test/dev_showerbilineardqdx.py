@@ -10,6 +10,7 @@ parser.add_argument('-kps','--input-kpsana',type=str,required=True,help="Input f
 parser.add_argument('-dl','--input-dlmerged',type=str,required=True,help="Input file containing larcv images")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 parser.add_argument('-mc','--has-mc',default=False,action='store_true',help='If flag given, will calculate truth-based quantities')
+parser.add_argument('-perect','--ana-perfect',default=False,action='store_true',help='If flag given, will analyze perfect reco showers')
 
 args = parser.parse_args()
 
@@ -88,7 +89,7 @@ for ientry in range(start_entry,nentries):
     iolcv.read_entry(ientry)
 
     rse = ( tree.run, tree.subrun, tree.event )
-    print("[ENTRY ",ientry,"]: ",rse)
+    print("[ENTRY ",ientry,"]: ",rse,flush=True)
 
     ev_adc = iolcv.get_data(larcv.kProductImage2D,"wire")
     adc_v = ev_adc.as_vector()
@@ -117,16 +118,23 @@ for ientry in range(start_entry,nentries):
             mask_v[p].Draw("colz")
     
     vertex_v = tree.nufitted_v
-    print(" Number of vertices: ",vertex_v.size())
-    nuperfect_v = tree.nu_perfect_v
-    print(" Number of perfect vertices: ",vertex_v.size())    
+    print(" Number of vertices: ",vertex_v.size(),flush=True)
+    if args.ana_perfect:
+        nuperfect_v = tree.nu_perfect_v
+        print(" Number of perfect vertices: ",vertex_v.size(),flush=True)
+    else:
+        nuperfect_v = None
 
     maxlen = 0
 
     for (name,vertices,algo,outtree) in [("RECO",vertex_v,reco_algo,algotree),("PERFECT",nuperfect_v,perfect_algo,perfect_tree)]:
+
+        if vertices is None:
+            continue
+        
         nvertices = vertices.size()
-        print("=====================")
-        print("%s VERTICES"%(name),": n=",nvertices)
+        print("=====================",flush=True)
+        print("%s VERTICES"%(name),": n=",nvertices,flush=True)
         if nvertices==0:
             continue
         for ivtx in range( nvertices ):
@@ -150,7 +158,7 @@ for ientry in range(start_entry,nentries):
                 else:
                     goodvtx = "bad"
                 
-                print(" VTX %d (%.2f) dist2true=%.2f ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,nusel.dist2truevtx,ntracks,nshowers))
+                print(" VTX %d (%.2f) dist2true=%.2f ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,nusel.dist2truevtx,ntracks,nshowers),flush=True)
 
             tvtx = rt.TVector3()
             for i in range(3):
@@ -175,11 +183,23 @@ for ientry in range(start_entry,nentries):
                 shower = nuvtx.shower_v[ishower]
                 trunk  = nuvtx.shower_trunk_v[ishower]
                 shpca  = nuvtx.shower_pcaxis_v[ishower]
-                algo.processShower( shower, trunk, shpca, adc_v )
+                failed = False
+                try:
+                    algo.processShower( shower, trunk, shpca, adc_v )
+                    failed = False
+                except:
+                    failed = True
+                    print("[ERROR] exception thrown from processShower")
+                    pass
+                    
 
-                if name=="RECO" and args.has_mc:
-                    algo.calcGoodShowerTaggingVariables( shower, trunk, shpca, adc_v, ev_mcshower )
-                
+                if name=="RECO" and args.has_mc and failed==False:
+                    try:
+                        algo.calcGoodShowerTaggingVariables( shower, trunk, shpca, adc_v, ev_mcshower )
+                    except:
+                        print("[ERROR] exception thrown from calcGoodShowerTaggingVariables")
+                        pass
+                        
                 if PLOTME:
                     for p in range(3):
                         c.cd(p+1)
@@ -226,7 +246,7 @@ for ientry in range(start_entry,nentries):
         break
     # end of entry
 
-print("WRITE")
+print("WRITE",flush=True)
 tfana.cd()
 algotree.Write()
 perfect_tree.Write()
