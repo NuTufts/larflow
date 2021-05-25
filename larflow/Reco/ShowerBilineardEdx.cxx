@@ -41,9 +41,9 @@ namespace reco {
     _plane_gamma_dx_v.clear();
 
     _true_min_feat_dist = -1.0;
-    _true_vertex_err_dist = -1.0;
+    _true_vertex_err_dist = -100.0;
     _true_dir_cos = -2.0;
-    _true_match_pdg = 0;    
+    _true_match_pdg = 0;
     
   }
   
@@ -194,8 +194,14 @@ namespace reco {
       //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
       LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
     }
-    _findRangedQdx( fstart, fend, adc_v, 350.0, 150.0 );
-
+    _findRangedQdx( fstart, fend, adc_v, 350.0, 150.0,
+                    _plane_electron_dqdx_v,
+                    _plane_electron_dx_v,
+                    _plane_electron_srange_v ) ;
+    _findRangedQdx( fstart, fend, adc_v, 550.0, 450.0,
+                    _plane_gamma_dqdx_v,
+                    _plane_gamma_dx_v,
+                    _plane_gamma_srange_v ) ;
     
   }
 
@@ -1111,6 +1117,10 @@ namespace reco {
     outtree->Branch( "plane_electron_srange_vv", &_plane_electron_srange_v );
     outtree->Branch( "plane_electron_dqdx_v", &_plane_electron_dqdx_v );
     outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );
+    outtree->Branch( "plane_gamma_srange_vv", &_plane_gamma_srange_v );
+    outtree->Branch( "plane_gamma_dqdx_v", &_plane_gamma_dqdx_v );
+    outtree->Branch( "plane_gamma_dx_v", &_plane_gamma_dx_v );
+
     outtree->Branch( "true_match_pdg", &_true_match_pdg );
     outtree->Branch( "true_min_feat_dist", &_true_min_feat_dist );
     outtree->Branch( "true_vertex_err_dist", &_true_vertex_err_dist );
@@ -1148,21 +1158,20 @@ namespace reco {
                                            const std::vector<float>& end3d,
                                            const std::vector<larcv::Image2D>& adc_v,
                                            const float dqdx_max,
-                                           const float dqdx_threshold )
+                                           const float dqdx_threshold,
+                                           std::vector<float>& plane_dqdx_v,
+                                           std::vector<float>& plane_dx_v,
+                                           std::vector< std::vector<float> >& plane_srange_v )
   {
-    _plane_electron_srange_v.clear();
-    _plane_electron_dqdx_v.clear();
-    _plane_electron_dx_v.clear();
-    
-    _plane_gamma_srange_v.clear();
 
     const int nplanes = adc_v.size();
-    _plane_electron_srange_v.resize( nplanes );
-    _plane_electron_dqdx_v.resize( nplanes );
-    _plane_electron_dx_v.resize( nplanes );    
-    
-    _plane_gamma_srange_v.resize( nplanes );
-
+    plane_dqdx_v.clear();
+    plane_srange_v.clear();
+    plane_dx_v.clear();
+    plane_srange_v.resize(nplanes);
+    plane_dqdx_v.resize(nplanes,0);
+    plane_dx_v.resize(nplanes,0);    
+           
     // get distance between start and end points
     float dist = 0.;
     std::vector<float> dir(3,0);
@@ -1203,7 +1212,7 @@ namespace reco {
 
       std::vector<float> srange = { s_min, s_max };
 
-      _plane_electron_srange_v[p] = srange;
+      plane_srange_v[p] = srange;
 
       std::vector<float> s3d(3,0);
       std::vector<float> e3d(3,0);
@@ -1237,8 +1246,8 @@ namespace reco {
       seg.dqdx = _sumChargeAlongOneSegment( seg, p, adc_v, 10.0, 1, 3 );
       LARCV_DEBUG() << "Plane[" << p << "] range dqdx s=(" << s_min << "," << s_max << ") dqdx=" << seg.dqdx << std::endl;
 
-      _plane_electron_dqdx_v[p] = seg.dqdx;
-      _plane_electron_dx_v[p] = seg.ds;
+      plane_dqdx_v[p] = seg.dqdx;
+      plane_dx_v[p]   = seg.ds;
       
     }//end of plane loop
     
@@ -1373,46 +1382,61 @@ namespace reco {
       if ( mcshower.Origin()!=1 )
         continue; // not neutrino origin
 
+      auto const& profile = mcshower.DetProfile();
+
+      // default shower_dir: from the truth
+      
       TVector3 shower_dir = mcshower.Start().Momentum().Vect();
       float pmom = shower_dir.Mag();
       TVector3 mcstart = mcshower.Start().Position().Vect();
+      TVector3 pstart  = profile.Position().Vect(); // start of shower profile
 
+      if ( mcshower.PdgCode()==22 ) {
+        // if gamma, we want to use the dir and start from the profile
+        shower_dir = profile.Momentum().Vect();
+        pmom = shower_dir.Mag();
+        mcstart = pstart;
+      }
+
+      // copy TVector3 to vector<float>, so we can use geofunc
       std::vector<float> mcdir(3,0);
       std::vector<float> fmcstart(3,0);
       std::vector<float> fmcend(3,0);
-      TVector3 mcend;
       for (int i=0; i<3; i++) {
         shower_dir[i] /= pmom;
         mcdir[i] = (float)shower_dir[i];
         fmcstart[i] = mcstart[i];
         fmcend[i] = fmcstart[i] + 10.0*mcdir[i];
-        mcend[i] = fmcend[i];
       }
 
-            // space charge correction
-      std::vector<double> s_offset = _psce->GetPosOffsets(mcstart[0],mcstart[1],mcstart[2]);
-      fmcstart[0] = fmcstart[0] - s_offset[0] + 0.7;
-      fmcstart[1] = fmcstart[1] + s_offset[1];
-      fmcstart[2] = fmcstart[2] + s_offset[2];
+      if ( mcshower.PdgCode()==22 ) {           
+        // space charge correction
+        std::vector<double> s_offset = _psce->GetPosOffsets(mcstart[0],mcstart[1],mcstart[2]);
+        fmcstart[0] = fmcstart[0] - s_offset[0] + 0.7;
+        fmcstart[1] = fmcstart[1] + s_offset[1];
+        fmcstart[2] = fmcstart[2] + s_offset[2];
+        
+        std::vector<double> e_offset = _psce->GetPosOffsets(fmcend[0],fmcend[1],fmcend[2]);
+        fmcend[0] = fmcend[0] - e_offset[0] + 0.7;
+        fmcend[1] = fmcend[1] + e_offset[1];
+        fmcend[2] = fmcend[2] + e_offset[2];
+      }
 
-      std::vector<double> e_offset = _psce->GetPosOffsets(mcend[0],mcend[1],mcend[2]);
-      fmcend[0] = fmcend[0] - e_offset[0] + 0.7;
-      fmcend[1] = fmcend[1] + e_offset[1];
-      fmcend[2] = fmcend[2] + e_offset[2];
-
-      TVector3 sce_dir = mcend-mcstart;
       std::vector<float> fsce_dir(3,0);
-      float sce_dir_len = sce_dir.Mag();
+      float sce_dir_len = 0.;
+      for (int i=0; i<3; i++) {
+        fsce_dir[i] = fmcend[i] - fmcstart[i];
+        sce_dir_len += (fsce_dir[i]*fsce_dir[i]);
+      }
+      sce_dir_len = sqrt( sce_dir_len );
       if ( sce_dir_len>0 ) {
         for (int i=0; i<3; i++) {
-          sce_dir[i] /= sce_dir_len;
-          fsce_dir[i] = sce_dir[i];
+          fsce_dir[i] /= sce_dir_len;
         }
       }      
 
-
       // finally!
-      float dvertex = larflow::reco::pointRayProjection3f( fmcstart, fsce_dir, start_pos );
+      float dvertex = larflow::reco::pointRayProjection3f( start_pos, dir, fmcstart );
       float fcos = 0.;
       for (int i=0; i<3; i++) {
         fcos += fsce_dir[i]*dir[i];

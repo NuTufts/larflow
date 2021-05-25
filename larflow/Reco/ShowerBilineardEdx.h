@@ -143,14 +143,18 @@ namespace reco {
     std::vector< float > _plane_electron_dx_v;
     
     std::vector< std::vector<float> > _plane_gamma_srange_v;    
-    std::vector< std::vector<float> > _plane_gamma_dqdx_v;
-    std::vector< std::vector<float> > _plane_gamma_dx_v;
+    std::vector< float > _plane_gamma_dqdx_v;
+    std::vector< float > _plane_gamma_dx_v;
     
     void _findRangedQdx( const std::vector<float>& start3d,
                          const std::vector<float>& end3d,
                          const std::vector<larcv::Image2D>& adc_v,
                          const float dqdx_max,
-                         const float dqdx_threshold );
+                         const float dqdx_threshold,
+                         std::vector<float>& plane_dqdx_v,
+                         std::vector<float>& plane_dx_v,
+                         std::vector< std::vector<float> >& plane_srange_v );
+                         
     float _sumChargeAlongOneSegment( ShowerBilineardEdx::Seg_t& seg,
                                      const int plane,
                                      const std::vector<larcv::Image2D>& img_v,
