@@ -1,5 +1,7 @@
 from __future__ import print_function
 import os,sys,argparse,time
+from array import array
+from math import sqrt
 """
 Runs the larflow::reco::LikelihoodProtonMuon algorithm
 """
@@ -11,6 +13,7 @@ parser.add_argument('-dl','--input-dlmerged',type=str,required=True,help="Input 
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
 parser.add_argument('-mc','--has-mc',default=False,action='store_true',help='If flag given, will calculate truth-based quantities')
 parser.add_argument('-perect','--ana-perfect',default=False,action='store_true',help='If flag given, will analyze perfect reco showers')
+parser.add_argument('-vis','--plot-me',default=False,action='store_true',help='If flag given, will plot dqdx of showers')
 
 args = parser.parse_args()
 
@@ -31,7 +34,7 @@ except NameError:
 
 rt.gStyle.SetOptStat(0)
 
-PLOTME=False
+PLOTME=args.plot_me
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
@@ -77,9 +80,12 @@ mcdata = ublarcvapp.mctools.LArbysMC()
 
 tfana = rt.TFile( args.output, "recreate" )
 tfana.cd()
+dist2vtx = array('f',[0])
 algotree = rt.TTree("showerbilinear","ShowerBilineardEdx output variables")
+algotree.Branch("dist2vtx",dist2vtx,"dist2vtx/F")
 reco_algo.bindVariablesToTree( algotree )
 perfect_tree = rt.TTree("perfectreco","ShowerBilineardEdx output variables on Perfect reco")
+perfect_tree.Branch("dist2vtx",dist2vtx,"dist2vtx/F")
 perfect_algo.bindVariablesToTree( perfect_tree )
 
 start_entry = 0
@@ -183,6 +189,12 @@ for ientry in range(start_entry,nentries):
                 shower = nuvtx.shower_v[ishower]
                 trunk  = nuvtx.shower_trunk_v[ishower]
                 shpca  = nuvtx.shower_pcaxis_v[ishower]
+
+                dist2vtx[0] = 0.0
+                for i in range(3):
+                    dist2vtx[0] += (trunk.LocationAtPoint(0)[i]-tvtx[i])*(trunk.LocationAtPoint(0)[i]-tvtx[i])
+                dist2vtx[0] = sqrt(dist2vtx[0])
+                
                 failed = False
                 try:
                     algo.processShower( shower, trunk, shpca, adc_v )
@@ -226,21 +238,39 @@ for ientry in range(start_entry,nentries):
                                 g.Draw("PL")                                                    
                             else:
                                 g.SetLineColor(rt.kMagenta)
-                                g.Draw("APL")                                
+                                g.Draw("APL")
+
+                            lelectron = rt.TLine( algo._plane_electron_srange_v[p][0],
+                                                  algo._plane_electron_mean_v[p],
+                                                  algo._plane_electron_srange_v[p][1],
+                                                  algo._plane_electron_mean_v[p] )
+                            lelectron.SetLineColor(rt.kCyan)
+                            lgamma = rt.TLine( algo._plane_gamma_srange_v[p][0],
+                                               algo._plane_gamma_mean_v[p],
+                                               algo._plane_gamma_srange_v[p][1],
+                                               algo._plane_gamma_mean_v[p] )
+                            lgamma.SetLineColor(rt.kBlue+2)
+                            lelectron.Draw()
+                            lgamma.Draw()
+                            graphs.append(lelectron)
+                            graphs.append(lgamma)
                             graphs.append(g)
                     c.Update()
-
+                    
+                if failed:
+                    algo.clear()
+                    
                 outtree.Fill()
                     
-                if PLOTME:
-                    print("[ENTER] to continue to next shower")
+                if PLOTME and algo._true_dir_cos>0.9 and abs(algo._true_vertex_err_dist)<3.0:
+                    print("Stopped on good reco of pdg=%d. [ENTER] to continue to next shower"%(algo._true_match_pdg) )
                     x = input()
 
                     
     if PLOTME:
         c.Update()
         c.Draw()
-        x = input("[ENTER] to go to next event")
+        x = input("End of Event. [ENTER] to go to next event")
         
     if False:
         break

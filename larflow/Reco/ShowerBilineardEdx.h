@@ -141,10 +141,26 @@ namespace reco {
     std::vector< std::vector<float> > _plane_electron_srange_v;
     std::vector< float > _plane_electron_dqdx_v;
     std::vector< float > _plane_electron_dx_v;
+    std::vector< float > _plane_electron_mean_v;
+    std::vector< float > _plane_electron_rms_v;
+    std::vector< int >   _plane_electron_ngood_v;
+    int _plane_electron_best;
+    float _plane_electron_best_mean;
+    float _plane_electron_best_rms;
+    int _plane_electron_best_ngood;
+    float _plane_electron_best_start;
     
     std::vector< std::vector<float> > _plane_gamma_srange_v;    
     std::vector< float > _plane_gamma_dqdx_v;
     std::vector< float > _plane_gamma_dx_v;
+    std::vector< float > _plane_gamma_mean_v;
+    std::vector< float > _plane_gamma_rms_v;
+    std::vector< int >   _plane_gamma_ngood_v;        
+    int _plane_gamma_best;
+    float _plane_gamma_best_mean;
+    float _plane_gamma_best_rms;
+    int _plane_gamma_best_ngood;
+    float _plane_gamma_best_start;
     
     void _findRangedQdx( const std::vector<float>& start3d,
                          const std::vector<float>& end3d,
@@ -153,7 +169,16 @@ namespace reco {
                          const float dqdx_threshold,
                          std::vector<float>& plane_dqdx_v,
                          std::vector<float>& plane_dx_v,
-                         std::vector< std::vector<float> >& plane_srange_v );
+                         std::vector< std::vector<float> >& plane_srange_v,
+                         std::vector<float>& plane_mean_v,
+                         std::vector<float>& plane_rms_v,
+                         std::vector<int>& plane_ngood_v,
+                         int& best_plane,
+                         int& plane_max_ngood,
+                         float& plane_best_dqdx,
+                         float& plane_best_rms,
+                         float& plane_best_start);
+                         
                          
     float _sumChargeAlongOneSegment( ShowerBilineardEdx::Seg_t& seg,
                                      const int plane,

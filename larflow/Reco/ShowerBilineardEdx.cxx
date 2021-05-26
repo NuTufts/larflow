@@ -36,9 +36,28 @@ namespace reco {
     _plane_electron_srange_v.clear();
     _plane_electron_dqdx_v.clear();
     _plane_electron_dx_v.clear();
+    _plane_electron_mean_v.clear();
+    _plane_electron_rms_v.clear();
+    _plane_electron_ngood_v.clear();    
+
+    _plane_electron_best = -1;
+    _plane_electron_best_mean = 0;
+    _plane_electron_best_rms = 0;
+    _plane_electron_best_ngood = 0;
+    _plane_electron_best_start = -10;
+    
     _plane_gamma_srange_v.clear();
     _plane_gamma_dqdx_v.clear();
     _plane_gamma_dx_v.clear();
+    _plane_gamma_mean_v.clear();
+    _plane_gamma_rms_v.clear();
+    _plane_gamma_ngood_v.clear();
+
+    _plane_gamma_best = -1;
+    _plane_gamma_best_mean = 0;
+    _plane_gamma_best_rms = 0;
+    _plane_gamma_best_ngood = 0;    
+    _plane_gamma_best_start = -10;    
 
     _true_min_feat_dist = -1.0;
     _true_vertex_err_dist = -100.0;
@@ -197,11 +216,30 @@ namespace reco {
     _findRangedQdx( fstart, fend, adc_v, 350.0, 150.0,
                     _plane_electron_dqdx_v,
                     _plane_electron_dx_v,
-                    _plane_electron_srange_v ) ;
-    _findRangedQdx( fstart, fend, adc_v, 550.0, 450.0,
+                    _plane_electron_srange_v,
+                    _plane_electron_mean_v,
+                    _plane_electron_rms_v,
+                    _plane_electron_ngood_v,
+                    _plane_electron_best,
+                    _plane_electron_best_ngood,                    
+                    _plane_electron_best_mean,
+                    _plane_electron_best_rms,
+                    _plane_electron_best_start );
+                    
+    _findRangedQdx( fstart, fend, adc_v, 600.0, 400.0,
                     _plane_gamma_dqdx_v,
                     _plane_gamma_dx_v,
-                    _plane_gamma_srange_v ) ;
+                    _plane_gamma_srange_v,
+                    _plane_gamma_mean_v,
+                    _plane_gamma_rms_v,
+                    _plane_gamma_ngood_v,
+                    _plane_gamma_best,
+                    _plane_gamma_best_ngood,                    
+                    _plane_gamma_best_mean,
+                    _plane_gamma_best_rms,
+                    _plane_gamma_best_start );
+
+                    
     
   }
 
@@ -659,6 +697,8 @@ namespace reco {
   void ShowerBilineardEdx::_makeSegments( float starting_s )
   {
 
+    const float seg_size = 0.5;
+    
     _plane_seg_dedx_v.clear();
     
     // we first define the zeroth segment
@@ -692,7 +732,7 @@ namespace reco {
       float s_start = smid;
       while ( s_start<smax ) {
         float s1 = s_start;
-        float s2 = s1 + 2.0;
+        float s2 = s1 + seg_size;
         // now we find the range over tplist
         float slimit1 = -2e3;
         float slimit2 = -2e3;
@@ -1114,12 +1154,30 @@ namespace reco {
     outtree->Branch( "shower_dir", &_shower_dir );
     outtree->Branch( "plane_dqdx_seg_vv", &_plane_dqdx_seg_v );
     outtree->Branch( "plane_s_seg_vv",    &_plane_s_seg_v );
+
     outtree->Branch( "plane_electron_srange_vv", &_plane_electron_srange_v );
     outtree->Branch( "plane_electron_dqdx_v", &_plane_electron_dqdx_v );
     outtree->Branch( "plane_electron_dx_v", &_plane_electron_dx_v );
+    outtree->Branch( "plane_electron_mean_v", &_plane_electron_mean_v );
+    outtree->Branch( "plane_electron_rms_v", &_plane_electron_rms_v );
+    outtree->Branch( "plane_electron_ngood_v", &_plane_electron_ngood_v );
+    outtree->Branch( "plane_electron_best", &_plane_electron_best );
+    outtree->Branch( "plane_electron_best_mean", &_plane_electron_best_mean );
+    outtree->Branch( "plane_electron_best_rms", &_plane_electron_best_rms );
+    outtree->Branch( "plane_electron_best_ngood", &_plane_electron_best_ngood );
+    outtree->Branch( "plane_electron_best_start", &_plane_electron_best_start );        
+
     outtree->Branch( "plane_gamma_srange_vv", &_plane_gamma_srange_v );
     outtree->Branch( "plane_gamma_dqdx_v", &_plane_gamma_dqdx_v );
     outtree->Branch( "plane_gamma_dx_v", &_plane_gamma_dx_v );
+    outtree->Branch( "plane_gamma_mean_v", &_plane_gamma_mean_v );
+    outtree->Branch( "plane_gamma_rms_v", &_plane_gamma_rms_v );
+    outtree->Branch( "plane_gamma_ngood_v", &_plane_gamma_ngood_v );        
+    outtree->Branch( "plane_gamma_best", &_plane_gamma_best );
+    outtree->Branch( "plane_gamma_best_mean", &_plane_gamma_best_mean );
+    outtree->Branch( "plane_gamma_best_rms", &_plane_gamma_best_rms );
+    outtree->Branch( "plane_gamma_best_ngood", &_plane_gamma_best_ngood );
+    outtree->Branch( "plane_gamma_best_start", &_plane_gamma_best_start );        
 
     outtree->Branch( "true_match_pdg", &_true_match_pdg );
     outtree->Branch( "true_min_feat_dist", &_true_min_feat_dist );
@@ -1161,16 +1219,42 @@ namespace reco {
                                            const float dqdx_threshold,
                                            std::vector<float>& plane_dqdx_v,
                                            std::vector<float>& plane_dx_v,
-                                           std::vector< std::vector<float> >& plane_srange_v )
+                                           std::vector< std::vector<float> >& plane_srange_v,
+                                           std::vector<float>& plane_mean_v,
+                                           std::vector<float>& plane_rms_v,
+                                           std::vector<int>& plane_ngood_v,
+                                           int& best_plane,
+                                           int& plane_max_ngood,
+                                           float& plane_best_dqdx,
+                                           float& plane_best_rms,
+                                           float& plane_best_start )
   {
+
+    // step forward from 0
+    // find first repeat segments in good range [dqdx_threshold,dqdx_max]
+    // count number of good segments in range
+    // calc rms of segment values in range
 
     const int nplanes = adc_v.size();
     plane_dqdx_v.clear();
     plane_srange_v.clear();
     plane_dx_v.clear();
+    plane_mean_v.clear();
+    plane_rms_v.clear();
+    plane_ngood_v.clear();
+    
     plane_srange_v.resize(nplanes);
     plane_dqdx_v.resize(nplanes,0);
-    plane_dx_v.resize(nplanes,0);    
+    plane_dx_v.resize(nplanes,0);
+    plane_mean_v.resize(nplanes,0);
+    plane_rms_v.resize(nplanes,0);
+    plane_ngood_v.resize(nplanes,0);
+
+    best_plane = -1;
+    plane_max_ngood = 0;
+    plane_best_dqdx = 0;
+    plane_best_rms = 0;
+    plane_best_start = -10;
            
     // get distance between start and end points
     float dist = 0.;
@@ -1186,32 +1270,60 @@ namespace reco {
     }    
 
     for (int p=0; p<nplanes; p++) {
-      auto const& seg_v = _plane_seg_dedx_v[p];
-      auto& tplist = _plane_trunkpix_v[p];
+      auto const& seg_v = _plane_seg_dedx_v[p]; // segment list
+      auto& tplist = _plane_trunkpix_v[p]; // track point list
       int iseg_start = 0;
       int iseg_end = (int)seg_v.size()-1;
-      // find first value below 
+      // find first value below
+      int num_inregion = 0;
+      int num_outregion = 0;
+      int tot_inregion = 0;
+      bool good_region_started = false;
+
+      float in_region_mean_x = 0.;
+      float in_region_mean_x2 = 0.;
+      
       for (int iseg=0; iseg<(int)seg_v.size(); iseg++) {
         auto const& seg = seg_v[iseg];
+        if ( seg.s<0.0 )
+          continue;
         if ( seg.dqdx>dqdx_threshold && seg.dqdx<dqdx_max ) {
-          iseg_start = iseg;
-          break;
+          num_inregion++;                    
+          if (!good_region_started && num_inregion>=2) {
+            good_region_started = true;
+            iseg_start = iseg-1;
+            in_region_mean_x  += seg_v[iseg_start].dqdx;
+            in_region_mean_x2 += seg_v[iseg_start].dqdx*seg_v[iseg_start].dqdx;
+            tot_inregion = 1;
+          }
+          if (good_region_started) {
+            in_region_mean_x += seg.dqdx;
+            in_region_mean_x2 += seg.dqdx*seg.dqdx;
+            tot_inregion++;
+          }
+          num_outregion = 0; //reset out of region counter
         }
+        else {
+          num_outregion++;
+          if (good_region_started && num_outregion>=2) {
+            iseg_end = iseg-2;
+            break; // we're done
+          }
+          num_inregion = 0;
+        }
+        
       }
 
-      for (int iseg=(int)seg_v.size()-1; iseg>=0; iseg-- ) {
-        auto const& seg = seg_v[iseg];
-        if ( seg.dqdx>dqdx_threshold && seg.dqdx<dqdx_max ) {
-          iseg_end = iseg;
-          break;
-        }
-      }
-
+      // define range
       float s_min = seg_v[iseg_start].smin;
       float s_max = seg_v[iseg_end].smax;
-
       std::vector<float> srange = { s_min, s_max };
-
+      if ( tot_inregion>0 ) {
+        plane_mean_v[p]  = in_region_mean_x/float(tot_inregion);
+        plane_rms_v[p]   = sqrt( in_region_mean_x2/float(tot_inregion) - plane_mean_v[p]*plane_mean_v[p] );
+        plane_ngood_v[p] = tot_inregion;
+      }
+      
       plane_srange_v[p] = srange;
 
       std::vector<float> s3d(3,0);
@@ -1250,6 +1362,17 @@ namespace reco {
       plane_dx_v[p]   = seg.ds;
       
     }//end of plane loop
+
+    // best plane determination
+    for (int p=0; p<nplanes; p++) {
+      if ( plane_ngood_v[p]>0 && plane_ngood_v[p]>plane_max_ngood ) {
+        best_plane = p;        
+        plane_max_ngood = plane_ngood_v[p];
+        plane_best_dqdx = plane_mean_v[p];
+        plane_best_rms  = plane_rms_v[p];
+        plane_best_start = plane_srange_v[p][0];
+      }
+    }
     
   }
 
