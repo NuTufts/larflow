@@ -68,6 +68,8 @@ if args.has_mc:
 anafile = rt.TFile( args.input_kpsana )
 tree = anafile.Get("KPSRecoManagerTree")
 nentries = tree.GetEntries()
+start_entry = 0
+end_entry = nentries
 
 # Setup algorithm to run on reco showers
 reco_algo = larflow.reco.ShowerBilineardEdx()
@@ -96,8 +98,9 @@ algotree.Branch("true_matched_best_pixsum", true_matched_pixsum, "true_matched_b
 algotree.Branch("true_matched_pixsum_v", true_matched_pixsum_v )
 
 
-start_entry = 0
-for ientry in range(start_entry,nentries):
+#start_entry = 18
+#end_entry = 19
+for ientry in range(start_entry,end_entry):
 
     tree.GetEntry(ientry)
     iolcv.read_entry(ientry)

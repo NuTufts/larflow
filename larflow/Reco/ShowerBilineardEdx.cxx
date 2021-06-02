@@ -119,6 +119,7 @@ namespace reco {
 
     // find range along trunk that contain points with expected dq/dx for electron and photon
     // electron regions
+    LARCV_DEBUG() << "/// FIND ELECTRON-LIKE RANGE ///" << std::endl;
     _findRangedQdx( fstart, fend, track_masked_v, 350.0, 100.0,
                     _plane_electron_dqdx_v,
                     _plane_electron_dx_v,
@@ -132,6 +133,7 @@ namespace reco {
                     _plane_electron_best_rms,
                     _plane_electron_best_start );
     // photon regions (2MIP)
+    LARCV_DEBUG() << "/// FIND GAMMA-LIKE RANGE ///" << std::endl;    
     _findRangedQdx( fstart, fend, track_masked_v, 1000.0, 400.0,
                     _plane_gamma_dqdx_v,
                     _plane_gamma_dx_v,
@@ -145,15 +147,31 @@ namespace reco {
                     _plane_gamma_best_rms,
                     _plane_gamma_best_start );
 
-    // simple dq/dx measure using first 3 cm of trunk. use masked image.    
+    // simple dq/dx measure using first X cm of trunk. use masked image.
+    float pixsum_dist = 3.0; // default
+
+    // use heuristics to check for early cascade start
+    if ( _plane_electron_best>=0 && _plane_gamma_best>=0 ) {
+      float erange_mid = 0.5*(_plane_electron_srange_v[ _plane_electron_best ][0]+_plane_electron_srange_v[ _plane_electron_best ][1]);
+      float grange_mid = 0.5*(_plane_gamma_srange_v[ _plane_gamma_best ][0]+_plane_gamma_srange_v[ _plane_gamma_best ][1]);
+      if ( _plane_electron_srange_v[ _plane_electron_best ][0]>-0.5
+           && _plane_gamma_srange_v[ _plane_gamma_best ][0]>-0.5
+           && erange_mid < grange_mid
+           && _plane_electron_srange_v[ _plane_electron_best ][1]<3.0 ) {
+        pixsum_dist = _plane_electron_srange_v[ _plane_electron_best ][1];
+        // if (pixsum_dist>1.0 )
+        //   pixsum_dist -= 0.50; // one segment step
+      }
+    }
+    
     std::vector<float> end3cm(3,0);
     for (int i=0; i<3; i++) {
-      end3cm[i] = fstart[i] + 3.0*_shower_dir[i];
+      end3cm[i] = fstart[i] + pixsum_dist*_shower_dir[i];
     }
     _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3 );
     for (size_t p=0; p<adc_v.size(); p++) {
       LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;      
-      LARCV_DEBUG() << "3 cm trunk dq/dx: " << _pixsum_dqdx_v[p] << " pixsum/cm" << std::endl;
+      LARCV_DEBUG() << pixsum_dist << " cm trunk dq/dx: " << _pixsum_dqdx_v[p] << " pixsum/cm" << std::endl;
     }
 
     // heuristic to choosing best dq/dx
@@ -721,7 +739,7 @@ namespace reco {
 
         for (size_t itp=0; itp<tplist.size(); itp++) {
           auto const& tp = tplist[itp];
-          if ( tp.smin>0 || tp.smax>0 ) {          
+          if ( tp.smin>0 && tp.smax<dist)  {
             // change (col,row) from original image to mask image (with padding)
             // then add kernal shift
             int icol = (int)tp.col-col_origin + dc;
@@ -734,6 +752,7 @@ namespace reco {
 
             int cropindex = icol*rowwidth+irow;
             float pixval = crop[ cropindex ];
+
             if ( pixval>threshold ) {
               #pragma omp atomic
               mask[ cropindex ] += 1.0;
@@ -776,8 +795,11 @@ namespace reco {
       }
       
       float ds = seen_smax - seen_smin;
+      LARCV_DEBUG () << "plane[" << p << "] pixsum=" << planesum_v[p] << " ds=" << ds << " seen_smin=" << seen_smin << " seen_smax=" << seen_smax << std::endl;
       if ( ds>0 && ds<10.0 )
         planesum_v[p] /= ds;
+      else
+        planesum_v[p] = 0.;
       
     }//end of plane loop
     
