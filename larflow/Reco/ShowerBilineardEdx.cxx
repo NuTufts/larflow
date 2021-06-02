@@ -194,7 +194,7 @@ namespace reco {
           ngood_max = g_len;
       }
       
-      if ( ngood_max > 0 && _best_pixsum_ortho < plane_ortho_cos ) {
+      if ( ngood_max > 0 && _best_pixsum_ortho < plane_ortho_cos && _pixsum_dqdx_v[p]>50.0 ) {
         _best_pixsum_ortho = plane_ortho_cos;        
         _best_pixsum_plane = (int)p;
       }
