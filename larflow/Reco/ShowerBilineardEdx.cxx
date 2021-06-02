@@ -183,13 +183,13 @@ namespace reco {
       // check if electron or gamma had good region within the first 3 cm trunk
       float e_range = _plane_electron_srange_v[p][0];
       float e_len   = _plane_electron_dx_v[p];
-      if ( e_range>-2.0 && e_range<3.0 && e_len>2.0 ) {
+      if ( e_range>-2.0 && e_range<3.0 ) {
         if ( e_len>ngood_max )
           ngood_max = e_len;
       }
       float g_range = _plane_gamma_srange_v[p][0];
       float g_len   = _plane_gamma_dx_v[p];
-      if ( g_range>-2.0 && g_range<3.0 && g_len>2.0) {
+      if ( g_range>-2.0 && g_range<3.0 ) {
         if ( g_len>ngood_max )
           ngood_max = g_len;
       }
