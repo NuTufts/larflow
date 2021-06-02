@@ -75,18 +75,26 @@ reco_algo.set_verbosity( larcv.msg.kDEBUG )
 # Setup algorithm to run on perfect reconstruction showers
 perfect_algo = larflow.reco.ShowerBilineardEdx()
 perfect_algo.set_verbosity( larcv.msg.kDEBUG )
+# Setup algorithm for calculating dq/dx for best match mcshower
+matched_algo = larflow.reco.ShowerBilineardEdx()
 # Truth data for analysis
 mcdata = ublarcvapp.mctools.LArbysMC()
 
 tfana = rt.TFile( args.output, "recreate" )
 tfana.cd()
 dist2vtx = array('f',[0])
+true_matched_pixsum = array('f',[0])
+true_matched_pixsum_v = std.vector("float")()
+
 algotree = rt.TTree("showerbilinear","ShowerBilineardEdx output variables")
 algotree.Branch("dist2vtx",dist2vtx,"dist2vtx/F")
 reco_algo.bindVariablesToTree( algotree )
 perfect_tree = rt.TTree("perfectreco","ShowerBilineardEdx output variables on Perfect reco")
 perfect_tree.Branch("dist2vtx",dist2vtx,"dist2vtx/F")
 perfect_algo.bindVariablesToTree( perfect_tree )
+algotree.Branch("true_matched_best_pixsum", true_matched_pixsum, "true_matched_best_pixsum/F" )
+algotree.Branch("true_matched_pixsum_v", true_matched_pixsum_v )
+
 
 start_entry = 0
 for ientry in range(start_entry,nentries):
@@ -207,11 +215,27 @@ for ientry in range(start_entry,nentries):
                     
 
                 if name=="RECO" and args.has_mc and failed==False:
+                    true_matched_pixsum_v.clear()
+                    true_matched_pixsum[0] = -1.0                    
                     try:
                         algo.calcGoodShowerTaggingVariables( shower, trunk, shpca, adc_v, ev_mcshower )
                     except:
                         print("[ERROR] exception thrown from calcGoodShowerTaggingVariables")
                         pass
+
+                    try:
+                        matched_algo.matchMCShowerAndProcess( shower, trunk, shpca, adc_v, nuvtx, ev_mcshower )
+                        if matched_algo._pixsum_dqdx_v.size()>0:
+                            print("matched dq/dx: ",matched_algo._pixsum_dqdx_v[0]," ",matched_algo._pixsum_dqdx_v[1]," ",matched_algo._pixsum_dqdx_v[2])
+                            print("matched dq/dx: ",matched_algo._best_pixsum_dqdx)
+                            true_matched_pixsum_v.resize(3)
+                            for iv in range(3):
+                                true_matched_pixsum_v[iv] = matched_algo._pixsum_dqdx_v[i]
+                            true_matched_pixsum[0] = matched_algo._best_pixsum_dqdx
+                    except:
+                        print("[ERROR] exception thrown from matched_algo.matchMCShowerAndProcess")
+                        pass
+                    
                         
                 if PLOTME:
                     for p in range(3):

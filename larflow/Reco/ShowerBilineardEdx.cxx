@@ -6,8 +6,10 @@
 #include <omp.h>
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
+#include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
 #include "geofuncs.h"
 #include "ClusterImageMask.h"
+
 
 namespace larflow {
 namespace reco {
@@ -70,6 +72,7 @@ namespace reco {
     _true_vertex_err_dist = -100.0;
     _true_dir_cos = -2.0;
     _true_match_pdg = 0;
+    _true_min_index = -1;
     
   }
   
@@ -1681,12 +1684,15 @@ namespace reco {
     for (int i=0; i<3; i++)
       dir[i] /= dist;
 
+    int min_index = -1;
     float min_feat_dist = 1e9;
     float vertex_err_dist = 0;
     int   match_pdg = 0;
     float dir_cos = 0.;
 
-    for ( auto const& mcshower : mcshower_v ) {
+    for ( int ishower=0; ishower<(int)mcshower_v.size(); ishower++ ) {
+      
+      auto const& mcshower = mcshower_v[ishower];
 
       if ( mcshower.Origin()!=1 )
         continue; // not neutrino origin
@@ -1757,6 +1763,7 @@ namespace reco {
         vertex_err_dist = dvertex;
         min_feat_dist = goodmetric;
         match_pdg = mcshower.PdgCode();
+        min_index =  ishower;
       }
     }
     
@@ -1765,12 +1772,14 @@ namespace reco {
     _true_vertex_err_dist = vertex_err_dist;
     _true_dir_cos = dir_cos;
     _true_match_pdg = match_pdg;
+    _true_min_index = min_index;
 
     LARCV_DEBUG() << "Best true shower match: " << std::endl;
     LARCV_DEBUG() << " - feat_dist=" << _true_min_feat_dist << std::endl;
     LARCV_DEBUG() << " - vertex_dist="<< _true_vertex_err_dist << std::endl;
     LARCV_DEBUG() << " - true-dir-cos=" << _true_dir_cos << std::endl;
-    LARCV_DEBUG() << " - match PDG code=" << match_pdg << std::endl;
+    LARCV_DEBUG() << " - match PDG code=" << _true_match_pdg << std::endl;
+    LARCV_DEBUG() << " - true min index=" << _true_min_index << std::endl;
     
   }
 
@@ -1856,6 +1865,44 @@ namespace reco {
     }
     
     return track_removed_v;
+  }
+
+  void ShowerBilineardEdx::processMCShower( const larlite::mcshower& shower,
+                                            const std::vector<larcv::Image2D>& adc_v,
+                                            const larflow::reco::NuVertexCandidate& nuvtx )
+  {
+    
+    // clear variables
+    clear();
+
+    // we make shower trunk
+    ublarcvapp::mctools::TruthShowerTrunkSCE trunk_maker( _psce );
+
+    larlite::track trunk = trunk_maker.applySCE(shower);
+    larlite::larflowcluster dummy_cluster;
+    larlite::pcaxis dummy_pca;
+
+    processShower( dummy_cluster, trunk, dummy_pca, adc_v, nuvtx );
+  }
+
+  void ShowerBilineardEdx::matchMCShowerAndProcess( const larlite::larflowcluster& reco_shower,
+                                                    const larlite::track& reco_shower_trunk,
+                                                    const larlite::pcaxis& reco_pca,
+                                                    const std::vector<larcv::Image2D>& adc_v,
+                                                    const larflow::reco::NuVertexCandidate& nuvtx,                                                    
+                                                    const std::vector<larlite::mcshower>& mcshower_v )
+  {
+
+    clear();
+    
+    calcGoodShowerTaggingVariables( reco_shower, reco_shower_trunk, reco_pca,
+                                    adc_v, mcshower_v );
+
+    if ( _true_dir_cos>0.9 && fabs(_true_vertex_err_dist)<3.0 && _true_min_index>=0 ) {
+      
+      auto const& match_shower = mcshower_v[_true_min_index];
+      processMCShower( match_shower, adc_v, nuvtx );
+    }
   }
   
 }

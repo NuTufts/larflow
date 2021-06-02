@@ -36,6 +36,11 @@ namespace reco {
                         const std::vector<larcv::Image2D>& adc_v,
                         const larflow::reco::NuVertexCandidate& nuvtx );
 
+    void processMCShower( const larlite::mcshower& shower,
+                          const std::vector<larcv::Image2D>& adc_v,
+                          const larflow::reco::NuVertexCandidate& nuvtx );
+    
+
     float aveBilinearCharge_with_grad( const larcv::Image2D& img,
                                        std::vector<float>& start3d,
                                        std::vector<float>& end3d,
@@ -200,6 +205,8 @@ namespace reco {
     float _true_vertex_err_dist;
     float _true_dir_cos;
     int _true_match_pdg;
+    int _true_min_index;
+
     void calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
                                          const larlite::track& trunk,
                                          const larlite::pcaxis& pca,
@@ -214,6 +221,12 @@ namespace reco {
                            float& dist,
                            const std::vector<larcv::Image2D>& adc_v );
     
+    void matchMCShowerAndProcess( const larlite::larflowcluster& reco_shower,
+                                  const larlite::track& reco_shower_trunk,
+                                  const larlite::pcaxis& reco_pca,
+                                  const std::vector<larcv::Image2D>& adc_v,
+                                  const larflow::reco::NuVertexCandidate& nuvtx,                                                    
+                                  const std::vector<larlite::mcshower>& mcshower_v );
 
   private:
     
