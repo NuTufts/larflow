@@ -14,6 +14,7 @@
 #include "DataFormat/track.h"
 #include "DataFormat/mcshower.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "NuVertexCandidate.h"
 
 namespace larflow {
 namespace reco {
@@ -32,7 +33,8 @@ namespace reco {
     void processShower( larlite::larflowcluster& shower,
                         larlite::track& trunk,
                         larlite::pcaxis& pca,
-                        const std::vector<larcv::Image2D>& adc_v );
+                        const std::vector<larcv::Image2D>& adc_v,
+                        const larflow::reco::NuVertexCandidate& nuvtx );
 
     float aveBilinearCharge_with_grad( const larcv::Image2D& img,
                                        std::vector<float>& start3d,
@@ -67,6 +69,10 @@ namespace reco {
 
     TGraph makeSegdQdxGraphs(int plane);
 
+    std::vector<larcv::Image2D> maskTrackPixels( const std::vector<larcv::Image2D>& adc_v,
+                                                 const larlite::track& shower_trunk,
+                                                 const larflow::reco::NuVertexCandidate& nuvtx );
+
     void clear();
     
     // for debug
@@ -74,7 +80,11 @@ namespace reco {
     std::vector< float > _shower_dir;
     std::vector< float > _pixsum_dqdx_v;
     std::vector< float > _bilin_dqdx_v;
-
+    float _best_pixsum_dqdx;
+    int   _best_pixsum_plane;
+    float _best_pixsum_ngood;
+    float _best_pixsum_ortho;
+    
     // pixel lists, sorted by position on trunk
     struct TrunkPix_t {
       int row;
@@ -195,6 +205,15 @@ namespace reco {
                                          const larlite::pcaxis& pca,
                                          const std::vector<larcv::Image2D>& adc_v,
                                          const std::vector<larlite::mcshower>& mcshower_v );
+
+    bool checkShowerTrunk( const std::vector<float>& start_pos,
+                           const std::vector<float>& end_pos,
+                           std::vector<float>& modstart3d,
+                           std::vector<float>& modend3d,
+                           std::vector<float>& shower_dir,
+                           float& dist,
+                           const std::vector<larcv::Image2D>& adc_v );
+    
 
   private:
     

@@ -22,7 +22,7 @@ namespace reco {
     
     // loop over tracks
     for ( auto const& track : nuvtx.track_v ) {
-      maskTrack( track, adc_v, mask_v, 10.0, 2, 0.5, 1.0 );
+      maskTrack( track, adc_v, mask_v, 10.0, 2, 2, 0.5, 1.0 );
     }
 
     // loop over showers
@@ -85,7 +85,8 @@ namespace reco {
                                     const std::vector<larcv::Image2D>& adc_v,
                                     std::vector<larcv::Image2D>& mask_v,
                                     const float thresh,                                    
-                                    const int dpix,
+                                    const int dcol,
+                                    const int drow,
                                     const float minstepsize,
                                     const float maxstepsize )
   {
@@ -135,13 +136,13 @@ namespace reco {
         }
 
         //mask around the projected point
-        for (int dr=-abs(dpix); dr<=abs(dpix); dr++) {
+        for (int dr=-abs(drow); dr<=abs(drow); dr++) {
           int r = row+dr;
           if ( r<0 || r>=(int)adc_v.front().meta().rows() )
             continue;
 
           for (int p=0; p<3; p++) {          
-            for (int dc=-abs(dpix);dc<=abs(dpix); dc++) {
+            for (int dc=-abs(dcol);dc<=abs(dcol); dc++) {
               int c = imgcoord[p]+dc;
               if (c<=0 || c>=(int)adc_v[p].meta().cols() )
                 continue;

@@ -33,7 +33,8 @@ namespace reco {
                     const std::vector<larcv::Image2D>& adc_v,
                     std::vector<larcv::Image2D>& mask_v,
                     const float thresh,
-                    const int dpix=2,
+                    const int dcol=2,
+                    const int drow=2,
                     const float minstepsize=0.1,
                     const float maxstepsize=1.0 );
 

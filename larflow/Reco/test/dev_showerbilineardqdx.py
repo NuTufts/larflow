@@ -197,11 +197,12 @@ for ientry in range(start_entry,nentries):
                 
                 failed = False
                 try:
-                    algo.processShower( shower, trunk, shpca, adc_v )
+                    algo.processShower( shower, trunk, shpca, adc_v, nuvtx )
                     failed = False
-                except:
+                except Exception as e:
                     failed = True
                     print("[ERROR] exception thrown from processShower")
+                    print(e)
                     pass
                     
 
@@ -215,15 +216,16 @@ for ientry in range(start_entry,nentries):
                 if PLOTME:
                     for p in range(3):
                         c.cd(p+1)
-                        for ipath in range(algo.bilinear_path_vv.at(p).size()):
-                            path = algo.bilinear_path_vv.at(p).at(ipath)
-                            path.SetLineWidth(2)
-                            if name in ["PERFECT"]:
-                                path.SetLineColor(rt.kRed)
-                            else:
-                                path.SetLineColor(rt.kMagenta)                                
-                            path.Draw("Lsame")
-                            graphs.append(path)
+                        if algo.bilinear_path_vv.size()>0:
+                            for ipath in range(algo.bilinear_path_vv.at(p).size()):
+                                path = algo.bilinear_path_vv.at(p).at(ipath)
+                                path.SetLineWidth(2)
+                                if name in ["PERFECT"]:
+                                    path.SetLineColor(rt.kRed)
+                                else:
+                                    path.SetLineColor(rt.kMagenta)                                
+                                path.Draw("Lsame")
+                                graphs.append(path)
 
                         c.cd(3+p+1)
                         #algo.maskPixels( p, mask_v[p] )

@@ -7,6 +7,7 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
 #include "geofuncs.h"
+#include "ClusterImageMask.h"
 
 namespace larflow {
 namespace reco {
@@ -27,7 +28,13 @@ namespace reco {
   {
 
     bilinear_path_vv.clear();    
+
     _pixsum_dqdx_v.clear();
+    _best_pixsum_dqdx = 0;
+    _best_pixsum_plane = -1;
+    _best_pixsum_ngood = 0;
+    _best_pixsum_ortho = 0;
+    
     _bilin_dqdx_v.clear();    
     _shower_dir.clear();
     _plane_dqdx_seg_v.clear();
@@ -69,7 +76,8 @@ namespace reco {
   void ShowerBilineardEdx::processShower( larlite::larflowcluster& shower,
                                           larlite::track& trunk,
                                           larlite::pcaxis& pca,
-                                          const std::vector<larcv::Image2D>& adc_v )
+                                          const std::vector<larcv::Image2D>& adc_v,
+                                          const larflow::reco::NuVertexCandidate& nuvtx )
   {
     
     // clear variables
@@ -79,141 +87,36 @@ namespace reco {
     
     auto const& meta = adc_v.front().meta();
     
-    std::vector<double> start_pos = { trunk.LocationAtPoint(0)[0],
-                                      trunk.LocationAtPoint(0)[1],
-                                      trunk.LocationAtPoint(0)[2] };
-    std::vector<double> end_pos = { trunk.LocationAtPoint(1)[0],
-                                    trunk.LocationAtPoint(1)[1],
-                                    trunk.LocationAtPoint(1)[2] };
+    std::vector<float> start_pos = { (float)trunk.LocationAtPoint(0)[0],
+                                     (float)trunk.LocationAtPoint(0)[1],
+                                     (float)trunk.LocationAtPoint(0)[2] };
+    std::vector<float> end_pos = { (float)trunk.LocationAtPoint(1)[0],
+                                   (float)trunk.LocationAtPoint(1)[1],
+                                   (float)trunk.LocationAtPoint(1)[2] };
 
-    float dist = 0.;
-    std::vector<float> shower_dir(3,0);
-    for (int i=0; i<3; i++) {
-      shower_dir[i] = (end_pos[i]-start_pos[i]);
-      dist += shower_dir[i]*shower_dir[i];
-    }
-    dist = sqrt(dist);
-    if ( dist>0 ) {
-      for (int i=0; i<3; i++)
-        shower_dir[i] /= dist;
-    }
-
-    
-    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-    if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
-
-      // try to shorten trunk to stay in image
-      bool fix = false;
-      if ( start_tick<=meta.min_y() && shower_dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-	float s = (mintick-start_pos[0])/shower_dir[0];
-
-	fix = true;
-	for (int i=0; i<3; i++)
-	  start_pos[i] = start_pos[i] + s*shower_dir[i];
-	start_tick = meta.pos_y(1);
-	
-      }
-      else if ( start_tick>=meta.max_y() && shower_dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-	float s = (maxtick-start_pos[0])/shower_dir[0];
-	
-	fix = true;
-	for (int i=0; i<3; i++)
-	  start_pos[i] = start_pos[i] + s*shower_dir[i];
-	start_tick = meta.pos_y( (int)meta.rows()-1 );
-	
-      }
-
-      if ( !fix ) {	      
-	std::stringstream errmsg;
-	errmsg << "out of bounds shower trunk starting point "
-	       << " (" << start_pos[0] << "," << start_pos[1] << "," << start_pos[2] << ") "
-	       << " start_tick=" << start_tick << std::endl;
-	LARCV_CRITICAL() << errmsg.str() << std::endl;
-	throw std::runtime_error(errmsg.str());
-      }
-    }    
-    float start_row = (float)meta.row(start_tick);
-    
-    
-    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-    if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
-
-      // try to shorten trunk to stay in image
-      bool fix = false;
-      float s = 0.0;
-      if ( end_tick<=meta.min_y() && shower_dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-	s = (mintick-start_pos[0])/shower_dir[0];
-	fix = true;
-	for (int i=0; i<3; i++)
-	  end_pos[i] = start_pos[i] + s*shower_dir[i];
-	end_tick = meta.pos_y(1);
-
-      }
-      else if ( end_tick>=meta.max_y() && shower_dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
-	s = (maxtick-start_pos[0])/shower_dir[0];
-
-	fix = true;
-	for (int i=0; i<3; i++)
-	  end_pos[i] = start_pos[i] + s*shower_dir[i];
-	end_tick = meta.pos_y( (int)meta.rows()-1 );
-
-      }
-
-      if ( !fix ) {
-	std::stringstream errmsg;
-	errmsg << "out of bounds shower trunk ending point "
-	       << " s=" << s
-	       << " (" << end_pos[0] << "," << end_pos[1] << "," << end_pos[2] << ") "
-	       << " end_tick=" << end_tick << std::endl;
-	LARCV_CRITICAL() << errmsg.str() << std::endl;      
-	throw std::runtime_error(errmsg.str());
-      }
-    }
-    float end_row = (float)meta.row(end_tick);
-
-    std::vector<float> fstart = { (float)start_pos[0], (float)start_pos[1], (float)start_pos[2] };
-    std::vector<float> fend   = { (float)end_pos[0],   (float)end_pos[1],   (float)end_pos[2] };          
-    _createDistLabels( fstart, fend, adc_v, 10.0 );
-    _makeSegments( -3.0 );
-    _sumChargeAlongSegments( fstart, fend, adc_v, 10.0, 1, 3 );
-    
-    std::vector<float> pixsum_v = sumChargeAlongTrunk( fstart, fend, adc_v, 10.0, 1, 3 );    
-
-    dist = 0.;
+    std::vector<float> fstart;    
+    std::vector<float> fend;
     _shower_dir.resize(3,0);
-    for (int i=0; i<3; i++) {
-      _shower_dir[i] = (fend[i]-fstart[i]);
-      dist += (fend[i]-fstart[i])*(fend[i]-fstart[i]);
-    }
-    dist = sqrt(dist);
-    if ( dist>0 ) {
-      for (int i=0; i<3; i++)
-        _shower_dir[i] /= dist;
-    }
-    
-    // use use the trunk to define a start and end point
-    _pixsum_dqdx_v.resize(3,0);
-    _bilin_dqdx_v.resize(3,0);
-    
-    for (size_t p=0; p<adc_v.size(); p++) {
-      _pixsum_dqdx_v[p] = pixsum_v[p]/dist;
-      
-      // projection
-      //LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;
-      auto const& img = adc_v.at(p);
-      std::vector<float> grad(6,0);
-      //LARCV_DEBUG() << "Get Bilinear Charge w/ grad, plane " << p << std::endl;
-      float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
-      _bilin_dqdx_v[p] = avedQdx;
-      
-      //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
-      LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
-    }
-    _findRangedQdx( fstart, fend, adc_v, 350.0, 150.0,
+    float dist = 0.;
+
+    // make sure the shower start and end are inside the image
+    bool validtrunk = checkShowerTrunk( start_pos, end_pos, fstart, fend, _shower_dir, dist, adc_v );
+
+    // collect pixels that the trunk passes through in each wire plane image
+    _createDistLabels( fstart, fend, adc_v, 10.0 );
+
+    // define line segment regions to measure dq/dx over the shower trunk
+    _makeSegments( -3.0 );
+
+    // use track pixels in candidate neutrino vertex to mask pixels to zero
+    std::vector<larcv::Image2D> track_masked_v = maskTrackPixels( adc_v, trunk, nuvtx );
+
+    // calculate dq/dx for each segment along dq/dx, using masked image
+    _sumChargeAlongSegments( fstart, fend, track_masked_v, 10.0, 1, 3 );
+
+    // find range along trunk that contain points with expected dq/dx for electron and photon
+    // electron regions
+    _findRangedQdx( fstart, fend, track_masked_v, 350.0, 100.0,
                     _plane_electron_dqdx_v,
                     _plane_electron_dx_v,
                     _plane_electron_srange_v,
@@ -225,8 +128,8 @@ namespace reco {
                     _plane_electron_best_mean,
                     _plane_electron_best_rms,
                     _plane_electron_best_start );
-                    
-    _findRangedQdx( fstart, fend, adc_v, 600.0, 400.0,
+    // photon regions (2MIP)
+    _findRangedQdx( fstart, fend, track_masked_v, 1000.0, 400.0,
                     _plane_gamma_dqdx_v,
                     _plane_gamma_dx_v,
                     _plane_gamma_srange_v,
@@ -239,8 +142,244 @@ namespace reco {
                     _plane_gamma_best_rms,
                     _plane_gamma_best_start );
 
-                    
+    // simple dq/dx measure using first 3 cm of trunk. use masked image.    
+    std::vector<float> end3cm(3,0);
+    for (int i=0; i<3; i++) {
+      end3cm[i] = fstart[i] + 3.0*_shower_dir[i];
+    }
+    _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3 );
+    for (size_t p=0; p<adc_v.size(); p++) {
+      LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;      
+      LARCV_DEBUG() << "3 cm trunk dq/dx: " << _pixsum_dqdx_v[p] << " pixsum/cm" << std::endl;
+    }
+
+    // heuristic to choosing best dq/dx
+    // most good points?
+    // start of electron shower?
+    std::vector<int> ngood_v( adc_v.size(), 0);
+    _best_pixsum_ngood = 0;
+    _best_pixsum_plane = -1;
+    _best_pixsum_ortho = 0.;    
+    _pixsum_dqdx_v.resize(adc_v.size(),0);
+    for (size_t p=0; p<adc_v.size(); p++) {
+      float ngood_max = 0;
+
+      std::vector<double> orthovect= { 0.0,
+                                       larutil::Geometry::GetME()->GetOrthVectorsY().at(p),
+                                       larutil::Geometry::GetME()->GetOrthVectorsZ().at(p) };
+
+      float plane_ortho_cos = 0.;
+      float ortholen = 0.;
+      for (int i=0; i<3; i++) {
+        plane_ortho_cos += orthovect[i]*_shower_dir[i];
+        ortholen += orthovect[i]*orthovect[i];
+      }
+      if (ortholen>0) {
+        ortholen = sqrt(ortholen);
+        plane_ortho_cos /= ortholen;
+      }
+      plane_ortho_cos = fabs(plane_ortho_cos);
+
+      // check if electron or gamma had good region within the first 3 cm trunk
+      float e_range = _plane_electron_srange_v[p][0];
+      float e_len   = _plane_electron_dx_v[p];
+      if ( e_range>-2.0 && e_range<3.0 && e_len>2.0 ) {
+        if ( e_len>ngood_max )
+          ngood_max = e_len;
+      }
+      float g_range = _plane_gamma_srange_v[p][0];
+      float g_len   = _plane_gamma_dx_v[p];
+      if ( g_range>-2.0 && g_range<3.0 && g_len>2.0) {
+        if ( g_len>ngood_max )
+          ngood_max = g_len;
+      }
+      
+      if ( ngood_max > 0 && _best_pixsum_ortho < plane_ortho_cos ) {
+        _best_pixsum_ortho = plane_ortho_cos;        
+        _best_pixsum_plane = (int)p;
+      }
+
+      LARCV_DEBUG() << "plane[" << p << "] plane_ortho_cos=" << plane_ortho_cos << "  ngood=" << ngood_max << std::endl;
+    }
+    if ( _best_pixsum_plane>=0 )
+      _best_pixsum_dqdx = _pixsum_dqdx_v[ _best_pixsum_plane ];
     
+    // make graphs for debug plotting
+    std::vector<float> cgrad;
+    std::vector<float> rgrad;
+    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+      TGraph gpath(2);      
+      float col = colcoordinate_and_grad( fstart, p, meta, cgrad );
+      float row = rowcoordinate_and_grad( fstart, meta, rgrad );
+      float ptx = col*meta.pixel_width()+meta.min_x();
+      float pty = row*meta.pixel_height()+meta.min_y();
+      gpath.SetPoint(0, ptx, pty );
+
+      col = colcoordinate_and_grad( fend, p, meta, cgrad );
+      row = rowcoordinate_and_grad( fend, meta, rgrad );
+      ptx = col*meta.pixel_width()+meta.min_x();
+      pty = row*meta.pixel_height()+meta.min_y();
+      gpath.SetPoint(1, ptx, pty );
+      bilinear_path_vv[p].emplace_back( std::move(gpath) );
+    }
+
+    
+    // use use the trunk to define a start and end point
+    // bilinear calculations not used right now    
+    // _bilin_dqdx_v.resize(3,0);
+    
+    // for (size_t p=0; p<adc_v.size(); p++) {
+    //   _pixsum_dqdx_v[p] = pixsum_v[p]/dist;
+      
+    //   // projection
+    //   //LARCV_DEBUG() << "//////////////// PLANE " << p << " ///////////////////" << std::endl;
+    //   auto const& img = adc_v.at(p);
+    //   std::vector<float> grad(6,0);
+    //   //LARCV_DEBUG() << "Get Bilinear Charge w/ grad, plane " << p << std::endl;
+    //   float avedQdx = aveBilinearCharge_with_grad( img, fstart, fend, 20, 75.0, grad );
+    //   _bilin_dqdx_v[p] = avedQdx;
+      
+    //   //LARCV_DEBUG() << "ave dQ/dx: "  << avedQdx << std::endl;
+    //   LARCV_DEBUG() << "pixel sum: " << pixsum_v[p] << " dpixsum/dist=" << pixsum_v[p]/dist << std::endl;
+    // }
+
+    
+  }
+
+  /** 
+   * @brief make sure trunk end points are inside the image
+   *
+   */
+  bool ShowerBilineardEdx::checkShowerTrunk( const std::vector<float>& start_pos,
+                                             const std::vector<float>& end_pos,
+                                             std::vector<float>& modstart3d,
+                                             std::vector<float>& modend3d,
+                                             std::vector<float>& shower_dir,
+                                             float& dist,
+                                             const std::vector<larcv::Image2D>& adc_v )
+  {
+
+    // set output vector size
+    modstart3d.resize(3,0);
+    modend3d.resize(3,0);
+   
+    auto const& meta = adc_v.front().meta();
+
+    // initial length and direction
+    dist = 0.;
+    shower_dir.resize(3,0);        
+    for (int i=0; i<3; i++) {
+      shower_dir[i] = (end_pos[i]-start_pos[i]);
+      dist += shower_dir[i]*shower_dir[i];
+    }
+    dist = sqrt(dist);
+    if ( dist>0 ) {
+      for (int i=0; i<3; i++)
+        shower_dir[i] /= dist;
+    }
+
+    for (int i=0; i<3; i++) {
+      modstart3d[i] = start_pos[i];
+      modend3d[i]   = end_pos[i];
+    }
+
+    // check start and end point
+    bool modified_trunk = false;
+    
+    // check the starting point
+    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( start_tick<=meta.min_y() || start_tick>=meta.max_y() ) {
+
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      if ( start_tick<=meta.min_y() && shower_dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (mintick-start_pos[0])/shower_dir[0];
+	fix = true;
+	for (int i=0; i<3; i++)
+	  modstart3d[i] = start_pos[i] + s*shower_dir[i];
+	start_tick = meta.pos_y(1);        
+      }
+      else if ( start_tick>=meta.max_y() && shower_dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float s = (maxtick-start_pos[0])/shower_dir[0];	
+	fix = true;
+	for (int i=0; i<3; i++)
+	  modstart3d[i] = start_pos[i] + s*shower_dir[i];
+	start_tick = meta.pos_y( (int)meta.rows()-1 );
+      }
+
+      if ( !fix ) {	      
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk starting point "
+	       << " (" << start_pos[0] << "," << start_pos[1] << "," << start_pos[2] << ") "
+	       << " start_tick=" << start_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;
+	throw std::runtime_error(errmsg.str());
+        return false;
+      }
+      else {
+        modified_trunk = true;
+      }
+    }
+
+    // final starting row
+    float start_row = (float)meta.row(start_tick);
+        
+    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
+
+      // try to shorten trunk to stay in image
+      bool fix = false;
+      float s = 0.0;
+      if ( end_tick<=meta.min_y() && shower_dir[0]!=0.0) {
+	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (mintick-start_pos[0])/shower_dir[0];
+	fix = true;
+	for (int i=0; i<3; i++)
+	  modend3d[i] = start_pos[i] + s*shower_dir[i];
+	end_tick = meta.pos_y(1);
+
+      }
+      else if ( end_tick>=meta.max_y() && shower_dir[0]!=0.0) {
+	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	s = (maxtick-start_pos[0])/shower_dir[0];
+
+	fix = true;
+	for (int i=0; i<3; i++)
+	  modend3d[i] = start_pos[i] + s*shower_dir[i];
+	end_tick = meta.pos_y( (int)meta.rows()-1 );
+
+      }
+
+      if ( !fix ) {
+	std::stringstream errmsg;
+	errmsg << "out of bounds shower trunk ending point "
+	       << " s=" << s
+	       << " (" << end_pos[0] << "," << end_pos[1] << "," << end_pos[2] << ") "
+	       << " end_tick=" << end_tick << std::endl;
+	LARCV_CRITICAL() << errmsg.str() << std::endl;      
+	throw std::runtime_error(errmsg.str());
+        return false;
+      } 
+      else {
+        modified_trunk = true;
+      }
+     
+    }
+    // final end row
+    float end_row = (float)meta.row(end_tick);
+
+    if ( modified_trunk ) {
+      dist = 0;
+      for (int i=0; i<3; i++) {
+        shower_dir[i] = modend3d[i]-modstart3d[i];
+        dist += shower_dir[i]*shower_dir[i];
+      }
+      dist = sqrt(dist);
+    }
+
+    return true;
   }
 
   float ShowerBilineardEdx::aveBilinearCharge_with_grad( const larcv::Image2D& img,
@@ -510,10 +649,12 @@ namespace reco {
           rowbounds[0] = tp.row;
         if ( rowbounds[1]<tp.row || rowbounds[1]<0 )
           rowbounds[1] = tp.row;
-	LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
-		      << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
-		      << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
-		      << std::endl;
+        // if ( false ) {
+        //   LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
+        //                 << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
+        //                 << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
+        //                 << std::endl;
+        // }
       }
 
       // crop width with padding added
@@ -546,6 +687,21 @@ namespace reco {
         memcpy( dest_ptr, source_ptr, sizeof(float)*rowlen );
       }
 
+      // make array where we store the min dist along trunk for pixels
+      // on trunk path
+      std::vector<float> smin_img(colwidth*rowwidth,0);
+      std::vector<float> smax_img(colwidth*rowwidth,0);      
+      
+      for (int itp=0; itp<(int)tplist.size(); itp++) {
+        auto const& tp = tplist[itp];
+        // change (col,row) from original image to mask image (with padding)
+        // then add kernal shift
+        int icol = (int)tp.col-col_origin;
+        int irow = (int)tp.row-row_origin;
+        smin_img[icol*rowwidth+irow] = tp.smin;
+        smax_img[icol*rowwidth+irow] = tp.smax;          
+      }      
+
       // kernal loop, making mask
       // trying to write in a way that is easy to accelerate
       int N = (2*dcol+1)*(2*drow+1); // number of elements in kernel
@@ -553,6 +709,7 @@ namespace reco {
       // parallelize masking with block kernel
       float pixsum = 0.;
       float masksum = 0.;
+
       #pragma omp parallel for         
       for (int ikernel=0; ikernel<N; ikernel++) {
 
@@ -593,6 +750,31 @@ namespace reco {
       }
 
       planesum_v[p] = pixsum;
+
+      // now get the dx
+      float seen_smin = 1e9;
+      float seen_smax = -1e9;
+      
+      // find smin and smax along path
+      for (size_t ii=0; ii<mask.size(); ii++ ) {
+        if ( mask[ii]>0 ) {
+          int ic = ii/rowwidth;
+          int ir = ii%rowwidth;
+          //_debug_crop_v.back().SetBinContent(ic+1,ir+1,1.0);            
+          float pix_smin = smin_img[ic*rowwidth+ir];
+          float pix_smax = smax_img[ic*rowwidth+ir];
+          if ( pix_smin>0 && seen_smin>pix_smin ) {
+            seen_smin = pix_smin;
+          }
+          if ( pix_smax>0 && seen_smax<pix_smax ) {
+            seen_smax = pix_smax;
+          }
+        }
+      }
+      
+      float ds = seen_smax - seen_smin;
+      if ( ds>0 && ds<10.0 )
+        planesum_v[p] /= ds;
       
     }//end of plane loop
     
@@ -682,7 +864,7 @@ namespace reco {
 
 
       // dump
-      if ( true ) {
+      if ( false ) {
         LARCV_DEBUG() << "[plane " << p << "] trunk pixel list ------------------" << std::endl;
         for ( auto& tp : flist ) {
           LARCV_DEBUG() << " [" << tp.col << "," << tp.row << "] smin=" << tp.smin << " smax=" << tp.smax << std::endl;
@@ -1015,10 +1197,10 @@ namespace reco {
       if ( rowbounds[1]<tp.row || rowbounds[1]<0 )
         rowbounds[1] = tp.row;
 
-      LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
-		    << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
-		    << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
-		    << std::endl;      
+      // LARCV_DEBUG() << "tp[" << tp.col << "," << tp.row << "] "
+      //   	    << " colbounds={" << colbounds[0] << "," << colbounds[1] << "}"
+      //   	    << " rowbounds={" << rowbounds[0] << "," << rowbounds[1] << "}"
+      //   	    << std::endl;      
     }
 
     // crop width with padding added
@@ -1150,6 +1332,10 @@ namespace reco {
   void ShowerBilineardEdx::bindVariablesToTree( TTree* outtree )
   {
     outtree->Branch( "pixsum_dqdx_v", &_pixsum_dqdx_v );
+    outtree->Branch( "best_pixsum_dqdx", &_best_pixsum_dqdx );
+    outtree->Branch( "best_pixsum_plane", &_best_pixsum_plane );
+    outtree->Branch( "best_pixsum_ngood", &_best_pixsum_ngood );
+    outtree->Branch( "best_pixsum_ortho", &_best_pixsum_ortho );
     outtree->Branch( "bilin_dqdx_v",  &_bilin_dqdx_v );
     outtree->Branch( "shower_dir", &_shower_dir );
     outtree->Branch( "plane_dqdx_seg_vv", &_plane_dqdx_seg_v );
@@ -1588,6 +1774,89 @@ namespace reco {
     
   }
 
+  std::vector<larcv::Image2D>
+  ShowerBilineardEdx::maskTrackPixels( const std::vector<larcv::Image2D>& adc_v,
+                                       const larlite::track& shower_trunk,
+                                       const larflow::reco::NuVertexCandidate& nuvtx )
+  {
+
+    ClusterImageMask masker; // class contains functions to mask pixels along track object
+
+    // create blank images. will add track mask to this
+    std::vector<larcv::Image2D> mask_v;
+    for ( auto const& adc : adc_v ) {
+      larcv::Image2D mask( adc.meta() );
+      mask.paint(0.0);
+      mask_v.emplace_back( std::move(mask) );
+    }
+
+    // could do this two ways: use track cluster or fitted track ...
+    for ( auto const& track : nuvtx.track_v ) {
+
+      // don't mask colinear tracks
+      float dist1 = 0;
+      float dist2 = 0;
+      auto const& tstart = track.LocationAtPoint(0);
+      auto const& tend   = track.LocationAtPoint( (int)track.NumberTrajectoryPoints()-1 );
+      auto const& sstrt  = shower_trunk.LocationAtPoint(0);
+      auto const& send   = shower_trunk.LocationAtPoint(1);
+      std::vector<float> tdir(3,0);
+      std::vector<float> sdir(3,0);
+      float tlen = 0.;
+      float slen = 0.;
+      for (int i=0; i<3; i++) {
+        dist1 += ( tstart[i]-sstrt[i] )*( tstart[i]-sstrt[i] );
+        dist2 += ( tend[i]-sstrt[i] )*( tend[i]-sstrt[i] );        
+        tdir[i] = tend[i]-tstart[i];
+        tlen += tdir[i]*tdir[i];
+        sdir[i] = send[i]-sstrt[i];
+        slen += sdir[i]*sdir[i];
+      }
+      if ( tlen>0 ) {
+        tlen = sqrt(tlen);
+        for (int i=0; i<3; i++)
+          tdir[i] /= tlen;
+      }
+      if ( slen>0 ) {
+        slen = sqrt(slen);
+        for (int i=0; i<3; i++) {
+          sdir[i] /= slen;
+        }
+      }
+
+      float dist = (dist1<dist2) ? dist1 : dist2;
+      
+      float cosdir = 0.;
+      for (int i=0; i<3; i++)
+        cosdir += tdir[i]*sdir[i];
+
+      LARCV_DEBUG() << "track: cosdir=" << cosdir << " dist1=" << dist1 << " dist2=" << dist2 << " dist=" << dist << std::endl;
+
+      if ( fabs(cosdir)<0.95 || dist>10 ) {
+        masker.maskTrack( track, adc_v, mask_v, 1.0, 2, 4, 0.1, 0.3 );        
+      }
+    }
+
+    // create masked images. will add track mask to this
+    std::vector<larcv::Image2D> track_removed_v;
+    for ( size_t p=0; p<adc_v.size(); p++) {
+      auto const& adc  = adc_v[p];
+      auto const& mask = mask_v[p];
+      larcv::Image2D removed( adc );
+      auto const& data_v = adc.as_vector();
+      auto const& m_v    = mask.as_vector();
+      auto& removed_v    = removed.as_mod_vector();
+      for (size_t i=0; i<data_v.size(); i++) {
+        if ( m_v[i]==0 )
+          removed_v[i] = data_v[i];
+        else
+          removed_v[i] = 0.0;
+      }
+      track_removed_v.emplace_back( std::move(removed) );
+    }
+    
+    return track_removed_v;
+  }
   
 }
 }
