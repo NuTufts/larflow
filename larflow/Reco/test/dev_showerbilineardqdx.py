@@ -62,6 +62,7 @@ if args.has_mc:
     ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
     ioll.add_in_filename( args.input_dlmerged )
     ioll.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+    ioll.set_data_to_read( larlite.data.kMCTrack, "mcreco" )    
     ioll.open()
 
 # OPEN VERTEX RECO FILE
@@ -115,6 +116,7 @@ for ientry in range(start_entry,end_entry):
     if args.has_mc:
         ioll.go_to(ientry)
         ev_mcshower = ioll.get_data( larlite.data.kMCShower, "mcreco" )
+        ev_mctrack  = ioll.get_data( larlite.data.kMCTrack,  "mcreco" )        
     
 
     if PLOTME:
@@ -237,6 +239,13 @@ for ientry in range(start_entry,end_entry):
                             true_matched_pixsum[0] = matched_algo._best_pixsum_dqdx
                     except:
                         print("[ERROR] exception thrown from matched_algo.matchMCShowerAndProcess")
+                        pass
+
+                    try:
+                        algo.checkForOverlappingPrimary( ev_mctrack, ev_mcshower )
+                    except Exception as e:
+                        print("[ERROR] excpetion from checkForOverlappingPrimary: ")
+                        print(e)
                         pass
                     
                         

@@ -13,6 +13,7 @@
 #include "DataFormat/pcaxis.h"
 #include "DataFormat/track.h"
 #include "DataFormat/mcshower.h"
+#include "DataFormat/mctrack.h"
 #include "LArUtil/SpaceChargeMicroBooNE.h"
 #include "NuVertexCandidate.h"
 
@@ -228,6 +229,10 @@ namespace reco {
                                   const larflow::reco::NuVertexCandidate& nuvtx,                                                    
                                   const std::vector<larlite::mcshower>& mcshower_v );
 
+    float _true_max_primary_cos;
+    void checkForOverlappingPrimary( const larlite::event_mctrack& ev_mctrack,
+                                     const larlite::event_mcshower& ev_mcshower );    
+    
   private:
     
     static int ndebugcount;

@@ -7,6 +7,7 @@
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
 #include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
+#include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "geofuncs.h"
 #include "ClusterImageMask.h"
 
@@ -73,6 +74,7 @@ namespace reco {
     _true_dir_cos = -2.0;
     _true_match_pdg = 0;
     _true_min_index = -1;
+    _true_max_primary_cos = -2;
     
   }
   
@@ -1394,6 +1396,7 @@ namespace reco {
     outtree->Branch( "true_min_feat_dist", &_true_min_feat_dist );
     outtree->Branch( "true_vertex_err_dist", &_true_vertex_err_dist );
     outtree->Branch( "true_dir_cos", &_true_dir_cos );
+    outtree->Branch( "true_max_primary_cos", &_true_max_primary_cos );    
   }
 
   void ShowerBilineardEdx::maskPixels( int plane, TH2D* hist )
@@ -1905,6 +1908,116 @@ namespace reco {
     larlite::pcaxis dummy_pca;
 
     processShower( dummy_cluster, trunk, dummy_pca, adc_v, nuvtx );
+  }
+
+  void ShowerBilineardEdx::checkForOverlappingPrimary( const larlite::event_mctrack& ev_mctrack,
+                                                       const larlite::event_mcshower& ev_mcshower )
+  {
+    _true_max_primary_cos = -2;
+
+    if ( _true_min_index < 0 ) {
+      LARCV_DEBUG() << "No matched mcshower to reco shower (index=" << _true_min_index << "). return." << std::endl;
+      // no match
+      return;
+    }
+    LARCV_DEBUG() << "Matching shower index: " << _true_min_index << " (of " << ev_mcshower.size() << " mcshowers)" << std::endl;    
+
+    auto const& shower = ev_mcshower.at( _true_min_index );
+
+    ublarcvapp::mctools::TruthTrackSCE       track_maker( _psce );
+    ublarcvapp::mctools::TruthShowerTrunkSCE trunk_maker( _psce );
+    larlite::track trunk = trunk_maker.applySCE(shower);
+    
+    const TVector3& start = trunk.LocationAtPoint(0);
+    const TVector3& shower_dir = trunk.DirectionAtPoint(0);
+
+    int noverlapping = 0;
+    int closest_track_idx = -1;
+    float closest_track_cos = -2;
+    
+    // check track
+    LARCV_DEBUG() << "search mctracks (N=" << ev_mctrack.size() << ")" << std::endl;
+    for ( int itrack=0; itrack<(int)ev_mctrack.size(); itrack++ ) {
+
+      const larlite::mctrack& track = ev_mctrack.at(itrack);
+      if (track.Origin()!=1)
+        continue; // consider neutrino interaction tracks only
+
+      larlite::track track_sce = track_maker.applySCE( track );
+
+      if ( track_sce.NumberTrajectoryPoints()==0 )
+        continue;           
+
+      LARCV_DEBUG() << "mctrack[" << itrack << "] n=" << track_sce.NumberTrajectoryPoints() << std::endl;
+
+      const TVector3& track_cand_start = track_sce.LocationAtPoint(0);
+      const TVector3& track_cand_dir   = track_sce.DirectionAtPoint(0);
+
+      float vtx_dist = 0.;
+      float cosdir = 0.;
+      float showerlen = 0.;
+      float tracklen = 0.;
+      for (int i=0; i<3; i++) {
+        vtx_dist  += ( track_cand_start[i] - start[i] )*( track_cand_start[i] - start[i] );
+        cosdir    += track_cand_dir[i]*shower_dir[i];
+        showerlen += shower_dir[i]*shower_dir[i];
+        tracklen  += track_cand_dir[i]*track_cand_dir[i];
+      }
+      if (showerlen*tracklen>0 )
+        cosdir /= sqrt(showerlen*tracklen);
+
+      if ( vtx_dist<1.0 && cosdir>closest_track_cos ) {
+        closest_track_cos = cosdir;
+        closest_track_idx = itrack;
+        noverlapping++;
+      }
+    }
+
+    int closest_shower_idx = -1;
+    float closest_shower_cos = -2;
+    
+    // check shower
+    LARCV_DEBUG() << "search mcshowers" << std::endl;    
+    for ( int ishower=0; ishower<(int)ev_mcshower.size(); ishower++ ) {
+
+      if (ishower==_true_min_index)
+        continue; // don't compare against self
+      
+      auto const& xshower = ev_mcshower.at(ishower);
+      if (xshower.Origin()!=1)
+        continue; // consider neutrino interaction showers only
+
+      larlite::track xshower_sce = trunk_maker.applySCE( xshower );
+
+      const TVector3& xshower_cand_start = xshower_sce.LocationAtPoint(0);
+      const TVector3& xshower_cand_dir   = xshower_sce.DirectionAtPoint(0);
+
+      float vtx_dist = 0.;
+      float cosdir = 0.;
+      float showerlen = 0.;
+      float xshowerlen = 0.;
+      for (int i=0; i<3; i++) {
+        vtx_dist  += ( xshower_cand_start[i] - start[i] )*( xshower_cand_start[i] - start[i] );
+        cosdir    += xshower_cand_dir[i]*shower_dir[i];
+        showerlen += shower_dir[i]*shower_dir[i];
+        xshowerlen  += xshower_cand_dir[i]*xshower_cand_dir[i];
+      }
+      if (xshowerlen*showerlen>0 )
+        cosdir /= sqrt(xshowerlen*showerlen);
+
+      if ( vtx_dist<9.0 && cosdir>closest_shower_cos ) {
+        closest_shower_cos = cosdir;
+        closest_shower_idx = ishower;
+        noverlapping++;
+      }
+    }
+
+    _true_max_primary_cos = ( closest_shower_cos>closest_track_cos ) ? closest_shower_cos: closest_track_cos;
+    
+    LARCV_DEBUG() << "Num overlapping: " << noverlapping << std::endl;
+    LARCV_DEBUG() << "closest_track_idx="  << closest_track_idx  << " closest_track_cos=" << closest_track_cos << std::endl;
+    LARCV_DEBUG() << "closest_shower_idx=" << closest_shower_idx << " closest_shower_idx=" << closest_shower_idx << std::endl;
+      
   }
 
   void ShowerBilineardEdx::matchMCShowerAndProcess( const larlite::larflowcluster& reco_shower,
