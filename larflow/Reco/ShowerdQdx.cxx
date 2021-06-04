@@ -87,9 +87,9 @@ namespace reco {
    * @brief calculate dq/dx for a given shower
    *
    */
-  void ShowerdQdx::processShower( larlite::larflowcluster& shower,
-                                  larlite::track& trunk,
-                                  larlite::pcaxis& pca,
+  void ShowerdQdx::processShower( const larlite::larflowcluster& shower,
+                                  const larlite::track& trunk,
+                                  const larlite::pcaxis& pca,
                                   const std::vector<larcv::Image2D>& adc_v,
                                   const larflow::reco::NuVertexCandidate& nuvtx )
   {
@@ -1909,6 +1909,27 @@ namespace reco {
     }
   }
   
+  larlite::track ShowerdQdx::makeLarliteTrackdqdx(int plane)
+  {
+    auto const& seg_v  = _plane_seg_dedx_v.at(plane);
+    TVector3 vdir;
+    for (int i=0; i<3; i++)
+      vdir[i] = _shower_dir[i];
+    
+    larlite::track ll;
+    ll.reserve(seg_v.size());
+    for (int ipt=0; ipt<(int)seg_v.size(); ipt++) {
+      auto const& seg = seg_v[ipt];
+      TVector3 pos3d;
+      for (int i=0; i<3; i++)
+        pos3d[i] = 0.5*( seg.endpt[0][i]+seg.endpt[1][i] );
+      std::vector<double> dqdx_v(4, seg.dqdx );
+      ll.add_vertex( pos3d );
+      ll.add_direction(vdir);
+      ll.add_dqdx( dqdx_v );
+    }
+    return ll;
+  }
   
 }
 }

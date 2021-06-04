@@ -10,16 +10,7 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
-#include "NuSelProngVars.h"
-#include "NuSelVertexVars.h"
-#include "NuSelTruthOnNuPixel.h"
-#include "NuSelShowerTrunkAna.h"
-#include "NuSelWCTaggerOverlap.h"
-#include "NuSelShowerGapAna2D.h"
-#include "NuSelUnrecoCharge.h"
-#include "NuSelCosmicTagger.h"
 #include "SplitHitsByParticleSSNet.h"
-#include "TrackForwardBackwardLL.h"
 
 namespace larflow {
 namespace reco {
@@ -547,14 +538,14 @@ namespace reco {
     std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
     LARCV_INFO() << "Make Selection Variables for " << nuvtx_v.size() << " candidates" << std::endl;
 
-    NuSelProngVars prongvars;
-    NuSelVertexVars vertexvars;
-    NuSelShowerTrunkAna showertrunkvars;
-    NuSelWCTaggerOverlap wcoverlapvars;
-    NuSelShowerGapAna2D showergapana2d;
-    NuSelUnrecoCharge   unrecocharge;
-    NuSelCosmicTagger   cosmictagger;
-    TrackForwardBackwardLL muvsproton;
+    // NuSelProngVars prongvars;
+    // NuSelVertexVars vertexvars;
+    // NuSelShowerTrunkAna showertrunkvars;
+    // NuSelWCTaggerOverlap wcoverlapvars;
+    // NuSelShowerGapAna2D showergapana2d;
+    // NuSelUnrecoCharge   unrecocharge;
+    // NuSelCosmicTagger   cosmictagger;
+    // TrackForwardBackwardLL muvsproton;
     prongvars.set_verbosity(larcv::msg::kDEBUG);
     vertexvars.set_verbosity(larcv::msg::kDEBUG);
     wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
@@ -628,7 +619,7 @@ namespace reco {
       }
       
       prongvars.analyze( nuvtx, nusel );
-      showertrunkvars.analyze( nuvtx, nusel, iolcv );
+      showertrunkvars.analyze( nuvtx, nusel, iolcv, ioll );
       vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
       wcoverlapvars.analyze( nuvtx, nusel, iolcv );
       unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );

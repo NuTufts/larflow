@@ -50,7 +50,7 @@ namespace reco {
     vtx_pass[kSecondShower]  = (nhits_second_shower<100); // [6]
     vtx_pass[kVertexAct]     = (nusel.max_track_length>3.0 || nusel.vertex_charge_per_pixel>50.0); // [7]
     vtx_pass[kRecoFV]        = (reco_dwall>5.0); // [8]
-    vtx_pass[kShowerLLCut]   = (nusel.largest_shower_avedqdx > 20.0 && nusel.largest_shower_avedqdx>20 ); // [9]
+    vtx_pass[kShowerLLCut]   = (nusel.largest_shower_avedqdx < 450.0); // [9]
     vtx_pass[kWCPixel]       = (nusel.frac_allhits_on_cosmic<0.5); // [10]
     vtx_pass[kHadronic]      = (nusel.max_proton_pid<100 && nusel.vertex_hip_fraction>0.05) || (nusel.max_track_length<=3.0 && nusel.vertex_charge_per_pixel>50.0); // [11]
     vtx_pass[kAllCuts]       = true;

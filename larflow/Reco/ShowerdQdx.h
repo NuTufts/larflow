@@ -33,9 +33,9 @@ namespace reco {
     ShowerdQdx();
     virtual ~ShowerdQdx();
 
-    void processShower( larlite::larflowcluster& shower,
-                        larlite::track& trunk,
-                        larlite::pcaxis& pca,
+    void processShower( const larlite::larflowcluster& shower,
+                        const larlite::track& trunk,
+                        const larlite::pcaxis& pca,
                         const std::vector<larcv::Image2D>& adc_v,
                         const larflow::reco::NuVertexCandidate& nuvtx );
 
@@ -67,6 +67,8 @@ namespace reco {
 
     TGraph makeSegdQdxGraphs(int plane);
 
+    larlite::track makeLarliteTrackdqdx(int plane);
+    
     std::vector<larcv::Image2D> maskTrackPixels( const std::vector<larcv::Image2D>& adc_v,
                                                  const larlite::track& shower_trunk,
                                                  const larflow::reco::NuVertexCandidate& nuvtx );

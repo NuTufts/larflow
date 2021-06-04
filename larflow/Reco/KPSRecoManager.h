@@ -41,7 +41,17 @@
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
 #include "CosmicProtonFinder.h"
+
 #include "NuSel1e1pEventSelection.h"
+#include "NuSelProngVars.h"
+#include "NuSelVertexVars.h"
+#include "NuSelTruthOnNuPixel.h"
+#include "NuSelShowerTrunkAna.h"
+#include "NuSelWCTaggerOverlap.h"
+#include "NuSelShowerGapAna2D.h"
+#include "NuSelUnrecoCharge.h"
+#include "NuSelCosmicTagger.h"
+#include "TrackForwardBackwardLL.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -110,6 +120,16 @@ namespace reco {
 
     // Selection Variable Modules
     LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
+
+    NuSelProngVars prongvars;
+    NuSelVertexVars vertexvars;
+    NuSelShowerTrunkAna showertrunkvars;
+    NuSelWCTaggerOverlap wcoverlapvars;
+    NuSelShowerGapAna2D showergapana2d;
+    NuSelUnrecoCharge   unrecocharge;
+    NuSelCosmicTagger   cosmictagger;
+    TrackForwardBackwardLL muvsproton;
+    
 
     // Event Selection modules (only for development)
     NuSel1e1pEventSelection _eventsel_1e1p;
