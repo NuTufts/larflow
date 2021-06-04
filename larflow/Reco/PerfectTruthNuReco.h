@@ -48,7 +48,6 @@ namespace reco {
                       const larlite::event_larflow3dhit& ev_lm,
                       const std::vector<larcv::Image2D>& adc_v,
                       std::vector<int>& used_v  );
-    
 
     larutil::SpaceChargeMicroBooNE* _psce;
     
