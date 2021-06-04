@@ -1,6 +1,6 @@
-/** \defgroup Reco Reco
+/** @defgroup Reco Reco
  *
- * \brief Algorithms that use Network outputs to reconstruct the interactions in the TPC
+ * @brief Algorithms that use Network outputs to reconstruct the interactions in the TPC
  *
  *
  * cint script to generate libraries and python bindings.
@@ -58,6 +58,7 @@
 #pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;
 #pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
 #pragma link C++ class larflow::reco::ShowerBilineardEdx+;
+#pragma link C++ class larflow::reco::ShowerdQdx+;
 #pragma link C++ class larflow::reco::CosmicProtonFinder+;
 #pragma link C++ class larflow::reco::PerfectTruthNuReco+;
 #pragma link C++ class larflow::reco::TrackForwardBackwardLL+;

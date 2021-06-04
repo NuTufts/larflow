@@ -73,13 +73,13 @@ start_entry = 0
 end_entry = nentries
 
 # Setup algorithm to run on reco showers
-reco_algo = larflow.reco.ShowerBilineardEdx()
-reco_algo.set_verbosity( larcv.msg.kDEBUG )
+reco_algo = larflow.reco.ShowerdQdx()
+reco_algo.set_verbosity( larcv.msg.kINFO )
 # Setup algorithm to run on perfect reconstruction showers
-perfect_algo = larflow.reco.ShowerBilineardEdx()
-perfect_algo.set_verbosity( larcv.msg.kDEBUG )
+perfect_algo = larflow.reco.ShowerdQdx()
+perfect_algo.set_verbosity( larcv.msg.kINFO )
 # Setup algorithm for calculating dq/dx for best match mcshower
-matched_algo = larflow.reco.ShowerBilineardEdx()
+matched_algo = larflow.reco.ShowerdQdx()
 # Truth data for analysis
 mcdata = ublarcvapp.mctools.LArbysMC()
 
@@ -116,8 +116,7 @@ for ientry in range(start_entry,end_entry):
     if args.has_mc:
         ioll.go_to(ientry)
         ev_mcshower = ioll.get_data( larlite.data.kMCShower, "mcreco" )
-        ev_mctrack  = ioll.get_data( larlite.data.kMCTrack,  "mcreco" )        
-    
+        ev_mctrack  = ioll.get_data( larlite.data.kMCTrack,  "mcreco" )     
 
     if PLOTME:
         hist_v = larcv.rootutils.as_th2d_v( adc_v, "histentry%d"%ientry )
@@ -231,8 +230,8 @@ for ientry in range(start_entry,end_entry):
                     try:
                         matched_algo.matchMCShowerAndProcess( shower, trunk, shpca, adc_v, nuvtx, ev_mcshower )
                         if matched_algo._pixsum_dqdx_v.size()>0:
-                            print("matched dq/dx: ",matched_algo._pixsum_dqdx_v[0]," ",matched_algo._pixsum_dqdx_v[1]," ",matched_algo._pixsum_dqdx_v[2])
-                            print("matched dq/dx: ",matched_algo._best_pixsum_dqdx)
+                            #print("matched dq/dx: ",matched_algo._pixsum_dqdx_v[0]," ",matched_algo._pixsum_dqdx_v[1]," ",matched_algo._pixsum_dqdx_v[2])
+                            #print("matched dq/dx: ",matched_algo._best_pixsum_dqdx)
                             true_matched_pixsum_v.resize(3)
                             for iv in range(3):
                                 true_matched_pixsum_v[iv] = matched_algo._pixsum_dqdx_v[i]

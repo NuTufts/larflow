@@ -19,6 +19,7 @@ set( HEADERS cluster_functions.h
   CosmicTrackBuilder.h
   ShowerRecoKeypoint.h
   ShowerBilineardEdx.h
+  ShowerdQdx.h  
   NuVertexCandidate.h
   TrackOTFit.h
   ProjPixFitter.h    
@@ -64,6 +65,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KeypointFilterByWCTagger.cxx
   ShowerRecoKeypoint.cxx
   ShowerBilineardEdx.cxx
+  ShowerdQdx.cxx  
   TrackClusterBuilder.cxx
   CosmicTrackBuilder.cxx
   NuVertexCandidate.cxx

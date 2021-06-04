@@ -1,5 +1,5 @@
-#ifndef __LARFLOW_RECO_SHOWER_BILINEAR_DEDX_H__
-#define __LARFLOW_RECO_SHOWER_BILINEAR_DEDX_H__
+#ifndef __LARFLOW_RECO_SHOWER_DQDX_H__
+#define __LARFLOW_RECO_SHOWER_DQDX_H__
 
 #include <vector>
 #include <map>
@@ -21,19 +21,17 @@ namespace larflow {
 namespace reco {
 
   /**
-   * @class ShowerBilineardEdx
+   * @class ShowerBilineardQdx
    * @ingroup Reco
+   *
+   * Calculate the dq/dx using the beginning of the shower trunk.
+   *
    */
-  class ShowerBilineardEdx : public larcv::larcv_base {
+  class ShowerdQdx : public larcv::larcv_base {
   public:
     
-    ShowerBilineardEdx();
-    virtual ~ShowerBilineardEdx();
-
-    struct Result_t {
-      std::vector<float> trunk_dedx_planes;
-      std::vector< std::vector<float> > dedx_curve_planes;
-    };
+    ShowerdQdx();
+    virtual ~ShowerdQdx();
 
     void processShower( larlite::larflowcluster& shower,
                         larlite::track& trunk,
@@ -44,14 +42,9 @@ namespace reco {
     void processMCShower( const larlite::mcshower& shower,
                           const std::vector<larcv::Image2D>& adc_v,
                           const larflow::reco::NuVertexCandidate& nuvtx );
-    
 
-    float aveBilinearCharge_with_grad( const larcv::Image2D& img,
-                                       std::vector<float>& start3d,
-                                       std::vector<float>& end3d,
-                                       int npts,
-                                       float avedQdx,
-                                       std::vector<float>& grad );
+    void clear();    
+    
 
     float colcoordinate_and_grad( const std::vector<float>& pos,
                                   const int plane,
@@ -61,11 +54,6 @@ namespace reco {
     float rowcoordinate_and_grad( const std::vector<float>& pos,
                                   const larcv::ImageMeta& meta,
                                   std::vector<float>& grad );
-
-    float bilinearPixelValue_and_grad( std::vector<float>& pos3d,
-                                       const int plane,
-                                       const larcv::Image2D& img,
-                                       std::vector<float>& grad );
     
     std::vector<float> sumChargeAlongTrunk( const std::vector<float>& start3d,
                                             const std::vector<float>& end3d,
@@ -83,17 +71,14 @@ namespace reco {
                                                  const larlite::track& shower_trunk,
                                                  const larflow::reco::NuVertexCandidate& nuvtx );
 
-    void clear();
+
     
-    // for debug
-    std::vector< std::vector<TGraph> > bilinear_path_vv;
-    std::vector< float > _shower_dir;
-    std::vector< float > _pixsum_dqdx_v;
-    std::vector< float > _bilin_dqdx_v;
-    float _best_pixsum_dqdx;
-    int   _best_pixsum_plane;
-    float _best_pixsum_ngood;
-    float _best_pixsum_ortho;
+    std::vector< std::vector<TGraph> > trunk_tgraph_vv; ///< trunk projected into image planes, for debug
+    std::vector< float > _shower_dir;    ///< direction of the last shower processed
+    std::vector< float > _pixsum_dqdx_v; ///< dq/dx measured on each plane by summing pixels
+    float _best_pixsum_dqdx;   ///< dq/dx from "best" plane, chosen using hueristic
+    int   _best_pixsum_plane;  ///< plane from which _best_pixsum_dqdx came from
+    float _best_pixsum_ortho;  ///< cosine between _shower_dir and the orthonormal vector of the plane _best_pixsum_dqdx came from
     
     // pixel lists, sorted by position on trunk
     struct TrunkPix_t {
@@ -121,12 +106,11 @@ namespace reco {
           return true;
         return false;
       };
-    };
-    typedef std::vector<TrunkPix_t> TrunkPixList_t;
-    
-    typedef std::map< std::pair<int,int>, TrunkPix_t > TrunkPixMap_t;
-    std::vector< TrunkPixMap_t > _visited_v;
-    std::vector< TrunkPixList_t > _plane_trunkpix_v;
+    }; ///< data for wire plane pixels through which a given shower drunk moves through
+    typedef std::vector<TrunkPix_t> TrunkPixList_t; ///< a collection of TrunkPix_t
+    typedef std::map< std::pair<int,int>, TrunkPix_t > TrunkPixMap_t; // provide map to look up pixel location to TrunkPix data
+    std::vector< TrunkPixMap_t >    _visited_v; ///< pixel map for each plane
+    std::vector< TrunkPixList_t >   _plane_trunkpix_v; ///< collection of TrunkPix_t for each plane
     void _createDistLabels( const std::vector<float>& start3d,
                             const std::vector<float>& end3d,
                             const std::vector<larcv::Image2D>& img_v,
@@ -144,12 +128,12 @@ namespace reco {
       float pixsum;
       float dqdx;
       float ds;
-    };
-    typedef std::vector<Seg_t> SegList_t;
-    std::vector< SegList_t > _plane_seg_dedx_v;
-    std::vector< std::vector<float> > _plane_dqdx_seg_v;
-    std::vector< std::vector<float> > _plane_s_seg_v;        
-    void _makeSegments( float starting_s );
+    }; ///< line segment along the trunk over which we will measure dq/dx
+    typedef std::vector<Seg_t> SegList_t; ///< collecton of segments
+    std::vector< SegList_t > _plane_seg_dedx_v;           ///< collection of segments for each plane
+    std::vector< std::vector<float> > _plane_dqdx_seg_v;  ///< the dq/dx measured by each segment for each plane's collection
+    std::vector< std::vector<float> > _plane_s_seg_v;     ///< the distance of the segment from the start of the trunk
+    void _makeSegments( const float starting_s, const float seg_size );
     void _sumChargeAlongSegments( const std::vector<float>& start3d,
                                   const std::vector<float>& end3d,
                                   const std::vector<larcv::Image2D>& img_v,
@@ -200,7 +184,7 @@ namespace reco {
                          float& plane_best_start);
                          
                          
-    float _sumChargeAlongOneSegment( ShowerBilineardEdx::Seg_t& seg,
+    float _sumChargeAlongOneSegment( ShowerdQdx::Seg_t& seg,
                                      const int plane,
                                      const std::vector<larcv::Image2D>& img_v,
                                      const float threshold,
@@ -239,8 +223,8 @@ namespace reco {
     
   private:
     
-    static int ndebugcount;
-    static larutil::SpaceChargeMicroBooNE* _psce;
+    static int ndebugcount; ///< increment in order to give th2d unique names -- for debugging
+    static larutil::SpaceChargeMicroBooNE* _psce; ///< utility to apply space charge to truth information
     
   };
   
