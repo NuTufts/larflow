@@ -179,7 +179,16 @@ namespace reco {
     for (int i=0; i<3; i++) {
       end3cm[i] = fstart[i] + pixsum_dist*_shower_dir[i];
     }
-    _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3 );
+    try {
+      _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3 );
+    }
+    catch (std::exception& e) {
+      LARCV_WARNING() << "Error calculating dq/dx: " << e.what() << std::endl;
+      _pixsum_dqdx_v.resize( adc_v.size(), 0 );
+      for (int p=0; p<(int)adc_v.size(); p++)
+        _pixsum_dqdx_v[p] = 0.;
+    }
+    
     for (size_t p=0; p<adc_v.size(); p++) {
       LARCV_INFO() << "Plane[" << p << "] " << pixsum_dist << " cm trunk dq/dx: " << _pixsum_dqdx_v[p] << " pixsum/cm" << std::endl;
     }
@@ -510,7 +519,9 @@ namespace reco {
                     << std::endl;
 
       if ( colwidth<=0 || rowwidth<=0 ) {
-        throw std::runtime_error("Bad cropped window size");
+        LARCV_WARNING() << "[ShowerdQdx::sumChargeAlongTrunk] Plane[" << p << "] Bad cropped window size" << std::endl;
+        planesum_v[p] = 0.0;        
+        continue;
       }
 
       // make data array
@@ -876,7 +887,13 @@ namespace reco {
                     << std::endl;
 
       if ( colwidth<=0 || rowwidth<=0 ) {
-        throw std::runtime_error("Bad cropped window size");
+        char zdebughist[200];
+        sprintf(zdebughist,"showerbilinear_crop_plane%d_ii%d",p,ndebugcount);
+        ndebugcount++;
+        TH2D hcrop(zdebughist,"",1,0,1,1,0,1);
+        _debug_crop_v.emplace_back( std::move(hcrop) );
+        LARCV_WARNING() << "[ShowerdQdx::_sumChargeAlongSegments] Plane[" << p << "] Bad cropped window size" << std::endl;
+        continue;
       }
 
       // make data array
@@ -1073,7 +1090,7 @@ namespace reco {
                   << std::endl;
 
     if ( colwidth<=0 || rowwidth<=0 ) {
-      throw std::runtime_error("Bad cropped window size");
+      throw std::runtime_error("[ShowerdQdx::_sumChargeAlongOneSegment] Bad cropped window size");
     }
 
     // make data array
@@ -1417,9 +1434,17 @@ namespace reco {
 	LARCV_DEBUG() << "Correct bad segment trunkpix index. itp2=" << seg.itp2 << std::endl;
 	seg.itp2 = (int)tplist.size()-1;
       }
-      
-      seg.dqdx = _sumChargeAlongOneSegment( seg, p, adc_v, 10.0, 1, 3 );
-      LARCV_DEBUG() << "Plane[" << p << "] range dqdx s=(" << s_min << "," << s_max << ") dqdx=" << seg.dqdx << std::endl;
+
+      try {
+        seg.dqdx = _sumChargeAlongOneSegment( seg, p, adc_v, 10.0, 1, 3 );
+        LARCV_DEBUG() << "Plane[" << p << "] range dqdx s=(" << s_min << "," << s_max << ") dqdx=" << seg.dqdx << std::endl;        
+      }
+      catch (std::exception& e) {
+        LARCV_WARNING() << "Plane[" << p << "] Error calculating dq/dx along segment: " << e.what() << std::endl;
+        seg.dqdx = 0.0;
+        seg.ds = 0.;
+      }
+
 
       plane_dqdx_v[p] = seg.dqdx;
       plane_dx_v[p]   = seg.ds;
