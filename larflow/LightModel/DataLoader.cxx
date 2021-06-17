@@ -203,7 +203,7 @@ namespace lightmodel {
 
       auto const& clusterdata = data_v[ibatch];
       size_t nvoxels = clusterdata.voxel_row_v.size(); // N
-      std::cout << "The N for this batch is: " << nvoxels << std::endl;
+      std::cout << "The number of voxels N for this cluster is: " << nvoxels << std::endl;
 
       // fill coord tensor
       for (size_t i = 0; i < nvoxels; i++ ) {
@@ -272,10 +272,10 @@ namespace lightmodel {
 
       std::cout << "batch_size: " << batch_size << std::endl;
       std::cout << "data_batch.size(): " << data_batch.size() << std::endl;
-      
+
       // try shuffle, dumb
       try {
-	std::cout << "_num_entries: " <<  _num_entries << std::endl;
+	//	std::cout << "_num_entries: " <<  _num_entries << std::endl;
 	_current_entry = _rand->Integer(_num_entries);
 	auto data = getTreeEntry(_current_entry);
 	if (data.voxel_row_v.size() > 0) 

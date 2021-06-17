@@ -42,8 +42,8 @@ input_files = rt.std.vector("std::string")()
 input_files.push_back(args.input_file)
 
 # will loop through to create a batch this many times 
-nentries = 2
-batchsize = 16
+nentries = 1
+batchsize = 2
 
 dataloader = larflow.lightmodel.DataLoader(input_files)
 dataloader.load_entry(ientry)
