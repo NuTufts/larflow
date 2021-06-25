@@ -9,7 +9,7 @@ import sparseconvnet as scn
 class LightModelNet(nn.Module):
 
 #    def __init__(self,dimension):
-    def __init__(self,dimension, nPlanes=1):
+    def __init__(self,dimension, showSizes, nPlanes=1):
 #    def __init__(self, dimension, reps, nPlanes=1, nin_features, nout_features, showSizes=True):
 
         """
@@ -79,18 +79,21 @@ class LightModelNet(nn.Module):
         self.m = m
     
         self.dimension = dimension
+        self._showSizes = showSizes
 
     def forward( self, coord_t, feat_t, flash_t):
         if self._showSizes:
             print "coord_t ",coord_t.shape
             print "input_t ",feat_t.shape
-        x=(coord_t,feat_t,batchsize)
+        x=(coord_t,feat_t)
+        x=self.m(x)
+        return x
 
 # to run this script itself:
 if __name__ == "__main__":
     
 #    dimlen = 16
-    net = LightModelNet(3)
+    net = LightModelNet(3, True)
 
     print "Just printing the net model: "
     print net
