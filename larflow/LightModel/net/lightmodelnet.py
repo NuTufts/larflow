@@ -80,13 +80,19 @@ class LightModelNet(nn.Module):
     
         self.dimension = dimension
         self._showSizes = showSizes
-
+        self.mode = 0
+        
+        self.input = scn.InputLayer(self.dimension, self.mode)
+        self.output = scn.SparseToDense(self.dimension, self.mode)
+        
     def forward( self, coord_t, feat_t, flash_t):
         if self._showSizes:
             print "coord_t ",coord_t.shape
             print "input_t ",feat_t.shape
         x=(coord_t,feat_t)
+        x=self.input(x)
         x=self.m(x)
+        x=self.output(x)
         return x
 
 # to run this script itself:
