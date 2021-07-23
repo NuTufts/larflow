@@ -88,8 +88,8 @@ class LightModelNet(nn.Module):
     def forward( self, coord_t, feat_t, flash_t):
         if self._showSizes:
             print "coord_t ",coord_t.shape
-            print "input_t ",feat_t.shape
-        x=(coord_t,feat_t)
+            print "feat_t ",feat_t.shape
+        x=(coord_t,feat_t,flash_t)
         x=self.input(x)
         x=self.m(x)
         x=self.output(x)

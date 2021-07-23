@@ -38,10 +38,10 @@ def load_lm_data(input_file, entry):
     # load tree
     tfile = rt.TFile(input_file,'open')
     preppedTree  = tfile.Get('preppedTree')
-    print("Got tree")
+    #print("Got tree")
 
     ientry = entry
-    print("Entry requested is: ",ientry)
+    #print("Entry requested is: ",ientry)
 
     input_files = rt.std.vector("std::string")()
     input_files.push_back(input_file)
@@ -57,9 +57,10 @@ def load_lm_data(input_file, entry):
     #dataloader.load_entry( ientry )
     #dataloader.make_arrays()
 
-        print("Starting batch number",ientry)
+        #print("Starting batch number",ientry)
         data_dict = dataloader.getTrainingDataBatch(batchsize)
-        print("hi2")
+        #print("hi2")
+        
         if data_dict:
             print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
             print("data_dict['coord_t']: ", data_dict["coord_t"])
@@ -67,7 +68,7 @@ def load_lm_data(input_file, entry):
             print("shape:", data_dict["feat_t"].shape)
             print("data_dict['flash_t']: ", data_dict["flash_t"])
             print("shape:", data_dict["flash_t"].shape)
-
+        
     # make into torch tensors
     coord_t = torch.from_numpy(np.array(data_dict["coord_t"]))
     feat_t = torch.from_numpy(np.array(data_dict["feat_t"]))
@@ -100,7 +101,7 @@ def load_lm_data(input_file, entry):
 if __name__=="__main__":
 
     # test
-    print("hi")
+    #print("hi")
     input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
     entry = 2
     
