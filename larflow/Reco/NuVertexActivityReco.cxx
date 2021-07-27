@@ -1,7 +1,10 @@
 #include "NuVertexActivityReco.h"
 #include "LArUtil/LArProperties.h"
+#include "LArUtil/Geometry.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larflow/Reco/geofuncs.h"
+
+#include "KeypointFilterByWCTagger.h"
 
 namespace larflow {
 namespace reco {
@@ -21,8 +24,35 @@ namespace reco {
     _input_hit_v.clear();
     _input_hit_origin_v.clear();
     _event_cluster_v.clear();
+
+    if ( _input_hittree_list.size()==0 ) {
     
-    // cluster
+      // filter hits
+      larcv::EventImage2D* ev_adc
+        = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
+      larcv::EventImage2D* ev_thrumu
+        = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"thrumu");
+      larlite::event_larflow3dhit* ev_lfhit
+        = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "larmatch");
+
+      KeypointFilterByWCTagger _wcfilter;
+      _wcfilter.set_verbosity( larcv::msg::kINFO );
+
+      std::vector< const larcv::Image2D* > ssnet_v; // leave empty
+      std::vector<int> kept_v( ev_lfhit->size(), 0 );
+      _wcfilter.filter_larmatchhits_using_tagged_image( ev_adc->as_vector(), ev_thrumu->as_vector(),
+                                                        ssnet_v, *ev_lfhit, kept_v );
+      larlite::event_larflow3dhit* ev_wchit
+        = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "nuvtxact_wcfiltered" );
+      for (int i=0; i<(int)ev_lfhit->size(); i++) {
+        if ( kept_v[i] )
+          ev_wchit->push_back( ev_lfhit->at(i) );
+      }
+      _input_hittree_list.push_back( "nuvtxact_wcfiltered" );
+      
+    }
+    
+    // cluster using dbscan
     makeClusters( ioll, _event_cluster_v, 0.7 );
     
     // find hot points on cluster ends
@@ -37,6 +67,8 @@ namespace reco {
     
     for (size_t iv=0; iv<vtxact_v.size(); iv++ ) {
       auto& va = vtxact_v[iv];
+
+      // collect features to select good vertex activity
       checkWireCellCosmicMask( va, iolcv );
       analyzeVertexActivityCandidates( va, _event_cluster_v, ioll, iolcv, 10.0 );
       analyzeAttachedCluster( va, _event_cluster_v, ioll, iolcv );
@@ -123,7 +155,7 @@ namespace reco {
     LARCV_INFO() << "Number of collected larmatch hits: " << _input_hit_v.size() << std::endl;
 
     cluster_v.clear();
-    larflow::reco::cluster_sdbscan_larflow3dhits( _input_hit_v, cluster_v, 2.5, 5, 20 );
+    larflow::reco::cluster_sdbscan_larflow3dhits( _input_hit_v, cluster_v, 1.0, 10, 50 );
     larflow::reco::cluster_runpca( cluster_v );
     // reindex back to original hit vector
     for ( size_t c=0; c<cluster_v.size(); c++ ) {
@@ -137,7 +169,7 @@ namespace reco {
 
     // collect input clusters
     for (size_t ic=0; ic<(int)_input_clustertree_list.size(); ic++) {
-      std::string cluster_tree_name = _input_clustertree_list[ic];
+       std::string cluster_tree_name = _input_clustertree_list[ic];
       larlite::event_larflowcluster* ev_in_cluster
         = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, cluster_tree_name );
       // re-constitute cluster objects, add hits to input collection
@@ -192,105 +224,212 @@ namespace reco {
     auto const& adc_v = ev_img->as_vector();
     int nplanes = adc_v.size();
 
+    larlite::larflowcluster dummy_cluster;
+    larlite::pcaxis         dummy_pca;
+    larflow::reco::NuVertexCandidate dummy_vtx;        
+    
     std::vector<VACandidate_t> va_candidate_v;
     
     for ( size_t idx_cluster=0; idx_cluster<cluster_v.size(); idx_cluster++ ) {
 
       auto& cluster = cluster_v[idx_cluster];
-      
-      // loop over hits, find high charge regions
-      std::vector<int> index_v;
-      
-      for ( size_t ihit=0; ihit<cluster.hitidx_v.size(); ihit++ ) {
-        // get larflow3dhit
-        auto& lfhit = _input_hit_v.at( cluster.hitidx_v[ihit] );
 
-        std::vector<float> pixsum = calcPlanePixSum( lfhit, adc_v );
+      LARCV_DEBUG() << "cluster[" << idx_cluster << "] nhits=" << cluster.points_v.size() << std::endl;
+      if ( cluster.points_v.size()<20 )
+        continue;
 
-        // now we can decide
-        float med_q = pixsum[nplanes+1];
-        float consistency = pixsum[nplanes];
-        if ( consistency>0 && consistency<0.2 && med_q>va_threshold ) {
-          index_v.push_back( cluster.hitidx_v[ihit] );
+      if ( cluster.pca_len<5.0 )
+        continue;
+
+      std::vector<float> trunk_2nd_pca_ratio(2,0);
+      std::vector<larlite::track> trunk_v = getClusterTrunks( cluster, trunk_2nd_pca_ratio );
+      for ( int itrunk=0; itrunk<(int)trunk_v.size(); itrunk++) {
+
+        if ( trunk_v[itrunk].NumberTrajectoryPoints()==0 ) continue;
+
+        if ( trunk_2nd_pca_ratio[itrunk]>0.3 ) continue;
+
+        LARCV_DEBUG() << "cluster[" << idx_cluster << "]-trunk[" << itrunk << "] "
+                      << " (" << trunk_v[itrunk].LocationAtPoint(0)[0] << "," << trunk_v[itrunk].LocationAtPoint(0)[1] << "," << trunk_v[itrunk].LocationAtPoint(0)[2] << ")"
+                      << " pca-ratio=" << trunk_2nd_pca_ratio[itrunk]
+                      << std::endl;
+
+        dqdx_algo.clear();
+        dqdx_algo.processShower( dummy_cluster, trunk_v[itrunk], dummy_pca, adc_v, dummy_vtx );
+
+        // the criterion for candidates:
+        // find max dq/dx measure on each plane within first 1 cm: should be higher than 900.0
+        // AND return to MIP level before 3 cm
+        std::vector<float> max_dqdx_1cm_v(nplanes,0);
+        std::vector<float> mip_start_v(nplanes,0);
+        for (int p=0; p<nplanes; p++) {
+          int nsegs = dqdx_algo._plane_dqdx_seg_v[p].size();
+          for (int iseg=0; iseg<nsegs; iseg++) {
+            float s = dqdx_algo._plane_s_seg_v[p][iseg];
+            float dqdx = dqdx_algo._plane_dqdx_seg_v[p][iseg];
+            if ( s>-1.0 && s<1.0 && dqdx>max_dqdx_1cm_v[p]) {
+              max_dqdx_1cm_v[p] = dqdx;
+            }
+            else if ( s>1.0 )
+              break;
+          }
+          // check if mip region starts by 3 cm
+          if ( dqdx_algo._plane_electron_srange_v[p][0]>0.0
+               && dqdx_algo._plane_electron_srange_v[p][0]<9.0 ) {
+            mip_start_v[p] = dqdx_algo._plane_electron_srange_v[p][0];
+          }
+          else {
+            mip_start_v[p] = 10.0;
+          }
+
+          LARCV_DEBUG() << "cluster[" << idx_cluster << "]-trunk[" << itrunk << "]-plane[" << p << "]: "
+                        << " maxdqdx=" << max_dqdx_1cm_v[p]
+                        << " mipstart=" << mip_start_v[p]
+                        << " nhits=" << cluster.points_v.size()
+                        << std::endl;
+          
         }
-      }//end of hit loop
+        int nplanes_good = 0;
 
-      LARCV_DEBUG() << "num high-q regions on cluster = " << index_v.size() << std::endl;
-      
-      // for high charge regions, we check if its on the edge of the pca.
-      int min_start_idx = -1;
-      int min_end_idx   = -1;
-      float min_start_dist = 1e9;
-      float min_end_dist   = 1e9;
-      for (auto& idx : index_v ) {
-        auto& lfhit = _input_hit_v.at(idx);
-
-        float start_dist = 0.;
-        float end_dist   = 0.;
-        for (int i=0; i<3; i++) {
-          start_dist += ( lfhit[i]-cluster.pca_ends_v[0][i] )*( lfhit[i]-cluster.pca_ends_v[0][i] );
-          end_dist   += ( lfhit[i]-cluster.pca_ends_v[1][i] )*( lfhit[i]-cluster.pca_ends_v[1][i] );
-        }
-
-        start_dist = sqrt(start_dist);
-        end_dist   = sqrt(end_dist);
-
-        if ( start_dist<min_start_dist ) {
-          min_start_dist = start_dist;
-          min_start_idx  = idx;
-        }
-        if ( end_dist<min_end_dist ) {
-          min_end_dist = end_dist;
-          min_end_idx  = idx;
-        }
+        std::vector<float> forsort = max_dqdx_1cm_v;
+        std::sort( forsort.begin(), forsort.end() );
+        float sum_max2plane = forsort[1]+forsort[2];
         
-      }//end of loop over high charge locations
-
-      if ( min_start_idx>=0 )
-        LARCV_DEBUG() << "closest distance high-q region to pca-end[0]=" << min_start_dist << std::endl;
-      if ( min_end_idx>=0 )
-        LARCV_DEBUG() << "closest distance high-q region to pca-end[1]=" << min_end_dist << std::endl;
-
-      std::vector<float> va_dir(3,0);
-      VACandidate_t va;
-      va.pattached = &cluster;
-      va.attached_cluster_index = (int)idx_cluster;
-      
-      if ( min_start_idx>=0 && min_start_dist<3.0 ) {
-        float valen = 0.;
-        for (int i=0; i<3; i++) {
-          va_dir[i] = ( cluster.pca_ends_v[1][i] - cluster.pca_ends_v[0][i] );
-          valen += va_dir[i]*va_dir[i];
+        // simply look for one plane above thresh
+        for (int p=0; p<nplanes; p++) {
+          if ( max_dqdx_1cm_v[p]>900.0 )
+            nplanes_good++;
         }
-        valen = sqrt(valen);
-        for (int i=0; i<3; i++)
-          va_dir[i] /= valen;
-        //vtxact_dir_v.push_back( va_dir );
-        //va_candidate_v.push_back( (*ev_lm).at(min_start_idx) );
 
-        va.va_dir = va_dir;        
-        va.lfhit = _input_hit_v.at(min_start_idx);
-        va.hit_index = (int)min_start_idx;
-        va_candidate_v.push_back( va );
-      }
-      
-      if ( min_end_idx>=0 && min_end_dist<3.0 ) {
-        std::vector<float> va_dir(3,0);
-        float valen = 0.;
-        for (int i=0; i<3; i++) {
-          va_dir[i] = ( cluster.pca_ends_v[0][i] - cluster.pca_ends_v[1][i] );
-          valen += va_dir[i]*va_dir[i];
+        
+        if ( nplanes_good>=2
+             || (nplanes_good==1 && sum_max2plane>2000.0 ) ) {
+          VACandidate_t va;
+          va.pattached = &cluster;
+          va.attached_cluster_index = (int)idx_cluster;
+          va.trunk = trunk_v[itrunk];
+          if ( itrunk==0 )
+            va.hit_index = cluster.hitidx_v.at( cluster.ordered_idx_v.front() );
+          else
+            va.hit_index = cluster.hitidx_v.at( cluster.ordered_idx_v.back() );
+          va.lfhit = _input_hit_v.at( va.hit_index );
+
+          for (int p=0; p<nplanes; p++)
+            va.seg_dqdx_v.push_back( dqdx_algo.makeSegdQdxGraphs(p) );
+
+          va.va_dir.resize(3,0);
+          TVector3 vdir = trunk_v[itrunk].LocationAtPoint(1)-trunk_v[itrunk].LocationAtPoint(0);
+          float vlen = vdir.Mag();
+          for (int i=0; i<3; i++) {
+            va.va_dir[i] = vdir[i]/vlen;
+          }
+        
+          va_candidate_v.push_back( va );
         }
-        valen = sqrt(valen);
-        for (int i=0; i<3; i++)
-          va_dir[i] /= valen;
-
-        va.va_dir = va_dir;        
-        va.lfhit = _input_hit_v.at(min_end_idx);
-        va.hit_index = (int)min_end_idx;
-        va_candidate_v.push_back( va );
       }
+
       
+      // // loop over hits, find high charge regions
+      // std::vector<int> index_v;
+      
+      // for ( size_t ihit=0; ihit<cluster.hitidx_v.size(); ihit++ ) {
+      //   // get larflow3dhit
+      //   auto& lfhit = _input_hit_v.at( cluster.hitidx_v[ihit] );
+        
+      //   std::vector<float> pixsum = calcPlanePixSum( lfhit, adc_v );
+      //   int nplanes_above_thresh = 0;
+      //   for (int p=0; p<nplanes; p++) {
+      //     if ( pixsum[p]>va_threshold )
+      //       nplanes_above_thresh++;
+      //   }
+        
+      //   // now we can decide
+      //   // float med_q = pixsum[nplanes+1];
+      //   // float consistency = pixsum[nplanes];
+      //   // LARCV_DEBUG() << "cluster[" << idx_cluster << "]-hit[" << ihit << "]: "
+      //   //               << "pix=(" << lfhit.tick << "," << lfhit.targetwire[0] << "," << lfhit.targetwire[1] << "," << lfhit.targetwire[2] << ") "
+      //   //               << "pixsum=(" << pixsum[0] << "," << pixsum[1] << "," << pixsum[2] << ")"
+      //   //               << " consistenccy=" << consistency
+      //   //               << " med_q=" << med_q
+      //   //               << std::endl;
+      //   //if ( consistency>0 && consistency<0.2 && med_q>va_threshold ) {
+      //   //index_v.push_back( cluster.hitidx_v[ihit] );
+      //   index_v.push_back( cluster.hitidx_v[ihit] );
+      //   //}
+      // }//end of hit loop
+      
+      // LARCV_DEBUG() << "num high-q regions on cluster[" << idx_cluster<< "]: " << index_v.size() << std::endl;
+      
+      // // for high charge regions, we check if its on the edge of the pca.
+      // int min_start_idx = -1;
+      // int min_end_idx   = -1;
+      // float min_start_dist = 1e9;
+      // float min_end_dist   = 1e9;
+      // for (auto& idx : index_v ) {
+      //   auto& lfhit = _input_hit_v.at(idx);
+
+      //   float start_dist = 0.;
+      //   float end_dist   = 0.;
+      //   for (int i=0; i<3; i++) {
+      //     start_dist += ( lfhit[i]-cluster.pca_ends_v[0][i] )*( lfhit[i]-cluster.pca_ends_v[0][i] );
+      //     end_dist   += ( lfhit[i]-cluster.pca_ends_v[1][i] )*( lfhit[i]-cluster.pca_ends_v[1][i] );
+      //   }
+
+      //   start_dist = sqrt(start_dist);
+      //   end_dist   = sqrt(end_dist);
+
+      //   if ( start_dist<min_start_dist ) {
+      //     min_start_dist = start_dist;
+      //     min_start_idx  = idx;
+      //   }
+      //   if ( end_dist<min_end_dist ) {
+      //     min_end_dist = end_dist;
+      //     min_end_idx  = idx;
+      //   }
+        
+      // }//end of loop over high charge locations
+
+      // if ( min_start_idx>=0 )
+      //   LARCV_DEBUG() << "closest distance high-q region to pca-end[0]=" << min_start_dist << std::endl;
+      // if ( min_end_idx>=0 )
+      //   LARCV_DEBUG() << "closest distance high-q region to pca-end[1]=" << min_end_dist << std::endl;
+
+      // std::vector<float> va_dir(3,0);
+      
+      // if ( min_start_idx>=0 && min_start_dist<3.0 ) {
+      //   float valen = 0.;
+      //   for (int i=0; i<3; i++) {
+      //     va_dir[i] = ( cluster.pca_ends_v[1][i] - cluster.pca_ends_v[0][i] );
+      //     valen += va_dir[i]*va_dir[i];
+      //   }
+      //   valen = sqrt(valen);
+      //   for (int i=0; i<3; i++)
+      //     va_dir[i] /= valen;
+      //   //vtxact_dir_v.push_back( va_dir );
+      //   //va_candidate_v.push_back( (*ev_lm).at(min_start_idx) );
+
+      //   va.va_dir = va_dir;        
+      //   va.lfhit = _input_hit_v.at(min_start_idx);
+      //   va.hit_index = (int)min_start_idx;
+      //   va_candidate_v.push_back( va );
+      // }
+      
+      // if ( min_end_idx>=0 && min_end_dist<3.0 ) {
+      //   std::vector<float> va_dir(3,0);
+      //   float valen = 0.;
+      //   for (int i=0; i<3; i++) {
+      //     va_dir[i] = ( cluster.pca_ends_v[0][i] - cluster.pca_ends_v[1][i] );
+      //     valen += va_dir[i]*va_dir[i];
+      //   }
+      //   valen = sqrt(valen);
+      //   for (int i=0; i<3; i++)
+      //     va_dir[i] /= valen;
+
+      //   va.va_dir = va_dir;        
+      //   va.lfhit = _input_hit_v.at(min_end_idx);
+      //   va.hit_index = (int)min_end_idx;
+      // }
+
     }//end of cluster loop
 
     LARCV_INFO() << "Number of high-charge regions on cluster ends: " << va_candidate_v.size() << std::endl;
@@ -328,7 +467,7 @@ namespace reco {
       imgcoord[p] = hit.targetwire[p];
       pixelsum[p] = 0.; // clear pixel sum
     }
-    imgcoord[3] = adc_v[0].meta().row( hit.tick );
+    imgcoord[3] = adc_v[0].meta().row( hit.tick, __FILE__, __LINE__ );
 
     // pixelsum loop
     for (int dr=-3; dr<=3; dr++) {
@@ -352,7 +491,7 @@ namespace reco {
     std::sort(q_v.begin(),q_v.end());
 
     float sumconsistency = -1.0;
-    if ( q_v[2]+q_v[1]>0 )
+    if ( (q_v[2]+q_v[1])>0 )
       sumconsistency = std::fabs((q_v[2]-q_v[1])/(0.5*(q_v[2]+q_v[1])));
     
     pixelsum.resize(adc_v.size()+2,0);
@@ -563,7 +702,7 @@ namespace reco {
       for (int i=0; i<4; i++)
         va.truth_num_nupix[i] = 0;
       
-      int hitrow = seg_v[0].meta().row( va.lfhit.tick );
+      int hitrow = seg_v[0].meta().row( va.lfhit.tick, __FILE__, __LINE__ );
     
       for (int dr=-dpix; dr<=dpix; dr++) {
         int row = hitrow+dr;
@@ -618,7 +757,7 @@ namespace reco {
 
     const int dpix = 3;
 
-    int hitrow = adc_v[0].meta().row( va.lfhit.tick );
+    int hitrow = adc_v[0].meta().row( va.lfhit.tick, __FILE__, __LINE__ );
     
     for (int dr=-dpix; dr<=dpix; dr++) {
       int row = hitrow+dr;
@@ -730,6 +869,77 @@ namespace reco {
     attcluster_ntrack_v.push_back(  vacand.attclust_ntrackhits );    
     
   }
+
+  /**
+   * @brief Calculate filter metric for vertex acitivty
+   *
+   * Calculates a variable on each plane based on a circular pattern.
+   * Fills variables within VACandidate_t. 
+   * Also fills variable containers stored in the analysis tree.
+   * 
+   * @param[in] vacand The vertex activity candidate.
+   * @param[in] cluster_v All clusters in the event.
+   * @param[in] ioll larlite::storage_manager with event data.
+   * @param[in] iolcv larcv::IOManager with event data.
+   */
+  // void NuVertexActivityReco::analyzeFilterPattern( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
+  //                                                  std::vector<larflow::reco::cluster_t>& cluster_v,
+  //                                                  larlite::storage_manager& ioll,
+  //                                                  larcv::IOManager& iolcv )
+  // {
+
+  //   larcv::EventImage2D* ev_wire =
+  //     (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+
+  //   auto const& adc_v = ev_wire->as_vector();
+
+  //   float filter_pattern[7][7]
+  //     = { {-14.0
+
+  //   float filter_score = -1000;
+  //   if ( adc_v.size()==0 )
+  //     return;
+
+  //   if ( vacand.lfhit.tick >= adc_v[0].meta().max_y()
+  //        || vacand.lfhit.tick <= adc_v[0].meta().min_y() ) {
+  //     return;
+  //   }
+    
+  //   int row = adc_v[0].meta().row( vacand.lfhit.tick, __FILE__, __LINE__ );
+
+  //   for (size_t plane=0; plane<adc_v.size(); plane++) {
+      
+  //     auto const& img = adc_v.at(plane);
+  //     auto const& meta = adc_v.at(plane).meta();
+
+  //     float filter_score = 0;
+
+  //     int col = vacand.lfhit.targetwire[plane];
+  //     if (col==(int)meta.cols())
+  //       col = (int)meta.cols()-1;
+
+  //     // add core pixel
+  //     filter_score += img.pixel(row,col,__FILE__,__LINE__);
+
+  //     // around the ring
+  //     for (int dr=-1; dr<=1; dr++) {
+  //       int r = row + dr;
+  //       if ( r<0 || r>=(int)meta.rows() )
+  //         continue;
+
+  //       for (int dc=-1; dc<=1; dc++)  {
+  //         int c = col+dc;
+  //         if ( c<0 || c>=(int)meta.cols() )
+  //           continue;
+
+  //         if ( dc==0 && dr==0 )
+  //           continue; // skip core
+          
+  //     }
+      
+      
+  //   }
+  // }
   
 
   /**
@@ -764,7 +974,160 @@ namespace reco {
     
   }
 
+  std::vector<TGraph> NuVertexActivityReco::debug_vacandidates_as_tgraph()
+  {
+    std::vector<TGraph> g_v;
+    for (int p=0; p<3; p++) {
+      TGraph g( vtxact_v.size() );
+      for (int icand=0; icand<(int)vtxact_v.size(); icand++) {
+        g.SetPoint(icand, vtxact_v[icand].lfhit.targetwire[p],  vtxact_v[icand].lfhit.tick );
+      }
+      g_v.emplace_back( std::move(g) );
+    }
 
+    return g_v;
+  }
+
+  /**
+   * @brief generate 'trunk' ends for clusters
+   *
+   * we use the projection of the points onto the first pc axis to define the 'ends' of the cluster.
+   * this assumes that the cluster is mostly linear.
+   */
+  std::vector<larlite::track> NuVertexActivityReco::getClusterTrunks( const larflow::reco::cluster_t& cluster,
+                                                                      std::vector<float>& trunk_2nd_pca )
+  {
+    // define the "end points". The point with the furthest extent
+    std::vector< std::vector<float> > endpt_v(2);
+    try {
+      endpt_v[0] = cluster.points_v.at( cluster.ordered_idx_v.front() );
+    }
+    catch (...) {
+      endpt_v[0].clear();
+    }
+    try {
+      endpt_v[1] = cluster.points_v.at( cluster.ordered_idx_v.back() );
+    }
+    catch (...){
+      endpt_v[1].clear();
+    }
+
+    // now we collect hits on the ends to define the trunk
+    std::vector<larflow::reco::cluster_t> endcluster_v(2);
+    for (int iend=0; iend<2; iend++) {
+
+      if ( endpt_v[iend].size()==0 )
+        continue;
+
+      auto& endpt = endpt_v[iend];
+      auto& endcluster = endcluster_v[iend];
+      for (int ihit=0; ihit<(int)cluster.points_v.size(); ihit++) {
+        auto& pt = cluster.points_v[ihit];
+        float dist = 0.;
+        for (int i=0; i<3; i++)
+          dist += (pt[i]-endpt[i])*(pt[i]-endpt[i]);
+        if ( dist<25.0 ) {
+          // if within radius, at to end
+          endcluster.points_v.push_back( pt );
+          endcluster.hitidx_v.push_back( ihit );
+        }
+      }
+
+      // end cluster prepared
+
+      // check if too sparse
+      if ( endcluster.points_v.size()<5 ) {
+        endcluster.points_v.clear();
+        continue;
+      }
+
+      // run pca
+      try {
+        larflow::reco::cluster_pca( endcluster );
+      }
+      catch (...) {
+        endcluster.points_v.clear();
+        continue;
+      }
+    }//end of loop making end clusters
+
+    // now we define the trunks
+    std::vector< larlite::track > trunk_v(2);
+    trunk_2nd_pca.clear();
+    trunk_2nd_pca.resize(2,0);
+    
+    for (int iend=0; iend<2; iend++) {
+      larlite::track& trunk = trunk_v[iend];
+
+      // check if end cluster is empty
+      if ( endcluster_v[iend].points_v.size()==0 )
+        continue;
+
+      // if we have an end cluster, we define the trunk
+      // by the pca_ends_v. we have to find the end thats closest to the original endpt
+      float dist[2] = {0,0};
+      for (int k=0; k<2; k++) {
+        for (int i=0; i<3; i++) 
+          dist[k] += ( endpt_v[iend][i] - endcluster_v[iend].pca_ends_v[k][i] )*( endpt_v[iend][i] - endcluster_v[iend].pca_ends_v[k][i] );
+      }
+      int closestend = (dist[0]<dist[1] ) ? 0 : 1;
+      int farend     = (dist[0]<dist[1] ) ? 1 : 0;
+
+      TVector3 start;
+      TVector3 end;
+      for (int i=0; i<3; i++) {
+        start[i] = endcluster_v[iend].pca_ends_v[closestend][i];
+        end[i]   = endcluster_v[iend].pca_ends_v[farend][i];        
+      }
+      TVector3 dir = end-start;
+      float len = dir.Mag();
+      if ( len>0 ) {
+        for (int i=0; i<3; i++)
+          dir[i] /= len;
+      }
+
+      trunk.reserve(2);
+      trunk.add_vertex( start );
+      trunk.add_direction( dir );
+      trunk.add_vertex( end );
+      trunk.add_direction( dir );
+
+      if ( endcluster_v[iend].pca_eigenvalues[0]>0 )
+        trunk_2nd_pca[iend] = endcluster_v[iend].pca_eigenvalues[1]/endcluster_v[iend].pca_eigenvalues[0];
+                       
+    }
+
+    return trunk_v;
+  }
+
+  larflow::reco::NuVertexActivityReco::DebugVis_t
+  NuVertexActivityReco::get_debug_vis( int icandidate ) {
+    auto& va = vtxact_v.at(icandidate);
+    
+    DebugVis_t visdata;
+    visdata.plane_end_vv.clear();
+    visdata.plane_end_vv.resize(3);
+    if ( va.trunk.NumberTrajectoryPoints()>0 ) {    
+      for (int p=0; p<3; p++) {        
+        TGraph start(2);
+        float tick1 = (va.trunk.LocationAtPoint(0)[0])/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+        float tick2 = (va.trunk.LocationAtPoint(1)[0])/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;          
+        std::vector<double> pos1(3);
+        std::vector<double> pos2(3);
+        for (int i=0; i<3; i++) {
+          pos1[i] = (double)va.trunk.LocationAtPoint(0)[i];
+          pos2[i] = (double)va.trunk.LocationAtPoint(1)[i];
+        }
+        float wire1 = larutil::Geometry::GetME()->WireCoordinate( pos1, p );
+        float wire2 = larutil::Geometry::GetME()->WireCoordinate( pos2, p );
+        start.SetPoint(0,wire1, tick1);
+        start.SetPoint(1,wire2, tick2);
+        visdata.plane_end_vv[p].push_back( start );
+      }//end of plane loop
+    }// if trunk found
+    visdata.seg_dqdx_v = va.seg_dqdx_v;    
+    return visdata;
+  }
   
 }
 }

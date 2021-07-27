@@ -3,11 +3,14 @@
 
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/larflow3dhit.h"
+#include "DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/LArbysMC.h"
 #include "cluster_functions.h"
+#include "TGraph.h"
+#include "ShowerdQdx.h"
 
 namespace larflow {
 namespace reco {
@@ -44,6 +47,9 @@ namespace reco {
       int hit_index; ///< index of hit in the source hit container
       const larflow::reco::cluster_t* pattached; //< pointer to attached cluster
       int attached_cluster_index; ///< index of cluster in cluster container
+
+      larlite::track trunk;
+      std::vector<TGraph> seg_dqdx_v;
 
       float attclust_length; ///< attached cluster: 1st pca-axis length
       int attclust_nallhits; ///< attached cluster: number of hits
@@ -88,12 +94,24 @@ namespace reco {
     /** @brief set name of larflow3dhit tree to save candidate vertices */
     void set_output_treename( std::string name ) { _output_treename=name; };
 
+    int numCandidates() const { return (int)vtxact_v.size(); };
+    std::vector<TGraph> debug_vacandidates_as_tgraph();
+
+    struct DebugVis_t {
+      std::vector< std::vector<TGraph> > plane_end_vv;
+      std::vector< TGraph > seg_dqdx_v;
+    }; ///< info for visualizing VA cluster candidates
+    DebugVis_t get_debug_vis(int icandidate);
+    
+
   protected:
 
     void makeClusters( larlite::storage_manager& ioll,
                        std::vector<larflow::reco::cluster_t>& cluster_v,
                        const float larmatch_threshold );
 
+    std::vector<larlite::track> getClusterTrunks( const larflow::reco::cluster_t& cluster,
+                                                  std::vector<float>& pca_ratio );
     
     std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>      
       findVertexActivityCandidates( larlite::storage_manager& ioll,
@@ -133,7 +151,6 @@ namespace reco {
     // output data members
     std::vector<VACandidate_t> vtxact_v; ///< The container of found vertex activity candidates
     
-    
     TTree* _va_ana_tree;  ///< event level tree with data for each reco VA candidate
     bool _kown_tree; ///< if true, then class instance assumes it owns _va_ana_tree
     std::vector< std::vector<float> > pca_dir_vv;  ///< 1st principle component of cluster VA is attached to
@@ -150,7 +167,8 @@ namespace reco {
     std::vector<float> dist2truescevtx; ///< distance of reco vertex to space-charge translated true vertex
     std::vector<int> ntrue_nupix_v; ///< number of pixels around vertex on true neutrino pixels    
     float min_dist2truescevtx; ///< for an event, min distance to the true neutrino vertex
-    
+
+    larflow::reco::ShowerdQdx dqdx_algo;
     
   };
 
