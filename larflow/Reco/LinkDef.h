@@ -21,6 +21,7 @@
 #pragma link C++ function larflow::reco::pointLineDistance3d+;
 #pragma link C++ function larflow::reco::pointRayProjection3f+;
 #pragma link C++ function larflow::reco::pointLineDistance3d+;
+#pragma link C++ class std::vector<TLorentzVector>+;
 #pragma link C++ class larflow::reco::ClusterFunctions+;
 #pragma link C++ class larflow::reco::cluster_t+;
 #pragma link C++ function larflow::reco::cluster_larflow3dhits+;

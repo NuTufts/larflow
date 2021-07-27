@@ -7,6 +7,7 @@
 #include "DataFormat/track.h"
 #include "DataFormat/larflowcluster.h"
 #include "DataFormat/pcaxis.h"
+#include "TLorentzVector.h"
 
 namespace larflow {
 namespace reco {
@@ -57,12 +58,24 @@ namespace reco {
     std::vector< larlite::pcaxis > cluster_pca_v; ///< cluster pca assigned to vertex
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster
 
-    std::vector<larlite::track>  track_v;  ///< track candidates
+    // TRACK PRONGS AND VARIABLES
+    std::vector<larlite::track>  track_v;     ///< track candidates
     std::vector<larlite::larflowcluster>  track_hitcluster_v;  ///< track candidates
+    std::vector<float>           track_len_v;       ///< length of track
+    std::vector< std::vector<float> > track_dir_v;  ///< direction of track, using points near vertex
+    std::vector<float>           track_kemu_v;      ///< range-based ke assuming muon (from NuTrackKinematics)
+    std::vector<float>           track_keproton_v;  ///< range-based ke assuming proton (from NuTrackKinematics)
+    std::vector<TLorentzVector>  track_pmu_v;       ///< range-based momentum assuming muon (from NuTrackKinematics)
+    std::vector<TLorentzVector>  track_pproton_v;   ///< range-based momentum assuming proton (from NuTrackKinematics)
+    std::vector<float>           track_muid_v;      ///< muon likelihood   (from TrackdQdx)
+    std::vector<float>           track_protonid_v;  ///< proton likelihood (from TrackdQdx)
+    std::vector<float>           track_mu_vs_proton_llratio_v; // muon/proton likelihood ratio
     
     std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
     std::vector<larlite::track>  shower_trunk_v;   ///< line for shower trunk for plotting
     std::vector<larlite::pcaxis> shower_pcaxis_v;  ///< pc-axis of whole shower cluster
+    std::vector< std::vector<float> > shower_plane_pixsum_vv; ///< pixel sum of showers, a value for each plane
+    std::vector< std::vector<TLorentzVector> > shower_plane_mom_vv; ///< energy of showers, a value for each plane
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {

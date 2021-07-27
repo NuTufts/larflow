@@ -3,19 +3,26 @@
 namespace larflow {
 namespace reco {
 
+  void NuShowerKinematics::clear()
+  {
+    _shower_mom_v.clear();
+    _shower_plane_pixsum_v.clear();    
+  }
+  
   void NuShowerKinematics::analyze( larflow::reco::NuVertexCandidate& nuvtx,
                                     larflow::reco::NuSelectionVariables& nusel,
                                     larcv::IOManager& iolcv )
   {
 
-    _shower_mom_v.clear();
-
+    clear();
+    
     larcv::EventImage2D* ev_img =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
 
     auto const& adc_v = ev_img->as_vector();
 
-    _shower_mom_v.resize(adc_v.size());
+    _shower_mom_v.resize(nuvtx.shower_v.size());
+    _shower_plane_pixsum_v.resize(nuvtx.shower_v.size());
     
     for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
       auto const& cluster = nuvtx.shower_v[ishower];
@@ -26,6 +33,7 @@ namespace reco {
                                                adc_v,
                                                10.0, 2);
 
+      _shower_plane_pixsum_v[ishower] = pixsum_v;
       LARCV_DEBUG() << "shower[" << ishower << "] pixsum=(" << pixsum_v[0] << "," << pixsum_v[1] << "," << pixsum_v[2] << ")" << std::endl;
       
       TVector3 showerdir = get_showerdir( trunk, nuvtx.pos );
@@ -37,16 +45,13 @@ namespace reco {
       for (int p=0; p<(int)adc_v.size(); p++) {
         float MeV = (400.0/100.0e3)*pixsum_v[p];
         mom_v[p].SetPxPyPzE( MeV*showerdir[0], MeV*showerdir[1], MeV*showerdir[2], MeV );
-
-        _shower_mom_v[p].push_back( mom_v[p] );
       }
+      _shower_mom_v[ishower] = mom_v;
       LARCV_INFO() << "shower[" << ishower << "] "
                    << "E(plane)=(" << mom_v[0].E()  << "," << mom_v[1].E() << "," << mom_v[2].E() << ") "
                    << "dir=(" << showerdir[0] << "," << showerdir[1] << "," << showerdir[2] << ")"
                    << std::endl;      
     }//end of shower loop
-
-    
   }
 
   std::vector<float>

@@ -41,6 +41,7 @@
 #include "NuSelectionVariables.h"
 #include "LikelihoodProtonMuon.h"
 #include "CosmicProtonFinder.h"
+#include "ShowerdQdx.h"
 
 #include "NuSel1e1pEventSelection.h"
 #include "NuSelProngVars.h"
@@ -120,6 +121,7 @@ namespace reco {
 
     // Selection Variable Modules
     LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
+    ShowerdQdx           _sel_showerdqdx; ///< shower dq/dx calculation
 
     NuSelProngVars prongvars;
     NuSelVertexVars vertexvars;
@@ -145,6 +147,8 @@ namespace reco {
     void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void runNuVtxSelection();
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

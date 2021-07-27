@@ -115,6 +115,12 @@ namespace reco {
     
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
+
+    // kinematics
+    runBasicKinematics( iolcv, ioll );
+
+    // dqdx
+    runBasicPID( iolcv, ioll );
     
     // Copy larlite contents
     // in-time opflash
@@ -126,7 +132,7 @@ namespace reco {
       evout_opflash_beam->push_back( flash );
 
     // make selection variables
-    makeNuCandidateSelectionVariables( iolcv, ioll );
+    //makeNuCandidateSelectionVariables( iolcv, ioll );
 
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );
@@ -138,7 +144,7 @@ namespace reco {
     }
 
     // run selection and filter events    
-    runNuVtxSelection();    
+    //runNuVtxSelection();    
 
     if ( _kMinize_outputfile_size ) {
       // save only fitted vertex candidates
@@ -573,8 +579,6 @@ namespace reco {
     unrecocharge.set_verbosity(larcv::msg::kDEBUG);
     cosmictagger.set_verbosity(larcv::msg::kDEBUG);
     muvsproton.set_verbosity(larcv::msg::kINFO);
-    _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
-    _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -591,9 +595,6 @@ namespace reco {
       std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
       std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
 
-      // prong kinematic calculators
-      _nu_track_kine.analyze( nuvtx, nusel );
-      _nu_shower_kine.analyze( nuvtx, nusel, iolcv );
 
       // check if showers are connected to vertex      
       showergapana2d.analyze( iolcv, ioll, nuvtx, nusel );
@@ -660,6 +661,106 @@ namespace reco {
     
   }
 
+  /**
+   * @brief Produce baseline kinematics variables
+   *
+   */
+  void KPSRecoManager::runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+    
+    LARCV_INFO() << "Calculate prong kinematics" << std::endl;
+    _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
+    _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
+
+    _nu_track_kine.clear();
+    _nu_shower_kine.clear();
+    
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+
+    for (auto& nuvtx : nuvtx_v ) {
+      
+      larflow::reco::NuSelectionVariables nusel;
+      
+      // prong kinematic calculators
+      _nu_track_kine.clear();
+      _nu_track_kine.analyze( nuvtx );
+      
+      nuvtx.track_len_v      = _nu_track_kine._track_length_v;
+      nuvtx.track_kemu_v     = _nu_track_kine._track_mu_ke_v;
+      nuvtx.track_keproton_v = _nu_track_kine._track_p_ke_v;
+      nuvtx.track_pmu_v      = _nu_track_kine._track_mu_mom_v;
+      nuvtx.track_pproton_v  = _nu_track_kine._track_p_mom_v;
+
+      _nu_shower_kine.clear();
+      _nu_shower_kine.analyze( nuvtx, nusel, iolcv );
+      nuvtx.shower_plane_pixsum_vv = _nu_shower_kine._shower_plane_pixsum_v;
+      nuvtx.shower_plane_mom_vv    = _nu_shower_kine._shower_mom_v;
+      
+    }
+      
+  }
+
+  /**
+   * @brief calculate basline PID-related variables for the prongs
+   */
+  void KPSRecoManager::runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
+    
+    LARCV_INFO() << "Calculate baseline prong dq/dx-based PID metrics" << std::endl;
+    
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
+    
+    for (auto& nuvtx : nuvtx_v ) {
+
+      nuvtx.track_muid_v.resize( nuvtx.track_v.size(), 0 );
+      nuvtx.track_protonid_v.resize( nuvtx.track_v.size(), 0 );
+      nuvtx.track_mu_vs_proton_llratio_v.resize( nuvtx.track_v.size(), 0 );
+
+      nuvtx.shower_plane_pixsum_vv.clear();
+      
+      larflow::reco::NuSelectionVariables nusel;
+      
+      // track dq/dx-based likelihoods
+      for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
+        std::vector<double> ll_results = _sel_llpmu.calculateLLseparate( nuvtx.track_v[itrack], nuvtx.pos );
+        nuvtx.track_muid_v[itrack] = ll_results[2];
+        nuvtx.track_protonid_v[itrack] = ll_results[1];
+        nuvtx.track_mu_vs_proton_llratio_v[itrack] = ll_results[0];
+      }//end of track loop
+
+      // shower dq/dx
+      for (size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++) {
+        bool dqdxok = true;
+
+        std::vector<float> shower_plane_pixsum_v(adc_v.size(),0);
+        
+        try {
+          _sel_showerdqdx.processShower( nuvtx.shower_v[ishower],
+                                         nuvtx.shower_trunk_v[ishower],
+                                         nuvtx.shower_pcaxis_v[ishower],
+                                         ev_adc->as_vector(), nuvtx );
+        }
+        catch( const std::exception& e ) {
+          dqdxok = false;
+          LARCV_INFO() << "error running shoqerdqdx: " << e.what() << std::endl;
+        }
+        
+        // set values
+        if ( !dqdxok ) {
+          nuvtx.shower_plane_pixsum_vv.emplace_back( std::move(shower_plane_pixsum_v) );
+        }
+        else {
+          // good reco
+          nuvtx.shower_plane_pixsum_vv.push_back( _sel_showerdqdx._pixsum_dqdx_v );
+        }
+      }//end of shower loop
+      
+    }//end of vertex loop
+      
+  }
+  
   void KPSRecoManager::runNuVtxSelection()
   {
     

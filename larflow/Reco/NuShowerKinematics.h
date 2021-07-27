@@ -35,8 +35,10 @@ namespace reco {
     void analyze( larflow::reco::NuVertexCandidate& nuvtx,
                   larflow::reco::NuSelectionVariables& nusel,
                   larcv::IOManager& iolcv );
+    void clear();
 
-    std::vector< std::vector<TLorentzVector> > _shower_mom_v; // outer loop is the plane
+    std::vector< std::vector<float> >          _shower_plane_pixsum_v; // outer loop is the shower, inner vector is the charge sum from each plane
+    std::vector< std::vector<TLorentzVector> > _shower_mom_v; // outer loop is shower, inner vector is momentum calculated using different plane
     
     std::vector<float> GetADCSum(const larlite::larflowcluster& shower,
                                  const std::vector<larcv::Image2D>& wire_img,

@@ -51,8 +51,8 @@ namespace reco {
     
   }
   
-  double LikelihoodProtonMuon::calculateLL( const larlite::track& track,
-                                            const std::vector<float>& vertex ) const
+  std::vector<double> LikelihoodProtonMuon::calculateLLseparate( const larlite::track& track,
+                                                                 const std::vector<float>& vertex ) const
   {
 
     int npts = track.NumberTrajectoryPoints();
@@ -73,6 +73,9 @@ namespace reco {
     // loop in verse order for residual range
     double totw = 0.;
     double totll = 0.;
+    double tot_llproton = 0.;
+    double tot_llmuon = 0;
+    
     const TVector3* last_pt = &(track.LocationAtPoint(istart));
 
     int ipt = istart;
@@ -110,15 +113,28 @@ namespace reco {
         double w_dedx = (mu_dedx_birks-p_dedx_birks)*(mu_dedx_birks-p_dedx_birks);
         
         totll += llpt*w_dedx;
+        tot_llproton += w_dedx*(0.5*dp*dp/100.0);
+        tot_llmuon   += w_dedx*(0.5*dmu*dmu/100.0);
         totw  += w_dedx;
       }
     }//end of point loop
     
-    if ( totw>0 )
+    if ( totw>0 ) {
       totll /= totw;
+      tot_llproton /= totw;
+      tot_llmuon   /= totw;
+    }
 
-    return totll;
+    std::vector<double> result = { totll, tot_llproton, tot_llmuon, totw };
+    return result;
   }
+
+  double LikelihoodProtonMuon::calculateLL( const larlite::track& track,
+                                                         const std::vector<float>& vertex ) const
+  {
+    return calculateLLseparate(track,vertex).at(0);
+  }
+  
   
 }
 }

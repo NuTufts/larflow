@@ -30,18 +30,26 @@ namespace reco {
     
   }
 
+  void NuTrackKinematics::clear() {
+    _track_mu_mom_v.clear();
+    _track_p_mom_v.clear();
+    _track_mu_ke_v.clear();
+    _track_p_ke_v.clear();
+  }
+  
   /**
    * @brief calculate kinematic variables
    * using range to find KE
    * using average of track directions within 10 cm of vertex to find direction for momentum
    *
    */
-  void NuTrackKinematics::analyze( larflow::reco::NuVertexCandidate& nuvtx,
-                                   larflow::reco::NuSelectionVariables& nusel )
+  void NuTrackKinematics::analyze( larflow::reco::NuVertexCandidate& nuvtx )
   {
 
     _track_mu_mom_v.clear();
     _track_p_mom_v.clear();
+    _track_mu_ke_v.clear();
+    _track_p_ke_v.clear();
     
     // for each track fill kinematic information
     for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
@@ -79,9 +87,13 @@ namespace reco {
                    << "dir=(" << trunkdir[0] << "," << trunkdir[1] << "," << trunkdir[2] << "); "
                    << "KEmu=" << ke_mu << " KEp=" << ke_p
                    << std::endl;
-      
+
+      _track_length_v.push_back( tracklen );
+      _track_mu_ke_v.push_back( ke_mu );
+      _track_p_ke_v.push_back( ke_p );
       _track_mu_mom_v.push_back( v_mu );
       _track_p_mom_v.push_back( v_p );
+      
     }
     
   }

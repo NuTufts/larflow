@@ -20,15 +20,17 @@ namespace reco {
     NuTrackKinematics();
     virtual ~NuTrackKinematics();
 
+    std::vector<float>          _track_length_v;  ///< track lengths
+    std::vector<float>          _track_mu_ke_v;   ///< track KE assuming muon
+    std::vector<float>          _track_p_ke_v;    ///< track KE assuming proton
     std::vector<TLorentzVector> _track_mu_mom_v;  ///< track momentum assuming muon
     std::vector<TLorentzVector> _track_p_mom_v;   ///< track momentum assuming proton
 
     /* std::vector<TLorentzVector> _track_ll_v;         ///< proton versus muon likelihood */
     /* std::vector<TLorentzVector> _track_bestll_mom_v; ///< momentum using best likelihood */
 
-    void analyze( larflow::reco::NuVertexCandidate& nuvtx,
-                  larflow::reco::NuSelectionVariables& nusel );
-    
+    void clear();
+    void analyze( larflow::reco::NuVertexCandidate& nuvtx );
       
   protected:
     

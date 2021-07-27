@@ -19,6 +19,7 @@ namespace reco {
 
     double calculateLL( const larlite::track& track, bool reverse=false ) const;    
     double calculateLL( const larlite::track& track, const std::vector<float>& vertex_pos ) const;
+    std::vector<double> calculateLLseparate( const larlite::track& track, const std::vector<float>& vertex_pos ) const;
 
   protected:
 

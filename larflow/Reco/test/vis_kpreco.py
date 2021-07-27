@@ -217,6 +217,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trktrace["line"]["opacity"] = 1.0
             traces_v.append( trktrace )
 
+            kemu = nuvtx.track_kemu_v.at(itrack)
+            kep  = nuvtx.track_keproton_v.at(itrack)
+            llmu = nuvtx.track_muid_v.at(itrack)
+            llp  = nuvtx.track_protonid_v.at(itrack)
+            llr  = nuvtx.track_mu_vs_proton_llratio_v.at(itrack)
+            print("  TRACK[%d] KE(mu)=%.2f KE(p)=%.2f -log(L)_mu=%.2f -log(L)_p=%.2f LLratio=%.2f"%(itrack,kemu,kep,llmu,llp,llr))
+
         # PLOT SHOWER FOR VERTEX
         print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,nuvtx.shower_v.size()))        
         for ishower in range(nuvtx.shower_v.size()):
