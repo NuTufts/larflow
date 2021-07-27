@@ -28,6 +28,16 @@ namespace reco {
     // clear segments, connections, proposals
     clear();
 
+    // wire plane images for getting dqdx later
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
+
+    // bad channel images for helping to determine proper gaps to jump
+    larcv::EventImage2D* ev_badch =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "badch" );
+    auto const& badch_v = ev_badch->as_vector();
+
     // get clusters, pca-axis
     std::vector< std::string > cluster_producers =
       { "trackprojsplit_full",
@@ -35,7 +45,8 @@ namespace reco {
         "hip" };
     
     for ( auto const& producer : cluster_producers ) {
-    
+
+      LARCV_INFO() << "Adding clusters from '" << producer << "' producer/tree" << std::endl;
       larlite::event_larflowcluster* ev_cluster
         = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       larlite::event_pcaxis* ev_pcaxis
@@ -46,14 +57,10 @@ namespace reco {
       
     }
 
-    buildNodeConnections();
+    buildNodeConnections( &adc_v, &badch_v );
     
     set_output_one_track_per_startpoint( true );
 
-    // wire plane images for getting dqdx later
-    larcv::EventImage2D* ev_adc =
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
-    auto const& adc_v = ev_adc->Image2DArray();
 
     // output containers
     larlite::event_track* evout_track
