@@ -15,6 +15,8 @@ namespace reco {
                                      larlite::storage_manager& ioll )
   {
 
+    LARCV_DEBUG() << "start" << std::endl;
+    
     larcv::EventImage2D* ev_adc
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
@@ -24,6 +26,8 @@ namespace reco {
     bool has_mc = false;
     if ( ev_mcshower->size()>0 )
       has_mc = true;
+
+    dqdx_algo.set_verbosity(larcv::msg::kINFO);    
     
     // reco variables
     //  - dq/dx of first 3 cm
@@ -78,7 +82,7 @@ namespace reco {
         continue;
       }
 
-      dqdx_algo.clear();
+      dqdx_algo.clear();      
       dqdx_algo.processShower( shower, shower_trunk, shower_pca, adc_v, nuvtx );
 
       std::vector<float> plane_dqdx = dqdx_algo._pixsum_dqdx_v;
