@@ -37,6 +37,7 @@ set( HEADERS cluster_functions.h
   LikelihoodProtonMuon.h
   CosmicProtonFinder.h
   TrackForwardBackwardLL.h
+  TrackFindBadConnection.h  
   NuTrackKinematics.h
   NuShowerKinematics.h  
   NuSelProngVars.h
@@ -85,6 +86,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   LikelihoodProtonMuon.cxx
   CosmicProtonFinder.cxx
   TrackForwardBackwardLL.cxx
+  TrackFindBadConnection.cxx  
   NuTrackKinematics.cxx
   NuShowerKinematics.cxx  
   NuSelProngVars.cxx
