@@ -149,6 +149,8 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             # skip if asked for specific vertex info
             continue
 
+        print( "VERTEX[%d] HAS %d TRACKS and %d SHOWERS"%(ivtx,nuvtx.track_v.size(),nuvtx.shower_v.size()) )
+
         #vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
         vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
         # Get the keypoint data
@@ -197,7 +199,6 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 traces_v.append( pcatrace )
 
         # PLOT TRACK FOR VERTEX
-        print("VERTEX[%d] HAS %d TRACKS"%(ivtx,nuvtx.track_v.size()))
         for itrack in range(nuvtx.track_v.size()):
 
             # track-cluster
@@ -225,7 +226,6 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             print("  TRACK[%d] KE(mu)=%.2f KE(p)=%.2f -log(L)_mu=%.2f -log(L)_p=%.2f LLratio=%.2f"%(itrack,kemu,kep,llmu,llp,llr))
 
         # PLOT SHOWER FOR VERTEX
-        print("VERTEX[%d] HAS %d SHOWERS"%(ivtx,nuvtx.shower_v.size()))        
         for ishower in range(nuvtx.shower_v.size()):
 
             shower = nuvtx.shower_v.at(ishower)
@@ -258,8 +258,17 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0
             traces_v.append( pcatrace )
 
+            shower_mom_v = nuvtx.shower_plane_mom_vv.at(ishower)
+            sh_p0 = shower_mom_v[0].E()
+            sh_p1 = shower_mom_v[1].E()
+            sh_p2 = shower_mom_v[2].E()            
 
-        
+            shower_dqdx_v = nuvtx.shower_plane_dqdx_vv.at(ishower)
+            dqdx_p0 = shower_dqdx_v[0]
+            dqdx_p1 = shower_dqdx_v[1]
+            dqdx_p2 = shower_dqdx_v[2]
+            
+            print("  SHOWER[%d] KE=(%.2f,%.2f,%.2f) dq/dx=(%.2f,%.2f,%.2f)"%(ishower,sh_p0,sh_p1,sh_p2,dqdx_p0,dqdx_p1,dqdx_p2))
 
             
     # TRACK RECO

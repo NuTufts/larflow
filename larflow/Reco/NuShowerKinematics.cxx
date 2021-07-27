@@ -31,7 +31,7 @@ namespace reco {
 
       std::vector<float> pixsum_v = GetADCSum( cluster,
                                                adc_v,
-                                               10.0, 2);
+                                               10.0 );
 
       _shower_plane_pixsum_v[ishower] = pixsum_v;
       LARCV_DEBUG() << "shower[" << ishower << "] pixsum=(" << pixsum_v[0] << "," << pixsum_v[1] << "," << pixsum_v[2] << ")" << std::endl;
@@ -43,7 +43,7 @@ namespace reco {
       
       std::vector< TLorentzVector > mom_v(adc_v.size());
       for (int p=0; p<(int)adc_v.size(); p++) {
-        float MeV = (400.0/100.0e3)*pixsum_v[p];
+        float MeV = adc2mev_conversion( p, pixsum_v[p] );
         mom_v[p].SetPxPyPzE( MeV*showerdir[0], MeV*showerdir[1], MeV*showerdir[2], MeV );
       }
       _shower_mom_v[ishower] = mom_v;
@@ -54,20 +54,118 @@ namespace reco {
     }//end of shower loop
   }
 
+  TVector3 NuShowerKinematics::get_showerdir( const larlite::track& shower_trunk,
+                                              const std::vector<float>& vtxpos )
+  {
+    TVector3 vecpos(vtxpos[0],vtxpos[1],vtxpos[2]);
+
+    float end1 = (shower_trunk.LocationAtPoint(0)-vecpos).Mag();
+    float end2 = (shower_trunk.LocationAtPoint(1)-vecpos).Mag();
+
+    TVector3 dir;
+    if ( end1<end2 )
+      dir = shower_trunk.LocationAtPoint(1)-shower_trunk.LocationAtPoint(0);
+    else
+      dir = shower_trunk.LocationAtPoint(0)-shower_trunk.LocationAtPoint(1);
+    float mag = dir.Mag();
+    if ( mag>0 ) {
+      for (int i=0; i<3; i++)
+        dir[i] /= mag;
+    }
+
+    return dir;
+  }
+
+  /**
+   * @brief sum pixels for given shower cluster on the three planes
+   *
+   * Comes from ubdl-ana/showerenergy_study by K. Mason
+   *
+   */  
   std::vector<float>
   NuShowerKinematics::GetADCSum(const larlite::larflowcluster& shower,
                                 const std::vector<larcv::Image2D>& wire_img,
-                                const int threshold,
-                                const int dpix )
+                                const float threshold )
+  {
+    //initialize output
+    std::vector<float> sum_v;
+
+    // turn into 2d points (u,v,y,t)
+    auto const& wireu_meta = wire_img.at(0).meta();
+    auto const& wirev_meta = wire_img.at(1).meta();
+    auto const& wirey_meta = wire_img.at(2).meta();
+    // loop over planes
+    for (int p =0;p<3;p++){
+      
+      const larcv::ImageMeta& meta = wire_img.at(p).meta();
+      float sum =0;
+      // make found list so we don't use the same point multiple times vector<(row,col)>
+      // std::vector<std::vector<int>> foundpts;
+      // loop over Hits
+      float noutpix =0.0;
+      // initialize already used points so we don't double count
+      larcv::Image2D usedpixels( wire_img[p].meta() );
+      usedpixels.paint(0);
+
+      int npixels =0;
+      int numused =0;
+      for ( size_t ihit=0; ihit<shower.size(); ihit++ ) {
+        
+        int wire = shower[ihit].targetwire[p];
+        int tick = shower[ihit].tick;
+        
+        // add a check for projection failures
+        if (tick<meta.min_y() || tick>=meta.max_y()
+            || wire<meta.min_x() || wire >=meta.max_x() ){
+          noutpix +=1.0;
+          continue;
+        }
+        
+        int row = meta.row(tick);
+        int col = meta.col(wire);
+        float adcval =0;
+        // std::cout<<row<<" "<<col<<std::endl;
+        
+        // we want to get all surrounding pixels
+        // updating boundary conditions - adding extra 1 pixel cut off
+        if (col < 3455 && row <1007 && col > 1 && row > 1){
+          // for each pixel, check if in mask
+          if (usedpixels.pixel(row,col)==0){
+            // if (true){
+            adcval += wire_img[p].pixel(row,col);
+            npixels+=1;
+            usedpixels.set_pixel(row,col,1);
+          }
+          else {
+            numused+=1;
+          }
+        }
+        sum = sum+adcval;
+
+      }//end of loop over Hits
+    
+      if ((1.0-float(noutpix)/float(shower.size()))<=.98) sum_v.push_back(0.0);
+      else sum_v.push_back(sum);
+    
+    }//end of loop over planes
+  
+    return sum_v;
+  }
+
+  /**
+   * @brief sum pixel charge including charge from neighbors
+   *
+   */
+  std::vector<float>
+  NuShowerKinematics::GetADCSumWithNeighbors(const larlite::larflowcluster& shower,
+                                             const std::vector<larcv::Image2D>& wire_img,
+                                             const float threshold,
+                                             const int dpix )
   {
     
     //initialize output
     std::vector<float> sum_v(wire_img.size(),0);
-    
-    // / first turn to cluster
-    //save all three planes
-    std::vector<larlite::larflow3dhit>  shower_c = shower;
-    
+        
     // turn into 2d points (u,v,y,t)
     std::vector< const larcv::ImageMeta* > wire_meta_v;
     for (auto const& img : wire_img )
@@ -92,9 +190,9 @@ namespace reco {
       // std::vector<std::vector<int>> foundpts;
       // loop over Hits
       float noutpix =0.0;
-      for ( size_t ihit=0; ihit<shower_c.size(); ihit++ ) {
-        int wire = shower_c[ihit].targetwire[p];
-        int tick =  shower_c[ihit].tick;
+      for ( size_t ihit=0; ihit<shower.size(); ihit++ ) {
+        int wire = shower[ihit].targetwire[p];
+        int tick =  shower[ihit].tick;
         
         // add a check for projection failures
         if (tick <= meta.min_y()
@@ -138,7 +236,7 @@ namespace reco {
         
       }//end of loop over Hits
       
-      if ((1.0-float(noutpix)/float(shower_c.size()))<=.98)
+      if ((1.0-float(noutpix)/float(shower.size()))<=.98)
         sum_v[p] = 0.0;
       else
         sum_v[p] = sum;
@@ -148,27 +246,14 @@ namespace reco {
     return sum_v;
   }
 
-  TVector3 NuShowerKinematics::get_showerdir( const larlite::track& shower_trunk,
-                                              const std::vector<float>& vtxpos )
+  float NuShowerKinematics::adc2mev_conversion( const int plane, const float pixsum ) const
   {
-    TVector3 vecpos(vtxpos[0],vtxpos[1],vtxpos[2]);
-
-    float end1 = (shower_trunk.LocationAtPoint(0)-vecpos).Mag();
-    float end2 = (shower_trunk.LocationAtPoint(1)-vecpos).Mag();
-
-    TVector3 dir;
-    if ( end1<end2 )
-      dir = shower_trunk.LocationAtPoint(1)-shower_trunk.LocationAtPoint(0);
-    else
-      dir = shower_trunk.LocationAtPoint(0)-shower_trunk.LocationAtPoint(1);
-    float mag = dir.Mag();
-    if ( mag>0 ) {
-      for (int i=0; i<3; i++)
-        dir[i] /= mag;
-    }
-
-    return dir;
+    // 2021/07 - Katie has evaluated the conversion on the Y-plane only.  Using it for all planes.
+    // eventually will have another conversion
+    return pixsum*0.012607+22.1;
   }
+
+  
 
 }
 }

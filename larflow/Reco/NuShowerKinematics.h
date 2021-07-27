@@ -42,12 +42,17 @@ namespace reco {
     
     std::vector<float> GetADCSum(const larlite::larflowcluster& shower,
                                  const std::vector<larcv::Image2D>& wire_img,
-                                 const int threshold,
-                                 const int dpix );
-                                 
+                                 const float threshold );
+    
+    std::vector<float> GetADCSumWithNeighbors(const larlite::larflowcluster& shower,
+                                              const std::vector<larcv::Image2D>& wire_img,
+                                              const float threshold,
+                                              const int dpix );
+    
     TVector3 get_showerdir( const larlite::track& shower_trunk,
                             const std::vector<float>& vtxpos );
-      
+
+    float adc2mev_conversion( const int plane, const float pixsum ) const;
     
   };
   

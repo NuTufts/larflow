@@ -718,7 +718,7 @@ namespace reco {
       nuvtx.track_protonid_v.resize( nuvtx.track_v.size(), 0 );
       nuvtx.track_mu_vs_proton_llratio_v.resize( nuvtx.track_v.size(), 0 );
 
-      nuvtx.shower_plane_pixsum_vv.clear();
+      nuvtx.shower_plane_dqdx_vv.clear();
       
       larflow::reco::NuSelectionVariables nusel;
       
@@ -749,11 +749,11 @@ namespace reco {
         
         // set values
         if ( !dqdxok ) {
-          nuvtx.shower_plane_pixsum_vv.emplace_back( std::move(shower_plane_pixsum_v) );
+          nuvtx.shower_plane_dqdx_vv.emplace_back( std::move(shower_plane_pixsum_v) );
         }
         else {
           // good reco
-          nuvtx.shower_plane_pixsum_vv.push_back( _sel_showerdqdx._pixsum_dqdx_v );
+          nuvtx.shower_plane_dqdx_vv.push_back( _sel_showerdqdx._pixsum_dqdx_v );
         }
       }//end of shower loop
       

@@ -71,10 +71,16 @@ if lcv_nentries<ll_nentries:
     nentries = lcv_nentries
 else:
     nentries = ll_nentries
+end_entry = nentries
 
 algo = larflow.reco.NuVertexActivityReco()
 #algo.set_verbosity( larcv.msg.kDEBUG )
-algo.set_verbosity( larcv.msg.kINFO )
+#hitlist = std.vector("string")()
+#hitlist.push_back("larmatch")
+#hitlist.push_back("nuvtxact_wcfiltered")
+algo.set_verbosity( larcv.msg.kDEBUG )
+#algo.set_input_hit_list( hitlist )
+
 mcdata = ublarcvapp.mctools.LArbysMC()
 
 kpreco = larflow.reco.KeypointReco()
@@ -96,13 +102,16 @@ algo.bind_to_tree( vatree )
 
 
 start_entry = 0
+#end_entry = 
 io.go_to(start_entry)
-for ientry in range(start_entry,nentries):
+for ientry in range(start_entry,end_entry):
 
     rse = ( io.run_id(), io.subrun_id(), io.event_id() )
     print("[ENTRY ",ientry,"]: ",rse)
     
-    iolcv.read_entry(ientry)    
+    iolcv.read_entry(ientry)
+    null_hit_list = std.vector("string")()
+    algo.set_input_hit_list( null_hit_list )
     algo.process( iolcv, io )
     if args.input_mcinfo is not None:
         print("RUN MC ROUTINES")
@@ -125,11 +134,57 @@ for ientry in range(start_entry,nentries):
     kpreco.set_keypoint_type( 2)
     kpreco.set_lfhit_score_index( 15 )    
     kpreco.process( io );
+
+    # debug
+    ev_adc = iolcv.get_data( larcv.kProductImage2D, "wire" )
+    adc_v = ev_adc.as_vector()
+    print("num images: ",adc_v.size())
+    hist_v = larcv.rootutils.as_th2d_v( adc_v, "hist_entry%d"%(ientry) )
+    print("num hists: ",hist_v.size())
+    ncands = algo.numCandidates()
+    print("num candidates: ",ncands)
+
+    g_v = algo.debug_vacandidates_as_tgraph()
+    
+    c = rt.TCanvas("c","c",1500,400)
+    for icand in range(ncands):
+        c.Clear()        
+        c.Divide(3,2)
+
+        vd = algo.get_debug_vis(icand)
+
+        startcoord = [None,None,None,None]
+        for p in range(3):
+            c.cd(p+1)
+            hist_v[p].Draw("colz")        
+            nends = vd.plane_end_vv[p].size()
+            for iend in range(nends):
+                g = vd.plane_end_vv[p].at(iend)
+                if g.GetN()>0:
+                    g.SetLineColor(rt.kRed)
+                    g.Draw("L")
+            x = g.GetX()[0]
+            y = g.GetY()[0]
+            startcoord[3] = y
+            startcoord[p] = x
+            hist_v[p].GetXaxis().SetRangeUser(x-100,x+100)
+            hist_v[p].GetYaxis().SetRangeUser(y-100,y+100)
+            c.cd(3+p+1)
+            vd.seg_dqdx_v.at(p).Draw("ALP")
+            
+        c.Draw()
+        c.Update()
+        print("Drawing VA[%d]: "%(icand),startcoord)
+        raw_input()
+
+    print("End of event")
+    raw_input()
     
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()
     vatree.Fill()
+
 
 
 io.close()

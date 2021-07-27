@@ -76,6 +76,7 @@ namespace reco {
     std::vector<larlite::pcaxis> shower_pcaxis_v;  ///< pc-axis of whole shower cluster
     std::vector< std::vector<float> > shower_plane_pixsum_vv; ///< pixel sum of showers, a value for each plane
     std::vector< std::vector<TLorentzVector> > shower_plane_mom_vv; ///< energy of showers, a value for each plane
+    std::vector< std::vector<float> > shower_plane_dqdx_vv;  ///< dqdx of shower trunk, a value for each plane
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {
