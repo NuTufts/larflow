@@ -211,14 +211,17 @@ namespace reco {
         int col = adc_v[p].meta().col( hit.targetwire[p], __FILE__, __LINE__ );
         int tagged = tagged_v[p].pixel( row, col );
         //LARCV_DEBUG() << " tagged[col " << col << "]=" << tagged;        
-        if ( tagged>5 ) {
+        if ( tagged>5) {
           // check if shower
-          float shower_score = shower_ssnet_v[p]->pixel(row,col);
+          float shower_score = 0.0;
+          if ( shower_ssnet_v.size()>0 )
+            shower_score = shower_ssnet_v[p]->pixel(row,col);
+            
           //LARCV_DEBUG() << " showerscore=" << shower_score;        
           if ( shower_score<0.5 ) {
             nplanes_tagged++;
           }
-
+          
         }        
       }
       if ( nplanes_tagged>=2 ) {
