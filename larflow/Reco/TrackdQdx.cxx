@@ -2,6 +2,7 @@
 
 #include "TMatrixD.h"
 #include "LArUtil/Geometry.h"
+#include "ublarcvapp/UBImageMod/TrackImageMask.h"
 
 #include "geofuncs.h"
 
@@ -107,72 +108,7 @@ namespace reco {
         _makeTrackPtInfo( start, end, pt, imgcoord, adc_v,
                           hitidx,
                           r, s, current_s, lm, trkpt );        
-        
-        // std::vector<float> linept(3,0);
-        // std::vector<float> rad_v(3,0); // vector from line pt to space point
-        // for (int i=0; i<3; i++) {
-        //   linept[i] = start[i] + s*dir[i];
-        //   rad_v[i] = pt[i]-linept[i];
-        // }
-        
-        // // on segment
-        // TrackPt_t trkpt;
-        // trkpt.linept = linept;
-        // trkpt.pt  = pt;
-        // trkpt.dir = dir;
-        // trkpt.err_v = rad_v;
-        // trkpt.hitidx = 
-
-        // trkpt.pid = 0;
-        // trkpt.r = r;
-        // trkpt.s = s+current_len;
-        // trkpt.q = 0.;            
-        // trkpt.dqdx = 0.;
-        // trkpt.q_med = 0.;
-        // trkpt.dqdx_med = 0.;
-        // trkpt.lm = lfcluster.at(trkpt.hitidx).track_score;
-        // trkpt.dqdx_v.resize(3,0.); // (u,v,y)
-
-        // // get the median charge inside the image
-        // int row = adc_v.front().meta().row( imgcoord[3] );
-
-        // std::vector< PtQ_t > pixq_v(3);
-        
-        // for ( int p=0; p<3; p++) {
-          
-        //   float pixsum = 0.;
-        //   int npix = 0;
-        //   for (int dr=-2; dr<=2; dr++ ) {
-        //     int r = row+dr;
-        //     if ( r<0 || r>=(int)adc_v.front().meta().rows() )
-        //       continue;
-        //     pixsum += adc_v[p].pixel( r, imgcoord[p] );
-        //     npix++;
-        //   }
-        //   if ( npix>0 )
-        //     pixq_v[p].q = pixsum/float(npix);
-        //   else
-        //     pixq_v[p].q = 0;
-          
-        //   float dcos_yz = fabs(truedir[1]*orthy[p] + truedir[2]*orthz[p]);
-        //   float dcos_x  = fabs(truedir[0]);
-        //   float dx = 3.0;
-        //   if ( dcos_yz>0.785 )
-        //     dx = 3.0/dcos_yz;
-        //   else
-        //     dx = 3.0/dcos_x;
-        //   pixq_v[p].dqdx = pixsum/dx;
-        //   trkpt.dqdx_v[p] = pixsum/dx;
-        // }
-        // // y-plane only
-        // trkpt.q = pixq_v[2].q;
-        // trkpt.dqdx = pixq_v[2].dqdx;
-        
-        // // median value
-        // std::sort( pixq_v.begin(), pixq_v.end() );
-        // trkpt.q_med    = pixq_v[1].q;
-        // trkpt.dqdx_med = pixq_v[1].dqdx;
-        
+                
         if ( hit_rad_v[trkpt.hitidx]<0 || trkpt.r<hit_rad_v[trkpt.hitidx] )
           hit_rad_v[trkpt.hitidx] = trkpt.r;
         
@@ -203,7 +139,12 @@ namespace reco {
     // make a new larlite track with dq/dx values stored
     larlite::track dqdx_track;
     dqdx_track.reserve( trackpt_v.size() );
-    for (auto const& trkpt : trackpt_v ) {
+    int npts = trackpt_v.size();
+
+    // we loop in reverse because the trackpt_v is sorted from end of track to vertex.
+    for (int ipt=npts-1; ipt>=0; ipt--) {
+      
+      auto const& trkpt = trackpt_v[ipt];      
       // fill vertex, direction, dqdx, line to spacepoint vector
       // vertex
       TVector3 vtx( trkpt.linept[0],  trkpt.linept[1],  trkpt.linept[2] );
@@ -222,40 +163,7 @@ namespace reco {
       dqdx_track.add_covariance( m );
     }
 
-    return dqdx_track;
-    
-    // // calculate residual range
-    // // calculate likelihood
-    // float totw = 0.;
-    // float totll = 0.;
-    // for ( auto& trkpt : trackpt_v ) {
-    //   trkpt.res = current_len - trkpt.s;
-      
-    //   float mu_dedx = sMuonRange2dEdx->Eval(trkpt.res);
-    //   float mu_dedx_birks = q2adc*mu_dedx/(1+mu_dedx*0.0486/0.273/1.38);
-    //   float p_dedx = sProtonRange2dEdx->Eval(trkpt.res);
-    //   float p_dedx_birks = q2adc*p_dedx/(1+p_dedx*0.0486/0.273/1.38);
-      
-    //   float dmu = trkpt.dqdx_med-mu_dedx_birks;
-    //   float dp  = trkpt.dqdx_med-p_dedx_birks;
-      
-    //   float llpt = -0.5*dmu*dmu/100.0 + 0.5*dp*dp/100.0;
-    //   float w_dedx = (mu_dedx_birks-p_dedx_birks)*(mu_dedx_birks-p_dedx_birks);
-    //   trkpt.ll = llpt;
-    //   trkpt.llw = w_dedx;
-    //   if ( trkpt.dqdx_med>10.0 ) {
-    //     totll += llpt*w_dedx;
-    //     totw  += w_dedx;
-    //   }
-    // }
-    // if ( totw>0 )
-    //   totll /= totw;
-    
-    // track_len_v[itrack] = current_len;
-    // track_ll_v[itrack] = totll;
-    
-    // trackpt_list_v.emplace_back( std::move(trackpt_v) );    
-    
+    return dqdx_track;       
     
   }
 
@@ -388,6 +296,111 @@ namespace reco {
     
 
   }
+
+  /**
+   * @brief Calculate dq/dx, emphasizing use of data in image
+   *
+   */
+  std::vector< std::vector<float> > TrackdQdx::calculatedQdx2D( const larlite::track& lltrack,
+                                                                const std::vector<larcv::Image2D>& adc_v,
+                                                                const float stepsize ) const
+  {
+
+    // we define the points on the line, filling a TrackPtList_t
+    TrackPtList_t trkpt_v;
+    int npts = (int)lltrack.NumberTrajectoryPoints();
+
+    ublarcvapp::ubimagemod::TrackImageMask  masker;
+    masker.set_verbosity( larcv::msg::kDEBUG );
+
+    std::vector< std::vector<float> > plane_dqdx_vv(adc_v.size()*2);
+    
+    for (int p=0; p<(int)adc_v.size(); p++) {
+      auto const& img = adc_v[p];
+      auto const& meta = img.meta();
+
+      // label pixels by distance along track
+      larcv::Image2D smin_img(meta);
+      larcv::Image2D smax_img(meta);
+      int n_core_pixels = masker.labelTrackPath( lltrack, adc_v[p], smin_img, smax_img, 10.0, 0.05 );
+      LARCV_DEBUG() << " plane[" << p << "] num core pixels = " << n_core_pixels << std::endl;
+
+      if ( n_core_pixels<=1 )
+        continue;
+      
+      // split track pixels into regions we'll calculate dq/dx on
+      std::vector< std::vector<int> > trackpixel_bounds_v;
+      trackpixel_bounds_v.reserve( n_core_pixels );
+      plane_dqdx_vv[3+p].reserve( n_core_pixels );
+      plane_dqdx_vv[p].reserve( n_core_pixels );
+
+      float current_length = 0;
+      float current_s_min = 0;
+      float current_s = 0.5*stepsize;
+      float current_s_max = stepsize;
+      float max_s_seen = 0;
+      std::vector<int> current_bounds(2,0);
+      for ( size_t idx=0; idx<masker.pixel_v.size(); idx++ ) {
+        auto& pix = masker.pixel_v[idx];
+        std::pair<int,int> pixcoord( pix[0], pix[1] );
+        auto it = masker.pixel_map.find( pixcoord );
+        if ( it==masker.pixel_map.end() )
+          continue;
+        auto& pixdata = it->second;
+        std::cout << "test " << pixdata.smax << " > " << current_s_max << std::endl;
+        if ( pixdata.smax>=current_s_max ) {
+          // hit end of bounds
+          current_bounds[1] = (int)idx;
+          // store it
+          trackpixel_bounds_v.push_back( current_bounds );
+          plane_dqdx_vv[3+p].push_back( 0.5*(current_s_min+current_s_max) );
+          // update next bounds
+          current_bounds[0] = (int)idx;
+          current_s_min += stepsize;
+          current_s_max += stepsize;
+        }
+        if ( pixdata.smax>max_s_seen )
+          max_s_seen = pixdata.smax;
+      }
+      // make last one
+      current_bounds[1] = (int)masker.pixel_v.size()-1;
+      trackpixel_bounds_v.push_back( current_bounds );
+      plane_dqdx_vv[3+p].push_back( 0.5*(current_s_min+max_s_seen) );      
+      
+      LARCV_DEBUG() << " plane[" << p << "] number of segments defined: " << trackpixel_bounds_v.size() << std::endl;
+      plane_dqdx_vv[p].resize( trackpixel_bounds_v.size(), 0 );
+
+      for ( int iseg=0; iseg<(int)trackpixel_bounds_v.size(); iseg++) {
+        auto& bounds = trackpixel_bounds_v[iseg];
+        std::vector< std::vector<int> > pix2sum_v(abs(bounds[1]-bounds[0])+1);
+        for (int i=0; i<abs(bounds[1]-bounds[0])+1; i++)
+          pix2sum_v[i] = masker.pixel_v[bounds[0]+i];
+        masker.set_verbosity(larcv::msg::kDEBUG);
+        float pixsum = masker.sumOverPixelList( pix2sum_v, img, 1, 3, 0.01 );
+        float s_min, s_max, s_dummy;
+        bool ok_min = masker.getExtremaPixelValues( pix2sum_v, smin_img, 1, 3, 0.01, s_min, s_dummy );
+        bool ok_max = masker.getExtremaPixelValues( pix2sum_v, smax_img, 1, 3, 0.01, s_dummy, s_max );
+        float seg_dqdx = 0.;
+        if (  ok_min && ok_max && fabs(s_min-s_max)>0.01 ) {
+          seg_dqdx = pixsum/fabs(s_max-s_min);
+          std::cout << "bounds=" << bounds[0] << "," << bounds[1]
+                    << " pixsum=" << pixsum
+                    << " s_min=" << s_min << " s_max=" << s_max << " dx="
+                    << fabs(s_max-s_min) << std::endl;
+          plane_dqdx_vv[3+p][iseg] = 0.5*(s_min+s_max);
+        }
+        plane_dqdx_vv[p][iseg] = seg_dqdx;
+        
+      }
+      
+    }//end of plane loop
+      
+      
+    // makePixelList( lltrack    
+    
+    return plane_dqdx_vv;
+  }
+  
                                    
   
 

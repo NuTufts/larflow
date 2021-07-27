@@ -61,6 +61,11 @@ namespace reco {
                                   const larlite::larflowcluster& trackhits,
                                   const std::vector<larcv::Image2D>& adc_v ) const;
 
+    std::vector< std::vector<float> > calculatedQdx2D( const larlite::track& lltrack,
+                                                       const std::vector<larcv::Image2D>& adc_v,
+                                                       const float stepsize ) const;
+    
+
     protected:
 
     void _makeTrackPtInfo( const std::vector<float>& start,
