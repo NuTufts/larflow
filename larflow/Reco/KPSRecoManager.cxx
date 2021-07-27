@@ -11,6 +11,7 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 #include "SplitHitsByParticleSSNet.h"
+#include "TrackFindBadConnection.h"
 
 namespace larflow {
 namespace reco {
@@ -76,8 +77,18 @@ namespace reco {
     // make five particle ssnet images
     larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
     //fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
-    fiveparticlealgo.set_verbosity( larcv::msg::kINFO );    
-    fiveparticlealgo.process( iolcv, ioll );
+    fiveparticlealgo.set_verbosity( larcv::msg::kINFO );
+    try {
+      fiveparticlealgo.process( iolcv, ioll );
+    }
+    catch (std::exception& e ) {
+      std::stringstream msg;
+      msg << "KPSRecoManager.cxx:L." << __LINE__ << " error running SplitHitsByParticleSSNet fiveparticlealgo: "
+          << '\n'
+          << e.what()
+          << std::endl;
+      throw std::runtime_error(msg.str());
+    }
     
     // PREP SETS OF HITS
     // ------------------
@@ -384,7 +395,10 @@ namespace reco {
   {
 
 
-    _nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    //_nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    _nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
+
+    // configure to use shower and in-time hits
     std::vector<std::string> input_hit_list
       = {"taggerfilterhit",            // all in-time hits
          "ssnetsplit_full_showerhit"}; // out-of-time shower hits
@@ -392,7 +406,7 @@ namespace reco {
       = { "trackprojsplit_full"}; // in-time track clusters
 
     _nuvertexactivity.set_input_hit_list( input_hit_list );    
-    _nuvertexactivity.set_input_cluster_list( input_cluster_list );
+    //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
     _nuvertexactivity.set_output_treename( "keypoint" );
     _nuvertexactivity.process( iolcv, ioll );
     
@@ -414,6 +428,11 @@ namespace reco {
     //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
     _nu_track_builder.set_verbosity( larcv::msg::kINFO );    
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    // larflow::reco::TrackFindBadConnection track_splitter;
+    // track_splitter.set_verbosity( larcv::msg::kINFO );
+    // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
+    //   int nsplit = track_splitter.processNuVertexTracks( nuvtx, iolcv );
+    
 
     // first attempt
     // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
@@ -566,6 +585,8 @@ namespace reco {
       larflow::reco::NuSelectionVariables nusel;
 
       std::cout << "===[ VERTEX " << ivtx << " ]===" << std::endl;
+      std::cout << "  source: " << nuvtx.keypoint_producer << std::endl;
+      std::cout << "  type: " << nuvtx.keypoint_type << std::endl;      
       std::cout << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
       std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
       std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
