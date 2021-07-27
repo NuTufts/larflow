@@ -3,9 +3,13 @@
 #include "TVector3.h"
 #include "larflow/Reco/geofuncs.h"
 
+#include "larcv/core/DataFormat/Image2D.h"
 #include "ublarcvapp/ubdllee/dwall.h"
+#include "ublarcvapp/UBImageMod/TrackImageMask.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
 #include "larflow/Reco/cluster_functions.h"
+
+#include "ClusterImageMask.h"
 
 namespace larflow {
 namespace reco {
@@ -150,9 +154,28 @@ namespace reco {
    * one of the end points of another segment.
    *
    */
-  void TrackClusterBuilder::buildNodeConnections()
+  void TrackClusterBuilder::buildNodeConnections( const std::vector<larcv::Image2D>* padc_v,
+                                                  const std::vector<larcv::Image2D>* pbadch_v )
   {
 
+    std::vector<larcv::Image2D> mask_adc_v;
+    std::vector<larcv::Image2D> mask_badch_v;
+    if ( padc_v ) {
+      for (auto& img : *padc_v ) {
+        larcv::Image2D mask(img.meta());
+        mask_adc_v.emplace_back( std::move(mask) );
+      }
+    }
+    if ( pbadch_v ) {
+      for (auto& img : *pbadch_v ) {
+        larcv::Image2D mask(img.meta());
+        mask_badch_v.emplace_back( std::move(mask) );
+      }
+    }
+
+    ublarcvapp::ubimagemod::TrackImageMask masker;
+    int nfail_charge_check = 0;
+    
     for (int inode=0; inode<(int)_nodepos_v.size(); inode++ ) {
       NodePos_t& node_i = _nodepos_v[inode];
 
@@ -175,6 +198,7 @@ namespace reco {
         dist = sqrt(dist);
         if ( dist>0 ) for (int v=0; v<3; v++) dir_ij[v] /= dist;
 
+        // enforce max distance two cluster ends can be connected
         if ( dist>100.0 ) continue;
 
         // make sure this is the shortest distance
@@ -197,6 +221,88 @@ namespace reco {
           // the node's segment pair is closer to node_i, so we do not make this connection
           continue;
         }
+
+        bool pass_charge_check = true;
+        if ( dist>5.0 && padc_v ) {
+
+          std::chrono::steady_clock::time_point start_check = std::chrono::steady_clock::now();          
+
+          std::chrono::steady_clock::time_point start_paint = std::chrono::steady_clock::now();
+          for ( auto& img : mask_adc_v ) {
+            //img.paint(0);
+            memset( img.as_mod_vector().data(), 0, sizeof(float)*img.as_mod_vector().size() );
+          }
+          
+          std::chrono::steady_clock::time_point end_paint = std::chrono::steady_clock::now();
+
+          larlite::track gap;
+          gap.reserve(2);
+          TVector3 vstart;
+          TVector3 vend;
+          TVector3 vdir;
+          for (int v=0; v<3; v++) {
+            vstart[v] = node_i.pos[v];
+            vend[v]   = node_j.pos[v];
+            vdir[v]   = dir_ij[v];
+          }
+          gap.add_vertex( vstart );
+          gap.add_direction( vdir );
+          gap.add_vertex( vend );
+          gap.add_direction( vdir );
+
+          //masker.maskTrack( gap, *padc_v, mask_adc_v, 10.0, 1, 1, 1.0, 3.0 );
+          std::chrono::steady_clock::time_point start_masker = std::chrono::steady_clock::now();          
+          //masker.set_verbosity( larcv::msg::kDEBUG );
+          std::vector<float> ncharged_v(mask_adc_v.size(),0);
+          std::vector<float> frac_v(mask_adc_v.size(),0);
+          for (int p=0; p<(int)mask_adc_v.size(); p++) {
+            auto& mask = mask_adc_v[p];
+            auto const& adc = padc_v->at(p);
+            ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 2.0 );
+            
+            float nall = (float)masker.maskTrack( gap, adc, mask, -1.0, 0, 0, 2.0 );
+            if ( nall>0 ) {              
+              frac_v[p] = ncharged_v[p]/nall;
+            }            
+          }//end of plane loop
+          //masker.maskTrack( gap, *padc_v, mask_adc_v, -1.0, 1, 1 );
+          std::chrono::steady_clock::time_point end_masker = std::chrono::steady_clock::now();                    
+
+          int nplane_w_charge = 0;
+          std::stringstream ssout;
+          ssout << "path fraction: ";
+          for (int p=0; p<(int)mask_adc_v[p].size(); p++) {
+            float& frac = frac_v[p];
+            ssout << " " << frac;
+            if ( frac>0.5 )
+              nplane_w_charge++;
+          }
+          LARCV_DEBUG() << ssout.str() << std::endl;
+          
+          if ( nplane_w_charge==(int)mask_adc_v.size() ) {
+            pass_charge_check = false;
+            nfail_charge_check++;
+          }
+
+          std::chrono::steady_clock::time_point end_check = std::chrono::steady_clock::now();
+          LARCV_DEBUG() << "TrackClusterBuilder:: total-check-time="
+                        << std::chrono::duration_cast<std::chrono::microseconds>(end_check - start_check).count()
+                        << std::endl;
+          LARCV_DEBUG() << "                   :: paint-time="
+                        << std::chrono::duration_cast<std::chrono::microseconds>(end_paint - start_paint).count()
+                        << std::endl;
+          LARCV_DEBUG() << "                   :: masker="
+                        << std::chrono::duration_cast<std::chrono::microseconds>(end_masker - start_masker).count()
+                        << std::endl;
+        }//end of charge check
+        
+        bool pass_badch_check = true;
+        if ( pbadch_v ) {
+
+        }
+
+        if ( !pass_charge_check || !pass_badch_check )
+          continue;
           
         // i->j
         Connection_t con_ij;
@@ -228,7 +334,7 @@ namespace reco {
       }      
     }
 
-    LARCV_INFO() << "Made " << _connect_m.size() << " nodepos connections" << std::endl;
+    LARCV_INFO() << "Made " << _connect_m.size() << " nodepos connections. nfailed-charge-check=" << nfail_charge_check << std::endl;
   }
   
   /**

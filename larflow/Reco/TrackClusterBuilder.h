@@ -5,6 +5,7 @@
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/Image2D.h"
 
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/pcaxis.h"
@@ -170,7 +171,8 @@ namespace reco {
                              const larlite::event_pcaxis& pcaxis_v,
                              const larlite::event_track& trackseg_v );                             
 
-    void buildNodeConnections();
+    void buildNodeConnections( const std::vector<larcv::Image2D>* padc_v=nullptr,
+                               const std::vector<larcv::Image2D>* pbadch_v=nullptr);
 
     void buildTracksFromPoint( const std::vector<float>& startpoint );
 
