@@ -137,6 +137,7 @@ namespace reco {
         NuVertexCandidate vertex;
         vertex.keypoint_producer = it->first;
         vertex.keypoint_index = vtxid;
+        vertex.keypoint_type = (lf_vertex.size()>3) ? lf_vertex[3] : -1;
         vertex.pos.resize(3,0);
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];
@@ -398,6 +399,11 @@ namespace reco {
         // if within distance, absorb clusters to make union
         // set the pos, keypoint producer based on best score
         used_v[i] = 1;
+
+        if ( cand.keypoint_type!=test_vtx.keypoint_type ) {
+          if ( test_vtx.keypoint_type<cand.keypoint_type )
+            cand.keypoint_type = test_vtx.keypoint_type;
+        }
 
         // loop over clusters inside test vertex we are merging with
         int nclust_before = cand.cluster_v.size();

@@ -48,6 +48,7 @@ namespace reco {
     
     std::string keypoint_producer;  ///< name of tree containing keypoints used to seed candidates
     int keypoint_index;             ///< index of vertex candidate in container above
+    int keypoint_type;              ///< keypoint type
     std::vector<float> pos;         ///< keypoint position
     int row;                        ///< vertex row
     int tick;                       ///< vertex tick
