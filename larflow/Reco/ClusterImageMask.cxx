@@ -93,6 +93,7 @@ namespace reco {
 
     int npts = track.NumberTrajectoryPoints();
     if ( npts<=1 ) {
+      LARCV_WARNING() << "No mask generated for track with only 1 point" << std::endl;
       // no mask can be generated in this case
       return;
     }
@@ -101,7 +102,8 @@ namespace reco {
     const float usec_per_tick = 0.5;
 
     float max_tick = adc_v.front().meta().max_y();
-    float min_tick = adc_v.front().meta().min_y();    
+    float min_tick = adc_v.front().meta().min_y();
+
     
     for (int ipt=0; ipt<npts-1; ipt++) {
 
@@ -115,7 +117,7 @@ namespace reco {
       if ( segsize>minstepsize ) {
         nsteps = segsize/maxstepsize + 1;
       }
-
+      
       float stepsize = segsize/float(nsteps);
 
       for (int istep=0; istep<=nsteps; istep++) {
@@ -161,11 +163,10 @@ namespace reco {
       }//end of segment step loop
 
     }//end of loop over track segments
-
     
+    LARCV_DEBUG() << "_npix=" << _npix << std::endl;
   }
-  
-  
+    
 
 
 }

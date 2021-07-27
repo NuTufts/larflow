@@ -15,8 +15,11 @@ namespace reco {
 
   public:
 
-    ClusterImageMask() {};
+    ClusterImageMask()
+      : _npix(0)
+      {};
     virtual ~ClusterImageMask() {};
+
 
     std::vector< larcv::Image2D >
       makeChargeMask( NuVertexCandidate& nuvtx,
