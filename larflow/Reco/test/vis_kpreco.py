@@ -6,6 +6,7 @@ parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsreco
 parser.add_argument("-ll","--input-larlite",type=str,default=None,help="kpsrecomanager larlite output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
 parser.add_argument("--draw-flash",action='store_true',default=False,help="If true, draw in-time flash PMT data [default: false]")
+parser.add_argument("--draw-perfect",action='store_true',default=False,help="If flag provided, will plot perfect reco instead")
 args = parser.parse_args()
 
 import numpy as np
@@ -132,7 +133,18 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         nuvtx = vertex_v.at(ivtx)
         ntracks  = nuvtx.track_v.size()
         nshowers = nuvtx.shower_v.size()
-        vtxinfo.append( {"label":"%d (%.2f) ntracks=%d nshowers=%d"%(ivtx,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
+
+        kplabel = "KP%d"%(ivtx)
+        if nuvtx.keypoint_type==0:
+            kplabel += "-NU"
+        elif nuvtx.keypoint_type==1:
+            kplabel += "-T"
+        elif nuvtx.keypoint_type==2:
+            kplabel += "-S"
+        elif nuvtx.keypoint_type==3:
+            kplabel += "-V"
+        
+        vtxinfo.append( {"label":"[%d] %s (%.2f) ntracks=%d nshowers=%d"%(ivtx,kplabel,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
@@ -140,6 +152,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         #vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
         vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
         # Get the keypoint data
+
         
         # make vertex traces
         kptrace = {
@@ -151,7 +164,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             "y": [vertexcand_fit.pos[1]],
             "z": [vertexcand_fit.pos[2]],
             "mode":"markers",
-	    "name":"KP%d"%(ivtx),
+	    "name":kplabel,
             "marker":{"color":[0.0,1.0],"size":5,"opacity":0.9,"colorscale":"Viridis"},
         }
         traces_v.append( kptrace )
@@ -253,9 +266,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         if not HAS_LARLITE:
             print("no larlite, skipping the plotting of ",name)
             continue
-        
+
+        print(name,track_producer,zrgb,plotme)
         ev_track = io.get_data(larlite.data.kTrack,track_producer)
-        for itrack in xrange(ev_track.size()):
+        try:
+            nreco_tracks = ev_track.size()
+        except:
+            continue
+        
+        for itrack in range(nreco_tracks):
             trktrace = lardly.data.visualize_larlite_track( ev_track[itrack] )
             trktrace["name"] = "%s[%d]"%(name,itrack)
             trktrace["line"]["color"] = zrgb
@@ -280,7 +299,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
         traces_v.append( mcshower_v[2] )
 
-        num_nu_perfect = 0
+    # Check for perfect reco
+    num_nu_perfect = 0        
+    if args.draw_perfect:
         try:
             num_nu_perfect = kpsanatree.nu_perfect_v.size()
         except:
@@ -288,43 +309,43 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             print("no perfect vertex info")
             pass
         
-        if num_nu_perfect>0:
-            # perfect nu vtx
-            print("Perfect Vertex Plotted")
-            nuperfect = kpsanatree.nu_perfect_v.at(0)
-            for itrack in range(nuperfect.track_v.size()):
-                per_cluster = nuperfect.track_hitcluster_v.at(itrack)
-                per_track   = nuperfect.track_v.at(itrack)
-                print("  true-track[%d] nhits=%d"%(itrack,per_cluster.size()))
-                cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tTRK[%d]"%(itrack) )
-                cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
-                cluster_trace["marker"]["opacity"] = 0.2
-                cluster_trace["marker"]["width"] = 1.0
-                traces_v.append( cluster_trace )
+    if args.draw_perfect and num_nu_perfect>0:
+        # perfect nu vtx
+        print("Perfect Vertex Plotted")
+        nuperfect = kpsanatree.nu_perfect_v.at(0)
+        for itrack in range(nuperfect.track_v.size()):
+            per_cluster = nuperfect.track_hitcluster_v.at(itrack)
+            per_track   = nuperfect.track_v.at(itrack)
+            print("  true-track[%d] nhits=%d"%(itrack,per_cluster.size()))
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tTRK[%d]"%(itrack) )
+            cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
+            cluster_trace["marker"]["opacity"] = 0.2
+            cluster_trace["marker"]["width"] = 1.0
+            traces_v.append( cluster_trace )
+            
+            trktrace = lardly.data.visualize_larlite_track( per_track )
+            trktrace["name"] = "tT[%d]"%(itrack)
+            trktrace["line"]["color"] = "rgb(0,0,0)"
+            trktrace["line"]["width"] = 1
+            trktrace["line"]["opacity"] = 1.0
+            traces_v.append( trktrace )
                 
-                trktrace = lardly.data.visualize_larlite_track( per_track )
-                trktrace["name"] = "tT[%d]"%(itrack)
-                trktrace["line"]["color"] = "rgb(0,0,0)"
-                trktrace["line"]["width"] = 1
-                trktrace["line"]["opacity"] = 1.0
-                traces_v.append( trktrace )
-                
-            for ishower in range(nuperfect.shower_v.size()):
-                per_cluster = nuperfect.shower_v.at(ishower)
-                per_track   = nuperfect.shower_trunk_v.at(ishower)
-                print("  true-shower[%d] nhits=%d"%(ishower,per_cluster.size()))
-                cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tSHR[%d]"%(ishower) )
-                cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
-                cluster_trace["marker"]["opacity"] = 0.2
-                cluster_trace["marker"]["width"] = 1.0
-                traces_v.append( cluster_trace )
-                
-                trktrace = lardly.data.visualize_larlite_track( per_track )
-                trktrace["name"] = "tS[%d]"%(ishower)
-                trktrace["line"]["color"] = "rgb(0,0,0)"
-                trktrace["line"]["width"] = 1
-                trktrace["line"]["opacity"] = 1.0
-                traces_v.append( trktrace )
+        for ishower in range(nuperfect.shower_v.size()):
+            per_cluster = nuperfect.shower_v.at(ishower)
+            per_track   = nuperfect.shower_trunk_v.at(ishower)
+            print("  true-shower[%d] nhits=%d"%(ishower,per_cluster.size()))
+            cluster_trace = lardly.data.visualize_larlite_larflowhits( per_cluster, name="tSHR[%d]"%(ishower) )
+            cluster_trace["marker"]["color"] = 'rgb(0,0,1)'
+            cluster_trace["marker"]["opacity"] = 0.2
+            cluster_trace["marker"]["width"] = 1.0
+            traces_v.append( cluster_trace )
+            
+            trktrace = lardly.data.visualize_larlite_track( per_track )
+            trktrace["name"] = "tS[%d]"%(ishower)
+            trktrace["line"]["color"] = "rgb(0,0,0)"
+            trktrace["line"]["width"] = 1
+            trktrace["line"]["opacity"] = 1.0
+            traces_v.append( trktrace )
                 
             
         

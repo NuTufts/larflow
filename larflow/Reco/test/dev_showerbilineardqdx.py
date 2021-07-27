@@ -37,6 +37,7 @@ rt.gStyle.SetOptStat(0)
 PLOTME=args.plot_me
 
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+#iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
 
 print("[INPUT: DL MERGED] ",args.input_dlmerged)
 print("[INPUT: RECO OUT]  ",args.input_kpsana)
@@ -99,7 +100,7 @@ algotree.Branch("true_matched_best_pixsum", true_matched_pixsum, "true_matched_b
 algotree.Branch("true_matched_pixsum_v", true_matched_pixsum_v )
 
 
-#start_entry = 18
+start_entry = 5
 #end_entry = 19
 for ientry in range(start_entry,end_entry):
 
@@ -251,9 +252,9 @@ for ientry in range(start_entry,end_entry):
                 if PLOTME:
                     for p in range(3):
                         c.cd(p+1)
-                        if algo.bilinear_path_vv.size()>0:
-                            for ipath in range(algo.bilinear_path_vv.at(p).size()):
-                                path = algo.bilinear_path_vv.at(p).at(ipath)
+                        if algo.trunk_tgraph_vv.size()>0:
+                            for ipath in range(algo.trunk_tgraph_vv.at(p).size()):
+                                path = algo.trunk_tgraph_vv.at(p).at(ipath)
                                 path.SetLineWidth(2)
                                 if name in ["PERFECT"]:
                                     path.SetLineColor(rt.kRed)
@@ -299,7 +300,7 @@ for ientry in range(start_entry,end_entry):
                     
                 outtree.Fill()
                     
-                if PLOTME and algo._true_dir_cos>0.9 and abs(algo._true_vertex_err_dist)<3.0:
+                if PLOTME and (algo._true_dir_cos>0.9 and abs(algo._true_vertex_err_dist)<3.0) or not args.has_mc:
                     print("Stopped on good reco of pdg=%d. [ENTER] to continue to next shower"%(algo._true_match_pdg) )
                     x = input()
 

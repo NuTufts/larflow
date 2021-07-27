@@ -76,6 +76,8 @@ anatree = rt.TTree("unrecoq","Vertex Activity Ana")
 mcdata.bindAnaVariables( anatree )
 algo.bindVarsToTree( anatree )
 
+SAVE_ALL = False
+
 if args.nentries is not None and args.nentries<nentries:
     nentries = args.nentries
 
@@ -109,7 +111,7 @@ for ientry in range(start_entry,nentries):
 
         outtemp = larflow.reco.NuSelectionVariables()
 
-        if abs(mcdata._nu_pdg)==12:
+        if abs(mcdata._nu_pdg)==12 or SAVE_ALL:
             algo.setSaveMask( True )
         else:
             algo.setSaveMask( False )
