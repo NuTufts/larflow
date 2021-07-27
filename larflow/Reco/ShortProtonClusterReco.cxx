@@ -31,6 +31,7 @@ namespace reco {
     const float hip_threshold[3] = { 55.0, 70.0, 70.0 };
     const float max_length = 20.0;
 
+    // output container
     larlite::event_larflow3dhit* ev_out_hit 
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "hip" );
 
@@ -168,7 +169,7 @@ namespace reco {
       ev_out_pca->emplace_back( std::move(pc) );
       ev_out_track->emplace_back( std::move(lltrack) );
     }
-    
+    LARCV_INFO()  << "number of proton candidates stored in 'hip' tree: " << ev_out_track->size()  << std::endl;
   }
 
   void ShortProtonClusterReco::checkForOverlap( larlite::storage_manager& io,
