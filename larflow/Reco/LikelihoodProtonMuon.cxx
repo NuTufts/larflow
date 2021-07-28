@@ -1,6 +1,7 @@
 #include "LikelihoodProtonMuon.h"
 
 #include <cstdlib>
+#include <sstream>
 
 #include "TFile.h"
 #include "TSpline.h"
@@ -57,6 +58,15 @@ namespace reco {
 
     int npts = track.NumberTrajectoryPoints();
     double current_res_range = 0.;
+
+    // check if dq/dx calculated for track
+    size_t ndqdx_pts = track.NumberdQdx((larlite::geo::View_t)0);
+    if ( ndqdx_pts!=4 ) {
+      std::stringstream ss;
+      ss << "[larflow::reco::LikelihoodProtonMuon.L" << __LINE__ << "] "
+         << "Track given does not have complete dqdx information" << std::endl;
+      throw std::runtime_error(ss.str());
+    }
 
     const TVector3* start_pt = &(track.LocationAtPoint(0));
     const TVector3* end_pt = &(track.LocationAtPoint(npts-1));

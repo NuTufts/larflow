@@ -143,7 +143,9 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             kplabel += "-S"
         elif nuvtx.keypoint_type==3:
             kplabel += "-V"
-        
+        elif nuvtx.keypoint_type==4:
+            kplabel += "-CMU"
+            
         vtxinfo.append( {"label":"[%d] %s (%.2f) ntracks=%d nshowers=%d"%(ivtx,kplabel,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info

@@ -462,6 +462,9 @@ namespace reco {
       ivtx++;
     }
 
+    _cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    
   }
 
   /**
@@ -472,6 +475,8 @@ namespace reco {
    */
   void KPSRecoManager::cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
+
+    LARCV_INFO() << "reco cosmic tracks" << std::endl;
     
     _cosmic_track_builder.clear();
     //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
@@ -724,10 +729,16 @@ namespace reco {
       
       // track dq/dx-based likelihoods
       for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
-        std::vector<double> ll_results = _sel_llpmu.calculateLLseparate( nuvtx.track_v[itrack], nuvtx.pos );
-        nuvtx.track_muid_v[itrack] = ll_results[2];
-        nuvtx.track_protonid_v[itrack] = ll_results[1];
-        nuvtx.track_mu_vs_proton_llratio_v[itrack] = ll_results[0];
+
+        try {        
+          std::vector<double> ll_results = _sel_llpmu.calculateLLseparate( nuvtx.track_v[itrack], nuvtx.pos );
+          nuvtx.track_muid_v[itrack] = ll_results[2];
+          nuvtx.track_protonid_v[itrack] = ll_results[1];
+          nuvtx.track_mu_vs_proton_llratio_v[itrack] = ll_results[0];
+        }
+        catch ( const std::exception& e ) {
+          LARCV_INFO() << "error running track likelihoood: " << e.what() << std::endl;
+        }
       }//end of track loop
 
       // shower dq/dx
@@ -744,7 +755,7 @@ namespace reco {
         }
         catch( const std::exception& e ) {
           dqdxok = false;
-          LARCV_INFO() << "error running shoqerdqdx: " << e.what() << std::endl;
+          LARCV_INFO() << "error running showerdqdx: " << e.what() << std::endl;
         }
         
         // set values

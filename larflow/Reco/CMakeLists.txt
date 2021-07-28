@@ -24,7 +24,8 @@ set( HEADERS cluster_functions.h
   TrackOTFit.h
   ProjPixFitter.h    
   NuVertexMaker.h
-  NuVertexFitter.h  
+  NuVertexFitter.h
+  CosmicVertexBuilder.h  
   NuTrackBuilder.h
   NuShowerBuilder.h
   NuVertexShowerReco.h
@@ -74,6 +75,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   TrackOTFit.cxx
   NuVertexMaker.cxx
   NuVertexFitter.cxx
+  CosmicVertexBuilder.cxx
   NuTrackBuilder.cxx
   NuShowerBuilder.cxx
   NuVertexShowerReco.cxx

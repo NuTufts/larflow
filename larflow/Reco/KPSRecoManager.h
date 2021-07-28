@@ -28,6 +28,7 @@
 #include "ShortProtonClusterReco.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
+#include "CosmicVertexBuilder.h"
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
 #include "NuShowerBuilder.h"
@@ -107,6 +108,7 @@ namespace reco {
     NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
 
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
+    CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
