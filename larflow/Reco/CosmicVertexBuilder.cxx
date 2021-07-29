@@ -5,6 +5,7 @@
 #include "DataFormat/larflowcluster.h"
 #include "LArUtil/LArProperties.h"
 #include "LArUtil/Geometry.h"
+#include "ublarcvapp/Reco3D/TrackReverser.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "TrackdQdx.h"
@@ -175,6 +176,7 @@ namespace reco {
             LARCV_DEBUG() << " need to make track dqdx as information is missing" << std::endl;
             larflow::reco::TrackdQdx dqdx_algo;
             larlite::track wdqdx = dqdx_algo.calculatedQdx( track, trackcluster, adc_v );
+            LARCV_DEBUG() << " after trackdqdx: numdqdx=" << wdqdx.NumberdQdx((larlite::geo::View_t)0) << std::endl;
             cosmicvtx.track_v.push_back(wdqdx);
           }
           else {
@@ -182,6 +184,13 @@ namespace reco {
             cosmicvtx.track_v.push_back( track );
           }
           cosmicvtx.track_hitcluster_v.push_back( trackcluster );
+          if ( minindex==1 || minindex==3 ) {
+            // need to reverse track
+            LARCV_DEBUG() << " need to reverse track direction" << std::endl;
+            larlite::track reverse = ublarcvapp::reco3d::TrackReverser::reverseTrack( cosmicvtx.track_v.back() );
+            LARCV_DEBUG() << " num dqdx_v after reverse: " << reverse.NumberdQdx((larlite::geo::View_t)0) << std::endl;
+            std::swap( cosmicvtx.track_v.back(), reverse );
+          }
           
           cosmicvtx.col_v.resize(3,0);
           for (int p=0; p<3; p++) {
@@ -195,9 +204,19 @@ namespace reco {
           larlite::track shower_trunk;
           TVector3 shstart;
           TVector3 shend;
-          for (int i=0; i<3; i++) {
-            shstart[i] = v1[i];
-            shend[i]   = v2[i];
+          if ( minindex<2) {
+            // same shower dir as PCA
+            for (int i=0; i<3; i++) {
+              shstart[i] = v1[i];
+              shend[i]   = v2[i];
+            }
+          }
+          else {
+            // reverse shower dir from PCA
+            for (int i=0; i<3; i++) {
+              shstart[i] = v2[i];
+              shend[i]   = v1[i];
+            }
           }
           TVector3 shower_dir = shend-shstart;
           double showerlen = shower_dir.Mag();
