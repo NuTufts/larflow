@@ -39,8 +39,8 @@ class LightModelNet(nn.Module):
         m = scn.Sequential()
 #        nPlanes = 1
 
-        # blockType, n (size of batch--this is num of images), reps, stride
-        layers = [('b',16,2,1),('b',16,2,2)]
+        # blockType, n is number of features outputted, reps, stride
+        layers = [('b',16,2,1),('b',16,2,1)]
 
         # Residual block
         def residual(nIn, nOut, stride):
@@ -82,17 +82,24 @@ class LightModelNet(nn.Module):
         self._showSizes = showSizes
         self.mode = 0
         
-        self.input = scn.InputLayer(self.dimension, self.mode)
-        self.output = scn.SparseToDense(self.dimension, self.mode)
+        self.input = scn.InputLayer(self.dimension, (64, 64, 256),self.mode)
+        self.output = scn.SparseToDense(self.dimension, 16)
+        self.linear = nn.Linear(16*64*64*256, 32)
         
-    def forward( self, coord_t, feat_t, flash_t):
+    def forward( self, coord_t, feat_t):
         if self._showSizes:
-            print "coord_t ",coord_t.shape
-            print "feat_t ",feat_t.shape
-        x=(coord_t,feat_t,flash_t)
+            print("coord_t ",coord_t.shape)
+            print("feat_t ",feat_t.shape)
+        x=(coord_t,feat_t, 1) # batchsize =1
+        print("call input")
         x=self.input(x)
+        print("call m")
         x=self.m(x)
+        print("call output")
         x=self.output(x)
+        print("after output")
+        x=x.view(x.size(0), -1) # have to flatten first
+        x=self.linear(x)
         return x
 
 # to run this script itself:
@@ -101,5 +108,5 @@ if __name__ == "__main__":
 #    dimlen = 16
     net = LightModelNet(3, True)
 
-    print "Just printing the net model: "
-    print net
+    print("Just printing the net model: ")
+    print(net)

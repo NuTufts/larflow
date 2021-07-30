@@ -102,7 +102,8 @@ if __name__=="__main__":
 
     # test
     #print("hi")
-    input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
-    entry = 2
+#    input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
+    input_file = "../../Ana/CRTPreppedTree_crt_all_temp.root" 
+    entry = 3
     
     load_lm_data(input_file, entry)
