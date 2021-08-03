@@ -6,6 +6,8 @@
 #include "bytesobject.h"
 
 #include <vector>
+#include "DataFormat/storage_manager.h"
+#include "DataFormat/mcshower.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
@@ -60,7 +62,7 @@ namespace prep {
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
                                 const std::vector<larcv::Image2D>& adc_v );
-    void process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer="wire" );
+    void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
     void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
 
     std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
@@ -130,13 +132,17 @@ namespace prep {
 
     // Truth Info
     PyObject* make_truthonly_triplet_ndarray();
-    
+
     //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 
   protected:
 
     bool _kStopAtTripletMax;
     int  _kTripletLimit;
+
+    // map from shower daughter IDs to mother IDs
+    std::map<unsigned long, unsigned long> _shower_daughter2mother;
+    void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
 
   private:
     

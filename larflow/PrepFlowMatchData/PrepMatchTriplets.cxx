@@ -442,7 +442,16 @@ namespace prep {
       std::map< int, int > id_votes;
 
       for (int p=0; p<3; p++ ) {
-        int plane_id = instance_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        long plane_id = instance_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        
+        if ( plane_id>0 ) {
+          // see if its in the daughter to mother map
+          auto it_showermap = _shower_daughter2mother.find( plane_id );
+          if ( it_showermap != _shower_daughter2mother.end() ) {
+            plane_id = (long)it_showermap->second;
+          }
+        }
+        
         if ( id_votes.find(plane_id)==id_votes.end() )
           id_votes[plane_id] = 0;
         id_votes[plane_id] += 1;
@@ -977,7 +986,9 @@ namespace prep {
    *
    * @param[in] iolcv larcv IO manager containing event data
    */
-  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv, std::string wire_producer )
+  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv,
+                                                larlite::storage_manager& ioll,
+                                                std::string wire_producer )
   {
     
     larcv::EventImage2D* ev_adc
@@ -991,6 +1002,11 @@ namespace prep {
     larcv::EventImage2D* ev_segment =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
 
+
+    larlite::event_mcshower* ev_mcshower
+      = (larlite::event_mcshower*)ioll.get_data(larlite::data::kMCShower, "mcreco" );
+    fill_daughter2mother_map( *ev_mcshower );
+    
     make_truth_vector( ev_larflow->as_vector() );
     make_instanceid_vector( ev_instance->as_vector() );
     make_ancestorid_vector( ev_ancestor->as_vector() );
@@ -1116,6 +1132,28 @@ namespace prep {
       imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
     }
     return imgcoord;
+  }
+
+  /**
+   * @brief stores map between daughter geant4 track ids to mother ids
+   *
+   * Used in conjuction with the 2D instance image labels.
+   *
+   */
+  void PrepMatchTriplets::fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v )
+  {
+
+    _shower_daughter2mother.clear();
+    
+    for (auto const& shower : shower_v ) {
+      long showerid = shower.TrackID();
+      if ( showerid<0 ) showerid *= -1;
+      const std::vector<unsigned int>& dlist = shower.DaughterTrackID();      
+      for (auto const& daughterid : dlist ) {
+        _shower_daughter2mother[(unsigned long)daughterid]= (unsigned long)showerid;
+      }
+    }
+    
   }
   
 }  

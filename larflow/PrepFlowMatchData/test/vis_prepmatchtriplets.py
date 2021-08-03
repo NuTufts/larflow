@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser(description='Run Prep LArFlow Match Data')
 parser.add_argument("-i","--input-larmatch",required=True,type=str,help="Input larmatch file")
 parser.add_argument("-ll","--input-larlite",required=False,type=str,default=False,help="Input larlite file")
 parser.add_argument("-t","--truth-only",default=False,action="store_true",help="Visualize true hits only")
+parser.add_argument("-s","--num-sample",default=30000,type=int,help="Max number to plot")
 args = parser.parse_args(sys.argv[1:])
 
 import numpy as np
@@ -77,20 +78,25 @@ def make_figures(entry,plotby="larmatch"):
     larcv.SetPyUtil()    
     print("making figures for entry={} plotby={}".format(entry,plotby))
     global tree
-    tree.GetEntry(entry)
+    global ioll
+    tree.GetEntry(entry)    
 
-
+    nsample = args.num_sample 
+    
     cluster_traces_v = []
     # coords
     if not args.truth_only:
         npts = tree.triplet_v.front()._pos_v.size()
-        pos_v = np.zeros( (npts, 3) )
-        color_v = np.zeros( npts )        
-        for i in xrange( npts ):
+        index = np.arange(npts)
+        np.random.shuffle(index)
+              
+        pos_v = np.zeros( (nsample, 3) )
+        color_v = np.zeros( nsample )        
+        for i in xrange( nsample ):
             for j in xrange(3):
-                pos_v[i,j] = tree.triplet_v.front()._pos_v[i][j]
-            color_v[i] = tree.triplet_v.front()._truth_v[i]
-        print("number of triplet positions: ",tree.triplet_v.front()._pos_v.size())
+                pos_v[i,j] = tree.triplet_v.front()._pos_v[ index[i] ][j]
+            color_v[i] = tree.triplet_v.front()._truth_v[ index[i] ]
+        print("number of triplet positions: ",tree.triplet_v.front()._pos_v.size()," num plotted=",nsample)
         trace = {
             "type":"scatter3d",
             "x":pos_v[:,0],
