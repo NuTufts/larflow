@@ -8,6 +8,7 @@
 #include <vector>
 #include "DataFormat/storage_manager.h"
 #include "DataFormat/mcshower.h"
+#include "DataFormat/mctrack.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
@@ -144,6 +145,10 @@ namespace prep {
     std::map<unsigned long, unsigned long> _shower_daughter2mother;
     void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
 
+    std::map<unsigned long, int> _instance2class_map;
+    void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
+                         const std::vector<larlite::mcshower>& shower_v );
+    
   private:
     
     static bool _setup_numpy; ///< true if numpy has been setup

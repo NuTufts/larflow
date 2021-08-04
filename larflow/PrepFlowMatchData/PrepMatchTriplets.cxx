@@ -567,6 +567,18 @@ namespace prep {
         id_votes[plane_id] += 1;
       }
 
+      // also check the instance image for an id
+      if ( _instance_id_v.size()>itrip ) {
+        int iid = _instance_id_v[itrip];        
+        auto it_class = _instance2class_map.find( iid );
+        if ( it_class!=_instance2class_map.end() ) {
+          int pid = it_class->second;
+          if ( id_votes.find(pid)==id_votes.end() )
+            id_votes[pid] = 0;
+          id_votes[pid] += 10; // basically overrides segment image
+        }
+      }
+      
       int maxid = 0;
       float nvotes = 0;
       for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
@@ -575,7 +587,7 @@ namespace prep {
           maxid = it->first;
         }
       }
-
+      
       if ( maxid>0 )
         nids++;
 
@@ -1003,9 +1015,12 @@ namespace prep {
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
 
 
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data(larlite::data::kMCTrack, "mcreco" );
     larlite::event_mcshower* ev_mcshower
       = (larlite::event_mcshower*)ioll.get_data(larlite::data::kMCShower, "mcreco" );
     fill_daughter2mother_map( *ev_mcshower );
+    fill_class_map( *ev_mctrack, *ev_mcshower );
     
     make_truth_vector( ev_larflow->as_vector() );
     make_instanceid_vector( ev_instance->as_vector() );
@@ -1153,6 +1168,76 @@ namespace prep {
         _shower_daughter2mother[(unsigned long)daughterid]= (unsigned long)showerid;
       }
     }
+    
+  }
+
+  /**
+   * @brief stores map between instance id and particle class
+   *
+   * Used in conjuction with the SSNet class labels
+   *
+   */
+  void PrepMatchTriplets::fill_class_map( const std::vector<larlite::mctrack>&  track_v,
+                                          const std::vector<larlite::mcshower>& shower_v )
+  {
+
+    _instance2class_map.clear();
+    
+    for (auto const& shower : shower_v ) {
+      long showerid = shower.TrackID();
+      if ( showerid<0 ) showerid *= -1;
+      int  pid = shower.PdgCode();
+      _instance2class_map[(unsigned long)showerid] = pid;
+      for ( auto const& daughterid : shower.DaughterTrackID() ) {
+        long id = (daughterid<0) ? daughterid*-1 : daughterid;
+        _instance2class_map[(unsigned long)id] = pid;
+      }
+    }
+    
+    for (auto const& track : track_v ) {
+      long trackid = track.TrackID();
+      if ( trackid<0 ) trackid *= -1;
+      int  pid = track.PdgCode();
+      _instance2class_map[(unsigned long)trackid] = pid;
+    }
+
+    for (auto it=_instance2class_map.begin(); it!=_instance2class_map.end(); it++ ) {
+      int larcv_class = 0;
+      switch ( it->second ) {
+      case 11:
+      case -11:
+        larcv_class = (int)larcv::kROIEminus;
+        break;
+      case 13:
+      case -13:
+        larcv_class = (int)larcv::kROIMuminus;
+        break;
+      case 211:
+      case -211:
+        larcv_class = (int)larcv::kROIPiminus;
+        break;
+      case 2212:
+      case 2112:
+        larcv_class = (int)larcv::kROIProton;
+        break;
+      case 22:
+        larcv_class = (int)larcv::kROIGamma;
+        break;
+      case 111:
+        larcv_class = (int)larcv::kROIPizero;
+        break;
+      case 130:
+      case 310:
+      case 311:
+      case 312:
+        larcv_class = (int)larcv::kROIKminus;
+        break;
+      default:
+        larcv_class = (int)larcv::kROIUnknown;
+        break;
+      }
+      it->second = larcv_class;
+    }//end of iterator loop
     
   }
   

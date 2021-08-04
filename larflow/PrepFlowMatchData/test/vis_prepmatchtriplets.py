@@ -13,6 +13,7 @@ import ROOT as rt
 from larlite import larlite
 from larcv import larcv
 from larflow import larflow
+from ublarcvapp import ublarcvapp
 larcv.SetPyUtil()
 
 import lardly
@@ -79,7 +80,13 @@ def make_figures(entry,plotby="larmatch"):
     print("making figures for entry={} plotby={}".format(entry,plotby))
     global tree
     global ioll
-    tree.GetEntry(entry)    
+    tree.GetEntry(entry)
+
+    if ioll:
+        ioll.go_to(entry)
+        mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        mcpg.buildgraphonly( ioll )
+        mcpg.printGraph()
 
     nsample = args.num_sample 
     
