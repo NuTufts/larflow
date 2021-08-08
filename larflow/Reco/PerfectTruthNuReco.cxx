@@ -4,6 +4,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "TrackdQdx.h"
 
 #include "geofuncs.h"
@@ -33,6 +34,9 @@ namespace reco {
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
 
+    larcv::EventImage2D* ev_instance
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "instance" );
+
     larlite::event_larflow3dhit* ev_lm
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "taggerfilterhit" );
 
@@ -41,11 +45,14 @@ namespace reco {
     larlite::event_mcshower* ev_mcshower
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
 
+
+
+    
     std::vector<int> used_v( ev_lm->size(), 0 );
     // get tracks
     NuVertexCandidate nuvtx;
     makeTracks( nuvtx, *ev_mctrack, *ev_lm, adc_v, used_v );
-    makeShowers(  nuvtx, *ev_mcshower, *ev_lm, adc_v, used_v );
+    makeShowers(  nuvtx, *ev_mcshower, *ev_lm, adc_v, ev_instance->as_vector(), used_v );
 
     nuvtx.keypoint_producer = "perfectreco";
     nuvtx.keypoint_index = 0;
@@ -108,16 +115,27 @@ namespace reco {
   }
 
   void PerfectTruthNuReco::makeShowers( NuVertexCandidate& nuvtx,
-                                       const larlite::event_mcshower& ev_mcshower,
-                                       const larlite::event_larflow3dhit& ev_lm,
-                                       const std::vector<larcv::Image2D>& adc_v,
-                                       std::vector<int>& used_v  )
+                                        const larlite::event_mcshower& ev_mcshower,
+                                        const larlite::event_larflow3dhit& ev_lm,
+                                        const std::vector<larcv::Image2D>& adc_v,
+                                        const std::vector<larcv::Image2D>& instance_v,
+                                        std::vector<int>& used_v  )
   {
 
     const float ar_molier_rad_cm = 9.04;
     const float ar_rad_length_cm = 14.3;
-    
+
     TrackdQdx dqdxalgo;
+
+    // first make shower daughter 2 mother map, use mcpixelpgraph as help
+    ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg._fill_shower_daughter2mother_map( ev_mcshower );
+
+
+    std::map<int,int> id2index;
+    std::vector< larlite::larflowcluster > shower_v;
+    std::vector< larlite::track > shower_trunk_v;
+    std::vector< larlite::pcaxis > shower_pca_v;
     
     for ( auto const& shower : ev_mcshower ) {
 
@@ -188,32 +206,76 @@ namespace reco {
       trunk.add_vertex( vstart );
       trunk.add_vertex( v3end );
       trunk.add_direction( sce_dir );
-      trunk.add_direction( sce_dir );      
-      
+      trunk.add_direction( sce_dir );
+
       // make shower cluster object
       larlite::larflowcluster shower_cluster;
-      for ( size_t idx=0; idx<ev_lm.size(); idx++ ) {
-        if (used_v[idx]!=0 )
+
+      // make empty pca 
+      larlite::pcaxis pca;
+
+      shower_v.emplace_back( std::move(shower_cluster) );
+      shower_trunk_v.emplace_back( std::move(trunk) );
+      shower_pca_v.emplace_back( std::move(pca) );
+      id2index[ shower.TrackID() ] = (int)shower_v.size()-1;
+
+    }//end of shower loop, making trunks
+      
+    for ( size_t idx=0; idx<ev_lm.size(); idx++ ) {
+      if (used_v[idx]!=0 )
+        continue;
+      
+      auto const& hit = ev_lm[idx];
+      
+      if ( hit.tick<=instance_v[0].meta().min_y() || hit.tick>=instance_v[0].meta().max_y() )
+        continue;
+      int row = instance_v[0].meta().row(hit.tick);
+      
+      // assign hit by checking instance map
+      std::map<int,int> id_votes;
+      for (int p=0; p<(int)hit.targetwire.size(); p++) {
+        auto const& meta = instance_v[p].meta();
+        if ( hit.targetwire[p]<=meta.min_x() || hit.targetwire[p]>=meta.max_x() )
           continue;
+        int col = meta.col( hit.targetwire[p] );
+        float pixval = adc_v[p].pixel( row, col );
+        int iid = instance_v[p].pixel( row, col );
+        auto it_vote = id_votes.find(iid);
+        if ( it_vote==id_votes.end() ) {
+          id_votes[iid] = 0;
+          it_vote = id_votes.find(iid);
+        }
+        it_vote->second++;            
+      }
+      
+      int maxvote_id = 0;
+      int maxvote_tot = 0;
+      for ( auto it=id_votes.begin(); it!=id_votes.end(); it++ ) {
+        if ( it->second>maxvote_tot ) {
+          maxvote_tot = it->second;
+          maxvote_id  = it->first;
+        }
+      }
+      
+      if ( maxvote_tot>0 && maxvote_id>0 ) {
+        auto it_showerid = mcpg._shower_daughter2mother.find( maxvote_id );
+        if ( it_showerid!=mcpg._shower_daughter2mother.end() ) {
+          int showerid = it_showerid->second;
+          auto it_shower = id2index.find( showerid );
+          if ( it_shower!=id2index.end() ) {              
+            shower_v[ it_shower->second ].push_back( hit );
+            used_v[idx] = 1;
+            }
+        }
+      }        
+    }//end of hit loop
 
-        auto const& hit = ev_lm[idx];
-
-        // should check if hit is on true nu-pixels
-        
-        std::vector<float> pos = { hit[0], hit[1], hit[2] };
-
-        float s = larflow::reco::pointRayProjection3f( fstart, fdir, pos );
-        float r = larflow::reco::pointLineDistance3f( fstart, fend, pos );
-
-        float max_r = (s<0) ? 1.0 : s*ar_molier_rad_cm/ar_rad_length_cm;
-        
-        if ( s>-0.5 && r<max_r && s<50.0 ) {
-          shower_cluster.push_back( hit );
-          used_v[idx] = 1;
-        }        
-      }//end of hit loop
-
+    for (size_t ishower=0; ishower<shower_v.size(); ishower++ ) {
+      auto& shower_cluster = shower_v[ishower];
+    
       if ( shower_cluster.size()>5 ) {
+
+        auto& trunk = shower_trunk_v.at(ishower);
 
         larflow::reco::cluster_t clust = larflow::reco::cluster_from_larflowcluster( shower_cluster );
         larlite::pcaxis pca = larflow::reco::cluster_make_pcaxis( clust );
@@ -227,6 +289,7 @@ namespace reco {
       
     }//end of mcshower loop
 
-  }  
+  }
+  
 }
 }

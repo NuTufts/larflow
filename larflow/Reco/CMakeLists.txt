@@ -50,6 +50,7 @@ set( HEADERS cluster_functions.h
   NuSelUnrecoCharge.h
   NuSelCosmicTagger.h
   NuSel1e1pEventSelection.h
+  TruthRecoMatching.h
   KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
@@ -100,6 +101,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuSelUnrecoCharge.cxx
   NuSelCosmicTagger.cxx  
   NuSel1e1pEventSelection.cxx
+  TruthRecoMatching.cxx
   KPSRecoManager.cxx )
 
 # create a property to hold our headers
