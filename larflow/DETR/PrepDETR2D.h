@@ -50,6 +50,7 @@ namespace detr {
     void setupForOutput();
     void setupForInput();
     void setCropSize( int w ,int h ) { _width=w; _height=h; };
+    void clear();
 
 
     int _width;
@@ -90,7 +91,8 @@ namespace detr {
     std::vector< std::vector<bbox_t> > particle_plane_bbox_vv;
     void _make_bounding_boxes( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
-    void _make_numpy_arrays();
+    void _make_numpy_arrays( larcv::IOManager& iolcv,
+                             larlite::storage_manager& ioll );
     
   };
   

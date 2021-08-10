@@ -18,6 +18,7 @@ from larflow import larflow
 
 detrmaker = larflow.detr.PrepDETR2D()
 detrmaker.set_verbosity(larcv.msg.kDEBUG)
+detrmaker.setCropSize(512,512)
 
 ioll  = larlite.storage_manager( larlite.storage_manager.kREAD )
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
@@ -77,13 +78,17 @@ for ientry in xrange( args.start_entry, end_entry ):
     iolcv.read_entry(ientry)
     ioll.go_to( ientry )
     print " ... process hits ..."
-    data = detrmaker.process( iolcv, ioll )
+    detrmaker.process( iolcv, ioll )
     print " ... done ..."
+    detrmaker._tree.Fill()
+
+print "Write"
+outfile.Write()
+print "[FIN] clean-up"
 
 ioll.close()
 iolcv.finalize()
 
-outfile.Write()
-print "[FIN] clean-up"
+
 
 
