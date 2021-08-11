@@ -5,6 +5,8 @@
 #include "DataFormat/mcshower.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
 
+#include "larflow/Reco/cluster_functions.h"
+
 namespace larflow {
 namespace detr {
 
@@ -66,7 +68,8 @@ namespace detr {
 
     // we want to bound the neutrino interaction and the individual particles
     _make_bounding_boxes( iolcv, ioll );
-
+    _subclusterShowers( ev_adc->as_vector(), mcpg );
+    
     // turn image and bbox data into larcv::NumpyArray
     _make_numpy_arrays( iolcv, ioll );
     
@@ -93,11 +96,15 @@ namespace detr {
     nu_bb_v.clear();
     particle_plane_bbox_vv.clear();
     nu_bb_v.resize(nplanes);
+    particle_plane_bbox_vv.resize( nplanes );
         
     for ( auto const& node : mcpg.node_v ) {
 
       if ( node.origin!=1 )
         continue; // keep neutrino boxes only
+
+      if ( abs(node.pid)==11 || abs(node.pid)==22 )
+        continue; // skip showers
       
       int trackid = node.tid;
       int pdg = node.pid;
@@ -138,13 +145,14 @@ namespace detr {
           // update nu interaction bbox
           nu_bb_v[p].update( bb.min_c, bb.min_r );
           nu_bb_v[p].update( bb.max_c, bb.max_r );
+
+          particle_plane_bbox_vv[p].emplace_back( std::move(bb) );
           
-        }
-        
-        bb_v.push_back( bb );
+        }//end of if valid bbox
+        //bb_v.push_back( bb );
       }//loop over planes
 
-      particle_plane_bbox_vv.emplace_back( std::move(bb_v) );
+      //particle_plane_bbox_vv.emplace_back( std::move(bb_v) );
     }//loop over all nodes
 
     LARCV_NORMAL() << "defined " << particle_plane_bbox_vv.size() << " particle bounding boxes" << std::endl;
@@ -245,10 +253,9 @@ namespace detr {
 
       // now package the bounding boxes
       std::vector< std::vector<float> > bb_v;
-      for ( auto const& particle_bbox : particle_plane_bbox_vv ) {
-
-        auto const& plane_bbox = particle_bbox.at(p);
-
+      //for ( auto const& particle_bbox : particle_plane_bbox_vv ) {
+      for ( auto const& plane_bbox : particle_plane_bbox_vv[p] ) {      
+        
         float c1 = (plane_bbox.min_c-(float)min_col)/(float)_width;
         float c2 = (plane_bbox.max_c-(float)min_col)/(float)_width;
         
@@ -321,7 +328,7 @@ namespace detr {
     }//end of plane loop
     
     LARCV_DEBUG() << "check num images stored" << std::endl;
-
+    
     if ( image_v->size()!=adc_v.size() ) {
       throw std::runtime_error("Number of crops not the same as the number of original images");
     }
@@ -330,7 +337,74 @@ namespace detr {
     }
     LARCV_DEBUG() << "finished" << std::endl;    
   }
-   
+
+  /**
+   * @brief Use dbscan to subcluster shower pixels
+   *
+   */
+  void PrepDETR2D::_subclusterShowers( const std::vector<larcv::Image2D>& adc_v,
+                                       ublarcvapp::mctools::MCPixelPGraph& mcpg )
+  {
+
+    plane_subshower_bbox_vv.clear();
+    plane_subshower_bbox_vv.resize( adc_v.size() );
+    
+    for ( auto& node : mcpg.node_v ) {
+      if (node.origin!=1 ) continue; // skip non-neutrino
+      if (abs(node.pid)==11 || abs(node.pid)==22) {
+
+        LARCV_DEBUG() << "cluster shower node, trackid[" << node.tid << "]" << std::endl;
+        
+        // must be shower
+        size_t nplanes = node.pix_vv.size();
+        
+        for (int p=0; p<nplanes; p++) {
+          auto const& meta = adc_v[p].meta();
+          LARCV_DEBUG() << " plane " << p << " npix=" << node.pix_vv[p].size() << std::endl;
+          if ( node.pix_vv[p].size()<2*10 ) continue;
+          
+          std::vector< std::vector<float> > hit_v;
+          hit_v.reserve( node.pix_vv[p].size() );
+          int npix = node.pix_vv[p].size()/2;
+          for (int ipix=0; ipix<npix; ipix++){
+
+            std::vector<float> xyz(3,0);
+            // pixel location given in tick and wire coordinates
+            float tick = node.pix_vv[p][ipix*2];
+            float wire = node.pix_vv[p][ipix*2+1];
+            if ( tick<=meta.min_y() || tick>=meta.max_y() )
+              continue;
+            if ( wire<=meta.min_x() || wire>=meta.max_x() )
+              continue;
+            xyz[1] = meta.row(tick,__FILE__,__LINE__);   // wire: 1 wire per pixel
+            xyz[0] = meta.col(wire,__FILE__,__LINE__); // tick: 6 ticks per pixel
+            float adc = adc_v[p].pixel( (int)xyz[1], (int)xyz[0] );
+            if ( adc>10.0 )
+              hit_v.push_back( xyz );
+          }
+          std::vector< larflow::reco::cluster_t > cluster_v;
+          larflow::reco::cluster_sdbscan_spacepoints( hit_v, cluster_v, 5.0,  10, 20 );
+          
+          for ( auto& cluster : cluster_v ) {
+            // define a new bounding box for each subshower fragment
+            bbox_t subshower( node.tid, node.pid );
+            float pixsum = 0.;
+            for ( auto& hit : cluster.points_v ) {
+              subshower.update( hit[0], hit[1] );
+              pixsum += adc_v[p].pixel( (int)hit[1], (int)hit[0] );              
+            }
+            //plane_subshower_bbox_vv[p].push_back( subshower );
+            float w = fabs(subshower.max_c-subshower.min_c);
+            float h = fabs(subshower.max_r-subshower.max_r);
+            if ( pixsum>1000.0 && (w>=10 || h>=10) )
+              particle_plane_bbox_vv[p].push_back( subshower );
+          }
+          LARCV_DEBUG() << "shower id[" << node.tid << "] plane[" << p << "] broke into " << cluster_v.size() << " subshowers" << std::endl;
+        }//end of pane loop     
+      }//end of if shower
+    }//end of node loop
+    
+  }
   
 }
 }

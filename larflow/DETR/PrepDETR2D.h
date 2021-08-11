@@ -89,8 +89,13 @@ namespace detr {
         
     std::vector<bbox_t> nu_bb_v;
     std::vector< std::vector<bbox_t> > particle_plane_bbox_vv;
+    std::vector< std::vector<bbox_t> > plane_subshower_bbox_vv;
+    
     void _make_bounding_boxes( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
+    void _subclusterShowers( const std::vector<larcv::Image2D>& adc_v,
+                             ublarcvapp::mctools::MCPixelPGraph& mcpg );
+    
     void _make_numpy_arrays( larcv::IOManager& iolcv,
                              larlite::storage_manager& ioll );
     

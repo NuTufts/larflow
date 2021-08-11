@@ -140,7 +140,7 @@ namespace reco {
       _perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
-      truthAna( iolcv, ioll );
+      //truthAna( iolcv, ioll );
     }
 
     // run selection and filter events    
