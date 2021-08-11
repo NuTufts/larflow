@@ -121,7 +121,7 @@ namespace spatialembed {
 
     _triplet_maker.clear();
     _triplet_maker.process( iolcv, _adc_image_treename, _adc_image_treename, 10.0, true );
-    _triplet_maker.process_truth_labels( iolcv, _adc_image_treename );
+    _triplet_maker.process_truth_labels( iolcv, ioll, _adc_image_treename );
     _triplet_truth_fixer.calc_reassignments( _triplet_maker, iolcv, ioll );
 
     larcv::EventImage2D* ev_adc_v
