@@ -22,9 +22,11 @@ namespace detr {
     _tree = new TTree("detr","Data for DETR training");
     image_v = new std::vector<larcv::NumpyArrayFloat >();
     bbox_v  = new std::vector<larcv::NumpyArrayFloat >();
+    masks_v = new std::vector<larcv::NumpyArrayInt >();
     pdg_v   = new std::vector<larcv::NumpyArrayInt >();
     _tree->Branch( "image_v", image_v );
     _tree->Branch( "bbox_v",  bbox_v );
+    _tree->Branch( "masks_v", masks_v );
     _tree->Branch( "pdg_v",   pdg_v );
   }
 
@@ -41,6 +43,7 @@ namespace detr {
     image_v->clear();
     bbox_v->clear();
     pdg_v->clear();
+    masks_v->clear();
   }
 
   void PrepDETR2D::process( larcv::IOManager& iolcv,
@@ -84,6 +87,8 @@ namespace detr {
     // get the truth data we need
     larcv::EventImage2D* ev_adc
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
+    
     larcv::EventImage2D* ev_instance
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "instance" );
     larlite::event_mctrack* ev_mctrack
@@ -108,8 +113,9 @@ namespace detr {
       
       int trackid = node.tid;
       int pdg = node.pid;
-      std::vector< bbox_t > bb_v;
-      bb_v.reserve(nplanes);
+
+      // we are going to define a bounding box and a mask for each plane
+      
       for (int p=0; p<nplanes; p++) {
         auto const& meta = ev_adc->as_vector()[p].meta();
         
@@ -146,13 +152,30 @@ namespace detr {
           nu_bb_v[p].update( bb.min_c, bb.min_r );
           nu_bb_v[p].update( bb.max_c, bb.max_r );
 
+          // fill in the pixels for bb
+          auto const& pixlist_v = node.pix_vv.at(p);
+          int npix = pixlist_v.size()/2;
+          for (int ipix=0; ipix<npix; ipix++) {
+            float tick = pixlist_v[ipix*2];
+            float wire = pixlist_v[ipix*2+1];
+            if ( tick<=meta.min_y() || tick>=meta.max_y() )
+              continue;
+            if ( wire<=meta.min_x() || wire>=meta.max_x() )
+              continue;
+            int r = meta.row(tick,__FILE__,__LINE__); // wire: 1 wire per pixel
+            int c = meta.col(wire,__FILE__,__LINE__); // tick: 6 ticks per pixel
+            float adc = adc_v[p].pixel( (int)r, (int)c );
+            if ( adc>10.0 ) {
+              bb.update( c, r );
+            }
+          }
+          
           particle_plane_bbox_vv[p].emplace_back( std::move(bb) );
           
         }//end of if valid bbox
-        //bb_v.push_back( bb );
+
       }//loop over planes
 
-      //particle_plane_bbox_vv.emplace_back( std::move(bb_v) );
     }//loop over all nodes
 
     LARCV_NORMAL() << "defined " << particle_plane_bbox_vv.size() << " particle bounding boxes" << std::endl;
@@ -252,15 +275,22 @@ namespace detr {
       image_v->emplace_back( std::move(crop) );
 
       // now package the bounding boxes
-      std::vector< std::vector<float> > bb_v;
-      //for ( auto const& particle_bbox : particle_plane_bbox_vv ) {
-      for ( auto const& plane_bbox : particle_plane_bbox_vv[p] ) {      
+      std::vector< std::vector<float> > bb_v; // vector of vector(6) for bounding boxes of particles saved
+      std::vector< int > bb_index_v; // index of bbox we're saving
+      size_t ntotal_pixels = 0; // number of pixels we'll list for the masks
+      LARCV_DEBUG() << "eval particle bbox in planes: " << particle_plane_bbox_vv[p].size() << std::endl;
+      
+      for ( int ibbox=0; ibbox<(int)particle_plane_bbox_vv[p].size(); ibbox++ ) {
+        
+        auto const& plane_bbox = particle_plane_bbox_vv[p][ibbox];
         
         float c1 = (plane_bbox.min_c-(float)min_col)/(float)_width;
         float c2 = (plane_bbox.max_c-(float)min_col)/(float)_width;
         
         float r1 = (plane_bbox.min_r-(float)min_row)/(float)_height;
         float r2 = (plane_bbox.max_r-(float)min_row)/(float)_height;
+
+        LARCV_DEBUG() << "  analyze bbox[" << ibbox << "]" << std::endl;
 
         if ( (r1<=0.0 && r2<=0.0)
              || (r1>=1.0 && r2>=1.0 )
@@ -301,14 +331,20 @@ namespace detr {
         bb[5] = p;
 
         bb_v.push_back( bb );      
+        bb_index_v.push_back( ibbox );
 
-        
+        ntotal_pixels += plane_bbox.pix_row_v.size();
       }//particle loop
 
+      LARCV_DEBUG() << "num total instance pixels: " << ntotal_pixels << std::endl;
+
+      // make bounding box and mask annotation array
       larcv::NumpyArrayFloat np_bb;
+      larcv::NumpyArrayInt np_mask;      
       if ( bb_v.size()==0 ) {
         //empty
         bbox_v->emplace_back( std::move(np_bb) );
+        masks_v->emplace_back( std::move(np_mask) );
         continue;
       }
 
@@ -325,6 +361,44 @@ namespace detr {
       }
       
       bbox_v->emplace_back( std::move(np_bb) );
+
+      // pixel mask annotation array
+      std::vector< int > pix_row_v;
+      std::vector< int > pix_col_v;
+      std::vector< int > instanceid_v;
+      for (int ii=0; ii<(int)bb_index_v.size(); ii++) {
+        int index = bb_index_v[ii];
+        auto const& bb = particle_plane_bbox_vv[p][index];
+        for (int ipix=0; ipix<(int)bb.pix_row_v.size(); ipix++) {
+          int r = bb.pix_row_v[ipix]-min_row;
+          int c = bb.pix_col_v[ipix]-min_col;
+          if ( r>=0 && r<_height && c>=0 &&  c<_width) {
+            pix_row_v.push_back(r);
+            pix_col_v.push_back(c);
+            instanceid_v.push_back(ii);
+          }
+        }
+      }
+      ntotal_pixels = pix_row_v.size();
+      
+      np_mask.ndims = 2;
+      np_mask.shape.resize(2);
+      np_mask.shape[0] = ntotal_pixels;
+      np_mask.shape[1] = 3;
+      np_mask.data.resize( 3*ntotal_pixels );
+      int ientry = 0;
+      for (int ii=0; ii<(int)pix_row_v.size(); ii++) {
+        np_mask.data[ ii*3 + 0 ] = pix_col_v[ii];
+        np_mask.data[ ii*3 + 1 ] = pix_row_v[ii];
+        np_mask.data[ ii*3 + 2 ] = instanceid_v[ii]; // the instance id
+        ientry++;
+      }
+      if ( ientry!=ntotal_pixels ) {
+        std::stringstream ss;
+        ss << " number of pixel entries filled (" << ientry <<") does not match expected number (" << ntotal_pixels << ")" << std::endl;
+        throw std::runtime_error(ss.str());
+      }
+      masks_v->emplace_back( std::move(np_mask) );
     }//end of plane loop
     
     LARCV_DEBUG() << "check num images stored" << std::endl;
@@ -334,6 +408,11 @@ namespace detr {
     }
     if (bbox_v->size()!=adc_v.size() ) {
       throw std::runtime_error("Number of bounding box arrays not the same as the number of original images");
+    }
+    if (masks_v->size()!=adc_v.size() ) {
+      std::stringstream ss;
+      ss << "Number of mask arrays (" << masks_v->size() << ") not the same as the number of original images (" << adc_v.size() << ")" << std::endl;
+      throw std::runtime_error(ss.str());
     }
     LARCV_DEBUG() << "finished" << std::endl;    
   }

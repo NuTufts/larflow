@@ -58,7 +58,8 @@ namespace detr {
     
     TTree* _tree;
     std::vector< larcv::NumpyArrayFloat >* image_v; ///< image crop
-    std::vector< larcv::NumpyArrayFloat >* bbox_v;  ///< bounding box annotations for image (x,y,w,h)
+    std::vector< larcv::NumpyArrayFloat >* bbox_v;   ///< bounding box annotations for image (Nbbox,6) where 2nd dim is (x,y,w,h,class,trackid). one for each plane
+    std::vector< larcv::NumpyArrayInt >*   masks_v;  ///< bounding box annotations for image (Nmask,H,W). one for each plane
     std::vector< larcv::NumpyArrayInt >*   pdg_v;   ///< particle class for each bounding box
 
     ublarcvapp::mctools::MCPixelPGraph mcpg;
@@ -84,7 +85,11 @@ namespace detr {
         if ( min_r>r ) min_r = r;
         if ( max_c<c ) max_c = c;
         if ( max_r<r ) max_r = r;
+        pix_row_v.push_back(r);
+        pix_col_v.push_back(c);
       };
+      std::vector<int> pix_row_v;
+      std::vector<int> pix_col_v;
     };
         
     std::vector<bbox_t> nu_bb_v;

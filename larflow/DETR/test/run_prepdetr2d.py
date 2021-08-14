@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("prepare 3d spatial embed data")
@@ -23,9 +24,9 @@ detrmaker.setCropSize(512,512)
 ioll  = larlite.storage_manager( larlite.storage_manager.kREAD )
 iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
-print "[INPUT: LArCV   - DL MERGED] ",args.input_larcv
-print "[INPUT: larlite - MCINFO]  ",args.input_larlitetruth
-print "[OUTPUT]    ",args.output
+print("[INPUT: LArCV   - DL MERGED] ",args.input_larcv)
+print("[INPUT: larlite - MCINFO]  ",args.input_larlitetruth)
+print("[OUTPUT]    ",args.output)
 
 ioll.add_in_filename( args.input_larlitetruth )
 ioll.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
@@ -56,35 +57,35 @@ if lcv_nentries<ll_nentries:
     nentries = lcv_nentries
 else:
     nentries = ll_nentries
-print "[Number of entries: ",nentries,"]"
+print("[Number of entries: ",nentries,"]")
     
 if args.nentries is not None:
-    print "Num entries specified by argument: ",args.nentries
+    print("Num entries specified by argument: ",args.nentries)
     end_entry = args.start_entry + args.nentries
     if end_entry>nentries:
         end_entry = nentries
 else:
     end_entry = nentries
 
-print "[Run between event (",args.start_entry,",",end_entry,")"
+print("[Run between event (",args.start_entry,",",end_entry,")")
 
 if args.start_entry>0:
     ioll.go_to( args.start_entry )
 else:
     ioll.go_to(0);
     
-for ientry in xrange( args.start_entry, end_entry ):
-    print "[ENTRY ",ientry,"]"
+for ientry in range( args.start_entry, end_entry ):
+    print("[ENTRY ",ientry,"]")
     iolcv.read_entry(ientry)
     ioll.go_to( ientry )
-    print " ... process hits ..."
+    print(" ... process hits ...")
     detrmaker.process( iolcv, ioll )
-    print " ... done ..."
+    print(" ... done ...")
     detrmaker._tree.Fill()
 
-print "Write"
+print("Write")
 outfile.Write()
-print "[FIN] clean-up"
+print("[FIN] clean-up")
 
 ioll.close()
 iolcv.finalize()
