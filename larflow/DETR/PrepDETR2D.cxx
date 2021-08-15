@@ -340,16 +340,19 @@ namespace detr {
 
       // make bounding box and mask annotation array
       larcv::NumpyArrayFloat np_bb;
-      larcv::NumpyArrayInt np_mask;      
+      larcv::NumpyArrayInt np_mask;
+      larcv::NumpyArrayInt np_pdg;
       if ( bb_v.size()==0 ) {
         //empty
         bbox_v->emplace_back( std::move(np_bb) );
         masks_v->emplace_back( std::move(np_mask) );
+        pdg_v->emplace_back( std::move(np_pdg) );
         continue;
       }
 
       LARCV_DEBUG() << "Storing " << bb_v.size() << " bounding boxes for plane " << p << std::endl;
-      
+
+      // bounding box array
       np_bb.ndims = 2;
       np_bb.shape.resize(2,0);
       np_bb.shape[0] = bb_v.size();
@@ -361,6 +364,16 @@ namespace detr {
       }
       
       bbox_v->emplace_back( std::move(np_bb) );
+
+      // particle type array
+      np_pdg.ndims = 1;
+      np_pdg.shape.resize(1);
+      np_pdg.shape[0] = bb_v.size();
+      np_pdg.data.resize( bb_v.size() );
+      for (int i=0; i<(int)bb_v.size(); i++)
+        np_pdg.data[i] = (int)bb_v[i][4];
+
+      pdg_v->emplace_back( std::move(np_pdg) );
 
       // pixel mask annotation array
       std::vector< int > pix_row_v;
