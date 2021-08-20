@@ -432,6 +432,12 @@ namespace prep {
     int nids = 0;
     
     for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+
+      if ( _truth_v[itrip]==0 ) {
+        _instance_id_v[itrip] = 0;
+        continue;
+      }
+      
       // for each triplet, we look for truth flows that connect the planes
       auto const& triplet = _triplet_v[itrip];
       std::vector<int> imgcoord = {0,0,0,triplet[3]};
@@ -493,6 +499,13 @@ namespace prep {
     int nids = 0;
     
     for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+
+      if ( _truth_v[itrip]==0 ) {
+        _ancestor_id_v[itrip] = 0;
+        continue;
+      }
+        
+      
       // for each triplet, we look for truth flows that connect the planes
       auto const& triplet = _triplet_v[itrip];
       std::vector<int> imgcoord = {0,0,0,triplet[3]};
@@ -549,6 +562,13 @@ namespace prep {
     int nids = 0;
     
     for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+
+      if ( _truth_v[itrip]==0 ) {
+        _pdg_v[itrip] = 0;
+        _origin_v[itrip] = 0;
+        continue;
+      }
+      
       // for each triplet, we look for truth flows that connect the planes
       auto const& triplet = _triplet_v[itrip];
       std::vector<int> imgcoord = {0,0,0,triplet[3]};
@@ -1042,7 +1062,7 @@ namespace prep {
    *
    * @return dictionary with numpy arrays
    */
-  PyObject* PrepMatchTriplets::make_truthonly_triplet_ndarray()
+  PyObject* PrepMatchTriplets::make_triplet_ndarray( bool true_pt_only )
   {
 
     if ( !_setup_numpy ) {
@@ -1053,6 +1073,7 @@ namespace prep {
 
     if ( _triplet_v.size()!=_truth_v.size()
          || _triplet_v.size()!=_instance_id_v.size()
+         || _triplet_v.size()!=_pos_v.size()
          || _triplet_v.size()!=_pdg_v.size() ) {
       std::stringstream ss;
       ss << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] "
@@ -1067,38 +1088,50 @@ namespace prep {
     }
 
     std::cout << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] number of true points: " << ntruepts << std::endl;
+
+    long int npts = (true_pt_only) ? ntruepts : _triplet_v.size();
     
     // space point
-    npy_intp spacepoint_t_dim[] = { (long int)ntruepts, 3 };
+    npy_intp spacepoint_t_dim[] = { npts, 3 };
     PyArrayObject* spacepoint_t = (PyArrayObject*)PyArray_SimpleNew( 2, spacepoint_t_dim, NPY_FLOAT );
     PyObject *spacepoint_t_key = Py_BuildValue("s", "spacepoint_t");
 
     int ifilled = 0;
-    std::vector<int> idx_v(ntruepts);
+    std::vector<int> idx_v(npts);
     for (size_t i=0; i<_truth_v.size(); i++) {
-      if ( _truth_v[i]==1 ) {
+      if ( (true_pt_only && _truth_v[i]==1) || !true_pt_only ) {
         for (int j=0; j<3; j++) {
           *((float*)PyArray_GETPTR2(spacepoint_t,ifilled,j)) = _pos_v[i][j];
         }
         idx_v[ifilled] = i;
         ifilled++;
       }
+      if (ifilled>=npts)
+        break;
+    }
+    if ( ifilled!=npts ) {
+      throw std::runtime_error("mismatch in num expected filled points");
     }
     
     // image coords
-    npy_intp imgcoord_t_dim[] = { (long int)ntruepts, 4 };
+    npy_intp imgcoord_t_dim[] = { (long int)npts, 4 };
     PyArrayObject* imgcoord_t = (PyArrayObject*)PyArray_SimpleNew( 2, imgcoord_t_dim, NPY_LONG );
     PyObject *imgcoord_t_key = Py_BuildValue("s", "imgcoord_t");
 
     // instance label
-    npy_intp instance_t_dim[] = { (long int)ntruepts };
+    npy_intp instance_t_dim[] = { (long int)npts };
     PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
     PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
 
     // particle class label
-    npy_intp segment_t_dim[] = { (long int)ntruepts };
+    npy_intp segment_t_dim[] = { (long int)npts };
     PyArrayObject* segment_t = (PyArrayObject*)PyArray_SimpleNew( 1, segment_t_dim, NPY_LONG );
     PyObject *segment_t_key = Py_BuildValue("s", "segment_t");
+
+    // truth label for triplet
+    npy_intp truth_t_dim[] = { (long int)npts };
+    PyArrayObject* truth_t = (PyArrayObject*)PyArray_SimpleNew( 1, truth_t_dim, NPY_LONG );
+    PyObject *truth_t_key = Py_BuildValue("s", "truetriplet_t");
 
     ifilled = 0;
     for (auto& idx : idx_v ) {
@@ -1109,6 +1142,7 @@ namespace prep {
       }
       *((long*)PyArray_GETPTR1(instance_t,ifilled)) = _instance_id_v[idx];
       *((long*)PyArray_GETPTR1(segment_t,ifilled))  = _pdg_v[idx];
+      *((long*)PyArray_GETPTR1(truth_t,ifilled))    = (long)_truth_v[idx];
       ifilled++;
     }
 
@@ -1117,8 +1151,19 @@ namespace prep {
     PyDict_SetItem(d, spacepoint_t_key, (PyObject*)spacepoint_t);
     PyDict_SetItem(d, imgcoord_t_key,   (PyObject*)imgcoord_t);
     PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
-    PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t); 
-    
+    PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t);
+    PyDict_SetItem(d, truth_t_key,      (PyObject*)truth_t);     
+
+    Py_DECREF( spacepoint_t );
+    Py_DECREF( imgcoord_t );
+    Py_DECREF( instance_t );
+    Py_DECREF( segment_t );
+    Py_DECREF( truth_t );    
+    Py_DECREF( spacepoint_t_key );
+    Py_DECREF( imgcoord_t_key );
+    Py_DECREF( instance_t_key );
+    Py_DECREF( segment_t_key );
+    Py_DECREF( truth_t_key );    
 
     return d;
   }
@@ -1239,6 +1284,15 @@ namespace prep {
       it->second = larcv_class;
     }//end of iterator loop
     
+  }
+
+  PyObject* PrepMatchTriplets::get_all_triplet_data( const bool withtruth )
+  {
+    std::vector<int> idx_v(_triplet_v.size());
+    for (int i=0; i<(int)_triplet_v.size(); i++)
+      idx_v[i] = i;
+    int nsamples = 0;
+    return make_triplet_array( _triplet_v.size(), idx_v, 0, withtruth, nsamples );
   }
   
 }  

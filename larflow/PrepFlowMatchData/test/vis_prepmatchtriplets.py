@@ -91,19 +91,35 @@ def make_figures(entry,plotby="larmatch"):
     nsample = args.num_sample 
     
     cluster_traces_v = []
-    # coords
-    if not args.truth_only:
-        npts = tree.triplet_v.front()._pos_v.size()
-        index = np.arange(npts)
-        np.random.shuffle(index)
-              
-        pos_v = np.zeros( (nsample, 3) )
-        color_v = np.zeros( nsample )        
-        for i in xrange( nsample ):
-            for j in xrange(3):
-                pos_v[i,j] = tree.triplet_v.front()._pos_v[ index[i] ][j]
-            color_v[i] = tree.triplet_v.front()._truth_v[ index[i] ]
-        print("number of triplet positions: ",tree.triplet_v.front()._pos_v.size()," num plotted=",nsample)
+
+    # get triplet data
+    data = tree.triplet_v.front().make_triplet_ndarray( args.truth_only )
+    print(data.keys())
+    for name,arr in data.items():
+        print(name,": ",arr.shape)
+    
+    # define subsample
+    npts = data['spacepoint_t'].shape[0]
+    index = np.arange(npts)
+    np.random.shuffle(index)
+    
+    if nsample<npts:
+        # subsample
+        index = index[:nsample]
+        pos_v = np.zeros( (nsample, 3 ) )
+        pos_v[:,0] = data['spacepoint_t'][ index, 0 ]
+        pos_v[:,1] = data['spacepoint_t'][ index, 1 ]
+        pos_v[:,2] = data['spacepoint_t'][ index, 2 ]        
+    else:
+        pos_v = data['spacepoint_t']
+
+    # make color array: depends on plot type
+    if plotby=="larmatch":
+        if nsample<npts:
+            color_v = data['truetriplet_t'][ index ].astype(np.float)
+        else:
+            color_v = data['truetriplet_t'].astype(np.float)
+            
         trace = {
             "type":"scatter3d",
             "x":pos_v[:,0],
@@ -113,89 +129,83 @@ def make_figures(entry,plotby="larmatch"):
             "name":"larmatch",
             "marker":{"color":color_v,"size":1,"opacity":0.8,"colorscale":"Viridis"},
         }
-        cluster_traces_v.append(trace)
-    else:
-        data = tree.triplet_v.front().make_truthonly_triplet_ndarray()
-        pos_v = data["spacepoint_t"]
-        print("number of truth-only triplet positions: ",pos_v.shape)
-    
-    
-    if args.truth_only:
-        print("make truth-only traces")
-        if plotby=="larmatch":
-            color_v = np.ones( pos_v.shape[0] )
-            trace = {
-                "type":"scatter3d",
-                "x":pos_v[:,0],
-                "y":pos_v[:,1],
-                "z":pos_v[:,2],
-                "mode":"markers",
-                "name":"larmatch",
-                "marker":{"color":color_v,"size":1,"opacity":0.8,"colorscale":"Viridis"},
-            }
-            cluster_traces_v.append( trace )
-        elif plotby=="class":
-            print("class values: ",np.unique(data["segment_t"]))
-            for pid in range(0,9+1):
-                idmask = data["segment_t"]==pid
-                print("class_t[",pid,"] num=",idmask.sum())                
-                if idmask.sum()>0:                
-                    pidcoord_t = pos_v[idmask,:]
-                    color = particle_id_color[pid]
-                    strcolor = "rgb(%d,%d,%d)"%(color[0],color[1],color[2])
-                    voxtrace = {
-                        "type":"scatter3d",
-                        "x":pidcoord_t[:,0],
-                        "y":pidcoord_t[:,1],
-                        "z":pidcoord_t[:,2],
-                        "mode":"markers",
-                        "name":"%s"%(particle_id_name[pid]),
-                        "marker":{"color":strcolor,
-                                  "size":1,
-                                  "opacity":0.5}}
-                    cluster_traces_v.append(voxtrace)
-        elif plotby=="instance":
-            instances = np.unique(data["instance_t"])
-            print("instance values: ",instances)
-            for nid,iid in enumerate(instances):
-                idmask = data["instance_t"]==iid                
-                #print(" #{} instance[{}]".format(nid,iid)," num=",idmask.sum())
-                if idmask.sum()>0:
-                    pidcoord_t = pos_v[idmask,:]
+        cluster_traces_v.append( trace )
+    elif plotby=="class":
+        print("class values: ",np.unique(data["segment_t"]))
+        if nsample<npts:
+            seg = data['segment_t'][index]
+        else:
+            seg = data['segment_t']
+        print("sampled class: ",seg.shape)
+        for pid in range(0,9+1):
+            idmask = seg==pid
+            print("class_t[",pid,"] num=",idmask.sum())                
+            if idmask.sum()>0:                
+                pidcoord_t = pos_v[idmask,:]
+                color = particle_id_color[pid]
+                strcolor = "rgb(%d,%d,%d)"%(color[0],color[1],color[2])
+                voxtrace = {
+                    "type":"scatter3d",
+                    "x":pidcoord_t[:,0],
+                    "y":pidcoord_t[:,1],
+                    "z":pidcoord_t[:,2],
+                    "mode":"markers",
+                    "name":"%s"%(particle_id_name[pid]),
+                    "marker":{"color":strcolor,
+                              "size":2,
+                              "opacity":0.8}}
+                if pid==0:
+                    voxtrace['marker']['size'] = 1
+                    voxtrace['marker']['opacity'] = 0.05
+                cluster_traces_v.append(voxtrace)                
+    elif plotby=="instance":
+        if nsample<npts:
+            instance_t = data['instance_t'][index]
+        else:
+            instance_t = data['instance_t']
+        instances = np.unique(instance_t)
+        print("instance values: ",instances)
+        for nid,iid in enumerate(instances):
+            idmask = instance_t==iid                
+            #print(" #{} instance[{}]".format(nid,iid)," num=",idmask.sum())
+            if idmask.sum()>0:
+                pidcoord_t = pos_v[idmask,:]
+                if iid!=0:
                     color = np.random.rand(3)*255
-                    strcolor = "rgb(%d,%d,%d)"%(color[0],color[1],color[2])
-                    voxtrace = {
-                        "type":"scatter3d",
-                        "x":pidcoord_t[:,0],
-                        "y":pidcoord_t[:,1],
-                        "z":pidcoord_t[:,2],
-                        "mode":"markers",
-                        "name":"%d"%(iid),
-                        "marker":{"color":strcolor,
-                                  "size":1,
-                                  "opacity":0.5}}
-                    cluster_traces_v.append(voxtrace)
-                    
-
-            
-
+                else:
+                    color = np.zeros(3)
+                strcolor = "rgb(%d,%d,%d)"%(color[0],color[1],color[2])
+                voxtrace = {
+                    "type":"scatter3d",
+                    "x":pidcoord_t[:,0],
+                    "y":pidcoord_t[:,1],
+                    "z":pidcoord_t[:,2],
+                    "mode":"markers",
+                    "name":"%d"%(iid),
+                    "marker":{"color":strcolor,
+                              "size":2,
+                              "opacity":0.9}}
+                if iid==0:
+                    voxtrace['marker']['opacity'] = 0.05
+                    voxtrace['marker']['size'] = 1
+                cluster_traces_v.append(voxtrace)
 
     # MC info to compare
     if ioll:
         print("draw mc track and shower truth")
-        global ioll
         ioll.go_to(entry)
 
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( ioll.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        origin = None
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( ioll.get_data(larlite.data.kMCTrack, "mcreco"), origin=origin )
         cluster_traces_v += mctrack_v
 
-        mcshower_v = lardly.data.visualize_larlite_event_mcshower( ioll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        #mcshower_v = lardly.data.visualize_larlite_event_mcshower( ioll.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
         #print("mcshower_v: ",len(mcshower_v))        
-        for ishr in range( len(mcshower_v)/3 ):
-            cluster_traces_v.append( mcshower_v[3*ishr+2] )
+        #for ishr in range( len(mcshower_v)/3 ):
+        #    cluster_traces_v.append( mcshower_v[3*ishr+2] )
 
 
-    return detdata.getlines()+cluster_traces_v
+    return detdata.getlines(color=(0,0,0))+cluster_traces_v
 
 def test():
     pass
@@ -231,7 +241,7 @@ plot_layout = {
         "xaxis": axis_template,
         "yaxis": axis_template,
         "zaxis": axis_template,
-        "aspectratio": {"x": 1, "y": 1, "z": 3},
+        "aspectratio": {"x": 3, "y": 1, "z": 3},
         "camera": {"eye": {"x": 1, "y": 1, "z": 1},
                    "up":dict(x=0, y=1, z=0)},
         "annotations": [],
