@@ -168,7 +168,7 @@ namespace keypoints {
 
     // build key-points
     _kpd_v.clear();
-    for (int i=0; i<(int)larflow::kNumKeyPoints; i++)
+    for (int i=0; i<6; i++)
       _kppos_v[i].clear();
 
     // build crossing points for muon track primaries
@@ -198,7 +198,7 @@ namespace keypoints {
 
     // copy positions of keypoints into flat vector for storage
     for ( auto const& kpd : _kpd_v ) {
-      if ( kpd.kptype>=0 && kpd.kptype<larflow::kNumKeyPoints ) {
+      if ( kpd.kptype>=0 && kpd.kptype<6 ) {
         _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
       }
       else {
@@ -351,6 +351,9 @@ namespace keypoints {
       if ( max_plane_pixels<10 )
         continue;
 
+      auto const& shower = mcshower_v.at( pnode.vidx );
+      LARCV_DEBUG() << "shower process: " << shower.Process() << std::endl;
+      std::string process = shower.Process();
       
       // start: pnode.start; //should be in apparent position already
       KPdata kpd;
@@ -360,7 +363,16 @@ namespace keypoints {
       kpd.vid     = pnode.vidx;
       kpd.origin  = pnode.origin;
       kpd.is_shower = 1;
-      kpd.kptype  = larflow::kShowerStart;        
+      if ( process=="Decay" ) {
+        kpd.kptype = larflow::kShowerMichel;
+      }
+      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" ) {
+        kpd.kptype = larflow::kShowerDelta;
+      }
+      else {
+        kpd.kptype = larflow::kShowerStart;
+      }
+
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
         kpd.keypt[i]   = pnode.imgpos4[i];
@@ -563,7 +575,7 @@ namespace keypoints {
    * Assumes that `process` has already been run.
    *
    * @param[in] sig The sigma used in Gaussian to calculate keypoint class score
-   * @return Numpy array with shape [num space points, larflow::kNumKeyPoints classes ]
+   * @return Numpy array with shape [num space points, 6 classes ]
    *
    */
   PyObject* PrepKeypointData::get_triplet_score_array( float sig ) const
@@ -576,19 +588,19 @@ namespace keypoints {
 
     // get label info for each triplet proposal
     int npts = (int)_match_proposal_labels_v[0].size();
-    for (size_t iclass=0; iclass<larflow::kNumKeyPoints; iclass++) {
+    for (size_t iclass=0; iclass<6; iclass++) {
       if ( _match_proposal_labels_v[iclass].size()!=npts ) {
         throw std::runtime_error("number of triplet labels/scores for each class does not match!");
       }
     }
     
     int nd = 2;
-    npy_intp dims[] = { npts, larflow::kNumKeyPoints };
+    npy_intp dims[] = { npts, 6 };
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
     size_t ipt = 0;
     for ( size_t ipt=0; ipt<npts; ipt++ ) {
-      for (size_t iclass=0; iclass<larflow::kNumKeyPoints; iclass++) {
+      for (size_t iclass=0; iclass<6; iclass++) {
         
         auto const& label_v = _match_proposal_labels_v[iclass][ipt];
         
@@ -619,7 +631,7 @@ namespace keypoints {
   void PrepKeypointData::make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals )
   {
 
-    for (int i=0; i<larflow::kNumKeyPoints; i++) {
+    for (int i=0; i<6; i++) {
       _match_proposal_labels_v[i].clear();
       _match_proposal_labels_v[i].reserve(match_proposals._triplet_v.size());
     }
@@ -636,7 +648,7 @@ namespace keypoints {
       //           << std::endl;
 
       // make a score for each class
-      for (int ikpclass=0; ikpclass<(int)larflow::kNumKeyPoints; ikpclass++) {
+      for (int ikpclass=0; ikpclass<(int)6; ikpclass++) {
 
         // store label values
         // [0]: has a match to a true keypoint
@@ -736,10 +748,14 @@ namespace keypoints {
     _label_tree->Branch("kplabel_trackstart",  &_match_proposal_labels_v[1]);
     _label_tree->Branch("kplabel_trackend",    &_match_proposal_labels_v[2]);    
     _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[3]);
+    _label_tree->Branch("kplabel_showermichel", &_match_proposal_labels_v[4]);
+    _label_tree->Branch("kplabel_showerdelta", &_match_proposal_labels_v[5]);    
     _label_tree->Branch("kppos_nuvertex",    &_kppos_v[0]);
     _label_tree->Branch("kppos_trackstart",  &_kppos_v[1]);
     _label_tree->Branch("kppos_trackend",    &_kppos_v[2]);    
     _label_tree->Branch("kppos_showerstart", &_kppos_v[3]);
+    _label_tree->Branch("kppos_showermichel", &_kppos_v[4]);
+    _label_tree->Branch("kppos_showerdelta", &_kppos_v[5]);    
   }
 
   /**
