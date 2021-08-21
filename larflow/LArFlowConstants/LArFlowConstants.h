@@ -14,7 +14,7 @@ namespace larflow {
   /**
    * Type of Keypoint Labels
    */
-  typedef enum { kNuVertex=0, kTrackEnds, kShowerStart, kVertexActivity, kStopMuVtx, kNumKeyPoints } KeyPoint_t;
+  typedef enum { kNuVertex=0, kTrackStart, kTrackEnd, kShowerStart, kVertexActivity, kStopMuVtx, kNumKeyPoints } KeyPoint_t;
 
   /**
    * @ingroup LArFlowConstants

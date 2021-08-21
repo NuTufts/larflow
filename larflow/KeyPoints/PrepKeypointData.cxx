@@ -36,8 +36,9 @@ namespace keypoints {
    * constructor
    */
   PrepKeypointData::PrepKeypointData()
-    : _adc_image_treename("wire"),
-      _label_tree(nullptr)
+    : larcv::larcv_base("PrepKeypointData"),
+    _adc_image_treename("wire"),
+    _label_tree(nullptr)
   {
     _nclose = 0;
     _nfar   = 0;
@@ -146,20 +147,30 @@ namespace keypoints {
                                   const larlite::event_mcshower& mcshower_v,
                                   const larlite::event_mctruth&  mctruth_v ) {
 
+    LARCV_DEBUG() << "start" << std::endl;
+    
     // allocate space charge class
     larutil::SpaceChargeMicroBooNE sce;
 
     // make particle graph
+    LARCV_DEBUG() << "build graph" << std::endl;    
     ublarcvapp::mctools::MCPixelPGraph mcpg;
-    mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v,
-                     mcshower_v, mctrack_v, mctruth_v );
+    try {
+      mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v,
+                       mcshower_v, mctrack_v, mctruth_v );
+    }
+    catch (std::exception& err) {
+      LARCV_CRITICAL() << "Error running mcpg: " << err.what() << std::endl;
+      throw std::runtime_error("error running mcpg");
+    }
+    LARCV_DEBUG() << "finished graph" << std::endl;        
     //mcpg.printGraph();
 
     // build key-points
     _kpd_v.clear();
     for (int i=0; i<(int)larflow::kNumKeyPoints; i++)
       _kppos_v[i].clear();
-    
+
     // build crossing points for muon track primaries
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
@@ -220,6 +231,8 @@ namespace keypoints {
                                       larutil::SpaceChargeMicroBooNE* psce )
   {
 
+    LARCV_DEBUG() << "start" << std::endl;
+    
     bool verbose = false;
     
     // get list of primaries
@@ -255,7 +268,7 @@ namespace keypoints {
           kpd.vid     = pnode->vidx;
           kpd.is_shower = 0;
           kpd.origin  = pnode->origin;
-          kpd.kptype  = larflow::kTrackEnds;
+          kpd.kptype  = larflow::kTrackStart;
           kpd.imgcoord = 
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                        4050.0, true, 0.3, 0.1,
@@ -274,7 +287,7 @@ namespace keypoints {
           kpd.vid     = pnode->vidx;
           kpd.is_shower = 0;
           kpd.origin  = pnode->origin;
-          kpd.kptype  = larflow::kTrackEnds;          
+          kpd.kptype  = larflow::kTrackEnd;          
           kpd.imgcoord = 
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                        4050.0, false, 0.3, 0.1,
@@ -316,6 +329,8 @@ namespace keypoints {
                                      larutil::SpaceChargeMicroBooNE* psce )
   {
 
+    LARCV_DEBUG() << "start" << std::endl;
+    
     // output vector of keypoint data
     std::vector<KPdata> kpd_v;
 
@@ -718,11 +733,13 @@ namespace keypoints {
     _label_tree->Branch("subrun",&_subrun,"subrun/I");
     _label_tree->Branch("event",&_event,"event/I");
     _label_tree->Branch("kplabel_nuvertex",    &_match_proposal_labels_v[0]);
-    _label_tree->Branch("kplabel_trackends",   &_match_proposal_labels_v[1]);
-    _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[2]);
+    _label_tree->Branch("kplabel_trackstart",  &_match_proposal_labels_v[1]);
+    _label_tree->Branch("kplabel_trackend",    &_match_proposal_labels_v[2]);    
+    _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[3]);
     _label_tree->Branch("kppos_nuvertex",    &_kppos_v[0]);
-    _label_tree->Branch("kppos_trackends",   &_kppos_v[1]);
-    _label_tree->Branch("kppos_showerstart", &_kppos_v[2]);
+    _label_tree->Branch("kppos_trackstart",  &_kppos_v[1]);
+    _label_tree->Branch("kppos_trackend",    &_kppos_v[2]);    
+    _label_tree->Branch("kppos_showerstart", &_kppos_v[3]);
   }
 
   /**

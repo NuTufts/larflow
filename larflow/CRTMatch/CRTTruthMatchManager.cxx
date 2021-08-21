@@ -168,7 +168,7 @@ namespace crtmatch {
     _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
     _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
     _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
-    _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnds );
+    _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
     _kpreco_track_cosmic.set_lfhit_score_index( 14 );    
     _kpreco_track_cosmic.process( ioll );
 

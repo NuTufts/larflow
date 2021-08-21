@@ -54,6 +54,7 @@ ev_triplet = std.vector("larflow::prep::PrepMatchTriplets")(1)
 
 # keypoint score data
 kpana = larflow.keypoints.PrepKeypointData()
+kpana.set_verbosity( larcv.msg.kDEBUG )
 kpana.setADCimageTreeName( args.adc )
 tmp.cd()
 kpana.defineAnaTree()

@@ -72,7 +72,8 @@ namespace keypoints {
    * 
    *
    */  
-  class PrepKeypointData {
+  class PrepKeypointData : public larcv::larcv_base {
+    
   public:
 
     PrepKeypointData();
@@ -145,14 +146,14 @@ namespace keypoints {
     // PROPOSAL LABELS
     // ----------------
     
-    std::vector< std::vector<float> > _match_proposal_labels_v[3]; ///< provides the labels for triplet proposals made by larflow::prep::PrepMatchTriplets
+    std::vector< std::vector<float> > _match_proposal_labels_v[6]; ///< provides the labels for triplet proposals made by larflow::prep::PrepMatchTriplets
 
     // Ana Tree
     int _run; ///< run ID number of event
     int _subrun; ///< subrun ID number of event
     int _event;  ///< event ID number
     TTree* _label_tree; ///< ROOT TTree for storing labels
-    std::vector< std::vector<float> > _kppos_v[3]; ///< container of true keypoint 3D positions in cm, for each of the 3 classes
+    std::vector< std::vector<float> > _kppos_v[6]; ///< container of true keypoint 3D positions in cm, for each of the 3 classes
     //< we need to keep a list of primary pixels to limit the neutrino score field    
     //std::vector< std::set<std::pair<int,int> > >  _primarypixels_v; 
     
