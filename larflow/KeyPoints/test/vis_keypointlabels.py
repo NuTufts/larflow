@@ -24,11 +24,14 @@ import lardly
     
 color_by_options = ["truthmatch",
                     "isclosematch",
-                    "dist2keypoint_nu",
-                    "dist2keypoint_trk",
-                    "dist2keypoint_shr",                    
+                    "dist2keypoint_nuvertex",
+                    "dist2keypoint_trackstart",
+                    "dist2keypoint_trackend",                    
+                    "dist2keypoint_showerstart",
+                    "dist2keypoint_showermichel",
+                    "dist2keypoint_showerdelta",                    
                     "ssnetlabels",
-                    "ssnetweights"]
+                    "ssnetweights"]    
 
 colorscale = "Viridis"
 option_dict = []
@@ -87,33 +90,17 @@ def make_figures(entry,plotby="truthmatch"):
     elif plotby=="ssnetweights":
         for i in xrange(nsamples):
             pos3d[i,3] = log(1.0+ev_ssnet.trackshower_weight_v[ index[i] ])
-    elif plotby=="dist2keypoint_nu":
+    elif "dist2keypoint" in plotby:
+        kpname = plotby.split("_")[-1]
+        exec("brname=ev_keypoint.kplabel_%s"%(kpname))
         for i in xrange(nsamples):
-            if ev_keypoint.kplabel_nuvertex[index[i]][0]==0:
+            if brname[index[i]][0]==0:
                 pos3d[i,3] = 0.0
             else:
                 dist = 0.0
                 for v in xrange(3):
-                    dist += ev_keypoint.kplabel_nuvertex[index[i]][1+v]*ev_keypoint.kplabel_nuvertex[index[i]][1+v]
+                    dist += brname[index[i]][1+v]*brname[index[i]][1+v]
                 pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )
-    elif plotby=="dist2keypoint_trk":
-        for i in xrange(nsamples):
-            if ev_keypoint.kplabel_trackends[index[i]][0]==0:
-                pos3d[i,3] = 0.0
-            else:
-                dist = 0.0                
-                for v in xrange(3):
-                    dist += ev_keypoint.kplabel_trackends[index[i]][1+v]*ev_keypoint.kplabel_trackends[index[i]][1+v]
-                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
-    elif plotby=="dist2keypoint_shr":
-        for i in xrange(nsamples):
-            if ev_keypoint.kplabel_showerstart[index[i]][0]==0:
-                pos3d[i,3] = 0.0
-            else:
-                dist = 0.0            
-                for v in xrange(3):
-                    dist += ev_keypoint.kplabel_showerstart[index[i]][1+v]*ev_keypoint.kplabel_showerstart[index[i]][1+v]
-                pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )                
 
                 
     clusterplot = {
@@ -133,9 +120,12 @@ def make_figures(entry,plotby="truthmatch"):
 
     # make scatter of keypoints
     if args.no_keypoints:
-        for kptype,kpcolor in [("trackends","rgb(0,255,0)"),
+        for kptype,kpcolor in [("trackstart","rgb(0,255,0)"),
+                               ("trackend","rgb(255,0,0)"),
                                ("showerstart","rgb(0,0,255)"),
-                               ("nuvertex","rgb(255,0,0)")]:
+                               ("showermichel","rgb(0,255,255)"),
+                               ("showerdelta","rgb(255,0,255)"),                               
+                               ("nuvertex","rgb(255,255,0)")]:
             exec("brname=ev_keypoint.kppos_%s"%(kptype))
             print(brname)
             kppos = np.zeros( (brname.size(),3) )
@@ -148,7 +138,7 @@ def make_figures(entry,plotby="truthmatch"):
                 "y":kppos[:,1],
                 "z":kppos[:,2],
                 "mode":"markers",
-                "name":"keypoints",
+                "name":kptype,
                 "marker":{"color":kpcolor,"size":5},
             }
             traces_v.append(kpplot)
