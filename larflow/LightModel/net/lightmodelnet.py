@@ -90,7 +90,7 @@ class LightModelNet(nn.Module):
         if self._showSizes:
             print("coord_t ",coord_t.shape)
             print("feat_t ",feat_t.shape)
-        x=(coord_t,feat_t, 1) # batchsize =1
+        x=(coord_t,feat_t, 8) # batchsize =1
         print("call input")
         x=self.input(x)
         print("call m")

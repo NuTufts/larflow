@@ -48,7 +48,7 @@ def load_lm_data(input_file, entry):
 
     # will loop through to create a batch this many times 
     nentries = 1 # how many batches
-    batchsize = 1 # how many inside a batch    
+    batchsize = 8 # how many inside a batch    
 
     dataloader = larflow.lightmodel.DataLoader(input_files)
     dataloader.load_entry(ientry)
@@ -63,17 +63,42 @@ def load_lm_data(input_file, entry):
         
         if data_dict:
             print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
-            print("data_dict['coord_t']: ", data_dict["coord_t"])
-            print("data_dict['feat_t']: ", data_dict["feat_t"])
-            print("shape:", data_dict["feat_t"].shape)
-            print("data_dict['flash_t']: ", data_dict["flash_t"])
-            print("shape:", data_dict["flash_t"].shape)
+            #print("data_dict['coord_t']: ", data_dict["coord_t"])
+            #print("data_dict['feat_t']: ", data_dict["feat_t"])
+            #print("shape:", data_dict["feat_t"].shape)
+            #print("data_dict['flash_t']: ", data_dict["flash_t"])
+            #print("shape:", data_dict["flash_t"].shape)
         
     # make into torch tensors
     coord_t = torch.from_numpy(np.array(data_dict["coord_t"]))
     feat_t = torch.from_numpy(np.array(data_dict["feat_t"]))
+    #print("feat_t",feat_t)
+    feat_t = feat_t - 4330
+    #print("feat_t",feat_t)
+    feat_t = feat_t / 6094.0
+    #print("feat_t",feat_t)
     flash_t = torch.from_numpy(np.array(data_dict["flash_t"]))
-            
+#    flash_t[flash_t > 0] = flash_t - 38.16
+#    flash_t[flash_t:torch.gt(0)] = flash_t - 38.16
+#    for i in enumerate(flash_t):
+#        if flash_t[i] != 0:
+#            flash_t[i] = flash_t[i] - 38.16
+#    flash_t[flash_t!=0] = (flash_t - 38.16)
+    #print("flash_t original: ",flash_t)
+#    flash_t_2 = flash_t - 38.16
+#    print("flash_t_2:",flash_t_2)
+#    flash_t = torch.where(flash_t == 0, flash_t, flash_t_2)
+#    print("flash_t with values subtracted: ",flash_t)
+    flash_t = flash_t / 170.3
+    #print("flash_t scaled: ",flash_t)
+
+    ones_t = torch.ones(flash_t.shape) # tensor of just 1's
+    #print("flash_t.shape",flash_t.shape)
+    #print("ones_t.shape",ones_t.shape)
+    # Now clamp so values can be no greater than 1
+    flash_t = torch.where(flash_t < 1, flash_t, ones_t)
+    #print("flash_t clamped: ",flash_t)
+
     data = {"coord_t":coord_t, "feat_t":feat_t, "flash_t":flash_t}
     
     return data
@@ -103,6 +128,7 @@ if __name__=="__main__":
     # test
     #print("hi")
 #    input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
+#    input_file = "../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root"
     input_file = "../../Ana/CRTPreppedTree_crt_all_temp.root" 
     entry = 3
     

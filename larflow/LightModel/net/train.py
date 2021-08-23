@@ -19,7 +19,7 @@ num_iterations = 200
 
 error = nn.MSELoss()
 
-learning_rate = 0.000000000001
+learning_rate = 0.001
 #SGD optimizer:
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
@@ -30,6 +30,7 @@ iteration_list = []
 accuracy_list = []
 
 #input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
+#input_file = "../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root"
 input_file = "../../Ana/CRTPreppedTree_crt_all_temp.root"
 #entry = 2
 
@@ -48,7 +49,7 @@ for iteration in range(num_iterations):
     feat_train = trainset["feat_t"].reshape(trainset["feat_t"].shape[0],1)
     
     flash_train = trainset["flash_t"]
-    flash_train = trainset["flash_t"].reshape(1,32) # hack, change later
+    flash_train = trainset["flash_t"].reshape(8,32) # hack, change later (changed from 32 -> 256 for batch size of 8)
     # but basically want this truth flash_t to be same size as network output!
     
     coord_test = testset["coord_t"]
