@@ -106,7 +106,7 @@ for ientry in xrange( nentries ):
     tripmaker.process( adc_v, badch_v, 10.0, True )
 
     # make good/bad triplet ground truth
-    tripmaker.make_truth_vector( larflow_v )
+    tripmaker.process_truth_labels( iolcv, ioll, "wiremc" )
 
     # make keypoint score ground truth
     kpana.process( iolcv, ioll )

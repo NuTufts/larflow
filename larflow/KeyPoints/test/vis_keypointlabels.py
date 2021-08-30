@@ -63,7 +63,11 @@ def make_figures(entry,plotby="truthmatch"):
     # number of triplets
     ntriplets = triplet._triplet_v.size()
     print("number of triplets: ",ntriplets)
-    nsamples = 50000
+    maxsamples = 200000
+    nsamples = maxsamples
+    if maxsamples>ntriplets:
+        nsamples = ntriplets
+        
     sig = 10.0
     index = np.arange(ntriplets)
     np.random.shuffle(index)
