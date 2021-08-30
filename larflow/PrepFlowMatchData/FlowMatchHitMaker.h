@@ -183,6 +183,7 @@ namespace prep {
                                     PyObject* paf_pred );    
     
     void make_hits( const larcv::EventChStatus& ev_chstatus,
+                    const std::vector<larcv::Image2D>& img_v,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
 
   };

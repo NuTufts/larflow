@@ -255,10 +255,13 @@ namespace prep {
    *
    */
   void FlowMatchHitMaker::make_hits( const larcv::EventChStatus& ev_chstatus,
+                                     const std::vector<larcv::Image2D>& img_v,
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
 
     const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
     const int ncolumns = 19;
+
+    auto const& meta = img_v.front().meta();
     
     int idx = 0;
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
@@ -278,7 +281,7 @@ namespace prep {
       }
       if ( maxscore<_match_score_threshold )
         continue;
-      
+
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
       hit.srcwire = m.Y;
@@ -294,6 +297,10 @@ namespace prep {
       hit[0] = x;
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
+
+      if ( hit.tick<=meta.min_y() || hit.tick>=meta.max_y() )
+        continue;
+      
       
       // store scores
       for ( int i=0; i<scores.size(); i++ ) {

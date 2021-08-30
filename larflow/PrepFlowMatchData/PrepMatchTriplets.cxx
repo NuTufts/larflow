@@ -1076,8 +1076,12 @@ namespace prep {
          || _triplet_v.size()!=_pos_v.size()
          || _triplet_v.size()!=_pdg_v.size() ) {
       std::stringstream ss;
-      ss << "[PrepMatchTriplets::make_truthonly_triplet_ndarray] "
-         << "truth vectors (truth,instance_id,pdg) do not match triplet_v size"
+      ss << "[PrepMatchTriplets::make_triplet_ndarray] "
+         << "truth vectors (truth=" << _truth_v.size() << ", "
+         << "instance_id=" << _instance_id_v.size() << ", "
+         << "pdg=" << _pdg_v.size() << ", "
+         << "pos=" << _pos_v.size() << ") "
+         << " do not match triplet_v size = " << _triplet_v.size()
          << std::endl;
       throw std::runtime_error( ss.str() );
     }
