@@ -3,10 +3,10 @@
 
 
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/larflowcluster.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/Reco/cluster_functions.h"

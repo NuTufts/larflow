@@ -3,9 +3,9 @@
 #include <numpy/ndarrayobject.h>
 
 #include "larcv/core/PyUtil/PyUtils.h"
-#include "core/LArUtil/LArProperties.h"
-#include "core/LArUtil/Geometry.h"
 #include "larcv/core/Base/larcv_logger.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 
 #include <stdexcept>
 

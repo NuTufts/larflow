@@ -4,13 +4,13 @@
 #include <vector>
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/crthit.h"
-#include "DataFormat/crttrack.h"
-#include "DataFormat/opflash.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/crthit.h"
+#include "larlite/DataFormat/crttrack.h"
+#include "larlite/DataFormat/opflash.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/track.h"
 
 #include "larflow/Reco/cluster_functions.h"
 

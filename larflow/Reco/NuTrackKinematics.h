@@ -5,7 +5,7 @@
 #include "TFile.h"
 #include "TSpline.h"
 #include "larcv/core/Base/larcv_base.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/track.h"
 
 #include "NuVertexCandidate.h"
 #include "NuSelectionVariables.h"

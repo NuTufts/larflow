@@ -3,12 +3,12 @@
 
 #include "CRSuiteFunctions.h"
 // larutil
-// #include "LArUtil/LArProperties.h"
-// #include "LArUtil/Geometry.h"
-// #include "LArUtil/ClockConstants.h"
-// #include "LArUtil/SpaceChargeMicroBooNE.h"
-// #include "LArUtil/DetectorProperties.h"
-// #include "LArUtil/TimeService.h"
+// #include "larlite/LArUtil/LArProperties.h"
+// #include "larlite/LArUtil/Geometry.h"
+// #include "larlite/LArUtil/ClockConstants.h"
+// #include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
+// #include "larlite/LArUtil/DetectorProperties.h"
+// #include "larlite/LArUtil/TimeService.h"
 // #include "ublarcvapp/dbscan/sDBScan.h"
 //
 // // larcv

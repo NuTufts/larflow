@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "LArUtil/LArProperties.h"
+#include "larlite/LArUtil/LArProperties.h"
 
 namespace larflow {
 namespace voxelizer {

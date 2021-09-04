@@ -1,7 +1,7 @@
 #ifndef __LARFLOW_RECO_SHOWERGAP_ANA_2D_H__
 #define __LARFLOW_RECO_SHOWERGAP_ANA_2D_H__
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/IOManager.h"

@@ -4,9 +4,9 @@
 
 #include <string>
 #include <vector>
-#include "DataFormat/track.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
 #include "TLorentzVector.h"
 
 namespace larflow {

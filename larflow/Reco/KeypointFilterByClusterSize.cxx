@@ -1,8 +1,8 @@
 #include "KeypointFilterByClusterSize.h"
 
 #include "cluster_functions.h"
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/pcaxis.h"
 
 namespace larflow {
 namespace reco {

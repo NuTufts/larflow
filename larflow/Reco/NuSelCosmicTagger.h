@@ -2,7 +2,7 @@
 #define __LARFLOW_RECO_NUSEL_COSMIC_TAGGER_H__
 
 #include "TVector3.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "NuVertexCandidate.h"
 #include "NuSelectionVariables.h"

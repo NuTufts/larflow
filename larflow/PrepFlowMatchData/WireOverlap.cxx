@@ -3,7 +3,7 @@
 #include <iostream>
 #include <ctime>
 
-#include "larlite/core/LArUtil/Geometry.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 namespace larflow {

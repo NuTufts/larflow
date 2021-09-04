@@ -10,8 +10,8 @@
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
-#include "larlite/core/LArUtil/LArProperties.h"
-#include "larlite/core/LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"

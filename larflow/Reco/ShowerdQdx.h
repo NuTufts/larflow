@@ -9,12 +9,12 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/track.h"
-#include "DataFormat/mcshower.h"
-#include "DataFormat/mctrack.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/mcshower.h"
+#include "larlite/DataFormat/mctrack.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 #include "NuVertexCandidate.h"
 
 namespace larflow {

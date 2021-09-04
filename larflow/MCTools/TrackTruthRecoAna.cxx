@@ -1,7 +1,7 @@
 #include "TrackTruthRecoAna.h"
 
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 #include "ublarcvapp/ubdllee/dwall.h"
 #include "larflow/Reco/geofuncs.h"

@@ -7,9 +7,9 @@
 #include "nlohmann/json.hpp"
 #include <cilantro/principal_component_analysis.hpp>
 
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 

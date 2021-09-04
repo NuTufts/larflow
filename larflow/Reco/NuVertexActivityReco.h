@@ -1,9 +1,9 @@
 #ifndef __LARFLOW_RECO_NUVERTEX_ACTIVITYRECO_H__
 #define __LARFLOW_RECO_NUVERTEX_ACTIVITYRECO_H__
 
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventImage2D.h"

@@ -6,11 +6,11 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "larlite/core/DataFormat/storage_manager.h"
-#include "larlite/core/DataFormat/crttrack.h"
-#include "larlite/core/DataFormat/opflash.h"
-#include "larlite/core/DataFormat/larflowcluster.h"
-#include "larlite/core/LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/crttrack.h"
+#include "larlite/DataFormat/opflash.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 
 #include "larflow/Reco/cluster_functions.h"
 

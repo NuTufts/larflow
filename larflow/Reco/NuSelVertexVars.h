@@ -1,7 +1,7 @@
 #ifndef __LARFLOW_RECO_NUSEL_VERTEX_VARS_H__
 #define __LARFLOW_RECO_NUSEL_VERTEX_VARS_H__
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "NuVertexCandidate.h"

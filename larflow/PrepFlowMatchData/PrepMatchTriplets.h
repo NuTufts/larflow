@@ -6,9 +6,9 @@
 #include "bytesobject.h"
 
 #include <vector>
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/mcshower.h"
-#include "DataFormat/mctrack.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mcshower.h"
+#include "larlite/DataFormat/mctrack.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventChStatus.h"

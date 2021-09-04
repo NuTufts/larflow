@@ -1,6 +1,6 @@
 #include "CRTHitMatch.h"
 
-#include "LArUtil/LArProperties.h"
+#include "larlite/LArUtil/LArProperties.h"
 #include "larflow/Reco/cluster_functions.h"
 
 #include "TRandom2.h"

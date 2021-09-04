@@ -7,8 +7,8 @@
 #include "ublarcvapp/dbscan/DBScan.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
 
 #include "TRandom3.h"
 

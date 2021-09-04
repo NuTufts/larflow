@@ -8,10 +8,10 @@
 #include "TTree.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
 
 #include "NuVertexCandidate.h"
 

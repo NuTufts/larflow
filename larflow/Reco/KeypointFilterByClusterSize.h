@@ -4,7 +4,7 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 
 namespace larflow {
 namespace reco {

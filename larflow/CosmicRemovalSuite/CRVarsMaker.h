@@ -15,11 +15,11 @@
 #include "TStyle.h"
 
 // larutil
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/DetectorProperties.h"
-#include "LArUtil/Geometry.h"
-#include "LArUtil/ClockConstants.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/DetectorProperties.h"
+#include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/ClockConstants.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 
 // larcv
 #include "larcv/core/DataFormat/IOManager.h"
@@ -29,8 +29,8 @@
 #include "larcv/core/DataFormat/EventPGraph.h"
 #include "larcv/core/Base/larcv_logger.h"
 // larlite
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/mctruth.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mctruth.h"
 
 // ublarcvapp
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"

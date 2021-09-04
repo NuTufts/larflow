@@ -16,13 +16,13 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 // larlite
-#include "LArUtil/SpaceChargeMicroBooNE.h"
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/mctrack.h"
-#include "DataFormat/mcshower.h"
-#include "DataFormat/mctruth.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mctrack.h"
+#include "larlite/DataFormat/mcshower.h"
+#include "larlite/DataFormat/mctruth.h"
 
 namespace larflow {
 namespace keypoints {

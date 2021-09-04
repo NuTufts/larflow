@@ -7,10 +7,10 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/track.h"
 
 #include "cluster_functions.h"
 

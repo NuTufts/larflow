@@ -1,8 +1,8 @@
 #include "ShortProtonClusterReco.h"
 
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "cluster_functions.h"
 #include "geofuncs.h"

@@ -1,7 +1,7 @@
 #include "MaskRCNNreco.h"
 
-#include "DataFormat/larflow3dhit.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "larcv/core/DataFormat/EventClusterMask.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 

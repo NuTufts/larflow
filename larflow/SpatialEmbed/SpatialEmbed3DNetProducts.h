@@ -9,8 +9,8 @@
 
 #include "TTree.h"
 
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflow3dhit.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larflow/Voxelizer/VoxelizeTriplets.h"

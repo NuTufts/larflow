@@ -4,11 +4,11 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/mctrack.h"
-#include "DataFormat/mcshower.h"
-#include "DataFormat/larflow3dhit.h"
-#include "LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mctrack.h"
+#include "larlite/DataFormat/mcshower.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 
 #include "NuVertexCandidate.h"
 

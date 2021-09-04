@@ -4,8 +4,8 @@
 #include <string>
 #include <sstream>
 #include <omp.h>
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "geofuncs.h"

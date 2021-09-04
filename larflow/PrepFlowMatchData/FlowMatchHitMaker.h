@@ -7,8 +7,8 @@
 #include <vector>
 #include <map>
 #include <array>
+#include "larlite/DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
-#include "core/DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
 #include "larcv/core/DataFormat/Image2D.h"
 

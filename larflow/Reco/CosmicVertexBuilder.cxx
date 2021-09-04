@@ -1,10 +1,10 @@
 #include "CosmicVertexBuilder.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "DataFormat/track.h"
-#include "DataFormat/larflowcluster.h"
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/Reco3D/TrackReverser.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"

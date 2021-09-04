@@ -3,10 +3,10 @@
 
 #include <vector>
 
-#include "DataFormat/track.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"

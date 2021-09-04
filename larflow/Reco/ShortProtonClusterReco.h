@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "cluster_functions.h"

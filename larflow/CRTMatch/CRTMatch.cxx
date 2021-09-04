@@ -1,7 +1,7 @@
 #include "CRTMatch.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "larlite/core/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/larflowcluster.h"
 
 namespace larflow {
 namespace crtmatch {

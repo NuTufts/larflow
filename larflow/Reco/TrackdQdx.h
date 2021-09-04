@@ -4,8 +4,8 @@
 #include <vector>
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/track.h"
 
 namespace larflow {
 namespace reco {

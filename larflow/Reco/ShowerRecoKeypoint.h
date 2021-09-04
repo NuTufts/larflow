@@ -6,8 +6,8 @@
 
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflowcluster.h"
 
 #include "cluster_functions.h"
 

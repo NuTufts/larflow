@@ -4,7 +4,7 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/track.h"
 
 #include "NuVertexCandidate.h"
 

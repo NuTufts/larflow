@@ -1,7 +1,7 @@
 #include "CRTMatchManager.h"
 
 // larlite
-#include "DataFormat/opflash.h"
+#include "larlite/DataFormat/opflash.h"
 
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/EventImage2D.h"

@@ -8,8 +8,8 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflow3dhit.h"
 
 namespace larflow {
 namespace reco {

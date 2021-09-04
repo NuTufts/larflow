@@ -1,10 +1,10 @@
 #ifndef __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 #define __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 
-#include "LArUtil/SpaceChargeMicroBooNE.h"
-#include "core/DataFormat/storage_manager.h"
-#include "core/DataFormat/mcshower.h"
-#include "core/DataFormat/mctrack.h"
+#include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mcshower.h"
+#include "larlite/DataFormat/mctrack.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 

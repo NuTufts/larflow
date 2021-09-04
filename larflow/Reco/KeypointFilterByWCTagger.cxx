@@ -1,8 +1,8 @@
 #include "KeypointFilterByWCTagger.h"
 
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
-#include "DataFormat/pcaxis.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
+#include "larlite/DataFormat/pcaxis.h"
 
 namespace larflow {
 namespace reco {

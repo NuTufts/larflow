@@ -3,8 +3,8 @@
 
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "larlite/core/DataFormat/storage_manager.h"
-#include "larlite/core/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "CRTTrackMatch.h"
 #include "CRTHitMatch.h"
 

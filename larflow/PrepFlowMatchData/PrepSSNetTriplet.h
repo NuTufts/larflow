@@ -4,7 +4,7 @@
 #include <vector>
 #include "TTree.h"
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "PrepMatchTriplets.h"

@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 

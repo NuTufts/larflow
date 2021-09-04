@@ -1,7 +1,7 @@
 #include "CRTTrackMatch.h"
 
-#include "larlite/core/LArUtil/LArProperties.h"
-#include "larlite/core/LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/ROOTUtil/ROOTUtils.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"

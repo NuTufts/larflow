@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "larcv/core/DataFormat/Image2D.h"
-#include "DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflow3dhit.h"
 
 namespace larflow {
 namespace reco {

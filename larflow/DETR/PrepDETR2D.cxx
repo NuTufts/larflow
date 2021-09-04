@@ -1,8 +1,8 @@
 #include "PrepDETR2D.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "DataFormat/mctrack.h"
-#include "DataFormat/mcshower.h"
+#include "larlite/DataFormat/mctrack.h"
+#include "larlite/DataFormat/mcshower.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
 
 #include "larflow/Reco/cluster_functions.h"

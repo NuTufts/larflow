@@ -1,7 +1,7 @@
 #ifndef __LARFLOW_RECO_NUSEL_TRUTH_ON_NUPIXEL_H__
 #define __LARFLOW_RECO_NUSEL_TRUTH_ON_NUPIXEL_H__
 
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 

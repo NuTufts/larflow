@@ -98,7 +98,7 @@ namespace spatialembed {
 
     }
 
-    
+    return batch_output_v;
   }
 
   /**

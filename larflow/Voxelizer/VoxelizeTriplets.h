@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/storage_manager.h"
+#include "larlite/DataFormat/storage_manager.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 

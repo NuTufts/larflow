@@ -7,10 +7,10 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 
-#include "DataFormat/storage_manager.h"
-#include "DataFormat/pcaxis.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/track.h"
 
 namespace larflow {
 namespace reco {

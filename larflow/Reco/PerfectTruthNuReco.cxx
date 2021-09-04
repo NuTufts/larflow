@@ -1,6 +1,6 @@
 #include "PerfectTruthNuReco.h"
 
-#include "LArUtil/LArProperties.h"
+#include "larlite/LArUtil/LArProperties.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"

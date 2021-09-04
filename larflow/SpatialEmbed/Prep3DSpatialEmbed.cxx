@@ -4,9 +4,9 @@
 #include <numpy/ndarrayobject.h>
 
 #include "TRandom3.h"
-#include "LArUtil/Geometry.h"
-#include "LArUtil/LArProperties.h"
-#include "DataFormat/larflow3dhit.h"
+#include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/DataFormat/larflow3dhit.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
 //#include "larflow/Reco/ShowerLikelihoodBuilder.h"

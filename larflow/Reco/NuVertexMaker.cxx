@@ -1,10 +1,10 @@
 #include "NuVertexMaker.h"
 
 #include "geofuncs.h"
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "LArUtil/LArProperties.h"
-#include "LArUtil/Geometry.h"
+#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/Geometry.h"
 
 #include "NuVertexFitter.h"
 

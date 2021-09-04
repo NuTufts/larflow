@@ -6,8 +6,8 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "DataFormat/track.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "NuVertexCandidate.h"
 #include "NuSelectionVariables.h"
 

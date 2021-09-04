@@ -1,7 +1,7 @@
 #include "CosmicProtonFinder.h"
 
-#include "DataFormat/track.h"
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "TrackdQdx.h"
 
 #include "cluster_functions.h"

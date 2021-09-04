@@ -1,7 +1,7 @@
 #include "NuSelVertexVars.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflow3dhit.h"
 
 namespace larflow {
 namespace reco {

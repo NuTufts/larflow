@@ -3,7 +3,7 @@
 
 #include <Python.h>
 #include <vector>
-#include "DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/larflowcluster.h"
 
 namespace larflow {
 namespace reco {

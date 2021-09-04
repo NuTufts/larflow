@@ -1,7 +1,7 @@
 #include "TrackdQdx.h"
 
 #include "TMatrixD.h"
-#include "LArUtil/Geometry.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/UBImageMod/TrackImageMask.h"
 
 #include "geofuncs.h"

@@ -1,8 +1,8 @@
 #include "NuVertexFitter.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "DataFormat/larflowcluster.h"
-#include "DataFormat/pcaxis.h"
+#include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/DataFormat/pcaxis.h"
 #include "NuVertexCandidate.h"
 #include "cluster_functions.h"
 #include "TrackOTFit.h"

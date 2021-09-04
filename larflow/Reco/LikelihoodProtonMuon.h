@@ -1,7 +1,7 @@
 #ifndef __LARFLOW_RECO_LIKELIHOOD_PROTON_MUON_H__
 #define __LARFLOW_RECO_LIKELIHOOD_PROTON_MUON_H__
 
-#include "DataFormat/track.h"
+#include "larlite/DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
 
 class TFile;
