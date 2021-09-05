@@ -38,15 +38,16 @@ namespace keypoints {
    * example usage: (to do)
    *
    */
-  class LoaderKeypointData {
+  class LoaderKeypointData : public larcv::larcv_base {
 
   public:
 
     LoaderKeypointData()
-      : ttriplet(nullptr),
-      tkeypoint(nullptr),
-      tssnet(nullptr),
-      _exclude_neg_examples(true)
+      : larcv::larcv_base("LoaderKeypointData"),
+	ttriplet(nullptr),
+	tkeypoint(nullptr),
+	tssnet(nullptr),
+	_exclude_neg_examples(true)
     {};
     
     LoaderKeypointData( std::vector<std::string>& input_v );
@@ -63,7 +64,7 @@ namespace keypoints {
     TChain* tssnet;     ///< TTree containing sssnet information (TChain can be though of as a TTree loading data over several input files)
 
     std::vector<larflow::prep::PrepMatchTriplets>* triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
-    std::vector< std::vector<float> >*       kplabel_v[3];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
+    std::vector< std::vector<float> >*       kplabel_v[6];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
     std::vector< std::vector<float> >*       kpshift_v;       ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
     std::vector< int   >*                    ssnet_label_v;   ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
     std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree

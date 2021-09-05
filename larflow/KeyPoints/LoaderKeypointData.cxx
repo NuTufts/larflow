@@ -14,7 +14,8 @@ namespace keypoints {
    *
    */
   LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
-    : ttriplet(nullptr),
+    : larcv::larcv_base("LoaderKeypointData"),
+      ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr)
   {
@@ -48,16 +49,20 @@ namespace keypoints {
     }
     
     triplet_v = 0;
-    kplabel_v[0] = 0;
-    kplabel_v[1] = 0;
-    kplabel_v[2] = 0;    
+    for (int i=0; i<6; i++)
+      kplabel_v[i] = 0;
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
     
     ttriplet->SetBranchAddress(  "triplet_v",           &triplet_v );
-    tkeypoint->SetBranchAddress( "kplabel_nuvertex",    &kplabel_v[0] );
-    tkeypoint->SetBranchAddress( "kplabel_trackends",   &kplabel_v[1] );
-    tkeypoint->SetBranchAddress( "kplabel_showerstart", &kplabel_v[2] );    
+
+    tkeypoint->SetBranchAddress("kplabel_nuvertex",     &kplabel_v[0]);
+    tkeypoint->SetBranchAddress("kplabel_trackstart",   &kplabel_v[1]);
+    tkeypoint->SetBranchAddress("kplabel_trackend",     &kplabel_v[2]);    
+    tkeypoint->SetBranchAddress("kplabel_showerstart",  &kplabel_v[3]);
+    tkeypoint->SetBranchAddress("kplabel_showermichel", &kplabel_v[4]);
+    tkeypoint->SetBranchAddress("kplabel_showerdelta",  &kplabel_v[5]);    
+    
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
   }
@@ -122,7 +127,12 @@ namespace keypoints {
     int index_col = (withtruth) ? 4 : 3;
     
     // make match index array
-    //std::cout << "make triplets" << std::endl;    
+    LARCV_DEBUG() << "make triplets" << std::endl;
+    if ( _exclude_neg_examples )
+      LARCV_DEBUG() << "exclude negative examples" << std::endl;
+    else
+      LARCV_DEBUG() << "include both negative and positive examples" << std::endl;
+    
     PyArrayObject* matches =
       (PyArrayObject*)triplet_v->at(0).sample_triplet_matches( num_max_samples, nfilled, withtruth );
 
@@ -141,6 +151,7 @@ namespace keypoints {
         nneg++;
       }
     }
+    LARCV_DEBUG() << " npos=" << npos << " nneg=" <<  nneg << std::endl;
     PyObject *match_key = Py_BuildValue("s", "matchtriplet");
 
     // make match weight array
@@ -168,11 +179,17 @@ namespace keypoints {
 
 
     // SSNET Arrays
+    LARCV_DEBUG() << "call make_ssnet_arrays" << std::endl;
     PyArrayObject* ssnet_label  = nullptr;
     PyArrayObject* ssnet_weight = nullptr;
     PyArrayObject* ssnet_class_weight = nullptr;
-    make_ssnet_arrays( num_max_samples, nfilled, withtruth, pos_index_v,
-                       matches, ssnet_label, ssnet_weight, ssnet_class_weight );
+    try {
+      make_ssnet_arrays( num_max_samples, nfilled, withtruth, pos_index_v,
+			 matches, ssnet_label, ssnet_weight, ssnet_class_weight );
+    }catch (std::exception& e ) {
+      LARCV_CRITICAL() << "error: " << e.what() << std::endl;
+      throw std::runtime_error(e.what());
+    }
     PyObject *ssnet_label_key        = Py_BuildValue("s", "ssnet_label" );
     PyObject *ssnet_top_weight_key   = Py_BuildValue("s", "ssnet_top_weight" );
     PyObject *ssnet_class_weight_key = Py_BuildValue("s", "ssnet_class_weight" );        
@@ -251,6 +268,8 @@ namespace keypoints {
   {
 
     int index_col = (withtruth) ? 4 : 3;
+
+    LARCV_DEBUG() << "pos_match_index=" << pos_match_index.size() << " wittruth=" << withtruth << " num_max_samples=" << num_max_samples << std::endl;
     
     // make ssnet label array
     int ssnet_label_nd = 1;
@@ -270,45 +289,62 @@ namespace keypoints {
     ssnet_class_weight = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims3, NPY_FLOAT );
 
     std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
-
+    LARCV_DEBUG() << "make class labels and topological weight arrays. nelems=" << ssnet_label_dims1[0] << std::endl;
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
 
       // get the sample index
       int idx = (_exclude_neg_examples ) ? pos_match_index[i] : i;
 
+      //LARCV_DEBUG() << " i=" << i << " idx=" << idx << std::endl;
+
       // get the triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
 
-      // ssnet label
+      // get ssnet label
+      if (index<0 || index>=(int)ssnet_label_v->size()) {
+	std::stringstream msg;
+	msg << "invalid index for ssnet_label_v. index=" << index
+	    << " size=" << ssnet_label_v->size()
+	    << " i=" << i	  
+	    << " idx=" << idx
+	    << " exclude=" << _exclude_neg_examples
+	    << std::endl;
+	throw std::runtime_error( msg.str() );
+      }
+      
       int label = ssnet_label_v->at( index );
-      nclass[label]++;;
+      if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
+	std::stringstream msg;
+	msg << "invalid class label=" << label << " from the Tree" << std::endl;
+	throw std::runtime_error( msg.str() );
+      }
+      nclass[label]++;
 
       *((long*)PyArray_GETPTR1(ssnet_label,i))       = (long)label; // class label
       *((float*)PyArray_GETPTR1(ssnet_top_weight,i)) = (float)ssnet_weight_v->at( index ); // topological weight
     }
-
+    
+    LARCV_DEBUG() << "make class balancing weights" << std::endl;
+    
     // calculate class-balancing weights
     int ntot = (int)ssnet_label_dims1[0];
     std::vector<float> w_class( larflow::prep::PrepSSNetTriplet::kNumClasses, 0.0 );
     float w_norm  = 0.;
     for (int i=0; i<(int)nclass.size(); i++) {
       if ( nclass[i]>0 )
-	w_class[i] = float(ntot)/float(nclass[i]);
+	w_class[i] = 1.0/float(nclass[i]);
       else
 	w_class[i] = 0.0;
-      w_norm += float(nclass[i])*w_class[i];
     }
-
-    if ( w_norm>0 ) {
-      for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
-	long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
-	*((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_class[label]/w_norm;
-      }
-    }
-    else {
-      for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {      
-	*((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = 0.0;
-      }
+    
+    for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
+      long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
+      if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
+	std::stringstream msg;
+	msg << "invalid class label=" << label << " from the Tree" << std::endl;
+	throw std::runtime_error( msg.str() );
+      }      
+      *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_class[label];
     }
     
     return 0;
@@ -339,14 +375,14 @@ namespace keypoints {
     float sigma = 10.0; // cm
 
     int kplabel_nd = 2;
-    int nclasses = 3;
+    int nclasses = 6; //number of keypoint classes
     npy_intp kplabel_dims[] = { (long)pos_match_index.size(), (long)nclasses };
 
     if ( !_exclude_neg_examples ) {
       kplabel_dims[0] = num_max_samples;
     }
     
-    //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
+    std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
     std::vector<int> npos(nclasses,0);
@@ -361,15 +397,17 @@ namespace keypoints {
       
       for (int c=0; c<nclasses; c++) {
         // hard label
-        long label = kplabel_v[c]->at( index )[0];
+        long label = kplabel_v[c]->at( index )[0]; // [0] indicates if within some radius of keypoint
         if (label==1) {
           // make soft label
           float dist = 0.;
           for (int j=0; j<3; j++) {
-            float dx = kplabel_v[c]->at( index )[1+j];
+            float dx = kplabel_v[c]->at( index )[1+j]; // [1+j] is distance to closest keypoint in j-coordinate
             dist += dx*dx;
           }
+	  // reassign hard label with value based on distance from closest keypoint
           *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = exp( -dist/(sigma*sigma) );
+	  // increment number of positive keypoint labels
           npos[c]++;
         }
         else {
@@ -392,7 +430,7 @@ namespace keypoints {
       float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
       float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
-      std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+      //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
     
       for (int i=0; i<kpweight_dims[0]; i++ ) {
         // sample array index
