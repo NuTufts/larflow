@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("Test PrepKeypointData")
@@ -36,11 +37,11 @@ iolcv.reverse_all_products()
 iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
-print "Number of entries: ",nentries
+print("Number of entries: ",nentries)
 if args.nentries>=0 and args.nentries<nentries:
     nentries = args.nentries
 
-print "Start loop."
+print("Start loop.")
 tmp = rt.TFile(args.output,"recreate")
 
 # ALGOS
@@ -77,21 +78,21 @@ if args.save_triplets:
 start = time.time()
 
 nrun = 0
-for ientry in xrange( nentries ):
+for ientry in range( nentries ):
 
-    print 
-    print "=========================="
-    print "===[ EVENT ",ientry," ]==="
+    print(" ") 
+    print("==========================")
+    print("===[ EVENT ",ientry," ]===")
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
     tripmaker = ev_triplet[0]
     
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
-    print "number of images: ",ev_adc.Image2DArray().size()
+    print("number of images: ",ev_adc.Image2DArray().size())
     adc_v = ev_adc.Image2DArray()
-    for p in xrange(adc_v.size()):
-        print " image[",p,"] ",adc_v[p].meta().dump()
+    for p in range(adc_v.size()):
+        print(" image[",p,"] ",adc_v[p].meta().dump())
 
     ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
     ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
@@ -128,12 +129,12 @@ for ientry in xrange( nentries ):
     #sys.exit(0)
     #break
 
-print "NCLOSE: ",kpana._nclose
-print "NFAR: ",kpana._nfar
-print "FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar)
+print("NCLOSE: ",kpana._nclose)
+print("NFAR: ",kpana._nfar)
+print("FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar))
 
 dtime = time.time()-start
-print "Time: ",float(dtime)/float(nrun)," sec/event"
+print("Time: ",float(dtime)/float(nrun)," sec/event")
 
 tmp.cd()
 kpana.writeAnaTree()
@@ -147,4 +148,4 @@ del kpana
 del ssnet
 del kpflow
 
-print "=== FIN =="
+print("=== FIN ==")

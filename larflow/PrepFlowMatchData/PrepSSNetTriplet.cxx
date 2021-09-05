@@ -43,15 +43,20 @@ namespace prep {
   }
 
   /** 
-   * @brief make track/shower labels
+   * @brief make particle class labels
    *
    * The labels we define:
    * @verbatim embed:rst:leading-asterisk
-   *  * [0]: background
-   *  * [1]: track
-   *  * [2]: shower
+   *  * [0]: background (larcv::kROIUnknown)
+   *  * [1]: electron (larcv::kROIEminus)
+   *  * [2]: gamma (larcv::kROIGamma)
+   *  * [3]: muon (larcv::kROIMuminus)
+   *  * [4]: proton (larcv::kROIProton)
+   *  * [5]: pion (larcv::kROIPiminus)
+   *  * [6]: other (the rest of the labels)
    * @endverbatim
    *
+   * Class labels for each triplet should already be made in PrepMatchTriplets::make_segmentid_vector.
    * We assign two additional weights to each pixel to help balance the classes. 
    * The first weight is inversely proportional to the times the class shows up in the event image.
    * The second weight is multipler to the first in order to emphasize certain important
@@ -80,12 +85,12 @@ namespace prep {
 
     
     size_t ntriplets = tripletmaker._triplet_v.size();
-    _trackshower_label_v.clear();
-    _trackshower_label_v.resize( ntriplets, 0 );
-    _trackshower_weight_v.clear();
-    _trackshower_weight_v.resize( ntriplets, 1.0 );
-    _trackshower_num_v.clear();
-    _trackshower_num_v.resize(3,0.0);
+    _ssnet_label_v.clear();
+    _ssnet_label_v.resize( ntriplets, 0 );
+    _ssnet_weight_v.clear();
+    _ssnet_weight_v.resize( ntriplets, 1.0 );
+    _ssnet_num_v.clear();
+    _ssnet_num_v.resize(kNumClasses,0.0);
 
     int vtxrow = -1;
     if ( vtx_imgcoord[3]>tripletmaker._imgmeta_v.front().min_y()
@@ -93,29 +98,28 @@ namespace prep {
       vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
     }
 
-    for (int i=0; i<3; i++) _trackshower_num_v[i] = 0;
+    for (int i=0; i<kNumClasses; i++) _ssnet_num_v[i] = 0;
       
     for ( size_t itrip=0; itrip<ntriplets; itrip++ ) {
       const std::vector<int>& triplet = tripletmaker._triplet_v[itrip];
 
-      // if the triplet is bad, leave the label as 0 (background)
-      if ( tripletmaker._truth_v[itrip]==0 ) {
-        _trackshower_label_v[itrip] = 0;
-        _trackshower_weight_v[itrip] = 1.;
-        _trackshower_num_v[0] += 1.0;
-        continue;
-      }
-      
+      int larcv_pid = tripletmaker._pdg_v[itrip]; // particle label using larcv class enum
+      int net_label = larcv2class( larcv_pid );
+      if ( tripletmaker._truth_v[itrip]==0 )
+	net_label = kBG;
+      _ssnet_label_v[itrip] = net_label;
+      _ssnet_num_v[net_label] += 1;
+      _ssnet_weight_v[itrip] = 1.;
+
       // we get the column for each plane
       std::vector<int> imgcoord(4,0); //(u,v,y,row)
       for (size_t p=0; p<3; p++)
         imgcoord[p] = tripletmaker._sparseimg_vv[p][triplet[p]].col;
       //use the y-plane for the row, should be the same      
-      imgcoord[3] = tripletmaker._sparseimg_vv[2][triplet[2]].row;
+      imgcoord[3] = tripletmaker._sparseimg_vv[2][triplet[2]].row;      
 
-      // got to planes and vote on label and boundary status
-      int ntrack  = 0;
-      int nshower = 0;
+      // go to planes and vote on boundary status
+      std::vector<int> nclass( kNumClasses, 0 );
       int isboundary = 0;
       int isvertex = 0;
       for ( size_t p=0; p<3; p++ ) {
@@ -141,35 +145,18 @@ namespace prep {
         if (nneigh!=nsame)
           isboundary += 1;
 
-        // determine track/shower label
-        if (label==larcv::kROIEminus || label==larcv::kROIGamma)
-          nshower++;
-        else
-          ntrack++;
-
         // determine if near vertex
         if ( vtxrow>=0 && abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
           isvertex++;
-      }//end of plane loop
-
-
-      // set label
-      if ( ntrack>nshower ) {
-        _trackshower_label_v[itrip] = 1;
-        _trackshower_num_v[1] += 1.0;        
-      }
-      else {
-        _trackshower_label_v[itrip] = 2;
-        _trackshower_num_v[2] += 1.0;        
-      }
+      }//end of plane loop    
 
       // set weight
       if ( isvertex==3 )
-        _trackshower_weight_v[itrip] = 100.;
+        _ssnet_weight_v[itrip] = 100.;
       else if ( isboundary>0 )
-        _trackshower_weight_v[itrip] = 10.;
+        _ssnet_weight_v[itrip] = 10.;
       else
-        _trackshower_weight_v[itrip] = 1.;
+        _ssnet_weight_v[itrip] = 1.;
 
     }//end of loop over proposed triplets
 
@@ -187,16 +174,44 @@ namespace prep {
     _label_tree->Branch( "run",    &_run,    "run/I" );
     _label_tree->Branch( "subrun", &_subrun, "subrun/I" );
     _label_tree->Branch( "event",  &_event,  "event/I" );    
-    _label_tree->Branch( "trackshower_label_v",  &_trackshower_label_v );
-    _label_tree->Branch( "trackshower_weight_v", &_trackshower_weight_v );
-    _label_tree->Branch( "trackshower_num_v",    &_trackshower_num_v );
+    _label_tree->Branch( "ssnet_label_v",  &_ssnet_label_v );
+    _label_tree->Branch( "ssnet_weight_v", &_ssnet_weight_v );
+    _label_tree->Branch( "ssnet_num_v",    &_ssnet_num_v );
   }
 
   void PrepSSNetTriplet::writeAnaTree()
   {
     if ( _label_tree ) _label_tree->Write();
   }
-  
+
+  int PrepSSNetTriplet::larcv2class( int larcv_label )
+  {
+    switch (larcv_label){
+    case larcv::kROIUnknown:
+      return kBG;
+      break;      
+    case larcv::kROIEminus:
+      return kElectron;
+      break;
+    case larcv::kROIGamma:
+      return kGamma;
+      break;
+    case larcv::kROIMuminus:
+      return kMuon;
+      break;
+    case larcv::kROIPiminus:
+      return kPion;
+      break;
+    case larcv::kROIProton:
+      return kProton;
+      break;
+    default:
+      return kOther;
+      break;
+    }
+
+    return kBG;
+  }
 }
 }
     

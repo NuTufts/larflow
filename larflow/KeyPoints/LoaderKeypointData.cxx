@@ -1,6 +1,6 @@
 #include "LoaderKeypointData.h"
-
 #include <iostream>
+#include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
 
 namespace larflow {
 namespace keypoints {
@@ -58,8 +58,8 @@ namespace keypoints {
     tkeypoint->SetBranchAddress( "kplabel_nuvertex",    &kplabel_v[0] );
     tkeypoint->SetBranchAddress( "kplabel_trackends",   &kplabel_v[1] );
     tkeypoint->SetBranchAddress( "kplabel_showerstart", &kplabel_v[2] );    
-    tssnet->SetBranchAddress( "trackshower_label_v",    &ssnet_label_v );
-    tssnet->SetBranchAddress( "trackshower_weight_v",   &ssnet_weight_v );
+    tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
+    tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
   }
 
   /**
@@ -269,9 +269,7 @@ namespace keypoints {
     ssnet_top_weight   = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims2, NPY_FLOAT );
     ssnet_class_weight = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims3, NPY_FLOAT );
 
-    int nbg = 0;
-    int ntrack = 0;
-    int nshower = 0;
+    std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
 
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
 
@@ -283,28 +281,34 @@ namespace keypoints {
 
       // ssnet label
       int label = ssnet_label_v->at( index );
-      if ( label==0 )    nbg++;
-      else if (label==1) ntrack++;
-      else if (label==2) nshower++;        
+      nclass[label]++;;
 
-      *((long*)PyArray_GETPTR1(ssnet_label,i))       = (long)label;
-      *((float*)PyArray_GETPTR1(ssnet_top_weight,i)) = (float)ssnet_weight_v->at( index );
+      *((long*)PyArray_GETPTR1(ssnet_label,i))       = (long)label; // class label
+      *((float*)PyArray_GETPTR1(ssnet_top_weight,i)) = (float)ssnet_weight_v->at( index ); // topological weight
     }
 
-    int ntot = nbg+ntrack+nshower;
-    float w_bg = (nbg)     ? float(ntot)/float(nbg) : 0.;
-    float w_tr = (ntrack)  ? float(ntot)/float(ntrack) : 0.;
-    float w_sh = (nshower) ? float(ntot)/float(nshower) : 0.;
-    float w_norm = nbg*w_bg + ntrack*w_tr + nshower*w_sh;
+    // calculate class-balancing weights
+    int ntot = (int)ssnet_label_dims1[0];
+    std::vector<float> w_class( larflow::prep::PrepSSNetTriplet::kNumClasses, 0.0 );
+    float w_norm  = 0.;
+    for (int i=0; i<(int)nclass.size(); i++) {
+      if ( nclass[i]>0 )
+	w_class[i] = float(ntot)/float(nclass[i]);
+      else
+	w_class[i] = 0.0;
+      w_norm += float(nclass[i])*w_class[i];
+    }
 
-    for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
-      long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
-      if ( label==0 )
-        *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_bg/w_norm;
-      else if ( label==1 )
-        *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_tr/w_norm;
-      else if ( label==2 )
-        *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_sh/w_norm;
+    if ( w_norm>0 ) {
+      for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
+	long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
+	*((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_class[label]/w_norm;
+      }
+    }
+    else {
+      for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {      
+	*((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = 0.0;
+      }
     }
     
     return 0;

@@ -40,14 +40,16 @@ namespace prep {
     void make_trackshower_labels( const std::vector<larcv::Image2D>& segment_v,
                                   const larflow::prep::PrepMatchTriplets& tripletmaker,
                                   const std::vector<int>& vtx_imgcoord );
+
+    enum { kBG=0, kElectron, kGamma, kMuon, kPion, kProton, kOther, kNumClasses };
     
     TTree* _label_tree;  ///< ROOT TTree used to store label data to output file
     int _run;     ///< run number of event used to make labels
     int _subrun;  ///< subrun of event used to make labels
     int _event;   ///< event number of event used to make labels
-    std::vector< int >                _trackshower_label_v;  ///< pixel topology label:: 0:bg, 1:track, 2:shower
-    std::vector< float >              _trackshower_weight_v; ///< triplet weights based on topology
-    std::vector< float >              _trackshower_num_v;    ///< number of each class
+    std::vector< int >                _ssnet_label_v;  ///< pixel topology label:: 0:bg, 1:track, 2:shower
+    std::vector< float >              _ssnet_weight_v; ///< triplet weights based on topology
+    std::vector< float >              _ssnet_num_v;    ///< number of each class
     std::vector< std::vector<int> >   _pid_label_v;          ///< particle ID labe:: 0:bg, 1:muon,  2: proton, 3:pion, 4:electron, 5:gamma
     std::vector< float >              _pid_weight_v;         ///< class balancing weight
     std::vector< std::vector<float> > _boundary_weight_v;    ///< upweights at boundary, vertex
@@ -56,6 +58,8 @@ namespace prep {
 
     /** @brief Write ROOT TTree for storing labels. */
     void writeAnaTree();
+
+    static int larcv2class( int larcv_label ); ///< convert larcv particle type enum to network class label
     
     
   };

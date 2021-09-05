@@ -13,7 +13,6 @@ import ROOT as rt
 from larlite import larlite
 from larcv import larcv
 from larflow import larflow
-larcv.SetPyUtil()
 
 import dash
 import dash_core_components as dcc
@@ -69,7 +68,7 @@ def make_figures(entry,plotby="truthmatch"):
         nsamples = ntriplets
         
     sig = 10.0
-    index = np.arange(ntriplets)
+    index = np.arange(ntriplets, dtype=np.int)
     np.random.shuffle(index)
     pos3d = np.zeros( (nsamples,4) )
 
@@ -77,33 +76,32 @@ def make_figures(entry,plotby="truthmatch"):
     
     traces_v = []
 
-    for i in xrange(nsamples):
-        for v in xrange(3):
-            pos3d[i,v] = triplet._pos_v[  index[i] ][v]
-    
+    for i in range(nsamples):
+        for v in range(3):
+            pos3d[i,v] = triplet._pos_v[  int(index[i]) ][v]    
 
     if plotby=="truthmatch":
-        for i in xrange(nsamples):
-            pos3d[i,3] = triplet._truth_v[index[i]]
+        for i in range(nsamples):
+            pos3d[i,3] = triplet._truth_v[int(index[i])]
     elif plotby=="isclosematch":
-        for i in xrange(nsamples):
-            pos3d[i,3] = ev_keypoint.kplabel[ index[i] ][0]
+        for i in range(nsamples):
+            pos3d[i,3] = ev_keypoint.kplabel[ int(index[i]) ][0]
     elif plotby=="ssnetlabels":
-        for i in xrange(nsamples):
-            pos3d[i,3] = ev_ssnet.trackshower_label_v[ index[i] ]
+        for i in range(nsamples):
+            pos3d[i,3] = ev_ssnet.ssnet_label_v[ int(index[i]) ]
     elif plotby=="ssnetweights":
-        for i in xrange(nsamples):
-            pos3d[i,3] = log(1.0+ev_ssnet.trackshower_weight_v[ index[i] ])
+        for i in range(nsamples):
+            pos3d[i,3] = log(1.0+ev_ssnet.ssnet_weight_v[ int(index[i]) ])
     elif "dist2keypoint" in plotby:
         kpname = plotby.split("_")[-1]
-        exec("brname=ev_keypoint.kplabel_%s"%(kpname))
-        for i in xrange(nsamples):
-            if brname[index[i]][0]==0:
+        exec("global brname; brname=ev_keypoint.kplabel_%s"%(kpname))
+        for i in range(nsamples):
+            if brname[int(index[i])][0]==0:
                 pos3d[i,3] = 0.0
             else:
                 dist = 0.0
-                for v in xrange(3):
-                    dist += brname[index[i]][1+v]*brname[index[i]][1+v]
+                for v in range(3):
+                    dist += brname[int(index[i])][1+v]*brname[int(index[i])][1+v]
                 pos3d[i,3] = np.exp( -0.5*dist/(sig*sig) )
 
                 
@@ -130,11 +128,11 @@ def make_figures(entry,plotby="truthmatch"):
                                ("showermichel","rgb(0,255,255)"),
                                ("showerdelta","rgb(255,0,255)"),                               
                                ("nuvertex","rgb(255,255,0)")]:
-            exec("brname=ev_keypoint.kppos_%s"%(kptype))
-            print(brname)
+            exec("global brname; brname=ev_keypoint.kppos_%s"%(kptype),globals(),locals())
+            #print(brname)
             kppos = np.zeros( (brname.size(),3) )
-            for i in xrange( kppos.shape[0] ):
-                for v in xrange(3):
+            for i in range( kppos.shape[0] ):
+                for v in range(3):
                     kppos[i,v] = brname[i][v]
             kpplot = {
                 "type":"scatter3d",
