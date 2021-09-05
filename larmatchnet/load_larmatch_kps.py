@@ -9,7 +9,8 @@ from ROOT import std
 from ctypes import c_int
 
 """
-Load LArMatch Triplet data files for training and deploy
+Load LArMatch Triplet data files for training and deploy.
+This also loads Key-Point-SSNet (KPS) data.
 """
 
 
@@ -18,7 +19,18 @@ def load_larmatch_kps(loaders, current_entry, batchsize,
                       verbose=False,
                       exclude_neg_examples=False,
                       single_batch_mode=False):
-
+    """
+    loaders dict holding different larmatch data loaders. Should have following keys:
+             "kps":instance of larflow.keypoints.LoaderKeypointData
+             "affinity": affinity vector field (points along track direction)
+    current_entry int the current entry we are on (if reading sequentially)
+    batchsize int number of events to be in batch
+    npairs int [default:5000] Number of larmatch triplets to return among all the triplets
+               in the event.
+    verbose [default: false} 
+    exclude_neg_examples: sampled points only return true matches (in other words no ghost points)
+    single_batch_mode: 
+    """
     batch = []
     batch_npts_per_plane = []
     batch_tot_per_plane = [0,0,0]
@@ -29,6 +41,7 @@ def load_larmatch_kps(loaders, current_entry, batchsize,
 
     if single_batch_mode:
         batchsize = 1
+    loaders["kps"].exclude_false_triplets( exclude_neg_examples )
     
     for ibatch in range(batchsize):
         ientry = current_entry + ibatch    
