@@ -30,7 +30,15 @@ color_by_options = ["truthmatch",
                     "dist2keypoint_showermichel",
                     "dist2keypoint_showerdelta",                    
                     "ssnetlabels",
-                    "ssnetweights"]    
+                    "ssnetweights"]
+
+ssnetcolor = {0:np.array((0,0,0)),     # bg
+              1:np.array((255,0,0)),   # electron
+              2:np.array((0,255,0)),   # gamma
+              3:np.array((0,0,255)),   # muon
+              4:np.array((255,0,255)), # pion
+              5:np.array((0,255,255)), # proton
+              6:np.array((255,255,0))} # other
 
 colorscale = "Viridis"
 option_dict = []
@@ -70,7 +78,11 @@ def make_figures(entry,plotby="truthmatch"):
     sig = 10.0
     index = np.arange(ntriplets, dtype=np.int)
     np.random.shuffle(index)
-    pos3d = np.zeros( (nsamples,4) )
+
+    datadim = 4
+    if plotby=="ssnetlabels":
+        datadim = 3+3
+    pos3d = np.zeros( (nsamples,datadim) )
 
     detdata = lardly.DetectorOutline()
     
@@ -88,7 +100,8 @@ def make_figures(entry,plotby="truthmatch"):
             pos3d[i,3] = ev_keypoint.kplabel[ int(index[i]) ][0]
     elif plotby=="ssnetlabels":
         for i in range(nsamples):
-            pos3d[i,3] = ev_ssnet.ssnet_label_v[ int(index[i]) ]
+            ssnetlabel = ev_ssnet.ssnet_label_v[ int(index[i]) ]
+            pos3d[i,3:] = ssnetcolor[ssnetlabel]
     elif plotby=="ssnetweights":
         for i in range(nsamples):
             pos3d[i,3] = log(1.0+ev_ssnet.ssnet_weight_v[ int(index[i]) ])
@@ -112,11 +125,15 @@ def make_figures(entry,plotby="truthmatch"):
         "z":pos3d[:,2],
         "mode":"markers",
         "name":"larmatchtriplets",
-        "marker":{"color":pos3d[:,3],"size":1,"colorscale":colorscale}
+        "marker":{"color":pos3d[:,3],"size":1}
     }
 
     if plotby=="truthmatch":
         clusterplot["marker"]["colorscale"] = "Bluered"
+    elif plotby=="ssnetlabels":
+        clusterplot["marker"]["color"] = pos3d[:,3:]
+    else:
+        clusterplot["marker"]["colorscale"] = colorscale
     
     traces_v.append( clusterplot )
 
