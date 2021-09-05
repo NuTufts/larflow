@@ -15,7 +15,7 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-larcv.SetPyUtil()
+#larcv.SetPyUtil()
 
 import dash
 import dash_core_components as dcc
