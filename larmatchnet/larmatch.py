@@ -5,6 +5,11 @@ import torch.nn as nn
 import sparseconvnet as scn
 from utils_sparselarflow import create_resnet_layer
 
+from larmatch_ssnet_classifier import LArMatchSSNetClassifier
+from larmatch_keypoint_classifier import LArMatchKeypointClassifier
+from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+
 class LArMatch(nn.Module):
 
     def __init__(self,ndimensions=2,inputshape=(1024,3456),
@@ -88,7 +93,12 @@ class LArMatch(nn.Module):
         classifier_layers["classout"] = torch.nn.Conv1d(nfeats,1,1)
         #classifier_layers["sigmoid"]  = torch.nn.Sigmoid()
         self.classifier = torch.nn.Sequential( classifier_layers )
-        
+
+        # OTHER TASK HEADS
+        self.ssnet_head    = LArMatchSSNetClassifier()
+        self.kplabel_head  = LArMatchKeypointClassifier()
+        self.kpshift_head  = LArMatchKPShiftRegressor()
+        self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64])
 
     def forward_features( self, coord_plane0_t, plane0_feat_t,
                           coord_plane1_t, plane1_feat_t,
