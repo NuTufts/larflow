@@ -62,16 +62,16 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-#TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_training_data/"
-TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
-INPUTFILE_TRAIN=["traininglabels_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"]
-INPUTFILE_VALID=["traininglabels_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"]
+TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
+#TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
+INPUTFILE_TRAIN=["larmatchtriplet_ana_trainingdata_testfile.root"]
+INPUTFILE_VALID=["larmatchtriplet_ana_trainingdata_testfile.root"]
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER  = 0
 NUM_ITERS   = 2000000
-TEST_NUM_MATCH_PAIRS = 50000
+TEST_NUM_MATCH_PAIRS = 100000
 ADC_MAX = 400.0
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -929,7 +929,8 @@ def accuracy(match_pred_t, match_label_t,
             kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
             kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
             print("kp[",c,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
-            acc_meters["kp_"+names[c]].update( kp_pos/kp_n_pos )
+            if kp_n_pos>0:
+                acc_meters["kp_"+names[c]].update( kp_pos/kp_n_pos )
 
     # PARTICLE AFFINITY FLOW
     if paf_pred_t is not None:
