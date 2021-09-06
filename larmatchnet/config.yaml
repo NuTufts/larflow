@@ -12,7 +12,8 @@ TRAIN_KP: True
 TRAIN_KPSHIFT: False
 TRAIN_PAF: True
 TRAIN_VERBOSE: True
-FREEZE_LAYERS: False
+FREEZE_LAYERS: []
+#FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS

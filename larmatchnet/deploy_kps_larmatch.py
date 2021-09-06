@@ -16,17 +16,13 @@ parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name o
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument("--use-unet","-unet",default=False,action='store_true',help="Use UNet version")
 parser.add_argument("--use-skip-limit",default=None,type=int,help="Specify a max triplet let. If surpassed, skip network eval.")
+parser.add_argument("--config-file","-c",type=str,default="config.yaml",help="larmatch configuration file")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
 import numpy as np
 
-from larmatch import LArMatch
-#from larmatch_ssnet_classifier import LArMatchSSNetClassifier
-#from larmatch_keypoint_classifier import LArMatchKeypointClassifier
-#from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
-#from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
-from larmatch_engine import remake_separated_model_weightfile
+import larmatch_engine
 
 import ROOT as rt
 from ROOT import std
@@ -40,7 +36,6 @@ import torch
 
 print(larutil.Geometry.GetME())
 driftv = larutil.LArProperties.GetME().DriftVelocity()
-
 
 devname=args.device_name
 DEVICE=torch.device(devname)
@@ -62,11 +57,8 @@ if args.use_skip_limit is not None:
     preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
 
 # MULTI-HEAD LARMATCH MODEL
-model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE)}
-model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
-model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
-model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
-model_dict["paf"] = model_dict["larmatch"].affinity_head
+config = larmatch_engine.load_config_file( args )
+model, model_dict = larmatch_engine.get_larmatch_model( config, DEVICE )
 
 # hack: for runnning with newer version of SCN where group-convolutions are possible
 for name,arr in checkpoint["state_larmatch"].items():
@@ -79,9 +71,10 @@ for name,arr in checkpoint["state_larmatch"].items():
         checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
 
 # copy items into larmatch dict
-larmatch_checkpoint_data = remake_separated_model_weightfile(checkpoint,model_dict)
+larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict)
 model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
 print("loaded MODEL")
+sys.exit(0)
 
 # setup filename
 outfilestem = args.output

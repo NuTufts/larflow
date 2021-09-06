@@ -12,6 +12,20 @@ def load_config_file( args, dump_to_stdout=False ):
     stream.close()
     return dictionary
 
+def reshape_old_sparseconvnet_weights(checkpoint):
+
+    # hack to be able to load sparseconvnet<1.3
+    for name,arr in checkpoint["state_larmatch"].items():
+        if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
+             ("stem" in name and "weight" in name and len(arr.shape)==3) or
+             ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
+             ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
+            print("reshaping ",name)
+            checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
+
+    return
+    
+
 def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
     # copy items into larmatch dict
     larmatch_checkpoint_data = checkpoint["state_larmatch"]
@@ -39,7 +53,13 @@ def get_larmatch_model( config, device, dump_model=False ):
         # DUMP MODEL (for debugging)
         print(model)
 
-    return model
+    model_dict = {"larmatch":model}
+    model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
+    model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
+    model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
+    model_dict["paf"] = model_dict["larmatch"].affinity_head
+    
+    return model, model_dict
 
 if __name__ == "__main__":
 
