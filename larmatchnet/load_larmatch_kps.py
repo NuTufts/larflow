@@ -55,7 +55,7 @@ def load_larmatch_kps(loaders, current_entry, batchsize,
         for name,loader in loaders.items():
             nbytes = loader.load_entry(data["tree_entry"])
             if verbose:
-                print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
+                print("[load_larmatch_kps] nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
         dtio    += time.time()-tio
 
         nfilled = c_int()
@@ -90,7 +90,6 @@ def load_larmatch_kps(loaders, current_entry, batchsize,
         nvertex   = np.sum(data["ssnet_top_weight"][data["ssnet_top_weight"]==100.0])        
         data["ssnet_top_weight"][ data["ssnet_top_weight"]==10.0 ]  = 2.0
         data["ssnet_top_weight"][ data["ssnet_top_weight"]==100.0 ] = 5.0
-        print("nboundary=",nboundary," nvertex=",nvertex)
 
         batch.append(data)
 

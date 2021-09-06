@@ -74,7 +74,6 @@ for name,arr in checkpoint["state_larmatch"].items():
 larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict)
 model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
 print("loaded MODEL")
-sys.exit(0)
 
 # setup filename
 outfilestem = args.output

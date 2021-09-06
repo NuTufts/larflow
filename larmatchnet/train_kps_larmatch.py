@@ -7,7 +7,7 @@ TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 
 # python,numpy
 from __future__ import print_function
-import os,sys
+import os,sys,argparse
 import shutil
 import time
 import traceback
@@ -25,10 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 # larmatch imports
 from larmatch import LArMatch
-from larmatch_ssnet_classifier import LArMatchSSNetClassifier
-from larmatch_keypoint_classifier import LArMatchKeypointClassifier
-from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
-from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+import larmatch_engine
 from load_larmatch_kps import load_larmatch_kps
 from loss_larmatch_kps import SparseLArMatchKPSLoss
 
@@ -50,9 +47,11 @@ TRAIN_SSNET=True
 TRAIN_KP=True
 TRAIN_KPSHIFT=False
 TRAIN_PAF=True
-TRAIN_VERBOSE=True
+TRAIN_VERBOSE=False
 FREEZE_LAYERS=False
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
+KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
+LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
 
 # Hard example training parameters (not yet implemented)
 # =======================================================
@@ -62,8 +61,8 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
-#TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
+#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
+TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
 INPUTFILE_TRAIN=["larmatchtriplet_ana_trainingdata_testfile.root"]
 INPUTFILE_VALID=["larmatchtriplet_ana_trainingdata_testfile.root"]
 
@@ -126,17 +125,12 @@ def main():
         DEVICE = torch.device("cpu")
     
     # create model, mark it to run on the device
-    model = LArMatch(use_unet=True).to(DEVICE)
-    ssnet_head    = LArMatchSSNetClassifier().to(DEVICE)
-    kplabel_head  = LArMatchKeypointClassifier().to(DEVICE)
-    kpshift_head  = LArMatchKPShiftRegressor().to(DEVICE)
-    affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64]).to(DEVICE)
-    # the model is multi-tasked, so we group the different tasks into a map
-    model_dict = {"larmatch":model,
-                  "ssnet":ssnet_head,
-                  "kplabel":kplabel_head,
-                  "kpshift":kpshift_head,
-                  "paf":affinity_head}
+    parser = argparse.ArgumentParser("run LArFlow-LArMatch on data")
+    parser.add_argument("--config-file","-c",type=str,default="config.yaml",help="larmatch configuration file")
+    args = parser.parse_args()
+    config = larmatch_engine.load_config_file(args)
+    model,model_dict = larmatch_engine.get_larmatch_model( config, DEVICE )
+    # the model is multi-tasked, so we group the different tasks in model_dict
     parameters = []
     for n,model in model_dict.items():
         for p in model.parameters():
@@ -145,9 +139,6 @@ def main():
     if True:
         # DUMP MODEL (for debugging)
         print(model)
-        print(ssnet_head)
-        print(kplabel_head)
-        print(kpshift_head)
 
         # uncomment to dump model parameters
         if False:
@@ -399,7 +390,7 @@ def train(train_loader, device, batchsize,
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ["lm_pos","lm_neg","lm_all","kp_nu","kp_trk","kp_shr","paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
+    flowaccnames = LM_CLASS_NAMES+KP_CLASS_NAMES+["paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -466,7 +457,7 @@ def train(train_loader, device, batchsize,
         for p in range(3):
             feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
 
-        print("loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs)
+        if TRAIN_VERBOSE: print("loaded train entry: ",train_entry," ",flowdata["entry"]," ",flowdata["tree_entry"],"npairs=",npairs)
         if train_entry+1<TRAIN_NENTRIES:
             train_entry += 1
         else:
@@ -512,7 +503,7 @@ def train(train_loader, device, batchsize,
             with torch.no_grad():
                 feat_triplet_t = model_dict['larmatch'].extract_features( outfeat_u, outfeat_v, outfeat_y,
                                                                           matchpair_t, npairs.value,
-                                                                          DEVICE, verbose=True )
+                                                                          DEVICE, verbose=False )
             tstart = time.time()
             with torch.no_grad():
                 pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
@@ -528,29 +519,29 @@ def train(train_loader, device, batchsize,
         feat_triplet_t = model['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
                                                              match_t, flowdata['npairs'],
                                                              device, verbose=TRAIN_VERBOSE )
-        print("[larmatch train] feat_triplet_t=",feat_triplet_t.shape)
+        if TRAIN_VERBOSE: print("[larmatch train] feat_triplet_t=",feat_triplet_t.shape)
 
         # evaluate larmatch match classifier
         match_pred_t = model['larmatch'].classify_triplet( feat_triplet_t )
         match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-        print("[larmatch train] match-pred=",match_pred_t.shape)
+        if TRAIN_VERBOSE: print("[larmatch train] match-pred=",match_pred_t.shape)
 
         # evaluate ssnet classifier
         if TRAIN_SSNET:
             ssnet_pred_t = model['ssnet'].forward( feat_triplet_t )
             ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
             ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-            print("[larmatch train] ssnet-pred=",ssnet_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train] ssnet-pred=",ssnet_pred_t.shape)
         else:
             ssnet_pred_t = None
         
         # next evaluate keypoint classifier
         if TRAIN_KP:
             kplabel_pred_t = model['kplabel'].forward( feat_triplet_t )
-            print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
             kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
             kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-            print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
         else:
             kplabel_pred_t = None
         
@@ -559,17 +550,17 @@ def train(train_loader, device, batchsize,
             kpshift_pred_t = model['kpshift'].forward( feat_triplet_t )
             kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
             kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-            print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
         else:
             kpshift_pred_t = None
 
         # next evaluate affinity field predictor
         if TRAIN_PAF:
             paf_pred_t = model["paf"].forward( feat_triplet_t )
-            print("[larmatch train]: paf pred=",paf_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train]: paf pred=",paf_pred_t.shape)
             paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
             paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-            print("[larmatch train]: paf pred=",paf_pred_t.shape)
+            if TRAIN_VERBOSE: print("[larmatch train]: paf pred=",paf_pred_t.shape)
         else:
             paf_pred_t = None
 
@@ -604,7 +595,7 @@ def train(train_loader, device, batchsize,
         
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
-            print("batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step))
+            if TRAIN_VERBOSE: print("batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step))
             optimizer.step()
 
             # inspect gradients
@@ -652,11 +643,27 @@ def train(train_loader, device, batchsize,
     prep_status_message( "Train-Iteration", iiter, acc_meters, loss_meters, time_meters, True )
 
     # write to tensorboard
+    # --------------------
+    # losses go into same plot
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
     writer.add_scalars('data/train_loss', loss_scalars, iiter )
 
-    acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/train_accuracy', acc_scalars, iiter )
+    # split acc into different types
+    # larmatch
+    for accname in LM_CLASS_NAMES:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, iiter )
+    # ssnet
+    for accname in SSNET_CLASS_NAMES+["ssnet-all"]:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/train_ssnet_accuracy', acc_scalars, iiter )
+    # keypoint
+    for accname in KP_CLASS_NAMES:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/train_kp_accuracy', acc_scalars, iiter )
+    # paf    
+    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+    writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['lm_all'].avg
 
@@ -682,7 +689,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ["lm_pos","lm_neg","lm_all","kp_nu","kp_trk","kp_shr","paf"]+SSNET_CLASS_NAMES+["ssnet-all"]    
+    flowaccnames = LM_CLASS_NAMES+KP_CLASS_NAMES+["paf"]+SSNET_CLASS_NAMES+["ssnet-all"]    
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -836,11 +843,27 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
     prep_status_message( "Valid-Iter", iiter, acc_meters, loss_meters, time_meters, False )
 
     # write to tensorboard
+    # --------------------
+    # losses go into same plot
     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
     writer.add_scalars('data/valid_loss', loss_scalars, iiter )
 
-    acc_scalars = { x:y.avg for x,y in acc_meters.items() }
-    writer.add_scalars('data/valid_accuracy', acc_scalars, iiter )
+    # split acc into different types
+    # larmatch
+    for accname in LM_CLASS_NAMES:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/valid_larmatch_accuracy', acc_scalars, iiter )
+    # ssnet
+    for accname in SSNET_CLASS_NAMES+["ssnet-all"]:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/valid_ssnet_accuracy', acc_scalars, iiter )
+    # keypoint
+    for accname in KP_CLASS_NAMES:
+        acc_scalars = { accname:acc_meters[accname].avg }
+        writer.add_scalars('data/valid_kp_accuracy', acc_scalars, iiter )
+    # paf    
+    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+    writer.add_scalars("data/valid_paf_accuracy", paf_acc_scalars, iiter )
     
     return loss_meters['total'].avg,acc_meters['lm_all'].avg
 
@@ -924,13 +947,12 @@ def accuracy(match_pred_t, match_label_t,
         else:
             kp_pred  = kp_pred_t.detach()
             kp_label = kp_label_t.detach()[:npairs]
-        names = ["nu","trk","shr"]
-        for c in range(3):
+        for c,kpname in enumerate(KP_CLASS_NAMES):
             kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
             kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
-            print("kp[",c,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
+            if TRAIN_VERBOSE: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
             if kp_n_pos>0:
-                acc_meters["kp_"+names[c]].update( kp_pos/kp_n_pos )
+                acc_meters[kpname].update( kp_pos/kp_n_pos )
 
     # PARTICLE AFFINITY FLOW
     if paf_pred_t is not None:
@@ -951,7 +973,7 @@ def accuracy(match_pred_t, match_label_t,
         paf_npos  = paf_cos.shape[0]
         paf_ncorr = paf_cos.gt(0.94).sum().item()
         paf_acc = float(paf_ncorr)/float(paf_npos)
-        print("paf: npos=",paf_npos," acc=",paf_acc)
+        if TRAIN_VERBOSE: print("paf: npos=",paf_npos," acc=",paf_acc)
         if paf_npos>0:
             acc_meters["paf"].update( paf_acc )
     
