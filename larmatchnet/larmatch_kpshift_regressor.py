@@ -8,6 +8,7 @@ class LArMatchKPShiftRegressor(nn.Module):
     def __init__(self,features_per_layer=16,
                  kpshift_nfeatures=[64,64],
                  ninput_planes=3,
+                 spatial_dim=3,                 
                  device=torch.device("cpu")):
         super(LArMatchKPShiftRegressor,self).__init__()
 
@@ -19,7 +20,7 @@ class LArMatchKPShiftRegressor(nn.Module):
         for ilayer,nfeats in enumerate(kpshift_nfeatures[1:]):
             kpshift_layers["kpshift%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             kpshift_layers["kpshift%drelu"%(ilayer+1)] = torch.nn.ReLU()
-        kpshift_layers["kpshiftout"] = torch.nn.Conv1d(nfeats,3,1)
+        kpshift_layers["kpshiftout"] = torch.nn.Conv1d(nfeats,spatial_dim,1)
         self.kpshift = torch.nn.Sequential( kpshift_layers )
         
         

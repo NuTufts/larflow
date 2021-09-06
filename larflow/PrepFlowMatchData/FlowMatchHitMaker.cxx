@@ -6,7 +6,7 @@
 #include "larcv/core/Base/larcv_logger.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
-
+#include "PrepSSNetTriplet.h"
 #include <stdexcept>
 
 namespace larflow {
@@ -259,7 +259,12 @@ namespace prep {
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
 
     const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
-    const int ncolumns = 19;
+    int ncolumns = 3;
+    ncolumns += 7; // flow scores
+    ncolumns += 7; // ssnet classes
+    ncolumns += 6; // keypoint scores
+    ncolumns += 3; // flow directions
+    // = 26 columns
 
     auto const& meta = img_v.front().meta();
     
@@ -311,19 +316,34 @@ namespace prep {
       hit[9] = maxscore;
       hit.track_score = maxscore;
 
-      if ( has_ssnet_scores && m.ssnet_scores.size()==3) {
-        for (int c=0; c<3; c++)
-          hit[10 + c] = m.ssnet_scores[c];
+      try {
+	if ( has_ssnet_scores && m.ssnet_scores.size()==larflow::prep::PrepSSNetTriplet::kNumClasses) {
+	  for (int c=0; c<larflow::prep::PrepSSNetTriplet::kNumClasses; c++)
+	    hit[10 + c] = m.ssnet_scores[c];
+	}
       }
-      
-      if ( has_kplabel_scores ) {
-        for (int c=0; c<3; c++) 
-          hit[13+c] = m.keypoint_scores[c];
+      catch ( const std::exception& e ) {
+	throw std::runtime_error("ERROR STOREING SSNET SCORES");
       }
 
-      if ( has_paf ) {
-        for (int i=0; i<3; i++)
-          hit[16+i] = m.paf[i];
+      try {
+	if ( has_kplabel_scores ) {
+	  for (int c=0; c<6; c++) 
+	    hit[17+c] = m.keypoint_scores[c];
+	}
+      }
+      catch ( const std::exception& e ) {
+	throw std::runtime_error("ERROR STORING KEYPOINT LABEL SCORES");
+      }
+
+      try {
+	if ( has_paf ) {
+	  for (int i=0; i<3; i++)
+	    hit[23+i] = m.paf[i];
+	}
+      }
+      catch ( const std::exception& e ) {
+	throw std::runtime_error("ERROR STORING PAF SCORS");
       }
       
       hit_v.emplace_back( std::move(hit) );
@@ -477,7 +497,7 @@ namespace prep {
               << "(" << ss_pair_dims[0] << "," << ss_pair_dims[1] << ")"
               << std::endl;            
 
-    for (int ipair=0; ipair<(int)ss_pair_dims[1]; ipair++ ) {
+    for (int ipair=0; ipair<(int)ss_pair_dims[0]; ipair++ ) {
       // get the triplet indices
       
       long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
@@ -500,11 +520,11 @@ namespace prep {
         auto& match = _matches_v[matchidx];
 
         // store the ssnet scores
-        match.ssnet_scores.resize(3,0.0);
+        match.ssnet_scores.resize(larflow::prep::PrepSSNetTriplet::kNumClasses,0.0);
         //std::cout << "save ssnet scores: ";
-        for (int p=0; p<3; p++) {
-          match.ssnet_scores[p] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, p, ipair ));
-          //std::cout << match.ssnet_scores[p] << " ";
+        for (int c=0; c<larflow::prep::PrepSSNetTriplet::kNumClasses; c++) {
+          match.ssnet_scores[c] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, c ));
+          //std::cout << match.ssnet_scores[c] << " ";
         }
         //std::cout << std::endl;
       }

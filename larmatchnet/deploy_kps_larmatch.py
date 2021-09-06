@@ -21,6 +21,12 @@ args = parser.parse_args( sys.argv[1:] )
 from ctypes import c_int,c_double
 import numpy as np
 
+from larmatch import LArMatch
+from larmatch_ssnet_classifier import LArMatchSSNetClassifier
+from larmatch_keypoint_classifier import LArMatchKeypointClassifier
+from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+
 import ROOT as rt
 from ROOT import std
 from larlite import larlite,larutil
@@ -29,12 +35,6 @@ larcv.PSet
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 import torch
-
-from larmatch import LArMatch
-from larmatch_ssnet_classifier import LArMatchSSNetClassifier
-from larmatch_keypoint_classifier import LArMatchKeypointClassifier
-from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
-from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 
 print(larutil.Geometry.GetME())
 driftv = larutil.LArProperties.GetME().DriftVelocity()
@@ -78,7 +78,7 @@ for name,arr in checkpoint["state_larmatch"].items():
 
 for name,model in model_dict.items():
     model.load_state_dict(checkpoint["state_"+name])
-    model.eval()
+    #model.eval()
 
 print("loaded MODEL")
 
@@ -107,7 +107,7 @@ out.set_out_filename( "%s_larlite.root"%(outfilestem) )
 out.open()
 
 sigmoid = torch.nn.Sigmoid()
-ssnet_softmax = torch.nn.Softmax(dim=0)
+ssnet_softmax = torch.nn.Softmax(dim=1)
 
 NENTRIES = io.get_n_entries()
 
@@ -335,7 +335,7 @@ for ientry in range(NENTRIES):
 
     # make flow hits
     tstart = time.time()    
-    hitmaker.make_hits( ev_badch, evout_lfhits )
+    hitmaker.make_hits( ev_badch, adc_v, evout_lfhits )
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())

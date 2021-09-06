@@ -16,7 +16,6 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-larcv.SetPyUtil()
 
 import plotly.graph_objects as go
 import dash
@@ -29,7 +28,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
+color_by_options = ["larmatch","ssn-bg","ssn-muon","ssn-electron","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -64,16 +63,16 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     hitindex = 0
     if plotby=="ssn-bg":
         hitindex = 10
-    elif plotby=="ssn-track":
-        hitindex = 11
-    elif plotby=="ssn-shower":
-        hitindex = 12
+    elif plotby=="ssn-muon":
+        hitindex = 10+larflow.prep.PrepSSNetTriplet.kMuon
+    elif plotby=="ssn-electron":
+        hitindex = 10+larflow.prep.PrepSSNetTriplet.kElectron
     elif plotby=="keypoint-nu":        
-        hitindex = 13
+        hitindex = 17+0
     elif plotby=="keypoint-track":
-        hitindex = 14
+        hitindex = 17+1
     elif plotby=="keypoint-shower":
-        hitindex = 15
+        hitindex = 17+3
 
     detdata = lardly.DetectorOutline()
 
@@ -96,10 +95,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines(color=(0,0,0))
-    elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
+    elif plotby in ["ssn-bg","ssn-muon","ssn-electron","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
-        for ipt in xrange(npoints):
+        for ipt in range(npoints):
             hit = ev_lfhits.at(ipt)
 
             if hit.track_score<minprob:
@@ -109,8 +108,11 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             xyz[ptsused,1] = hit[1]
             xyz[ptsused,2] = hit[2]
             if plotby=="ssn-class":
-                idx = np.argmax( np.array( (hit[10],hit[11],hit[12]) ) )
-                xyz[ptsused,3] = float(idx)/2.0
+                ssnet_scores = np.array( (hit[10],hit[11],hit[12],hit[13],hit[14],hit[15],hit[16]) )
+                print(ssnet_scores)
+                idx = np.argmax( ssnet_scores )
+                print(idx)
+                xyz[ptsused,3] = float(idx)/7.0
             else:
                 xyz[ptsused,3] = hit[hitindex]
             #print(xyz[ptsused,3])
@@ -131,7 +133,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     elif plotby in ["flow-field"]:
         # must sample, if trying to draw triangles
         ptsused = 0
-        index = np.arange(npoints)
+        index = np.arange(npoints,dtype=np.int)
         np.random.shuffle(index)     
         xyz = np.zeros( (npoints,7) )
 
@@ -140,11 +142,11 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             if ptsused>=10000:
                 break
             
-            hit = ev_lfhits.at(ipt)
+            hit = ev_lfhits.at(int(ipt))
             if hit.track_score<minprob:
                 continue
 
-            paflen = np.sqrt( hit[16]*hit[16]+hit[17]*hit[17] + hit[18]*hit[18] )
+            paflen = np.sqrt( hit[23]*hit[23]+hit[24]*hit[24]+hit[25]*hit[25] )
             if paflen==0:
                 paflen = 1.0
             
@@ -152,9 +154,9 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             xyz[ptsused,1] = hit[1]
             xyz[ptsused,2] = hit[2]
             xyz[ptsused,3] = hit.track_score
-            xyz[ptsused,4] = hit[16]/paflen
-            xyz[ptsused,5] = hit[17]/paflen
-            xyz[ptsused,6] = hit[18]/paflen
+            xyz[ptsused,4] = hit[23]/paflen
+            xyz[ptsused,5] = hit[24]/paflen
+            xyz[ptsused,6] = hit[25]/paflen
             ptsused += 1
 
         print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)

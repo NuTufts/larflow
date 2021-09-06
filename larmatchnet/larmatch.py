@@ -14,7 +14,7 @@ class LArMatch(nn.Module):
                  classifier_nfeatures=[32,32],
                  leakiness=0.01,
                  ninput_planes=3,
-                 use_unet=False,
+                 use_unet=True,
                  nresnet_blocks=10 ):
         """
         parameters

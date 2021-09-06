@@ -8,6 +8,7 @@ class LArMatchSSNetClassifier(nn.Module):
     def __init__(self,features_per_layer=16,
                  ssnet_classifier_nfeatures=[32,32],                 
                  ninput_planes=3,
+                 num_classes=7,
                  device=torch.device("cpu")):
         super(LArMatchSSNetClassifier,self).__init__()
 
@@ -19,7 +20,7 @@ class LArMatchSSNetClassifier(nn.Module):
         for ilayer,nfeats in enumerate(ssnet_classifier_nfeatures[1:]):
             ssnet_classifier_layers["ssnet%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             ssnet_classifier_layers["ssnet%drelu"%(ilayer+1)] = torch.nn.ReLU()
-        ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(nfeats,3,1)
+        ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(nfeats,num_classes,1)
         self.ssnet_classifier = torch.nn.Sequential( ssnet_classifier_layers )
         
     def forward(self,triplet_feat_t):

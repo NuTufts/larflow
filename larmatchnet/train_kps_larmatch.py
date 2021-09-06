@@ -3,7 +3,6 @@
 """
 TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 """
-
 ## IMPORT
 
 # python,numpy
@@ -14,32 +13,17 @@ import time
 import traceback
 import numpy as np
 
-# ROOT, larcv
-import ROOT as rt
-from ROOT import std
-from larcv import larcv
-from larflow import larflow
-
 # torch
 import torch
 import torch.nn as nn
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 import torch.optim
-import torch.utils.data
-import torch.utils.data.distributed
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torchvision.models as models
 import torch.nn.functional as F
 
 # tensorboardX
 from torch.utils.tensorboard import SummaryWriter
 
-# dataset interface
-#from larcvdataset.larcvserver import LArCVServer
-
+# larmatch imports
 from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
 from larmatch_keypoint_classifier import LArMatchKeypointClassifier
@@ -47,6 +31,12 @@ from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
 from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 from load_larmatch_kps import load_larmatch_kps
 from loss_larmatch_kps import SparseLArMatchKPSLoss
+
+# ROOT, larcv
+import ROOT as rt
+from ROOT import std
+from larcv import larcv
+from larflow import larflow
 
 # ===================================================
 # TOP-LEVEL PARAMETERS
@@ -56,12 +46,13 @@ RESUME_OPTIM_FROM_CHECKPOINT=False
 RUNPROFILER=False
 CHECKPOINT_FILE="train_kps_no_ssnet/checkpoint.1262000th.tar"
 EXCLUDE_NEG_EXAMPLES = False
-TRAIN_SSNET=False
+TRAIN_SSNET=True
 TRAIN_KP=True
 TRAIN_KPSHIFT=False
-TRAIN_PAF=False
+TRAIN_PAF=True
 TRAIN_VERBOSE=True
-FREEZE_LAYERS=True
+FREEZE_LAYERS=False
+SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
 
 # Hard example training parameters (not yet implemented)
 # =======================================================
@@ -72,26 +63,15 @@ HARDEX_CHECKPOINT_FILE="train_kps_nossnet/checkpoint.260000th.tar"
 # TRAINING+VALIDATION DATA PATHS
 # ================================
 #TRAIN_DATA_FOLDER="/home/twongj01/data/larmatch_kps_training_data/"
-TRAIN_DATA_FOLDER="/home/twongj01/working/larbys/ubdl/larflow/larmatchnet/"
-INPUTFILE_TRAIN=["larmatch_valid_p02.root"]
-#                 "larmatch_kps_train_p07.root",
-#                 "larmatch_kps_train_p08.root",
-#                 "larmatch_kps_train_p09.root",
-#                 "larmatch_kps_train_p01.root",
-#                 "larmatch_kps_train_p02.root",
-#                 "larmatch_kps_train_p03.root",
-#                 "larmatch_kps_train_p04.root"]
-INPUTFILE_VALID=["larmatch_valid_p02.root"]
-#TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
-#INPUTFILE_TRAIN=["output_alldata.root"]
-#INPUTFILE_VALID=["output_alldata.root"]
-TICKBACKWARD=False # Is data in tick-backward format (typically no)
+TRAIN_DATA_FOLDER="/home/twongjirad/working/larbys/ubdl/larflow/larmatchnet/"
+INPUTFILE_TRAIN=["traininglabels_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"]
+INPUTFILE_VALID=["traininglabels_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"]
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER  = 0
 NUM_ITERS   = 2000000
-TEST_NUM_MATCH_PAIRS = 30000
+TEST_NUM_MATCH_PAIRS = 50000
 ADC_MAX = 400.0
 
 BATCHSIZE_TRAIN=1  # batches per training iteration
@@ -225,13 +205,13 @@ def main():
                 param.requires_grad = False
         
     # define loss function (criterion) and optimizer
-    criterion = SparseLArMatchKPSLoss( eval_ssnet=False,
-                                       eval_keypoint_label=True,
-                                       eval_keypoint_shift=False,
+    criterion = SparseLArMatchKPSLoss( eval_ssnet=TRAIN_SSNET,
+                                       eval_keypoint_label=TRAIN_KP,
+                                       eval_keypoint_shift=TRAIN_KPSHIFT,
                                        eval_affinity_field=TRAIN_PAF )
 
     # training parameters
-    lr = 1e-2
+    lr = 1e-3
     momentum = 0.9
     weight_decay = 1.0e-4
 
@@ -419,7 +399,7 @@ def train(train_loader, device, batchsize,
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
+    flowaccnames = ["lm_pos","lm_neg","lm_all","kp_nu","kp_trk","kp_shr","paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -460,6 +440,7 @@ def train(train_loader, device, batchsize,
             
         flowdata = load_larmatch_kps( train_loader, train_entry, 1,
                                       npairs=TEST_NUM_MATCH_PAIRS,
+                                      exclude_neg_examples=False,
                                       verbose=True, single_batch_mode=True )
 
         coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
@@ -626,10 +607,12 @@ def train(train_loader, device, batchsize,
             print("batch %d of %d. making step, then clearing gradients. nbatches_per_step=%d"%(i,nbatches,nbatches_per_step))
             optimizer.step()
 
-            for n,p in model["kplabel"].named_parameters():
-                if "out" in n:
-                    print(n,": grad: ",p.grad)
-                    print(n,": ",p)
+            # inspect gradients
+            #inspect_model_grad = "larmatch"
+            #for n,p in model[inspect_model_grad].named_parameters():
+            #    if "out" in n:
+            #        print(n,": grad: ",p.grad)
+            #        print(n,": ",p)
             
             optimizer.zero_grad()
             
@@ -699,7 +682,7 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
 
     # accruacy and loss meters
     lossnames    = ("total","lm","ssnet","kp","paf")
-    flowaccnames = ("lm_pos","lm_neg","lm_all","ss-bg","shower","track","ssnet-all","kp_nu","kp_trk","kp_shr","paf")
+    flowaccnames = ["lm_pos","lm_neg","lm_all","kp_nu","kp_trk","kp_shr","paf"]+SSNET_CLASS_NAMES+["ssnet-all"]    
 
     acc_meters  = {}
     for n in flowaccnames:
@@ -714,8 +697,8 @@ def validate(val_loader, device, batchsize, model, criterion, nbatches, iiter, p
         time_meters[l] = AverageMeter()
     
     # switch to evaluate mode
-    for name,m in model.items():
-        m.eval()
+    #for name,m in model.items():
+    #    m.eval()
     
     iterstart = time.time()
     nnone = 0
@@ -926,16 +909,11 @@ def accuracy(match_pred_t, match_label_t,
             ssnet_pred     = ssnet_pred_t.detach()
         ssnet_class    = torch.argmax( ssnet_pred, 1 )
         ssnet_correct  = ssnet_class.eq( ssnet_label_t )
-        ssbg_correct   = ssnet_correct[ ssnet_label_t==0 ].sum().item()    
-        track_correct  = ssnet_correct[ ssnet_label_t==1 ].sum().item()
-        shower_correct = ssnet_correct[ ssnet_label_t==2 ].sum().item()    
-        ssnet_tot_correct = ssnet_correct.sum().item()
-        if ssnet_label_t.eq(2).sum().item()>0:
-            acc_meters["shower"].update( float(shower_correct)/float(ssnet_label_t.eq(2).sum().item()) )
-        if ssnet_label_t.eq(1).sum().item()>0:
-            acc_meters["track"].update(  float(track_correct)/float(ssnet_label_t.eq(1).sum().item())  )
-        if ssnet_label_t.eq(0).sum().item()>0:
-            acc_meters["ss-bg"].update(  float(ssbg_correct)/float(ssnet_label_t.eq(0).sum().item())  )
+        ssnet_tot_correct = ssnet_correct.sum().item()        
+        for iclass,classname in enumerate(SSNET_CLASS_NAMES):
+            if ssnet_label_t.eq(iclass).sum().item()>0:                
+                ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()    
+                acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
         acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
 
     # KP METRIC

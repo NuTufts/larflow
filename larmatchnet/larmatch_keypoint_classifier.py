@@ -8,7 +8,7 @@ class LArMatchKeypointClassifier(nn.Module):
     def __init__(self,features_per_layer=16,
                  keypoint_nfeatures=[32,32],                 
                  ninput_planes=3,
-                 nclasses=3,
+                 nclasses=6,
                  use_bn=True,
                  device=torch.device("cpu")):
         super(LArMatchKeypointClassifier,self).__init__()
