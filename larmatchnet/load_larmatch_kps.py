@@ -76,7 +76,8 @@ def load_larmatch_kps(loaders, current_entry, batchsize,
         # separate the sparse charge image matrix into coordinates and features (the charge)
         for p in range(3):
             data["coord_%d"%(p)] = spdata_v[p][:,0:2].astype( dtype=np.int32 )
-            data["feat_%d"%(p)]  = spdata_v[p][:,2].reshape( (spdata_v[p].shape[0], 1) )
+            # reshape and scale feature (i.e. pixel intensities)            
+            data["feat_%d"%(p)]  = np.clip( spdata_v[p][:,2].reshape( (spdata_v[p].shape[0], 1) )/40.0, 0, 10.0 )
             npts_per_plane[p] = spdata_v[p].shape[0]
             batch_tot_per_plane[p] += npts_per_plane[p]
         batch_npts_per_plane.append(npts_per_plane)

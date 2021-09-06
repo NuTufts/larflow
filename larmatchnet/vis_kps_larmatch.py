@@ -19,8 +19,8 @@ from larflow import larflow
 
 import plotly.graph_objects as go
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -109,9 +109,9 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             xyz[ptsused,2] = hit[2]
             if plotby=="ssn-class":
                 ssnet_scores = np.array( (hit[10],hit[11],hit[12],hit[13],hit[14],hit[15],hit[16]) )
-                print(ssnet_scores)
+                #print(ssnet_scores)
                 idx = np.argmax( ssnet_scores )
-                print(idx)
+                #print(idx)
                 xyz[ptsused,3] = float(idx)/7.0
             else:
                 xyz[ptsused,3] = hit[hitindex]

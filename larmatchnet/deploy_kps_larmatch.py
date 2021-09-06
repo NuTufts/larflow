@@ -22,10 +22,11 @@ from ctypes import c_int,c_double
 import numpy as np
 
 from larmatch import LArMatch
-from larmatch_ssnet_classifier import LArMatchSSNetClassifier
-from larmatch_keypoint_classifier import LArMatchKeypointClassifier
-from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
-from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+#from larmatch_ssnet_classifier import LArMatchSSNetClassifier
+#from larmatch_keypoint_classifier import LArMatchKeypointClassifier
+#from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+#from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+from larmatch_engine import remake_separated_model_weightfile
 
 import ROOT as rt
 from ROOT import std
@@ -35,6 +36,7 @@ larcv.PSet
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 import torch
+
 
 print(larutil.Geometry.GetME())
 driftv = larutil.LArProperties.GetME().DriftVelocity()
@@ -60,11 +62,11 @@ if args.use_skip_limit is not None:
     preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
 
 # MULTI-HEAD LARMATCH MODEL
-model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE),
-              "ssnet":LArMatchSSNetClassifier().to(DEVICE),
-              "kplabel":LArMatchKeypointClassifier().to(DEVICE),
-              "kpshift":LArMatchKPShiftRegressor().to(DEVICE),
-              "paf":LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64]).to(DEVICE)}
+model_dict = {"larmatch":LArMatch(use_unet=args.use_unet).to(DEVICE)}
+model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
+model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
+model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
+model_dict["paf"] = model_dict["larmatch"].affinity_head
 
 # hack: for runnning with newer version of SCN where group-convolutions are possible
 for name,arr in checkpoint["state_larmatch"].items():
@@ -76,10 +78,9 @@ for name,arr in checkpoint["state_larmatch"].items():
         print("reshaping ",name)
         checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
 
-for name,model in model_dict.items():
-    model.load_state_dict(checkpoint["state_"+name])
-    #model.eval()
-
+# copy items into larmatch dict
+larmatch_checkpoint_data = remake_separated_model_weightfile(checkpoint,model_dict)
+model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
 print("loaded MODEL")
 
 # setup filename
