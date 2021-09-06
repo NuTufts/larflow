@@ -29,7 +29,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         # SSNET
         if self.eval_ssnet:
             ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, truematch_index, verbose )
-            loss += ssloss
+            loss += 0.1*ssloss
             fssloss = ssloss.detach().item()
         else:
             fssloss = 0.0
