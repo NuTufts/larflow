@@ -858,9 +858,9 @@ namespace prep {
     int end_idx = start_idx + max_num_samples;
     end_idx = ( end_idx>(int)idx_v.size() )   ?  idx_v.size() : end_idx; // cap to number of indices
 
-    std::cout << "[PrepMatchTriplets::make_triplet_array] withtruth=" << withtruth << " "
-              << "make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]"
-              << std::endl;
+    // std::cout << "[PrepMatchTriplets::make_triplet_array] withtruth=" << withtruth << " "
+    //           << "make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]"
+    //           << std::endl;
     
     for ( int idx=start_idx; idx<end_idx; idx++ ) {
       int tripidx = idx_v[idx];
@@ -879,7 +879,7 @@ namespace prep {
         break;
     }//end of indices loop
 
-    std::cout << "[PrepMatchTriplets::make_triplet_array] nsamples=" << nsamples << std::endl;
+    //std::cout << "[PrepMatchTriplets::make_triplet_array] nsamples=" << nsamples << std::endl;
 
     // zero rest of array
     if ( nsamples<max_num_samples ) {
