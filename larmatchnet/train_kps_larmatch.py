@@ -590,8 +590,9 @@ def train(train_loader, device, batchsize,
         totloss.backward()
 
         # clip the gradients
-        for n,p in model["kplabel"].named_parameters():
-            torch.nn.utils.clip_grad_value_( p, 0.5 )
+        #for n,p in model["kplabel"].named_parameters():
+        #    torch.nn.utils.clip_grad_value_( p, 0.5 )
+        torch.nn.utils.clip_grad_norm_(model["larmatch"].parameters(), 1.0)
         
         # only step, i.e. adjust weights every nbatches_per_step or if last batch
         if (i>0 and (i+1)%nbatches_per_step==0) or i+1==nbatches:
