@@ -110,25 +110,36 @@ class larmatchDataset(torch.utils.data.Dataset):
 
     def print_status(self):
         print("worker: entry=%d nloaded=%d"%(self._current_entry,self._nloaded))
+
+    def collate_fn(batch):
+        print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
+        return batch
     
             
 if __name__ == "__main__":
 
     import time
 
-    niter = 300
-    batch_size = 1
-    #test = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
-    test = larmatchDataset( filelist=["traininglabels_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"] )
+    niter = 10
+    batch_size = 4
+    test = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
+    #test = larmatchDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"])
     print("NENTRIES: ",len(test))
     
-    loader = torch.utils.data.DataLoader(test,batch_size=batch_size)
+    loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
 
     start = time.time()
     for iiter in range(niter):
-        data = next(iter(loader))
-        print("ITER[%d]"%(iiter))
-        print(" keys: ",data.keys())
+        batch = next(iter(loader))
+        print("====================================")
+        for ib,data in enumerate(batch):
+            print("ITER[%d]:BATCH[%d]"%(iiter,ib))
+            print(" keys: ",data.keys())
+            for name,d in data.items():
+                if type(d) is np.array:
+                    print("  ",name,": ",d.shape)
+                else:
+                    print("  ",name,": ",type(d))
     end = time.time()
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)
