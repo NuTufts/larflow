@@ -47,14 +47,15 @@ def run(gpu, args, config ):
     rank = args.nr * args.gpus + gpu
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))    
     dist.init_process_group(                                   
-    	backend='nccl',                                         
+    	backend='nccl',
+        #backend='gloo',        
    	#init_method='env://',
         init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
     	rank=rank                                               
     )
     #========================================================
-    torch.manual_seed(0)
+    torch.manual_seed(gpu)
 
     if rank==0:
         tb_writer = SummaryWriter()

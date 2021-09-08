@@ -8,7 +8,7 @@ from larflow import larflow
 from ctypes import c_int
 
 class larmatchDataset(torch.utils.data.Dataset):
-    def __init__(self, filelist=None, filefolder=None, random_access=True, npairs=50000):
+    def __init__(self, filelist=None, filefolder=None, random_access=True, npairs=50000, verbose=False):
         """
         Parameters:
         """
@@ -39,7 +39,7 @@ class larmatchDataset(torch.utils.data.Dataset):
 
         self._current_entry  = 0
         self._nloaded        = 0
-        self._verbose = True
+        self._verbose = False
         self.npairs = npairs
                                  
 
@@ -50,7 +50,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                    "tree_entry":int(ientry)%int(self.loaders["kps"].GetEntries())}
     
 
-        if verbose:
+        if self._verbose:
             # if verbose, we'll output some timinginfo
             t_start = time.time()
             tio     = time.time()
@@ -61,7 +61,7 @@ class larmatchDataset(torch.utils.data.Dataset):
             if self._verbose:
                 print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
 
-        if verbose:
+        if self._verbose:
             dtio = time.time()-tio
 
         nfilled = c_int()

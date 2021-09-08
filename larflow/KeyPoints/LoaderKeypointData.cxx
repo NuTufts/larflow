@@ -382,7 +382,7 @@ namespace keypoints {
       kplabel_dims[0] = num_max_samples;
     }
     
-    std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
+    //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
     std::vector<int> npos(nclasses,0);
