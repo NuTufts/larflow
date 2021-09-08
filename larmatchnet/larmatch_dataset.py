@@ -37,10 +37,16 @@ class larmatchDataset(torch.utils.data.Dataset):
         self.nentries = self.loaders["kps"].GetEntries()
         self.random_access = random_access
 
-        self._current_entry  = 0
+        self.npairs = npairs
+        self.partition_index = 0
+        self.num_partitions = 1
+        self.start_index = 0
+        self.end_index = self.nentries
+
+        self._current_entry  = self.start_index
         self._nloaded        = 0
         self._verbose = False
-        self.npairs = npairs
+        
                                  
 
     def __getitem__(self, idx):
@@ -102,6 +108,9 @@ class larmatchDataset(torch.utils.data.Dataset):
 
         self._nloaded += 1
         self._current_entry += 1
+        if self._current_entry>=self.end_index:
+            self._current_entry = self.start_index
+            
         
         if self._verbose:
             tottime = time.time()-t_start            
@@ -116,6 +125,12 @@ class larmatchDataset(torch.utils.data.Dataset):
 
     def print_status(self):
         print("worker: entry=%d nloaded=%d"%(self._current_entry,self._nloaded))
+
+    def set_partition(self,partition_index,num_partitions):
+        self.partition_index = partition_index
+        self.num_partitions = num_partitions
+        self.start_index = int(self.partition_index*self.nentries)/int(self.num_paritions)
+        self.end_index   = int((self.partition_index+1)*self.nentries)/int(self.num_paritions)
 
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
