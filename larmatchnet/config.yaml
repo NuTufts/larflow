@@ -7,13 +7,13 @@ RESUME_OPTIM_FROM_CHECKPOINT: False
 RUNPROFILER: False
 CHECKPOINT_FILE: "train_kps_no_ssnet/checkpoint.1262000th.tar"
 EXCLUDE_NEG_EXAMPLES: False
-TRAIN_SSNET: True
-TRAIN_KP: True
-TRAIN_KPSHIFT: False
-TRAIN_PAF: True
-TRAIN_VERBOSE: True
+RUN_SSNET: True
+RUN_KPLABEL: True
+RUN_KPSHIFT: False
+RUN_PAF: True
+TRAIN_VERBOSE: False
 FREEZE_LAYERS: []
-LEARNING_RATE: 1.0e-3
+LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
 #FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
@@ -22,27 +22,21 @@ SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 # ================================
 TRAIN_DATA_FOLDER: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
 #TRAIN_DATA_FOLDER: "/home/twongjirad/working/data/larmatch_training_data/"
-INPUTFILE_TRAIN: ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatchtriplet_ana_trainingdata_testfile.root"]
-INPUTFILE_VALID: ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatchtriplet_ana_trainingdata_testfile.root"]
-
-# Hard example training parameters (not yet implemented)
-# =======================================================
-HARD_EXAMPLE_TRAINING: False
-HARDEX_GPU: "cuda:0"
-HARDEX_CHECKPOINT_FILE: "train_kps_nossnet/checkpoint.260000th.tar"
-
+INPUTFILE_TRAIN: ["./larmatchtriplet_ana_trainingdata_testfile.root"]
+INPUTFILE_VALID: ["./larmatchtriplet_ana_trainingdata_testfile.root"]
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER: 0
-NUM_ITERATIONS: 20
+NUM_ITERATIONS: 2000
 TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
 TRAIN_ITER_PER_RECORD: 5
+TRAIN_ITER_PER_VALIDPT: 10
+NUM_VALID_ITERS: 10
 
 BATCHSIZE_TRAIN: 1  # batches per training iteration
 BATCHSIZE_VALID: 1  # batches per validation iteration
-ITER_PER_VALID: 10
 
 # CHECKPOINT PARAMETERS
 # =======================

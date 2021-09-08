@@ -52,17 +52,21 @@ def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
 def get_larmatch_model( config, dump_model=False ):
 
     # create model, mark it to run on the device
-    model = LArMatch(use_unet=True)
+    model = LArMatch(use_unet=True,
+                     run_ssnet=config["RUN_SSNET"],
+                     run_kplabel=config["RUN_KPLABEL"],
+                     run_kpshift=config["RUN_KPSHIFT"],
+                     run_paf=config["RUN_PAF"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
         print(model)
 
     model_dict = {"larmatch":model}
-    model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
-    model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
-    model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
-    model_dict["paf"] = model_dict["larmatch"].affinity_head
+    if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
+    if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
+    if model.run_kpshift: model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
+    if model.run_paf:     model_dict["paf"] = model_dict["larmatch"].affinity_head
     
     return model, model_dict
 
@@ -233,55 +237,15 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     dt_forward = time.time()
 
     # use UNET portion to first get feature vectors
-    feat_u_t, feat_v_t, feat_y_t = model_dict['larmatch'].forward_features( coord_t[0], feat_t[0],
-                                                                       coord_t[1], feat_t[1],
-                                                                       coord_t[2], feat_t[2], 1,
-                                                                       verbose=verbose )
-    # extract features according to sampled match indices
-    feat_triplet_t = model_dict['larmatch'].extract_features( feat_u_t, feat_v_t, feat_y_t,
-                                                         match_t, flowdata['npairs'],
-                                                         device, verbose=verbose )
-
-    # evaluate larmatch match classifier
-    match_pred_t = model_dict['larmatch'].classify_triplet( feat_triplet_t )
-    match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
-    if verbose: print("[larmatch] match-pred=",match_pred_t.shape)
+    pred_dict = model_dict["larmatch"]( coord_t, feat_t, match_t, flowdata["npairs"], device, verbose=config["TRAIN_VERBOSE"] )
     
-    if config["TRAIN_SSNET"]:
-        ssnet_pred_t = model_dict['ssnet'].forward( feat_triplet_t )
-        ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
-        ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
-        if verbose: print("[larmatch] ssnet-pred=",ssnet_pred_t.shape)
-    else:
-        ssnet_pred_t = None
+    match_pred_t   = pred_dict["match"]      
+    ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
+    kplabel_pred_t = pred_dict["kplabel"] if "kplabel" in pred_dict else None
+    kpshift_pred_t = pred_dict["kpshift"] if "kpshift" in pred_dict else None
+    paf_pred_t     = pred_dict["paf"]     if "paf" in pred_dict else None
 
-    # next evaluate keypoint classifier
-    if config["TRAIN_KP"]:
-        kplabel_pred_t = model_dict['kplabel'].forward( feat_triplet_t )
-        kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
-        kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-        if verbose: print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
-    else:
-        kplabel_pred_t = None
-        
-    # next evaluate keypoint shift predictor
-    if config["TRAIN_KPSHIFT"]:
-        kpshift_pred_t = model_dict['kpshift'].forward( feat_triplet_t )
-        kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
-        kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
-        if verbose: print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
-    else:
-        kpshift_pred_t = None
-
-    # next evaluate affinity field predictor
-    if config["TRAIN_PAF"]:
-        paf_pred_t = model_dict["paf"].forward( feat_triplet_t )
-        paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-        paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
-        if verbose: print("[larmatch train]: paf pred=",paf_pred_t.shape)
-    else:
-        paf_pred_t = None
-
+                                           
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
     time_meters["forward"].update(time.time()-dt_forward)
@@ -304,10 +268,14 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
         
         totloss.backward()
 
-        # clip the gradients
-        #for n,p in model_dict["kplabel"].named_parameters():
-        #    torch.nn.utils.clip_grad_value_( p, 0.5 )
+        # dump par and/or grad for debug
+        #for n,p in model_dict["larmatch"].named_parameters():
+        #    if "out" in n:
+        #        #print(n,": grad: ",p.grad)
+        #        print(n,": ",p)
+
         torch.nn.utils.clip_grad_norm_(model_dict["larmatch"].parameters(), 1.0)
+        optimizer.step()
     
         if config["RUNPROFILER"]:
             torch.cuda.synchronize()                

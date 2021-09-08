@@ -59,21 +59,26 @@ def run(gpu, args, config ):
     if rank==0:
         tb_writer = SummaryWriter()
 
-    model, model_dict = larmatch_engine.get_larmatch_model( config )
+    model, _ = larmatch_engine.get_larmatch_model( config )
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    criterion = SparseLArMatchKPSLoss( eval_ssnet=config["TRAIN_SSNET"],
-                                       eval_keypoint_label=config["TRAIN_KP"],
-                                       eval_keypoint_shift=config["TRAIN_KPSHIFT"],
-                                       eval_affinity_field=config["TRAIN_PAF"] ).cuda(gpu)
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=config["LEARNING_RATE"], 
-                                 weight_decay=config["WEIGHT_DECAY"])
+    criterion = SparseLArMatchKPSLoss( eval_ssnet=config["RUN_SSNET"],
+                                       eval_keypoint_label=config["RUN_KPLABEL"],
+                                       eval_keypoint_shift=config["RUN_KPSHIFT"],
+                                       eval_affinity_field=config["RUN_PAF"] ).to(device)
 
     # Wrap the model
-    model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
+    model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu],find_unused_parameters=False)
+    print("Model",model)
+
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr=float(config["LEARNING_RATE"]), 
+                                 weight_decay=config["WEIGHT_DECAY"])
+    
+    # re-specify the dictionary
+    model_dict = {"larmatch":model}
 
     train_dataset = larmatchDataset( filelist=config["INPUTFILE_TRAIN"], random_access=True )
     TRAIN_NENTRIES = len(train_dataset)
@@ -126,6 +131,53 @@ def run(gpu, args, config ):
                 # paf
                 paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
                 tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, iiter )
+
+            if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
+                if rank==0:
+                    valid_loss_meters,valid_acc_meters,valid_time_meters = larmatch_engine.make_meters(config)                    
+                    for viter in range(int(config["NUM_VALID_ITERS"])):
+                        with torch.no_grad():
+                            larmatch_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
+                                                             valid_acc_meters,valid_loss_meters,valid_time_meters,
+                                                             False,device,verbose=False)
+                    larmatch_engine.prep_status_message( "Valid-Iteration", train_iteration,
+                                                         valid_acc_meters,
+                                                         valid_loss_meters,
+                                                         valid_time_meters )
+                    # write to tensorboard
+                    # --------------------
+                    # losses go into same plot
+                    loss_scalars = { x:y.avg for x,y in loss_meters.items() }
+                    tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
+                
+                    # split acc into different types
+                    # larmatch
+                    acc_scalars = {}
+                    for accname in larmatch_engine.LM_CLASS_NAMES:
+                        acc_scalars[accname] = acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_larmatch_accuracy', acc_scalars, train_iteration )
+
+                    # ssnet
+                    ssnet_scalars = {}
+                    for accname in larmatch_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
+                        acc_scalars[accname] = acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_ssnet_accuracy', ssnet_scalars, train_iteration )
+                
+                    # keypoint
+                    kp_scalars = {}
+                    for accname in larmatch_engine.KP_CLASS_NAMES:
+                        acc_scalars[accname] = acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_kp_accuracy', kp_scalars, train_iteration )
+                
+                    # paf
+                    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+                    tb_writer.add_scalars("data/valid_paf_accuracy", paf_acc_scalars, iiter )
+
+                else:
+                    print("RANK-%d process waiting for RANK-0 validation run")
+
+                # wait for rank-0 to finish reporting and plotting
+                torch.distributed.barrier()
 
         print("RANK-%d process finished. Waiting to sync."%(rank))
         torch.distributed.barrier()

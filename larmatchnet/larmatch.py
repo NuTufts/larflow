@@ -20,6 +20,10 @@ class LArMatch(nn.Module):
                  leakiness=0.01,
                  ninput_planes=3,
                  use_unet=True,
+                 run_ssnet=True,
+                 run_kplabel=True,
+                 run_kpshift=False,
+                 run_paf=True,
                  nresnet_blocks=10 ):
         """
         parameters
@@ -95,10 +99,14 @@ class LArMatch(nn.Module):
         self.classifier = torch.nn.Sequential( classifier_layers )
 
         # OTHER TASK HEADS
-        self.ssnet_head    = LArMatchSSNetClassifier()
-        self.kplabel_head  = LArMatchKeypointClassifier()
-        self.kpshift_head  = LArMatchKPShiftRegressor()
-        self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64])
+        self.run_ssnet   = run_ssnet
+        self.run_kplabel = run_kplabel
+        self.run_kpshift = run_kpshift
+        self.run_paf     = run_paf
+        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier()
+        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier()
+        if self.run_kpshift: self.kpshift_head  = LArMatchKPShiftRegressor()
+        if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64])
 
     def forward_features( self, coord_plane0_t, plane0_feat_t,
                           coord_plane1_t, plane1_feat_t,
@@ -227,4 +235,68 @@ class LArMatch(nn.Module):
         """
         pred = self.classifier(triplet_feat_t)
         return pred
+
+    def forward(self,coord_t, feat_t, match_t, npairs, device, verbose=False):
+        """
+        all pass, from input to head outputs for select match indices
+        """
+        if type(coord_t) is not list:
+            raise ValueError("argument `coord_t` should be list of torch tensors")
+        nplanes = len(coord_t)
+        if len(feat_t)!=nplanes:
+            raise ValueError("number of tensors in coord_t and feat_t do not match")
+        if nplanes!=3:
+            raise ValueError("number of coord_t and feat_t is not 3. (current limitation)")
+
+
+        feat_u_t, feat_v_t, feat_y_t = self.forward_features( coord_t[0], feat_t[0],
+                                                              coord_t[1], feat_t[1],
+                                                              coord_t[2], feat_t[2], 1,
+                                                              verbose=verbose )
+        
+        feat_triplet_t = self.extract_features( feat_u_t, feat_v_t, feat_y_t,
+                                                match_t, npairs,
+                                                device, verbose=verbose )
+
+        # evaluate larmatch match classifier
+        match_pred_t = self.classify_triplet( feat_triplet_t )
+        match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
+        if verbose: print("[larmatch] match-pred=",match_pred_t.shape)
+
+        outdict = {"match":match_pred_t}
+
+        if self.run_ssnet:
+            ssnet_pred_t = self.ssnet_head.forward( feat_triplet_t )
+            ssnet_pred_t = ssnet_pred_t.reshape( (ssnet_pred_t.shape[1],ssnet_pred_t.shape[2]) )
+            ssnet_pred_t = torch.transpose( ssnet_pred_t, 1, 0 )
+            outdict["ssnet"] = ssnet_pred_t
+            if verbose: print("[larmatch] ssnet-pred=",ssnet_pred_t.shape)
+
+        if self.run_kplabel:
+            kplabel_pred_t = self.kplabel_head.forward( feat_triplet_t )
+            kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
+            kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
+            outdict["kplabel"] = kplabel_pred_t
+            if verbose: print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
+        
+        if self.run_kpshift:
+            kpshift_pred_t = self.kpshift_head.forward( feat_triplet_t )
+            kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
+            kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
+            outdict["kpshift"] = kpshift_pred_t
+            if verbose: print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
+
+
+        if self.run_paf:
+            paf_pred_t = self.affinity_head.forward( feat_triplet_t )
+            paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
+            paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
+            outdict["paf"] = paf_pred_t
+            if verbose: print("[larmatch train]: paf pred=",paf_pred_t.shape)
+
+
+        return outdict
+            
+
+        
 

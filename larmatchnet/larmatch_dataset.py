@@ -49,14 +49,20 @@ class larmatchDataset(torch.utils.data.Dataset):
         data    = {"entry":ientry,
                    "tree_entry":int(ientry)%int(self.loaders["kps"].GetEntries())}
     
-        # get data from match trees
-        t_start = time.time()
-        tio     = time.time()
+
+        if verbose:
+            # if verbose, we'll output some timinginfo
+            t_start = time.time()
+            tio     = time.time()
+
+        # get data from match trees            
         for name,loader in self.loaders.items():
             nbytes = loader.load_entry(data["tree_entry"])
             if self._verbose:
                 print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
-        dtio = time.time()-tio
+
+        if verbose:
+            dtio = time.time()-tio
 
         nfilled = c_int()
         nfilled.value = 0
@@ -112,7 +118,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         print("worker: entry=%d nloaded=%d"%(self._current_entry,self._nloaded))
 
     def collate_fn(batch):
-        print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
+        #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         return batch
     
             
