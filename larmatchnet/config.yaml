@@ -13,6 +13,8 @@ TRAIN_KPSHIFT: False
 TRAIN_PAF: True
 TRAIN_VERBOSE: True
 FREEZE_LAYERS: []
+LEARNING_RATE: 1.0e-3
+WEIGHT_DECAY: 1.0e-4
 #FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
@@ -35,9 +37,10 @@ HARDEX_CHECKPOINT_FILE: "train_kps_nossnet/checkpoint.260000th.tar"
 # TRAINING PARAMETERS
 # =======================
 START_ITER: 0
-NUM_ITERS: 2000000
+NUM_ITERATIONS: 200
 TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
+TRAIN_ITER_PER_RECORD: 5
 
 BATCHSIZE_TRAIN: 1  # batches per training iteration
 BATCHSIZE_VALID: 1  # batches per validation iteration
