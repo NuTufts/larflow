@@ -100,6 +100,22 @@ def run(gpu, args, config ):
             larmatch_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
                                              acc_meters,loss_meters,time_meters,True,device,verbose=None)
 
+            # periodic checkpoint
+            if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
+                if rank==0:
+                    print("RANK-0: saving periodic checkpoint")
+                    larmatch_engine.save_checkpoint({
+                        'iter':iiter,
+                        'epoch': iiter/float(TRAIN_NENTRIES),
+                        'state_larmatch': model_dict["larmatch"].state_dict(),
+                        'optimizer' : optimizer.state_dict(),
+                    }, False, iiter)
+                else:
+                    print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))
+                    
+                torch.distributed.barrier()
+            
+
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 larmatch_engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
@@ -175,12 +191,21 @@ def run(gpu, args, config ):
                     tb_writer.add_scalars("data/valid_paf_accuracy", paf_acc_scalars, iiter )
 
                 else:
-                    print("RANK-%d process waiting for RANK-0 validation run")
+                    print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
                 # wait for rank-0 to finish reporting and plotting
                 torch.distributed.barrier()
 
         print("RANK-%d process finished. Waiting to sync."%(rank))
+        if rank==0:
+            print("RANK-0: saving last checkpoint")
+            larmatch_engine.save_checkpoint({
+                'iter':iiter,
+                'epoch': iiter/float(TRAIN_NENTRIES),
+                'state_larmatch': model_dict["larmatch"].state_dict(),
+                'optimizer' : optimizer.state_dict(),
+            }, False, iiter)
+        
         torch.distributed.barrier()
 
 
