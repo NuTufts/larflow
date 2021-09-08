@@ -82,6 +82,7 @@ def run(gpu, args, config ):
     model_dict = {"larmatch":model}
 
     train_dataset = larmatchDataset( filelist=config["INPUTFILE_TRAIN"], random_access=True )
+    train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
     print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
