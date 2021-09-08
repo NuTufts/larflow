@@ -22,8 +22,8 @@ SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 # ================================
 TRAIN_DATA_FOLDER: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
 #TRAIN_DATA_FOLDER: "/home/twongjirad/working/data/larmatch_training_data/"
-INPUTFILE_TRAIN: ["./larmatchtriplet_ana_trainingdata_testfile.root"]
-INPUTFILE_VALID: ["./larmatchtriplet_ana_trainingdata_testfile.root"]
+INPUTFILE_TRAIN: ["/tmp/larmatch_training_data/larmatchtriplet_ana_trainingdata_testfile.root"]
+INPUTFILE_VALID: ["/tmp/larmatch_training_data/larmatchtriplet_ana_trainingdata_testfile.root"]
 
 # TRAINING PARAMETERS
 # =======================
@@ -33,7 +33,7 @@ TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
 TRAIN_ITER_PER_RECORD: 5
 TRAIN_ITER_PER_VALIDPT: 10
-NUM_VALID_ITERS: 10
+NUM_VALID_ITERS: 1
 
 BATCHSIZE_TRAIN: 1  # batches per training iteration
 BATCHSIZE_VALID: 1  # batches per validation iteration
