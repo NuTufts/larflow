@@ -20,12 +20,10 @@ SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-#TRAIN_DATA_FOLDER="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
-TRAIN_DATA_FOLDER: "/home/twongjirad/working/data/larmatch_training_data/"
-INPUTFILE_TRAIN: ["larmatchtriplet_ana_bnbnu_trainingdata_0000.root",
-  "larmatchtriplet_ana_bnbnue_trainingdata_0000.root"]
-INPUTFILE_VALID: ["larmatchtriplet_ana_bnbnu_trainingdata_0000.root",
-  "larmatchtriplet_ana_bnbnue_trainingdata_0000.root"]
+TRAIN_DATA_FOLDER: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/"
+#TRAIN_DATA_FOLDER: "/home/twongjirad/working/data/larmatch_training_data/"
+INPUTFILE_TRAIN: ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatchtriplet_ana_trainingdata_testfile.root"]
+INPUTFILE_VALID: ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatchtriplet_ana_trainingdata_testfile.root"]
 
 # Hard example training parameters (not yet implemented)
 # =======================================================
@@ -37,7 +35,7 @@ HARDEX_CHECKPOINT_FILE: "train_kps_nossnet/checkpoint.260000th.tar"
 # TRAINING PARAMETERS
 # =======================
 START_ITER: 0
-NUM_ITERATIONS: 200
+NUM_ITERATIONS: 20
 TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
 TRAIN_ITER_PER_RECORD: 5

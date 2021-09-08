@@ -38,6 +38,9 @@ from ROOT import std
 from larcv import larcv
 from larflow import larflow
 
+def cleanup():
+    dist.destroy_process_group()
+
 def run(gpu, args, config ):
     #========================================================
     # CREATE PROCESS
@@ -45,7 +48,8 @@ def run(gpu, args, config ):
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))    
     dist.init_process_group(                                   
     	backend='nccl',                                         
-   		init_method='env://',                                   
+   	#init_method='env://',
+        init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
     	rank=rank                                               
     )
@@ -56,7 +60,6 @@ def run(gpu, args, config ):
         tb_writer = SummaryWriter()
 
     model, model_dict = larmatch_engine.get_larmatch_model( config )
-    gpu=0
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -72,14 +75,12 @@ def run(gpu, args, config ):
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
-    train_dataset = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
-    #train_dataset = larmatchDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"])
+    train_dataset = larmatchDataset( filelist=config["INPUTFILE_TRAIN"], random_access=True )
     TRAIN_NENTRIES = len(train_dataset)
     print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
-    valid_dataset = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
-    #valid_dataset = larmatchDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"])
+    valid_dataset = larmatchDataset( filelist=config["INPUTFILE_VALID"], random_access=True )
     VALID_NENTRIES = len(valid_dataset)
     print("VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
     valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
@@ -126,9 +127,12 @@ def run(gpu, args, config ):
                 paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
                 tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, iiter )
 
+        print("RANK-%d process finished. Waiting to sync."%(rank))
+        torch.distributed.barrier()
 
-            
-        
+
+    cleanup()
+    return
 
 def main():
 
@@ -148,7 +152,7 @@ def main():
 
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '8888'
-    mp.spawn(run, nprocs=args.gpus, args=(args,config,))
+    mp.spawn(run, nprocs=args.gpus, args=(args,config,), join=True)
     
     print("DISTRIBUTED MAIN DONE")
     
