@@ -60,10 +60,10 @@ def run(gpu, args, config ):
     if rank==0:
         tb_writer = SummaryWriter()
 
-    model, _ = larmatch_engine.get_larmatch_model( config )
+    single_model, _ = larmatch_engine.get_larmatch_model( config )
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
-    model.to(device)
+    single_model.to(device)
 
     criterion = SparseLArMatchKPSLoss( eval_ssnet=config["RUN_SSNET"],
                                        eval_keypoint_label=config["RUN_KPLABEL"],
@@ -71,7 +71,7 @@ def run(gpu, args, config ):
                                        eval_affinity_field=config["RUN_PAF"] ).to(device)
 
     # Wrap the model
-    model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu],find_unused_parameters=False)
+    model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
     print("Model",model)
 
     optimizer = torch.optim.Adam(model.parameters(),
@@ -86,10 +86,11 @@ def run(gpu, args, config ):
     print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
-    valid_dataset = larmatchDataset( filelist=config["INPUTFILE_VALID"], random_access=True )
-    VALID_NENTRIES = len(valid_dataset)
-    print("VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
-    valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
+    if rank==0:
+        valid_dataset = larmatchDataset( filelist=config["INPUTFILE_VALID"], random_access=True )
+        VALID_NENTRIES = len(valid_dataset)
+        print("RANK-0: LOAD VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
+        valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
     loss_meters,acc_meters,time_meters = larmatch_engine.make_meters(config)
     
@@ -138,7 +139,8 @@ def run(gpu, args, config ):
                     valid_loss_meters,valid_acc_meters,valid_time_meters = larmatch_engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):
                         with torch.no_grad():
-                            larmatch_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
+                            larmatch_engine.do_one_iteration(config,{"larmatch":single_model},
+                                                             valid_loader,criterion,optimizer,
                                                              valid_acc_meters,valid_loss_meters,valid_time_meters,
                                                              False,device,verbose=False)
                     larmatch_engine.prep_status_message( "Valid-Iteration", train_iteration,
@@ -175,7 +177,7 @@ def run(gpu, args, config ):
                     tb_writer.add_scalars("data/valid_paf_accuracy", paf_acc_scalars, iiter )
 
                 else:
-                    print("RANK-%d process waiting for RANK-0 validation run")
+                    print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
                 # wait for rank-0 to finish reporting and plotting
                 torch.distributed.barrier()
