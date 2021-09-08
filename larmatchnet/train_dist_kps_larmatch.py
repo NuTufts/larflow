@@ -121,6 +121,7 @@ def run(gpu, args, config ):
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 larmatch_engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
+                print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
 
                 # write to tensorboard
                 # --------------------
