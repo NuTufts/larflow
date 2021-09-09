@@ -10,7 +10,7 @@ from __future__ import print_function
 import os,sys,argparse
 
 import shutil
-import time
+import time,datetime
 import traceback
 import numpy as np
 
@@ -41,21 +41,24 @@ from larflow import larflow
 def cleanup():
     dist.destroy_process_group()
 
-def run(gpu, args, config ):
+def run(gpu, args ):
     #========================================================
     # CREATE PROCESS
     rank = args.nr * args.gpus + gpu
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))    
     dist.init_process_group(                                   
-    	backend='nccl',
-        #backend='gloo',        
-   	#init_method='env://',
-        init_method='file:///tmp/sharedfile',
+    	#backend='nccl',
+        backend='gloo',        
+   	init_method='env://',
+        #init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
-    	rank=rank                                               
+    	rank=rank,
+        timeout=datetime.timedelta(0, 1800)
     )
     #========================================================
     torch.manual_seed(gpu)
+
+    config = larmatch_engine.load_config_file( args )
 
     if rank==0:
         tb_writer = SummaryWriter()
@@ -72,9 +75,9 @@ def run(gpu, args, config ):
 
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
-    print("Model",model)
-    sys.stdout.flush()
-
+    print("RANK-%d Model"%(rank),model)
+    torch.distributed.barrier()
+    
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=float(config["LEARNING_RATE"]), 
                                  weight_decay=config["WEIGHT_DECAY"])
@@ -86,22 +89,22 @@ def run(gpu, args, config ):
     if args.world_size>0:
         train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
-    print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
+    print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
+    sys.stdout.flush()
 
     if rank==0:
         valid_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True, npairs=config["TEST_NUM_MATCH_PAIRS"] )
         VALID_NENTRIES = len(valid_dataset)
-        print("RANK-0: LOAD VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
+        print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
         valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
-
+    
     loss_meters,acc_meters,time_meters = larmatch_engine.make_meters(config)
-    sys.stdout.flush()
     
     with torch.autograd.profiler.profile(enabled=config["RUNPROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
-
+            print("RANK-%d iteration=%d"%(rank,train_iteration))
             larmatch_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
                                              acc_meters,loss_meters,time_meters,True,device,verbose=None)
 
@@ -116,9 +119,7 @@ def run(gpu, args, config ):
                         'optimizer' : optimizer.state_dict(),
                     }, False, iiter)
                 else:
-                    print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))
-                    
-                torch.distributed.barrier()
+                    print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
             print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
@@ -141,18 +142,18 @@ def run(gpu, args, config ):
                 # ssnet
                 ssnet_scalars = {}
                 for accname in larmatch_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
-                    acc_scalars[accname] = acc_meters[accname].avg
+                    ssnet_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                 
                 # keypoint
                 kp_scalars = {}
                 for accname in larmatch_engine.KP_CLASS_NAMES:
-                    acc_scalars[accname] = acc_meters[accname].avg
+                    kp_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                 
                 # paf
                 paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
-                tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, iiter )
+                tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -175,32 +176,32 @@ def run(gpu, args, config ):
                 
                     # split acc into different types
                     # larmatch
-                    acc_scalars = {}
+                    val_acc_scalars = {}
                     for accname in larmatch_engine.LM_CLASS_NAMES:
-                        acc_scalars[accname] = acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_larmatch_accuracy', acc_scalars, train_iteration )
+                        val_acc_scalars[accname] = valid_acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
 
                     # ssnet
-                    ssnet_scalars = {}
+                    val_ssnet_scalars = {}
                     for accname in larmatch_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
-                        acc_scalars[accname] = acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_ssnet_accuracy', ssnet_scalars, train_iteration )
+                        val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
                 
                     # keypoint
-                    kp_scalars = {}
+                    val_kp_scalars = {}
                     for accname in larmatch_engine.KP_CLASS_NAMES:
-                        acc_scalars[accname] = acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_kp_accuracy', kp_scalars, train_iteration )
+                        val_kp_scalars[accname] = valid_acc_meters[accname].avg
+                    tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
                 
                     # paf
-                    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
-                    tb_writer.add_scalars("data/valid_paf_accuracy", paf_acc_scalars, iiter )
+                    val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
+                    tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
 
                 else:
                     print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
                 # wait for rank-0 to finish reporting and plotting
-                torch.distributed.barrier()
+                #torch.distributed.barrier()
 
         print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:
@@ -232,11 +233,9 @@ def main():
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes
     
-    config = larmatch_engine.load_config_file( args )
-
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '8888'
-    mp.spawn(run, nprocs=args.gpus, args=(args,config,), join=True)
+    mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
     
     print("DISTRIBUTED MAIN DONE")
     
