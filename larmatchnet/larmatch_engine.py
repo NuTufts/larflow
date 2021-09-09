@@ -3,10 +3,47 @@ import shutil
 import torch
 import yaml
 from larmatch import LArMatch
+from collections import OrderedDict
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
 KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
 LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
+
+def get_larmatch_model( config, dump_model=False ):
+
+    # create model, mark it to run on the device
+    model = LArMatch(use_unet=True,
+                     run_ssnet=config["RUN_SSNET"],
+                     run_kplabel=config["RUN_KPLABEL"],
+                     run_kpshift=config["RUN_KPSHIFT"],
+                     run_paf=config["RUN_PAF"])
+
+    if dump_model:
+        # DUMP MODEL (for debugging)
+        print(model)
+
+    model_dict = {"larmatch":model}
+    if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
+    if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
+    if model.run_kpshift: model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
+    if model.run_paf:     model_dict["paf"] = model_dict["larmatch"].affinity_head
+    
+    return model, model_dict
+
+def load_model_weights( model, checkpoint_file ):
+
+    # Map all weights back to cpu first
+    loc_dict = {"cuda:%d"%(gpu):"cpu" for gpu in range(10) }
+
+    # load weights
+    checkpoint = torch.load( checkpoint_file, map_location=loc_dict )
+
+    # change names if we saved the distributed data parallel model state
+    rename_distributed_checkpoint_par_names(checkpoint)
+
+    model.load_state_dict( checkpoint["state_larmatch"] )
+
+    return checkpoint
 
 def load_config_file( args, dump_to_stdout=False ):
     stream = open(args.config_file, 'r')
@@ -29,7 +66,21 @@ def reshape_old_sparseconvnet_weights(checkpoint):
             checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
 
     return
-    
+
+def rename_distributed_checkpoint_par_names(checkpoint):
+    replacement = OrderedDict()
+    notified = False
+    for name,arr in checkpoint["state_larmatch"].items():
+        if "module." in name and name[:len("module.")]=="module.":
+            if not notified:
+                print("renaming parameter by removing 'module.'")
+                notified = True
+            replacement[name[len("module."):]] = arr
+        else:
+            replacement[name] = arr
+    checkpoint["state_larmatch"] = replacement
+    return
+            
 
 def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
     # copy items into larmatch dict
@@ -42,6 +93,9 @@ def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
         if name not in head_names:
             continue
         if verbose: print("STATE DATA: ",name)
+        state_name = "stage_"+name
+        if state_name not in checkpoint:
+            continue
         checkpoint_data = checkpoint["state_"+name]
         for parname,arr in checkpoint_data.items():
             if verbose: print("append: ",head_names[name]+"."+parname,arr.shape)        
@@ -50,26 +104,6 @@ def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
     return larmatch_checkpoint_data
 
 
-def get_larmatch_model( config, dump_model=False ):
-
-    # create model, mark it to run on the device
-    model = LArMatch(use_unet=True,
-                     run_ssnet=config["RUN_SSNET"],
-                     run_kplabel=config["RUN_KPLABEL"],
-                     run_kpshift=config["RUN_KPSHIFT"],
-                     run_paf=config["RUN_PAF"])
-
-    if dump_model:
-        # DUMP MODEL (for debugging)
-        print(model)
-
-    model_dict = {"larmatch":model}
-    if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
-    if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
-    if model.run_kpshift: model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
-    if model.run_paf:     model_dict["paf"] = model_dict["larmatch"].affinity_head
-    
-    return model, model_dict
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

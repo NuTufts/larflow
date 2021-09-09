@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os,sys,argparse,time
+import torch
 
 parser = argparse.ArgumentParser("run LArFlow-LArMatch on data")
 parser.add_argument("--supera","-su",required=True,type=str,help="LArCV file with ADC images")
@@ -40,8 +41,8 @@ driftv = larutil.LArProperties.GetME().DriftVelocity()
 devname=args.device_name
 DEVICE=torch.device(devname)
 checkpointfile = args.weights
-checkpoint = torch.load( checkpointfile, map_location={"cuda:0":devname,
-                                                       "cuda:1":devname} )
+checkpoint = torch.load( checkpointfile, map_location={"cuda:0":"cpu",
+                                                       "cuda:1":"cpu"} )
 NUM_PAIRS=30000
 ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
@@ -58,7 +59,7 @@ if args.use_skip_limit is not None:
 
 # MULTI-HEAD LARMATCH MODEL
 config = larmatch_engine.load_config_file( args )
-model, model_dict = larmatch_engine.get_larmatch_model( config, DEVICE )
+model, model_dict = larmatch_engine.get_larmatch_model( config, dump_model=False )
 
 # hack: for runnning with newer version of SCN where group-convolutions are possible
 for name,arr in checkpoint["state_larmatch"].items():
@@ -71,8 +72,14 @@ for name,arr in checkpoint["state_larmatch"].items():
         checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
 
 # copy items into larmatch dict
-larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict)
-model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
+# NEW MODEL LOADING: 32 FEATURES
+larmatch_engine.rename_distributed_checkpoint_par_names( checkpoint )
+# OLD MODEL LOADING: ALSO NEED TO SET FEATURES TO 16
+#larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict)
+#model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
+
+model_dict["larmatch"].load_state_dict(checkpoint["state_larmatch"])
+model_dict["larmatch"] = model_dict["larmatch"].to(DEVICE)
 print("loaded MODEL")
 
 # setup filename
@@ -188,7 +195,7 @@ for ientry in range(NENTRIES):
     # Prep sparse ADC numpy arrays
     sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in range(3) ]
     coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ).to(DEVICE) for p in range(3) ]
-    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ).to(DEVICE) for p in range(3) ]
+    feat_t  = [ torch.from_numpy( np.clip( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) )/40.0,0,10.0 ) ).to(DEVICE) for p in range(3) ]
 
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate
@@ -198,7 +205,7 @@ for ientry in range(NENTRIES):
         outfeat_u, outfeat_v, outfeat_y = model_dict['larmatch'].forward_features( coord_t[0], feat_t[0],
                                                                                    coord_t[1], feat_t[1],
                                                                                    coord_t[2], feat_t[2],
-                                                                                   1, verbose=False )
+                                                                                   1, verbose=True )
     dt_net_feats = time.time()-t_start
     print("compute features: ",dt_net_feats,"secs")
     dt_net += dt_net_feats

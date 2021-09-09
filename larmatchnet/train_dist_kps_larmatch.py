@@ -64,6 +64,13 @@ def run(gpu, args ):
         tb_writer = SummaryWriter()
 
     single_model, _ = larmatch_engine.get_larmatch_model( config )
+
+    if config["RESUME_FROM_CHECKPOINT"]:
+        if not os.path.exists(config["CHECKPOINT_FILE"]):
+            raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
+
+        checkpoint_data = larmatch_engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
+            
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
     single_model.to(device)
@@ -81,6 +88,10 @@ def run(gpu, args ):
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=float(config["LEARNING_RATE"]), 
                                  weight_decay=config["WEIGHT_DECAY"])
+    
+    if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
+        optimizer.load_state_dict( checkpoint_data["optimizer"] )
+    
     
     # re-specify the dictionary
     model_dict = {"larmatch":model}
@@ -113,11 +124,11 @@ def run(gpu, args ):
                 if rank==0:
                     print("RANK-0: saving periodic checkpoint")
                     larmatch_engine.save_checkpoint({
-                        'iter':iiter,
-                        'epoch': iiter/float(TRAIN_NENTRIES),
-                        'state_larmatch': model_dict["larmatch"].state_dict(),
+                        'iter':train_iteration,
+                        'epoch': train_iteration/float(TRAIN_NENTRIES),
+                        'state_larmatch': model_dict["larmatch"].module.state_dict(),
                         'optimizer' : optimizer.state_dict(),
-                    }, False, iiter)
+                    }, False, train_iteration)
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
@@ -207,11 +218,11 @@ def run(gpu, args ):
         if rank==0:
             print("RANK-0: saving last checkpoint")
             larmatch_engine.save_checkpoint({
-                'iter':iiter,
-                'epoch': iiter/float(TRAIN_NENTRIES),
-                'state_larmatch': model_dict["larmatch"].state_dict(),
+                'iter':train_iteration,
+                'epoch': train_iteration/float(TRAIN_NENTRIES),
+                'state_larmatch': model_dict["larmatch"].module.state_dict(),
                 'optimizer' : optimizer.state_dict(),
-            }, False, iiter)
+            }, False, train_iteration)
         
         torch.distributed.barrier()
 
