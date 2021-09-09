@@ -14,8 +14,8 @@ class LArMatch(nn.Module):
 
     def __init__(self,ndimensions=2,inputshape=(1024,3456),
                  input_nfeatures=1,
-                 stem_nfeatures=16,
-                 features_per_layer=16,                 
+                 stem_nfeatures=32,
+                 features_per_layer=32,                 
                  classifier_nfeatures=[32,32],
                  leakiness=0.01,
                  ninput_planes=3,
@@ -103,10 +103,10 @@ class LArMatch(nn.Module):
         self.run_kplabel = run_kplabel
         self.run_kpshift = run_kpshift
         self.run_paf     = run_paf
-        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier()
-        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier()
-        if self.run_kpshift: self.kpshift_head  = LArMatchKPShiftRegressor()
-        if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64])
+        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=features_per_layer)
+        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=features_per_layer)
+        if self.run_kpshift: self.kpshift_head  = LArMatchKPShiftRegressor(features_per_layer=features_per_layer)
+        if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64],input_features=features_per_layer)
 
     def forward_features( self, coord_plane0_t, plane0_feat_t,
                           coord_plane1_t, plane1_feat_t,
