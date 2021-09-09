@@ -81,14 +81,14 @@ def run(gpu, args, config ):
     # re-specify the dictionary
     model_dict = {"larmatch":model}
 
-    train_dataset = larmatchDataset( filelist=config["INPUTFILE_TRAIN"], random_access=True )
+    train_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True )
     train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
     print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
     if rank==0:
-        valid_dataset = larmatchDataset( filelist=config["INPUTFILE_VALID"], random_access=True )
+        valid_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True )
         VALID_NENTRIES = len(valid_dataset)
         print("RANK-0: LOAD VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
         valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
@@ -117,11 +117,10 @@ def run(gpu, args, config ):
                     
                 torch.distributed.barrier()
             
-
+            print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 larmatch_engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
-                print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
 
                 # write to tensorboard
                 # --------------------
