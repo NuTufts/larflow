@@ -73,6 +73,7 @@ def run(gpu, args, config ):
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
     print("Model",model)
+    sys.stdout.flush()
 
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=float(config["LEARNING_RATE"]), 
@@ -81,19 +82,21 @@ def run(gpu, args, config ):
     # re-specify the dictionary
     model_dict = {"larmatch":model}
 
-    train_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True )
-    train_dataset.set_partition( rank, args.world_size )
+    train_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True, npairs=config["TEST_NUM_MATCH_PAIRS"] )
+    if args.world_size>0:
+        train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
     print("TRAIN DATASET NENTRIES: ",TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
     if rank==0:
-        valid_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True )
+        valid_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True, npairs=config["TEST_NUM_MATCH_PAIRS"] )
         VALID_NENTRIES = len(valid_dataset)
         print("RANK-0: LOAD VALID DATASET NENTRIES: ",VALID_NENTRIES," = 1 epoch")
         valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
 
     loss_meters,acc_meters,time_meters = larmatch_engine.make_meters(config)
+    sys.stdout.flush()
     
     with torch.autograd.profiler.profile(enabled=config["RUNPROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):

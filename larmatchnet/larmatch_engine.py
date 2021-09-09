@@ -205,24 +205,24 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     # sample of 3D points coming from possilble wire intersections
     # represented as triplet of indices from above tensor
-    npairs          = flowdata['npairs']
-    match_t         = torch.from_numpy( flowdata['matchpairs'] ).to(device).requires_grad_(False)
-    match_label_t   = torch.from_numpy( flowdata['larmatchlabels'] ).to(device).requires_grad_(False)
+    npairs          = flowdata['npairs'] # nfilled
+    match_t         = torch.from_numpy( flowdata['matchpairs'][:npairs] ).to(device).requires_grad_(False)
+    match_label_t   = torch.from_numpy( flowdata['larmatchlabels'][:npairs] ).to(device).requires_grad_(False)
 
     # truth labels
-    match_weight_t  = torch.from_numpy( flowdata['match_weight'] ).to(device).requires_grad_(False)
-    truematch_idx_t = torch.from_numpy( flowdata['positive_indices'] ).to(device).requires_grad_(False)
+    match_weight_t  = torch.from_numpy( flowdata['match_weight'][:npairs] ).to(device).requires_grad_(False)
+    truematch_idx_t = torch.from_numpy( flowdata['positive_indices'][:npairs] ).to(device).requires_grad_(False)
         
-    ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'] ).to(device).requires_grad_(False)
-    ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'] ).to(device).requires_grad_(False)
-    ssnet_top_weight_t = torch.from_numpy( flowdata['ssnet_top_weight'] ).to(device).requires_grad_(False)
+    ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'][:npairs] ).to(device).requires_grad_(False)
+    ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'][:npairs] ).to(device).requires_grad_(False)
+    ssnet_top_weight_t = torch.from_numpy( flowdata['ssnet_top_weight'][:npairs] ).to(device).requires_grad_(False)
         
-    kp_label_t    = torch.from_numpy( flowdata['kplabel'] ).to(device).requires_grad_(False)
-    kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'] ).to(device).requires_grad_(False)        
-    kpshift_t     = torch.from_numpy( flowdata['kpshift'] ).to(device).requires_grad_(False)
+    kp_label_t    = torch.from_numpy( flowdata['kplabel'][:npairs] ).to(device).requires_grad_(False)
+    kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'][:npairs] ).to(device).requires_grad_(False)        
+    kpshift_t     = torch.from_numpy( flowdata['kpshift'][:npairs] ).to(device).requires_grad_(False)
     
-    paf_label_t   = torch.from_numpy( flowdata['paf_label'] ).to(device).requires_grad_(False)
-    paf_weight_t  = torch.from_numpy( flowdata['paf_weight'] ).to(device).requires_grad_(False)
+    paf_label_t   = torch.from_numpy( flowdata['paf_label'][:npairs] ).to(device).requires_grad_(False)
+    paf_weight_t  = torch.from_numpy( flowdata['paf_weight'][:npairs] ).to(device).requires_grad_(False)
 
     # handled in data loader now
     #for p in range(3):

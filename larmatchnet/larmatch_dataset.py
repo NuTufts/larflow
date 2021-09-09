@@ -88,6 +88,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         matchdata   = self.loaders["kps"].sample_data( self.npairs, nfilled, True )
         # get the particle affinity field data
         pafdata = self.loaders["affinity"].get_match_data( matchdata["matchtriplet"], self.exclude_neg_examples )
+        if nfilled.value < self.npairs:
+            print("[larmatch_dataset] nfilled (%d) < max num pairs (%d)"%(nfilled.value, self.npairs))
         
         # add the contents to the data dictionary
         data.update(matchdata)
