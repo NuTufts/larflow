@@ -42,11 +42,12 @@ namespace keypoints {
     tkeypoint = new TChain("keypointlabels");
     tssnet    = new TChain("ssnetlabels");
     for (auto const& infile : input_files ) {
-      std::cout << "add " << infile << " to chains" << std::endl;
+      //std::cout << "add " << infile << " to chains" << std::endl;
       ttriplet->Add(infile.c_str());
       tkeypoint->Add(infile.c_str());
       tssnet->Add(infile.c_str());
     }
+    std::cout << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
     
     triplet_v = 0;
     for (int i=0; i<6; i++)

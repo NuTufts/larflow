@@ -35,10 +35,11 @@ namespace keypoints {
     
     tpaf = new TChain("AffinityFieldTree");
     for (auto const& infile : input_files ) {
-      std::cout << "add " << infile << " to AffinityFieldTree chain" << std::endl;
+      //std::cout << "add " << infile << " to AffinityFieldTree chain" << std::endl;
       tpaf->Add(infile.c_str());
     }
-    
+
+    std::cout << "[LoaderAffinityField::load_tree()] " << input_files.size() << "files added" << std::endl;    
     _label_v = 0;    
     tpaf->SetBranchAddress( "label_v", &_label_v );
   }
