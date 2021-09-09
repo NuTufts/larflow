@@ -8,7 +8,8 @@ from larflow import larflow
 from ctypes import c_int
 
 class larmatchDataset(torch.utils.data.Dataset):
-    def __init__(self, filelist=None, filefolder=None, random_access=True, npairs=50000, verbose=False):
+    def __init__(self, filelist=None, filefolder=None, txtfile=None,
+                 random_access=True, npairs=50000, verbose=False):
         """
         Parameters:
         """
@@ -27,8 +28,16 @@ class larmatchDataset(torch.utils.data.Dataset):
                     continue
                 fpath = filefolder+"/"+f
                 file_v.push_back(fpath)
+        elif txtfile is not None:
+            f = open(txtfile,'r')
+            ll = f.readlines()
+            for l in ll:
+                l = l.strip()
+                if os.path.exists(l):
+                    file_v.push_back(l)
+            f.close()
         else:
-            raise RuntimeError("must provide a filelist or a folder path")
+            raise RuntimeError("must provide a list of paths (filelist), folder path (filefolder), or textfile with paths (txtfile)")
 
         self.loaders = {"kps":larflow.keypoints.LoaderKeypointData(file_v),
                         "affinity":larflow.keypoints.LoaderAffinityField(file_v)}
@@ -129,8 +138,9 @@ class larmatchDataset(torch.utils.data.Dataset):
     def set_partition(self,partition_index,num_partitions):
         self.partition_index = partition_index
         self.num_partitions = num_partitions
-        self.start_index = int(self.partition_index*self.nentries)/int(self.num_paritions)
-        self.end_index   = int((self.partition_index+1)*self.nentries)/int(self.num_paritions)
+        self.start_index = int(self.partition_index*self.nentries)/int(self.num_partitions)
+        self.end_index   = int((self.partition_index+1)*self.nentries)/int(self.num_partitions)
+        self._current_entry = self.start_index
 
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
