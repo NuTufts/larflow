@@ -13,6 +13,8 @@ def get_larmatch_model( config, dump_model=False ):
 
     # create model, mark it to run on the device
     model = LArMatch(use_unet=True,
+                     stem_nfeatures=config["STEM_FEATURES"],
+                     features_per_layer=config["NUM_FEATURES"],
                      run_ssnet=config["RUN_SSNET"],
                      run_kplabel=config["RUN_KPLABEL"],
                      run_kpshift=config["RUN_KPSHIFT"],
