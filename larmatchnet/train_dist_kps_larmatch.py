@@ -49,8 +49,8 @@ def run(gpu, args ):
     dist.init_process_group(                                   
     	#backend='nccl',
         backend='gloo',        
-   	init_method='env://',
-        #init_method='file:///tmp/sharedfile',
+   	#init_method='env://',
+        init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
     	rank=rank,
         timeout=datetime.timedelta(0, 1800)

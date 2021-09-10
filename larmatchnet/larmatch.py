@@ -12,7 +12,7 @@ from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 
 class LArMatch(nn.Module):
 
-    def __init__(self,ndimensions=2,inputshape=(1024,3456),
+    def __init__(self,ndimensions=2,inputshape=(1024,3584),
                  input_nfeatures=1,
                  stem_nfeatures=32,
                  features_per_layer=32,                 
@@ -24,6 +24,7 @@ class LArMatch(nn.Module):
                  run_kplabel=True,
                  run_kpshift=False,
                  run_paf=True,
+                 unet_depth=5,
                  nresnet_blocks=10 ):
         """
         parameters
@@ -42,6 +43,7 @@ class LArMatch(nn.Module):
         super(LArMatch,self).__init__()
 
         self.use_unet = use_unet
+        self.unet_depth = unet_depth
         
         # INPUT LAYERS: converts torch tensor into scn.SparseMatrix
         self.ninput_planes = ninput_planes        
@@ -60,12 +62,11 @@ class LArMatch(nn.Module):
 
         # UNET BLOCK
         if self.use_unet:
+            self.resnet_nfeatures = []
+            for ireslayer in range(self.unet_depth):
+                self.resnet_nfeatures.append( (ireslayer+1)*stem_nfeatures )
             self.unet_layers = scn.UNet( 2, 2,
-                                         [stem_nfeatures,
-                                          stem_nfeatures*2,
-                                          stem_nfeatures*3,
-                                          stem_nfeatures*4,
-                                          stem_nfeatures*5],
+                                         self.resnet_nfeatures,
                                          residual_blocks=True,
                                          downsample=[2, 2] )
 

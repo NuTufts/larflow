@@ -15,6 +15,7 @@ def get_larmatch_model( config, dump_model=False ):
     model = LArMatch(use_unet=True,
                      stem_nfeatures=config["STEM_FEATURES"],
                      features_per_layer=config["NUM_FEATURES"],
+                     unet_depth=config["UNET_DEPTH"],
                      run_ssnet=config["RUN_SSNET"],
                      run_kplabel=config["RUN_KPLABEL"],
                      run_kpshift=config["RUN_KPSHIFT"],

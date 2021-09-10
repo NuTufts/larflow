@@ -3,9 +3,9 @@
 GPUMODE: True
 DEVICE: "cuda:0"
 RESUME_FROM_CHECKPOINT: False
-RESUME_OPTIM_FROM_CHECKPOINT: False
+RESUME_OPTIM_FROM_CHECKPOINT:  True
 RUNPROFILER: False
-CHECKPOINT_FILE: "train_kps_no_ssnet/checkpoint.1262000th.tar"
+CHECKPOINT_FILE: "checkpoint.15000th.tar"
 EXCLUDE_NEG_EXAMPLES: False
 RUN_SSNET: True
 RUN_KPLABEL: True
@@ -15,6 +15,9 @@ TRAIN_VERBOSE: False
 FREEZE_LAYERS: []
 LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
+STEM_FEATURES: 32
+NUM_FEATURES: 32
+UNET_DEPTH: 9
 #FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
@@ -24,18 +27,18 @@ TRAIN_DATA_FOLDER: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/lar
 #TRAIN_DATA_FOLDER: "/home/twongjirad/working/data/larmatch_training_data/"
 INPUTFILE_TRAIN: ["/tmp/larmatch_training_data/larmatchtriplet_ana_trainingdata_testfile.root"]
 INPUTFILE_VALID: ["/tmp/larmatch_training_data/larmatchtriplet_ana_trainingdata_testfile.root"]
-INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/training_set.txt"
-INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/validation_set.txt"
+INPUT_TXTFILE_TRAIN: test_train.txt
+INPUT_TXTFILE_VALID: test_valid.txt
 
 # TRAINING PARAMETERS
 # =======================
 START_ITER: 0
-NUM_ITERATIONS: 2000
+NUM_ITERATIONS: 20000
 TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
 TRAIN_ITER_PER_RECORD: 5
-TRAIN_ITER_PER_VALIDPT: 10
-NUM_VALID_ITERS: 10
+TRAIN_ITER_PER_VALIDPT: 100
+NUM_VALID_ITERS: 1
 
 BATCHSIZE_TRAIN: 1  # batches per training iteration
 BATCHSIZE_VALID: 1  # batches per validation iteration
@@ -44,11 +47,7 @@ BATCHSIZE_VALID: 1  # batches per validation iteration
 # =======================
 DEVICE_IDS: [0]
 # map multi-training weights 
-CHECKPOINT_MAP_LOCATIONS: {"cuda:0":"cuda:0",
-                           "cuda:1":"cuda:1"}
-HARDEX_MAP_LOCATIONS: {"cuda:0":"cuda:0",
-                       "cuda:1":"cuda:1"}
 CHECKPOINT_MAP_LOCATIONS: None
 CHECKPOINT_FROM_DATA_PARALLEL: False
-ITER_PER_CHECKPOINT: 1000
+ITER_PER_CHECKPOINT: 10
 PREDICT_CLASSVEC: True
