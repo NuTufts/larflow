@@ -2,10 +2,10 @@
 
 GPUMODE: True
 DEVICE: "cuda:0"
-RESUME_FROM_CHECKPOINT: False
-RESUME_OPTIM_FROM_CHECKPOINT: False
+RESUME_FROM_CHECKPOINT: True
+RESUME_OPTIM_FROM_CHECKPOINT: True
 RUNPROFILER: False
-CHECKPOINT_FILE: "train_kps_no_ssnet/checkpoint.1262000th.tar"
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/train_pass_1/checkpoint.45000th.tar"
 EXCLUDE_NEG_EXAMPLES: False
 RUN_SSNET: True
 RUN_KPLABEL: True
@@ -15,6 +15,8 @@ TRAIN_VERBOSE: False
 FREEZE_LAYERS: []
 LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
+STEM_FEATURES: 32
+NUM_FEATURES: 32
 #FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
@@ -29,13 +31,13 @@ INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/l
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER: 0
-NUM_ITERATIONS: 2000
+START_ITER: 45000
+NUM_ITERATIONS: 200000
 TEST_NUM_MATCH_PAIRS: 100000
 ADC_MAX: 400.0
 TRAIN_ITER_PER_RECORD: 5
 TRAIN_ITER_PER_VALIDPT: 10
-NUM_VALID_ITERS: 10
+NUM_VALID_ITERS: 1
 
 BATCHSIZE_TRAIN: 1  # batches per training iteration
 BATCHSIZE_VALID: 1  # batches per validation iteration
