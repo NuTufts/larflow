@@ -16,8 +16,8 @@ class LArEnnet(torch.nn.Module):
         self.irreps_output = o3.Irreps("16x0e")
         self.irreps_sh     = o3.Irreps.spherical_harmonics(lmax=2)
         self.num_basis     = 3
-        self.max_radius    = 1.0
-        self.num_core_layers = 10
+        self.max_radius    = 3.0
+        self.num_core_layers = 5
         self.device = device
 
         # define the tensor product
@@ -25,18 +25,22 @@ class LArEnnet(torch.nn.Module):
                                                   self.irreps_sh,
                                                   self.irreps_mid,
                                                   shared_weights=False)
+        self.fc1 = nn.FullyConnectedNet([self.num_basis, 16, self.tp1.weight_numel], torch.relu)
+        
         self.core = torch.nn.ModuleList()
+        self.tp2 = o3.FullyConnectedTensorProduct(self.irreps_mid,
+                                                  self.irreps_sh,
+                                                  self.irreps_mid,
+                                                  shared_weights=False)        
         for n in range(self.num_core_layers):
-            tp2 = o3.FullyConnectedTensorProduct(self.irreps_mid,
-                                                 self.irreps_sh,
-                                                 self.irreps_mid,
-                                                 shared_weights=False)
-            self.core.append(tp2)
+            fc = nn.FullyConnectedNet([self.num_basis, 16, self.tp2.weight_numel], torch.relu)
+            self.core.append(fc)
             
         self.tp3 = o3.FullyConnectedTensorProduct(self.irreps_mid,
                                                   self.irreps_sh,
                                                   self.irreps_output,
                                                   shared_weights=False)
+        self.fc3 = nn.FullyConnectedNet([self.num_basis, 16, self.tp3.weight_numel], torch.relu)
 
         # classifier
         # 1d convolution going from 16 scalar features to binary classification
@@ -68,7 +72,7 @@ class LArEnnet(torch.nn.Module):
             basis='smooth_finite',
             cutoff=True,
         )
-        self.edge_length_embedding = edge_length_embedding.mul(self.num_basis**0.5)
+        self.edge_length_embedding = edge_length_embedding.mul(self.num_basis**0.5).to(self.device)
         dt_embed = time.time() - dt_embed
         print("dt_embed: %.2f sec"%(dt_embed))
 
@@ -81,31 +85,28 @@ class LArEnnet(torch.nn.Module):
         self.sh = o3.spherical_harmonics(self.irreps_sh, self.edge_vec, normalize=True, normalization='component').to(self.device)
 
         # define fully connected layer
-        fc = nn.FullyConnectedNet([self.num_basis, 16, self.tp1.weight_numel], torch.relu)
-        weight = fc(self.edge_length_embedding).to(self.device)
+        weight = self.fc1(self.edge_length_embedding)
 
         edge_features = self.tp1(f_in[self.edge_src], self.sh, weight)
         f_out = scatter(edge_features,self.edge_dst,dim=0).div(self.num_neighbors**0.5)
-        print("f_out[input]: ",f_out.shape)
+        print("f_out[input]: ",f_out.shape," ",f_out.requires_grad)
         
         return f_out
 
+    def core_conv( self, f_in, fc ):
+        weight = fc(self.edge_length_embedding)
+        edge_features = self.tp2(f_in[self.edge_src], self.sh, weight)
+        f_out = scatter(edge_features,self.edge_dst,dim=0).div(self.num_neighbors**0.5)
+        print("f_out[core]: ",f_out.shape," ",f_out.requires_grad)
+        return f_out
+        
     def feat_conv( self, f_in ):
-        fc = nn.FullyConnectedNet([self.num_basis, 16, self.tp3.weight_numel], torch.relu)
-        weight = fc(self.edge_length_embedding).to(self.device)
+        weight = self.fc3(self.edge_length_embedding)
         edge_features = self.tp3(f_in[self.edge_src], self.sh, weight)
         f_out = scatter(edge_features,self.edge_dst,dim=0).div(self.num_neighbors**0.5)
-        print("f_out[feat]: ",f_out.shape)
+        print("f_out[feat]: ",f_out.shape," ",f_out.requires_grad)
         return f_out
 
-    def core_conv( self, f_in, tp ):
-        fc = nn.FullyConnectedNet([self.num_basis, 16, tp.weight_numel], torch.relu)
-        weight = fc(self.edge_length_embedding).to(self.device)
-        edge_features = tp(f_in[self.edge_src], self.sh, weight)
-        f_out = scatter(edge_features,self.edge_dst,dim=0).div(self.num_neighbors**0.5)
-        print("f_out[core]: ",f_out.shape)
-        return f_out
-    
 
     def forward(self, pos_t, feat_t ):
         """
@@ -113,12 +114,17 @@ class LArEnnet(torch.nn.Module):
         """
         nnodes = pos_t.shape[0]
         x = self.init_conv( pos_t, feat_t )
-        for tp in self.core:
-            x = self.core_conv( x, tp )
+        #print("x: ",x.shape," grad_fn=",x.grad_fn," ",x[:10])
+        for fc in self.core:
+            x = self.core_conv( x, fc )
+            #print("x: ",x.shape," grad_fn=",x.grad_fn," ",x[:10])     
         x = self.feat_conv( x )    # (N,16)
+        #print("x: ",x.shape," grad_fn=",x.grad_fn," ",x[:10])
         nfeats = x.shape[1]
-        x = torch.transpose(x,1,0).reshape(1,nfeats,nnodes) # (16,N)
+        x = torch.transpose(x,1,0).reshape(1,nfeats,nnodes) # (1,16,N)
+        #print("x: ",x.shape," grad_fn=",x.grad_fn," ",x[:10])
         x = self.fc(x).reshape(2,nnodes).transpose(1,0)  # (N,2)
+        #print("x: ",x.shape," grad_fn=",x.grad_fn," ",x[:10])
         return x
             
 

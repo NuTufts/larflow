@@ -8,7 +8,8 @@ from larflow import larflow
 
 class larennetDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
-                 random_access=True, npairs=50000, verbose=False):
+                 random_access=True, npairs=50000, verbose=False,
+                 voxelize=False, voxelsize_cm=1.0):
         """
         Parameters:
         """
@@ -54,7 +55,12 @@ class larennetDataset(torch.utils.data.Dataset):
         self._current_entry  = self.start_index
         self._nloaded        = 0
         self._verbose = False
-        
+
+        self._voxelize = voxelize
+        self._voxelsize_cm = voxelsize_cm
+        if self._voxelize:
+            self.voxelizer = larflow.voxelizer.VoxelizeTriplets()
+            self.voxelizer.set_voxel_size_cm( self._voxelsize_cm )
                                  
 
     def __getitem__(self, idx):
@@ -76,8 +82,27 @@ class larennetDataset(torch.utils.data.Dataset):
         if self._verbose:
             dtio = time.time()-tio
 
-        # get the spacepoints
-        matchdata   = self.tchain.triplet_v[0].make_spacepoint_charge_array()
+        if not self._voxelize:
+            # get the spacepoints            
+            matchdata   = self.tchain.triplet_v[0].make_spacepoint_charge_array()
+        else:
+            # voxelize the data
+            self.voxelizer.make_voxeldata( self.tchain.triplet_v[0] )
+            voxdata = self.voxelizer.make_voxeldata_dict( self.tchain.triplet_v[0] )
+            origin_x = self.voxelizer.get_origin()[0]
+            origin_y = self.voxelizer.get_origin()[1]
+            origin_z = self.voxelizer.get_origin()[2]
+            pos = np.zeros( (voxdata["voxcoord"].shape[0], 6 ), dtype=np.float32 )
+            pos[:,0:3] = voxdata["voxcoord"]
+            pos[:,0] += origin_x/self._voxelsize_cm
+            pos[:,1] += origin_x/self._voxelsize_cm 
+            pos[:,2] += origin_x/self._voxelsize_cm
+            pos *= self._voxelsize_cm
+            
+            pos[:,3:] = np.clip( voxdata["voxfeat"]/40.0, 0, 10.0 )
+
+            matchdata = {"spacepoint_t":pos,
+                         "truetriplet_t":voxdata["voxlabel"]}
         
         # add the contents to the data dictionary
         data.update(matchdata)
