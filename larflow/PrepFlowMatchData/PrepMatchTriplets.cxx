@@ -1345,7 +1345,7 @@ namespace prep {
       for (int i=0; i<3; i++)
 	*((float*)PyArray_GETPTR2(spacepoint_t,itriplet,i)) = _pos_v[itriplet][i];
       for (int p=0; p<3; p++ ) {
-	*((long*)PyArray_GETPTR2(spacepoint_t,itriplet,3+p)) = _sparseimg_vv[p][triplet[p]].val;
+	*((float*)PyArray_GETPTR2(spacepoint_t,itriplet,3+p)) = _sparseimg_vv[p][triplet[p]].val;
       }
       ifilled++;
     }
