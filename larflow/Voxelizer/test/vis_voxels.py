@@ -4,6 +4,8 @@ from ctypes import c_int
 from math import log
 
 parser = argparse.ArgumentParser("Visuzalize LArMatch truth")
+parser.add_argument("-t","--from-triplet",default=False,action='store_true',help="If flag provided, the triplet data is generated")
+parser.add_argument("-s","--voxel-size",default=0.3,type=float,help="Set Voxel size in cm")
 parser.add_argument("input_file",type=str,help="file produced by 'run_voxelizetriplets.py'")
 args = parser.parse_args()
 
@@ -13,7 +15,6 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-larcv.SetPyUtil()
 
 import plotly.graph_objects as go
 import dash
@@ -26,7 +27,7 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
+color_by_options = ["larmatch","charge-3plane"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -34,12 +35,19 @@ for opt in color_by_options:
 
 # LOAD TREES
 infile = rt.TFile(args.input_file)
-io = infile.Get("voxelizer")
+if not args.from_triplet:
+    io = infile.Get("voxelizer")
+else:
+    io = infile.Get("larmatchtriplet")
 nentries = io.GetEntries()
 print("NENTRIES: ",nentries)
     
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
+
+from larflow import larflow
+algo = larflow.voxelizer.VoxelizeTriplets()
+algo.set_voxel_size_cm( args.voxel_size )
 
 def make_figures(entry,plotby="larmatch",minprob=0.0):
 
@@ -52,17 +60,28 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     traces_v = detdata.getlines()
 
-    data = io.data_v[0].make_voxeldata_dict()
-
-    origin_x = io.data_v[0].get_origin()[0]
-    origin_y = io.data_v[0].get_origin()[1]
-    origin_z = io.data_v[0].get_origin()[2]
+    if not args.from_triplet:
+        data = io.data_v[0].make_voxeldata_dict()
+        origin_x = io.data_v[0].get_origin()[0]
+        origin_y = io.data_v[0].get_origin()[1]
+        origin_z = io.data_v[0].get_origin()[2]
+    else:
+        algo.make_voxeldata( io.triplet_v[0] )
+        data = algo.make_voxeldata_dict( io.triplet_v[0] )
+        origin_x = algo.get_origin()[0]
+        origin_y = algo.get_origin()[1]
+        origin_z = algo.get_origin()[2]      
 
     data["voxcoord"] = data["voxcoord"].astype(np.float)
-    data["voxcoord"][:,0] += origin_x/0.3
-    data["voxcoord"][:,1] += origin_y/0.3
-    data["voxcoord"][:,2] += origin_z/0.3
-    data["voxcoord"] *= 0.3
+    data["voxcoord"][:,0] += origin_x/args.voxel_size
+    data["voxcoord"][:,1] += origin_y/args.voxel_size
+    data["voxcoord"][:,2] += origin_z/args.voxel_size
+    data["voxcoord"] *= args.voxel_size
+
+    if plotby=="larmatch":
+        colorarr = data["voxlabel"]
+    elif plotby=="charge-3plane":
+        colorarr = np.clip( data["voxfeat"]/40.0, 0, 4.0 )*254/4.0
     
     # 3D trace
     voxtrace = {
@@ -72,10 +91,11 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         "z":data["voxcoord"][:,2],
         "mode":"markers",
         "name":"voxels",
-        "marker":{"color":data["voxlabel"],
+        "marker":{"color":colorarr,
                   "size":1,
-                  "opacity":0.5,
-                  "colorscale":"Viridis"}}
+                  "opacity":0.5}}
+    if plotby=="larmatch":
+        voxtrace["marker"]["colorscale"] = "Viridis"
     
     traces_v.append( voxtrace )
     

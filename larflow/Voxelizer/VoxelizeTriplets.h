@@ -90,6 +90,8 @@ namespace voxelizer {
     /** @brief get the voxel edge length */
     float get_voxel_size() const { return _voxel_size; };
 
+    void set_voxel_size_cm( float width_cm );
+
     std::vector<int> get_voxel_indices( const std::vector<float>& xyz ) const;
 
     

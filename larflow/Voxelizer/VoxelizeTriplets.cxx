@@ -105,6 +105,16 @@ namespace voxelizer {
   }
 
   /**
+   * @brief set/reset voxel definition
+   *
+   */
+  void VoxelizeTriplets::set_voxel_size_cm( float width_cm )
+  {
+    _voxel_size = width_cm;
+    _define_voxels();
+  }
+
+  /**
    * @brief get the voxel bin along one of the dimensions
    *
    * @param[in] axis Dimension we want
@@ -241,6 +251,36 @@ namespace voxelizer {
     }
     std::cout << "  made coord array" << std::endl;
 
+    // voxel feature array: charge on planes, taking mean
+    npy_intp* feat_dims = new npy_intp[2];
+    feat_dims[0] = (int)nvidx;
+    feat_dims[1] = (int)3;
+    PyArrayObject* feat_array = (PyArrayObject*)PyArray_SimpleNew( 2, feat_dims, NPY_FLOAT );
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+
+      // ave plane charge of spacepoints associated to this voxel
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      std::vector<float> pixsum_v(3,0.0);
+      std::vector<int> npix_v(3,0);
+      for ( auto const& tripidx : tripidx_v ) {
+	auto const& tripindices = triplet_data._triplet_v[tripidx];
+	for (int p=0; p<3; p++) {
+	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
+	  pixsum_v[p] += pixdata.val;
+	  npix_v[p]++;
+	}
+      }
+      for (int p=0; p<3; p++) {
+	if (npix_v[p]>0) {
+	  *((float*)PyArray_GETPTR2( feat_array, (int)vidx, p)) = pixsum_v[p]/float(npix_v[p]);
+	}
+	else {
+	  *((float*)PyArray_GETPTR2( feat_array, (int)vidx, p)) = 0.0;
+	}
+      }
+    }
+
     // the voxel truth label
     bool has_truth = triplet_data._truth_v.size()==triplet_data._triplet_v.size();
     npy_intp* vlabel_dims = new npy_intp[1];
@@ -292,31 +332,36 @@ namespace voxelizer {
       if (err!=0 ) {
         throw std::runtime_error("Error putting voxel's triplet list to pylist");
       }
-      Py_DECREF( array );
+      //Py_DECREF( array );
     }
     std::cout << "  made voxel-index to triplet-list list" << std::endl;        
 
     // the dictionary
     PyObject *d = PyDict_New();
     PyObject *key_coord     = Py_BuildValue("s", "voxcoord" );
+    PyObject *key_feat      = Py_BuildValue("s", "voxfeat" );    
     PyObject *key_label     = Py_BuildValue("s", "voxlabel" );
     PyObject *key_trip2vidx = Py_BuildValue("s", "trip2vidx" );
     PyObject *key_vox2trips = Py_BuildValue("s", "vox2trips_list" );
 
     PyDict_SetItem( d, key_coord, (PyObject*)coord_array );
+    PyDict_SetItem( d, key_feat, (PyObject*)feat_array );    
     PyDict_SetItem( d, key_label, (PyObject*)vlabel_array );
     PyDict_SetItem( d, key_trip2vidx, (PyObject*)trip2vidx_array );
     PyDict_SetItem( d, key_vox2trips, (PyObject*)tripidx_pylist );
 
     std::cout << "  dereference" << std::endl;
     Py_DECREF( key_coord );
+    Py_DECREF( key_feat );    
     Py_DECREF( key_label );
     Py_DECREF( key_trip2vidx );
     Py_DECREF( key_vox2trips );
-    // Py_DECREF( coord_array );
-    // Py_DECREF( vlabel_array );
-    // Py_DECREF( trip2vidx_array );
-    // Py_DECREF( tripidx_pylist );
+
+    Py_DECREF( coord_array );
+    Py_DECREF( feat_array );    
+    Py_DECREF( vlabel_array );
+    Py_DECREF( trip2vidx_array );
+    Py_DECREF( tripidx_pylist );
     
     return d;
   }
