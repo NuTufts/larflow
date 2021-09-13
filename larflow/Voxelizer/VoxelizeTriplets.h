@@ -14,6 +14,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/KeyPoints/LoaderKeypointData.h"
 
 namespace larflow {
 namespace voxelizer {
@@ -76,7 +77,10 @@ namespace voxelizer {
     
     void make_voxeldata( const larflow::prep::PrepMatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict( const larflow::prep::PrepMatchTriplets& triplet_data );
-    PyObject* make_voxeldata_dict();    
+    PyObject* make_voxeldata_dict();
+
+    PyObject* make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data );
+    PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
 
     /** @brief get the number of total voxels */   
     const std::vector<int>& get_nvoxels() const  { return _nvoxels; };

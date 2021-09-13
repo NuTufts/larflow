@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "larlite/LArUtil/LArProperties.h"
+#include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
 
 namespace larflow {
 namespace voxelizer {
@@ -439,6 +440,74 @@ namespace voxelizer {
     return indices;
   }
 
+  /**
+   * @brief make voxel labels for ssnet
+   */
+  PyObject* VoxelizeTriplets::make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    int nvidx = (int)_voxel_set.size();
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* ssnet_dims = new npy_intp[2];
+    ssnet_dims[0] = (int)nvidx;
+    ssnet_dims[1] = (int)1;
+    PyArrayObject* ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 2, ssnet_dims, NPY_LONG );
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+
+      // find class label with most (background) triplets
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
+      for ( auto const& tripidx : tripidx_v ) {
+	int triplet_label = data.ssnet_label_v->at(tripidx);
+	if ( triplet_label>=0 && triplet_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
+	  nclass[triplet_label]++;
+      }
+      int max_class = -1;
+      int max_class_n = 0;
+      for (int iclass=0; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+	if ( nclass[iclass]>max_class_n ) {
+	  max_class = iclass;
+	  max_class_n = nclass[iclass];
+	}
+      }
+
+      if (max_class>=0 )
+	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = max_class;
+      else
+	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = 0;
+      
+    }
+
+    std::cout << "  made ssnet truth array" << std::endl;
+    return (PyObject*)ssnet_array;
+    
+  }
+
+  /**
+   * @brief get full label set for voxels
+   */
+  PyObject* VoxelizeTriplets::get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data )
+  {
+    // get larmatch voxels and truth labels
+    PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( data.triplet_v->at(0) );
+    PyObject *ssnet_label_key = Py_BuildValue("s", "ssnet_labels" );
+    PyObject* ssnet_array = make_ssnet_voxel_labels( data );
+    PyDict_SetItem(larmatch_dict, ssnet_label_key, (PyObject*)ssnet_array);
+
+    Py_DECREF(ssnet_label_key);
+    Py_DECREF(ssnet_array);
+
+    return larmatch_dict;
+  }
 
 }
 }

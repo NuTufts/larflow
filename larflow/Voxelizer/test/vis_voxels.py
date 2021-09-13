@@ -27,12 +27,20 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","charge-3plane"]
+color_by_options = ["larmatch","charge-3plane","ssnet-class"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
+ssnetcolor = {0:np.array((0,0,0)),     # bg
+              1:np.array((255,0,0)),   # electron
+              2:np.array((0,255,0)),   # gamma
+              3:np.array((0,0,255)),   # muon
+              4:np.array((255,0,255)), # pion
+              5:np.array((0,255,255)), # proton
+              6:np.array((255,255,0))} # other
+    
 # LOAD TREES
 infile = rt.TFile(args.input_file)
 if not args.from_triplet:
@@ -41,6 +49,10 @@ else:
     io = infile.Get("larmatchtriplet")
 nentries = io.GetEntries()
 print("NENTRIES: ",nentries)
+# LoaderKeypointData: we'll use this as it loads up triplet and sset data
+infile_v = rt.std.vector("string")()
+infile_v.push_back( args.input_file )
+kploader = larflow.keypoints.LoaderKeypointData( infile_v )
     
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
@@ -55,6 +67,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     global io
 
     nbytes = io.GetEntry(entry)
+    kploader.load_entry(entry)
     
     detdata = lardly.DetectorOutline()
 
@@ -66,8 +79,8 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         origin_y = io.data_v[0].get_origin()[1]
         origin_z = io.data_v[0].get_origin()[2]
     else:
-        algo.make_voxeldata( io.triplet_v[0] )
-        data = algo.make_voxeldata_dict( io.triplet_v[0] )
+        algo.make_voxeldata( kploader.triplet_v[0] )
+        data = algo.get_full_voxel_labelset_dict( kploader )
         origin_x = algo.get_origin()[0]
         origin_y = algo.get_origin()[1]
         origin_z = algo.get_origin()[2]      
@@ -82,6 +95,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         colorarr = data["voxlabel"]
     elif plotby=="charge-3plane":
         colorarr = np.clip( data["voxfeat"]/40.0, 0, 4.0 )*254/4.0
+    elif plotby=="ssnet-class":
+        colorarr = np.zeros( (data["voxcoord"].shape[0],3 ) )
+        for i in range( data["voxcoord"].shape[0] ):
+            colorarr[i,:] = ssnetcolor[ data["ssnet_labels"][i,0] ]
     
     # 3D trace
     voxtrace = {
@@ -94,7 +111,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         "marker":{"color":colorarr,
                   "size":1,
                   "opacity":0.5}}
-    if plotby=="larmatch":
+    if plotby in ["larmatch"]:
         voxtrace["marker"]["colorscale"] = "Viridis"
     
     traces_v.append( voxtrace )
