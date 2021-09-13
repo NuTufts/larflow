@@ -21,7 +21,7 @@ print(model)
 if False:
     sys.exit(0)
     
-test = larennetDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"], voxelize=True, voxelsize_cm=0.5 )
+test = larennetDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"], voxelize=True, voxelsize_cm=1.0 )
 print("NENTRIES: ",len(test))
 
 loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larennetDataset.collate_fn)

@@ -51,6 +51,7 @@ class LArMatchVoxel(nn.Module):
             
         self.stem = nn.Sequential(stem_layers)
         self.unet = MinkUNet34B(stem_features,stem_features,D=dimension)
+        self.dropout = ME.MinkowskiDropout()
 
         # classifier
         final_vec_nfeats = stem_features
@@ -117,6 +118,7 @@ class LArMatchVoxel(nn.Module):
     def forward(self,xinput):
         x   = self.stem(xinput)
         x   = self.unet(x)
+        x   = self.dropout(x)
         out = self.lm_classifier( x )
         return out
 
