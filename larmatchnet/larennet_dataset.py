@@ -103,6 +103,7 @@ class larennetDataset(torch.utils.data.Dataset):
 
             matchdata = {"spacepoint_t":pos,
                          "truetriplet_t":voxdata["voxlabel"]}
+            data.update(voxdata)
         
         # add the contents to the data dictionary
         data.update(matchdata)

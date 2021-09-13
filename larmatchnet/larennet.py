@@ -17,7 +17,7 @@ class LArEnnet(torch.nn.Module):
         self.irreps_sh     = o3.Irreps.spherical_harmonics(lmax=2)
         self.num_basis     = 3
         self.max_radius    = 3.0
-        self.num_core_layers = 5
+        self.num_core_layers = 3
         self.device = device
 
         # define the tensor product

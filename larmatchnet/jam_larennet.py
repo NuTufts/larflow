@@ -36,35 +36,39 @@ optimizer = torch.optim.Adam(model.parameters(),
                              lr=LR,
                              weight_decay=1.0e-4)
 
-NITERS = 1000
+NITERS = 5000
+
+data = next(iter(loader))
+print(data[0].keys())
+    
+print("spacepoints: ",data[0]["spacepoint_t"].shape)
+spt = data[0]["spacepoint_t"]
+truth = data[0]["truetriplet_t"]
+# reduce
+truth = truth[ spt[:,2]<256 ]
+spt = spt[ spt[:,2]<256 ]
+
+truth = truth[ spt[:,0]>0 ]
+spt = spt[ spt[:,0]>0 ]
+
+truth = truth[ spt[:,0]<256 ]
+spt = spt[ spt[:,0]<256 ]
+
+pos = torch.from_numpy( spt[:,0:3] )
+pix = torch.from_numpy( spt[:,3:] )
+mean_pix = pix.mean()
+pix -= mean_pix
+tru = torch.from_numpy( truth ).to(device)
+print("pos: ",pos.shape," ",pos[:10])
+print("pix: ",pix.shape," ",pix[:10])
+print("tru: ",tru.shape)
+print("[enter] to continue")
+if True:
+    input()
+
 
 for iiter in range(NITERS):
     optimizer.zero_grad()    
-    data = next(iter(loader))
-    print(data[0].keys())
-    
-    print("spacepoints: ",data[0]["spacepoint_t"].shape)
-    spt = data[0]["spacepoint_t"]
-    truth = data[0]["truetriplet_t"]
-    # reduce
-    truth = truth[ spt[:,2]<256 ]
-    spt = spt[ spt[:,2]<256 ]
-
-    truth = truth[ spt[:,0]>0 ]
-    spt = spt[ spt[:,0]>0 ]
-
-    truth = truth[ spt[:,0]<256 ]
-    spt = spt[ spt[:,0]<256 ]
-    
-    pos = torch.from_numpy( spt[:,0:3] )
-    pix = torch.from_numpy( spt[:,3:] )
-    tru = torch.from_numpy( truth ).to(device)
-    print("pos: ",pos.shape," ",pos[:10])
-    print("pix: ",pix.shape," ",pix[:10])
-    print("tru: ",tru.shape)
-    print("[enter] to continue")
-    if False:
-        input()
 
     out = model(pos,pix)
     #print("out: ",out.shape,out.requires_grad)
