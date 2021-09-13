@@ -81,6 +81,11 @@ namespace voxelizer {
 
     PyObject* make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data );
     PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
+    int make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
+			     PyArrayObject* match_array,
+			     PyArrayObject*& kplabel_label,
+			     PyArrayObject*& kplabel_weight );
+    
 
     /** @brief get the number of total voxels */   
     const std::vector<int>& get_nvoxels() const  { return _nvoxels; };

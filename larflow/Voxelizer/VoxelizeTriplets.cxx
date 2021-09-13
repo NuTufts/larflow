@@ -473,14 +473,14 @@ namespace voxelizer {
       }
       int max_class = -1;
       int max_class_n = 0;
-      for (int iclass=0; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+      for (int iclass=1; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
 	if ( nclass[iclass]>max_class_n ) {
 	  max_class = iclass;
 	  max_class_n = nclass[iclass];
 	}
       }
 
-      if (max_class>=0 )
+      if (max_class>0 && max_class_n>=nclass[0] )
 	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = max_class;
       else
 	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = 0;
@@ -494,20 +494,169 @@ namespace voxelizer {
 
   /**
    * @brief get full label set for voxels
+   * @param data Class holding the triplet data and truth labels loaded inside
+   * @return dictionary with numpy arrays
    */
   PyObject* VoxelizeTriplets::get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data )
   {
     // get larmatch voxels and truth labels
     PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( data.triplet_v->at(0) );
+    
     PyObject *ssnet_label_key = Py_BuildValue("s", "ssnet_labels" );
     PyObject* ssnet_array = make_ssnet_voxel_labels( data );
     PyDict_SetItem(larmatch_dict, ssnet_label_key, (PyObject*)ssnet_array);
 
+    PyArrayObject* larmatch_labels = (PyArrayObject*)PyDict_GetItemString( larmatch_dict, "voxlabel" );
+    PyArrayObject* kplabel  = nullptr;
+    PyArrayObject* kpweight = nullptr;
+    make_kplabel_arrays( data, larmatch_labels, kplabel, kpweight );
+    PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
+    PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
+    //PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );    
+
     Py_DECREF(ssnet_label_key);
     Py_DECREF(ssnet_array);
+    Py_DECREF(kp_label_key);
+    Py_DECREF(kplabel);
 
     return larmatch_dict;
   }
 
+  /**
+   * @brief make keypoint ground truth numpy arrays
+   *
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[out] pos_match_index vector index in return samples for space points which are true/good
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] kplabel_array numpy array containing ssnet class labels for each spacepoint
+   * @param[out] kplabel_weight numpy array containing weight for each spacepoint
+   * @return always returns 0  
+   */
+  int VoxelizeTriplets::make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
+					     PyArrayObject* larmatch_label_array,
+					     PyArrayObject*& kplabel_array,
+					     PyArrayObject*& kplabel_weight )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    int nvidx = (int)_voxel_set.size();
+    int nclasses = 6; //number of keypoint classes    
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* kplabel_dims = new npy_intp[2];
+    kplabel_dims[0] = (int)nvidx;
+    kplabel_dims[1] = (int)nclasses;
+    kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
+
+    /// ------- ///
+    
+    float sigma = 10.0; // cm
+    float sigma2 = sigma*sigma; // cm^2
+
+    std::vector<int> npos(nclasses,0);
+    std::vector<int> nneg(nclasses,0);
+
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index, index in the array we are filling
+      const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
+
+      std::vector<float> vox_center(3,0);
+      for (int i=0; i<3; i++)
+	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
+
+      //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
+
+      long larmatch_truth_label = 1.0;
+      if ( larmatch_label_array!=NULL )
+	larmatch_truth_label = *((long*)PyArray_GETPTR1(larmatch_label_array,vidx));
+	  
+      // for each class, calculate distance to closest true keypoint
+      // use smallest label
+      for (int c=0; c<6; c++) {
+
+	if ( larmatch_truth_label==0 ) {
+	  *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	  nneg[c]++;
+	  continue;
+	}
+	
+	const std::vector< std::vector<float> >& pos_v = *(data.kppos_v[c]);
+	int nkp = pos_v.size();
+	float min_dist_kp = 1.0e9;
+	int   max_kp_idx = -1;
+	for (int ikp=0; ikp<nkp; ikp++) {
+	  const std::vector<float>& pos = pos_v[ikp];
+	  float dist = 0;
+	  for (int i=0; i<3; i++)
+	    dist += ( pos[i]-vox_center[i] )*( pos[i]-vox_center[i] );
+	  if ( dist<min_dist_kp ) {
+	    min_dist_kp = dist;
+	    max_kp_idx = ikp;
+	  }
+	  // if ( c==0 ) {
+	  //   std::cout << "  true kp[" << ikp << "]: (" << pos[0] << "," << pos[1] << "," << pos[2] << ") dist=" << sqrt(dist) << std::endl;
+	  // }	 	  
+	}
+
+	// label for pixel
+	if ( max_kp_idx>=0 ) {
+	  float labelscore = exp(-min_dist_kp/sigma2);
+	  if (labelscore>0.05 ) {
+	    *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = labelscore;
+	    npos[c]++;	    
+	  }
+	  else {
+	    *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	    nneg[c]++;	    
+	  }
+	}
+	else {
+	  *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	  nneg[c]++;
+	}
+      }
+    }//end of voxel list
+	
+    // weights to balance positive and negative examples
+    // int kpweight_nd = 2;
+    // npy_intp kpweight_dims[] = { (long)pos_match_index.size(), nclasses };
+    // if ( !_exclude_neg_examples )
+    //   kpweight_dims[0] = num_max_samples;
+    // kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
+
+    // for (int c=0; c<nclasses; c++ ) {
+    //   float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+    //   float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+    //   float w_norm = w_pos*npos[c] + w_neg*nneg[c];
+
+    //   //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+    
+    //   for (int i=0; i<kpweight_dims[0]; i++ ) {
+    //     // sample array index
+    //     int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
+    //     // triplet index
+    //     long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
+    //     // hard label
+    //     long label = kplabel_v[c]->at( index )[0];
+    //     if (label==1) {
+    //       *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
+    //     }
+    //     else {
+    //       *((float*)PyArray_GETPTR2(kplabel_weight,i,c))  = w_neg/w_norm;
+    //     }
+    //   }
+    // }//end of class loop
+
+    return 0;
+  }
+  
 }
 }

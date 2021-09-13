@@ -27,7 +27,8 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","charge-3plane","ssnet-class"]
+color_by_options = ["larmatch","charge-3plane","ssnet-class",
+                    "kp-nu","kp-trackstart","kp-trackend","kp-shower","kp-delta","kp-michel"]
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
@@ -91,6 +92,8 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     data["voxcoord"][:,2] += origin_z/args.voxel_size
     data["voxcoord"] *= args.voxel_size
 
+    print(data["kplabel"].shape)
+
     if plotby=="larmatch":
         colorarr = data["voxlabel"]
     elif plotby=="charge-3plane":
@@ -99,6 +102,21 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         colorarr = np.zeros( (data["voxcoord"].shape[0],3 ) )
         for i in range( data["voxcoord"].shape[0] ):
             colorarr[i,:] = ssnetcolor[ data["ssnet_labels"][i,0] ]
+    elif plotby=="kp-nu":
+        colorarr = data["kplabel"][:,0]
+    elif plotby=="kp-trackstart":
+        colorarr = data["kplabel"][:,1]
+    elif plotby=="kp-trackend":
+        colorarr = data["kplabel"][:,2]
+    elif plotby=="kp-shower":
+        colorarr = data["kplabel"][:,3]
+    elif plotby=="kp-michel":
+        colorarr = data["kplabel"][:,4]
+    elif plotby=="kp-delta":
+        colorarr = data["kplabel"][:,5]
+
+    if "kp-" in plotby:
+        print("max-score: ",colorarr.max())
     
     # 3D trace
     voxtrace = {
@@ -111,7 +129,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         "marker":{"color":colorarr,
                   "size":1,
                   "opacity":0.5}}
-    if plotby in ["larmatch"]:
+    if plotby in ["larmatch"] or "kp-" in plotby:
         voxtrace["marker"]["colorscale"] = "Viridis"
     
     traces_v.append( voxtrace )

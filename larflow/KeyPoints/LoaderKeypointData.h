@@ -65,6 +65,7 @@ namespace keypoints {
 
     std::vector<larflow::prep::PrepMatchTriplets>* triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
     std::vector< std::vector<float> >*       kplabel_v[6];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
+    std::vector< std::vector<float> >*       kppos_v[6];      ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree    
     std::vector< std::vector<float> >*       kpshift_v;       ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
     std::vector< int   >*                    ssnet_label_v;   ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
     std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree

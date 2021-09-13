@@ -85,7 +85,7 @@ namespace keypoints {
    * - _kpd_v vector of KPdata class which holds info on ground truth keypoints
    * - _match_proposal_labels_v[3] For each keypoint type (total 3), hold a vector of floats for every 3D spacepoint proposal
    *                               There will be a vector<float> for each triplet in PrepMatchTriplet::_triplet_v
-   * - _kppos_v[3] For each keypoint type (total 3), store 3D position for each ground truth keypoint identified
+   * - _kppos_v[6] For each keypoint type (total 3), store 3D position for each ground truth keypoint identified
    *
    * 
    *
