@@ -182,10 +182,10 @@ namespace voxelizer {
     }
     int nvidx = idx;    
 
-    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
-              << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
-              << " fillfrac=" << float(nvidx)/((float)_nvoxels[0]*(float)_nvoxels[1]*(float)_nvoxels[2])*100.0 << "%"
-              << std::endl;
+    // std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
+    //           << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
+    //           << " fillfrac=" << float(nvidx)/((float)_nvoxels[0]*(float)_nvoxels[1]*(float)_nvoxels[2])*100.0 << "%"
+    //           << std::endl;
 
     // assign triplets to voxels and vice versa
     _voxelidx_to_tripidxlist.clear();
@@ -250,7 +250,7 @@ namespace voxelizer {
       for (int j=0; j<_ndims; j++)
         *((long*)PyArray_GETPTR2( coord_array, (int)vidx, j)) = (long)coord[j];
     }
-    std::cout << "  made coord array" << std::endl;
+    //std::cout << "  made coord array" << std::endl;
 
     // voxel feature array: charge on planes, taking mean
     npy_intp* feat_dims = new npy_intp[2];
@@ -305,7 +305,29 @@ namespace voxelizer {
       }
       *((long*)PyArray_GETPTR1( vlabel_array, vidx )) = truthlabel;
     }
-    std::cout << "  made truth array" << std::endl;    
+    //std::cout << "  made truth array, ntrue=" << num_true_voxels << std::endl;
+
+    // weights
+    npy_intp* lmweight_dims = new npy_intp[1];
+    lmweight_dims[0] = (int)nvidx;
+    PyArrayObject* lmweight_array = (PyArrayObject*)PyArray_SimpleNew( 1, lmweight_dims, NPY_FLOAT );
+    float frac_pos = (float)num_true_voxels/(float)nvidx;
+    float frac_neg = 1.0-frac_pos;
+    float w_neg = 1.0/frac_neg;
+    float w_pos = 1.0/frac_pos;
+    float w_norm = (float)num_true_voxels*w_pos + (float)(nvidx-num_true_voxels)*w_neg;
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second;
+      long truthlabel = *((long*)PyArray_GETPTR1( vlabel_array, vidx ));
+
+      if ( truthlabel )
+	*((float*)PyArray_GETPTR1( lmweight_array, vidx )) = w_pos/w_norm;
+      else
+	*((float*)PyArray_GETPTR1( lmweight_array, vidx )) = w_neg/w_norm;
+    }
+    //std::cout << "  made weight array: f_pos=" << w_pos/w_norm << " f_neg=" << w_neg/w_norm << std::endl;
+    
+    
 
     // the triplet to voxel index array
     npy_intp* trip2vidx_dims = new npy_intp[1];
@@ -314,7 +336,7 @@ namespace voxelizer {
     for (int itriplet=0; itriplet<(int)_trip2voxelidx.size(); itriplet++ ) {
       *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)_trip2voxelidx[itriplet];
     }
-    std::cout << "  made triplet-to-voxelindex array" << std::endl;    
+    //std::cout << "  made triplet-to-voxelindex array" << std::endl;    
 
     // finally the list of triplet indices for each voxel
     PyObject* tripidx_pylist = PyList_New( nvidx );
@@ -335,7 +357,7 @@ namespace voxelizer {
       }
       //Py_DECREF( array );
     }
-    std::cout << "  made voxel-index to triplet-list list" << std::endl;        
+    //std::cout << "  made voxel-index to triplet-list list" << std::endl;        
 
     // the dictionary
     PyObject *d = PyDict_New();
@@ -344,25 +366,29 @@ namespace voxelizer {
     PyObject *key_label     = Py_BuildValue("s", "voxlabel" );
     PyObject *key_trip2vidx = Py_BuildValue("s", "trip2vidx" );
     PyObject *key_vox2trips = Py_BuildValue("s", "vox2trips_list" );
+    PyObject *key_lmweight  = Py_BuildValue("s", "voxlmweight" );    
 
     PyDict_SetItem( d, key_coord, (PyObject*)coord_array );
     PyDict_SetItem( d, key_feat, (PyObject*)feat_array );    
     PyDict_SetItem( d, key_label, (PyObject*)vlabel_array );
     PyDict_SetItem( d, key_trip2vidx, (PyObject*)trip2vidx_array );
     PyDict_SetItem( d, key_vox2trips, (PyObject*)tripidx_pylist );
+    PyDict_SetItem( d, key_lmweight, (PyObject*)lmweight_array );
 
-    std::cout << "  dereference" << std::endl;
+    //std::cout << "  dereference" << std::endl;
     Py_DECREF( key_coord );
     Py_DECREF( key_feat );    
     Py_DECREF( key_label );
     Py_DECREF( key_trip2vidx );
     Py_DECREF( key_vox2trips );
+    Py_DECREF( key_lmweight );
 
     Py_DECREF( coord_array );
     Py_DECREF( feat_array );    
     Py_DECREF( vlabel_array );
     Py_DECREF( trip2vidx_array );
     Py_DECREF( tripidx_pylist );
+    Py_DECREF( lmweight_array );
     
     return d;
   }
@@ -487,7 +513,7 @@ namespace voxelizer {
       
     }
 
-    std::cout << "  made ssnet truth array" << std::endl;
+    //std::cout << "  made ssnet truth array" << std::endl;
     return (PyObject*)ssnet_array;
     
   }

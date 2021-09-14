@@ -7,6 +7,8 @@ import sparseconvnet as scn
 import MinkowskiEngine as ME
 from resnetinstance_block import BasicBlockInstanceNorm
 from minkunet import MinkUNet34B
+from larmatch_ssnet_classifier import LArMatchSSNetClassifier
+from larmatch_keypoint_classifier import LArMatchKeypointClassifier
 
 class LArMatchVoxel(nn.Module):
 
@@ -15,7 +17,9 @@ class LArMatchVoxel(nn.Module):
                  num_scales=4,
                  num_layers_per_scale=4,
                  features_per_scale=[16,16,32,64],
-                 classifier_nfeatures=[32,32] ):
+                 classifier_nfeatures=[32,32],
+                 run_ssnet=True,
+                 run_kplabel=True):
         """
         parameters
         -----------
@@ -53,7 +57,7 @@ class LArMatchVoxel(nn.Module):
         self.unet = MinkUNet34B(stem_features,stem_features,D=dimension)
         self.dropout = ME.MinkowskiDropout()
 
-        # classifier
+        # larmatch classifier
         final_vec_nfeats = stem_features
         lm_class_layers = OrderedDict()
         for i,nfeat in enumerate(classifier_nfeatures):
@@ -65,6 +69,16 @@ class LArMatchVoxel(nn.Module):
             lm_class_layers["lmclassifier_relu%d"%(i)] = ME.MinkowskiReLU(inplace=True)
         lm_class_layers["lmclassifier_out"] = ME.MinkowskiConvolution( classifier_nfeatures[-1], 2, kernel_size=1, stride=1, dimension=dimension )
         self.lm_classifier = nn.Sequential( lm_class_layers )
+
+        # ssnet
+        self.run_ssnet = run_ssnet
+        if self.run_ssnet:
+            self.ssnet_classifier = LArMatchSSNetClassifier(ninput_planes=1,features_per_layer=final_vec_nfeats)
+
+        # keypoint
+        self.run_kplabel = run_kplabel
+        if self.run_kplabel:
+            self.kplabel_classifier = LArMatchKeypointClassifier(ninput_planes=1,features_per_layer=final_vec_nfeats)
 
     def init_weights(self):
         for n,layers in enumerate(self.scale_layers):
@@ -119,8 +133,17 @@ class LArMatchVoxel(nn.Module):
         x   = self.stem(xinput)
         x   = self.unet(x)
         x   = self.dropout(x)
-        out = self.lm_classifier( x )
-        return out
+        lm_out = self.lm_classifier( x )
+        if self.run_ssnet:
+            ssnet_out = self.ssnet_classifier( x.F.transpose(1,0).unsqueeze(0) )
+        else:
+            ssnet_out = None
+
+        if self.run_kplabel:
+            kplabel_out = self.kplabel_classifier( x.F.transpose(1,0).unsqueeze(0) )
+        else:
+            kplabel_out = None
+        return {"larmatch":lm_out,"ssnet":ssnet_out,"kplabel":kplabel_out}
 
     def forward_pool_pyramid(self,xinput):
         xinput_last = xinput

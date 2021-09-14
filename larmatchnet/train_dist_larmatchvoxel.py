@@ -48,14 +48,14 @@ def run(gpu, args ):
     dist.init_process_group(                                   
     	#backend='nccl',
         backend='gloo',        
-   	#init_method='env://',
-        init_method='file:///tmp/sharedfile',
+   	init_method='env://',
+        #init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
     	rank=rank,
         timeout=datetime.timedelta(0, 1800)
     )
     #========================================================
-    torch.manual_seed(gpu)
+    torch.manual_seed(0)
 
     config = larvoxel_engine.load_config_file( args )
 
@@ -144,24 +144,32 @@ def run(gpu, args ):
                 # larmatch
                 acc_scalars = {}
                 for accname in larvoxel_engine.LM_CLASS_NAMES:
-                    acc_scalars[accname] = acc_meters[accname].avg
+                    if acc_meters[accname].count>0:
+                        acc_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
 
                 # ssnet
                 ssnet_scalars = {}
                 for accname in larvoxel_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
-                    ssnet_scalars[accname] = acc_meters[accname].avg
+                    if acc_meters[accname].count>0:                    
+                        ssnet_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                 
                 # keypoint
                 kp_scalars = {}
                 for accname in larvoxel_engine.KP_CLASS_NAMES:
-                    kp_scalars[accname] = acc_meters[accname].avg
+                    if acc_meters[accname].count>0:                                        
+                        kp_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                 
                 # paf
                 paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
                 tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
+
+                # reset after storing values
+                for meters in [loss_meters,acc_meters,time_meters]:
+                    for i,m in meters.items():
+                        m.reset()
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:

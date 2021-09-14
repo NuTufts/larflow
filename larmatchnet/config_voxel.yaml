@@ -1,0 +1,40 @@
+# CONFIG FOR train_kps_larmath
+
+GPUMODE: True
+DEVICE: "cuda:0"
+RESUME_FROM_CHECKPOINT: False
+RESUME_OPTIM_FROM_CHECKPOINT:  False
+RUNPROFILER: False
+CHECKPOINT_FILE: "checkpoint.15000th.tar"
+RUN_SSNET: False
+RUN_KPLABEL: False
+TRAIN_VERBOSE: False
+FREEZE_LAYERS: []
+LEARNING_RATE: 1.0e-3
+WEIGHT_DECAY: 1.0e-4
+SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
+
+# TRAINING+VALIDATION DATA PATHS
+# ================================
+INPUT_TXTFILE_TRAIN: test_train.txt
+INPUT_TXTFILE_VALID: test_valid.txt
+
+# TRAINING PARAMETERS
+# =======================
+START_ITER: 0
+NUM_ITERATIONS: 100
+TRAIN_ITER_PER_RECORD: 1
+TRAIN_ITER_PER_VALIDPT: -10
+NUM_VALID_ITERS: 1
+
+BATCHSIZE_TRAIN: 1  # batches per training iteration
+BATCHSIZE_VALID: 1  # batches per validation iteration
+
+# CHECKPOINT PARAMETERS
+# =======================
+DEVICE_IDS: [0]
+# map multi-training weights 
+CHECKPOINT_MAP_LOCATIONS: None
+CHECKPOINT_FROM_DATA_PARALLEL: False
+ITER_PER_CHECKPOINT: 1000
+PREDICT_CLASSVEC: True

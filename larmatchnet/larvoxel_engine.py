@@ -155,7 +155,7 @@ def accuracy(match_pred_t, match_label_t,
         neg_correct = (match_pred.lt(0.5)*match_label_t.eq(0)).sum().to(torch.device("cpu")).item()
         npos = float(match_label_t.eq(1).sum().to(torch.device("cpu")).item())
         nneg = float(match_label_t.eq(0).sum().to(torch.device("cpu")).item())
-        print("larmatch npos=%d nneg=%d"%(npos,nneg))
+        #print("larmatch npos=%d nneg=%d"%(npos,nneg))
 
     acc_meters["lm_pos"].update( float(pos_correct)/npos )
     acc_meters["lm_neg"].update( float(neg_correct)/nneg )
@@ -187,7 +187,7 @@ def accuracy(match_pred_t, match_label_t,
         for c,kpname in enumerate(KP_CLASS_NAMES):
             kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
             kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
-            if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
+            #if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
             if kp_n_pos>0:
                 acc_meters[kpname].update( kp_pos/kp_n_pos )
 
@@ -210,7 +210,7 @@ def accuracy(match_pred_t, match_label_t,
         paf_npos  = paf_cos.shape[0]
         paf_ncorr = paf_cos.gt(0.94).sum().item()
         paf_acc = float(paf_ncorr)/float(paf_npos)
-        if verbose: print("paf: npos=",paf_npos," acc=",paf_acc)
+        #if verbose: print("paf: npos=",paf_npos," acc=",paf_acc)
         if paf_npos>0:
             acc_meters["paf"].update( paf_acc )
     
@@ -226,7 +226,11 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     dt_all = time.time()
     
     if is_train:
+        model_dict["larmatch"].train()
+        print("zero optimizer")
         optimizer.zero_grad()
+    else:
+        model_dict["larmatch"].eval()
 
     dt_io = time.time()
 
@@ -236,7 +240,8 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     feat    = torch.from_numpy( np.clip( data["voxfeat"]/40.0, 0, 10.0 ) ).to(device)
     truth   = torch.from_numpy( data["truetriplet_t"] ).to(device)
     ssnet   = torch.from_numpy( data["ssnet_labels"] ).to(device)
-    kplabel = torch.from_numpy( data["kplabel"] ).to(device)    
+    kplabel = torch.from_numpy( data["kplabel"] ).to(device)
+    #print("feat: ",feat.shape," ",feat[:10])    
     
     coords, feats = ME.utils.sparse_collate(coords=[coord], feats=[feat])
     xinput = ME.SparseTensor( features=feats, coordinates=coords.to(device) )    
@@ -253,8 +258,8 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     # use UNET portion to first get feature vectors
     pred_dict = model_dict["larmatch"]( xinput )
-    for name,arr in pred_dict.items():
-        if arr is not None: print(name," ",arr.shape)
+    #for name,arr in pred_dict.items():
+    #    if arr is not None: print(name," ",arr.shape)
     
     match_pred_t   = pred_dict["larmatch"]      
     ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
@@ -270,10 +275,11 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     kpshift_t      = None
     paf_label_t    = None
     truematch_idx_t = None
-    print("match label: ",match_label_t.shape)
-    print("ssnet label: ",ssnet_label_t.shape)
-    print("kp label: ",kp_label_t.shape)
-    print("voxlmweight: ",match_weight_t.shape)
+    #print("lm pred: ",match_pred_t.F[:10])
+    #print("match label: ",match_label_t.shape)
+    #print("ssnet label: ",ssnet_label_t.shape)
+    #print("kp label: ",kp_label_t.shape)
+    #print("voxlmweight: ",match_weight_t.shape)
     
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
@@ -286,6 +292,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                                                                    match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
                                                                    #match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
                                                                    match_weight_t, None, None, None,
+                                                                   #None, None, None, None,
                                                                    verbose=verbose )
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
@@ -305,6 +312,12 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
         #torch.nn.utils.clip_grad_norm_(model_dict["larmatch"].parameters(), 1.0)
         optimizer.step()
+
+        for name,p in model_dict["larmatch"].named_parameters():
+            if "lmclassifier_out" in name:
+                with torch.no_grad():
+                    print(name,": ",p.shape,torch.pow(p.grad,2).mean())
+        
     
         if config["RUNPROFILER"]:
             torch.cuda.synchronize()                
@@ -348,10 +361,16 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers ):
                                                                                                                              timers["data"].avg))
     print("  Losses: ")
     for name,meter in loss_meters.items():
-        print("    ",name,": ",meter.avg)
+        if meter.count>0:
+            print("    ",name,": ",meter.avg)
+        else:
+            print("    ",name,": NULL")            
     print("  Accuracies: ")
     for name,meter in acc_meters.items():
-        print("    ",name,": ",meter.avg)
+        if meter.count>0:
+            print("    ",name,": ",meter.avg)
+        else:
+            print("    ",name,": NULL")            
     print("------------------------------------------------------------------------")
     
     

@@ -64,15 +64,17 @@ class LArVoxelLoss(nn.Module):
             print("  pred num triplets: ",npairs)
             
         # convert int to float for subsequent calculations
-        fmatchlabel = larmatch_truth[:npairs].type(torch.float).requires_grad_(False)
+        fmatchlabel = larmatch_truth.type(torch.float).requires_grad_(False)
 
         if self.larmatch_use_focal_loss:
             # p_t for focal loss
             #print(larmatch_pred.shape, larmatch_pred)
-            p_t = torch.sigmoid( larmatch_pred.F )
+            p_t = self.larmatch_softmax( larmatch_pred.F )
             p_t = fmatchlabel*(p_t[:,1]+1.0e-6) + (1-fmatchlabel)*(p_t[:,0]+1.0e-6) # p if y==1; 1-p if y==0
+            #print("p_t: ",p_t.shape," ",p_t[:10])            
             if larmatch_weight is not None:
-                loss = (-larmatch_weight[:npairs]*torch.log( p_t )*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
+                larmatch_weight.requires_grad_(False)                
+                loss = (-larmatch_weight*torch.log( p_t )*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
             else:
                 loss = (-torch.log( p_t )*torch.pow( 1-p_t, self.focal_loss_gamma )).mean()
         else:
@@ -93,7 +95,7 @@ class LArVoxelLoss(nn.Module):
         sel_kplabel_pred = keypoint_score_pred
         sel_kplabel      = keypoint_score_truth
         if keypoint_weight is not None: sel_kpweight     = keypoint_weight
-        if verbose or True:
+        if verbose:
             print("  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred[:10])
             print("  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10])
             if keypoint_weight is not None: print("  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10])
