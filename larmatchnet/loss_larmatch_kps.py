@@ -2,6 +2,7 @@ from __future__ import print_function
 import os,sys
 import torch
 import torch.nn as nn
+from lovasz_losses import lovasz_softmax
 
 class SparseLArMatchKPSLoss(nn.Module):
     def __init__(self, eval_ssnet=False,
@@ -13,6 +14,10 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.eval_keypoint_label = eval_keypoint_label
         self.eval_keypoint_shift = eval_keypoint_shift
         self.eval_affinity_field = eval_affinity_field
+        self.larmatch_softmax = torch.nn.Softmax( dim=1 )
+        self.focal_loss_gamma = 2
+        self.larmatch_use_focal_loss = True
+        self.ssnet_use_lovasz_loss = True
         
     def forward(self, larmatch_pred, ssnet_pred, kplabel_pred, kpshift_pred, affinity_pred,
                 larmatch_label, ssnet_label, kp_label, kpshift_label, affinity_label,
@@ -29,7 +34,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         # SSNET
         if self.eval_ssnet:
             ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, truematch_index, verbose )
-            loss += 0.1*ssloss
+            loss += ssloss
             fssloss = ssloss.detach().item()
         else:
             fssloss = 0.0
@@ -75,10 +80,18 @@ class SparseLArMatchKPSLoss(nn.Module):
             
         # convert int to float for subsequent calculations
         fmatchlabel = larmatch_truth[:npairs].type(torch.float).requires_grad_(False)
-        
-        # calculate loss using binary cross entropy
-        bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )
-        loss      = (bce( larmatch_pred, fmatchlabel )*larmatch_weight[:npairs]).sum()
+
+        if self.larmatch_use_focal_loss:
+            # p_t for focal loss
+            #print(larmatch_pred.shape, larmatch_pred)
+            p_t = torch.sigmoid( larmatch_pred )
+            p_t = fmatchlabel*p_t + (1-fmatchlabel)*(1-p_t) # p if y==1; 1-p if y==0        
+            loss = (-larmatch_weight[:npairs]*torch.log( p_t )*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
+        else:
+            # calculate loss using binary cross entropy
+            bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )
+            loss      = (bce( larmatch_pred, fmatchlabel )*larmatch_weight[:npairs]).sum()
+            
         if verbose:
             lm_floss = loss.detach().item()            
             print("  loss-larmatch: ",lm_floss)
@@ -145,6 +158,7 @@ class SparseLArMatchKPSLoss(nn.Module):
                     truematch_index,
                     verbose=False):
         npairs = ssnet_pred.shape[0]
+        nclasses = ssnet_pred.shape[1]
         # only evalulate loss on pixels where true label
         if ssnet_truth.shape[0]!=ssnet_pred.shape[0]:
             raise RuntimeError("dont trust this mode of calculation right now")            
@@ -155,8 +169,15 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  sel_ssnet_pred: ",sel_ssnet_pred.shape)
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
+
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()
+        ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/20.0
+            
+        if self.ssnet_use_lovasz_loss:
+            ssnet_pred_x  = torch.transpose( sel_ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
+            ssnet_truth_y = ssnet_truth.reshape( (1,npairs,1) )
+            ssnet_loss += lovasz_softmax( ssnet_pred_x, ssnet_truth_y )
+            
         if verbose:
             ssnet_floss = ssnet_loss.detach().item()            
             print(" loss-ssnet: ",ssnet_floss)

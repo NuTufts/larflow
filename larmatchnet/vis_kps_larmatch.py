@@ -28,11 +28,31 @@ from dash.exceptions import PreventUpdate
 import lardly
 
 
-color_by_options = ["larmatch","ssn-bg","ssn-muon","ssn-electron","ssn-class","keypoint-nu","keypoint-track","keypoint-shower","flow-field"]
+color_by_options = ["larmatch",
+                    "ssn-bg",
+                    "ssn-muon",
+                    "ssn-electron",
+                    "ssn-gamma",                    
+                    "ssn-proton",
+                    "ssn-pion",                    
+                    "ssn-class",
+                    "keypoint-nu",
+                    "keypoint-track",
+                    "keypoint-shower",
+                    "flow-field"]
+
 colorscale = "Viridis"
 option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
+
+ssnetcolor = {0:np.array((0,0,0)),     # bg
+              1:np.array((255,0,0)),   # electron
+              2:np.array((0,255,0)),   # gamma
+              3:np.array((0,0,255)),   # muon
+              4:np.array((255,0,255)), # pion
+              5:np.array((0,255,255)), # proton
+              6:np.array((255,255,0))} # other
 
 # LOAD TREES
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
@@ -67,12 +87,24 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         hitindex = 10+larflow.prep.PrepSSNetTriplet.kMuon
     elif plotby=="ssn-electron":
         hitindex = 10+larflow.prep.PrepSSNetTriplet.kElectron
+    elif plotby=="ssn-gamma":
+        hitindex = 10+larflow.prep.PrepSSNetTriplet.kGamma
+    elif plotby=="ssn-proton":
+        hitindex = 10+larflow.prep.PrepSSNetTriplet.kProton
+    elif plotby=="ssn-pion":
+        hitindex = 10+larflow.prep.PrepSSNetTriplet.kPion
     elif plotby=="keypoint-nu":        
         hitindex = 17+0
-    elif plotby=="keypoint-track":
+    elif plotby=="keypoint-trackstart":
         hitindex = 17+1
+    elif plotby=="keypoint-trackend":
+        hitindex = 17+2
     elif plotby=="keypoint-shower":
         hitindex = 17+3
+    elif plotby=="keypoint-delta":
+        hitindex = 17+4
+    elif plotby=="keypoint-michel":
+        hitindex = 17+5
 
     detdata = lardly.DetectorOutline()
 
@@ -95,8 +127,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines(color=(0,0,0))
-    elif plotby in ["ssn-bg","ssn-muon","ssn-electron","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
-        xyz = np.zeros( (npoints,4 ) )
+    elif plotby in ["ssn-bg","ssn-muon","ssn-electron","ssn-gamma","ssn-proton","ssn-pion","ssn-other","ssn-class",
+                    "keypoint-nu","keypoint-trackstart","keypoint-trackend","keypoint-shower","keypoint-delta","keypoint-michel"]:
+        xyz = np.zeros( (npoints, 4) )
+        xcolor = np.zeros( (npoints,3) )
         ptsused = 0
         for ipt in range(npoints):
             hit = ev_lfhits.at(ipt)
@@ -109,13 +143,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             xyz[ptsused,2] = hit[2]
             if plotby=="ssn-class":
                 ssnet_scores = np.array( (hit[10],hit[11],hit[12],hit[13],hit[14],hit[15],hit[16]) )
-                #print(ssnet_scores)
                 idx = np.argmax( ssnet_scores )
-                #print(idx)
-                xyz[ptsused,3] = float(idx)/7.0
+                xcolor[ptsused,:] = ssnetcolor[idx]
             else:
                 xyz[ptsused,3] = hit[hitindex]
-            #print(xyz[ptsused,3])
             ptsused += 1
 
         print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
@@ -128,6 +159,10 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             "name":plotby,
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
+        if plotby=="ssn-class":
+            larflowhits["marker"]["color"] = xcolor
+            larflowhits["marker"].pop("colorscale")
+            
         #print(xyz[:ptsused,3])
         traces_v += [larflowhits]+detdata.getlines(color=(0,0,0))
     elif plotby in ["flow-field"]:
