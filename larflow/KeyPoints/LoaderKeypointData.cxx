@@ -50,8 +50,10 @@ namespace keypoints {
     std::cout << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
     
     triplet_v = 0;
-    for (int i=0; i<6; i++)
+    for (int i=0; i<6; i++) {
       kplabel_v[i] = 0;
+      kppos_v[i] = 0;
+    }
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
     
@@ -63,6 +65,13 @@ namespace keypoints {
     tkeypoint->SetBranchAddress("kplabel_showerstart",  &kplabel_v[3]);
     tkeypoint->SetBranchAddress("kplabel_showermichel", &kplabel_v[4]);
     tkeypoint->SetBranchAddress("kplabel_showerdelta",  &kplabel_v[5]);    
+
+    tkeypoint->SetBranchAddress("kppos_nuvertex",     &kppos_v[0]);
+    tkeypoint->SetBranchAddress("kppos_trackstart",   &kppos_v[1]);
+    tkeypoint->SetBranchAddress("kppos_trackend",     &kppos_v[2]);    
+    tkeypoint->SetBranchAddress("kppos_showerstart",  &kppos_v[3]);
+    tkeypoint->SetBranchAddress("kppos_showermichel", &kppos_v[4]);
+    tkeypoint->SetBranchAddress("kppos_showerdelta",  &kppos_v[5]);    
     
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );

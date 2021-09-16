@@ -153,7 +153,7 @@ namespace keypoints {
     int _subrun; ///< subrun ID number of event
     int _event;  ///< event ID number
     TTree* _label_tree; ///< ROOT TTree for storing labels
-    std::vector< std::vector<float> > _kppos_v[6]; ///< container of true keypoint 3D positions in cm, for each of the 3 classes
+    std::vector< std::vector<float> > _kppos_v[6]; ///< container of true keypoint 3D positions in cm, for each of the 6 classes
     //< we need to keep a list of primary pixels to limit the neutrino score field    
     //std::vector< std::set<std::pair<int,int> > >  _primarypixels_v; 
     

@@ -133,6 +133,8 @@ namespace prep {
 
     PyObject* get_all_triplet_data( const bool withtruth );
 
+    PyObject* make_spacepoint_charge_array();
+
     // Truth Info
     PyObject* make_triplet_ndarray( bool true_pt_only );
 

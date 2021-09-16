@@ -1298,6 +1298,94 @@ namespace prep {
     int nsamples = 0;
     return make_triplet_array( _triplet_v.size(), idx_v, 0, withtruth, nsamples );
   }
+
+  /**
+   * @brief Make ndarray using only true triplets
+   * 
+   * the dictionary contains the following:
+   * @verbatim embed:rst:leading-asterisk 
+   *  * `imgcoord_t`: (N,4) numpy array containing (col,col,col,row) in 2D dimension.
+   *  * `instance_t`: (N,1) instance labels. ID is the geant4 track id.
+   *  * `segment_t`:  (N,1) particle class labels. labels follow values in larcv/core/DataFormat/DataFormatTypes.h.
+   *  * `ancestor_t`: (N,1) ancestor labels. ID is the geant4 ancestor id (not yet implemented).
+   * @endverbatim
+   *
+   * @return dictionary with numpy arrays
+   */
+  PyObject* PrepMatchTriplets::make_spacepoint_charge_array()
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+
+    if ( _triplet_v.size()!=_pos_v.size() ) {
+      std::stringstream ss;
+      ss << "[PrepMatchTriplets::make_spacepoint_charge_array] "
+         << "pos=" << _pos_v.size() << ") "
+         << " do not match triplet_v size = " << _triplet_v.size()
+         << std::endl;
+      throw std::runtime_error( ss.str() );
+    }   
+
+    long int npts =  _triplet_v.size();
+    
+    // space point
+    npy_intp spacepoint_t_dim[] = { npts, 6 }; // (x,y,z,Q_u,Q_v,_Q_y)
+    PyArrayObject* spacepoint_t = (PyArrayObject*)PyArray_SimpleNew( 2, spacepoint_t_dim, NPY_FLOAT );
+    PyObject *spacepoint_t_key = Py_BuildValue("s", "spacepoint_t");
+
+    int ifilled = 0;
+    for (size_t itriplet=0; itriplet<npts; itriplet++) {
+      auto const& triplet = _triplet_v[itriplet];
+
+      // fill (x,y,z)
+      for (int i=0; i<3; i++)
+	*((float*)PyArray_GETPTR2(spacepoint_t,itriplet,i)) = _pos_v[itriplet][i];
+      for (int p=0; p<3; p++ ) {
+	*((float*)PyArray_GETPTR2(spacepoint_t,itriplet,3+p)) = _sparseimg_vv[p][triplet[p]].val;
+      }
+      ifilled++;
+    }
+
+    // Create and fill dictionary
+    PyObject *d = PyDict_New();
+    PyDict_SetItem(d, spacepoint_t_key, (PyObject*)spacepoint_t);
+    Py_DECREF( spacepoint_t );
+    Py_DECREF( spacepoint_t_key );
+    
+    // if we have it, provide truth label for triplets
+    int ntruepts = 0;
+    for (auto const& truth : _truth_v ) {
+      if ( truth ) ntruepts++;
+    }
+    std::cout << "[PrepMatchTriplets::make_spacepoint_charge_array] number of true points: " << ntruepts << std::endl;
+    
+    if (ntruepts>0) {
+      
+      if ( _truth_v.size() != _triplet_v.size() )  {
+	throw std::runtime_error("has truth, but truth vector different size than triplet vector");
+      }
+
+      npy_intp truth_t_dim[] = { (long int)npts };
+      PyArrayObject* truth_t = (PyArrayObject*)PyArray_SimpleNew( 1, truth_t_dim, NPY_LONG );
+      PyObject *truth_t_key = Py_BuildValue("s", "truetriplet_t");
+
+      for (size_t itriplet=0; itriplet<npts; itriplet++) {
+        *((long*)PyArray_GETPTR1( truth_t, itriplet )) = (long)_truth_v[itriplet];
+      }
+         
+      PyDict_SetItem(d, truth_t_key, (PyObject*)truth_t);     
+      Py_DECREF( truth_t );    
+      Py_DECREF( truth_t_key );
+      
+    }
+
+    return d;
+  }
+  
   
 }  
 }
