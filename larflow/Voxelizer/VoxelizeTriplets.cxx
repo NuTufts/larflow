@@ -469,7 +469,9 @@ namespace voxelizer {
   /**
    * @brief make voxel labels for ssnet
    */
-  PyObject* VoxelizeTriplets::make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data )
+  int VoxelizeTriplets::make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data,
+						 PyArrayObject*& ssnet_array,
+						 PyArrayObject*& ssnet_weight )
   {
 
     // ok now we can make the arrays
@@ -485,7 +487,9 @@ namespace voxelizer {
     npy_intp* ssnet_dims = new npy_intp[2];
     ssnet_dims[0] = (int)nvidx;
     ssnet_dims[1] = (int)1;
-    PyArrayObject* ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 2, ssnet_dims, NPY_LONG );
+    ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 2, ssnet_dims, NPY_LONG );
+
+    std::vector<int> vox_nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
     for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
@@ -506,16 +510,36 @@ namespace voxelizer {
 	}
       }
 
-      if (max_class>0 && max_class_n>=nclass[0] )
+      if (max_class>0 && max_class_n>0 ) {
 	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = max_class;
-      else
+	vox_nclass[max_class]++;
+      }
+      else {
 	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = 0;
+	vox_nclass[0]++;
+      }
       
     }
 
-    //std::cout << "  made ssnet truth array" << std::endl;
-    return (PyObject*)ssnet_array;
+    // weights
+    npy_intp* ssnet_weight_dims = new npy_intp[1];
+    ssnet_weight_dims[0] = (int)nvidx;
+    ssnet_weight = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_weight_dims, NPY_FLOAT );
+    std::vector<float> class_weight( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
+    float w_norm = larflow::prep::PrepSSNetTriplet::kNumClasses*nvidx;
+    for (int iclass=0; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+      float w_class = ( vox_nclass[iclass]>0 ) ? (float)nvidx/(float)vox_nclass[iclass]/w_norm : 0.;
+      class_weight[iclass] = w_class;
+    }
+
+    for (int ivdx=0; ivdx<nvidx; ivdx++) {
+      long iclass = *((long*)PyArray_GETPTR2( ssnet_array, (int)ivdx, 0));
+      *((float*)PyArray_GETPTR1( ssnet_weight, (int)ivdx)) = class_weight[iclass];
+    }
     
+    
+    //std::cout << "  made ssnet truth array" << std::endl;
+    return 0;
   }
 
   /**
@@ -528,9 +552,13 @@ namespace voxelizer {
     // get larmatch voxels and truth labels
     PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( data.triplet_v->at(0) );
     
-    PyObject *ssnet_label_key = Py_BuildValue("s", "ssnet_labels" );
-    PyObject* ssnet_array = make_ssnet_voxel_labels( data );
-    PyDict_SetItem(larmatch_dict, ssnet_label_key, (PyObject*)ssnet_array);
+    PyObject *ssnet_label_key  = Py_BuildValue("s", "ssnet_labels" );
+    PyObject *ssnet_weight_key = Py_BuildValue("s", "ssnet_weights" );    
+    PyArrayObject* ssnet_array  = nullptr;
+    PyArrayObject* ssnet_weight = nullptr;
+    make_ssnet_voxel_labels( data, ssnet_array, ssnet_weight );
+    PyDict_SetItem(larmatch_dict, ssnet_label_key,  (PyObject*)ssnet_array);
+    PyDict_SetItem(larmatch_dict, ssnet_weight_key, (PyObject*)ssnet_weight);    
 
     PyArrayObject* larmatch_labels = (PyArrayObject*)PyDict_GetItemString( larmatch_dict, "voxlabel" );
     PyArrayObject* kplabel  = nullptr;
@@ -538,12 +566,17 @@ namespace voxelizer {
     make_kplabel_arrays( data, larmatch_labels, kplabel, kpweight );
     PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
     PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
-    //PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );    
+    PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
+    PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );    
 
     Py_DECREF(ssnet_label_key);
+    Py_DECREF(ssnet_weight_key);
     Py_DECREF(ssnet_array);
+    Py_DECREF(ssnet_weight);
     Py_DECREF(kp_label_key);
+    Py_DECREF(kp_weight_key);
     Py_DECREF(kplabel);
+    Py_DECREF(kpweight);    
 
     return larmatch_dict;
   }
@@ -652,34 +685,34 @@ namespace voxelizer {
     }//end of voxel list
 	
     // weights to balance positive and negative examples
-    // int kpweight_nd = 2;
-    // npy_intp kpweight_dims[] = { (long)pos_match_index.size(), nclasses };
-    // if ( !_exclude_neg_examples )
-    //   kpweight_dims[0] = num_max_samples;
-    // kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
+    int kpweight_nd = 2;
+    npy_intp kpweight_dims[] = { nclasses, (long)nvidx };
+    kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
-    // for (int c=0; c<nclasses; c++ ) {
-    //   float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
-    //   float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
-    //   float w_norm = w_pos*npos[c] + w_neg*nneg[c];
+    for (int c=0; c<nclasses; c++ ) {
+      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+      float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
-    //   //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+      //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
     
-    //   for (int i=0; i<kpweight_dims[0]; i++ ) {
-    //     // sample array index
-    //     int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
-    //     // triplet index
-    //     long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-    //     // hard label
-    //     long label = kplabel_v[c]->at( index )[0];
-    //     if (label==1) {
-    //       *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
-    //     }
-    //     else {
-    //       *((float*)PyArray_GETPTR2(kplabel_weight,i,c))  = w_neg/w_norm;
-    //     }
-    //   }
-    // }//end of class loop
+      for (int i=0; i<kpweight_dims[1]; i++ ) {
+
+	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,i,c));
+	if ( labelscore>0.05 ) {
+	  if ( w_pos>0.0 )
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_pos/w_norm;
+	  else
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+	}
+	else {
+	  if ( w_neg>0.0 )
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_neg/w_norm;
+	  else
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+	}
+      }//end of class loop
+    }
 
     return 0;
   }

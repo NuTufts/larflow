@@ -114,7 +114,7 @@ def run(gpu, args ):
             train_iteration = config["START_ITER"] + iiter
             print("RANK-%d iteration=%d"%(rank,train_iteration))
             larvoxel_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
-                                             acc_meters,loss_meters,time_meters,True,device,verbose=None)
+                                             acc_meters,loss_meters,time_meters,True,device,verbose=config["LOSS_VERBOSE"])
 
             # periodic checkpoint
             if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
@@ -179,7 +179,7 @@ def run(gpu, args ):
                             larvoxel_engine.do_one_iteration(config,{"larmatch":single_model},
                                                              valid_loader,criterion,optimizer,
                                                              valid_acc_meters,valid_loss_meters,valid_time_meters,
-                                                             False,device,verbose=False)
+                                                             False,device,verbose=config["LOSS_VERBOSE"])
                     larvoxel_engine.prep_status_message( "Valid-Iteration", train_iteration,
                                                          valid_acc_meters,
                                                          valid_loss_meters,

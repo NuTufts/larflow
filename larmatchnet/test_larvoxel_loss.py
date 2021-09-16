@@ -8,8 +8,8 @@ import MinkowskiEngine as ME
 
 device=torch.device("cpu")
 
-criterion = LArVoxelLoss( eval_ssnet=False,
-                          eval_keypoint_label=False )
+criterion = LArVoxelLoss( eval_ssnet=True,
+                          eval_keypoint_label=True )
 
 filelist = ["larmatchtriplet_ana_trainingdata_testfile.root"]
 
@@ -45,26 +45,43 @@ match_weight_t = None
 
 # make perfect prediction
 perfect = torch.zeros( (match_label_t.shape[0],2) )
+perfect_ssnet = torch.zeros( (1,7,match_label_t.shape[0]) )
+perfect_kplabel = torch.zeros( (1,6,match_label_t.shape[0]) )
 # PERFECT
 if False:
     perfect[:,0][ match_label_t.eq(1) ] = -100.0
     perfect[:,1][ match_label_t.eq(1) ] = 100.0
     perfect[:,0][ match_label_t.eq(0) ] = 100.0
     perfect[:,1][ match_label_t.eq(0) ] = -100.0
+
+    for c in range(7):
+        perfect_ssnet[0,c,:][ ssnet_label_t[0,:]==c ] = 1.0
+        perfect_ssnet[0,c,:][ ssnet_label_t[0,:]!=c ] = -1.0
+
+    perfect_kplabel = kp_label_t
+    
 # ABSOLUTELY WRONG
-if True:
+if False:
     perfect[:,0][ match_label_t.eq(1) ] = 100.0
     perfect[:,1][ match_label_t.eq(1) ] = -100.0
     perfect[:,0][ match_label_t.eq(0) ] = -100.0
     perfect[:,1][ match_label_t.eq(0) ] = 100.0
+
+    for c in range(7):
+        perfect_ssnet[0,c,:][ ssnet_label_t[0,:]==c ] = -100.0
+        perfect_ssnet[0,c,:][ ssnet_label_t[0,:]!=c ] = (c+1)*10.0
+
+    perfect_kplabel = 1-kp_label_t
+    
 # UNSURE
 if True:
     perfect[:,0][ match_label_t.eq(1) ] = 0.0
     perfect[:,1][ match_label_t.eq(1) ] = 0.0
     perfect[:,0][ match_label_t.eq(0) ] = 0.0
     perfect[:,1][ match_label_t.eq(0) ] = 0.0
+    
 # ALL YES
-if True:
+if False:
     perfect[:,0] = -100
     perfect[:,1] = 100.0
 
@@ -75,7 +92,7 @@ print(match_label_t[-50:],match_label_t.sum())
 match_pred_t = ME.SparseTensor( features=perfect, coordinates=coord )    
 
 
-totloss,larmatch_loss,ssnet_loss,kp_loss,paf_loss = criterion( match_pred_t,   None, None, None, None,
+totloss,larmatch_loss,ssnet_loss,kp_loss,paf_loss = criterion( match_pred_t,   perfect_ssnet, perfect_kplabel, None, None,
                                                                match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
                                                                match_weight_t, None, None, None,
                                                                verbose=True )

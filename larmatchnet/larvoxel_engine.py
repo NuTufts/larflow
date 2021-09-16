@@ -174,7 +174,7 @@ def accuracy(match_pred_t, match_label_t,
             if ssnet_label_t.eq(iclass).sum().item()>0:                
                 ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()    
                 acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
-        acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
+        acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[1]) )
 
     # KP METRIC
     if kp_pred_t is not None:
@@ -248,7 +248,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     dt_io = time.time()-dt_io
     if verbose:
-        print("loaded data. %.2f secs"%(dt_io)," iteration=",entry," root-tree-entry=",data["tree_entry"]," npairs=",npairs)
+        print("loaded data. %.2f secs"%(dt_io)," root-tree-entry=",data["tree_entry"])
     time_meters["data"].update(dt_io)
 
     if config["RUNPROFILER"]:
@@ -271,15 +271,19 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     ssnet_label_t  = torch.from_numpy( data["ssnet_labels"] ).to(device).squeeze().unsqueeze(0)
     kp_label_t     = torch.from_numpy( np.transpose(data["kplabel"],(1,0)) ).to(device).unsqueeze(0)
     match_weight_t = torch.from_numpy( data["voxlmweight"] ).to(device)
-    kp_weight_t    = None
+    kp_weight_t    = torch.from_numpy( data["kpweight"] ).to(device).unsqueeze(0)
+    ssnet_weight_t = torch.from_numpy( data["ssnet_weights"] ).to(device).unsqueeze(0)
     kpshift_t      = None
     paf_label_t    = None
     truematch_idx_t = None
     #print("lm pred: ",match_pred_t.F[:10])
     #print("match label: ",match_label_t.shape)
     #print("ssnet label: ",ssnet_label_t.shape)
-    #print("kp label: ",kp_label_t.shape)
+    #print("kp label: ",kp_label_t.shape," kp predict: ",kplabel_pred_t.shape)
     #print("voxlmweight: ",match_weight_t.shape)
+    #print("kp-weight: ",kp_weight_t.shape)
+    #print("ssnet-weight: ",ssnet_weight_t.shape)
+                                       
     
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
@@ -291,7 +295,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     totloss,larmatch_loss,ssnet_loss,kp_loss,paf_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
                                                                    match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
                                                                    #match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
-                                                                   match_weight_t, None, None, None,
+                                                                   match_weight_t, ssnet_weight_t, kp_weight_t, None,
                                                                    #None, None, None, None,
                                                                    verbose=verbose )
     if config["RUNPROFILER"]:

@@ -13,9 +13,11 @@ class LArVoxelLoss(nn.Module):
         self.eval_keypoint_label = eval_keypoint_label
         self.eval_affinity_field = eval_affinity_field
         self.larmatch_softmax = torch.nn.Softmax( dim=1 )
+        self.ssnet_softmax = torch.nn.Softmax( dim=1 )
         self.focal_loss_gamma = 2
         self.larmatch_use_focal_loss = True
-        self.ssnet_use_lovasz_loss = False
+        self.ssnet_use_lovasz_loss = True
+        self.ssnet_focal_loss = True
         
     def forward(self, larmatch_pred, ssnet_pred, kplabel_pred, kpshift_pred, affinity_pred,
                 larmatch_label, ssnet_label, kp_label, kpshift_label, affinity_label,
@@ -123,25 +125,44 @@ class LArVoxelLoss(nn.Module):
         nclasses = ssnet_pred.shape[1]
         # only evalulate loss on pixels where true label
         sel_ssnet_pred   = ssnet_pred
-        if verbose or True:
+        ssnet_pred_x  = self.ssnet_softmax( sel_ssnet_pred )        
+        if verbose:            
             print("  sel_ssnet_pred: ",sel_ssnet_pred.shape)
             print("  ssnet_truth: ",ssnet_truth.shape)
+            print("  ssnet softmax: ",ssnet_pred_x.shape)
             if ssnet_weight is not None: print("  ssnet_weight: ",ssnet_weight.shape)
 
-        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        if ssnet_weight is not None:
-            ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/20.0
+        if not self.ssnet_focal_loss:
+            fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
+            if ssnet_weight is not None:
+                ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/100.0
+            else:
+                ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )).mean()
+            if verbose:
+                print("  ssnet cross entropy loss: ",ssnet_loss.detach().item())
         else:
-            ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )).mean()
+            # get the score for the target class
+            ssnet_truth_x = ssnet_truth.unsqueeze(0)
+            p_t = ssnet_pred_x.gather(1,ssnet_truth_x)
+            #print("  ssnet truth: ",ssnet_truth_x.shape)            
+            #print("  p_t.shape: ",p_t.shape)
+            #print("  ssnet p_t: ",p_t[:,:,:10])
+            #print("  ssnet softmax: ",ssnet_pred_x[:,:,:10])
+            #print("  ssnet label: ",ssnet_truth[:,:10])
+            #print("  ssnet-weight: ",ssnet_weight[:,:10])
+            ssnet_loss = (-ssnet_weight*torch.log(p_t)*torch.pow( 1-p_t, self.focal_loss_gamma )).mean()
+            if verbose: print("  ssnet focal loss: ",ssnet_loss.detach().item())            
             
         if self.ssnet_use_lovasz_loss:
-            ssnet_pred_x  = torch.transpose( sel_ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
-            ssnet_truth_y = ssnet_truth.reshape( (1,npairs,1) )
-            ssnet_loss += lovasz_softmax( ssnet_pred_x, ssnet_truth_y )
+            if verbose: print("  ssnet softmax: ",ssnet_pred_x.shape," ",ssnet_pred_x[0,:,0])
+            ssnet_truth_y = ssnet_truth.unsqueeze(-1)
+            ssnet_lovasz_loss = lovasz_softmax( ssnet_pred_x.unsqueeze(-1), ssnet_truth_y )
+            if verbose: print("  ssnet lovasz loss: ",ssnet_lovasz_loss.detach().item())
+            ssnet_loss += ssnet_lovasz_loss
             
         if verbose:
             ssnet_floss = ssnet_loss.detach().item()            
-            print(" loss-ssnet: ",ssnet_floss)
+            print("  loss-ssnet: ",ssnet_floss)
 
         return ssnet_loss
                     

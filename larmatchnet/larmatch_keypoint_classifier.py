@@ -9,8 +9,7 @@ class LArMatchKeypointClassifier(nn.Module):
                  keypoint_nfeatures=[32,32],                 
                  ninput_planes=3,
                  nclasses=6,
-                 use_bn=True,
-                 device=torch.device("cpu")):
+                 use_bn=True):
         super(LArMatchKeypointClassifier,self).__init__()
 
         # SCORE PREDICTION
@@ -19,11 +18,11 @@ class LArMatchKeypointClassifier(nn.Module):
             keypoint_layers = OrderedDict()
             keypoint_layers["keypoint0conv_class%d"%(iclass)] = torch.nn.Conv1d(ninput_planes*features_per_layer,
                                                                                 keypoint_nfeatures[0],1)
-            keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.BatchNorm1d(keypoint_nfeatures[0])
+            keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.InstanceNorm1d(keypoint_nfeatures[0])
             keypoint_layers["keypoint0relu_class%d"%(iclass)] = torch.nn.LeakyReLU()
             for ilayer,nfeats in enumerate(keypoint_nfeatures[1:]):
                 keypoint_layers["keypoint%dconv_class%d"%(ilayer+1,iclass)] = torch.nn.Conv1d(nfeats,nfeats,1)
-                keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.BatchNorm1d(nfeats)
+                keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.InstanceNorm1d(nfeats)
                 keypoint_layers["keypoint%drelu_class%d"%(ilayer+1,iclass)] = torch.nn.LeakyReLU()
             keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(nfeats,1,1)
             self.class_layers[iclass] = torch.nn.Sequential( keypoint_layers )

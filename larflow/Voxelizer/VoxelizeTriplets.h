@@ -79,7 +79,10 @@ namespace voxelizer {
     PyObject* make_voxeldata_dict( const larflow::prep::PrepMatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict();
 
-    PyObject* make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data );
+    int make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data,
+				 PyArrayObject*& ssnet_array,
+				 PyArrayObject*& ssnet_weight );
+				       
     PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
     int make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
 			     PyArrayObject* match_array,
