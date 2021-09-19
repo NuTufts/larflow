@@ -55,7 +55,7 @@ def run(gpu, args ):
         timeout=datetime.timedelta(0, 1800)
     )
     #========================================================
-    torch.manual_seed(0)
+    torch.manual_seed(rank)
 
     config = larvoxel_engine.load_config_file( args )
 
@@ -79,7 +79,7 @@ def run(gpu, args ):
 
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
-    print("RANK-%d Model"%(rank),model)
+    if rank==0: print("RANK-%d Model"%(rank),model)
     torch.distributed.barrier()
     
     optimizer = torch.optim.Adam(model.parameters(),
@@ -97,7 +97,7 @@ def run(gpu, args ):
     if args.world_size>0:
         train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
-    print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
+    if rank==0: print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)
     sys.stdout.flush()
 
@@ -112,9 +112,10 @@ def run(gpu, args ):
     with torch.autograd.profiler.profile(enabled=config["RUNPROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
-            print("RANK-%d iteration=%d"%(rank,train_iteration))
+            #print("RANK-%d iteration=%d"%(rank,train_iteration))
             larvoxel_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
-                                             acc_meters,loss_meters,time_meters,True,device,verbose=config["LOSS_VERBOSE"])
+                                             acc_meters,loss_meters,time_meters,True,device,
+                                             verbose=config["LOSS_VERBOSE"],rank=rank)
 
             # periodic checkpoint
             if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
@@ -128,8 +129,9 @@ def run(gpu, args ):
                     }, False, train_iteration)
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
-            
-            print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
+
+            if train_dataset._current_entry%1000==0:
+                print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 larvoxel_engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
@@ -171,6 +173,9 @@ def run(gpu, args ):
                     for i,m in meters.items():
                         m.reset()
 
+                # monitor gradients
+                # one day
+
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
                     valid_loss_meters,valid_acc_meters,valid_time_meters = larvoxel_engine.make_meters(config)                    
@@ -179,7 +184,7 @@ def run(gpu, args ):
                             larvoxel_engine.do_one_iteration(config,{"larmatch":single_model},
                                                              valid_loader,criterion,optimizer,
                                                              valid_acc_meters,valid_loss_meters,valid_time_meters,
-                                                             False,device,verbose=config["LOSS_VERBOSE"])
+                                                             False,device,verbose=config["LOSS_VERBOSE"],rank=rank)
                     larvoxel_engine.prep_status_message( "Valid-Iteration", train_iteration,
                                                          valid_acc_meters,
                                                          valid_loss_meters,

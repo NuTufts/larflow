@@ -131,7 +131,7 @@ class larvoxelDataset(torch.utils.data.Dataset):
         self._current_entry = self.start_index
 
     def collate_fn(batch):
-        print("[larvoxelDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
+        #print("[larvoxelDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         return batch
     
             

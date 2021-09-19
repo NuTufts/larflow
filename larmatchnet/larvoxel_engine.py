@@ -219,7 +219,7 @@ def accuracy(match_pred_t, match_label_t,
 
 def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                       acc_meters, loss_meters, time_meters, is_train, device,
-                      verbose=False ):
+                      verbose=False, rank=None ):
     """
     Perform one iteration, i.e. processes one batch. Handles both train and validation iteraction.
     """
@@ -227,7 +227,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     
     if is_train:
         model_dict["larmatch"].train()
-        print("zero optimizer")
+        #print("zero optimizer")
         optimizer.zero_grad()
     else:
         model_dict["larmatch"].eval()
@@ -241,7 +241,19 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     truth   = torch.from_numpy( data["truetriplet_t"] ).to(device)
     ssnet   = torch.from_numpy( data["ssnet_labels"] ).to(device)
     kplabel = torch.from_numpy( data["kplabel"] ).to(device)
-    #print("feat: ",feat.shape," ",feat[:10])    
+    #print("feat: ",feat.shape," ",feat[:10])
+
+    # check the input for NANs
+    checklist = [ feat, coord, truth, ssnet, kplabel ]
+    for iarr, arr in enumerate(checklist):
+        if arr is not None and ( torch.isnan(arr).sum()>0 or torch.isinf(arr).sum()>0 ):
+            print("RANK-%d Input array [%d] is nan or inf!"%(rank,iarr))
+            print("RANK-%d is_train=%d root-tree-entry=%d"%(rank,is_train,data["tree_entry"]))
+            print("KILL THE JOB")
+            try:
+                dist.destroy_process_group()  
+            except KeyboardInterrupt: 
+                os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
     
     coords, feats = ME.utils.sparse_collate(coords=[coord], feats=[feat])
     xinput = ME.SparseTensor( features=feats, coordinates=coords.to(device) )    
@@ -283,7 +295,33 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     #print("voxlmweight: ",match_weight_t.shape)
     #print("kp-weight: ",kp_weight_t.shape)
     #print("ssnet-weight: ",ssnet_weight_t.shape)
-                                       
+
+    # check the pred for NANs
+    with torch.no_grad():
+        checklist = [ match_pred_t.F, ssnet_pred_t, kplabel_pred_t ]        
+        for iarr, arr in enumerate(checklist):
+            if arr is not None and ( torch.isnan(arr).sum()>0 or torch.isinf(arr).sum()>0 ):
+                print("RANK-%d PREDICTION ARRAY [%d] is nan or inf!"%(rank,iarr))
+                print("RANK-%d is_train=%d root-tree-entry=%d"%(rank,is_train,data["tree_entry"]))
+                print("KILL THE JOB")
+                try:
+                    dist.destroy_process_group()  
+                except KeyboardInterrupt: 
+                    os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
+    
+
+    # check the weights for NANs
+    checklist = [ match_weight_t, ssnet_weight_t, kp_weight_t ]
+    for iarr, arr in enumerate(checklist):
+        if arr is not None and ( torch.isnan(arr).sum()>0 or torch.isinf(arr).sum()>0 ):
+            print("RANK-%d WEIGHT array [%d] is nan or inf!"%(rank,iarr))
+            print("RANK-%d is_train=%d root-tree-entry=%d"%(rank,is_train,data["tree_entry"]))
+            print("KILL THE JOB")
+            try:
+                dist.destroy_process_group()  
+            except KeyboardInterrupt: 
+                os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
+    
     
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
@@ -298,6 +336,24 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                                                                    match_weight_t, ssnet_weight_t, kp_weight_t, None,
                                                                    #None, None, None, None,
                                                                    verbose=verbose )
+
+    # check the losses for NANs
+    checklist = [ totloss ]
+    with torch.no_grad():
+        for iarr, arr in enumerate(checklist):
+            if arr is not None and ( torch.isnan(arr).sum()>0 or torch.isinf(arr).sum()>0 ):
+                print("RANK-%d LOSS [%d] is nan or inf!"%(rank,iarr))
+                print("RANK-%d is_train=%d root-tree-entry=%d"%(rank,is_train,data["tree_entry"]))
+                print("  lm=",larmatch_loss)
+                print("  ssnet=",ssnet_loss)
+                print("  kp=",kp_loss)
+                print("  paf=",paf_loss)
+                print("KILL THE JOB")
+                try:
+                    dist.destroy_process_group()  
+                except KeyboardInterrupt: 
+                    os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
+    
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
     time_meters["loss_calc"].update(time.time()-dt_loss)
@@ -314,13 +370,13 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
         #        #print(n,": grad: ",p.grad)
         #        print(n,": ",p)
 
-        #torch.nn.utils.clip_grad_norm_(model_dict["larmatch"].parameters(), 1.0)
+        torch.nn.utils.clip_grad_norm_(model_dict["larmatch"].parameters(), 1.0)
         optimizer.step()
 
-        for name,p in model_dict["larmatch"].named_parameters():
-            if "lmclassifier_out" in name:
-                with torch.no_grad():
-                    print(name,": ",p.shape,torch.pow(p.grad,2).mean())
+        #for name,p in model_dict["larmatch"].named_parameters():
+        #    if "lmclassifier_out" in name:
+        #        with torch.no_grad():
+        #            print(name,": ",p.shape,torch.pow(p.grad,2).mean())
         
     
         if config["RUNPROFILER"]:
