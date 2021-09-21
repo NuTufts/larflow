@@ -93,7 +93,7 @@ def run(gpu, args ):
     # re-specify the dictionary
     model_dict = {"larmatch":model}
 
-    train_dataset = larvoxelDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True )
+    train_dataset = larvoxelDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True, is_voxeldata=True )
     if args.world_size>0:
         train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
@@ -102,7 +102,7 @@ def run(gpu, args ):
     sys.stdout.flush()
 
     if rank==0:
-        valid_dataset = larvoxelDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True )
+        valid_dataset = larvoxelDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True, is_voxeldata=True )
         VALID_NENTRIES = len(valid_dataset)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
         valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)

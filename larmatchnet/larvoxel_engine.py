@@ -239,7 +239,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     coordshape = data["voxcoord"].shape
     coord   = torch.from_numpy( data["voxcoord"] ).int().to(device)
     feat    = torch.from_numpy( np.clip( data["voxfeat"]/40.0, 0, 10.0 ) ).to(device)
-    truth   = torch.from_numpy( data["truetriplet_t"] ).to(device)
+    truth   = torch.from_numpy( data["voxlabel"] ).to(device)
     ssnet   = torch.from_numpy( data["ssnet_labels"] ).to(device)
     kplabel = torch.from_numpy( data["kplabel"] ).to(device)
     #print("feat: ",feat.shape," ",feat[:10])

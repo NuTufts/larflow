@@ -143,12 +143,12 @@ class larvoxelDataset(torch.utils.data.Dataset):
         data = {}
         data["voxcoord"] = self.voxeldata_tree.coord_v.at(0).tonumpy()
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
-        data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy()
+        data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
         data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
         data["voxlabel"] = self.voxeldata_tree.larmatch_truth_v.at(0).tonumpy()
         data["voxlmweight"] = self.voxeldata_tree.larmatch_weight_v.at(0).tonumpy()
         data["kpweight"]    = self.voxeldata_tree.kp_weight_v.at(0).tonumpy()
-        data["ssnet_weight"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
+        data["ssnet_weights"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
 
         self._nloaded += 1
         self._current_entry += 1
