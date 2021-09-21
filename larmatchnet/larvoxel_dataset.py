@@ -9,7 +9,7 @@ from larflow import larflow
 class larvoxelDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, verbose=False,
-                 voxelize=True, voxelsize_cm=1.0):
+                 voxelize=True, voxelsize_cm=1.0, is_voxeldata=False):
         """
         Parameters:
         """
@@ -39,10 +39,18 @@ class larvoxelDataset(torch.utils.data.Dataset):
         else:
             raise RuntimeError("must provide a list of paths (filelist), folder path (filefolder), or textfile with paths (txtfile)")
 
-        self.loader = larflow.keypoints.LoaderKeypointData( file_v )
-        self.nentries = self.loader.GetEntries()
+        self.is_voxeldata = is_voxeldata
+        if not is_voxeldata:
+            self.loader = larflow.keypoints.LoaderKeypointData( file_v )
+            self.nentries = self.loader.GetEntries()
+        else:
+            print("Using files which already contain voxel data arrays")
+            self.voxeldata_tree = rt.TChain("larvoxeltrainingdata")
+            for ifile in range(file_v.size()):
+                self.voxeldata_tree.Add( file_v.at(ifile) )
+            self.nentries = self.voxeldata_tree.GetEntries()
+            
         self.random_access = random_access
-
         self.partition_index = 0
         self.num_partitions = 1
         self.start_index = 0
@@ -54,7 +62,7 @@ class larvoxelDataset(torch.utils.data.Dataset):
 
         self._voxelize = voxelize
         self._voxelsize_cm = voxelsize_cm
-        if self._voxelize:
+        if self._voxelize and not self.is_voxeldata:
             self.voxelizer = larflow.voxelizer.VoxelizeTriplets()
             self.voxelizer.set_voxel_size_cm( self._voxelsize_cm )
                                  
@@ -64,11 +72,15 @@ class larvoxelDataset(torch.utils.data.Dataset):
         ientry = self._current_entry
         data    = {"entry":ientry,
                    "tree_entry":int(ientry)%int(self.nentries)}
-    
-        if self._verbose:
-            # if verbose, we'll output some timinginfo
-            t_start = time.time()
-            tio     = time.time()
+
+        if not self.is_voxeldata:
+            data = self.get_data_dict_from_triplet_file( data )
+        else:
+            data = self.get_data_dict_from_voxelarray_file( data )
+            
+        return data
+
+    def get_data_dict_from_triplet_file(self, data):    
 
         # get data from match trees            
         nbytes = self.loader.load_entry(data["tree_entry"])
@@ -117,6 +129,40 @@ class larvoxelDataset(torch.utils.data.Dataset):
             
         return data
 
+    def get_data_dict_from_voxelarray_file(self, data):
+        
+        # get data from match trees            
+        nbytes = self.voxeldata_tree.GetEntry(data["tree_entry"])
+        if self._verbose:
+            print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
+
+        if self._verbose:
+            dtio = time.time()-tio
+
+            
+        data = {}
+        data["voxcoord"] = self.voxeldata_tree.coord_v.at(0).tonumpy()
+        data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
+        data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy()
+        data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
+        data["voxlabel"] = self.voxeldata_tree.larmatch_truth_v.at(0).tonumpy()
+        data["voxlmweight"] = self.voxeldata_tree.larmatch_weight_v.at(0).tonumpy()
+        data["kpweight"]    = self.voxeldata_tree.kp_weight_v.at(0).tonumpy()
+        data["ssnet_weight"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
+
+        self._nloaded += 1
+        self._current_entry += 1
+        if self._current_entry>=self.end_index:
+            self._current_entry = self.start_index
+            
+        if self._verbose:
+            tottime = time.time()-t_start            
+            print("[larvoxelDataset::get_data_dict_from_voxelarray_file entry=%d loaded]"%(data["tree_entry"]))
+            print("  io time: %.3f secs"%(dtio))
+            print("  tot time: %.3f secs"%(tottime))
+            
+        return data
+    
     def __len__(self):
         return self.nentries
 
