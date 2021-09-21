@@ -6,6 +6,7 @@ import numpy as np
 from larmatchvoxel import LArMatchVoxel
 from collections import OrderedDict
 import MinkowskiEngine as ME
+import torch.distributed as dist
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
 KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
@@ -337,7 +338,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                                                                    #None, None, None, None,
                                                                    verbose=verbose )
 
-    # check the losses for NANs
+    # check the total losses for NANs
     checklist = [ totloss ]
     with torch.no_grad():
         for iarr, arr in enumerate(checklist):
@@ -353,7 +354,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                     dist.destroy_process_group()  
                 except KeyboardInterrupt: 
                     os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
-    
+                    
     if config["RUNPROFILER"]:
         torch.cuda.synchronize()
     time_meters["loss_calc"].update(time.time()-dt_loss)

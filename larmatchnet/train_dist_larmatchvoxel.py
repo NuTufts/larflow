@@ -108,6 +108,8 @@ def run(gpu, args ):
         valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)
     
     loss_meters,acc_meters,time_meters = larvoxel_engine.make_meters(config)
+
+    torch.autograd.set_detect_anomaly(True)
     
     with torch.autograd.profiler.profile(enabled=config["RUNPROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):

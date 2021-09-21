@@ -135,9 +135,19 @@ class LArVoxelLoss(nn.Module):
         if not self.ssnet_focal_loss:
             fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
             if ssnet_weight is not None:
-                ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/100.0
+                fl_ssnet = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/100.0
+                print("  ssnet weighted focal loss: ",fl_ssnet)
+                if fl_ssnet.isinf().sum()==0:
+                    ssnet_loss = fl_ssnet
+                else:
+                    ssnet_loss = 0.0
             else:
-                ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )).mean()
+                fl_ssnet = (fn_ssnet( sel_ssnet_pred, ssnet_truth )).mean()
+                print("  ssnet un-weighted focal loss: ",fl_ssnet)
+                if fl_ssnet.isinf().sum()==0:
+                    ssnet_loss = fl_ssnet
+                else:
+                    ssnet_loss = 0.0
             if verbose:
                 print("  ssnet cross entropy loss: ",ssnet_loss.detach().item())
         else:
@@ -150,7 +160,11 @@ class LArVoxelLoss(nn.Module):
             #print("  ssnet softmax: ",ssnet_pred_x[:,:,:10])
             #print("  ssnet label: ",ssnet_truth[:,:10])
             #print("  ssnet-weight: ",ssnet_weight[:,:10])
-            ssnet_loss = (-ssnet_weight*torch.log(p_t)*torch.pow( 1-p_t, self.focal_loss_gamma )).mean()
+            flssnet_loss = (-ssnet_weight*torch.log(p_t)*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
+            if flssnet_loss.detach().isinf().sum()==0:
+                ssnet_loss = flssnet_loss
+            else:
+                ssnet_loss = 0.0
             if verbose: print("  ssnet focal loss: ",ssnet_loss.detach().item())            
             
         if self.ssnet_use_lovasz_loss:
@@ -158,7 +172,8 @@ class LArVoxelLoss(nn.Module):
             ssnet_truth_y = ssnet_truth.unsqueeze(-1)
             ssnet_lovasz_loss = lovasz_softmax( ssnet_pred_x.unsqueeze(-1), ssnet_truth_y )
             if verbose: print("  ssnet lovasz loss: ",ssnet_lovasz_loss.detach().item())
-            ssnet_loss += ssnet_lovasz_loss
+            if ssnet_lovasz_loss.detach().isinf().sum()==0:
+                ssnet_loss += ssnet_lovasz_loss
             
         if verbose:
             ssnet_floss = ssnet_loss.detach().item()            
