@@ -65,12 +65,11 @@ namespace voxelizer {
     std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
     std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
     std::vector< std::vector<int> >    _voxelidx_to_tripidxlist; ///< voxel index to vector of triplet indices
-    std::vector<int>                   _trip2voxelidx; ///< triplet index to voxel index map
-    
-
-    larflow::prep::PrepMatchTriplets _triplet_maker; ///< internal triplet maker, used if making from  images only
+    std::vector<int>                   _trip2voxelidx; ///< triplet index to voxel index map   
 
   public:
+
+    larflow::prep::PrepMatchTriplets _triplet_maker; ///< internal triplet maker, used if making from  images only    
 
     int get_axis_voxel( int axis, float coord ) const;
     
