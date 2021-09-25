@@ -169,7 +169,7 @@ namespace voxelizer {
       const std::vector<float>& pos = triplet_data._pos_v[itriplet];
       std::array<int,3> coord;
       for (int i=0; i<3; i++)
-        coord[i] = get_axis_voxel(i,pos[i]);
+        coord[i] = get_axis_voxel(i,pos[i]);      
       _voxel_set.insert( coord );        
     }
 
@@ -355,7 +355,7 @@ namespace voxelizer {
       if (err!=0 ) {
         throw std::runtime_error("Error putting voxel's triplet list to pylist");
       }
-      //Py_DECREF( array );
+      Py_DECREF( array );
     }
     //std::cout << "  made voxel-index to triplet-list list" << std::endl;        
 
@@ -484,10 +484,9 @@ namespace voxelizer {
     int nvidx = (int)_voxel_set.size();
     
     // voxel ssnet label array: charge on planes, taking mean
-    npy_intp* ssnet_dims = new npy_intp[2];
+    npy_intp* ssnet_dims = new npy_intp[1];
     ssnet_dims[0] = (int)nvidx;
-    ssnet_dims[1] = (int)1;
-    ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 2, ssnet_dims, NPY_LONG );
+    ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_dims, NPY_LONG );
 
     std::vector<int> vox_nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
     for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
@@ -511,11 +510,11 @@ namespace voxelizer {
       }
 
       if (max_class>0 && max_class_n>0 ) {
-	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = max_class;
+	*((long*)PyArray_GETPTR1( ssnet_array, (int)vidx)) = max_class;
 	vox_nclass[max_class]++;
       }
       else {
-	*((long*)PyArray_GETPTR2( ssnet_array, (int)vidx, 0)) = 0;
+	*((long*)PyArray_GETPTR1( ssnet_array, (int)vidx)) = 0;
 	vox_nclass[0]++;
       }
       
@@ -571,12 +570,14 @@ namespace voxelizer {
 
     Py_DECREF(ssnet_label_key);
     Py_DECREF(ssnet_weight_key);
-    Py_DECREF(ssnet_array);
-    Py_DECREF(ssnet_weight);
     Py_DECREF(kp_label_key);
     Py_DECREF(kp_weight_key);
+
     Py_DECREF(kplabel);
-    Py_DECREF(kpweight);    
+    Py_DECREF(kpweight);
+    Py_DECREF(ssnet_array);
+    Py_DECREF(ssnet_weight);
+
 
     return larmatch_dict;
   }
@@ -611,8 +612,8 @@ namespace voxelizer {
     
     // voxel ssnet label array: charge on planes, taking mean
     npy_intp* kplabel_dims = new npy_intp[2];
-    kplabel_dims[0] = (int)nvidx;
-    kplabel_dims[1] = (int)nclasses;
+    kplabel_dims[0] = (int)nclasses;
+    kplabel_dims[1] = (int)nvidx;    
     kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
 
     /// ------- ///
@@ -642,7 +643,7 @@ namespace voxelizer {
       for (int c=0; c<6; c++) {
 
 	if ( larmatch_truth_label==0 ) {
-	  *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
 	  nneg[c]++;
 	  continue;
 	}
@@ -669,16 +670,16 @@ namespace voxelizer {
 	if ( max_kp_idx>=0 ) {
 	  float labelscore = exp(-min_dist_kp/sigma2);
 	  if (labelscore>0.05 ) {
-	    *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = labelscore;
+	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = labelscore;
 	    npos[c]++;	    
 	  }
 	  else {
-	    *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
 	    nneg[c]++;	    
 	  }
 	}
 	else {
-	  *((float*)PyArray_GETPTR2(kplabel_array,vidx,c)) = 0.0;
+	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
 	  nneg[c]++;
 	}
       }
@@ -698,7 +699,7 @@ namespace voxelizer {
     
       for (int i=0; i<kpweight_dims[1]; i++ ) {
 
-	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,i,c));
+	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,c,i));
 	if ( labelscore>0.05 ) {
 	  if ( w_pos>0.0 )
 	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_pos/w_norm;

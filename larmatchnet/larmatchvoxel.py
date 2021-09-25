@@ -130,19 +130,32 @@ class LArMatchVoxel(nn.Module):
         
         
     def forward(self,xinput):
+        #print("xinput.F: ",xinput.F.shape)
+        
         x   = self.stem(xinput)
         x   = self.unet(x)
         x   = self.dropout(x)
+
+        #print("larmatchvoxel::forward lm_in=",x.shape)        
         lm_out = self.lm_classifier( x )
+        #print("  out==",lm_out.shape)
+        
         if self.run_ssnet:
-            ssnet_out = self.ssnet_classifier( x.F.transpose(1,0).unsqueeze(0) )
+            ssin = x.F.transpose(1,0).unsqueeze(0)
+            #print("larmatchvoxel::forward ssnet_in=",ssin.shape)
+            ssnet_out = self.ssnet_classifier( ssin )
+            #print("  out=",ssnet_out.shape)
         else:
             ssnet_out = None
 
         if self.run_kplabel:
-            kplabel_out = self.kplabel_classifier( x.F.transpose(1,0).unsqueeze(0) )
+            kpin = x.F.transpose(1,0).unsqueeze(0)
+            #print("larmatchvoxel::forward kplabel_in=",kpin.shape)
+            kplabel_out = self.kplabel_classifier( kpin  )
+            #print(" out=",kplabel_out.shape)
         else:
             kplabel_out = None
+            
         return {"larmatch":lm_out,"ssnet":ssnet_out,"kplabel":kplabel_out}
 
     def forward_pool_pyramid(self,xinput):
