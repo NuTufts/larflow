@@ -355,7 +355,7 @@ namespace voxelizer {
       if (err!=0 ) {
         throw std::runtime_error("Error putting voxel's triplet list to pylist");
       }
-      Py_DECREF( array );
+      //Py_DECREF( array );
     }
     //std::cout << "  made voxel-index to triplet-list list" << std::endl;        
 
