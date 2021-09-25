@@ -1,4 +1,5 @@
 import os,time
+import copy
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -9,7 +10,8 @@ from larflow import larflow
 class larvoxelDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, verbose=False,
-                 voxelize=True, voxelsize_cm=1.0, is_voxeldata=False):
+                 voxelize=True, voxelsize_cm=1.0,
+                 is_voxeldata=False):
         """
         Parameters:
         """
@@ -59,26 +61,57 @@ class larvoxelDataset(torch.utils.data.Dataset):
         self._current_entry  = self.start_index
         self._nloaded        = 0
         self._verbose = False
+        self._random_access = random_access
+        self._random_entry_list = None
+        if self._random_access:
+            self._rng = np.random.default_rng(None)
+            self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
 
         self._voxelize = voxelize
         self._voxelsize_cm = voxelsize_cm
         if self._voxelize and not self.is_voxeldata:
             self.voxelizer = larflow.voxelizer.VoxelizeTriplets()
             self.voxelizer.set_voxel_size_cm( self._voxelsize_cm )
-                                 
+
 
     def __getitem__(self, idx):
+        worker_info = torch.utils.data.get_worker_info()
 
-        ientry = self._current_entry
-        data    = {"entry":ientry,
-                   "tree_entry":int(ientry)%int(self.nentries)}
+        if self._random_access and self._current_entry>=self.nentries:
+            # reset random choice
+            print("reset choices")
+            self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
+            self._current_entry = 0
+
+        ientry = int(self._current_entry)+0
+        
+        if self._random_access:
+            data    = {"entry":ientry,
+                       "tree_entry":self._random_entry_list[ientry]}
+        else:            
+            data    = {"entry":ientry,
+                       "tree_entry":int(ientry)%int(self.nentries)}
 
         if not self.is_voxeldata:
             data = self.get_data_dict_from_triplet_file( data )
         else:
             data = self.get_data_dict_from_voxelarray_file( data )
-            
-        return data
+
+        xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
+        indexlist = xlist[0]
+        counts = xlist[-1]
+        hasdupe = False
+        for i in range(indexlist.shape[0]):
+            if counts[i]>1:
+                print(i," ",indexlist[i,:]," counts=",counts[i])
+                hasdupe = True
+        if hasdupe:
+            raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
+
+        self._nloaded += 1
+        self._current_entry += 1            
+        
+        return copy.deepcopy(data)
 
     def get_data_dict_from_triplet_file(self, data):    
 
@@ -116,10 +149,6 @@ class larvoxelDataset(torch.utils.data.Dataset):
         # add the contents to the data dictionary
         data.update(matchdata)
 
-        self._nloaded += 1
-        self._current_entry += 1
-        if self._current_entry>=self.end_index:
-            self._current_entry = self.start_index
             
         if self._verbose:
             tottime = time.time()-t_start            
@@ -139,8 +168,6 @@ class larvoxelDataset(torch.utils.data.Dataset):
         if self._verbose:
             dtio = time.time()-tio
 
-            
-        data = {}
         data["voxcoord"] = self.voxeldata_tree.coord_v.at(0).tonumpy()
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
@@ -150,11 +177,6 @@ class larvoxelDataset(torch.utils.data.Dataset):
         data["kpweight"]    = self.voxeldata_tree.kp_weight_v.at(0).tonumpy()
         data["ssnet_weights"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
 
-        self._nloaded += 1
-        self._current_entry += 1
-        if self._current_entry>=self.end_index:
-            self._current_entry = self.start_index
-            
         if self._verbose:
             tottime = time.time()-t_start            
             print("[larvoxelDataset::get_data_dict_from_voxelarray_file entry=%d loaded]"%(data["tree_entry"]))
@@ -177,33 +199,134 @@ class larvoxelDataset(torch.utils.data.Dataset):
         self._current_entry = self.start_index
 
     def collate_fn(batch):
-        #print("[larvoxelDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
-        return batch
+        """
+        """
+        npoints = 0
+        batch_size = len(batch)
+        tree_entries = [ x["tree_entry"] for x in batch ]
+        #print("[larvoxelDataset::collate_fn] batch len=%d tree entries="%(batch_size),tree_entries)
+        
+        for ib,data in enumerate(batch):
+            #print("batch[%d]: "%(ib),data["voxcoord"].shape[0])
+            npoints += data["voxcoord"].shape[0]
+        #print("[larvoxelDataset::collate_fn] batch: ",type(batch)," len=",len(batch)," nvoxels=",npoints)
+        
+        for ib,data in enumerate(batch):
+            xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
+            indexlist = xlist[0]
+            counts = xlist[-1]
+            hasdupe = False
+            for i in range(indexlist.shape[0]):
+                if counts[i]>1:
+                    print(i," ",indexlist[i,:]," counts=",counts[i])
+                    hasdupe = True
+            if hasdupe:
+                raise("Dupe introduced somehow in batch-index=%d"%(ib)," arr=",data["voxcoord"].shape)
+        
+
+        v = ["tree_entry","voxcoord","voxfeat","voxlabel","ssnet_labels","kplabel","voxlmweight","ssnet_weights","kpweight"]
+
+        #print("batch_size: ",batch_size)
+        #for ib in range(batch_size):
+        #    print("batch ",ib," --------------------")
+        #    for vv in v[1:]:
+        #        print("  ",vv,": ",batch[ib][vv].shape)
+        
+        batch_dict = {"tree_entry":[],
+                      "voxcoord":[],
+                      "voxfeat":[]}
+        for k in batch[0].keys():
+            #print(k,": ",type(batch[0][k]))            
+            if type(batch[0][k]) is not np.ndarray:
+                continue
+            arr = batch[0][k]            
+            if k in ["spacepoint_t","truetriplet_t"]:
+                continue
+            elif k=="voxcoord":
+                batch_dict[k] = np.zeros( (npoints,arr.shape[1]+1), dtype=arr.dtype )
+            elif k=="voxfeat":
+                batch_dict[k] = np.zeros( (npoints,arr.shape[1]), dtype=arr.dtype )
+            elif len(arr.shape)>1:
+                batch_dict[k] = np.zeros( (1,arr.shape[0],npoints), dtype=arr.dtype )
+            else:
+                batch_dict[k] = np.zeros( (1,npoints), dtype=arr.dtype )
+            #print(k," array=",arr.shape," batch array: ",batch_dict[k].shape)
+        npoints = 0
+        for ib,data in enumerate(batch):
+            #for k in ["voxlmweight","ssnet_labels","ssnet_weights","kplabel","kpweight"]:
+            #    batch_dict[k][ib,:] =
+
+            n = data["voxcoord"].shape[0]
+            batch_dict["voxcoord"][npoints:npoints+n,0] = ib
+            batch_dict["voxcoord"][npoints:npoints+n,1:] = data["voxcoord"]
+            batch_dict["voxfeat"][npoints:npoints+n,0] = ib
+            batch_dict["voxfeat"][npoints:npoints+n,:] = data["voxfeat"]
+            batch_dict["tree_entry"].append(data["tree_entry"])
+
+            for k in v[3:]:
+                arr = data[k]
+                if len(arr.shape)>1:
+                    batch_dict[k][0,:,npoints:npoints+n] = arr
+                else:
+                    batch_dict[k][0,npoints:npoints+n] = arr
+                    
+            npoints += n
+
+        return batch_dict
     
             
 if __name__ == "__main__":
 
     import time
+    import MinkowskiEngine as ME
 
-    niter = 10
-    batch_size = 1
-    test = larvoxelDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"])
+    niter = 200
+    batch_size = 4
+    test = larvoxelDataset( filelist=["larvoxeldata_bnb_nu_traindata_1cm_0000.root"],
+                            is_voxeldata=True,
+                            random_access=True )
     print("NENTRIES: ",len(test))
     
     loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larvoxelDataset.collate_fn)
 
     start = time.time()
     for iiter in range(niter):
-        batch = next(iter(loader))
+
         print("====================================")
-        for ib,data in enumerate(batch):
-            print("ITER[%d]:BATCH[%d]"%(iiter,ib))
-            print(" keys: ",data.keys())
-            for name,d in data.items():
-                if type(d) is np.ndarray:
-                    print("  ",name,": ",d.shape)
-                else:
-                    print("  ",name,": ",type(d))
+        #for ib,data in enumerate(batch):
+        print("ITER[%d]"%(iiter))
+        
+        batch = next(iter(loader))
+
+        print("batch keys: ",batch.keys())
+        print(batch["tree_entry"])
+        
+        for name,d in batch.items():
+            if type(d) is np.ndarray:
+                print("  ",name,": ",d.shape)
+            else:
+                print("  ",name,": ",type(d))
+
+        print("iteration batch check ------------")                
+        xlist = np.unique( batch["voxcoord"], axis=0, return_counts=True )
+        print("unqiue: ",len(xlist))
+        indexlist = xlist[0]
+        counts = xlist[-1]
+        hasdupe = False
+        for i in range(indexlist.shape[0]):
+            if counts[i]>1:
+                print(i," ",indexlist[i,:]," ",counts[i])
+                hasdupe = True
+        if hasdupe:
+            raise("iteration has dupe! -------------")
+            
+        coord_t = torch.from_numpy( batch["voxcoord"] )
+        feat_t  = torch.from_numpy( batch["voxfeat"] )
+        xinput = ME.SparseTensor( coordinates=coord_t,features=feat_t )
+        #print("after sparse collate")
+        #print(xinput)
+        print("====================================")
+                                            
     end = time.time()
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)

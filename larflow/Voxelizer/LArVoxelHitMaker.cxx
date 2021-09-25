@@ -128,7 +128,7 @@ namespace voxelizer {
 	
 	hit.tick = adc_v.front().meta().pos_y( triplet[3] );
 
-	std::cout << "hit@tick=" << hit.tick << std::endl;
+	//std::cout << "hit@tick=" << hit.tick << std::endl;
 
 	hitidx++;
 	
@@ -139,7 +139,7 @@ namespace voxelizer {
 	hit[7] = voxeldata.ssnet_class_score[5]; // proton
 	hit[9] = voxeldata.ssnet_class_score[6]; // other
 	
-	hit[8] = voxeldata.lm_score; // true vs ghost score
+	hit[8] = voxeldata.lm_score; // true vs ghost score	
 	
 	hit[10] = voxeldata.ssnet_class_score[0]+voxeldata.ssnet_class_score[6]; // bg
 	hit[11] = hit[5]+hit[6]+hit[7]; // track
@@ -149,13 +149,14 @@ namespace voxelizer {
 	hit[14] = voxeldata.kp_class_score[1]; // track-start
 	hit[15] = voxeldata.kp_class_score[2]; // track-end
 	hit[16] = voxeldata.kp_class_score[3]; // shower
-	hit[17] = voxeldata.kp_class_score[4]; // delta
-	hit[18] = voxeldata.kp_class_score[5]; // michel
+	hit[17] = voxeldata.kp_class_score[4]; // michel
+	hit[18] = voxeldata.kp_class_score[5]; // delta
 	
 	hit[19] = 0.0;
 	hit[20] = 0.0;
 	hit[21] = 0.0;
 
+	hit.track_score = voxeldata.lm_score; // true vs ghost score
 	hit.srcwire = triplet[2];
 	hit.targetwire = triplet;
 	hit.idxhit = hitidx;	

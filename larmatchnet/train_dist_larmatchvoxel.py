@@ -98,14 +98,18 @@ def run(gpu, args ):
         train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
     if rank==0: print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
-    train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=config["BATCHSIZE_TRAIN"],
+                                               collate_fn=larvoxelDataset.collate_fn)
     sys.stdout.flush()
 
     if rank==0:
         valid_dataset = larvoxelDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True, is_voxeldata=True )
         VALID_NENTRIES = len(valid_dataset)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
-        valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)
+        valid_loader = torch.utils.data.DataLoader(valid_dataset,
+                                                   batch_size=config["BATCHSIZE_VALID"],
+                                                   collate_fn=larvoxelDataset.collate_fn)
     
     loss_meters,acc_meters,time_meters = larvoxel_engine.make_meters(config)
 

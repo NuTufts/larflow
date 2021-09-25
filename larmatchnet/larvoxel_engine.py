@@ -235,17 +235,20 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     dt_io = time.time()
 
-    data = next(iter(data_loader))[0]
-    coordshape = data["voxcoord"].shape
-    coord   = torch.from_numpy( data["voxcoord"] ).int().to(device)
-    feat    = torch.from_numpy( np.clip( data["voxfeat"]/40.0, 0, 10.0 ) ).to(device)
+    data = next(iter(data_loader))
+    #if rank==0:
+    #    print("entries: ",data["tree_entry"])
+    #coord_v = [ torch.from_numpy( x ).int().to(device) for x in data["voxcoord"] ]
+    #feat_v  = [ torch.from_numpy( np.clip( x/40.0, 0, 10.0 ) ).to(device) for x in data["voxfeat"] ]
+    coord_t = torch.from_numpy( data["voxcoord"] ).to(device)
+    feat_t  = torch.from_numpy( data["voxfeat"] ).to(device)
     truth   = torch.from_numpy( data["voxlabel"] ).to(device)
     ssnet   = torch.from_numpy( data["ssnet_labels"] ).to(device)
     kplabel = torch.from_numpy( data["kplabel"] ).to(device)
     #print("feat: ",feat.shape," ",feat[:10])
 
     # check the input for NANs
-    checklist = [ feat, coord, truth, ssnet, kplabel ]
+    checklist = [ truth, ssnet, kplabel ]
     for iarr, arr in enumerate(checklist):
         if arr is not None and ( torch.isnan(arr).sum()>0 or torch.isinf(arr).sum()>0 ):
             print("RANK-%d Input array [%d] is nan or inf!"%(rank,iarr))
@@ -256,8 +259,8 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
             except KeyboardInterrupt: 
                 os.system("kill $(ps aux | grep multiprocessing.spawn | grep -v grep | awk '{print $2}') ")
     
-    coords, feats = ME.utils.sparse_collate(coords=[coord], feats=[feat])
-    xinput = ME.SparseTensor( features=feats, coordinates=coords.to(device) )    
+    #coords, feats = ME.utils.sparse_collate(coords=coord_v, feats=feat_v)
+    xinput = ME.SparseTensor( features=feat_t, coordinates=coord_t )    
 
     dt_io = time.time()-dt_io
     if verbose:
@@ -281,21 +284,23 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     paf_pred_t     = pred_dict["paf"]     if "paf" in pred_dict else None
 
     match_label_t  = torch.from_numpy( data["voxlabel"] ).to(device)
-    ssnet_label_t  = torch.from_numpy( data["ssnet_labels"] ).to(device).squeeze().unsqueeze(0)
-    kp_label_t     = torch.from_numpy( np.transpose(data["kplabel"],(1,0)) ).to(device).unsqueeze(0)
+    ssnet_label_t  = torch.from_numpy( data["ssnet_labels"] ).to(device)
+    kp_label_t     = torch.from_numpy( data["kplabel"] ).to(device)
     match_weight_t = torch.from_numpy( data["voxlmweight"] ).to(device)
-    kp_weight_t    = torch.from_numpy( data["kpweight"] ).to(device).unsqueeze(0)
-    ssnet_weight_t = torch.from_numpy( data["ssnet_weights"] ).to(device).unsqueeze(0)
+    kp_weight_t    = torch.from_numpy( data["kpweight"] ).to(device)
+    ssnet_weight_t = torch.from_numpy( data["ssnet_weights"] ).to(device)
     kpshift_t      = None
     paf_label_t    = None
     truematch_idx_t = None
-    #print("lm pred: ",match_pred_t.F[:10])
-    #print("match label: ",match_label_t.shape)
-    #print("ssnet label: ",ssnet_label_t.shape)
-    #print("kp label: ",kp_label_t.shape," kp predict: ",kplabel_pred_t.shape)
-    #print("voxlmweight: ",match_weight_t.shape)
-    #print("kp-weight: ",kp_weight_t.shape)
-    #print("ssnet-weight: ",ssnet_weight_t.shape)
+    if False:
+        print("lm pred: ",match_pred_t.F[:10])
+        print("match label: ",match_label_t.shape)
+        print("ssnet label: ",ssnet_label_t.shape)
+        print("kp label: ",kp_label_t.shape)
+        print("kp predict: ",kplabel_pred_t.shape)
+        print("voxlmweight: ",match_weight_t.shape)
+        print("kp-weight: ",kp_weight_t.shape)
+        print("ssnet-weight: ",ssnet_weight_t.shape)
 
     # check the pred for NANs
     with torch.no_grad():

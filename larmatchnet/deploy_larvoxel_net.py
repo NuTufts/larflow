@@ -46,7 +46,7 @@ ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
 RETURN_TRUTH=False
-BATCHSIZE = 1
+BATCHSIZE = 4
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
@@ -178,7 +178,7 @@ for ientry in range(NENTRIES):
     t_prep = time.time()-t_prep
     print("  time to prep matches: ",t_prep,"secs")
     dt_prep += t_prep
-    
+
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate
     t_start = time.time()
@@ -187,8 +187,10 @@ for ientry in range(NENTRIES):
     model.eval()
     with torch.no_grad():
         pred_dict = model_dict["larmatch"]( xinput )
-        #for name,arr in pred_dict.items():
-        #    if arr is not None: print(name," ",arr.shape)
+        for name,arr in pred_dict.items():
+            if arr is not None and arr!="larmatch": print(name," ",arr.shape)
+
+        sys.exit(0)
     
         match_pred_t   = pred_dict["larmatch"]      
         ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
@@ -202,7 +204,7 @@ for ientry in range(NENTRIES):
 
         match_np   = larmatch_softmax( match_pred_t.F ).to(torch.device("cpu")).numpy()
         ssnet_np   = ssnet_softmax(ssnet_pred_t).to(torch.device("cpu")).numpy()[0]
-        kplabel_np = kplabel_pred_t.to(torch.device("cpu")).numpy()[0]
+        kplabel_np = np.transpose( kplabel_pred_t.to(torch.device("cpu")).numpy()[0], axes=(1,0) )
         print("coord: ",data["voxcoord"].shape," ",data["voxcoord"].dtype)
         print("larmatch: ",match_np.shape)
         print("ssnet: ",ssnet_np.shape)
@@ -210,7 +212,7 @@ for ientry in range(NENTRIES):
 
     # make flow hits
     tstart = time.time()            
-    hitmaker.add_voxel_labels( data["voxcoord"], match_np, np.transpose( ssnet_np, axes=(1,0) ), np.transpose( kplabel_np, axes=(1,0) ) )
+    hitmaker.add_voxel_labels( data["voxcoord"], match_np, np.transpose( ssnet_np, axes=(1,0) ), kplabel_np )
     hitmaker.make_labeled_larflow3dhits( hitmaker._voxelizer._triplet_maker, adc_v, evout_lfhits )    
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits

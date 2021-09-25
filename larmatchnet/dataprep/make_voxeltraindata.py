@@ -58,8 +58,8 @@ for iiter in range(NENTRIES):
     for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v, ssnet_truth_v, ssnet_weight_v, kp_truth_v, kp_weight_v ]:
         vec.clear()
         
-    batch = next(iter(loader))
-    data = batch[0]
+    data = next(iter(loader))
+    #data = batch[0]
     print("Tree entry: ",data["tree_entry"])
     print(" keys: ",data.keys())
     for name,d in data.items():
@@ -68,18 +68,21 @@ for iiter in range(NENTRIES):
         else:
             print("  ",name,": ",type(d))
             
-    coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
-    feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )
+    coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"][0].astype(np.int32) ) )
+    feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"][0] ) )
 
-    lm_truth_v.push_back( larcv.NumpyArrayInt( data["truetriplet_t"].astype(np.int32) ) )
-    ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"].astype(np.int32) ) )
-    kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"] ) )
+    lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"][0].astype(np.int32) ) )
+    ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"][0].astype(np.int32) ) )
+    kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"][0] ) )
     
-    lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"] ) )
-    ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"] ) )
-    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"] ) )        
+    lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"][0] ) )
+    ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"][0] ) )
+    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"][0] ) )        
                       
     outtree.Fill()
+    #if iiter>=4:
+    #    break
+    
     
 outfile.Write()
 print("Done")
