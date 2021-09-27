@@ -21,10 +21,14 @@ rt.gStyle.SetOptStat(0)
 
 print(args.input_larmatch)
 
+def collate_fn(batch):
+    return batch
+
 dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=1.0 )
 NENTRIES = len(dataset)
 
-loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=larvoxelDataset.collate_fn)
+
+loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=collate_fn)
 
 outfile = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larvoxeltrainingdata","LArMatch Voxel training data")
@@ -57,8 +61,7 @@ for iiter in range(NENTRIES):
     for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v, ssnet_truth_v, ssnet_weight_v, kp_truth_v, kp_weight_v ]:
         vec.clear()
         
-    data = next(iter(loader))
-    #data = batch[0]
+    data = next(iter(loader))[0]
     print("Tree entry: ",data["tree_entry"])
     print(" keys: ",data.keys())
     for name,d in data.items():
@@ -66,17 +69,18 @@ for iiter in range(NENTRIES):
             print("  ",name,": ",d.shape)
         else:
             print("  ",name,": ",type(d))
-            
-    coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"][0].astype(np.int32) ) )
-    feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"][0] ) )
 
-    lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"][0].astype(np.int32) ) )
-    ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"][0].astype(np.int32) ) )
-    kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"][0] ) )
+    print("wtf: ",data["voxcoord"].shape)
+    coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
+    feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )
+
+    lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"].squeeze().astype(np.int32) ) )
+    ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"].squeeze().astype(np.int32) ) )
+    kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"].squeeze() ) )
     
-    lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"][0] ) )
-    ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"][0] ) )
-    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"][0] ) )        
+    lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"].squeeze() ) )
+    ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"].squeeze() ) )
+    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )        
                       
     outtree.Fill()
     #if iiter>=4:
