@@ -236,6 +236,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     dt_io = time.time()
 
     data = next(iter(data_loader))
+    batchsize = len(data["tree_entry"])
     #if rank==0:
     #    print("entries: ",data["tree_entry"])
     #coord_v = [ torch.from_numpy( x ).int().to(device) for x in data["voxcoord"] ]
@@ -342,6 +343,12 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
                                                                    match_weight_t, ssnet_weight_t, kp_weight_t, None,
                                                                    #None, None, None, None,
                                                                    verbose=verbose )
+    if batchsize>1:
+        totloss = totloss/float(batchsize)
+        larmatch_loss /= float(batchsize)
+        ssnet_loss /= float(batchsize)
+        kp_loss /= float(batchsize)
+        paf_loss /= float(batchsize)
 
     # check the total losses for NANs
     checklist = [ totloss ]

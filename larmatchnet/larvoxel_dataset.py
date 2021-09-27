@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import ROOT as rt
 from larflow import larflow
+import MinkowskiEngine as ME
 
 class larvoxelDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
@@ -168,6 +169,7 @@ class larvoxelDataset(torch.utils.data.Dataset):
         if self._verbose:
             dtio = time.time()-tio
 
+        #print("get_data_dict_from_voxelarray_file: ",self.voxeldata_tree.coord_v.at(0).tonumpy().shape)
         data["voxcoord"] = self.voxeldata_tree.coord_v.at(0).tonumpy()
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
@@ -204,13 +206,16 @@ class larvoxelDataset(torch.utils.data.Dataset):
         npoints = 0
         batch_size = len(batch)
         tree_entries = [ x["tree_entry"] for x in batch ]
+        npoints_v = []
         #print("[larvoxelDataset::collate_fn] batch len=%d tree entries="%(batch_size),tree_entries)
         
         for ib,data in enumerate(batch):
-            #print("batch[%d]: "%(ib),data["voxcoord"].shape[0])
+            #print("batch[%d]: "%(ib),data["voxcoord"].shape)
             npoints += data["voxcoord"].shape[0]
+            npoints_v.append( data["voxcoord"].shape[0] )
         #print("[larvoxelDataset::collate_fn] batch: ",type(batch)," len=",len(batch)," nvoxels=",npoints)
-        
+
+        # check for duplicates in individual entries in batch
         for ib,data in enumerate(batch):
             xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
             indexlist = xlist[0]
@@ -232,7 +237,7 @@ class larvoxelDataset(torch.utils.data.Dataset):
         #    for vv in v[1:]:
         #        print("  ",vv,": ",batch[ib][vv].shape)
         
-        batch_dict = {"tree_entry":[],
+        batch_dict = {"tree_entry":tree_entries,
                       "voxcoord":[],
                       "voxfeat":[]}
         for k in batch[0].keys():
@@ -244,25 +249,25 @@ class larvoxelDataset(torch.utils.data.Dataset):
                 continue
             elif k=="voxcoord":
                 batch_dict[k] = np.zeros( (npoints,arr.shape[1]+1), dtype=arr.dtype )
+                #batch_dict["voxcoord"].append( arr )
             elif k=="voxfeat":
                 batch_dict[k] = np.zeros( (npoints,arr.shape[1]), dtype=arr.dtype )
+                #batch_dict["voxfeat"].append( arr )                
             elif len(arr.shape)>1:
                 batch_dict[k] = np.zeros( (1,arr.shape[0],npoints), dtype=arr.dtype )
             else:
                 batch_dict[k] = np.zeros( (1,npoints), dtype=arr.dtype )
             #print(k," array=",arr.shape," batch array: ",batch_dict[k].shape)
-        npoints = 0
+        #coords, feats = ME.utils.sparse_collate(batch_dict["voxcoord"], batch_dict["voxfeat"])
+
+        npoints = 0        
         for ib,data in enumerate(batch):
-            #for k in ["voxlmweight","ssnet_labels","ssnet_weights","kplabel","kpweight"]:
-            #    batch_dict[k][ib,:] =
 
             n = data["voxcoord"].shape[0]
-            batch_dict["voxcoord"][npoints:npoints+n,0] = ib
+            batch_dict["voxcoord"][npoints:npoints+n,0]  = ib
             batch_dict["voxcoord"][npoints:npoints+n,1:] = data["voxcoord"]
-            batch_dict["voxfeat"][npoints:npoints+n,0] = ib
             batch_dict["voxfeat"][npoints:npoints+n,:] = data["voxfeat"]
-            batch_dict["tree_entry"].append(data["tree_entry"])
-
+            
             for k in v[3:]:
                 arr = data[k]
                 if len(arr.shape)>1:
@@ -272,6 +277,12 @@ class larvoxelDataset(torch.utils.data.Dataset):
                     
             npoints += n
 
+        #coords = batch_dict["voxcoord"]
+        #feats  = batch_dict["voxfeat"]
+        #A = ME.SparseTensor(features=torch.from_numpy(feats), coordinates=torch.from_numpy(coords))
+        #print("sparsetensor: ",A)            
+        #batch_dict["sparsetensor"] = A
+
         return batch_dict
     
             
@@ -280,9 +291,11 @@ if __name__ == "__main__":
     import time
     import MinkowskiEngine as ME
 
-    niter = 200
+    niter = 5
     batch_size = 4
-    test = larvoxelDataset( filelist=["larvoxeldata_bnb_nu_traindata_1cm_0000.root"],
+    testfile="larvoxeldata_bnb_nu_traindata_1cm_0000.root"
+    #testfile="larvoxeldata_bnb_nu_traindata_1cm_0047.root"
+    test = larvoxelDataset( filelist=[testfile],
                             is_voxeldata=True,
                             random_access=True )
     print("NENTRIES: ",len(test))
@@ -307,9 +320,8 @@ if __name__ == "__main__":
             else:
                 print("  ",name,": ",type(d))
 
-        print("iteration batch check ------------")                
+        print("iteration batch check ------------")
         xlist = np.unique( batch["voxcoord"], axis=0, return_counts=True )
-        print("unqiue: ",len(xlist))
         indexlist = xlist[0]
         counts = xlist[-1]
         hasdupe = False
@@ -319,10 +331,13 @@ if __name__ == "__main__":
                 hasdupe = True
         if hasdupe:
             raise("iteration has dupe! -------------")
-            
-        coord_t = torch.from_numpy( batch["voxcoord"] )
-        feat_t  = torch.from_numpy( batch["voxfeat"] )
-        xinput = ME.SparseTensor( coordinates=coord_t,features=feat_t )
+
+        coords = batch["voxcoord"]
+        feats  = batch["voxfeat"]        
+        A = ME.SparseTensor(features=torch.from_numpy(feats), coordinates=torch.from_numpy(coords))
+        print("sparsetensor: ",A)            
+        
+        #xinput = batch["sparsetensor"]
         #print("after sparse collate")
         #print(xinput)
         print("====================================")
