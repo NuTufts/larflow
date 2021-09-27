@@ -1,6 +1,6 @@
 from __future__ import print_function
 import os,sys,argparse,time
-sys.path.append("/usr/local/lib/python3.8/dist-packages/")
+#sys.path.append("/usr/local/lib/python3.8/dist-packages/")
 sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 from ctypes import c_int
 
