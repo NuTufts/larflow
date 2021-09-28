@@ -293,9 +293,8 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     kpshift_t      = None
     paf_label_t    = None
     truematch_idx_t = None
-    if False:
-        print("lm pred: ",match_pred_t.F[:10])
-        print("match label: ",match_label_t.shape)
+    if True:
+        print("lmmatch label: ",match_label_t.shape)
         print("ssnet label: ",ssnet_label_t.shape)
         print("kp label: ",kp_label_t.shape)
         print("kp predict: ",kplabel_pred_t.shape)
