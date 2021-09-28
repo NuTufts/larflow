@@ -190,8 +190,6 @@ for ientry in range(NENTRIES):
         for name,arr in pred_dict.items():
             if arr is not None and arr!="larmatch": print(name," ",arr.shape)
 
-        sys.exit(0)
-    
         match_pred_t   = pred_dict["larmatch"]      
         ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
         kplabel_pred_t = pred_dict["kplabel"] if "kplabel" in pred_dict else None
@@ -204,7 +202,7 @@ for ientry in range(NENTRIES):
 
         match_np   = larmatch_softmax( match_pred_t.F ).to(torch.device("cpu")).numpy()
         ssnet_np   = ssnet_softmax(ssnet_pred_t).to(torch.device("cpu")).numpy()[0]
-        kplabel_np = np.transpose( kplabel_pred_t.to(torch.device("cpu")).numpy()[0], axes=(1,0) )
+        kplabel_np = kplabel_pred_t.to(torch.device("cpu")).numpy()[0]
         print("coord: ",data["voxcoord"].shape," ",data["voxcoord"].dtype)
         print("larmatch: ",match_np.shape)
         print("ssnet: ",ssnet_np.shape)
@@ -212,7 +210,7 @@ for ientry in range(NENTRIES):
 
     # make flow hits
     tstart = time.time()            
-    hitmaker.add_voxel_labels( data["voxcoord"], match_np, np.transpose( ssnet_np, axes=(1,0) ), kplabel_np )
+    hitmaker.add_voxel_labels( data["voxcoord"], match_np, ssnet_np, kplabel_np )
     hitmaker.make_labeled_larflow3dhits( hitmaker._voxelizer._triplet_maker, adc_v, evout_lfhits )    
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits

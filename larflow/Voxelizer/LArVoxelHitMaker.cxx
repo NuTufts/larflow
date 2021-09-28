@@ -49,7 +49,7 @@ namespace voxelizer {
 
     // Keypoint prediction tensor
     npy_intp kp_dims[2];
-    long **kp_carray;
+    float **kp_carray;
     if ( PyArray_AsCArray( &kp_pred_t, (void**)&kp_carray, kp_dims, 2, descr_float )<0 ) {
       LARCV_CRITICAL() << "cannot get carray for KEYPOINT SCORE array" << std::endl;
     }
@@ -64,10 +64,10 @@ namespace voxelizer {
 	continue;
 
       for (int i=0; i<7; i++) 
-	vdata.ssnet_class_score[i] = ssnet_carray[ivoxel][i];
+	vdata.ssnet_class_score[i] = ssnet_carray[i][ivoxel];
 
       for (int i=0; i<6; i++)
-	vdata.kp_class_score[i] = kp_carray[ivoxel][i];
+	vdata.kp_class_score[i] = kp_carray[i][ivoxel];
 
       _voxeldata_map[ coord ] = vdata;
     }
@@ -128,8 +128,6 @@ namespace voxelizer {
 	
 	hit.tick = adc_v.front().meta().pos_y( triplet[3] );
 
-	//std::cout << "hit@tick=" << hit.tick << std::endl;
-
 	hitidx++;
 	
 	hit[3] = voxeldata.ssnet_class_score[1]; // electron
@@ -157,15 +155,21 @@ namespace voxelizer {
 	hit[21] = 0.0;
 
 	hit.track_score = voxeldata.lm_score; // true vs ghost score
-	hit.srcwire = triplet[2];
-	hit.targetwire = triplet;
+
+	//get wires
+	hit.targetwire.resize(4,0);
+	for (int p=0; p<3; p++) {
+	  int sparseidx = triplet[p];
+	  hit.targetwire[p] = tripletmaker._sparseimg_vv[p].at(sparseidx).col;
+	}
+	hit.srcwire = hit.targetwire[2];
 	hit.idxhit = hitidx;	
 	if( tripletmaker._truth_v.size()==ntriplet && tripletmaker._truth_v[itriplet]==1)
 	  hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;
 	else
 	  hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;	  
 
-	
+	//std::cout << "hit@wires=(" << hit.targetwire[0] << "," << hit.targetwire[1] << "," << hit.targetwire[2] << "," << hit.targetwire[3] << ")" << std::endl;
 	for (int p=0; p<3; p++) {
 	  auto const& meta = adc_v[p].meta();
 	  auto const& img  = adc_v[p];
@@ -194,6 +198,8 @@ namespace voxelizer {
 	    hit[19+p] /= (float)nfilled;
 	  
 	}//end of plane loop
+
+	//std::cout << "hit: q=(" << hit[19] << "," << hit[20] << "," << hit[21] << ")" << std::endl;
 
 	output_container.emplace_back( std::move(hit) );
 	
