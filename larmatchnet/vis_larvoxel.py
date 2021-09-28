@@ -53,13 +53,12 @@ option_dict = []
 for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
-ssnetcolor = {0:np.array((0,0,0)),     # bg
+ssnetcolor = {0:np.array((0,0,0)),     # bg+other
               1:np.array((255,0,0)),   # electron
               2:np.array((0,255,0)),   # gamma
               3:np.array((0,0,255)),   # muon
               4:np.array((255,0,255)), # pion
-              5:np.array((0,255,255)), # proton
-              6:np.array((255,255,0))} # combined shower
+              5:np.array((0,255,255))} # proton
 
 # LOAD TREES
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
@@ -156,12 +155,18 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             xyz[ptsused,1] = hit[1]
             xyz[ptsused,2] = hit[2]
             if plotby=="ssn-class":
-                ssnet_scores = np.array( (hit[10],hit[3],hit[4],hit[5],hit[6],hit[7],hit[12]) )
+                ssnet_scores = np.array( (hit[10],hit[3],hit[4],hit[5],hit[6],hit[7]) )
                 idx = np.argmax( ssnet_scores )
                 xcolor[ptsused,:] = ssnetcolor[idx]
             else:
-                xyz[ptsused,3] = hit[hitindex]
+                xyz[ptsused,3] = hit[hitindex]                
             ptsused += 1
+        if "-charge" in plotby:
+            # rescale charge values
+            print("charge scales: ",np.mean(xyz[:,3]))
+            print("max: ",np.max(xyz[:,3]))            
+            xyz[:,3] = np.clip( xyz[:,3]/40.0, 0, 2.0 )
+
 
         print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
         larflowhits = {
