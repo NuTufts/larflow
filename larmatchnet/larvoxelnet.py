@@ -71,14 +71,15 @@ class LArVoxelMultiDecoder(nn.Module):
         
     def forward(self,xinput):
         encoder_out   = self.encoder(xinput)
-        lm_out = self.lm_out( encoder_out )
+        lm_out = self.larmatch_out( encoder_out )
         if self.run_ssnet:
-            ssnet_out = self.ssnet_out( encoder_out )
+            #ssnet_out = self.ssnet_out( encoder_out )
+            ssnet_out = torch.transpose( self.ssnet_out( encoder_out ).F, 1,0 ).unsqueeze(0)
         else:
             ssnet_out = None
 
         if self.run_kplabel:
-            kplabel_out = self.kp_out( encoder_out )
+            kplabel_out = torch.transpose( self.kp_out( encoder_out ).F, 1,0 ).unsqueeze(0)
         else:
             kplabel_out = None
         return {"larmatch":lm_out,"ssnet":ssnet_out,"kplabel":kplabel_out}

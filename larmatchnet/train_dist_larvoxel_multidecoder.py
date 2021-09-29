@@ -13,6 +13,7 @@ import shutil
 import time,datetime
 import traceback
 import numpy as np
+import yaml
 
 # torch
 import torch.multiprocessing as mp
@@ -30,6 +31,7 @@ from torch.utils.tensorboard import SummaryWriter
 import larvoxel_engine
 from larvoxel_dataset import larvoxelDataset
 from loss_larvoxel import LArVoxelLoss
+from larvoxelnet import LArVoxelMultiDecoder
 
 # ROOT, larcv
 import ROOT as rt
@@ -57,12 +59,14 @@ def run(gpu, args ):
     #========================================================
     torch.manual_seed(rank)
 
-    config = larvoxel_engine.load_config_file( args )
+    stream = open(args.config_file, 'r')
+    config = yaml.load(stream, Loader=yaml.FullLoader)
+    stream.close()
 
     if rank==0:
         tb_writer = SummaryWriter()
 
-    single_model, _ = larvoxel_engine.get_larmatch_model( config )
+    single_model = LArVoxelMultiDecoder(run_ssnet=config["RUN_SSNET"],run_kplabel=config["RUN_KPLABEL"])
 
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
@@ -81,7 +85,7 @@ def run(gpu, args ):
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
     if rank==0: print("RANK-%d Model"%(rank),model)
     torch.distributed.barrier()
-    
+
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=float(config["LEARNING_RATE"]), 
                                  weight_decay=config["WEIGHT_DECAY"])
@@ -249,7 +253,7 @@ def run(gpu, args ):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config-file', default="config_voxel.yaml", type=str,
+    parser.add_argument('-c', '--config-file', default="config_voxelmultidecoder.yaml", type=str,
                         help='configuration file [default: config.yaml]')
     parser.add_argument('-n', '--nodes', default=1, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')

@@ -14,9 +14,9 @@ class LArVoxelLoss(nn.Module):
         self.eval_affinity_field = eval_affinity_field
         self.larmatch_softmax = torch.nn.Softmax( dim=1 )
         self.ssnet_softmax = torch.nn.Softmax( dim=1 )
-        self.focal_loss_gamma = 2
+        self.focal_loss_gamma = 4
         self.larmatch_use_focal_loss = True
-        self.ssnet_use_lovasz_loss = True
+        self.ssnet_use_lovasz_loss = False
         self.ssnet_focal_loss = True
         
     def forward(self, larmatch_pred, ssnet_pred, kplabel_pred, kpshift_pred, affinity_pred,

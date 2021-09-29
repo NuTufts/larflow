@@ -17,7 +17,7 @@ focal_loss_gamma = 2
 torch.manual_seed(0)
 
 # model
-model = LArVoxelMultiDecoder(run_ssnet=False,run_kplabel=False).to(device)
+model = LArVoxelMultiDecoder(run_ssnet=True,run_kplabel=True).to(device)
 smax = torch.nn.Softmax( dim=1 )
 print(model)
 if False:
@@ -39,14 +39,14 @@ if True:
     # For single entry testing
     dt_io = time.time()
     data = next(iter(loader))
-    print(data[0].keys())
+    print(data.keys())
 
-    coordshape = data[0]["voxcoord"].shape
-    coord   = torch.from_numpy( data[0]["voxcoord"] ).int().to(device)
-    feat    = torch.from_numpy( np.clip( data[0]["voxfeat"]/40.0, 0, 10.0 ) ).to(device)
-    truth   = torch.from_numpy( data[0]["voxlabel"] ).to(device)
-    ssnet   = torch.from_numpy( data[0]["ssnet_labels"] ).to(device)
-    kplabel = torch.from_numpy( data[0]["kplabel"] ).to(device)    
+    coordshape = data["voxcoord"].shape
+    coord   = torch.from_numpy( data["voxcoord"] ).int().to(device)
+    feat    = torch.from_numpy( np.clip( data["voxfeat"]/40.0, 0, 10.0 ) ).to(device)
+    truth   = torch.from_numpy( data["voxlabel"] ).to(device)
+    ssnet   = torch.from_numpy( data["ssnet_labels"] ).to(device)
+    kplabel = torch.from_numpy( data["kplabel"] ).to(device)    
     print("coord: ",coord.shape," ",coord[:10])
     print("feat: ",feat.shape," ",feat[:10])
     print("truth: ",truth.shape)
@@ -78,19 +78,19 @@ for iiter in range(NITERS):
     if False:
         input()
 
-    coords, feats = ME.utils.sparse_collate(coords=[coord], feats=[feat])
-    print("sparse coords: ",coords)
-    print("sparse feats: ",feats)
-    xinput = ME.SparseTensor( features=feats, coordinates=coords.to(device) )
+    print("sparse coords: ",coord)
+    print("sparse feats: ",feat)
+    xinput = ME.SparseTensor( features=feat, coordinates=coord.to(device) )
 
-    pred = model(xinput)["larmatch"]
-    print("out: ",pred.shape)
-    print("out.F: ",pred.F[:10])
+    pred = model(xinput)
+    for x in pred:
+        print("pred-out-%s: "%(x),pred[x].shape)
+
 
     #print("out: ",out.shape,out.requires_grad)
     #print("out raw: ",out[:10,:])
-    out = smax(pred.F)
-    print("softmax(out): ",out[:10,:])
+    if True:
+        sys.exit(0)
 
     # focal loss
     fmatchlabel = truth.type(torch.float).requires_grad_(False)

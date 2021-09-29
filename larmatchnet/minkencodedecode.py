@@ -70,15 +70,19 @@ class MinkEncodeBase(ResNetBase):
             
 
     def forward(self, x):
-        layerout = []
+
+        # stem
+        out = self.conv0p1s1(x)
+        out = self.bn0(out)
+        stemout = self.relu(out)
+        
+        layerout = [stemout]
         for ilayer in range( len(self.LAYERS) ):
+            #print("Encoder layer-%d"%(ilayer))
             conv  = getattr(self, "layer%02d_convs2"%(ilayer))
             bn    = getattr(self, "layer%02d_bn"%(ilayer))
             block = getattr(self, "layer%02d_block"%(ilayer))
-            if ilayer==0:
-                out = conv(x)
-            else:
-                out = conv(layerout[-1])
+            out = conv(layerout[-1])
 
             out = bn(out)
             out = self.relu(out)
@@ -90,10 +94,10 @@ class MinkEncodeBase(ResNetBase):
 class MinkDecodeBase(ResNetBase):
     BLOCK = None
     PLANES = None
-    DILATIONS = (1, 1, 1, 1, 1)
-    LAYERS    = (2, 2, 2, 2, 2)
-    IN_PLANES = ( 32,  64, 128, 256, 512, 1024)
-    PLANES    = (512, 256, 128,  64,  32 )    
+    DILATIONS = (1, 1, 1, 1, 1, 1)
+    LAYERS    = (2, 2, 2, 2, 2, 2)
+    IN_PLANES = ( 32,  64, 128, 256, 512, 1024 ) 
+    PLANES    = (512, 256, 128,  64,  32, 32 )    
     INIT_DIM = 32
     OUT_TENSOR_STRIDE = 1
 
@@ -114,8 +118,12 @@ class MinkDecodeBase(ResNetBase):
             convtr = ME.MinkowskiConvolutionTranspose(self.IN_PLANES[-1-ilayer], self.PLANES[ilayer],
                                                       kernel_size=2, stride=2, dimension=D)
             bntr   = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
-            
-            self.inplanes = self.IN_PLANES[-1-ilayer] + self.PLANES[ilayer] * self.BLOCK.expansion            
+
+            if ilayer+1<nlayers:
+                self.inplanes = self.IN_PLANES[-2-ilayer] + self.PLANES[ilayer] * self.BLOCK.expansion
+            else:
+                # last layer use stem out
+                self.inplanes = self.INIT_DIM + self.PLANES[ilayer] * self.BLOCK.expansion
             block  = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer])
             setattr(self,"decode_layer%02d_convtrs2"%(ilayer),convtr)
             setattr(self,"decode_layer%02d_bntr"%(ilayer),bntr)
@@ -135,6 +143,7 @@ class MinkDecodeBase(ResNetBase):
         
         out = encoder_output[-1]
         for ilayer in range( len(self.LAYERS) ):
+            #print("decoder layer-%d"%(ilayer))            
             convtr  = getattr(self, "decode_layer%02d_convtrs2"%(ilayer))
             bn      = getattr(self, "decode_layer%02d_bntr"%(ilayer))
             block   = getattr(self, "decode_layer%02d_block"%(ilayer))
@@ -162,7 +171,8 @@ class MinkEncode14A(MinkEncode14):
     PLANES = (32, 64, 128, 256, 256, 512)
 
 class MinkEncode34C(MinkEncode34):
-    PLANES = (32, 64, 128, 256, 512, 1024)
+    PLANES = (16, 32, 64, 128, 256, 512)
+    INIT_DIM = 16
 
 class MinkDecode14(MinkDecodeBase):
     BLOCK = BasicBlockInstanceNorm
@@ -170,16 +180,17 @@ class MinkDecode14(MinkDecodeBase):
 
 class MinkDecode34C(MinkDecodeBase):
     BLOCK = BasicBlockInstanceNorm
-    IN_PLANES = (32, 64, 128, 256, 512, 1024)    
-    LAYERS = (1, 1, 1, 1, 1)    
-    PLANES = (512, 256, 128, 64, 32)
+    IN_PLANES = (16, 32, 64, 128, 256, 512)    
+    LAYERS = (1, 1, 1, 1, 1, 1)    
+    PLANES = (256, 128, 64, 32, 16, 16)
+    INIT_DIM = 16
 
 class MinkDecode14A(MinkDecode14):    
     IN_PLANES = (32, 64, 128, 256, 256, 512)
     PLANES    = (256, 256, 128, 64, 32 )
 
 class MinkEncodeDecodeUNet14(nn.Module):
-    def __init__(self,in_channels=3, out_channels=5, D=2):
+    def __init__(self,in_channels=3, out_channels=5, D=3):
         super(MinkEncodeDecodeUNet34,self).__init__()    
         self.encoder = MinkEncode34C(in_channels=in_channels, out_channels=out_channels, D=D)
         self.decoder = MinkDecode34C(in_channels=in_channels, out_channels=out_channels, D=D)
@@ -191,11 +202,11 @@ if __name__ == '__main__':
     # loss and network    
     criterion = nn.CrossEntropyLoss()
     #net = MinkEncode34C(in_channels=3, out_channels=5, D=2)
-    encoder = MinkEncode14A(in_channels=3, out_channels=5, D=2)    
+    encoder = MinkEncode14A(in_channels=3, out_channels=5, D=3)    
     print(encoder)
-    decoder = MinkDecode14A(in_channels=3, out_channels=5, D=2)
+    decoder = MinkDecode14A(in_channels=3, out_channels=5, D=3)
     print(decoder)
-    net = MinkEncodeDecodeUNet14(in_channels=3,out_channels=5,D=2)
+    net = MinkEncodeDecodeUNet14(in_channels=3,out_channels=5,D=3)
     print(net)
 
     # a data loader must return a tuple of coords, features, and labels.
