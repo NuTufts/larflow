@@ -446,10 +446,10 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers ):
     print("------------------------------------------------------------------------")
     
     
-def save_checkpoint(state, is_best, p, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, p, filename='checkpoint.%dth.tar'):
 
     if p>0:
-        filename = "checkpoint.%dth.tar"%(p)
+        filename = filename%(p)
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.tar')

@@ -64,7 +64,7 @@ def run(gpu, args ):
     stream.close()
 
     if rank==0:
-        tb_writer = SummaryWriter()
+        tb_writer = SummaryWriter(comment="multidecoder")
 
     single_model = LArVoxelMultiDecoder(run_ssnet=config["RUN_SSNET"],run_kplabel=config["RUN_KPLABEL"])
 
@@ -136,7 +136,7 @@ def run(gpu, args ):
                         'epoch': train_iteration/float(TRAIN_NENTRIES),
                         'state_larmatch': model_dict["larmatch"].module.state_dict(),
                         'optimizer' : optimizer.state_dict(),
-                    }, False, train_iteration)
+                    }, False, train_iteration, filename="lv.multidecoder.checkpoint.%dth.tar")
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
 
@@ -242,7 +242,7 @@ def run(gpu, args ):
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
                 'state_larmatch': model_dict["larmatch"].module.state_dict(),
                 'optimizer' : optimizer.state_dict(),
-            }, False, train_iteration)
+            }, False, train_iteration,filename="lv.multidecoder.checkpoint.%dth.tar")
         
         torch.distributed.barrier()
 
