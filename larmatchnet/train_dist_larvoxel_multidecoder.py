@@ -202,7 +202,7 @@ def run(gpu, args ):
                     # write to tensorboard
                     # --------------------
                     # losses go into same plot
-                    loss_scalars = { x:y.avg for x,y in loss_meters.items() }
+                    loss_scalars = { x:y.avg for x,y in valid_loss_meters.items() }
                     tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
                 
                     # split acc into different types
