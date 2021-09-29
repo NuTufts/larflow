@@ -2,10 +2,12 @@
 
 GPUMODE: True
 DEVICE: "cuda:0"
-RESUME_FROM_CHECKPOINT: True
-RESUME_OPTIM_FROM_CHECKPOINT:  True
+RESUME_FROM_CHECKPOINT: False
+RESUME_OPTIM_FROM_CHECKPOINT:  False
 RUNPROFILER: False
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/checkpoint.15000th.tar"
+CHECKPOINT_FILE: "checkpoint.75000th.tar"
+>>>>>>> Stashed changes
 RUN_SSNET: True
 RUN_KPLABEL: True
 TRAIN_VERBOSE: False
@@ -24,14 +26,14 @@ INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/l
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER: 15000
+START_ITER: 0
 NUM_ITERATIONS: 100000
 TRAIN_ITER_PER_RECORD: 1
 TRAIN_ITER_PER_VALIDPT: 50
 NUM_VALID_ITERS: 1
 
-BATCHSIZE_TRAIN: 8  # batches per training iteration
-BATCHSIZE_VALID: 4  # batches per validation iteration
+BATCHSIZE_TRAIN: 16  # batches per training iteration
+BATCHSIZE_VALID: 16  # batches per validation iteration
 
 # CHECKPOINT PARAMETERS
 # =======================
