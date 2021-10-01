@@ -25,6 +25,9 @@ class LArMatch(nn.Module):
                  run_kpshift=False,
                  run_paf=True,
                  unet_depth=5,
+                 num_ssnet_classes=7,
+                 num_kp_classes=3,
+                 use_kp_bn=True,
                  nresnet_blocks=10 ):
         """
         parameters
@@ -104,8 +107,8 @@ class LArMatch(nn.Module):
         self.run_kplabel = run_kplabel
         self.run_kpshift = run_kpshift
         self.run_paf     = run_paf
-        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=features_per_layer)
-        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=features_per_layer)
+        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=features_per_layer,num_classes=num_ssnet_classes)
+        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=features_per_layer,nclasses=num_kp_classes,use_bn=use_kp_bn)
         if self.run_kpshift: self.kpshift_head  = LArMatchKPShiftRegressor(features_per_layer=features_per_layer)
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[64,64,64],input_features=features_per_layer)
 

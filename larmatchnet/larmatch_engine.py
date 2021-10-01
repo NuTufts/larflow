@@ -15,7 +15,10 @@ def get_larmatch_model( config, dump_model=False ):
     model = LArMatch(use_unet=True,
                      stem_nfeatures=config["STEM_FEATURES"],
                      features_per_layer=config["NUM_FEATURES"],
-                     unet_depth=config["UNET_DEPTH"],
+                     unet_depth=config["UNET_DEPTH"],                     
+                     num_ssnet_classes=config["NUM_SSNET_CLASSES"],
+                     num_kp_classes=config["NUM_KP_CLASSES"],
+                     use_kp_bn=config["KP_USE_BN"],
                      run_ssnet=config["RUN_SSNET"],
                      run_kplabel=config["RUN_KPLABEL"],
                      run_kpshift=config["RUN_KPSHIFT"],
@@ -96,8 +99,9 @@ def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
         if name not in head_names:
             continue
         if verbose: print("STATE DATA: ",name)
-        state_name = "stage_"+name
+        state_name = "state_"+name
         if state_name not in checkpoint:
+            print(state_name," not in checkpoint")
             continue
         checkpoint_data = checkpoint["state_"+name]
         for parname,arr in checkpoint_data.items():

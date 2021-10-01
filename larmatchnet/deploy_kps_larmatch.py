@@ -73,13 +73,15 @@ for name,arr in checkpoint["state_larmatch"].items():
 
 # copy items into larmatch dict
 # NEW MODEL LOADING: 32 FEATURES
-larmatch_engine.rename_distributed_checkpoint_par_names( checkpoint )
+#larmatch_engine.rename_distributed_checkpoint_par_names( checkpoint )
 # OLD MODEL LOADING: ALSO NEED TO SET FEATURES TO 16
-#larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict)
-#model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
+larmatch_engine.reshape_old_sparseconvnet_weights( checkpoint )
+larmatch_checkpoint_data = larmatch_engine.remake_separated_model_weightfile(checkpoint,model_dict,verbose=True)
+#print(larmatch_checkpoint_data.keys())
+model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
 
-model_dict["larmatch"].load_state_dict(checkpoint["state_larmatch"])
-model_dict["larmatch"] = model_dict["larmatch"].to(DEVICE)
+#model_dict["larmatch"].load_state_dict(checkpoint["state_larmatch"])
+#model_dict["larmatch"] = model_dict["larmatch"].to(DEVICE)
 print("loaded MODEL")
 
 # setup filename
