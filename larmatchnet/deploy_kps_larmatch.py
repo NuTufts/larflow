@@ -20,6 +20,7 @@ args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
 import numpy as np
+import torch
 
 import ROOT as rt
 from ROOT import std
@@ -28,7 +29,6 @@ from larcv import larcv
 larcv.PSet
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-import torch
 
 from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
@@ -335,7 +335,7 @@ for ientry in range(NENTRIES):
 
     # make flow hits
     tstart = time.time()    
-    hitmaker.make_hits( ev_badch, evout_lfhits )
+    hitmaker.make_hits( ev_badch, adc_v, evout_lfhits )
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())

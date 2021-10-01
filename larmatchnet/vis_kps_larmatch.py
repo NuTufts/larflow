@@ -16,7 +16,6 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
-larcv.SetPyUtil()
 
 import plotly.graph_objects as go
 import dash
@@ -99,7 +98,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     elif plotby in ["ssn-bg","ssn-track","ssn-shower","ssn-class","keypoint-nu","keypoint-track","keypoint-shower"]:
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
-        for ipt in xrange(npoints):
+        for ipt in range(npoints):
             hit = ev_lfhits.at(ipt)
 
             if hit.track_score<minprob:
