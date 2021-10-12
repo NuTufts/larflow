@@ -1067,17 +1067,32 @@ namespace voxelizer {
     //   long iclass = *((long*)PyArray_GETPTR2( array, (int)ivdx, 0));
     //   *((float*)PyArray_GETPTR1( weight, (int)ivdx)) = class_weight[iclass];
     // }
+
+    // save instance map
+    PyObject* idmap = PyDict_New();
+    for ( auto it=instance2id.begin(); it!=instance2id.end(); it++ ) {
+      PyObject* key_instance = Py_BuildValue("i",it->first);
+      PyObject* key_id       = Py_BuildValue("i",it->second);
+      PyDict_SetItem( idmap, key_instance, key_id );
+      Py_DECREF( key_instance );
+      Py_DECREF( key_id );
+    }
     
     PyObject *d = PyDict_New();
     PyObject* key_label  = Py_BuildValue("s","voxinstance");
+    PyObject* key_map    = Py_BuildValue("s","voxinstance2id");
+    
     //PyObject* key_weight = Py_BuildValue("s","voxinstanceweight");
     PyDict_SetItem( d, key_label,  (PyObject*)array );
     //PyDict_SetItem( d, key_weight, (PyObject*)weight );
+    PyDict_SetItem( d, key_map, idmap );
     
     Py_DECREF( key_label );
     //Py_DECREF( key_weight );
     Py_DECREF( array );
     //Py_DECREF( weight );
+    Py_DECREF( key_map );
+    Py_DECREF( idmap );    
 
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
