@@ -14,6 +14,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/KeyPoints/PrepKeypointData.h"
 #include "larflow/KeyPoints/LoaderKeypointData.h"
 
 namespace larflow {
@@ -81,13 +82,17 @@ namespace voxelizer {
     int make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data,
 				 PyArrayObject*& ssnet_array,
 				 PyArrayObject*& ssnet_weight );
+    PyObject* make_ssnet_dict_labels( const larflow::prep::PrepMatchTriplets& data );
 				       
     PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
     int make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
 			     PyArrayObject* match_array,
 			     PyArrayObject*& kplabel_label,
 			     PyArrayObject*& kplabel_weight );
-    
+    PyObject* make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
+					  PyObject* voxel_match_array );
+
+    PyObject* make_instance_dict_labels( const larflow::prep::PrepMatchTriplets& data );
 
     /** @brief get the number of total voxels */   
     const std::vector<int>& get_nvoxels() const  { return _nvoxels; };

@@ -492,7 +492,7 @@ namespace voxelizer {
     for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
-      // find class label with most (background) triplets
+      // find class label with most (non background) triplets
       std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
       std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
       for ( auto const& tripidx : tripidx_v ) {
@@ -541,6 +541,115 @@ namespace voxelizer {
     return 0;
   }
 
+  /**
+   * @brief make voxel labels for ssnet
+   */
+  PyObject* VoxelizeTriplets::make_ssnet_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    int nvidx = (int)_voxel_set.size();
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* ssnet_dims = new npy_intp[1];
+    ssnet_dims[0] = (int)nvidx;
+    PyArrayObject* ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_dims, NPY_LONG );
+
+    std::vector<int> vox_nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+
+      // find class label with most (non background) triplets
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
+      for ( auto const& tripidx : tripidx_v ) {
+	int triplet_label = data._pdg_v.at(tripidx);
+
+	int final_label = 0;
+	switch (triplet_label) {
+	case 3:
+	  final_label = 1;
+	  break;
+	case 4:
+	  final_label = 2;
+	  break;
+	case 5:
+	  final_label = 2;
+	  break;
+	case 6:
+	  final_label = 3;
+	  break;
+	case 7:
+	case 8:
+	  final_label = 4;
+	  break;
+	case 9:
+	  final_label = 5;
+	  break;
+	};
+
+	
+	if ( final_label>=0 && final_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
+	  nclass[final_label]++;
+      }
+      int max_class = -1;
+      int max_class_n = 0;
+      for (int iclass=1; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+	if ( nclass[iclass]>max_class_n ) {
+	  max_class = iclass;
+	  max_class_n = nclass[iclass];
+	}
+      }
+
+      if (max_class>0 && max_class_n>0 ) {
+	    
+	*((long*)PyArray_GETPTR1( ssnet_array, (int)vidx)) = max_class;
+	vox_nclass[max_class]++;
+      }
+      else {
+	*((long*)PyArray_GETPTR1( ssnet_array, (int)vidx)) = 0;
+	vox_nclass[0]++;
+      }
+      
+    }
+
+    // weights
+    npy_intp* ssnet_weight_dims = new npy_intp[1];
+    ssnet_weight_dims[0] = (int)nvidx;
+    PyArrayObject* ssnet_weight = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_weight_dims, NPY_FLOAT );
+    std::vector<float> class_weight( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
+    float w_norm = larflow::prep::PrepSSNetTriplet::kNumClasses*nvidx;
+    for (int iclass=0; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+      float w_class = ( vox_nclass[iclass]>0 ) ? (float)nvidx/(float)vox_nclass[iclass]/w_norm : 0.;
+      class_weight[iclass] = w_class;
+    }
+
+    for (int ivdx=0; ivdx<nvidx; ivdx++) {
+      long iclass = *((long*)PyArray_GETPTR2( ssnet_array, (int)ivdx, 0));
+      *((float*)PyArray_GETPTR1( ssnet_weight, (int)ivdx)) = class_weight[iclass];
+    }
+    
+    PyObject *d = PyDict_New();
+    PyObject* key_label  = Py_BuildValue("s","voxssnet");
+    PyObject* key_weight = Py_BuildValue("s","voxssnetweight");
+    PyDict_SetItem( d, key_label,  (PyObject*)ssnet_array );
+    PyDict_SetItem( d, key_weight, (PyObject*)ssnet_weight );
+    
+    Py_DECREF( key_label );
+    Py_DECREF( key_weight );
+    Py_DECREF( ssnet_array );
+    Py_DECREF( ssnet_weight );
+
+    //std::cout << "  made ssnet truth array" << std::endl;
+    return d;
+  }
+  
   /**
    * @brief get full label set for voxels
    * @param data Class holding the triplet data and truth labels loaded inside
@@ -716,6 +825,262 @@ namespace voxelizer {
     }
 
     return 0;
+  }
+
+  /**
+   * @brief make keypoint ground truth numpy arrays
+   *
+   * @param[in]  num_max_samples Max number of samples to return
+   * @param[out] nfilled number of samples actually returned
+   * @param[in]  withtruth if true, return flag indicating if true/good space point
+   * @param[out] pos_match_index vector index in return samples for space points which are true/good
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @return always returns 0  
+   */
+  PyObject* VoxelizeTriplets::make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
+							  PyObject* plarmatch_label_array )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+    PyArrayObject* larmatch_label_array =  (PyArrayObject*)plarmatch_label_array;
+
+    int nvidx = (int)_voxel_set.size();
+    int nclasses = 6; //number of keypoint classes    
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* kplabel_dims = new npy_intp[2];
+    kplabel_dims[0] = (int)nclasses;
+    kplabel_dims[1] = (int)nvidx;    
+    PyArrayObject* kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
+
+    /// ------- ///
+    
+    float sigma = 10.0; // cm
+    float sigma2 = sigma*sigma; // cm^2
+
+    std::vector<int> npos(nclasses,0);
+    std::vector<int> nneg(nclasses,0);
+
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index, index in the array we are filling
+      const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
+
+      std::vector<float> vox_center(3,0);
+      for (int i=0; i<3; i++)
+	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
+
+      //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
+
+      long larmatch_truth_label = 1.0;
+      if ( larmatch_label_array!=NULL )
+	larmatch_truth_label = *((long*)PyArray_GETPTR1(larmatch_label_array,vidx));
+	  
+      // for each class, calculate distance to closest true keypoint
+      // use smallest label
+      for (int c=0; c<6; c++) {
+
+	if ( larmatch_truth_label==0 ) {
+	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+	  nneg[c]++;
+	  continue;
+	}
+	
+	const std::vector< std::vector<float> >& pos_v = (data._kppos_v[c]);
+	int nkp = pos_v.size();
+	float min_dist_kp = 1.0e9;
+	int   max_kp_idx = -1;
+	for (int ikp=0; ikp<nkp; ikp++) {
+	  const std::vector<float>& pos = pos_v[ikp];
+	  float dist = 0;
+	  for (int i=0; i<3; i++)
+	    dist += ( pos[i]-vox_center[i] )*( pos[i]-vox_center[i] );
+	  if ( dist<min_dist_kp ) {
+	    min_dist_kp = dist;
+	    max_kp_idx = ikp;
+	  }
+	  // if ( c==0 ) {
+	  //   std::cout << "  true kp[" << ikp << "]: (" << pos[0] << "," << pos[1] << "," << pos[2] << ") dist=" << sqrt(dist) << std::endl;
+	  // }	 	  
+	}
+
+	// label for pixel
+	if ( max_kp_idx>=0 ) {
+	  float labelscore = exp(-min_dist_kp/sigma2);
+	  if (labelscore>0.05 ) {
+	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = labelscore;
+	    npos[c]++;	    
+	  }
+	  else {
+	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+	    nneg[c]++;	    
+	  }
+	}
+	else {
+	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+	  nneg[c]++;
+	}
+      }
+    }//end of voxel list
+	
+    // weights to balance positive and negative examples
+    int kpweight_nd = 2;
+    npy_intp kpweight_dims[] = { nclasses, (long)nvidx };
+    PyArrayObject* kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
+
+    for (int c=0; c<nclasses; c++ ) {
+      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+      float w_norm = w_pos*npos[c] + w_neg*nneg[c];
+
+      //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+    
+      for (int i=0; i<kpweight_dims[1]; i++ ) {
+
+	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,c,i));
+	if ( labelscore>0.05 ) {
+	  if ( w_pos>0.0 )
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_pos/w_norm;
+	  else
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+	}
+	else {
+	  if ( w_neg>0.0 )
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_neg/w_norm;
+	  else
+	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+	}
+      }//end of class loop
+    }
+
+    PyObject *d = PyDict_New();
+    PyObject* key_kplabel  = Py_BuildValue("s","voxkplabel");
+    PyObject* key_kpweight = Py_BuildValue("s","voxkpweight");
+    PyDict_SetItem( d, key_kplabel,  (PyObject*)kplabel_array );
+    PyDict_SetItem( d, key_kpweight, (PyObject*)kplabel_weight );
+    
+    Py_DECREF( key_kplabel );
+    Py_DECREF( key_kpweight );
+    Py_DECREF( kplabel_array );
+    Py_DECREF( kplabel_weight );
+
+    return d;
+  }
+
+  /**
+   * @brief make voxel labels for instance tags
+   */
+  PyObject* VoxelizeTriplets::make_instance_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    int nvidx = (int)_voxel_set.size();
+
+    // compile unique IDs
+    std::map<int,int> instance2id;
+    std::map<int,int> idcounts;
+    int nids = 0;
+    for ( auto const& instanceid : data._instance_id_v ) {
+      if ( instanceid==0 )
+	continue;
+      
+      int id = 0;
+      if ( instance2id.find( instanceid )==instance2id.end() ) {
+	id = nids+1;
+	instance2id[instanceid] = nids+1; // we start at 1
+	idcounts[id] = 0;
+	nids++;
+      }
+      idcounts[id]++;
+    }
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* dims = new npy_intp[1];
+    dims[0] = (int)nvidx;
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 1, dims, NPY_LONG );
+
+    std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
+    std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+
+      // find class label with most (non background) triplets
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+
+      // clear the values
+      memset( nvotes_id.data(), 0, sizeof(int)*nvotes_id.size() );
+
+      for ( auto const& tripidx : tripidx_v ) {
+	int instance_label = data._instance_id_v.at(tripidx);
+
+	auto it = instance2id.find( instance_label );
+	if ( it!=instance2id.end() ) {
+	  // found the instance, get the id label
+	  int idlabel = it->second;
+	  nvotes_id[idlabel]++;
+	}
+      }
+      
+      int max_id = -1;
+      int max_id_n = 0;
+      for ( int i=0; i<(int)nvotes_id.size(); i++ ) {
+	if ( nvotes_id[i]>max_id_n ) {
+	  max_id_n = nvotes_id[i];
+	  max_id = i;
+	}
+      }
+
+      if (max_id>0 ) {
+	*((long*)PyArray_GETPTR1( array, (int)vidx)) = max_id;
+	vox_nclass[max_id]++;
+      }
+      else {
+	*((long*)PyArray_GETPTR1( array, (int)vidx)) = 0;
+	vox_nclass[0]++;
+      }
+      
+    }
+
+    // weights
+    // npy_intp* weight_dims = new npy_intp[1];
+    // weight_dims[0] = (int)nvidx;
+    // PyArrayObject* weight = (PyArrayObject*)PyArray_SimpleNew( 1, weight_dims, NPY_FLOAT );
+    // std::vector<float> class_weight( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
+    // float w_norm = larflow::prep::PrepSSNetTriplet::kNumClasses*nvidx;
+    // for (int iclass=0; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+    //   float w_class = ( vox_nclass[iclass]>0 ) ? (float)nvidx/(float)vox_nclass[iclass]/w_norm : 0.;
+    //   class_weight[iclass] = w_class;
+    // }
+
+    // for (int ivdx=0; ivdx<nvidx; ivdx++) {
+    //   long iclass = *((long*)PyArray_GETPTR2( array, (int)ivdx, 0));
+    //   *((float*)PyArray_GETPTR1( weight, (int)ivdx)) = class_weight[iclass];
+    // }
+    
+    PyObject *d = PyDict_New();
+    PyObject* key_label  = Py_BuildValue("s","voxinstance");
+    //PyObject* key_weight = Py_BuildValue("s","voxinstanceweight");
+    PyDict_SetItem( d, key_label,  (PyObject*)array );
+    //PyDict_SetItem( d, key_weight, (PyObject*)weight );
+    
+    Py_DECREF( key_label );
+    //Py_DECREF( key_weight );
+    Py_DECREF( array );
+    //Py_DECREF( weight );
+
+    //std::cout << "  made ssnet truth array" << std::endl;
+    return d;
   }
   
 }
