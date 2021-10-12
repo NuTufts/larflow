@@ -1082,6 +1082,87 @@ namespace voxelizer {
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
   }
+
+  /**
+   * @brief make voxel labels for origin tag
+   */
+  PyObject* VoxelizeTriplets::make_origin_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  {
+
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    int nvidx = (int)_voxel_set.size();
+    
+    // voxel ssnet label array: charge on planes, taking mean
+    npy_intp* dims = new npy_intp[1];
+    dims[0] = (int)nvidx;
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 1, dims, NPY_LONG );
+
+    std::vector<int> vox_nclass( 2, 0 ); // count voxels with an assigned origin label
+    std::vector<int> nvotes( 2, 0 ); // vector to vote for origin label for voxel
+    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+
+      // find class label with most (non background) triplets
+      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+
+      // clear the values
+      memset( nvotes.data(), 0, sizeof(int)*nvotes.size() );
+
+      for ( auto const& tripidx : tripidx_v ) {
+	int origin_label = data._origin_v.at(tripidx);
+	if ( origin_label==1 )
+	  nvotes[1]++;
+	else
+	  nvotes[0]++;
+      }
+      
+      if ( nvotes[1]>0 ) {
+	*((long*)PyArray_GETPTR1( array, (int)vidx)) = 1;
+	vox_nclass[1]++;
+      }
+      else {
+	*((long*)PyArray_GETPTR1( array, (int)vidx)) = 0;
+	vox_nclass[0]++;
+      }
+      
+    }
+
+    // weights
+    npy_intp* weight_dims = new npy_intp[1];
+    weight_dims[0] = (int)nvidx;
+    PyArrayObject* weight = (PyArrayObject*)PyArray_SimpleNew( 1, weight_dims, NPY_FLOAT );
+    std::vector<float> class_weight( 2, 0 );
+    float w_norm = 2*nvidx;
+    for (int iclass=0; iclass<2; iclass++) {
+      float w_class = ( vox_nclass[iclass]>0 ) ? (float)nvidx/(float)vox_nclass[iclass]/w_norm : 0.;
+      class_weight[iclass] = w_class;
+    }
+    
+    for (int ivdx=0; ivdx<nvidx; ivdx++) {
+      long iclass = *((long*)PyArray_GETPTR2( array, (int)ivdx, 0));
+      *((float*)PyArray_GETPTR1( weight, (int)ivdx)) = class_weight[iclass];
+    }
+    
+    PyObject *d = PyDict_New();
+    PyObject* key_label  = Py_BuildValue("s","voxorigin");
+    PyObject* key_weight = Py_BuildValue("s","voxoriginweight");
+    PyDict_SetItem( d, key_label,  (PyObject*)array );
+    PyDict_SetItem( d, key_weight, (PyObject*)weight );
+    
+    Py_DECREF( key_label );
+    Py_DECREF( key_weight );
+    Py_DECREF( array );
+    Py_DECREF( weight );
+
+    //std::cout << "  made ssnet truth array" << std::endl;
+    return d;
+  }
   
 }
 }

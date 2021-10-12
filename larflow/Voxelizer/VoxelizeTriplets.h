@@ -93,6 +93,7 @@ namespace voxelizer {
 					  PyObject* voxel_match_array );
 
     PyObject* make_instance_dict_labels( const larflow::prep::PrepMatchTriplets& data );
+    PyObject* make_origin_dict_labels( const larflow::prep::PrepMatchTriplets& data );
 
     /** @brief get the number of total voxels */   
     const std::vector<int>& get_nvoxels() const  { return _nvoxels; };
