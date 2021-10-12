@@ -616,7 +616,7 @@ namespace prep {
 
       _pdg_v[itrip] = maxid;
       
-      if ( nsegvotes>0 )
+      if ( nsegvotes>1 ) // need 2 planes with segment data
         _origin_v[itrip] = 1;
       else
         _origin_v[itrip] = 0;
