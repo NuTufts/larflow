@@ -42,15 +42,14 @@ namespace keypoints {
   {
     _nclose = 0;
     _nfar   = 0;
-    
-    hdist[0] = new TH1F("hdist_x","",2002,-500,500.0);
-    hdist[1] = new TH1F("hdist_y","",2002,-500,500.0);
-    hdist[2] = new TH1F("hdist_z","",2002,-500,500.0);
-    
-    hdpix[0] = new TH1F("hdpix_dt","",1001,-500,500);
-    hdpix[1] = new TH1F("hdpix_du","",1001,-500,500);
-    hdpix[2] = new TH1F("hdpix_dv","",1001,-500,500);
-    hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);        
+
+    for (int i=0; i<3; i++) hdist[i] = nullptr;
+    for (int i=0; i<4; i++) hdpix[i] = nullptr;
+    for (int i=0; i<6; i++) {
+      _match_proposal_labels_v[i].clear();
+      _kppos_v[i].clear();
+    }
+      
   }
 
   /**
@@ -58,11 +57,11 @@ namespace keypoints {
    */
   PrepKeypointData::~PrepKeypointData()
   {
-    for (int v=0; v<3; v++ )
-      if ( hdist[v] ) delete hdist[v];
-    for (int v=0; v<4; v++ )
-      if ( hdpix[v] ) delete hdpix[v];
-    if ( _label_tree ) delete _label_tree;      
+    // for (int v=0; v<3; v++ )
+    //   if ( hdist[v] ) delete hdist[v];
+    // for (int v=0; v<4; v++ )
+    //   if ( hdpix[v] ) delete hdpix[v];
+    // if ( _label_tree ) delete _label_tree;      
   }
   
   
@@ -697,7 +696,7 @@ namespace keypoints {
         if ( dist<0.3*50 ) {
           for (int i=0; i<3; i++ ) {
             label_v[1+i] = leafpos[i]-pos[i];
-            hdist[i]->Fill(label_v[1+i]);
+            if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
           }
 
           // shift in imgcoords
@@ -708,7 +707,7 @@ namespace keypoints {
           }
           for (int i=0; i<4; i++) {
             label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
-            hdpix[i]->Fill( label_v[4+i] );
+            if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
           }
         }
         _match_proposal_labels_v[ikpclass].push_back(label_v);
@@ -741,21 +740,31 @@ namespace keypoints {
   void PrepKeypointData::defineAnaTree()
   {
     _label_tree = new TTree("keypointlabels","Key point Training Labels");
-    _label_tree->Branch("run",&_run,"run/I");
-    _label_tree->Branch("subrun",&_subrun,"subrun/I");
-    _label_tree->Branch("event",&_event,"event/I");
-    _label_tree->Branch("kplabel_nuvertex",    &_match_proposal_labels_v[0]);
-    _label_tree->Branch("kplabel_trackstart",  &_match_proposal_labels_v[1]);
-    _label_tree->Branch("kplabel_trackend",    &_match_proposal_labels_v[2]);    
-    _label_tree->Branch("kplabel_showerstart", &_match_proposal_labels_v[3]);
+    _label_tree->Branch("run",    &_run,    "run/I");
+    _label_tree->Branch("subrun", &_subrun, "subrun/I");
+    _label_tree->Branch("event",  &_event,  "event/I");
+    _label_tree->Branch("kplabel_nuvertex",     &_match_proposal_labels_v[0]);
+    _label_tree->Branch("kplabel_trackstart",   &_match_proposal_labels_v[1]);
+    _label_tree->Branch("kplabel_trackend",     &_match_proposal_labels_v[2]);    
+    _label_tree->Branch("kplabel_showerstart",  &_match_proposal_labels_v[3]);
     _label_tree->Branch("kplabel_showermichel", &_match_proposal_labels_v[4]);
-    _label_tree->Branch("kplabel_showerdelta", &_match_proposal_labels_v[5]);    
-    _label_tree->Branch("kppos_nuvertex",    &_kppos_v[0]);
-    _label_tree->Branch("kppos_trackstart",  &_kppos_v[1]);
-    _label_tree->Branch("kppos_trackend",    &_kppos_v[2]);    
-    _label_tree->Branch("kppos_showerstart", &_kppos_v[3]);
+    _label_tree->Branch("kplabel_showerdelta",  &_match_proposal_labels_v[5]);    
+    _label_tree->Branch("kppos_nuvertex",     &_kppos_v[0]);
+    _label_tree->Branch("kppos_trackstart",   &_kppos_v[1]);
+    _label_tree->Branch("kppos_trackend",     &_kppos_v[2]);    
+    _label_tree->Branch("kppos_showerstart",  &_kppos_v[3]);
     _label_tree->Branch("kppos_showermichel", &_kppos_v[4]);
-    _label_tree->Branch("kppos_showerdelta", &_kppos_v[5]);    
+    _label_tree->Branch("kppos_showerdelta",  &_kppos_v[5]);
+
+    hdist[0] = new TH1F("hdist_x","",2002,-500,500.0);
+    hdist[1] = new TH1F("hdist_y","",2002,-500,500.0);
+    hdist[2] = new TH1F("hdist_z","",2002,-500,500.0);
+    
+    hdpix[0] = new TH1F("hdpix_dt","",1001,-500,500);
+    hdpix[1] = new TH1F("hdpix_du","",1001,-500,500);
+    hdpix[2] = new TH1F("hdpix_dv","",1001,-500,500);
+    hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);        
+    
   }
 
   /**

@@ -141,7 +141,7 @@ namespace keypoints {
     PyObject* get_triplet_score_array( float sig ) const;
 
     
-  protected:
+  public:
 
     // PROPOSAL LABELS
     // ----------------

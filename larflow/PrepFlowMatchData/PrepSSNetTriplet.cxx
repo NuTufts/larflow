@@ -9,7 +9,7 @@ namespace prep {
 
   PrepSSNetTriplet::~PrepSSNetTriplet()
   {
-    if (_label_tree) delete _label_tree;
+    //if (_label_tree) delete _label_tree;
   }
   
   
