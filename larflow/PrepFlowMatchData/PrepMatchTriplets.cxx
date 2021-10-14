@@ -157,6 +157,14 @@ namespace prep {
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
 
+    // need to input (r,c) pairs from original sparse image matrix into set.
+    // this avoids dead channel pixels from entering
+    for ( size_t p=0; p<_sparseimg_vv.size(); p++ ) {
+      for ( auto& pix : _sparseimg_vv[p] ) {
+	deadpixels_to_add[p].insert( std::pair<int,int>(pix.row,pix.col) );
+      }
+    }
+
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
       
       // if ( flowindex!=kV2Y )
@@ -172,6 +180,7 @@ namespace prep {
           // unique, add to sparse image
           pix.val = 1.0;
           _sparseimg_vv[otherplane].push_back( pix );
+	  deadpixels_to_add[otherplane].insert( std::pair<int,int>(pix.row,pix.col) );
         }
       }
     }
@@ -616,7 +625,7 @@ namespace prep {
 
       _pdg_v[itrip] = maxid;
       
-      if ( nsegvotes>1 ) // need 2 planes with segment data
+      if ( nsegvotes>2 ) // need 3 planes with segment data (no dead wires on the segment images)
         _origin_v[itrip] = 1;
       else
         _origin_v[itrip] = 0;
@@ -680,8 +689,6 @@ namespace prep {
 
     npy_intp* dims = new npy_intp[2];
     dims[0] = (int)_sparseimg_vv[plane].size();
-
-    // if we want truth, we include additional value with 1=correct match, 0=false    
     dims[1] = 3;
 
     // output array
