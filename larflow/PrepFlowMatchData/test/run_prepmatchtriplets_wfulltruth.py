@@ -58,7 +58,7 @@ outtree = rt.TTree("larmatchtriplet","triplet data")
 triplet_v = std.vector("larflow::prep::PrepMatchTriplets")(1)
 outtree.Branch("triplet_v",triplet_v)
 
-for ientry in xrange(start_entry, end_entry+1):
+for ientry in range(start_entry, end_entry+1):
 
     io.read_entry(ientry)
     ioll.go_to(ientry)

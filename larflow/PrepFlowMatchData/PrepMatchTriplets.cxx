@@ -157,6 +157,14 @@ namespace prep {
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
 
+    // need to input (r,c) pairs from original sparse image matrix into set.
+    // this avoids dead channel pixels from entering
+    for ( size_t p=0; p<_sparseimg_vv.size(); p++ ) {
+      for ( auto& pix : _sparseimg_vv[p] ) {
+	deadpixels_to_add[p].insert( std::pair<int,int>(pix.row,pix.col) );
+      }
+    }
+
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
       
       // if ( flowindex!=kV2Y )
@@ -172,6 +180,7 @@ namespace prep {
           // unique, add to sparse image
           pix.val = 1.0;
           _sparseimg_vv[otherplane].push_back( pix );
+	  deadpixels_to_add[otherplane].insert( std::pair<int,int>(pix.row,pix.col) );
         }
       }
     }
@@ -577,6 +586,7 @@ namespace prep {
       }
 
       std::map< int, float > id_votes;
+      int nsegvotes = 0;
 
       for (int p=0; p<3; p++ ) {
         int plane_id = segment_img_v[p].pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
@@ -585,6 +595,8 @@ namespace prep {
           id_votes[plane_id] = 0;
         //id_votes[plane_id] += pixval;
         id_votes[plane_id] += 1;
+	if ( plane_id>=(int)larcv::kROIEminus )
+	  nsegvotes++;
       }
 
       // also check the instance image for an id
@@ -613,7 +625,7 @@ namespace prep {
 
       _pdg_v[itrip] = maxid;
       
-      if ( maxid>0 )
+      if ( nsegvotes>2 ) // need 3 planes with segment data (no dead wires on the segment images)
         _origin_v[itrip] = 1;
       else
         _origin_v[itrip] = 0;
@@ -677,8 +689,6 @@ namespace prep {
 
     npy_intp* dims = new npy_intp[2];
     dims[0] = (int)_sparseimg_vv[plane].size();
-
-    // if we want truth, we include additional value with 1=correct match, 0=false    
     dims[1] = 3;
 
     // output array
@@ -789,8 +799,10 @@ namespace prep {
 
     std::vector<int> idx_v( _triplet_v.size() );
     for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
-    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
-    shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    if ( _kshuffle_indices_when_sampling ) {
+      unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
+      shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    }
 
     return make_2plane_match_array( kdir, nsamples, idx_v, 0, withtruth, nfilled );
 
@@ -909,8 +921,10 @@ namespace prep {
 
     std::vector<int> idx_v( _triplet_v.size() );
     for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
-    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
-    shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    if ( _kshuffle_indices_when_sampling ) {
+      unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
+      shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    }
     
     return make_triplet_array( nsamples, idx_v, 0, withtruth, nfilled );
 
@@ -960,10 +974,11 @@ namespace prep {
     
     std::vector<int> idx_v( _triplet_v.size(), 0 );
     for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
-    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();
-    shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
-
-
+    unsigned seed =  std::chrono::system_clock::now().time_since_epoch().count();    
+    if ( _kshuffle_indices_when_sampling ) {
+      shuffle (idx_v.begin(), idx_v.end(), std::default_random_engine(seed));
+    }
+    
     TRandom3 sampler( seed );
     // now we sample for bad events
     int nbad = 0;
@@ -1132,6 +1147,11 @@ namespace prep {
     PyArrayObject* segment_t = (PyArrayObject*)PyArray_SimpleNew( 1, segment_t_dim, NPY_LONG );
     PyObject *segment_t_key = Py_BuildValue("s", "segment_t");
 
+    // origin label
+    npy_intp origin_t_dim[] = { (long int)npts };
+    PyArrayObject* origin_t = (PyArrayObject*)PyArray_SimpleNew( 1, origin_t_dim, NPY_LONG );
+    PyObject *origin_t_key = Py_BuildValue("s", "origin_t");
+    
     // truth label for triplet
     npy_intp truth_t_dim[] = { (long int)npts };
     PyArrayObject* truth_t = (PyArrayObject*)PyArray_SimpleNew( 1, truth_t_dim, NPY_LONG );
@@ -1147,6 +1167,7 @@ namespace prep {
       *((long*)PyArray_GETPTR1(instance_t,ifilled)) = _instance_id_v[idx];
       *((long*)PyArray_GETPTR1(segment_t,ifilled))  = _pdg_v[idx];
       *((long*)PyArray_GETPTR1(truth_t,ifilled))    = (long)_truth_v[idx];
+      *((long*)PyArray_GETPTR1(origin_t,ifilled))   = (long)_origin_v[idx];
       ifilled++;
     }
 
@@ -1156,6 +1177,7 @@ namespace prep {
     PyDict_SetItem(d, imgcoord_t_key,   (PyObject*)imgcoord_t);
     PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
     PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t);
+    PyDict_SetItem(d, origin_t_key,     (PyObject*)origin_t);
     PyDict_SetItem(d, truth_t_key,      (PyObject*)truth_t);     
 
     Py_DECREF( spacepoint_t );
@@ -1167,6 +1189,7 @@ namespace prep {
     Py_DECREF( imgcoord_t_key );
     Py_DECREF( instance_t_key );
     Py_DECREF( segment_t_key );
+    Py_DECREF( origin_t_key );
     Py_DECREF( truth_t_key );    
 
     return d;

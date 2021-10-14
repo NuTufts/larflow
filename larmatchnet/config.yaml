@@ -15,11 +15,26 @@ TRAIN_VERBOSE: False
 FREEZE_LAYERS: []
 LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
-STEM_FEATURES: 32
-NUM_FEATURES: 32
-UNET_DEPTH: 9
+# NEW MODEL
+#STEM_FEATURES: 32
+#NUM_FEATURES: 32
+#UNET_DEPTH: 9
+#NUM_SSNET_CLASSES: 7
+#SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
+#NUM_KP_CLASSES: 6
+#KP_CLASS_NAMES: ["nu","trackstart","trackend","shower","delta","michel"]
+#KP_USE_BN: False
+# OLD MODEL
+STEM_FEATURES: 16
+NUM_FEATURES: 16
+UNET_DEPTH: 5
+NUM_SSNET_CLASSES: 3
+SSNET_CLASS_NAMES: ["bg","track","shower"]
+NUM_KP_CLASSES: 3
+KP_CLASS_NAMES: ["nu","trackends","shower"]
+KP_USE_BN: True
 #FREEZE_LAYERS: ["larmatch","ssnet","kpshift"]:
-SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
+#SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================

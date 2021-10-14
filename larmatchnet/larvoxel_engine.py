@@ -4,6 +4,7 @@ import torch
 import yaml
 import numpy as np
 from larmatchvoxel import LArMatchVoxel
+from larvoxelnet import LArVoxelMultiDecoder
 from collections import OrderedDict
 import MinkowskiEngine as ME
 import torch.distributed as dist
@@ -15,16 +16,21 @@ LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
 def get_larmatch_model( config, dump_model=False ):
 
     # create model, mark it to run on the device
-    model = LArMatchVoxel(run_ssnet=config["RUN_SSNET"],
-                          run_kplabel=config["RUN_KPLABEL"])
-
+    model_dict = {}    
+    if config["MODEL_TYPE"]=="multidecoder":
+        model = LArVoxelMultiDecoder(run_ssnet=config["RUN_SSNET"],
+                                     run_kplabel=config["RUN_KPLABEL"])
+        model_dict["larmatch"] = model
+    else:
+        model = LArMatchVoxel(run_ssnet=config["RUN_SSNET"],
+                              run_kplabel=config["RUN_KPLABEL"])
+        model_dict["larmatch"] = model
+        if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_classifier
+        if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_classifier
+        
     if dump_model:
         # DUMP MODEL (for debugging)
         print(model)
-
-    model_dict = {"larmatch":model}
-    if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_classifier
-    if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_classifier
     
     return model, model_dict
 

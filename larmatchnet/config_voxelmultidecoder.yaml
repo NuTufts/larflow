@@ -2,18 +2,24 @@
 
 GPUMODE: True
 DEVICE: "cuda:0"
+
+# TRAINING CONFIG
+# =================
 RESUME_FROM_CHECKPOINT: True
 RESUME_OPTIM_FROM_CHECKPOINT:  True
 RUNPROFILER: False
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/lv.multidecoder.checkpoint.10600th.tar"
-#CHECKPOINT_FILE: "checkpoint.75000th.tar"
-RUN_SSNET: True
-RUN_KPLABEL: True
 TRAIN_VERBOSE: False
 LOSS_VERBOSE: False
 FREEZE_LAYERS: []
 LEARNING_RATE: 1.0e-5
 WEIGHT_DECAY: 1.0e-4
+
+# MODEL CONFIG
+# =======================
+MODEL_TYPE: "multidecoder"
+RUN_SSNET: True
+RUN_KPLABEL: True
 SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS

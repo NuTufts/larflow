@@ -14,7 +14,7 @@ from larlite import larlite
 from larcv import larcv
 from larflow import larflow
 from ublarcvapp import ublarcvapp
-larcv.SetPyUtil()
+#larcv.SetPyUtil()
 
 import lardly
 

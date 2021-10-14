@@ -5,6 +5,7 @@ import torch
 import MinkowskiEngine as ME
 
 parser = argparse.ArgumentParser("run LArFlow-LArMatch on data")
+parser.add_argument("--config-file","-c",required=True,type=str,help="larmatch configuration file")
 parser.add_argument("--supera","-su",required=True,type=str,help="LArCV file with ADC images")
 parser.add_argument("--weights","-w",required=True,type=str,help="Weight files")
 parser.add_argument("--output", "-o",required=True,type=str,help="Stem name of output files: [stem]_larlite.root, [stem]_larcv.root")
@@ -17,7 +18,7 @@ parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of AD
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument("--use-skip-limit",default=None,type=int,help="Specify a max triplet let. If surpassed, skip network eval.")
-parser.add_argument("--config-file","-c",type=str,default="config_voxel.yaml",help="larmatch configuration file")
+
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -40,6 +41,7 @@ driftv = larutil.LArProperties.GetME().DriftVelocity()
 devname=args.device_name
 device=torch.device(devname)
 checkpointfile = args.weights
+print("CHECKPOINT FILE: ",checkpointfile)
 checkpoint = torch.load( checkpointfile, map_location={"cuda:0":"cpu",
                                                        "cuda:1":"cpu"} )
 ADC_PRODUCER=args.adc_name
@@ -59,7 +61,7 @@ if args.use_skip_limit is not None:
 config = larvoxel_engine.load_config_file( args )
 model, model_dict = larvoxel_engine.get_larmatch_model( config, dump_model=False )
 model = model.to(device)
-checkpoint_data = larvoxel_engine.load_model_weights( model, config["CHECKPOINT_FILE"] )
+checkpoint_data = larvoxel_engine.load_model_weights( model, checkpointfile )
 print("loaded MODEL")
 
 # setup filename
