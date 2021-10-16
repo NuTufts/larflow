@@ -83,6 +83,7 @@ model_dict["larmatch"].load_state_dict(larmatch_checkpoint_data)
 #model_dict["larmatch"].load_state_dict(checkpoint["state_larmatch"])
 #model_dict["larmatch"] = model_dict["larmatch"].to(DEVICE)
 print("loaded MODEL")
+#model_dict["larmatch"].eval()
 
 # setup filename
 outfilestem = args.output
@@ -99,6 +100,7 @@ io.set_verbosity(1)
 io.specify_data_read( larcv.kProductImage2D,  "larflow" )
 io.specify_data_read( larcv.kProductImage2D,  args.adc_name )
 io.specify_data_read( larcv.kProductChStatus, args.chstatus_name )
+io.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
 if args.has_wirecell:
     io.specify_data_read( larcv.kProductChStatus, "thrumu" )
 io.reverse_all_products()
@@ -313,6 +315,7 @@ for ientry in range(NENTRIES):
 
         #print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
         kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
+        print("  kplabels: min=",np.min(kplabel_np)," max=",np.max(kplabel_np))
         hitmaker.add_triplet_keypoint_scores(  matchpair_np[:int(npairs.value),:],
                                                sparse_np_v[0],
                                                sparse_np_v[1],
@@ -342,7 +345,9 @@ for ientry in range(NENTRIES):
     dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())
     print("make hits: ",dt_make_hits," secs")
-    print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)    
+    print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
+    print("try to store 2D ssnet data")
+    hitmaker.store_2dssnet_score( io, evout_lfhits )
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )

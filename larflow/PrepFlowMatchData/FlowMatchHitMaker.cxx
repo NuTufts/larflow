@@ -4,6 +4,8 @@
 
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larcv/core/Base/larcv_logger.h"
+#include "larcv/core/DataFormat/EventSparseImage.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "PrepSSNetTriplet.h"
@@ -232,6 +234,7 @@ namespace prep {
     std::cout << "  number of: 3-plane=" << n_3plane << " 2-plane=" << n_2plane << " 2-plane+dead=" << n_indead << std::endl;
     std::cout << "  num repeated: " << nrepeated << std::endl;
     std::cout << "-------------------------------------------------" << std::endl;
+    return 0;
   }
 
   /**
@@ -245,10 +248,10 @@ namespace prep {
    *
    * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
    * [0-2]:   x,y,z
-   * [3-9]:   6 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
-   * [10-12]: 3 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
-   * [13-15]: 3 keypoint label score [nu,track,shower]
-   * [16-18]: 3D flow direction
+   * [3-9]:   7 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
+   * [10-16]: 7 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
+   * [17-22]: 6 keypoint label score [nu,track,shower]
+   * [23-25]: 3D flow direction
    * 
    * @param[in] ev_chstatus Class containing channel status, indicating if good or dead wire
    * @param[out] hit_v vector of space points whose larmatch score was above threshold
@@ -289,11 +292,16 @@ namespace prep {
 
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
+
+      if ( hit.tick<=meta.min_y() || hit.tick>=meta.max_y() )
+        continue;
+      
       hit.srcwire = m.Y;
-      hit.targetwire.resize(3);
+      hit.targetwire.resize(4);
       hit.targetwire[0] = m.U;
       hit.targetwire[1] = m.V;
       hit.targetwire[2] = m.Y;
+      hit.targetwire[3] = meta.row(hit.tick);
       hit.idxhit = idx;
       if(m.istruth==0) hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;
       else{ hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;}
@@ -303,15 +311,9 @@ namespace prep {
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
 
-      if ( hit.tick<=meta.min_y() || hit.tick>=meta.max_y() )
-        continue;
       
       
-      // store scores
-      for ( int i=0; i<scores.size(); i++ ) {
-        float s = scores[i];
-        hit[3+i] = s;
-      }
+      // store larmatch score
       hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
       hit[9] = maxscore;
       hit.track_score = maxscore;
@@ -352,6 +354,161 @@ namespace prep {
               << " from "  << _matches_v.size() << " matches" << std::endl;
     
   };
+
+  /**
+   * @brief label container of larflow3dhit using 2D track/shower ssnet output images
+   *
+   * calculates weighted ssnet score and modifies hit to carry value.
+   * the weighted ssnet score for the space point is in `larlite::larflow3dhit::renormed_shower_score`
+   *
+   * @param[in] ssnet_score_v            SSNet shower score images for each plane
+   * @param[inout] larmatch_hit_v        LArMatch hits, modified
+   */
+  void FlowMatchHitMaker::store_2dssnet_score( larcv::IOManager& iolcv,
+					       std::vector<larlite::larflow3dhit>& larmatch_hit_v )
+  {
+    
+    clock_t begin = clock();
+
+    larcv::EventSparseImage* ev_ssnet
+      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,"sparseuresnetout");
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
+    
+    auto const& sparseimg_v = ev_ssnet->SparseImageArray();
+    std::cout << "number of sparse images: " << sparseimg_v.size() << std::endl;
+
+    if ( sparseimg_v.size()==0 )
+      return;
+
+    // convert into 5-particle ssnet
+
+    struct SSNetData_t {
+      int row;
+      int col;
+      
+      float hip;
+      float mip;
+      float shr;
+      float dlt;
+      float mic;
+      bool operator<(const SSNetData_t& rhs) const {
+	if (row<rhs.row) return true;
+	if ( row==rhs.row ) {
+	  if ( col<rhs.col ) return true;
+	}
+	return false;
+      };
+    };
+    
+    std::map< std::pair<int,int>, SSNetData_t> data[3];
+      
+    for ( size_t p=0; p<3; p++ ) {
+
+      auto const& meta = adc_v[p].meta();
+      
+      if (sparseimg_v.size()>0) {
+        auto& spimg = sparseimg_v.at(p);
+      
+        int nfeatures = spimg.nfeatures();
+        int stride = nfeatures+2;
+        int npts = spimg.pixellist().size()/stride;
+        auto const& spmeta = spimg.meta(0);
+        
+        for (int ipt=0; ipt<npts; ipt++) {
+          int row = spimg.pixellist().at( ipt*stride+0 );
+          int col = spimg.pixellist().at( ipt*stride+1 );
+          
+          int xrow = meta.row( spmeta.pos_y( row ) );
+          int xcol = meta.col( spmeta.pos_x( col ) );
+          
+          // int maxpid = -1;
+          // float maxscore = -1;
+          // for (int i=0; i<5; i++) {
+          //   float score = spimg.pixellist().at( ipt*stride+2+i );
+          //   if ( score>maxscore ) {
+          //     maxscore = score;
+          //     maxpid   = i;
+          //   }
+          // }
+	  
+          // float hip = spimg.pixellist().at( ipt*stride+2 );
+          // float mip = spimg.pixellist().at( ipt*stride+3 );
+          // float shr = spimg.pixellist().at( ipt*stride+4 );
+          // float dlt = spimg.pixellist().at( ipt*stride+5 );
+          // float mic = spimg.pixellist().at( ipt*stride+6 );
+	  
+	  SSNetData_t ssnetdata;
+	  ssnetdata.row = xrow;
+	  ssnetdata.col = xcol;
+          ssnetdata.hip = spimg.pixellist().at( ipt*stride+2 );
+          ssnetdata.mip = spimg.pixellist().at( ipt*stride+3 );
+          ssnetdata.shr = spimg.pixellist().at( ipt*stride+4 );
+          ssnetdata.dlt = spimg.pixellist().at( ipt*stride+5 );
+          ssnetdata.mic = spimg.pixellist().at( ipt*stride+6 );
+	  
+	  data[p][ std::pair<int,int>(xrow,xcol) ] = ssnetdata;
+	  
+        }//end of point loop
+      }//end of if five particle ssn data exists
+      
+    }//end of plane loop
+    
+        
+    for ( auto & hit : larmatch_hit_v ) {
+
+      // 5 particle score, 3 planes. we average ...
+      std::vector<float> scores(5,0);
+      int nplanes = 0;
+
+      for ( int p=0; p<3; p++) {
+	int row = hit.targetwire[3];
+	int col = hit.targetwire[p];
+	auto it = data[p].find( std::pair<int,int>( row,col ) );
+	if ( it!=data[p].end() ) {
+	  scores[0] += it->second.hip;
+	  scores[1] += it->second.mip;
+	  scores[2] += it->second.shr;
+	  scores[3] += it->second.dlt;
+	  scores[4] += it->second.mic;
+	  nplanes++;
+	}
+      }
+      if (nplanes==0)
+	continue;
+
+      float renorm = 0.;
+      int max_pid = -1;
+      float max_val = 0;
+      for ( int i=0; i<5; i++) {
+	if ( scores[i]>max_val ) {
+	  max_val = scores[i];
+	  max_pid = i;
+	}
+	scores[i] /= (float)nplanes;
+	renorm += scores[i];
+      }
+      for ( int i=0; i<5; i++) {
+	scores[i] /= renorm;
+      }
+      
+      // stuff into larflow hit
+      for (int i=0; i<5; i++)
+	hit[3+i] = scores[i];
+      hit[8] = max_pid;
+      
+      hit.renormed_shower_score = scores[2]+scores[3]+scores[4];
+
+    }//end of hit loop
+    
+    clock_t end = clock();
+    double elapsed = double(end-begin)/CLOCKS_PER_SEC;
+    
+    LARCV_INFO() << " elasped=" << elapsed << " secs" << std::endl;
+    
+  }
+  
 
   /**
    * compile network output into hit candidate information
@@ -469,6 +626,7 @@ namespace prep {
     std::cout << "  num repeated: " << nrepeated << std::endl;
     std::cout << "  num below min prob: " << nbelowminprob << std::endl;
     std::cout << "-------------------------------------------------" << std::endl;
+    return 0;
   }
 
 
@@ -522,10 +680,20 @@ namespace prep {
         // store the ssnet scores
         match.ssnet_scores.resize(larflow::prep::PrepSSNetTriplet::kNumClasses,0.0);
         //std::cout << "save ssnet scores: ";
-        for (int c=0; c<larflow::prep::PrepSSNetTriplet::kNumClasses; c++) {
-          match.ssnet_scores[c] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, c ));
-          //std::cout << match.ssnet_scores[c] << " ";
-        }
+	if ( ss_pair_dims[1]==larflow::prep::PrepSSNetTriplet::kNumClasses) {
+	  // current 7-class style
+	  for (int c=0; c<larflow::prep::PrepSSNetTriplet::kNumClasses; c++) {
+	    match.ssnet_scores[c] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, c ));
+	    //std::cout << match.ssnet_scores[c] << " ";
+	  }
+	}
+	else {
+	  // old 3-class style
+	  match.ssnet_scores[0] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, 0 )); // bg
+	  match.ssnet_scores[1] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, 1 ));	// shower, assign to electron
+	  match.ssnet_scores[3] = (float) *((float*)PyArray_GETPTR2( (PyArrayObject*)ssnet_scores, ipair, 2 ));	// track, assign to muon
+	}
+	
         //std::cout << std::endl;
       }
       else {
@@ -564,7 +732,11 @@ namespace prep {
 
     int kp_pair_ndims      = PyArray_NDIM( (PyArrayObject*)kplabel_scores );
     npy_intp* kp_pair_dims = PyArray_DIMS( (PyArrayObject*)kplabel_scores );
-    std::cout << "[FlowMatchHitMaker::add_triplet_keypoint_scores] score dims=(" << kp_pair_dims[0] << ")" << std::endl;    
+    if ( kp_pair_ndims==1)
+      std::cout << "[FlowMatchHitMaker::add_triplet_keypoint_scores] score dims=(" << kp_pair_dims[0] << ")" << std::endl;
+    else
+      std::cout << "[FlowMatchHitMaker::add_triplet_keypoint_scores] score dims=(" << kp_pair_dims[0] << "," << kp_pair_dims[1] << ")" << std::endl;
+
 
     for (int ipair=0; ipair<(int)kp_pair_dims[0]; ipair++ ) {
       // get the triplet indices
@@ -589,12 +761,26 @@ namespace prep {
         auto& match = _matches_v[matchidx];
 
         // store the kplabel scores]
-        if ( pair_ndims>1 ) {
-          match.keypoint_scores.resize(pair_dims[1],0);
-          for (int iclass=0; iclass<(int)pair_dims[1]; iclass++)
-            match.keypoint_scores[iclass] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, iclass ));
+        if ( kp_pair_ndims>1 ) {
+          match.keypoint_scores = std::vector<float>(6,0);
+	  if ( kp_pair_dims[1]==6 ) {
+	    // current 6-class keypoints
+	    for (int iclass=0; iclass<(int)pair_dims[1]; iclass++)
+	      match.keypoint_scores[iclass] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, iclass ));
+	  }
+	  else if ( kp_pair_dims[1]==3 ) {
+	    // old 3-class keypoints
+	    match.keypoint_scores[0] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, 0 )); // neutrino
+	    match.keypoint_scores[1] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, 1 )); // track-starts
+	    match.keypoint_scores[3] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, 2 )); // shower starts
+	    //std::cout << (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, 0 )) << std::endl;
+	  }
+	  else {
+	    throw std::runtime_error("bad keypoint label data. wrong number of classes");
+	  }
         }
         else {
+	  throw std::runtime_error("bad keypoint label data");
           match.keypoint_scores.resize(1,0);
           match.keypoint_scores[0] = (float)*((float*)PyArray_GETPTR1( (PyArrayObject*)kplabel_scores, ipair ) );
         }

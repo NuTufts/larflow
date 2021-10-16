@@ -37,9 +37,19 @@ color_by_options = ["larmatch",
                     "ssn-pion",                    
                     "ssn-class",
                     "keypoint-nu",
-                    "keypoint-track",
+                    "keypoint-trackstart",
+                    "keypoint-trackend",                    
                     "keypoint-shower",
-                    "flow-field"]
+                    "keypoint-delta",
+                    "keypoint-michel",                    
+                    "flow-field",
+                    "ssn2d-hip",
+                    "ssn2d-mip",
+                    "ssn2d-shower",
+                    "ssn2d-michel",
+                    "ssn2d-delta",
+                    "ssn2d-class"]
+
 
 colorscale = "Viridis"
 option_dict = []
@@ -105,6 +115,16 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         hitindex = 17+4
     elif plotby=="keypoint-michel":
         hitindex = 17+5
+    elif plotby=="ssn2d-hip":
+        hitindex = 3
+    elif plotby=="ssn2d-mip":
+        hitindex = 4
+    elif plotby=="ssn2d-shower":
+        hitindex = 5
+    elif plotby=="ssn2d-michel":
+        hitindex = 6
+    elif plotby=="ssn2d-delta":
+        hitindex = 7
 
     detdata = lardly.DetectorOutline()
 
@@ -128,6 +148,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
         traces_v += lfhits_v + detdata.getlines(color=(0,0,0))
     elif plotby in ["ssn-bg","ssn-muon","ssn-electron","ssn-gamma","ssn-proton","ssn-pion","ssn-other","ssn-class",
+                    "ssn2d-hip","ssn2d-mip","ssn2d-shower","ssn2d-michel","ssn2d-delta","ssn2d-class",
                     "keypoint-nu","keypoint-trackstart","keypoint-trackend","keypoint-shower","keypoint-delta","keypoint-michel"]:
         xyz = np.zeros( (npoints, 4) )
         xcolor = np.zeros( (npoints,3) )
@@ -145,11 +166,13 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
                 ssnet_scores = np.array( (hit[10],hit[11],hit[12],hit[13],hit[14],hit[15],hit[16]) )
                 idx = np.argmax( ssnet_scores )
                 xcolor[ptsused,:] = ssnetcolor[idx]
+            elif plotby=="ssn2d-class":
+                xcolor[ptsused,:] = ssnetcolor[int(hit[8])]
             else:
                 xyz[ptsused,3] = hit[hitindex]
             ptsused += 1
 
-        print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused)
+        print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[3])," max=",np.max(xyz[3]))
         larflowhits = {
             "type":"scatter3d",
             "x": xyz[:ptsused,0],
@@ -159,7 +182,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             "name":plotby,
             "marker":{"color":xyz[:ptsused,3],"size":1,"opacity":0.8,"colorscale":'Viridis'},
         }
-        if plotby=="ssn-class":
+        if plotby=="ssn-class" or plotby=="ssn2d-class":
             larflowhits["marker"]["color"] = xcolor
             larflowhits["marker"].pop("colorscale")
             

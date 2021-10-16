@@ -8,6 +8,7 @@
 #include <map>
 #include <array>
 #include "larlite/DataFormat/larflow3dhit.h"
+#include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -30,15 +31,16 @@ namespace prep {
    * 
    *
    */  
-  class FlowMatchHitMaker {
+  class FlowMatchHitMaker : public larcv::larcv_base {
   public:
     
     FlowMatchHitMaker()
-      : _match_score_threshold(0.5),
-      has_ssnet_scores(false),
-      has_kplabel_scores(false),
-      has_paf(false)
-        {};
+      : larcv::larcv_base("FlowMatchHitMaker"),
+	_match_score_threshold(0.5),
+	has_ssnet_scores(false),
+	has_kplabel_scores(false),
+	has_paf(false)
+    {};
     virtual ~FlowMatchHitMaker() {};
 
     /**
@@ -185,6 +187,10 @@ namespace prep {
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     const std::vector<larcv::Image2D>& img_v,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
+    
+    void store_2dssnet_score( larcv::IOManager& iolcv,
+			      std::vector<larlite::larflow3dhit>& larmatch_hit_v );
+    
 
   };
 
