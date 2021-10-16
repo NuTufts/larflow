@@ -77,7 +77,9 @@ namespace voxelizer {
     void make_labeled_larflow3dhits( const larflow::prep::PrepMatchTriplets& tripletmaker,
 				     const std::vector<larcv::Image2D>& adc_v,				     
 				     larlite::event_larflow3dhit& output_container );
-
+    void store_2dssnet_score( larcv::IOManager& iolcv,
+			      larlite::event_larflow3dhit& larmatch_hit_v );
+ 
   private:
 
     static bool _setup_numpy;

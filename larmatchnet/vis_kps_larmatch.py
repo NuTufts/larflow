@@ -64,8 +64,19 @@ ssnetcolor = {0:np.array((0,0,0)),     # bg
               5:np.array((0,255,255)), # proton
               6:np.array((255,255,0))} # other
 
+ssnet2dcolor = {0:np.array((0,255,255)), # HIP
+                1:np.array((0,0,255)),   # MIP
+                2:np.array((255,0,0)),   # Shower
+                3:np.array((0,255,0)),   # Delta
+                4:np.array((255,0,255))} # Michel
+
+
 # LOAD TREES
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
+io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
+io.set_data_to_read( larlite.data.kOpFlash, "simpleFlashBeam" )
+io.set_data_to_read( larlite.data.kMCTrack, "mcreco" )
+io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 io.add_in_filename( args.input_file )
 if args.dlmerged is not None:
     io.add_in_filename( args.dlmerged )
@@ -167,7 +178,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
                 idx = np.argmax( ssnet_scores )
                 xcolor[ptsused,:] = ssnetcolor[idx]
             elif plotby=="ssn2d-class":
-                xcolor[ptsused,:] = ssnetcolor[int(hit[8])]
+                xcolor[ptsused,:] = ssnet2dcolor[int(hit[8])]
             else:
                 xyz[ptsused,3] = hit[hitindex]
             ptsused += 1

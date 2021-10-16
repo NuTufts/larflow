@@ -248,10 +248,11 @@ namespace prep {
    *
    * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
    * [0-2]:   x,y,z
-   * [3-9]:   7 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
+   * [3-9]:   7 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [9] is the only score stored 
    * [10-16]: 7 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
    * [17-22]: 6 keypoint label score [nu,track,shower]
-   * [23-25]: 3D flow direction
+   * [23-25]: reserved for plane charge
+   * [26-28]: 3D flow direction
    * 
    * @param[in] ev_chstatus Class containing channel status, indicating if good or dead wire
    * @param[out] hit_v vector of space points whose larmatch score was above threshold
@@ -266,8 +267,9 @@ namespace prep {
     ncolumns += 7; // flow scores
     ncolumns += 7; // ssnet classes
     ncolumns += 6; // keypoint scores
-    ncolumns += 3; // flow directions
-    // = 26 columns
+    ncolumns += 3; // plane charge
+    ncolumns += 3; // flow directions    
+    // = 29 columns
 
     auto const& meta = img_v.front().meta();
     
@@ -341,11 +343,11 @@ namespace prep {
       try {
 	if ( has_paf ) {
 	  for (int i=0; i<3; i++)
-	    hit[23+i] = m.paf[i];
+	    hit[26+i] = m.paf[i];
 	}
       }
       catch ( const std::exception& e ) {
-	throw std::runtime_error("ERROR STORING PAF SCORS");
+	throw std::runtime_error("ERROR STORING PAF SCORES");
       }
       
       hit_v.emplace_back( std::move(hit) );

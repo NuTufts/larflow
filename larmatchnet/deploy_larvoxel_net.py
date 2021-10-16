@@ -79,6 +79,7 @@ io.set_verbosity(1)
 io.specify_data_read( larcv.kProductImage2D,  "larflow" )
 io.specify_data_read( larcv.kProductImage2D,  args.adc_name )
 io.specify_data_read( larcv.kProductChStatus, args.chstatus_name )
+io.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
 if args.has_wirecell:
     io.specify_data_read( larcv.kProductChStatus, "thrumu" )
 io.reverse_all_products()
@@ -218,7 +219,9 @@ for ientry in range(NENTRIES):
     dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())
     print("make hits: ",dt_make_hits," secs")
-    print("time elapsed: prep=",dt_prep," net=",dt_net," save=",dt_save)    
+    print("time elapsed: prep=",dt_prep," net=",dt_net," save=",dt_save)
+    print("try to store 2D ssnet data")    
+    hitmaker.store_2dssnet_score( io, evout_lfhits )    
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
