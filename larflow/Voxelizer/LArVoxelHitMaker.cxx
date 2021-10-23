@@ -5,6 +5,8 @@
 
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larcv/core/DataFormat/EventSparseImage.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 
 namespace larflow {
 namespace voxelizer {
@@ -87,12 +89,12 @@ namespace voxelizer {
    *
    * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
    * [0-2]:   x,y,z
-   * [3-7]:   ssnet e-[3], gamma[4], muon[5], pion[6], proton[7]
-   * [8]: larmatch score
-   * [9]: ssnet other
-   * [10-12]: 3 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
-   * [13-18]: 6 keypoint label score [nu,trackstart,trackend,shower,delta,michel]
-   * [19-21]: U[19],V[20],Y[21] plane charge 
+   * [3-8]:   reserved for 2D ssnet: HIP[3], MIP[4], shower[5], michel[6], delta[7], maxclass[8]
+   * [9]: larmatch score
+   * [10-16]: 3D ssnet other from larvoxelnet
+   * [17-22]: 6 keypoint label score [nu,trackstart,trackend,shower,delta,michel]
+   * [23-25]: U[23],V[24],Y[25] plane charge 
+   * [26-28]: reserved for 3D flow direction
    * 
    *
    */  
@@ -118,7 +120,7 @@ namespace voxelizer {
 	auto const& voxeldata = it->second;
 
 	larlite::larflow3dhit hit;
-	hit.resize(22,0);
+	hit.resize(29,0);
 	hit[0] = pos[0];
 	hit[1] = pos[1];
 	hit[2] = pos[2];
@@ -130,29 +132,41 @@ namespace voxelizer {
 
 	hitidx++;
 	
-	hit[3] = voxeldata.ssnet_class_score[1]; // electron
-	hit[4] = voxeldata.ssnet_class_score[2]; // gamma
-	hit[5] = voxeldata.ssnet_class_score[3]; // muon
-	hit[6] = voxeldata.ssnet_class_score[4]; // pion
-	hit[7] = voxeldata.ssnet_class_score[5]; // proton
-	hit[9] = voxeldata.ssnet_class_score[6]; // other
+	// hit[3] = voxeldata.ssnet_class_score[1]; // electron
+	// hit[4] = voxeldata.ssnet_class_score[2]; // gamma
+	// hit[5] = voxeldata.ssnet_class_score[3]; // muon
+	// hit[6] = voxeldata.ssnet_class_score[4]; // pion
+	// hit[7] = voxeldata.ssnet_class_score[5]; // proton
+	// hit[9] = voxeldata.ssnet_class_score[6]; // other
 	
-	hit[8] = voxeldata.lm_score; // true vs ghost score	
+	hit[9] = voxeldata.lm_score; // true vs ghost score	
 	
-	hit[10] = voxeldata.ssnet_class_score[0]+voxeldata.ssnet_class_score[6]; // bg
-	hit[11] = hit[5]+hit[6]+hit[7]; // track
-	hit[12] = hit[3]+hit[4]; // shower
+	// hit[10] = voxeldata.ssnet_class_score[0]+voxeldata.ssnet_class_score[6]; // bg
+	// hit[11] = hit[5]+hit[6]+hit[7]; // track
+	// hit[12] = hit[3]+hit[4]; // shower
 
-	hit[13] = voxeldata.kp_class_score[0]; // nu
-	hit[14] = voxeldata.kp_class_score[1]; // track-start
-	hit[15] = voxeldata.kp_class_score[2]; // track-end
-	hit[16] = voxeldata.kp_class_score[3]; // shower
-	hit[17] = voxeldata.kp_class_score[4]; // michel
-	hit[18] = voxeldata.kp_class_score[5]; // delta
+	hit[10] = voxeldata.ssnet_class_score[0]; //bg
+	hit[11] = voxeldata.ssnet_class_score[1];
+	hit[12] = voxeldata.ssnet_class_score[2];
+	hit[13] = voxeldata.ssnet_class_score[3];
+	hit[14] = voxeldata.ssnet_class_score[4];
+	hit[15] = voxeldata.ssnet_class_score[5];
+	hit[16] = voxeldata.ssnet_class_score[6];			
+
+	hit[17] = voxeldata.kp_class_score[0]; // nu
+	hit[18] = voxeldata.kp_class_score[1]; // track-start
+	hit[19] = voxeldata.kp_class_score[2]; // track-end
+	hit[20] = voxeldata.kp_class_score[3]; // shower
+	hit[21] = voxeldata.kp_class_score[4]; // michel
+	hit[22] = voxeldata.kp_class_score[5]; // delta
 	
-	hit[19] = 0.0;
-	hit[20] = 0.0;
-	hit[21] = 0.0;
+	hit[23] = 0.0;
+	hit[24] = 0.0;
+	hit[25] = 0.0;
+
+	hit[26] = 0.;
+	hit[27] = 0.;
+	hit[28] = 0.;	
 
 	hit.track_score = voxeldata.lm_score; // true vs ghost score
 
@@ -162,6 +176,7 @@ namespace voxelizer {
 	  int sparseidx = triplet[p];
 	  hit.targetwire[p] = tripletmaker._sparseimg_vv[p].at(sparseidx).col;
 	}
+	hit.targetwire[3] = row;
 	hit.srcwire = hit.targetwire[2];
 	hit.idxhit = hitidx;	
 	if( tripletmaker._truth_v.size()==ntriplet && tripletmaker._truth_v[itriplet]==1)
@@ -186,29 +201,182 @@ namespace voxelizer {
 		continue;
 	      float pix = adc_v[p].pixel(r,c,__FILE__,__LINE__);
 	      if ( pix>10.0 ) {
-		hit[19+p] += pix;
+		hit[23+p] += pix;
 		nfilled++;
 	      }
 	    }
 	  }//end of radius loop
 
 	  if ( nfilled==0 )
-	    hit[19+p] = 0.0;
+	    hit[23+p] = 0.0;
 	  else
-	    hit[19+p] /= (float)nfilled;
+	    hit[23+p] /= (float)nfilled;
 	  
 	}//end of plane loop
 
-	//std::cout << "hit: q=(" << hit[19] << "," << hit[20] << "," << hit[21] << ")" << std::endl;
+	//std::cout << "hit: q=(" << hit[23] << "," << hit[24] << "," << hit[25] << ")" << std::endl;
 
 	output_container.emplace_back( std::move(hit) );
 	
       }// end if valid hit
     }//end of triplet loop
-
+    
     return;
   }
 
+  /**
+   * @brief label container of larflow3dhit using 2D track/shower ssnet output images
+   *
+   * calculates weighted ssnet score and modifies hit to carry value.
+   * the weighted ssnet score for the space point is in `larlite::larflow3dhit::renormed_shower_score`
+   *
+   * @param[in] ssnet_score_v            SSNet shower score images for each plane
+   * @param[inout] larmatch_hit_v        LArMatch hits, modified
+   */
+  void LArVoxelHitMaker::store_2dssnet_score( larcv::IOManager& iolcv,
+					      larlite::event_larflow3dhit& larmatch_hit_v )
+  {
+    
+    clock_t begin = clock();
+
+    larcv::EventSparseImage* ev_ssnet
+      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,"sparseuresnetout");
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
+    
+    auto const& sparseimg_v = ev_ssnet->SparseImageArray();
+    std::cout << "number of sparse images: " << sparseimg_v.size() << std::endl;
+
+    if ( sparseimg_v.size()==0 )
+      return;
+
+    // convert into 5-particle ssnet
+
+    struct SSNetData_t {
+      int row;
+      int col;
+      
+      float hip;
+      float mip;
+      float shr;
+      float dlt;
+      float mic;
+      bool operator<(const SSNetData_t& rhs) const {
+	if (row<rhs.row) return true;
+	if ( row==rhs.row ) {
+	  if ( col<rhs.col ) return true;
+	}
+	return false;
+      };
+    };
+    
+    std::map< std::pair<int,int>, SSNetData_t> data[3];
+      
+    for ( size_t p=0; p<3; p++ ) {
+
+      auto const& meta = adc_v[p].meta();
+      
+      if (sparseimg_v.size()>0) {
+        auto& spimg = sparseimg_v.at(p);
+      
+        int nfeatures = spimg.nfeatures();
+        int stride = nfeatures+2;
+        int npts = spimg.pixellist().size()/stride;
+        auto const& spmeta = spimg.meta(0);
+        
+        for (int ipt=0; ipt<npts; ipt++) {
+          int row = spimg.pixellist().at( ipt*stride+0 );
+          int col = spimg.pixellist().at( ipt*stride+1 );
+          
+          int xrow = meta.row( spmeta.pos_y( row ) );
+          int xcol = meta.col( spmeta.pos_x( col ) );
+          
+          // int maxpid = -1;
+          // float maxscore = -1;
+          // for (int i=0; i<5; i++) {
+          //   float score = spimg.pixellist().at( ipt*stride+2+i );
+          //   if ( score>maxscore ) {
+          //     maxscore = score;
+          //     maxpid   = i;
+          //   }
+          // }
+	  
+          // float hip = spimg.pixellist().at( ipt*stride+2 );
+          // float mip = spimg.pixellist().at( ipt*stride+3 );
+          // float shr = spimg.pixellist().at( ipt*stride+4 );
+          // float dlt = spimg.pixellist().at( ipt*stride+5 );
+          // float mic = spimg.pixellist().at( ipt*stride+6 );
+	  
+	  SSNetData_t ssnetdata;
+	  ssnetdata.row = xrow;
+	  ssnetdata.col = xcol;
+          ssnetdata.hip = spimg.pixellist().at( ipt*stride+2 );
+          ssnetdata.mip = spimg.pixellist().at( ipt*stride+3 );
+          ssnetdata.shr = spimg.pixellist().at( ipt*stride+4 );
+          ssnetdata.dlt = spimg.pixellist().at( ipt*stride+5 );
+          ssnetdata.mic = spimg.pixellist().at( ipt*stride+6 );
+	  
+	  data[p][ std::pair<int,int>(xrow,xcol) ] = ssnetdata;
+	  
+        }//end of point loop
+      }//end of if five particle ssn data exists
+      
+    }//end of plane loop
+    
+        
+    for ( auto & hit : larmatch_hit_v ) {
+
+      // 5 particle score, 3 planes. we average ...
+      std::vector<float> scores(5,0);
+      int nplanes = 0;
+
+      for ( int p=0; p<3; p++) {
+	int row = hit.targetwire[3];
+	int col = hit.targetwire[p];
+	auto it = data[p].find( std::pair<int,int>( row,col ) );
+	if ( it!=data[p].end() ) {
+	  scores[0] += it->second.hip;
+	  scores[1] += it->second.mip;
+	  scores[2] += it->second.shr;
+	  scores[3] += it->second.dlt;
+	  scores[4] += it->second.mic;
+	  nplanes++;
+	}
+      }
+      if (nplanes==0)
+	continue;
+
+      float renorm = 0.;
+      int max_pid = -1;
+      float max_val = 0;
+      for ( int i=0; i<5; i++) {
+	if ( scores[i]>max_val ) {
+	  max_val = scores[i];
+	  max_pid = i;
+	}
+	scores[i] /= (float)nplanes;
+	renorm += scores[i];
+      }
+      for ( int i=0; i<5; i++) {
+	scores[i] /= renorm;
+      }
+      
+      // stuff into larflow hit
+      for (int i=0; i<5; i++)
+	hit[3+i] = scores[i];
+      hit[8] = max_pid;
+      
+      hit.renormed_shower_score = scores[2]+scores[3]+scores[4];
+
+    }//end of hit loop
+    
+    clock_t end = clock();
+    double elapsed = double(end-begin)/CLOCKS_PER_SEC;
+    
+    LARCV_INFO() << " elasped=" << elapsed << " secs" << std::endl;
+    
+  }
   
 
 
