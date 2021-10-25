@@ -183,7 +183,6 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
                 xyz[ptsused,3] = hit[hitindex]
             ptsused += 1
 
-        print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[3])," max=",np.max(xyz[3]))
         larflowhits = {
             "type":"scatter3d",
             "x": xyz[:ptsused,0],
@@ -196,6 +195,8 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         if plotby=="ssn-class" or plotby=="ssn2d-class":
             larflowhits["marker"]["color"] = xcolor
             larflowhits["marker"].pop("colorscale")
+        else:
+            print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[3])," max=",np.max(xyz[3]))            
             
         #print(xyz[:ptsused,3])
         traces_v += [larflowhits]+detdata.getlines(color=(0,0,0))

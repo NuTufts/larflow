@@ -239,17 +239,46 @@ namespace voxelizer {
     
     clock_t begin = clock();
 
+    // get sparse image for each plane
+    std::vector< const larcv::SparseImage*> spimg_v;
+
+    // try sparseuresnetout
     larcv::EventSparseImage* ev_ssnet
       = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,"sparseuresnetout");
+
+    if ( ev_ssnet->SparseImageArray().size()==3 ) {
+      LARCV_NORMAL() << "use current 'sparseuresnetout' tree" << std::endl;      
+      auto& sparseimg_v = ev_ssnet->SparseImageArray();
+      for ( auto& spimg : sparseimg_v ) 
+	spimg_v.push_back( &spimg );
+    }
+    else {
+      LARCV_NORMAL() << "use old uresnet_plane tree" << std::endl;
+      // let's try uresnet_plane%d: old name
+      for (int p=0; p<3; p++) {
+	char zname[50];	
+	sprintf( zname, "uresnet_plane%d", p );
+	
+	larcv::EventSparseImage* ev_s = (larcv::EventSparseImage*)iolcv.get_data(larcv::kProductSparseImage,zname);
+	auto const& s_v = ev_s->SparseImageArray();
+	if ( s_v.size()>0 )
+	  spimg_v.push_back( &s_v.at(0) );
+      }
+    }
+
+    if (spimg_v.size()!=3) {
+      LARCV_WARNING() << "wrong number of sparse ssnet output images: " << spimg_v.size() << ". Want 3" << std::endl;
+      return;
+    }
+
+
     larcv::EventImage2D* ev_adc
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
     
-    auto const& sparseimg_v = ev_ssnet->SparseImageArray();
-    std::cout << "number of sparse images: " << sparseimg_v.size() << std::endl;
 
-    if ( sparseimg_v.size()==0 )
-      return;
+    std::cout << "number of sparse images: " << spimg_v.size() << std::endl;
+
 
     // convert into 5-particle ssnet
 
@@ -277,8 +306,8 @@ namespace voxelizer {
 
       auto const& meta = adc_v[p].meta();
       
-      if (sparseimg_v.size()>0) {
-        auto& spimg = sparseimg_v.at(p);
+      if (spimg_v.size()>0) {
+        auto const& spimg = *spimg_v.at(p);
       
         int nfeatures = spimg.nfeatures();
         int stride = nfeatures+2;

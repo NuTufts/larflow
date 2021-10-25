@@ -25,10 +25,10 @@ SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-#INPUT_TXTFILE_TRAIN: test_voxel_train.txt
-#INPUT_TXTFILE_VALID: test_voxel_valid.txt
-INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/training_set_voxeldata.txt"
-INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/validation_set_voxeldata.txt"
+INPUT_TXTFILE_TRAIN: test_voxel_train.txt
+INPUT_TXTFILE_VALID: test_voxel_valid.txt
+#INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/training_set_voxeldata.txt"
+#INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/validation_set_voxeldata.txt"
 
 # TRAINING PARAMETERS
 # =======================
@@ -36,10 +36,10 @@ START_ITER: 0
 NUM_ITERATIONS: 10000
 TRAIN_ITER_PER_RECORD: 1
 TRAIN_ITER_PER_VALIDPT: 50
-NUM_VALID_ITERS: 5
+NUM_VALID_ITERS: 1
 
-BATCHSIZE_TRAIN: 8  # batches per training iteration
-BATCHSIZE_VALID: 4  # batches per validation iteration
+BATCHSIZE_TRAIN: 1  # batches per training iteration
+BATCHSIZE_VALID: 1  # batches per validation iteration
 
 # CHECKPOINT PARAMETERS
 # =======================
