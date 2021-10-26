@@ -40,6 +40,8 @@ feat_v  = std.vector("larcv::NumpyArrayFloat")()
 lm_truth_v  = std.vector("larcv::NumpyArrayInt")()
 lm_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
+ancestor_truth_v = srd.vector("larcv::NumpyArrayInt")()
+
 ssnet_truth_v  = std.vector("larcv::NumpyArrayInt")()
 ssnet_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
@@ -55,6 +57,7 @@ outtree.Branch("ssnet_truth_v", ssnet_truth_v)
 outtree.Branch("ssnet_weight_v",ssnet_weight_v)
 outtree.Branch("kp_truth_v", kp_truth_v)
 outtree.Branch("kp_weight_v",kp_weight_v)
+outtree.Branch("ancestor_truth_v",ancestor_truth_v)
 
 start = time.time()
 for iiter in range(NENTRIES):

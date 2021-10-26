@@ -675,7 +675,14 @@ namespace voxelizer {
     PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
     PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
     PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
-    PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );    
+    PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );
+
+    // origin labels
+    PyObject* dict_origin_labels = make_origin_dict_labels( data.triplet_v->at(0) );
+    int mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
+    if ( mergeok!=0 ) {
+      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge failed");
+    }
 
     Py_DECREF(ssnet_label_key);
     Py_DECREF(ssnet_weight_key);
@@ -686,6 +693,7 @@ namespace voxelizer {
     Py_DECREF(kpweight);
     Py_DECREF(ssnet_array);
     Py_DECREF(ssnet_weight);
+    Py_DECREF(dict_origin_labels);
 
 
     return larmatch_dict;

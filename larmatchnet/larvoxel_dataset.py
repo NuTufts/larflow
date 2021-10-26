@@ -16,6 +16,10 @@ class larvoxelDataset(torch.utils.data.Dataset):
                  is_voxeldata=False):
         """
         Parameters:
+        is_voxeldata [bool] if true, assumes ROOT file containts trees with larcv::NumpyArray[Int/Float] classes.
+                              These classes are easy to transform into numpy arrays.
+                            if false (default), assumes ROOT file contains 3D spacepoint data which we 
+                              need to convert into numpy array format.
         """
         file_v = rt.std.vector("string")()
         if filelist is not None:
