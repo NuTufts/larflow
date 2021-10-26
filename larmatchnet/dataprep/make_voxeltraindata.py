@@ -28,7 +28,6 @@ def collate_fn(batch):
 dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=0.3 )
 NENTRIES = len(dataset)
 
-
 loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=collate_fn)
 
 outfile = rt.TFile(args.output,"recreate")
@@ -40,7 +39,8 @@ feat_v  = std.vector("larcv::NumpyArrayFloat")()
 lm_truth_v  = std.vector("larcv::NumpyArrayInt")()
 lm_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
-ancestor_truth_v = srd.vector("larcv::NumpyArrayInt")()
+ancestor_truth_v = std.vector("larcv::NumpyArrayInt")()
+ancestor_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
 ssnet_truth_v  = std.vector("larcv::NumpyArrayInt")()
 ssnet_weight_v = std.vector("larcv::NumpyArrayFloat")()
@@ -58,11 +58,15 @@ outtree.Branch("ssnet_weight_v",ssnet_weight_v)
 outtree.Branch("kp_truth_v", kp_truth_v)
 outtree.Branch("kp_weight_v",kp_weight_v)
 outtree.Branch("ancestor_truth_v",ancestor_truth_v)
+outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
 start = time.time()
 for iiter in range(NENTRIES):
 
-    for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v, ssnet_truth_v, ssnet_weight_v, kp_truth_v, kp_weight_v ]:
+    for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
+                 ssnet_truth_v, ssnet_weight_v,                 
+                 kp_truth_v, kp_weight_v,
+                 ancestor_truth_v, ancestor_weight_v ]:
         vec.clear()
         
     data = next(iter(loader))[0]
@@ -84,7 +88,10 @@ for iiter in range(NENTRIES):
     
     lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"].squeeze() ) )
     ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"].squeeze() ) )
-    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )        
+    kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )
+
+    ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
+    ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
                       
     outtree.Fill()
     #if iiter>=4:
