@@ -199,7 +199,8 @@ for ientry in range(NENTRIES):
     # Prep sparse ADC numpy arrays
     sparse_np_v = [ preplarmatch.make_sparse_image(p) for p in range(3) ]
     coord_t = [ torch.from_numpy( sparse_np_v[p][:,0:2].astype(np.long) ).to(DEVICE) for p in range(3) ]
-    feat_t  = [ torch.from_numpy( np.clip( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) )/40.0,0,10.0 ) ).to(DEVICE) for p in range(3) ]
+    #feat_t  = [ torch.from_numpy( np.clip( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) )/40.0,0,10.0 ) ).to(DEVICE) for p in range(3) ]
+    feat_t  = [ torch.from_numpy( sparse_np_v[p][:,2].reshape(  (coord_t[p].shape[0], 1) ) ).to(DEVICE) for p in range(3) ]    
 
     # we can run the whole sparse images through the network
     #  to get the individual feature vectors at each coodinate

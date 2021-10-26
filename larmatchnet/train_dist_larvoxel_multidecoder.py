@@ -265,7 +265,7 @@ def main():
     args.world_size = args.gpus * args.nodes
     
     os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '8888'
+    os.environ['MASTER_PORT'] = '8889'
     mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
     
     print("DISTRIBUTED MAIN DONE")

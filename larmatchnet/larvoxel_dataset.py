@@ -12,9 +12,14 @@ class larvoxelDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, verbose=False,
                  voxelize=True, voxelsize_cm=1.0,
+                 max_num_voxels=1e6,
                  is_voxeldata=False):
         """
         Parameters:
+        is_voxeldata [bool] if true, assumes ROOT file containts trees with larcv::NumpyArray[Int/Float] classes.
+                              These classes are easy to transform into numpy arrays.
+                            if false (default), assumes ROOT file contains 3D spacepoint data which we 
+                              need to convert into numpy array format.
         """
         file_v = rt.std.vector("string")()
         if filelist is not None:
@@ -70,6 +75,8 @@ class larvoxelDataset(torch.utils.data.Dataset):
 
         self._voxelize = voxelize
         self._voxelsize_cm = voxelsize_cm
+        self._max_num_voxels = max_num_voxels
+        self._max_num_tries = 10
         if self._voxelize and not self.is_voxeldata:
             self.voxelizer = larflow.voxelizer.VoxelizeTriplets()
             self.voxelizer.set_voxel_size_cm( self._voxelsize_cm )
@@ -78,25 +85,45 @@ class larvoxelDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         worker_info = torch.utils.data.get_worker_info()
 
-        if self._random_access and self._current_entry>=self.nentries:
-            # reset random choice
-            print("reset choices")
-            self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
-            self._current_entry = 0
 
-        ientry = int(self._current_entry)+0
+        okentry = False
+        num_tries = 0
+
+        while not okentry:
+
+            if self._random_access and self._current_entry>=self.nentries:
+                # if random access and we've used all possible indices we reset the shuffled index list
+                print("reset choices")
+                self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
+                self._current_entry = 0
+
+            ientry = int(self._current_entry)
         
-        if self._random_access:
-            data    = {"entry":ientry,
-                       "tree_entry":self._random_entry_list[ientry]}
-        else:            
-            data    = {"entry":ientry,
-                       "tree_entry":int(ientry)%int(self.nentries)}
+            if self._random_access:
+                # if random access, get next entry in shuffled index list
+                data    = {"entry":ientry,
+                           "tree_entry":self._random_entry_list[ientry]}
+            else:
+                # else just take the next entry
+                data    = {"entry":ientry,
+                           "tree_entry":int(ientry)%int(self.nentries)}
 
-        if not self.is_voxeldata:
-            data = self.get_data_dict_from_triplet_file( data )
-        else:
-            data = self.get_data_dict_from_voxelarray_file( data )
+            if not self.is_voxeldata:
+                data = self.get_data_dict_from_triplet_file( data )
+            else:
+                data = self.get_data_dict_from_voxelarray_file( data )
+
+            # increment the entry index
+            self._current_entry += 1
+                
+            # increment the number of attempts we've made
+            num_tries += 1
+            if num_tries>=self._max_num_tries:
+                raise RuntimeError("Tried the max num of times (%d) to get an acceptable piece of data"%(num_tries))
+            if data is None:
+                okentry = False
+            else:
+                okentry = True
 
         xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
         indexlist = xlist[0]
@@ -110,7 +137,6 @@ class larvoxelDataset(torch.utils.data.Dataset):
             raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
 
         self._nloaded += 1
-        self._current_entry += 1            
         
         return copy.deepcopy(data)
 
@@ -171,6 +197,12 @@ class larvoxelDataset(torch.utils.data.Dataset):
 
         #print("get_data_dict_from_voxelarray_file: ",self.voxeldata_tree.coord_v.at(0).tonumpy().shape)
         data["voxcoord"] = self.voxeldata_tree.coord_v.at(0).tonumpy()
+
+        # check for failures in the data
+        if data["voxcoord"].shape[0]>=self._max_num_voxels:
+            # don't return giant events
+            return None
+        
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
         data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
@@ -291,16 +323,26 @@ if __name__ == "__main__":
     import time
     import MinkowskiEngine as ME
 
-    niter = 5
-    batch_size = 4
-    testfile="larvoxeldata_bnb_nu_traindata_1cm_0000.root"
+    niter = 100
+    batch_size = 1
+    #testfile="larvoxeldata_bnb_nu_traindata_1cm_0000.root"
     #testfile="larvoxeldata_bnb_nu_traindata_1cm_0047.root"
+    testfile="testdata/larvoxeldata_bnb_nu_traindata_3mm_bnbnu_0000.root"
+
+    import ROOT as rt
+    out = rt.TFile("temp_larvoxel_dataset_hist.root",'recreate')
+    h = rt.TH1F("hnvoxels","num voxels; number of voxels in event;",20,0,4e6)
+    
+    
+    DEVICE=torch.device("cpu")
     test = larvoxelDataset( filelist=[testfile],
                             is_voxeldata=True,
-                            random_access=True )
+                            random_access=False )
     print("NENTRIES: ",len(test))
     
     loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larvoxelDataset.collate_fn)
+
+    max_nvoxels = 0
 
     start = time.time()
     for iiter in range(niter):
@@ -334,8 +376,15 @@ if __name__ == "__main__":
 
         coords = batch["voxcoord"]
         feats  = batch["voxfeat"]        
-        A = ME.SparseTensor(features=torch.from_numpy(feats), coordinates=torch.from_numpy(coords))
-        print("sparsetensor: ",A)            
+        A = ME.SparseTensor(features=torch.from_numpy(feats).to(DEVICE),
+                            coordinates=torch.from_numpy(coords).to(DEVICE))
+
+        print("sparsetensor: ",A.shape)
+
+        if coords.shape[0]>max_nvoxels:
+            max_nvoxels = coords.shape[0]
+            maxiter = iiter
+        h.Fill( coords.shape[0] )
         
         #xinput = batch["sparsetensor"]
         #print("after sparse collate")
@@ -346,3 +395,7 @@ if __name__ == "__main__":
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)
     print("sec per iter: ",sec_per_iter)
+    print("max nvoxels: ",max_nvoxels)
+    print("max iter: ",maxiter)
+    h.Write()
+    out.Close()
