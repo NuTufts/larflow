@@ -2,12 +2,9 @@
 
 WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/workdir
 UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
-#INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika_training.txt
-#OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir_mcc9_v13_bnb_nu_corsika_training/
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika_valid.txt
-OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir_mcc9_v13_bnb_nu_corsika_valid/
-tag=bnb_nu_validdata
-
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.paired.list
+OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir_triplettruth_mcc9_v13_bnb_nu_corsika/
+tag=bnbnu
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
 
@@ -40,17 +37,11 @@ echo "startline: ${startline}" >> ${local_logfile} 2>&1
 for i in {1..5}
 do
     let lineno=$startline+$i
-    larcvtruth=`sed -n ${lineno}p $INPUTLIST`
-    larcvtruth_base=`basename ${larcvtruth}`
-    larcvtruth_dir=`dirname $larcvtruth`
-
-    mcinfo_base=`python ${WORKDIR}/../find_mcinfo_pair.py ${larcvtruth}`
-    mcinfo_dir=`echo $larcvtruth_dir | sed 's|larcv_mctruth|larlite_mcinfo|g'`
-    mcinfo_path=${mcinfo_dir}/${mcinfo_base}
-    ls -lh $mcinfo_path
+    larcvtruth=`sed -n ${lineno}p $INPUTLIST | awk '{print $1}'`
+    mcinfo_path=`sed -n ${lineno}p $INPUTLIST | awk '{print $2}'`
     COMMAND="${SCRIPT} --out out_${i}.root --input-larcv $larcvtruth --input-larlite ${mcinfo_path} -adc wiremc -tb -tri"
     echo $COMMAND
-    $COMMAND >> ${local_logfile} 2>&1
+    $COMMAND >> ${local_logfile}
 done
 
 ls -lh out_*.root >>	${local_logfile} 2>&1
@@ -58,7 +49,7 @@ ls -lh out_*.root >>	${local_logfile} 2>&1
 ana_outputfile=`printf "larmatchtriplet_${tag}_%04d.root" ${jobid}`
 hadd -f $ana_outputfile out_*.root >>	${local_logfile} 2>&1
 cp $ana_outputfile ${OUTPUT_DIR}/
-cp log_bnb_nu_jobid* ${jobworkdir}/
+cp ${local_logfile} ${jobworkdir}/
 
 cd /tmp
 rm -r $local_jobdir

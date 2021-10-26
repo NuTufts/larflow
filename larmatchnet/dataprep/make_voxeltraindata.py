@@ -25,7 +25,7 @@ print(args.input_larmatch)
 def collate_fn(batch):
     return batch
 
-dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=1.0 )
+dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=0.3 )
 NENTRIES = len(dataset)
 
 
