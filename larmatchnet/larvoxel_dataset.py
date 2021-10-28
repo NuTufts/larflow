@@ -157,6 +157,12 @@ class larvoxelDataset(torch.utils.data.Dataset):
             # voxelize the data
             self.voxelizer.make_voxeldata( self.loader.triplet_v[0] )
             voxdata = self.voxelizer.get_full_voxel_labelset_dict( self.loader )
+
+            # check for failures in the data
+            if voxdata["voxcoord"].shape[0]>=self._max_num_voxels:
+                # don't return giant events
+                return None
+            
             origin_x = self.voxelizer.get_origin()[0]
             origin_y = self.voxelizer.get_origin()[1]
             origin_z = self.voxelizer.get_origin()[2]

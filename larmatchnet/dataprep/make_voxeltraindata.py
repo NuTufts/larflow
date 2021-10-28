@@ -39,6 +39,9 @@ feat_v  = std.vector("larcv::NumpyArrayFloat")()
 lm_truth_v  = std.vector("larcv::NumpyArrayInt")()
 lm_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
+instance_truth_v = std.vector("larcv::NumpyArrayInt")()
+instance_map_v = std.vector("std::vector<int>")()
+
 ancestor_truth_v = std.vector("larcv::NumpyArrayInt")()
 ancestor_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
@@ -57,6 +60,8 @@ outtree.Branch("ssnet_truth_v", ssnet_truth_v)
 outtree.Branch("ssnet_weight_v",ssnet_weight_v)
 outtree.Branch("kp_truth_v", kp_truth_v)
 outtree.Branch("kp_weight_v",kp_weight_v)
+outtree.Branch("instance_truth_v",instance_truth_v)
+outtree.Branch("instance2trackid_v",instance_map_v)
 outtree.Branch("ancestor_truth_v",ancestor_truth_v)
 outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
@@ -66,6 +71,7 @@ for iiter in range(NENTRIES):
     for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
                  ssnet_truth_v, ssnet_weight_v,                 
                  kp_truth_v, kp_weight_v,
+                 instance_truth_v, instance_map_v,
                  ancestor_truth_v, ancestor_weight_v ]:
         vec.clear()
         
@@ -90,6 +96,15 @@ for iiter in range(NENTRIES):
     ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"].squeeze() ) )
     kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )
 
+    instance_truth_v.push_back(  larcv.NumpyArrayInt( data["voxinstance"].squeeze().astype(np.int32) ) )
+    for ii in data["voxinstance2id"]:
+        k = ii
+        v = data["voxinstance2id"][k]
+        pair = std.vector("int")(2,0)
+        pair[0] = int(k)
+        pair[1] = int(v)
+        instance_map_v.push_back(pair)
+    
     ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
     ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
                       

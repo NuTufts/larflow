@@ -677,11 +677,18 @@ namespace voxelizer {
     PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
     PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );
 
+    // instance labels
+    PyObject* dict_instance_labels = make_instance_dict_labels( data.triplet_v->at(0) );
+    int mergeok = PyDict_Update( larmatch_dict, dict_instance_labels );
+    if ( mergeok!=0 ) {
+      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with instance label dict failed");
+    }
+    
     // origin labels
     PyObject* dict_origin_labels = make_origin_dict_labels( data.triplet_v->at(0) );
-    int mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
+    mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
     if ( mergeok!=0 ) {
-      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge failed");
+      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with origin label dict failed");
     }
 
     Py_DECREF(ssnet_label_key);
@@ -694,6 +701,7 @@ namespace voxelizer {
     Py_DECREF(ssnet_array);
     Py_DECREF(ssnet_weight);
     Py_DECREF(dict_origin_labels);
+    Py_DECREF(dict_instance_labels);    
 
 
     return larmatch_dict;
