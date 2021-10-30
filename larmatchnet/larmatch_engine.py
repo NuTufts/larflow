@@ -1,6 +1,7 @@
 import os,sys,time
 import shutil
 import torch
+import torch.distributed as dist
 import yaml
 from larmatch import LArMatch
 from collections import OrderedDict
@@ -280,6 +281,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     # use UNET portion to first get feature vectors
     pred_dict = model_dict["larmatch"]( coord_t, feat_t, match_t, flowdata["npairs"], device, verbose=config["TRAIN_VERBOSE"] )
+    torch.distributed.barrier()    
     
     match_pred_t   = pred_dict["match"]      
     ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
