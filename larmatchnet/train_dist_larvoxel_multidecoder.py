@@ -66,17 +66,19 @@ def run(gpu, args ):
     if rank==0:
         tb_writer = SummaryWriter(comment="multidecoder")
 
+    torch.cuda.set_device(gpu)
+    device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")        
     single_model = LArVoxelMultiDecoder(run_ssnet=config["RUN_SSNET"],run_kplabel=config["RUN_KPLABEL"])
-
+    print("MOVE TO GPU: ",gpu," device=",device)
+    single_model.to(device,non_blocking=True)
+    
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
 
         checkpoint_data = larvoxel_engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
             
-    torch.cuda.set_device(gpu)
-    device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
-    single_model.to(device)
+
 
     criterion = LArVoxelLoss( eval_ssnet=config["RUN_SSNET"],
                               eval_keypoint_label=config["RUN_KPLABEL"] ).to(device)

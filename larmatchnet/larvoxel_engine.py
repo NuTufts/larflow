@@ -299,7 +299,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
     kpshift_t      = None
     paf_label_t    = None
     truematch_idx_t = None
-    if True:
+    if False:
         print("lmmatch label: ",match_label_t.shape)
         print("ssnet label: ",ssnet_label_t.shape)
         print("kp label: ",kp_label_t.shape)

@@ -153,7 +153,7 @@ class LArVoxelLoss(nn.Module):
         else:
             # get the score for the target class
             ssnet_truth_x = ssnet_truth
-            p_t = ssnet_pred_x.gather(0,ssnet_truth_x).squeeze()
+            p_t = torch.clamp( ssnet_pred_x.gather(0,ssnet_truth_x).squeeze(), min=1.0e-5, max=9.99995 )
             #print("  ssnet_pred_x: ",ssnet_pred_x.shape)
             #print("  ssnet truth: ",ssnet_truth_x.shape)
             #print("  p_t.shape: ",p_t.shape)
@@ -167,7 +167,13 @@ class LArVoxelLoss(nn.Module):
             if flssnet_loss.detach().isinf().sum()==0:
                 ssnet_loss = flssnet_loss
             else:
-                print("  infinite focal loss!")
+                print("  ERROR: infinite ssnet focal loss!")
+                print("  ======== check inputs =============" )
+                print("  ssnet_weight: ",ssnet_weight.detach().isinf().sum())
+                print("  p_t zeros: ",p_t.detach()[ p_t.detach().eq(0.0) ].sum())
+                print("  p_t ones: ",p_t.detach()[ p_t.detach().eq(1.0) ].sum())
+                print("  ssnet_pred_x: ",ssnet_pred_x.detach().isinf().sum())
+                print("  log(p_t): ",torch.log(p_t.detach()).isinf().sum())
                 ssnet_loss = torch.zeros_like( flssnet_loss )
             if verbose: print("  ssnet focal loss: ",ssnet_loss.detach().item())            
             

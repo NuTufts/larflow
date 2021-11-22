@@ -5,14 +5,14 @@ DEVICE: "cuda:0"
 
 # TRAINING CONFIG
 # =================
-RESUME_FROM_CHECKPOINT: True
-RESUME_OPTIM_FROM_CHECKPOINT:  True
+RESUME_FROM_CHECKPOINT: False
+RESUME_OPTIM_FROM_CHECKPOINT:  False
 RUNPROFILER: False
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/lv.multidecoder.checkpoint.10600th.tar"
 TRAIN_VERBOSE: False
 LOSS_VERBOSE: False
 FREEZE_LAYERS: []
-LEARNING_RATE: 1.0e-5
+LEARNING_RATE: 1.0e-3
 WEIGHT_DECAY: 1.0e-4
 
 # MODEL CONFIG
@@ -24,20 +24,22 @@ SSNET_CLASS_NAMES: ["bg","electron","gamma","muon","pion","proton","other"]
 
 # TRAINING+VALIDATION DATA PATHS
 # ================================
-INPUT_TXTFILE_TRAIN: test_voxel_train.txt
-INPUT_TXTFILE_VALID: test_voxel_valid.txt
+#INPUT_TXTFILE_TRAIN: test_voxel_train.txt
+#INPUT_TXTFILE_VALID: test_voxel_valid.txt
 #INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/training_set_voxeldata.txt"
 #INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/validation_set_voxeldata.txt"
+INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/debug_set_3mm.list"
+INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/debug_set_3mm.list"
 
 # TRAINING PARAMETERS
 # =======================
-START_ITER: 10600
+START_ITER: 0
 NUM_ITERATIONS: 100000
 TRAIN_ITER_PER_RECORD: 1
 TRAIN_ITER_PER_VALIDPT: 50
-NUM_VALID_ITERS: 1
-BATCHSIZE_TRAIN: 32  # batches per training iteration
-BATCHSIZE_VALID: 4  # batches per validation iteration
+NUM_VALID_ITERS: 10
+BATCHSIZE_TRAIN: 6  # batches per training iteration
+BATCHSIZE_VALID: 1  # batches per validation iteration
 
 # CHECKPOINT PARAMETERS
 # =======================
@@ -45,5 +47,5 @@ DEVICE_IDS: [0]
 # map multi-training weights 
 CHECKPOINT_MAP_LOCATIONS: None
 CHECKPOINT_FROM_DATA_PARALLEL: False
-ITER_PER_CHECKPOINT: 200
+ITER_PER_CHECKPOINT: 50
 PREDICT_CLASSVEC: True

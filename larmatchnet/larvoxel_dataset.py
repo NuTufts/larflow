@@ -210,10 +210,10 @@ class larvoxelDataset(torch.utils.data.Dataset):
             return None
         
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
-        print("prenorm: ",data["voxfeat"].shape,", ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))
+        #print("prenorm: ",data["voxfeat"].shape,", ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))
         # normalize features
         data["voxfeat"] = np.clip( data["voxfeat"]/150.0, 0, 10.0 )
-        print("postnorm: ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))        
+        #print("postnorm: ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))        
         
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
         data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()

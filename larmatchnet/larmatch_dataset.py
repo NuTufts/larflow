@@ -153,10 +153,11 @@ if __name__ == "__main__":
 
     import time
 
-    niter = 10
-    batch_size = 4
-    test = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
-    #test = larmatchDataset( filelist=["larmatchtriplet_ana_trainingdata_testfile.root"])
+    niter = 1
+    batch_size = 1
+    #test = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
+    #test = larmatchDataset( filefolder="/home/twongjirad/working/data/larmatch_training_data/", random_access=True )
+    test = larmatchDataset( filelist=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/outdir_mcc9_v13_bnb_nu_corsika_training/larmatchtriplet_ana_trainingdata_0000.root"])
     print("NENTRIES: ",len(test))
     
     loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
@@ -173,6 +174,8 @@ if __name__ == "__main__":
                     print("  ",name,": ",d.shape)
                 else:
                     print("  ",name,": ",type(d))
+            print(data['coord_0'].shape)
+            print(np.unique(data['coord_0'],axis=0).shape)
     end = time.time()
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)
