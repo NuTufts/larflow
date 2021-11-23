@@ -181,6 +181,12 @@ namespace detr {
     LARCV_NORMAL() << "defined " << particle_plane_bbox_vv.size() << " particle bounding boxes" << std::endl;
   }
 
+  /**
+   *
+   * Store normalized bounding box annotations into numpy array-like object.
+   * We store the information using the COCO bounding box format:
+   *    [top left x position, top left y position, width, height].
+   */
   void PrepDETR2D::_make_numpy_arrays( larcv::IOManager& iolcv,
                                        larlite::storage_manager& ioll )
   {
@@ -323,6 +329,12 @@ namespace detr {
         if ( r2>1 ) r2 = 1.0;
 
         std::vector<float> bb(5);
+        // bb[0] = 0.5*(r1+r2);
+        // bb[1] = 0.5*(c1+c2);
+        // bb[2] = 0.5*fabs(r2-r1);
+        // bb[3] = 0.5*fabs(c2-c1);
+        // bb[4] = plane_bbox.pdg;
+        // bb[5] = p;
         bb[0] = 0.5*(r1+r2);
         bb[1] = 0.5*(c1+c2);
         bb[2] = 0.5*fabs(r2-r1);
