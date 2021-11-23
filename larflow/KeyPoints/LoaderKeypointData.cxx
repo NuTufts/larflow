@@ -56,9 +56,16 @@ namespace keypoints {
     }
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
+    _run    = 0;
+    _subrun = 0;
+    _event  = 0;
     
     ttriplet->SetBranchAddress(  "triplet_v",           &triplet_v );
 
+    tkeypoint->SetBranchAddress("run",    &_run );
+    tkeypoint->SetBranchAddress("subrun", &_subrun );
+    tkeypoint->SetBranchAddress("event",  &_event ); 
+    
     tkeypoint->SetBranchAddress("kplabel_nuvertex",     &kplabel_v[0]);
     tkeypoint->SetBranchAddress("kplabel_trackstart",   &kplabel_v[1]);
     tkeypoint->SetBranchAddress("kplabel_trackend",     &kplabel_v[2]);    

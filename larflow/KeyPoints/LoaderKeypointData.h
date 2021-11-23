@@ -47,6 +47,9 @@ namespace keypoints {
 	ttriplet(nullptr),
 	tkeypoint(nullptr),
 	tssnet(nullptr),
+	_run(0),
+	_subrun(0),
+	_event(0),
 	_exclude_neg_examples(true)
     {};
     
@@ -63,6 +66,10 @@ namespace keypoints {
     TChain* tkeypoint;  ///< TTree containing keypoint information (TChain can be thought of as a TTree loading data over several input files)
     TChain* tssnet;     ///< TTree containing sssnet information (TChain can be though of as a TTree loading data over several input files)
 
+    // Branch variables
+    int _run;    ///< run number ID
+    int _subrun; ///< subrun number ID
+    int _event;  ///< event number ID
     std::vector<larflow::prep::PrepMatchTriplets>* triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
     std::vector< std::vector<float> >*       kplabel_v[6];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
     std::vector< std::vector<float> >*       kppos_v[6];      ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree    
@@ -78,7 +85,11 @@ namespace keypoints {
     PyObject* sample_data( const int& num_max_samples,
                            int& nfilled,
                            bool withtruth );
-    
+
+    int run()    { if (_run)    return _run;    else return -1; };
+    int subrun() { if (_subrun) return _subrun; else return -1; };
+    int event()  { if (_event)  return _event;  else return -1; };    
+
   protected:
     
     int make_ssnet_arrays( const int& num_max_samples,
@@ -103,6 +114,7 @@ namespace keypoints {
                              bool withtruth,
                              PyArrayObject* match_array,
                              PyArrayObject*& kpshift_label );
+
     
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
     bool _exclude_neg_examples;  ///< if flag set to true, only true (i.e. non-ghost) spacepoints are loaded for training ssnet and keypoint labels
