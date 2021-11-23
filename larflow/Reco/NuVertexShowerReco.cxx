@@ -346,8 +346,16 @@ namespace reco {
       shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_end[0],
                                             rankedprong.axis_end[1],
                                             rankedprong.axis_end[2]) );
-      shower_trunk_dir.add_direction( TVector3(0,0,0) );
-      shower_trunk_dir.add_direction( TVector3(0,0,0) );          
+      double trunkDir[3] = { rankedprong.axis_end[0] - rankedprong.axis_start[0],
+                             rankedprong.axis_end[1] - rankedprong.axis_start[1],
+                             rankedprong.axis_end[2] - rankedprong.axis_start[2] };
+      double trunkMag = sqrt( pow(trunkDir[0],2) + pow(trunkDir[1],2) + pow(trunkDir[2],2) );
+      shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
+                                               trunkDir[1]/trunkMag,
+                                               trunkDir[2]/trunkMag) );
+      shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
+                                               trunkDir[1]/trunkMag,
+                                               trunkDir[2]/trunkMag) );
 
       // get pca of shower
       larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
