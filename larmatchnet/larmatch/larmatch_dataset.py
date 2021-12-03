@@ -114,7 +114,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         #     raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
 
         self._nloaded += 1
-        print("data: ",data.keys())
+        #print("data: ",data.keys())
         
         return copy.deepcopy(data)
 
@@ -136,7 +136,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         nimgs = self.tree.coord_v.size()
         for p in range(nimgs):
             data["coord_%d"%(p)] = self.tree.coord_v.at(p).tonumpy()
-            data["feat_%d"%(p)]  = self.tree.feat_v.at(p).tonumpy()
+            data["feat_%d"%(p)]  = np.expand_dims( self.tree.feat_v.at(p).tonumpy(), 1 )
+        data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
 
         if self._verbose:
             tottime = time.time()-t_start            
@@ -159,12 +160,16 @@ class larmatchDataset(torch.utils.data.Dataset):
 
     def collate_fn(batch):
         print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
-        print(batch)
+        #print(batch)
         return batch
     
             
 if __name__ == "__main__":
 
+    """
+    Example of loading and reading the data.
+    """
+    
     import time
 
     niter = 1

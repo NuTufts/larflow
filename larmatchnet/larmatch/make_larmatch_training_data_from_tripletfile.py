@@ -56,6 +56,7 @@ outtree.Branch("event",  event,  "event/I")
 outtree.Branch("isnueccfile", nueccfile, "isnueccfile/I")
 outtree.Branch("coord_v",coord_v)
 outtree.Branch("feat_v", feat_v)
+outtree.Branch("matchtriplet_v",matchtriplet_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
 outtree.Branch("larmatch_weight_v",lm_weight_v)
 outtree.Branch("ssnet_truth_v", ssnet_truth_v)
@@ -74,6 +75,7 @@ for ientry in range(nentries):
     ssnet_weight_v.clear()
     kp_truth_v.clear()
     kp_weight_v.clear()
+    matchtriplet_v.clear()
     
     # Get the first entry (or row) in the tree (i.e. table)
     kploader.load_entry(ientry)
@@ -109,6 +111,7 @@ for ientry in range(nentries):
     max_v = np.max( data["matchtriplet"][:,1] )
     max_y = np.max( data["matchtriplet"][:,2] )
     print("sanity check, max indices: ",max_u,max_v,max_y)
+    print("matchtriplet shape: ",data["matchtriplet"].shape,data["matchtriplet"].dtype)
 
     # Store data
     # run, subrun, event indices for entry
@@ -126,7 +129,14 @@ for ientry in range(nentries):
         coord_v.push_back( imgcoord )
         feat_v.push_back( imgfeat )
 
+    # matchtriplet matrix: how we go from spacepoint to wireplane indices
+    matchtriplets = larcv.NumpyArrayInt()
+    matchtriplets.store(data["matchtriplet"].astype(np.int32))
+    matchtriplet_v.push_back(matchtriplets)
+
     outtree.Fill()
+    if ientry>=4:
+        break
 
 
 outfile.Write()
