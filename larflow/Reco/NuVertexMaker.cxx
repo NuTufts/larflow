@@ -172,6 +172,7 @@ namespace reco {
         }//end of cluster loop
       }//end of cluster container loop
 
+      //std::cout << "Calling NuVertexMaker::_score_vertex from NuVertexMaker::_createCandidates" << std::endl;
       _score_vertex( vertex );
       
     }//end of vertex loop
@@ -259,6 +260,7 @@ namespace reco {
    */
   void NuVertexMaker::_score_vertex( NuVertexCandidate& vtx )
   {
+    //std::cout << "Entering NuVertexMaker::_score_vertex" << std::endl;
     vtx.score = 0.;
     const float tau_gap_shower    = 20.0;
     const float tau_impact_shower = 10.0;
@@ -266,8 +268,11 @@ namespace reco {
 
     const float tau_gap_track    = 3.0;
     const float tau_impact_track = 3.0;
+
+    unsigned int nClusters = 0;
     
     for ( auto& cluster : vtx.cluster_v ) {
+      //std::cout << "  calculating score for new cluster. current vertex score: " << vtx.score << std::endl;
       float clust_score = 1.0;
       if ( cluster.type==NuVertexCandidate::kTrack ) {
         if ( cluster.gap>3.0 )
@@ -282,8 +287,13 @@ namespace reco {
           clust_score *= (1.0/tau_impact_shower)*exp( -cluster.impact/tau_impact_shower );
       }
       //std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
+      //std::cout << "  cluster score = " << clust_score << std::endl;
       vtx.score += clust_score;
+      nClusters += 1;
+      //std::cout << "  new vertex score = " << vtx.score << std::endl;
     }        
+    vtx.score /= nClusters;
+    //std::cout << "Exiting NuVertexMaker::_score_vertex" << std::endl;
   }
 
   /**
@@ -436,6 +446,7 @@ namespace reco {
         }//after test cluster loop
 
         // score the current candidate
+        //std::cout << "Calling NuVertexMaker::_score_vertex from NuVertexMaker::_merge_candidates" << std::endl;
         _score_vertex( cand );
 
         // here we create a duplicate,
