@@ -131,8 +131,12 @@ for ientry in range(nentries):
 
     # matchtriplet matrix: how we go from spacepoint to wireplane indices
     matchtriplets = larcv.NumpyArrayInt()
-    matchtriplets.store(data["matchtriplet"].astype(np.int32))
+    matchtriplets.store(data["matchtriplet"][:,:3].astype(np.int32))
     matchtriplet_v.push_back(matchtriplets)
+
+    # truth data for larmatch tasks
+    lm_truth_v.push_back( data["matchtriplet"][:,3].astype(np.int32) )
+    lm_weight_v.push_back( data["match_weight"].astype(np.float32) )
 
     outtree.Fill()
     if ientry>=4:

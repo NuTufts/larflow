@@ -2,40 +2,49 @@ import os,sys,time
 import shutil
 import torch
 import torch.distributed as dist
+import MinkowskiEngine as ME
 import yaml
-from model.larmatch import LArMatch
+from model.larmatchminkowski import LArMatchMinkowski
+from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 from collections import OrderedDict
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
 KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
 LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
 
-def get_larmatch_model( config, dump_model=False ):
+def load_config_file( args, dump_to_stdout=False ):
+    """
+    opens file in YAML format and returns parameters
+    """
+    stream = open(args.config_file, 'r')
+    dictionary = yaml.load(stream, Loader=yaml.FullLoader)
+    if dump_to_stdout:
+        for key, value in dictionary.items():
+            print (key + " : " + str(value))
+    stream.close()
+    return dictionary
+
+
+
+def get_model( config, dump_model=False ):
 
     # create model, mark it to run on the device
-    model = LArMatch(use_unet=True,
-                     stem_nfeatures=config["STEM_FEATURES"],
-                     features_per_layer=config["NUM_FEATURES"],
-                     unet_depth=config["UNET_DEPTH"],                     
-                     num_ssnet_classes=config["NUM_SSNET_CLASSES"],
-                     num_kp_classes=config["NUM_KP_CLASSES"],
-                     use_kp_bn=config["KP_USE_BN"],
-                     run_ssnet=config["RUN_SSNET"],
-                     run_kplabel=config["RUN_KPLABEL"],
-                     run_kpshift=config["RUN_KPSHIFT"],
-                     run_paf=config["RUN_PAF"])
+    model = LArMatchMinkowski()
 
     if dump_model:
         # DUMP MODEL (for debugging)
         print(model)
 
-    model_dict = {"larmatch":model}
-    if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
-    if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
-    if model.run_kpshift: model_dict["kpshift"] = model_dict["larmatch"].kpshift_head
-    if model.run_paf:     model_dict["paf"] = model_dict["larmatch"].affinity_head
+    return model
+
+def make_loss_fn( config ):
+    device = torch.device(config["DEVICE"])
+    criterion = SparseLArMatchKPSLoss( eval_ssnet=config["RUN_SSNET"],
+                                       eval_keypoint_label=config["RUN_KPLABEL"],
+                                       eval_keypoint_shift=config["RUN_KPSHIFT"],
+                                       eval_affinity_field=config["RUN_PAF"] ).to(device)
+    return criterion
     
-    return model, model_dict
 
 def load_model_weights( model, checkpoint_file ):
 
@@ -51,15 +60,6 @@ def load_model_weights( model, checkpoint_file ):
     model.load_state_dict( checkpoint["state_larmatch"] )
 
     return checkpoint
-
-def load_config_file( args, dump_to_stdout=False ):
-    stream = open(args.config_file, 'r')
-    dictionary = yaml.load(stream, Loader=yaml.FullLoader)
-    if dump_to_stdout:
-        for key, value in dictionary.items():
-            print (key + " : " + str(value))
-    stream.close()
-    return dictionary
 
 def reshape_old_sparseconvnet_weights(checkpoint):
 
@@ -226,12 +226,14 @@ def accuracy(match_pred_t, match_label_t,
     
     return True
 
-def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
+def do_one_iteration( config, model, data_loader, criterion, optimizer,
                       acc_meters, loss_meters, time_meters, is_train, device,
                       verbose=False ):
     """
     Perform one iteration, i.e. processes one batch. Handles both train and validation iteraction.
     """
+    DEVICE = torch.device(config["DEVICE"])
+    
     dt_all = time.time()
     
     if is_train:
@@ -239,33 +241,51 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     dt_io = time.time()
     
-    flowdata = next(iter(data_loader))[0]
+    batchdata = next(iter(data_loader))
 
-    # input: 2D image in sparse tensor form
-    coord_t = [ torch.from_numpy( flowdata['coord_%s'%(p)] ).to(device) for p in [0,1,2] ]
-    feat_t  = [ torch.from_numpy( flowdata['feat_%s'%(p)] ).to(device) for p in [0,1,2] ]
-
-    # sample of 3D points coming from possilble wire intersections
-    # represented as triplet of indices from above tensor
-    npairs          = flowdata['npairs'] # nfilled
-    match_t         = torch.from_numpy( flowdata['matchpairs'][:npairs] ).to(device).requires_grad_(False)
-    match_label_t   = torch.from_numpy( flowdata['larmatchlabels'][:npairs] ).to(device).requires_grad_(False)
-
-    # truth labels
-    match_weight_t  = torch.from_numpy( flowdata['match_weight'][:npairs] ).to(device).requires_grad_(False)
-    truematch_idx_t = torch.from_numpy( flowdata['positive_indices'][:npairs] ).to(device).requires_grad_(False)
-        
-    ssnet_label_t  = torch.from_numpy( flowdata['ssnet_label'][:npairs] ).to(device).requires_grad_(False)
-    ssnet_cls_weight_t = torch.from_numpy( flowdata['ssnet_class_weight'][:npairs] ).to(device).requires_grad_(False)
-    ssnet_top_weight_t = torch.from_numpy( flowdata['ssnet_top_weight'][:npairs] ).to(device).requires_grad_(False)
-        
-    kp_label_t    = torch.from_numpy( flowdata['kplabel'][:npairs] ).to(device).requires_grad_(False)
-    kp_weight_t   = torch.from_numpy( flowdata['kplabel_weight'][:npairs] ).to(device).requires_grad_(False)        
-    kpshift_t     = torch.from_numpy( flowdata['kpshift'][:npairs] ).to(device).requires_grad_(False)
+    # convert wire plane data, in numpy form into ME.SparseTensor form
+    # data comes back as numpy arrays.
+    # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
+    # needs to be done three times: one for each wire plane of the detector
+    wireplane_sparsetensors = []
+    original_coord_batch = []
     
-    paf_label_t   = torch.from_numpy( flowdata['paf_label'][:npairs] ).to(device).requires_grad_(False)
-    paf_weight_t  = torch.from_numpy( flowdata['paf_weight'][:npairs] ).to(device).requires_grad_(False)
+    for p in range(3):
+        print("plane ",p)
+        for b,data in enumerate(batchdata):
+            print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
+        coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata]
+        feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(DEVICE) for data in batchdata ]
+        print(" len(coord_v): ",len(coord_v))
+    
+        coords, feats = ME.utils.sparse_collate(coord_v, feat_v,device=DEVICE)
+        print(" coords: ",coords.shape)
+        print(" feats: ",feats.shape)
+        wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
+        original_coord_batch.append( coord_v )
 
+    # we also need the metadata associating possible 3d spacepoints
+    # to the wire image location they project to
+    matchtriplet_v = []
+    for b,data in enumerate(batchdata):
+        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
+        print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
+
+    # get the truth
+    batch_truth = []
+    batch_weight = []
+    for b,data in enumerate(batchdata):
+        lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
+        lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
+        #print("  truth: ",lm_truth_t.shape)
+        #print("  weight: ",lm_weight_t.shape)
+
+        truth_data = {"lm":lm_truth_t}
+        weight_data = {"lm":lm_weight_t}
+    
+        batch_truth.append( truth_data )
+        batch_weight.append( weight_data )
+    
     # handled in data loader now
     #for p in range(3):
     #    feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
@@ -274,35 +294,26 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
         print("loaded data. %.2f secs"%(dt_io)," iteration=",entry," root-tree-entry=",flowdata["tree_entry"]," npairs=",npairs)
     time_meters["data"].update(dt_io)
 
-    if config["RUNPROFILER"]:
+    if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
 
     dt_forward = time.time()
 
     # use UNET portion to first get feature vectors
-    pred_dict = model_dict["larmatch"]( coord_t, feat_t, match_t, flowdata["npairs"], device, verbose=config["TRAIN_VERBOSE"] )
+    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, original_coord_batch, config["BATCH_SIZE"] )
     torch.distributed.barrier()    
-    
-    match_pred_t   = pred_dict["match"]      
-    ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None
-    kplabel_pred_t = pred_dict["kplabel"] if "kplabel" in pred_dict else None
-    kpshift_pred_t = pred_dict["kpshift"] if "kpshift" in pred_dict else None
-    paf_pred_t     = pred_dict["paf"]     if "paf" in pred_dict else None
-
-                                           
-    if config["RUNPROFILER"]:
+                                               
+    if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
     time_meters["forward"].update(time.time()-dt_forward)
 
     dt_loss = time.time()
         
     # Calculate the loss
-    totloss,larmatch_loss,ssnet_loss,kp_loss,kpshift_loss, paf_loss = criterion( match_pred_t,   ssnet_pred_t,  kplabel_pred_t, kpshift_pred_t, paf_pred_t,
-                                                                                 match_label_t,  ssnet_label_t, kp_label_t, kpshift_t, paf_label_t,
-                                                                                 truematch_idx_t,
-                                                                                 match_weight_t, ssnet_cls_weight_t*ssnet_top_weight_t, kp_weight_t, paf_weight_t,
-                                                                                 verbose=verbose )
-    if config["RUNPROFILER"]:
+    loss_dict = criterion( pred_dict, batch_truth, batch_weight,
+                           config["BATCH_SIZE"], DEVICE, verbose=config["LOSS_VERBOSE"] )
+
+    if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
     time_meters["loss_calc"].update(time.time()-dt_loss)
     
@@ -310,7 +321,7 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
         # calculate gradients for this batch
         dt_backward = time.time()
         
-        totloss.backward()
+        loss_dict["tot"].backward()
 
         # dump par and/or grad for debug
         #for n,p in model_dict["larmatch"].named_parameters():
@@ -318,29 +329,30 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
         #        #print(n,": grad: ",p.grad)
         #        print(n,": ",p)
 
-        torch.nn.utils.clip_grad_norm_(model_dict["larmatch"].parameters(), 1.0)
+        if config["CLIP_GRAD_NORM"]:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
     
-        if config["RUNPROFILER"]:
+        if config["RUN_PROFILER"]:
             torch.cuda.synchronize()                
         time_meters["backward"].update(time.time()-dt_backward)
 
     # update loss meters
-    loss_meters["total"].update( totloss.detach().item() )
-    loss_meters["lm"].update( larmatch_loss )
-    loss_meters["ssnet"].update( ssnet_loss )
-    loss_meters["kp"].update( kp_loss )
-    loss_meters["paf"].update( paf_loss )
+    loss_meters["total"].update( loss_dict["tot"].detach().item() )
+    loss_meters["lm"].update( loss_dict["lm"] )
+    if "ssnet" in loss_dict: loss_meters["ssnet"].update( loss_dict["ssnet"] )
+    if "kp" in loss_dict:    loss_meters["kp"].update( loss_dict["kp"] )
+    if "paf" in loss_dict:   loss_meters["paf"].update( loss_dict["paf"] )
         
         
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
-    acc = accuracy(match_pred_t, match_label_t,
-                   ssnet_pred_t, ssnet_label_t,
-                   kplabel_pred_t, kp_label_t,
-                   paf_pred_t, paf_label_t,
-                   truematch_idx_t,
-                   acc_meters,verbose=verbose)
+    #acc = accuracy(match_pred_t, match_label_t,
+    #               ssnet_pred_t, ssnet_label_t,
+    #               kplabel_pred_t, kp_label_t,
+    #               paf_pred_t, paf_label_t,
+    #               truematch_idx_t,
+    #               acc_meters,verbose=verbose)
 
     # update time meter
     time_meters["accuracy"].update(time.time()-dt_acc)

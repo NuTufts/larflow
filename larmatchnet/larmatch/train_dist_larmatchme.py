@@ -8,7 +8,6 @@ TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 # python,numpy
 from __future__ import print_function
 import os,sys,argparse
-
 import shutil
 import time,datetime
 import traceback
@@ -23,25 +22,29 @@ import torch.optim
 import torch.nn.functional as F
 import torch.distributed as dist
 
-# tensorboardX
-from torch.utils.tensorboard import SummaryWriter
-
-# larmatch imports
-import utils.larmatch_engine as engine
-from larmatch_dataset import larmatchDataset
-from load_larmatch_kps import load_larmatch_kps
-from loss_larmatch_kps import SparseLArMatchKPSLoss
-
-# ROOT, larcv
-import ROOT as rt
-from ROOT import std
-from larcv import larcv
-from larflow import larflow
-
 def cleanup():
     dist.destroy_process_group()
 
 def run(gpu, args ):
+    """
+    This is the function run by each worker process
+    """
+    # tensorboardX
+    from torch.utils.tensorboard import SummaryWriter
+    
+    # larmatch imports
+    import larmatch
+    import larmatch.utils.larmatchme_engine as engine
+    from larmatch_dataset import larmatchDataset
+    #from load_larmatch_kps import load_larmatch_kps
+    #from loss_larmatch_kps import SparseLArMatchKPSLoss
+
+    # ROOT, larcv
+    import ROOT as rt
+    from ROOT import std
+    from larcv import larcv
+    from larflow import larflow
+
     #========================================================
     # CREATE PROCESS
     rank = args.nr * args.gpus + gpu
@@ -49,8 +52,8 @@ def run(gpu, args ):
     dist.init_process_group(                                   
     	#backend='nccl',
         backend='gloo',        
-   	#init_method='env://',
-        init_method='file:///tmp/sharedfile',
+   	init_method='env://',
+        #init_method='file:///tmp/sharedfile',
     	world_size=args.world_size,                              
     	rank=rank,
         timeout=datetime.timedelta(0, 1800)
@@ -58,27 +61,24 @@ def run(gpu, args ):
     #========================================================
     torch.manual_seed(gpu)
 
-    config = larmatch_engine.load_config_file( args )
+    config = engine.load_config_file( args )
 
     if rank==0:
         tb_writer = SummaryWriter()
 
-    single_model, _ = larmatch_engine.get_larmatch_model( config )
+    single_model = engine.get_model( config )
 
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
 
-        checkpoint_data = larmatch_engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
+        checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
             
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
     single_model.to(device)
 
-    criterion = SparseLArMatchKPSLoss( eval_ssnet=config["RUN_SSNET"],
-                                       eval_keypoint_label=config["RUN_KPLABEL"],
-                                       eval_keypoint_shift=config["RUN_KPSHIFT"],
-                                       eval_affinity_field=config["RUN_PAF"] ).to(device)
+    criterion = engine.make_loss_fn( config )
 
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
@@ -93,40 +93,48 @@ def run(gpu, args ):
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
     
     
-    # re-specify the dictionary
-    model_dict = {"larmatch":model}
-
-    train_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_TRAIN"], random_access=True, npairs=config["TEST_NUM_MATCH_PAIRS"] )
+    train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
+                                     random_access=True,
+                                     verbose=config["TRAIN_DATASET_VERBOSE"],
+                                     load_truth=True )
     if args.world_size>0:
         train_dataset.set_partition( rank, args.world_size )
     TRAIN_NENTRIES = len(train_dataset)
     print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
-    train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=config["BATCH_SIZE"],
+                                               collate_fn=larmatchDataset.collate_fn)
     sys.stdout.flush()
 
     if rank==0:
-        valid_dataset = larmatchDataset( txtfile=config["INPUT_TXTFILE_VALID"], random_access=True, npairs=config["TEST_NUM_MATCH_PAIRS"] )
+        valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
+                                         random_access=True,
+                                         load_truth=True,
+                                         verbose=config["VALID_DATASET_VERBOSE"],
+                                         npairs=None )
         VALID_NENTRIES = len(valid_dataset)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
-        valid_loader = torch.utils.data.DataLoader(valid_dataset,batch_size=1,collate_fn=larmatchDataset.collate_fn)
+        valid_loader = torch.utils.data.DataLoader(valid_dataset,
+                                                   batch_size=config["BATCH_SIZE"],
+                                                   collate_fn=larmatchDataset.collate_fn)
     
-    loss_meters,acc_meters,time_meters = larmatch_engine.make_meters(config)
+    loss_meters,acc_meters,time_meters = engine.make_meters(config)
     
-    with torch.autograd.profiler.profile(enabled=config["RUNPROFILER"]) as prof:    
+    with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
             print("RANK-%d iteration=%d"%(rank,train_iteration))
-            larmatch_engine.do_one_iteration(config,model_dict,train_loader,criterion,optimizer,
+            engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
                                              acc_meters,loss_meters,time_meters,True,device,verbose=None)
 
             # periodic checkpoint
             if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
                 if rank==0:
                     print("RANK-0: saving periodic checkpoint")
-                    larmatch_engine.save_checkpoint({
+                    engine.save_checkpoint({
                         'iter':train_iteration,
                         'epoch': train_iteration/float(TRAIN_NENTRIES),
-                        'state_larmatch': model_dict["larmatch"].module.state_dict(),
+                        'state_larmatch': model.module.state_dict(),
                         'optimizer' : optimizer.state_dict(),
                     }, False, train_iteration)
                 else:
@@ -135,7 +143,7 @@ def run(gpu, args ):
             print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
-                larmatch_engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
+                engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
 
                 # write to tensorboard
                 # --------------------
@@ -146,19 +154,19 @@ def run(gpu, args ):
                 # split acc into different types
                 # larmatch
                 acc_scalars = {}
-                for accname in larmatch_engine.LM_CLASS_NAMES:
+                for accname in engine.LM_CLASS_NAMES:
                     acc_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
 
                 # ssnet
                 ssnet_scalars = {}
-                for accname in larmatch_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
+                for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
                     ssnet_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                 
                 # keypoint
                 kp_scalars = {}
-                for accname in larmatch_engine.KP_CLASS_NAMES:
+                for accname in engine.KP_CLASS_NAMES:
                     kp_scalars[accname] = acc_meters[accname].avg
                 tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                 
@@ -168,17 +176,17 @@ def run(gpu, args ):
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
-                    valid_loss_meters,valid_acc_meters,valid_time_meters = larmatch_engine.make_meters(config)                    
+                    valid_loss_meters,valid_acc_meters,valid_time_meters = engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):
                         with torch.no_grad():
-                            larmatch_engine.do_one_iteration(config,{"larmatch":single_model},
-                                                             valid_loader,criterion,optimizer,
-                                                             valid_acc_meters,valid_loss_meters,valid_time_meters,
-                                                             False,device,verbose=False)
-                    larmatch_engine.prep_status_message( "Valid-Iteration", train_iteration,
-                                                         valid_acc_meters,
-                                                         valid_loss_meters,
-                                                         valid_time_meters )
+                            engine.do_one_iteration(config,single_model,
+                                                    valid_loader,criterion,optimizer,
+                                                    valid_acc_meters,valid_loss_meters,valid_time_meters,
+                                                    False,device,verbose=False)
+                    engine.prep_status_message( "Valid-Iteration", train_iteration,
+                                                valid_acc_meters,
+                                                valid_loss_meters,
+                                                valid_time_meters )
                     # write to tensorboard
                     # --------------------
                     # losses go into same plot
@@ -188,19 +196,19 @@ def run(gpu, args ):
                     # split acc into different types
                     # larmatch
                     val_acc_scalars = {}
-                    for accname in larmatch_engine.LM_CLASS_NAMES:
+                    for accname in engine.LM_CLASS_NAMES:
                         val_acc_scalars[accname] = valid_acc_meters[accname].avg
                     tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
 
                     # ssnet
                     val_ssnet_scalars = {}
-                    for accname in larmatch_engine.SSNET_CLASS_NAMES+["ssnet-all"]:
+                    for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
                         val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
                     tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
                 
                     # keypoint
                     val_kp_scalars = {}
-                    for accname in larmatch_engine.KP_CLASS_NAMES:
+                    for accname in engine.KP_CLASS_NAMES:
                         val_kp_scalars[accname] = valid_acc_meters[accname].avg
                     tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
                 
@@ -217,10 +225,10 @@ def run(gpu, args ):
         print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:
             print("RANK-0: saving last checkpoint")
-            larmatch_engine.save_checkpoint({
+            engine.save_checkpoint({
                 'iter':train_iteration,
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
-                'state_larmatch': model_dict["larmatch"].module.state_dict(),
+                'state_larmatch': model.module.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, False, train_iteration)
         
@@ -233,7 +241,7 @@ def run(gpu, args ):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config-file', default="config.yaml", type=str,
+    parser.add_argument('-c', '--config-file', required=True, default="config.yaml", type=str,
                         help='configuration file [default: config.yaml]')
     parser.add_argument('-n', '--nodes', default=1, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')

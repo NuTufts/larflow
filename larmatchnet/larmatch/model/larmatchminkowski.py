@@ -51,7 +51,7 @@ class LArMatchMinkowski(nn.Module):
         self.decoder = MinkDecode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
 
         # sparse to dense operation
-        self.sparse_to_dense = [ ME.MinkowskiToDenseTensor() for p in range(input_nplanes) ]
+        self.sparse_to_dense = [ ME.MinkowskiToFeature() for p in range(input_nplanes) ]
 
         # DROPOUT ON FEATURE LAYER
         self.dropout = ME.MinkowskiDropout()
@@ -69,7 +69,7 @@ class LArMatchMinkowski(nn.Module):
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=features_per_layer)
         
 
-    def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size ):
+    def forward( self, input_wireplane_sparsetensors, matchtriplets, orig_coords, batch_size ):
 
         # check input
 
@@ -85,19 +85,22 @@ class LArMatchMinkowski(nn.Module):
             x_feat_v.append( x_decode )
 
         # then we have to extract a feature tensor
-        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, batch_size )
+        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, orig_coords, batch_size )
 
         # we pass the features through the different classifiers
-        batch_output = {"lm":[]}
+        batch_output = []
         for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
+            output = {}            
             x = spacepoint_feat.unsqueeze(0)
             print("batch ",b," spacepoint feats: ",x.shape)
             lm_pred = self.lm_classifier( x )
-            batch_output["lm"].append(lm_pred)
+            output["lm"] = lm_pred
+
+            batch_output.append( output )
         
         return batch_output
                                         
-    def extract_features(self, feat_v, index_t, batch_size, verbose=False ):
+    def extract_features(self, feat_v, index_t, orig_coords, batch_size, verbose=False ):
         """ 
         take in index list and concat the triplet feature vector.
         the feature vectors are those produced by the forward_feature method.
@@ -117,29 +120,30 @@ class LArMatchMinkowski(nn.Module):
         feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
         """
 
-        batch_feats = []
-        for b in range(batch_size):
-            print("batch ",b)
-            feats   = [ plane_feat.features_at(b) for plane_feat in feat_v ]
-            batch_triplets = index_t[b]
-            print(" batch_triplets: ",batch_triplets.shape)
-            for plane_feat in feats:
-                print("  ",plane_feat.shape)
-            spacepoint_feat_v = [ torch.index_select( plane_feat, 0, batch_triplets[:,p] ) for p,plane_feat in enumerate(feats) ]
-            spacepoint_feats_t = torch.transpose( torch.cat( spacepoint_feat_v, dim=1 ), 1, 0 )
-            print(" spacepoint_feats_t: ",spacepoint_feats_t.shape)
-            batch_feats.append(spacepoint_feats_t)
-
-        #if verbose:
-        #    print("  index-selected feats_t[0]=",feats_t[0].shape)
+        #for x in feat_v:
+        #    print(x.decomposition_permutations)
         
-        #veclen = feats_t[0].shape[1]+feats_t[1].shape[1]+feats_t[2].shape[1]
-        #catvec = torch.cat( (feats_t[0],feats_t[1],feats_t[2]), dim=1 )
-        #if verbose: print("  concat out: ",catvec.shape)
-        #matchvec = torch.transpose( catvec, 1, 0 ).reshape(1,veclen,npts)
-        #if verbose: print("  output-triplet-tensor: ",matchvec.shape)
+        plane_feat_v = [ self.sparse_to_dense[p](x) for p,x in enumerate(feat_v) ]
+        #for x in plane_feat_v:
+        #    print("sparse to dense out: ",x.shape)
+
+        batch_feats = []            
+        for b in range(batch_size):
+            batch_triplets = index_t[b]
+            batch_spacepoint_v = []
+            for p,x in enumerate(feat_v):
+                batch_indices = x.decomposition_permutations[b]
+                batch_plane_feat = torch.index_select( plane_feat_v[p], 0, batch_indices )
+                #print("batch[%d]_plane[%d]_feat: "%(b,p),batch_plane_feat.shape)
+                spacepoint_feat = torch.index_select( batch_plane_feat, 0, batch_triplets[:,p] )
+                #print("batch[%d]_plane[%d] spacepoint_feat: "%(b,p),spacepoint_feat.shape)
+                batch_spacepoint_v.append( spacepoint_feat )
+            spacepoint_feats_t = torch.transpose( torch.cat( batch_spacepoint_v, dim=1 ), 1, 0 )
+            print("batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
+            batch_feats.append( spacepoint_feats_t )
+            
         return batch_feats
-    
+            
     # def classify_triplet(self,triplet_feat_t):
     #     """
     #     classify triplet of (u,v,y) wire plane pixel locations as being a true or false position.
