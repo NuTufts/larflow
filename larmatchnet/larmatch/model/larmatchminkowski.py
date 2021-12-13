@@ -13,8 +13,11 @@ from .larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 
 class LArMatchMinkowski(nn.Module):
 
-    def __init__(self,ndimensions=2,inputshape=(1024,3584),                 
-                 input_nfeatures=1,input_nplanes=3):
+    def __init__(self,ndimensions=2,
+                 inputshape=(1024,3584),                 
+                 input_nfeatures=1,
+                 input_nplanes=3,
+                 num_ssnet_classes=7):
         """
         parameters
         -----------
@@ -60,7 +63,7 @@ class LArMatchMinkowski(nn.Module):
         self.lm_classifier = LArMatchSpacepointClassifier( num_input_feats=stem_nfeatures*3 )
 
         # OTHER TASK HEADS
-        self.run_ssnet   = False
+        self.run_ssnet   = True
         self.run_kplabel = False
         self.run_paf     = False
         self.use_kp_bn   = True
@@ -96,6 +99,9 @@ class LArMatchMinkowski(nn.Module):
             lm_pred = self.lm_classifier( x )
             output["lm"] = lm_pred
 
+            if self.run_ssnet:
+                output["ssnet"] = self.ssnet_head( x )
+            
             batch_output.append( output )
         
         return batch_output

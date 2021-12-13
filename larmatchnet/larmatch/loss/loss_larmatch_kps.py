@@ -6,7 +6,7 @@ from .lovasz_losses import lovasz_softmax
 
 class SparseLArMatchKPSLoss(nn.Module):
     def __init__(self, eval_lm=True,
-                 eval_ssnet=False,
+                 eval_ssnet=True,
                  eval_keypoint_label=False,
                  eval_keypoint_shift=False,
                  eval_affinity_field=False,
@@ -22,7 +22,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.larmatch_softmax = torch.nn.Softmax( dim=1 )
         self.focal_loss_gamma = 2
         self.larmatch_use_focal_loss = True
-        self.ssnet_use_lovasz_loss = True
+        self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
         self.ssnet_name = ssnet_name
         self.keypoint_name = keypoint_name
@@ -72,13 +72,18 @@ class SparseLArMatchKPSLoss(nn.Module):
                 loss["tot"] += lm_loss
             loss[self.larmatch_name] = lm_loss.detach().item()
                 
-        # # SSNET
-        # if self.eval_ssnet:
-        #     ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, truematch_index, verbose )
-        #     loss += ssloss
-        #     fssloss = ssloss.detach().item()
-        # else:
-        #     fssloss = 0.0
+        # SSNET
+        if self.eval_ssnet:
+            print("eval SSNET loss")
+            if self.ssnet_name not in predictions:
+                raise ValueError("Asked to eval larmatch loss, but prediction diction does not contain key",self.larmatch_name)            
+            ssnet_pred = predictions[self.ssnet_name]
+            ssnet_label  = truthlabels[self.ssnet_name]
+            ssnet_weight = weights[self.ssnet_name]
+            #truematch_index  = truthlabels[self.larmatch_name]                    
+            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, verbose=True )
+            loss["tot"] += ssloss
+            loss[self.ssnet_name] = ssloss.detach().item()
 
         # # KPLABEL
         # if self.eval_keypoint_label:
@@ -214,26 +219,26 @@ class SparseLArMatchKPSLoss(nn.Module):
     def ssnet_loss( self, ssnet_pred,
                     ssnet_truth,
                     ssnet_weight,
-                    truematch_index,
                     verbose=False):
         npairs = ssnet_pred.shape[0]
         nclasses = ssnet_pred.shape[1]
-        # only evalulate loss on pixels where true label
-        if ssnet_truth.shape[0]!=ssnet_pred.shape[0]:
-            raise RuntimeError("dont trust this mode of calculation right now")            
-            sel_ssnet_pred   = torch.index_select( ssnet_pred, 0, truematch_index )
-        else:
-            sel_ssnet_pred   = ssnet_pred
+        # # only evalulate loss on pixels where true label
+        # if ssnet_truth.shape[0]!=ssnet_pred.shape[0]:
+        #     raise RuntimeError("dont trust this mode of calculation right now")            
+        #     sel_ssnet_pred   = torch.index_select( ssnet_pred, 0, truematch_index )
+        # else:
+        #     sel_ssnet_pred   = ssnet_pred
+
         if verbose:
-            print("  sel_ssnet_pred: ",sel_ssnet_pred.shape)
+            print("  ssnet_pred: ",ssnet_pred.shape)
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( sel_ssnet_pred, ssnet_truth )*ssnet_weight).sum()/20.0
+        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()/100.0
             
         if self.ssnet_use_lovasz_loss:
-            ssnet_pred_x  = torch.transpose( sel_ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
+            ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
             ssnet_truth_y = ssnet_truth.reshape( (1,npairs,1) )
             ssnet_loss += lovasz_softmax( ssnet_pred_x, ssnet_truth_y )
             

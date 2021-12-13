@@ -148,80 +148,92 @@ def make_meters(config):
 
     return loss_meters,acc_meters,time_meters
         
-def accuracy(match_pred_t, match_label_t,
-             ssnet_pred_t, ssnet_label_t,
-             kp_pred_t, kp_label_t,
-             paf_pred_t, paf_label_t,
-             truematch_indices_t,
+def accuracy(predictions, truthdata, 
              acc_meters,
              verbose=False):
     """Computes the accuracy metrics."""
 
-    # LARMATCH METRICS
-    match_pred = match_pred_t.detach()
-    npairs = match_pred.shape[0]
+    batchsize = len(predictions)
+
+    for ibatch,(data,labels) in enumerate( zip(predictions,truthdata) ):
+
+        # get the data from the dictionaries
+        match_pred_t  = torch.softmax( data["lm"].detach().squeeze(), dim=0 )
+        match_label_t = labels["lm"]
+        
+        #ssnet_pred_t, ssnet_label_t = 0
+        #kp_pred_t, kp_label_t = 0
+        #paf_pred_t, paf_label_t = 0   
     
-    pos_correct = (match_pred.gt(0.0)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
-    neg_correct = (match_pred.lt(0.0)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
-    npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
-    nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
+        # LARMATCH METRICS
+        match_pred = match_pred_t.detach()
+        npairs = match_pred.shape[1]
+        print("match_pred: ",match_pred.shape)
+        print("npairs: ",npairs)
+    
+        pos_correct = (match_pred[1,:].gt(0.5)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
+        neg_correct = (match_pred[1,:].lt(0.5)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
+        npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
+        nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
+        print("npos: ",npos)
+        print("nneg: ",nneg)
+        print("pos correct: ",pos_correct)
+        print("neg correct: ",neg_correct)
 
-    acc_meters["lm_pos"].update( float(pos_correct)/npos )
-    acc_meters["lm_neg"].update( float(neg_correct)/nneg )
-    acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
+        acc_meters["lm_pos"].update( float(pos_correct)/npos )
+        acc_meters["lm_neg"].update( float(neg_correct)/nneg )
+        acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
 
-    # SSNET METRICS
-    if ssnet_pred_t is not None:
-        if ssnet_pred_t.shape[0]!=ssnet_label_t.shape[0]:
-            ssnet_pred     = torch.index_select( ssnet_pred_t.detach(), 0, truematch_indices_t )
-        else:
-            ssnet_pred     = ssnet_pred_t.detach()
-        ssnet_class    = torch.argmax( ssnet_pred, 1 )
-        ssnet_correct  = ssnet_class.eq( ssnet_label_t )
-        ssnet_tot_correct = ssnet_correct.sum().item()        
-        for iclass,classname in enumerate(SSNET_CLASS_NAMES):
-            if ssnet_label_t.eq(iclass).sum().item()>0:                
-                ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()    
-                acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
-        acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
+        # SSNET METRICS
+        if "ssnet" in data:
+            ssnet_pred_t  = data["ssnet"].detach().squeeze()
+            ssnet_label_t = labels["ssnet"]
+            ssnet_class   = torch.argmax( ssnet_pred_t, 0 )
+            ssnet_correct = ssnet_class.eq( ssnet_label_t )
+            ssnet_tot_correct = ssnet_correct.sum().item()        
+            for iclass,classname in enumerate(SSNET_CLASS_NAMES):
+                if ssnet_label_t.eq(iclass).sum().item()>0:                
+                    ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()    
+                    acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
+            acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
 
-    # KP METRIC
-    if kp_pred_t is not None:
-        if kp_pred_t.shape[0]!=kp_label_t.shape[0]:
-            kp_pred  = torch.index_select( kp_pred_t.detach(),  0, truematch_indices_t )
-            kp_label = torch.index_select( kp_label_t.detach(), 0, truematch_indices_t )
-        else:
-            kp_pred  = kp_pred_t.detach()
-            kp_label = kp_label_t.detach()[:npairs]
-        for c,kpname in enumerate(KP_CLASS_NAMES):
-            kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
-            kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
-            if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
-            if kp_n_pos>0:
-                acc_meters[kpname].update( kp_pos/kp_n_pos )
+    # # KP METRIC
+    # if kp_pred_t is not None:
+    #     if kp_pred_t.shape[0]!=kp_label_t.shape[0]:
+    #         kp_pred  = torch.index_select( kp_pred_t.detach(),  0, truematch_indices_t )
+    #         kp_label = torch.index_select( kp_label_t.detach(), 0, truematch_indices_t )
+    #     else:
+    #         kp_pred  = kp_pred_t.detach()
+    #         kp_label = kp_label_t.detach()[:npairs]
+    #     for c,kpname in enumerate(KP_CLASS_NAMES):
+    #         kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
+    #         kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
+    #         if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
+    #         if kp_n_pos>0:
+    #             acc_meters[kpname].update( kp_pos/kp_n_pos )
 
-    # PARTICLE AFFINITY FLOW
-    if paf_pred_t is not None:
-        # we define accuracy with the direction is less than 20 degress
-        if paf_pred_t.shape[0]!=paf_label_t.shape[0]:
-            paf_pred  = torch.index_select( paf_pred_t.detach(),  0, truematch_indices_t )
-            paf_label = torch.index_select( paf_label_t.detach(), 0, truematch_indices_t )
-        else:
-            paf_pred  = paf_pred_t.detach()
-            paf_label = paf_label_t.detach()[:npairs]
-        # calculate cosine
-        paf_truth_lensum = torch.sum( paf_label*paf_label, 1 )
-        paf_pred_lensum  = torch.sum( paf_pred*paf_pred, 1 )
-        paf_pred_lensum  = torch.sqrt( paf_pred_lensum )
-        paf_posexamples = paf_truth_lensum.gt(0.5)
-        #print paf_pred[paf_posexamples,:].shape," ",paf_label[paf_posexamples,:].shape," ",paf_pred_lensum[paf_posexamples].shape
-        paf_cos = torch.sum(paf_pred[paf_posexamples,:]*paf_label[paf_posexamples,:],1)/(paf_pred_lensum[paf_posexamples]+0.001)
-        paf_npos  = paf_cos.shape[0]
-        paf_ncorr = paf_cos.gt(0.94).sum().item()
-        paf_acc = float(paf_ncorr)/float(paf_npos)
-        if verbose: print("paf: npos=",paf_npos," acc=",paf_acc)
-        if paf_npos>0:
-            acc_meters["paf"].update( paf_acc )
+    # # PARTICLE AFFINITY FLOW
+    # if paf_pred_t is not None:
+    #     # we define accuracy with the direction is less than 20 degress
+    #     if paf_pred_t.shape[0]!=paf_label_t.shape[0]:
+    #         paf_pred  = torch.index_select( paf_pred_t.detach(),  0, truematch_indices_t )
+    #         paf_label = torch.index_select( paf_label_t.detach(), 0, truematch_indices_t )
+    #     else:
+    #         paf_pred  = paf_pred_t.detach()
+    #         paf_label = paf_label_t.detach()[:npairs]
+    #     # calculate cosine
+    #     paf_truth_lensum = torch.sum( paf_label*paf_label, 1 )
+    #     paf_pred_lensum  = torch.sum( paf_pred*paf_pred, 1 )
+    #     paf_pred_lensum  = torch.sqrt( paf_pred_lensum )
+    #     paf_posexamples = paf_truth_lensum.gt(0.5)
+    #     #print paf_pred[paf_posexamples,:].shape," ",paf_label[paf_posexamples,:].shape," ",paf_pred_lensum[paf_posexamples].shape
+    #     paf_cos = torch.sum(paf_pred[paf_posexamples,:]*paf_label[paf_posexamples,:],1)/(paf_pred_lensum[paf_posexamples]+0.001)
+    #     paf_npos  = paf_cos.shape[0]
+    #     paf_ncorr = paf_cos.gt(0.94).sum().item()
+    #     paf_acc = float(paf_ncorr)/float(paf_npos)
+    #     if verbose: print("paf: npos=",paf_npos," acc=",paf_acc)
+    #     if paf_npos>0:
+    #         acc_meters["paf"].update( paf_acc )
     
     
     return True
@@ -269,6 +281,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     matchtriplet_v = []
     for b,data in enumerate(batchdata):
         matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
+        
         print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
 
     # get the truth
@@ -280,8 +293,11 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         #print("  truth: ",lm_truth_t.shape)
         #print("  weight: ",lm_weight_t.shape)
 
-        truth_data = {"lm":lm_truth_t}
-        weight_data = {"lm":lm_weight_t}
+        ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
+        ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
+
+        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t}
+        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t}
     
         batch_truth.append( truth_data )
         batch_weight.append( weight_data )
@@ -347,12 +363,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
-    #acc = accuracy(match_pred_t, match_label_t,
-    #               ssnet_pred_t, ssnet_label_t,
-    #               kplabel_pred_t, kp_label_t,
-    #               paf_pred_t, paf_label_t,
-    #               truematch_idx_t,
-    #               acc_meters,verbose=verbose)
+    acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=True )
 
     # update time meter
     time_meters["accuracy"].update(time.time()-dt_acc)

@@ -44,7 +44,8 @@ lm_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
 # SSNet label and loss weights
 ssnet_truth_v  = std.vector("larcv::NumpyArrayInt")()
-ssnet_weight_v = std.vector("larcv::NumpyArrayFloat")()
+ssnet_class_weight_v = std.vector("larcv::NumpyArrayFloat")()
+ssnet_top_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
 # KP label and loss weights
 kp_truth_v  = std.vector("larcv::NumpyArrayFloat")()
@@ -60,7 +61,8 @@ outtree.Branch("matchtriplet_v",matchtriplet_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
 outtree.Branch("larmatch_weight_v",lm_weight_v)
 outtree.Branch("ssnet_truth_v", ssnet_truth_v)
-outtree.Branch("ssnet_weight_v",ssnet_weight_v)
+outtree.Branch("ssnet_class_weight_v",ssnet_class_weight_v)
+outtree.Branch("ssnet_top_weight_v",ssnet_top_weight_v)
 outtree.Branch("kp_truth_v", kp_truth_v)
 outtree.Branch("kp_weight_v",kp_weight_v)
 
@@ -72,7 +74,8 @@ for ientry in range(nentries):
     lm_truth_v.clear()
     lm_weight_v.clear()
     ssnet_truth_v.clear()
-    ssnet_weight_v.clear()
+    ssnet_class_weight_v.clear()
+    ssnet_top_weight_v.clear()    
     kp_truth_v.clear()
     kp_weight_v.clear()
     matchtriplet_v.clear()
@@ -137,6 +140,11 @@ for ientry in range(nentries):
     # truth data for larmatch tasks
     lm_truth_v.push_back( data["matchtriplet"][:,3].astype(np.int32) )
     lm_weight_v.push_back( data["match_weight"].astype(np.float32) )
+
+    # ssnet truth data
+    ssnet_truth_v.push_back( data["ssnet_label"].astype(np.int32) )
+    ssnet_class_weight_v.push_back( data["ssnet_class_weight"].astype(np.float32) )
+    ssnet_top_weight_v.push_back( data["ssnet_top_weight"].astype(np.float32) )
 
     outtree.Fill()
     if ientry>=4:
