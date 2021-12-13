@@ -17,7 +17,8 @@ class LArMatchMinkowski(nn.Module):
                  inputshape=(1024,3584),                 
                  input_nfeatures=1,
                  input_nplanes=3,
-                 num_ssnet_classes=7):
+                 num_ssnet_classes=7,
+                 num_kp_classes=6):
         """
         parameters
         -----------
@@ -64,7 +65,7 @@ class LArMatchMinkowski(nn.Module):
 
         # OTHER TASK HEADS
         self.run_ssnet   = True
-        self.run_kplabel = False
+        self.run_kplabel = True
         self.run_paf     = False
         self.use_kp_bn   = True
         if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=stem_nfeatures,num_classes=num_ssnet_classes)
@@ -101,6 +102,9 @@ class LArMatchMinkowski(nn.Module):
 
             if self.run_ssnet:
                 output["ssnet"] = self.ssnet_head( x )
+
+            if self.run_kplabel:
+                output["kp"] = self.kplabel_head( x )
             
             batch_output.append( output )
         

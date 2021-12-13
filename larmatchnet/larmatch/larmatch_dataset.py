@@ -152,6 +152,8 @@ class larmatchDataset(torch.utils.data.Dataset):
             data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
             data["ssnet_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
             data["ssnet_weight"] *= self.tree.ssnet_class_weight_v.at(0).tonumpy()
+            data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
+            data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
         
         if self._verbose:
             tottime = time.time()-t_start            

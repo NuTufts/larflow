@@ -85,13 +85,14 @@ class SparseLArMatchKPSLoss(nn.Module):
             loss["tot"] += ssloss
             loss[self.ssnet_name] = ssloss.detach().item()
 
-        # # KPLABEL
-        # if self.eval_keypoint_label:
-        #     kploss = self.keypoint_loss( kplabel_pred, kp_label, kplabel_weight, truematch_index, verbose )
-        #     loss += kploss
-        #     fkploss = kploss.detach().item()
-        # else:
-        #     fkploss = 0.0
+        # KPLABEL
+        if self.eval_keypoint_label:
+            kplabel_pred = predictions[self.keypoint_name]
+            kp_label     = truthlabels[self.keypoint_name]
+            kp_weight    = weights[self.keypoint_name]
+            kploss = self.keypoint_loss( kplabel_pred, kp_label, kp_weight, verbose=True )
+            loss["tot"] += kploss
+            loss[self.keypoint_name] = kploss.detach().item()
 
         # # KPSHIFT
         # if self.eval_keypoint_shift:
@@ -165,30 +166,26 @@ class SparseLArMatchKPSLoss(nn.Module):
     def keypoint_loss( self, keypoint_score_pred,
                        keypoint_score_truth,
                        keypoint_weight,
-                       truematch_index,
                        verbose=False):
         npairs = keypoint_score_pred.shape[0]
         # only evaluate on true match points
-        if keypoint_score_truth.shape[0]!=keypoint_score_pred.shape[0]:
-            # when truth and prediction have different lengths,
-            # the truth already has removed bad points
-            raise RuntimeError("dont trust this mode of calculation right now")
-            sel_kplabel_pred = torch.index_select( keypoint_score_pred, 0, truematch_index )
-            sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index )
-            sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index )
-        else:
-            sel_kplabel_pred = keypoint_score_pred
-            sel_kpweight     = keypoint_weight[:npairs,:]
-            sel_kplabel      = keypoint_score_truth[:npairs,:]
+        # if keypoint_score_truth.shape[0]!=keypoint_score_pred.shape[0]:
+        #     # when truth and prediction have different lengths,
+        #     # the truth already has removed bad points
+        #     raise RuntimeError("dont trust this mode of calculation right now")
+        #     sel_kplabel_pred = torch.index_select( keypoint_score_pred, 0, truematch_index )
+        #     sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index )
+        #     sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index )
+        # else:
         if verbose:
-            print("  keypoint_score_pred:  (sel) ",sel_kplabel_pred.shape," ",sel_kplabel_pred[:10])
-            print("  keypoint_score_truth: (orig) ",keypoint_score_truth.shape," (sel) ",sel_kplabel.shape," ",sel_kplabel[:10])
-            print("  keypoint_weight: (orig) ",keypoint_weight.shape," (sel)",sel_kpweight.shape," ",sel_kpweight[:10])
+            print("  keypoint_score_pred:  ",keypoint_score_pred.shape)
+            print("  keypoint_score_truth: ",keypoint_score_truth.shape)
+            print("  keypoint_weight: ",keypoint_weight.shape)
         fn_kp    = torch.nn.MSELoss( reduction='none' )
-        fnout = fn_kp( sel_kplabel_pred, sel_kplabel )
+        fnout = fn_kp( keypoint_score_pred, keypoint_score_truth )
         if verbose:
             print("  fnout shape: ",fnout.shape)
-        kp_loss  = (fnout*sel_kpweight).sum()
+        kp_loss  = (fnout*keypoint_weight).sum()
         kp_floss = kp_loss.detach().item()
         if verbose:
             print(" loss-kplabel: ",kp_floss)

@@ -197,20 +197,16 @@ def accuracy(predictions, truthdata,
                     acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
             acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
 
-    # # KP METRIC
-    # if kp_pred_t is not None:
-    #     if kp_pred_t.shape[0]!=kp_label_t.shape[0]:
-    #         kp_pred  = torch.index_select( kp_pred_t.detach(),  0, truematch_indices_t )
-    #         kp_label = torch.index_select( kp_label_t.detach(), 0, truematch_indices_t )
-    #     else:
-    #         kp_pred  = kp_pred_t.detach()
-    #         kp_label = kp_label_t.detach()[:npairs]
-    #     for c,kpname in enumerate(KP_CLASS_NAMES):
-    #         kp_n_pos = float(kp_label[:,c].gt(0.5).sum().item())
-    #         kp_pos   = float(kp_pred[:,c].gt(0.5)[ kp_label[:,c].gt(0.5) ].sum().item())
-    #         if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
-    #         if kp_n_pos>0:
-    #             acc_meters[kpname].update( kp_pos/kp_n_pos )
+        # KP METRIC
+        if "kp" in data:
+            kp_pred  = data["kp"].detach().squeeze()
+            kp_label = labels["kp"].detach()
+            for c,kpname in enumerate(KP_CLASS_NAMES):
+                kp_n_pos = float(kp_label[c,:].gt(0.5).sum().item())
+                kp_pos   = float(kp_pred[c,:].gt(0.5)[ kp_label[c,:].gt(0.5) ].sum().item())
+                if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
+                if kp_n_pos>0:
+                    acc_meters[kpname].update( kp_pos/kp_n_pos )
 
     # # PARTICLE AFFINITY FLOW
     # if paf_pred_t is not None:
@@ -296,8 +292,11 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
         ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
 
-        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t}
-        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t}
+        kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
+        kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)        
+
+        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
+        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
     
         batch_truth.append( truth_data )
         batch_weight.append( weight_data )

@@ -146,8 +146,12 @@ for ientry in range(nentries):
     ssnet_class_weight_v.push_back( data["ssnet_class_weight"].astype(np.float32) )
     ssnet_top_weight_v.push_back( data["ssnet_top_weight"].astype(np.float32) )
 
+    # keypoint truth data
+    kp_truth_v.push_back(  data["kplabel"].astype(np.float32) )
+    kp_weight_v.push_back( data["kplabel_weight"].astype(np.float32) )    
+
     outtree.Fill()
-    if ientry>=4:
+    if False and ientry>=4:
         break
 
 

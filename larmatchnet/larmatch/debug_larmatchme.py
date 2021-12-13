@@ -23,7 +23,7 @@ from larmatch_dataset import larmatchDataset
 import MinkowskiEngine as ME
 
 niter = 10
-batch_size = 2
+batch_size = 1
 test = larmatchDataset( filelist=["testdata/temp.root"], load_truth=True )
 print("NENTRIES: ",len(test))
 loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
@@ -79,7 +79,7 @@ if True:
 # test the loss
 from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 loss_fn = SparseLArMatchKPSLoss( eval_ssnet=True,
-                                 eval_keypoint_label=False,
+                                 eval_keypoint_label=True,
                                  eval_keypoint_shift=False,
                                  eval_affinity_field=False )
 
@@ -102,8 +102,11 @@ for b,data in enumerate(batch):
     for i in range(ssnet_max):
         print("  ssnet class[",i,"]: ",ssnet_truth_t.eq(i).sum())
 
-    truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t}
-    weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t}
+    kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
+    kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)
+        
+    truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
+    weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
     
     batch_truth.append( truth_data )
     batch_weight.append( weight_data )
@@ -114,9 +117,9 @@ with torch.autograd.detect_anomaly():
 print("LOSS: ",loss)
 
 # Backward pass
-#loss["tot"].backward()
-with torch.autograd.detect_anomaly():
-    out[0]["lm"].sum().backward()
+loss["tot"].backward()
+#with torch.autograd.detect_anomaly():
+#    out[0]["lm"].sum().backward()
 
 # make perfect prediction tensors to test loss
 batch_perfect = []
@@ -149,8 +152,11 @@ for ib, data in enumerate(batch):
     print(perfect_ssnet[0,:,:10])
     print(batch_truth[ib]["ssnet"][:10])
     print(seq[:10])
+
+    perfect_kp = torch.clone( batch_truth[ib]["kp"] ).unsqueeze(0)
+    print("perfect keypoint: ",perfect_kp.shape)
     
-    batch_perfect.append({"lm":perfect_lm,"ssnet":perfect_ssnet})
+    batch_perfect.append({"lm":perfect_lm,"ssnet":perfect_ssnet,"kp":perfect_kp})
     
 perfect_loss = loss_fn( batch_perfect, batch_truth, batch_weight, batch_size, DEVICE, verbose=True )
 print("PERFECT LOSS: ",perfect_loss)
