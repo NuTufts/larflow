@@ -8,7 +8,8 @@ from larcv import larcv
 from larflow import larflow
 
 
-input_rootfile_v = ["../testdata/larmatchtriplet_bnbnue_0492.root"]
+#input_rootfile_v = ["../testdata/larmatchtriplet_bnbnue_0492.root"]
+input_rootfile_v = ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/outdir_triplettruth_mcc9_v13_bnbnue_corsika/larmatchtriplet_bnbnue_0492.root"]
 f_v = rt.std.vector("std::string")()
 for f in input_rootfile_v:
     f_v.push_back( f )
