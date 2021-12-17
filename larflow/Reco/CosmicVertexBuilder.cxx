@@ -197,6 +197,10 @@ namespace reco {
             cosmicvtx.col_v[p] = larutil::Geometry::GetME()->WireCoordinate( posv, p );
           }
           cosmicvtx.score = 0.;
+          cosmicvtx.maxScore = 0.;
+          cosmicvtx.avgScore = 0.;
+          cosmicvtx.netScore = -1.;
+          cosmicvtx.netNuScore = -1.;
           
           cosmicvtx.shower_v.push_back( lfcluster );
           cosmicvtx.shower_pcaxis_v.push_back( lfpca );
