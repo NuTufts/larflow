@@ -336,6 +336,9 @@ if __name__ == "__main__":
     """
     
     import time
+    from larcv import larcv
+    larcv.load_pyutil()
+    larcv.SetPyUtil()
 
     niter = 10
     batch_size = 4

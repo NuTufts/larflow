@@ -1,5 +1,4 @@
 #!/bin/env python
-
 """
 TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 """
@@ -7,7 +6,7 @@ TRAINING SCRIPT FOR LARMATCH+KEYPOINT+SSNET NETWORKS
 
 # python,numpy
 from __future__ import print_function
-import os,sys,argparse
+import os,sys,argparse,gc
 import shutil
 import time,datetime
 import traceback
@@ -22,6 +21,8 @@ import torch.optim
 import torch.nn.functional as F
 import torch.distributed as dist
 
+import MinkowskiEngine as ME
+
 def cleanup():
     dist.destroy_process_group()
 
@@ -29,6 +30,8 @@ def run(gpu, args ):
     """
     This is the function run by each worker process
     """
+    ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+    
     # tensorboardX
     from torch.utils.tensorboard import SummaryWriter
     
@@ -36,8 +39,6 @@ def run(gpu, args ):
     import larmatch
     import larmatch.utils.larmatchme_engine as engine
     from larmatch_dataset import larmatchDataset
-    #from load_larmatch_kps import load_larmatch_kps
-    #from loss_larmatch_kps import SparseLArMatchKPSLoss
 
     # ROOT, larcv
     import ROOT as rt
@@ -48,16 +49,17 @@ def run(gpu, args ):
     #========================================================
     # CREATE PROCESS
     rank = args.nr * args.gpus + gpu
-    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))    
-    dist.init_process_group(                                   
-    	#backend='nccl',
-        backend='gloo',        
-   	init_method='env://',
-        #init_method='file:///tmp/sharedfile',
-    	world_size=args.world_size,                              
-    	rank=rank,
-        timeout=datetime.timedelta(0, 1800)
-    )
+    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
+    if not args.no_parallel:
+        dist.init_process_group(                                   
+	    #backend='nccl',
+            backend='gloo',        
+            #init_method='env://',
+            init_method='file:///tmp/sharedfile',
+	    world_size=args.world_size,                              
+	    rank=rank,
+            timeout=datetime.timedelta(0, 1800)
+        )
     #========================================================
     torch.manual_seed(gpu)
 
@@ -81,9 +83,14 @@ def run(gpu, args ):
     criterion = engine.make_loss_fn( config )
 
     # Wrap the model
-    model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
+    if args.no_parallel:
+        model = single_model
+    else:
+        model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
+
     print("RANK-%d Model"%(rank),model)
-    torch.distributed.barrier()
+    if not args.no_parallel:
+        torch.distributed.barrier()
     
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=float(config["LEARNING_RATE"]), 
@@ -124,8 +131,15 @@ def run(gpu, args ):
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
             print("RANK-%d iteration=%d"%(rank,train_iteration))
+
+            # should be config parameter
+            #if iiter%int(config["ITER_PER_CACHECLEAR"])==0:
+            #    print("cache clear")
+            torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
+            gc.collect()
+
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
-                                             acc_meters,loss_meters,time_meters,True,device,verbose=None)
+                                    acc_meters,loss_meters,time_meters,True,device,verbose=None)
 
             # periodic checkpoint
             if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
@@ -134,7 +148,7 @@ def run(gpu, args ):
                     engine.save_checkpoint({
                         'iter':train_iteration,
                         'epoch': train_iteration/float(TRAIN_NENTRIES),
-                        'state_larmatch': model.module.state_dict(),
+                        'state_larmatch': model.state_dict(),
                         'optimizer' : optimizer.state_dict(),
                     }, False, train_iteration)
                 else:
@@ -220,7 +234,8 @@ def run(gpu, args ):
                     print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
                 # wait for rank-0 to finish reporting and plotting
-                #torch.distributed.barrier()
+                #if not args.no_parallel:
+                #    torch.distributed.barrier()
 
         print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:
@@ -228,14 +243,16 @@ def run(gpu, args ):
             engine.save_checkpoint({
                 'iter':train_iteration,
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
-                'state_larmatch': model.module.state_dict(),
+                'state_larmatch': model.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, False, train_iteration)
         
-        torch.distributed.barrier()
+        if not args.no_parallel:
+            torch.distributed.barrier()
 
 
-    cleanup()
+    if not args.no_parallel:
+        cleanup()
     return
 
 def main():
@@ -249,12 +266,19 @@ def main():
                         help='number of gpus per node')
     parser.add_argument('-nr', '--nr', default=0, type=int,
                         help='ranking within the nodes')
+    parser.add_argument('--no-parallel',default=False,action='store_true',help='if provided, will run without distributed training')
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes
     
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '8888'
-    mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
+    ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+    if args.no_parallel:
+        print("RUNNING WITHOUT USING TORCH DDP")
+        run( 0, args )
+    else:
+        mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
+
     
     print("DISTRIBUTED MAIN DONE")
     
