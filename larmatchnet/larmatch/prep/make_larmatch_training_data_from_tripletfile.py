@@ -21,6 +21,9 @@ from larflow import larflow
 if not os.path.exists(args.input_list):
     print("Could not fine input list: ",args.input_list)
     sys.exit(0)
+if os.path.exists(args.output):
+    print("output file already exists. do not overwrite")
+    sys.exit(0)
 
 if not args.single:
     f = open(args.input_list,'r')
@@ -34,7 +37,7 @@ if not args.single:
     print("Loaded %d larmatch triplet files to process"%(len(input_rootfile_v)))
 else:
     print("Given a single larmatch triplet file to proces")
-    input_rootfile_v.append( args.input_list )
+    input_rootfile_v = [ args.input_list ]
 
 f_v = rt.std.vector("std::string")()
 for f in input_rootfile_v:
@@ -49,7 +52,7 @@ kploader.exclude_false_triplets( False )
 nentries = kploader.GetEntries()
 
 # output container for data
-outfile = rt.TFile("temp.root","recreate")
+outfile = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larmatchtrainingdata","LArMatch training data")
 
 # Run, subrun, event
