@@ -1,4 +1,14 @@
-import os,sys
+from __future__ import print_function
+import os,sys,argparse
+sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
+
+parser = argparse.ArgumentParser(description='Run Prep larmatch data')
+parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('-s','--single',default=False,action='store_true',help='If flag given, input_list argument is interpretted as a triplet file')
+parser.add_argument('input_list',type=str,help="text file with paths to larmatch triplet files to distill")
+
+args = parser.parse_args()
+
 from ctypes import c_int
 from array import array
 import numpy as np
@@ -8,8 +18,24 @@ from larcv import larcv
 from larflow import larflow
 
 
-#input_rootfile_v = ["../testdata/larmatchtriplet_bnbnue_0492.root"]
-input_rootfile_v = ["/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/outdir_triplettruth_mcc9_v13_bnbnue_corsika/larmatchtriplet_bnbnue_0492.root"]
+if not os.path.exists(args.input_list):
+    print("Could not fine input list: ",args.input_list)
+    sys.exit(0)
+
+if not args.single:
+    f = open(args.input_list,'r')
+    lf = f.readlines()
+    input_rootfile_v = []
+    for l in lf:
+        if not os.path.exists(l.strip()):
+            print("input file given does not exist: ",l.strip())
+            sys.exit(0)
+        input_rootfile_v.append(l.strip())
+    print("Loaded %d larmatch triplet files to process"%(len(input_rootfile_v)))
+else:
+    print("Given a single larmatch triplet file to proces")
+    input_rootfile_v.append( args.input_list )
+
 f_v = rt.std.vector("std::string")()
 for f in input_rootfile_v:
     f_v.push_back( f )
@@ -153,6 +179,7 @@ for ientry in range(nentries):
 
     outtree.Fill()
     if False and ientry>=4:
+        # For debug
         break
 
 
