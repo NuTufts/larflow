@@ -1,5 +1,6 @@
 import os,sys,time
 import shutil
+import numpy as np
 import torch
 import torch.distributed as dist
 import MinkowskiEngine as ME
@@ -160,11 +161,7 @@ def accuracy(predictions, truthdata,
         # get the data from the dictionaries
         match_pred_t  = torch.softmax( data["lm"].detach().squeeze(), dim=0 )
         match_label_t = labels["lm"]
-        
-        #ssnet_pred_t, ssnet_label_t = 0
-        #kp_pred_t, kp_label_t = 0
-        #paf_pred_t, paf_label_t = 0   
-    
+            
         # LARMATCH METRICS
         match_pred = match_pred_t.detach()
         npairs = match_pred.shape[1]
@@ -245,7 +242,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_all = time.time()
     
     if is_train:
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
 
     dt_io = time.time()
     
@@ -256,44 +253,59 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
     # needs to be done three times: one for each wire plane of the detector
     wireplane_sparsetensors = []
-    original_coord_batch = []
     
     for p in range(3):
         print("plane ",p)
         for b,data in enumerate(batchdata):
             print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
-        coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata]
+
+        coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata ]
         feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(DEVICE) for data in batchdata ]
-        print(" len(coord_v): ",len(coord_v))
+
+        # hack make random matrix
+        # coord_v = []
+        # feat_v = []
+        # for b in range(config["BATCH_SIZE"]):
+        #     fake_coord = np.random.randint( 0, high=1004, size=(200000,2) )
+        #     coord_v.append( torch.from_numpy(fake_coord).to(DEVICE) )
+        #     fake_feat  = np.random.rand( 200000, 1 )
+        #     feat_v.append( torch.from_numpy(fake_feat.astype(np.float32)).to(DEVICE) )
+
+        for x in coord_v:
+            x.requires_grad = False
     
-        coords, feats = ME.utils.sparse_collate(coord_v, feat_v,device=DEVICE)
+        coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
         print(" coords: ",coords.shape)
         print(" feats: ",feats.shape)
         wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
-        original_coord_batch.append( coord_v )
 
     # we also need the metadata associating possible 3d spacepoints
     # to the wire image location they project to
     matchtriplet_v = []
     for b,data in enumerate(batchdata):
-        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
-        
+        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )        
         print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
 
-    # get the truth
+    # # get the truth
     batch_truth = []
     batch_weight = []
     for b,data in enumerate(batchdata):
         lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
         lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
+        lm_truth_t.requires_grad = False
+        lm_weight_t.requires_grad = False       
         #print("  truth: ",lm_truth_t.shape)
         #print("  weight: ",lm_weight_t.shape)
 
         ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
         ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
+        ssnet_truth_t.requires_grad = False
+        ssnet_weight_t.requires_grad = False
 
         kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
-        kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)        
+        kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)
+        kp_truth_t.requires_grad = False
+        kp_weight_t.requires_grad = False
 
         truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
         weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
@@ -301,9 +313,6 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         batch_truth.append( truth_data )
         batch_weight.append( weight_data )
     
-    # handled in data loader now
-    #for p in range(3):
-    #    feat_t[p] = torch.clamp( feat_t[p], 0, ADC_MAX )
     dt_io = time.time()-dt_io
     if verbose:
         print("loaded data. %.2f secs"%(dt_io)," iteration=",entry," root-tree-entry=",flowdata["tree_entry"]," npairs=",npairs)
@@ -315,9 +324,10 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_forward = time.time()
 
     # use UNET portion to first get feature vectors
-    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, original_coord_batch, config["BATCH_SIZE"] )
-    torch.distributed.barrier()    
-                                               
+    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, config["BATCH_SIZE"] )
+    #if not args.no_parallel:
+    #    torch.distributed.barrier()
+
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
     time_meters["forward"].update(time.time()-dt_forward)

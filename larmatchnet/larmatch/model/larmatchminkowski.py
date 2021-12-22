@@ -3,6 +3,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import MinkowskiEngine as ME
+from MinkowskiEngine.modules.resnet_block import BasicBlock, Bottleneck
 from .backbone_resunetme import MinkEncode6Layer, MinkDecode6Layer
 from .resnetinstance_block import BasicBlockInstanceNorm
 from .larmatch_spacepoint_classifier import LArMatchSpacepointClassifier
@@ -37,15 +38,18 @@ class LArMatchMinkowski(nn.Module):
         stem_layers = OrderedDict()
         if stem_nlayers==1:
             respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-            block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+            #block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+            block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )            
             stem_layers["stem_layer0"] = block
         else:
             for istem in range(stem_nlayers):
                 if istem==0:
                     respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-                    block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+                    #block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+                    block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
                 else:
-                    block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
+                    #block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
+                    block   = BasicBlock( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
                 stem_layers["stem_layer%d"%(istem)] = block
             
         self.stem = nn.Sequential(stem_layers)
@@ -73,10 +77,9 @@ class LArMatchMinkowski(nn.Module):
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=features_per_layer)
         
 
-    def forward( self, input_wireplane_sparsetensors, matchtriplets, orig_coords, batch_size ):
+    def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size ):
 
         # check input
-
         
         # we push through each sparse image through the stem and backbone (e.g. unet)
         x_feat_v = []
@@ -89,7 +92,7 @@ class LArMatchMinkowski(nn.Module):
             x_feat_v.append( x_decode )
 
         # then we have to extract a feature tensor
-        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, orig_coords, batch_size )
+        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, batch_size )
 
         # we pass the features through the different classifiers
         batch_output = []
@@ -107,10 +110,10 @@ class LArMatchMinkowski(nn.Module):
                 output["kp"] = self.kplabel_head( x )
             
             batch_output.append( output )
-        
+
         return batch_output
                                         
-    def extract_features(self, feat_v, index_t, orig_coords, batch_size, verbose=False ):
+    def extract_features(self, feat_v, index_t, batch_size, verbose=False ):
         """ 
         take in index list and concat the triplet feature vector.
         the feature vectors are those produced by the forward_feature method.
