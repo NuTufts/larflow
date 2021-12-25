@@ -11,7 +11,7 @@ from ctypes import c_int
 class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, npairs=None, load_truth=False,
-                 verbose=False):
+                 triplet_limit=2500000, verbose=False):
         """
         Parameters:
         """
@@ -60,6 +60,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._random_access = random_access
         self._random_entry_list = None
         self._max_num_tries = 10
+        self._triplet_limit = triplet_limit
         if self._random_access:
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )        
@@ -93,7 +94,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data    = {"entry":ientry,
                            "tree_entry":int(ientry)%int(self.nentries)}
 
-            self.get_data_from_tree( data )
+            okentry = self.get_data_from_tree( data )
 
             # increment the entry index
             self._current_entry += 1
@@ -102,10 +103,6 @@ class larmatchDataset(torch.utils.data.Dataset):
             num_tries += 1
             if num_tries>=self._max_num_tries:
                 raise RuntimeError("Tried the max num of times (%d) to get an acceptable piece of data"%(num_tries))
-            if data is None:
-                okentry = False
-            else:
-                okentry = True
 
         # xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
         # indexlist = xlist[0]
@@ -143,9 +140,16 @@ class larmatchDataset(torch.utils.data.Dataset):
         for p in range(nimgs):
             data["coord_%d"%(p)] = self.tree.coord_v.at(p).tonumpy()
             data["feat_%d"%(p)]  = np.expand_dims( self.tree.feat_v.at(p).tonumpy(), 1 )
+            # renormalize feats
+            data["feat_%d"%(p)] /= 50.0
+            data["feat_%d"%(p)] = np.clip( data["feat_%d"%(p)], 0, 10.0 )
         # get the 2D-3D correspondence data
         data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
-
+        if data["matchtriplet_v"].shape[0]>self._triplet_limit:
+            print("num triplets above the limit: ",data["matchtriplet_v"].shape)
+            data = None
+            return False
+        
         if self.load_truth:
             data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
             data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
@@ -161,7 +165,7 @@ class larmatchDataset(torch.utils.data.Dataset):
             print("  io time: %.3f secs"%(dtio))
             print("  tot time: %.3f secs"%(tottime))
             
-        return None
+        return True
 
 
     def print_status(self):

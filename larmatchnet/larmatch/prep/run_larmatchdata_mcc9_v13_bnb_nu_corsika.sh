@@ -1,10 +1,10 @@
 #!/bin/bash
 
-tag=bnbnue
+tag=bnb_nu
 WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
 UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list
-OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika/
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/inputlists/mcc9_v13_bnb_nu_corsika.triplettruth.list
+OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika/
 PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_data_from_tripletfile.py
 
 
@@ -47,7 +47,9 @@ do
 
     COMMAND="python3 ${PYSCRIPT} --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
     echo $COMMAND
-    $COMMAND >> ${local_logfile} 2>&1
+    echo $COMMAND >> ${local_logfile} 2>&1
+    #$COMMAND >> ${local_logfile} 2>&1
+    $COMMAND >> ${local_logfile}
     cp larmatchdata_${tag}_${voxel_filesuffix}* ${OUTPUT_DIR}/
     rm larmatchdata_${tag}_${voxel_filesuffix}*
     break

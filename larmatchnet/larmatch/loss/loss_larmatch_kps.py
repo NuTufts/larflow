@@ -182,7 +182,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  keypoint_score_truth: ",keypoint_score_truth.shape)
             print("  keypoint_weight: ",keypoint_weight.shape)
         fn_kp    = torch.nn.MSELoss( reduction='none' )
-        fnout = fn_kp( keypoint_score_pred, keypoint_score_truth )
+        fnout = fn_kp( keypoint_score_pred.squeeze(), keypoint_score_truth )
         if verbose:
             print("  fnout shape: ",fnout.shape)
         kp_loss  = (fnout*keypoint_weight).sum()
