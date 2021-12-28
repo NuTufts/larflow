@@ -7,6 +7,7 @@ from .lovasz_losses import lovasz_softmax
 class SparseLArMatchKPSLoss(nn.Module):
     def __init__(self, eval_lm=True,
                  eval_ssnet=True,
+                 learnable_weights=True,
                  eval_keypoint_label=False,
                  eval_keypoint_shift=False,
                  eval_affinity_field=False,
@@ -27,6 +28,16 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.ssnet_name = ssnet_name
         self.keypoint_name = keypoint_name
         self.affinity_name = affinity_name
+        self.learnable_weights = learnable_weights
+        self.task_weights = {larmatch_name:torch.zeros(1),
+                             ssnet_name:torch.zeros(1),
+                             keypoint_name:torch.zeros(1),
+                             affinity_name:torch.zeros(1)}
+        for k,w in self.task_weights:
+            if self.learnable_weights:
+                w.require_grad = True        
+        self.task_weights[ssnet_name] = -torch.log(1.0/200.0)
+        
 
     def forward( self, predictions, truthlabels, weights, batch_size, device, verbose=False  ):
         loss = {"tot":None,
@@ -69,7 +80,8 @@ class SparseLArMatchKPSLoss(nn.Module):
             if loss["tot"] is None:
                 loss["tot"] = lm_loss
             else:
-                loss["tot"] += lm_loss
+                if self.learnable_loss:
+                    loss["tot"] += lm_weight*torch.exp(-1.0*self.task_weights[larmatch_name])
             loss[self.larmatch_name] = lm_loss.detach().item()
                 
         # SSNET
