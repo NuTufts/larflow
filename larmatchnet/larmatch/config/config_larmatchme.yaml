@@ -8,25 +8,31 @@ NUM_ITERATIONS: 10000
 START_ITER: 0
 DEVICE: cuda
 RUN_PROFILER: false
-BATCH_SIZE: 3
-CLIP_GRAD_NORM: true
+BATCH_SIZE: 1
+CLIP_GRAD_NORM: false
 TRAIN_ITER_PER_RECORD: 1
 TRAIN_ITER_PER_VALIDPT: 10
-NUM_VALID_ITERS: 1
+NUM_VALID_ITERS: 5
 ITER_PER_CHECKPOINT: 1000
 ITER_PER_CACHECLEAR: 1
+VERBOSE_MAIN_LOOP: false
+VERBOSE_ITER_LOOP: false
+VERBOSE_LOSS: false
+VERBOSE_ACCURACY: false
 
 # DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
+#TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
+TRAIN_DATASET_INPUT_TXTFILE: "testdata.txt"
 TRAIN_DATASET_VERBOSE: true
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
+#VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
+VALID_DATASET_INPUT_TXTFILE: "testdata.txt"
 VALID_DATASET_VERBOSE: true
 
 # MODEL PARAMETERS
 
 # LOSS PARAMETERS
+USE_LEARNABLE_LOSS_WEIGHTS: true
 RUN_SSNET: true
 RUN_KPLABEL: true
 RUN_KPSHIFT: false
 RUN_PAF: false
-LOSS_VERBOSE: true

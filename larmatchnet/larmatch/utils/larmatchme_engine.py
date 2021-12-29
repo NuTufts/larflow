@@ -40,10 +40,16 @@ def get_model( config, dump_model=False ):
 
 def make_loss_fn( config ):
     device = torch.device(config["DEVICE"])
-    criterion = SparseLArMatchKPSLoss( eval_ssnet=config["RUN_SSNET"],
+    criterion = SparseLArMatchKPSLoss( learnable_weights=config["USE_LEARNABLE_LOSS_WEIGHTS"],
+                                       eval_ssnet=config["RUN_SSNET"],
                                        eval_keypoint_label=config["RUN_KPLABEL"],
                                        eval_keypoint_shift=config["RUN_KPSHIFT"],
                                        eval_affinity_field=config["RUN_PAF"] ).to(device)
+    print("made loss =============================")
+    print("loss parameters: ")
+    for k,x in criterion.named_parameters():
+        print(k,": ",x)
+    print("=======================================")
     return criterion
     
 
@@ -165,17 +171,19 @@ def accuracy(predictions, truthdata,
         # LARMATCH METRICS
         match_pred = match_pred_t.detach()
         npairs = match_pred.shape[1]
-        print("match_pred: ",match_pred.shape)
-        print("npairs: ",npairs)
+        if verbose:
+            print("match_pred: ",match_pred.shape)
+            print("npairs: ",npairs)
     
         pos_correct = (match_pred[1,:].gt(0.5)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
         neg_correct = (match_pred[1,:].lt(0.5)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
         npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
         nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
-        print("npos: ",npos)
-        print("nneg: ",nneg)
-        print("pos correct: ",pos_correct)
-        print("neg correct: ",neg_correct)
+        if verbose:
+            print("npos: ",npos)
+            print("nneg: ",nneg)
+            print("pos correct: ",pos_correct)
+            print("neg correct: ",neg_correct)
 
         acc_meters["lm_pos"].update( float(pos_correct)/npos )
         acc_meters["lm_neg"].update( float(neg_correct)/nneg )
@@ -255,9 +263,11 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     wireplane_sparsetensors = []
     
     for p in range(3):
-        print("plane ",p)
-        for b,data in enumerate(batchdata):
-            print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
+
+        if verbose:
+            print("plane ",p)
+            for b,data in enumerate(batchdata):
+                print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
 
         coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata ]
         feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(DEVICE) for data in batchdata ]
@@ -275,16 +285,18 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
             x.requires_grad = False
     
         coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
-        print(" coords: ",coords.shape)
-        print(" feats: ",feats.shape)
+        if verbose:
+            print(" coords: ",coords.shape)
+            print(" feats: ",feats.shape)
         wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
 
     # we also need the metadata associating possible 3d spacepoints
     # to the wire image location they project to
     matchtriplet_v = []
     for b,data in enumerate(batchdata):
-        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )        
-        print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
+        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
+        if verbose:
+            print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
 
     # # get the truth
     batch_truth = []
@@ -293,9 +305,10 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
         lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
         lm_truth_t.requires_grad = False
-        lm_weight_t.requires_grad = False       
-        #print("  truth: ",lm_truth_t.shape)
-        #print("  weight: ",lm_weight_t.shape)
+        lm_weight_t.requires_grad = False
+        if verbose:
+            print("  truth: ",lm_truth_t.shape)
+            print("  weight: ",lm_weight_t.shape)
 
         ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
         ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
@@ -336,7 +349,8 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         
     # Calculate the loss
     loss_dict = criterion( pred_dict, batch_truth, batch_weight,
-                           config["BATCH_SIZE"], DEVICE, verbose=config["LOSS_VERBOSE"] )
+                           config["BATCH_SIZE"], DEVICE,
+                           verbose=config["VERBOSE_LOSS"] )
 
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
@@ -372,7 +386,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
-    acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=True )
+    acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=config["VERBOSE_ACCURACY"] )
 
     # update time meter
     time_meters["accuracy"].update(time.time()-dt_acc)

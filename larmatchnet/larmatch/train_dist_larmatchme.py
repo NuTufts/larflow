@@ -64,6 +64,7 @@ def run(gpu, args ):
     torch.manual_seed(gpu)
 
     config = engine.load_config_file( args )
+    verbose = config["VERBOSE_MAIN_LOOP"]
 
     if rank==0:
         tb_writer = SummaryWriter()
@@ -91,10 +92,16 @@ def run(gpu, args ):
     print("RANK-%d Model"%(rank),model)
     if not args.no_parallel:
         torch.distributed.barrier()
-    
-    optimizer = torch.optim.Adam(model.parameters(),
+
+    print("model.parameters() type: ",type(model.parameters()))
+    param_list = list(model.parameters())
+    if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+        param_list += list(criterion.parameters())
+    optimizer = torch.optim.Adam(param_list,
                                  lr=float(config["LEARNING_RATE"]), 
                                  weight_decay=config["WEIGHT_DECAY"])
+    #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+    #    print("optimizer params", optimizer.param_groups)
     
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
@@ -130,7 +137,7 @@ def run(gpu, args ):
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
-            print("RANK-%d iteration=%d"%(rank,train_iteration))
+            if verbose: print("RANK-%d iteration=%d"%(rank,train_iteration))
 
             # should be config parameter
             #if iiter%int(config["ITER_PER_CACHECLEAR"])==0:
@@ -139,7 +146,8 @@ def run(gpu, args ):
             gc.collect()
 
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
-                                    acc_meters,loss_meters,time_meters,True,device,verbose=None)
+                                    acc_meters,loss_meters,time_meters,True,device,
+                                    verbose=config["VERBOSE_ITER_LOOP"])
 
             # periodic checkpoint
             if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
@@ -154,7 +162,7 @@ def run(gpu, args ):
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
-            print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
+            if verbose: print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
@@ -187,6 +195,12 @@ def run(gpu, args ):
                 # paf
                 paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
                 tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
+
+                # loss params
+                loss_weight_scalars = {}
+                for k,par in criterion.named_parameters():
+                    loss_weight_scalars[k] = torch.exp( -par.detach() ).item()
+                tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -231,13 +245,13 @@ def run(gpu, args ):
                     tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
 
                 else:
-                    print("RANK-%d process waiting for RANK-0 validation run"%(rank))
+                    if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
                 # wait for rank-0 to finish reporting and plotting
                 #if not args.no_parallel:
                 #    torch.distributed.barrier()
 
-        print("RANK-%d process finished. Waiting to sync."%(rank))
+        if verbose: print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:
             print("RANK-0: saving last checkpoint")
             engine.save_checkpoint({
