@@ -30,7 +30,9 @@ def load_config_file( args, dump_to_stdout=False ):
 def get_model( config, dump_model=False ):
 
     # create model, mark it to run on the device
-    model = LArMatchMinkowski()
+    model = LArMatchMinkowski(run_lm=config["RUN_LARMATCH"],
+                              run_ssnet=config["RUN_SSNET"],
+                              run_kp=config["RUN_KPLABEL"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -41,6 +43,7 @@ def get_model( config, dump_model=False ):
 def make_loss_fn( config ):
     device = torch.device(config["DEVICE"])
     criterion = SparseLArMatchKPSLoss( learnable_weights=config["USE_LEARNABLE_LOSS_WEIGHTS"],
+                                       eval_lm=config["RUN_LARMATCH"],
                                        eval_ssnet=config["RUN_SSNET"],
                                        eval_keypoint_label=config["RUN_KPLABEL"],
                                        eval_keypoint_shift=config["RUN_KPSHIFT"],
@@ -165,29 +168,30 @@ def accuracy(predictions, truthdata,
     for ibatch,(data,labels) in enumerate( zip(predictions,truthdata) ):
 
         # get the data from the dictionaries
-        match_pred_t  = torch.softmax( data["lm"].detach().squeeze(), dim=0 )
-        match_label_t = labels["lm"]
+        if "lm" in data:
+            match_pred_t  = torch.softmax( data["lm"].detach().squeeze(), dim=0 )
+            match_label_t = labels["lm"]
             
-        # LARMATCH METRICS
-        match_pred = match_pred_t.detach()
-        npairs = match_pred.shape[1]
-        if verbose:
-            print("match_pred: ",match_pred.shape)
-            print("npairs: ",npairs)
+            # LARMATCH METRICS
+            match_pred = match_pred_t.detach()
+            npairs = match_pred.shape[1]
+            if verbose:
+                print("match_pred: ",match_pred.shape)
+                print("npairs: ",npairs)
     
-        pos_correct = (match_pred[1,:].gt(0.5)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
-        neg_correct = (match_pred[1,:].lt(0.5)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
-        npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
-        nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
-        if verbose:
-            print("npos: ",npos)
-            print("nneg: ",nneg)
-            print("pos correct: ",pos_correct)
-            print("neg correct: ",neg_correct)
+            pos_correct = (match_pred[1,:].gt(0.5)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
+            neg_correct = (match_pred[1,:].lt(0.5)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
+            npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
+            nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
+            if verbose:
+                print("npos: ",npos)
+                print("nneg: ",nneg)
+                print("pos correct: ",pos_correct)
+                print("neg correct: ",neg_correct)
 
-        acc_meters["lm_pos"].update( float(pos_correct)/npos )
-        acc_meters["lm_neg"].update( float(neg_correct)/nneg )
-        acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
+            acc_meters["lm_pos"].update( float(pos_correct)/npos )
+            acc_meters["lm_neg"].update( float(neg_correct)/nneg )
+            acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
 
         # SSNET METRICS
         if "ssnet" in data:
@@ -251,6 +255,9 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     
     if is_train:
         optimizer.zero_grad(set_to_none=True)
+        model.train()
+    else:
+        model.eval()
 
     dt_io = time.time()
     

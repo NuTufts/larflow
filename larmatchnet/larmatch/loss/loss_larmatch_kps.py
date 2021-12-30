@@ -118,14 +118,20 @@ class SparseLArMatchKPSLoss(nn.Module):
             #truematch_index  = truthlabels[self.larmatch_name]                    
             ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, verbose=verbose )
             if not self.learnable_weights:
-                loss["tot"] += ssloss
+                if loss["tot"] is None:
+                    loss["tot"] = ssloss
+                else:
+                    loss["tot"] += ssloss
             else:
                 if verbose:
                     print("ssnet loss weight: ",self.task_weights[self.ssnet_name]," exp(w)=",torch.exp(-self.task_weights[self.ssnet_name].detach()))
                     print("ssnet loss shape: ",ssloss.shape)
                     print("weight shape: ",self.task_weights[self.ssnet_name].shape)
                 weighted_ssloss = ssloss*torch.exp(-self.task_weights[self.ssnet_name]) + self.task_weights[self.ssnet_name]
-                loss["tot"] += weighted_ssloss
+                if loss["tot"] is None:
+                    loss["tot"] = weighted_ssloss
+                else:
+                    loss["tot"] += weighted_ssloss
                 
             loss[self.ssnet_name] = ssloss.detach().item()
 
@@ -138,12 +144,18 @@ class SparseLArMatchKPSLoss(nn.Module):
             kp_weight    = weights[self.keypoint_name]
             kploss = self.keypoint_loss( kplabel_pred, kp_label, kp_weight, verbose=verbose )
             if not self.learnable_weights:
-                loss["tot"] += kploss
+                if loss["tot"] is None:
+                    loss["tot"] = kploss
+                else:
+                    loss["tot"] += kploss
             else:
                 if verbose:
                     print("keypoint loss weight: ",self.task_weights[self.keypoint_name]," exp(w)=",torch.exp(-self.task_weights[self.keypoint_name].detach()))
                 weighted_kploss = kploss*torch.exp(-self.task_weights[self.keypoint_name]) + self.task_weights[self.keypoint_name]
-                loss["tot"] += weighted_kploss
+                if loss["tot"] is None:
+                    loss["tot"] = weighted_kploss
+                else:
+                    loss["tot"] += weighted_kploss
             loss[self.keypoint_name] = kploss.detach().item()
 
         # # KPSHIFT
@@ -284,7 +296,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_weight: ",ssnet_weight.shape)
 
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()/100.0
+        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )

@@ -87,7 +87,7 @@ def run(gpu, args ):
     if args.no_parallel:
         model = single_model
     else:
-        model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
+        model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=True)
 
     print("RANK-%d Model"%(rank),model)
     if not args.no_parallel:
@@ -133,7 +133,6 @@ def run(gpu, args ):
                                                    batch_size=config["BATCH_SIZE"],
                                                    collate_fn=larmatchDataset.collate_fn)
     
-    loss_meters,acc_meters,time_meters = engine.make_meters(config)
     
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
@@ -145,7 +144,7 @@ def run(gpu, args ):
             #    print("cache clear")
             torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
             gc.collect()
-
+            loss_meters,acc_meters,time_meters = engine.make_meters(config)
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
                                     verbose=config["VERBOSE_ITER_LOOP"])
