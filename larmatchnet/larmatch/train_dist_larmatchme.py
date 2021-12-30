@@ -97,9 +97,9 @@ def run(gpu, args ):
     param_list = list(model.parameters())
     if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
         param_list += list(criterion.parameters())
-    optimizer = torch.optim.Adam(param_list,
-                                 lr=float(config["LEARNING_RATE"]), 
-                                 weight_decay=config["WEIGHT_DECAY"])
+    optimizer = torch.optim.AdamW(param_list,
+                                  lr=float(config["LEARNING_RATE"]), 
+                                  weight_decay=config["WEIGHT_DECAY"])
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
     #    print("optimizer params", optimizer.param_groups)
     
