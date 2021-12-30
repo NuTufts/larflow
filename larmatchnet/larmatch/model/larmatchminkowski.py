@@ -99,7 +99,7 @@ class LArMatchMinkowski(nn.Module):
         for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
             output = {}            
             x = spacepoint_feat.unsqueeze(0)
-            print("batch ",b," spacepoint feats: ",x.shape)
+            #print("batch ",b," spacepoint feats: ",x.shape)
             lm_pred = self.lm_classifier( x )
             output["lm"] = lm_pred
 
@@ -152,7 +152,7 @@ class LArMatchMinkowski(nn.Module):
                 #print("batch[%d]_plane[%d] spacepoint_feat: "%(b,p),spacepoint_feat.shape)
                 batch_spacepoint_v.append( spacepoint_feat )
             spacepoint_feats_t = torch.transpose( torch.cat( batch_spacepoint_v, dim=1 ), 1, 0 )
-            print("batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
+            #print("batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
             batch_feats.append( spacepoint_feats_t )
             
         return batch_feats

@@ -74,7 +74,7 @@ def run(gpu, args ):
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
-
+        print("RESUME MODEL CHECKPOINT")
         checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
             
     torch.cuda.set_device(gpu)
@@ -104,6 +104,7 @@ def run(gpu, args ):
     #    print("optimizer params", optimizer.param_groups)
     
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
+        print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
     
     
@@ -150,7 +151,7 @@ def run(gpu, args ):
                                     verbose=config["VERBOSE_ITER_LOOP"])
 
             # periodic checkpoint
-            if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
+            if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
                 if rank==0:
                     print("RANK-0: saving periodic checkpoint")
                     engine.save_checkpoint({

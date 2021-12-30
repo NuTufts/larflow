@@ -79,17 +79,20 @@ class SparseLArMatchKPSLoss(nn.Module):
         if self.eval_lm:
             if self.larmatch_name not in predictions:
                 raise ValueError("Asked to eval larmatch loss, but prediction diction does not contain key",self.larmatch_name)
+            if verbose:
+                print("eval LARMATCH loss")            
             larmatch_pred = predictions[self.larmatch_name]                        
             npairs     = larmatch_pred.shape[0]
             #ntruematch = truematch_index.shape[0]
             larmatch_weight = weights[self.larmatch_name]
             larmatch_label  = truthlabels[self.larmatch_name]        
-            lm_loss = self.larmatch_loss( larmatch_pred, larmatch_label, larmatch_weight, verbose )
+            lm_loss = self.larmatch_loss( larmatch_pred, larmatch_label, larmatch_weight, verbose=verbose )
 
             if self.learnable_weights:
-                print("lm loss weight: ",self.task_weights[self.larmatch_name]," exp(w)=",torch.exp(-self.task_weights[self.larmatch_name].detach()))
-                print("lm loss: ",lm_loss.detach().item())
-                print("lm loss shape: ",lm_loss.shape)
+                if verbose:
+                    print("lm loss weight: ",self.task_weights[self.larmatch_name]," exp(w)=",torch.exp(-self.task_weights[self.larmatch_name].detach()))
+                    print("lm loss: ",lm_loss.detach().item())
+                    print("lm loss shape: ",lm_loss.shape)
                 weighted_lm_loss = lm_loss*torch.exp(-self.task_weights[self.larmatch_name]) + self.task_weights[self.larmatch_name]
                 if loss["tot"] is None:
                     loss["tot"] = weighted_lm_loss
@@ -105,20 +108,22 @@ class SparseLArMatchKPSLoss(nn.Module):
                 
         # SSNET
         if self.eval_ssnet:
-            print("eval SSNET loss")
+            if verbose:
+                print("eval SSNET loss")
             if self.ssnet_name not in predictions:
                 raise ValueError("Asked to eval larmatch loss, but prediction diction does not contain key",self.larmatch_name)            
             ssnet_pred = predictions[self.ssnet_name]
             ssnet_label  = truthlabels[self.ssnet_name]
             ssnet_weight = weights[self.ssnet_name]
             #truematch_index  = truthlabels[self.larmatch_name]                    
-            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, verbose=True )
+            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, verbose=verbose )
             if not self.learnable_weights:
                 loss["tot"] += ssloss
             else:
-                print("ssnet loss weight: ",self.task_weights[self.ssnet_name]," exp(w)=",torch.exp(-self.task_weights[self.ssnet_name].detach()))
-                print("ssnet loss shape: ",ssloss.shape)
-                print("weight shape: ",self.task_weights[self.ssnet_name].shape)
+                if verbose:
+                    print("ssnet loss weight: ",self.task_weights[self.ssnet_name]," exp(w)=",torch.exp(-self.task_weights[self.ssnet_name].detach()))
+                    print("ssnet loss shape: ",ssloss.shape)
+                    print("weight shape: ",self.task_weights[self.ssnet_name].shape)
                 weighted_ssloss = ssloss*torch.exp(-self.task_weights[self.ssnet_name]) + self.task_weights[self.ssnet_name]
                 loss["tot"] += weighted_ssloss
                 
@@ -126,14 +131,17 @@ class SparseLArMatchKPSLoss(nn.Module):
 
         # KPLABEL
         if self.eval_keypoint_label:
+            if verbose:
+                print("eval KEYPOINT loss")
             kplabel_pred = predictions[self.keypoint_name]
             kp_label     = truthlabels[self.keypoint_name]
             kp_weight    = weights[self.keypoint_name]
-            kploss = self.keypoint_loss( kplabel_pred, kp_label, kp_weight, verbose=True )
+            kploss = self.keypoint_loss( kplabel_pred, kp_label, kp_weight, verbose=verbose )
             if not self.learnable_weights:
                 loss["tot"] += kploss
             else:
-                print("keypoint loss weight: ",self.task_weights[self.keypoint_name]," exp(w)=",torch.exp(-self.task_weights[self.keypoint_name].detach()))
+                if verbose:
+                    print("keypoint loss weight: ",self.task_weights[self.keypoint_name]," exp(w)=",torch.exp(-self.task_weights[self.keypoint_name].detach()))
                 weighted_kploss = kploss*torch.exp(-self.task_weights[self.keypoint_name]) + self.task_weights[self.keypoint_name]
                 loss["tot"] += weighted_kploss
             loss[self.keypoint_name] = kploss.detach().item()
