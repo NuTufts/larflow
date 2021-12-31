@@ -11,6 +11,8 @@ class SparseLArMatchKPSLoss(nn.Module):
                  eval_keypoint_label=False,
                  eval_keypoint_shift=False,
                  eval_affinity_field=False,
+                 init_lm_weight=0.0,
+                 init_kp_weight=0.0,
                  larmatch_name="lm",
                  ssnet_name="ssnet",
                  keypoint_name="kp",
@@ -29,9 +31,9 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.keypoint_name = keypoint_name
         self.affinity_name = affinity_name
         self.learnable_weights = learnable_weights
-        self.task_weights = {larmatch_name:nn.Parameter(torch.zeros(1)),
+        self.task_weights = {larmatch_name:nn.Parameter(torch.ones(1)*init_lm_weight),
                              ssnet_name:nn.Parameter( torch.ones(1)*5.29 ),
-                             keypoint_name:nn.Parameter(torch.zeros(1)),
+                             keypoint_name:nn.Parameter(torch.ones(1)*init_kp_weight),
                              affinity_name:nn.Parameter(torch.zeros(1))}
         for k,w in self.task_weights.items():
             

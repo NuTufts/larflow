@@ -42,12 +42,20 @@ def get_model( config, dump_model=False ):
 
 def make_loss_fn( config ):
     device = torch.device(config["DEVICE"])
+    kp_loss_weight = 0.0
+    lm_loss_weight = 0.0
+    if "INIT_LM_LOSS_WEIGHT" in config:
+        lm_loss_weight = config["INIT_LM_LOSS_WEIGHT"]
+    if "INIT_KP_LOSS_WEIGHT" in config:
+        kp_loss_weight = config["INIT_KP_LOSS_WEIGHT"]
     criterion = SparseLArMatchKPSLoss( learnable_weights=config["USE_LEARNABLE_LOSS_WEIGHTS"],
                                        eval_lm=config["RUN_LARMATCH"],
                                        eval_ssnet=config["RUN_SSNET"],
                                        eval_keypoint_label=config["RUN_KPLABEL"],
                                        eval_keypoint_shift=config["RUN_KPSHIFT"],
-                                       eval_affinity_field=config["RUN_PAF"] ).to(device)
+                                       eval_affinity_field=config["RUN_PAF"],
+                                       init_lm_weight=lm_loss_weight,
+                                       init_kp_weight=kp_loss_weight).to(device)
     print("made loss =============================")
     print("loss parameters: ")
     for k,x in criterion.named_parameters():

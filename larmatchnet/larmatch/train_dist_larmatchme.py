@@ -69,7 +69,7 @@ def run(gpu, args ):
     if rank==0:
         tb_writer = SummaryWriter()
 
-    single_model = engine.get_model( config )
+    single_model = engine.get_model( config, dump_model=False )
 
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
@@ -82,6 +82,9 @@ def run(gpu, args ):
     single_model.to(device)
 
     criterion = engine.make_loss_fn( config )
+    num_loss_pars = len(list(criterion.parameters()))
+    print("Num loss parameters: ",num_loss_pars)
+    print("lm loss weight: ",criterion.lm)
 
     # Wrap the model
     if args.no_parallel:
@@ -89,7 +92,8 @@ def run(gpu, args ):
     else:
         model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
 
-    print("RANK-%d Model"%(rank),model)
+    #print("RANK-%d Loaded Model"%(rank),model)
+    print("RANK-%d Loaded Model"%(rank))    
     if not args.no_parallel:
         torch.distributed.barrier()
 
@@ -101,12 +105,13 @@ def run(gpu, args ):
                                   lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-    #    print("optimizer params", optimizer.param_groups)
+    #    print("optimizer params")
+    #    for n,par in enumerate(optimizer.param_groups):
+    #        print(n,": ",par)
     
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
         print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
-    
     
     train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                                      random_access=True,
@@ -157,6 +162,7 @@ def run(gpu, args ):
                         'iter':train_iteration,
                         'epoch': train_iteration/float(TRAIN_NENTRIES),
                         'state_larmatch': model.state_dict(),
+                        'state_lossweights':criterion.state_dict(),
                         'optimizer' : optimizer.state_dict(),
                     }, False, train_iteration)
                 else:
@@ -258,6 +264,7 @@ def run(gpu, args ):
                 'iter':train_iteration,
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
                 'state_larmatch': model.state_dict(),
+                'state_lossweights':criterion.state_dict(),                
                 'optimizer' : optimizer.state_dict(),
             }, False, train_iteration)
         
