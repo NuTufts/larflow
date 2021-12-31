@@ -87,7 +87,7 @@ def run(gpu, args ):
     if args.no_parallel:
         model = single_model
     else:
-        model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=True)
+        model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
 
     print("RANK-%d Model"%(rank),model)
     if not args.no_parallel:

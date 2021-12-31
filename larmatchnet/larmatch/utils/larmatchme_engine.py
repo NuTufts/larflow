@@ -263,7 +263,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
 
     npts = 10*1000000
     ntries = 0
-    while npts>config["BATCH_TRIPLET_LIMIT"] and ntries<10:
+    while npts>config["BATCH_TRIPLET_LIMIT"] and ntries<20:
         batchdata = next(iter(data_loader))
         npts = 0
         for data in batchdata:

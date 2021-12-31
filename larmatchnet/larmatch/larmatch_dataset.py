@@ -179,7 +179,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._current_entry = self.start_index
 
     def collate_fn(batch):
-        print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
+        #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         #print(batch)
         return batch
     
