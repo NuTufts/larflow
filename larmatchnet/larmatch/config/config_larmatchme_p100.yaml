@@ -1,7 +1,7 @@
 # TRAINING PARAMETERS
-RESUME_FROM_CHECKPOINT: false
-RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.14000th.tar"
+RESUME_FROM_CHECKPOINT: true
+RESUME_OPTIM_FROM_CHECKPOINT: true
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.2000th.tar"
 LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
 NUM_ITERATIONS: 100000
@@ -20,19 +20,20 @@ VERBOSE_MAIN_LOOP: false
 VERBOSE_ITER_LOOP: false
 VERBOSE_LOSS: false
 VERBOSE_ACCURACY: false
+CHECKPOINT_TAG: "p1cmp075"
 
 # DATASET PARAMETERS
 TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
-#TRAIN_DATASET_INPUT_TXTFILE: "testdata.txt"
 TRAIN_DATASET_VERBOSE: false
 VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
-#VALID_DATASET_INPUT_TXTFILE: "testdata.txt"
 VALID_DATASET_VERBOSE: false
 
 # MODEL PARAMETERS
 
 # LOSS PARAMETERS
 USE_LEARNABLE_LOSS_WEIGHTS: true
+INIT_LM_LOSS_WEIGHT: -2.9
+INIT_KP_LOSS_WEIGHT: -2.1
 RUN_LARMATCH: true
 RUN_SSNET: false
 RUN_KPLABEL: true

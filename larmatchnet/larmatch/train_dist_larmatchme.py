@@ -157,6 +157,9 @@ def run(gpu, args ):
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
                 if rank==0:
+                    tag=None
+                    if "CHECKPOINT_TAG" in config:
+                        tag = config["CHECKPOINT_TAG"]
                     print("RANK-0: saving periodic checkpoint")
                     engine.save_checkpoint({
                         'iter':train_iteration,
@@ -164,7 +167,7 @@ def run(gpu, args ):
                         'state_larmatch': model.state_dict(),
                         'state_lossweights':criterion.state_dict(),
                         'optimizer' : optimizer.state_dict(),
-                    }, False, train_iteration)
+                    }, False, train_iteration,tag=tag)
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
@@ -260,13 +263,16 @@ def run(gpu, args ):
         if verbose: print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:
             print("RANK-0: saving last checkpoint")
+            tag=None
+            if "CHECKPOINT_TAG" in config:
+                tag = config["CHECKPOINT_TAG"]            
             engine.save_checkpoint({
                 'iter':train_iteration,
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
                 'state_larmatch': model.state_dict(),
                 'state_lossweights':criterion.state_dict(),                
                 'optimizer' : optimizer.state_dict(),
-            }, False, train_iteration)
+            }, False, train_iteration, tag=tag)
         
         if not args.no_parallel:
             torch.distributed.barrier()
