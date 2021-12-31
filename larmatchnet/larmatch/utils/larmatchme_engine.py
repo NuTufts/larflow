@@ -260,8 +260,17 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         model.eval()
 
     dt_io = time.time()
-    
-    batchdata = next(iter(data_loader))
+
+    npts = 10*1000000
+    ntries = 0
+    while npts>config["BATCH_TRIPLET_LIMIT"] and ntries<10:
+        batchdata = next(iter(data_loader))
+        npts = 0
+        for data in batchdata:
+            npts += data["matchtriplet_v"].shape[0]
+        print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        ntries+=1
+
 
     # convert wire plane data, in numpy form into ME.SparseTensor form
     # data comes back as numpy arrays.
