@@ -42,7 +42,8 @@ driftv = larutil.LArProperties.GetME().DriftVelocity()
 
 DEVICE=torch.device(args.device_name)
 
-single_model    = engine.get_model( args.config_file )
+config = engine.load_config_file(  args )
+single_model    = engine.get_model( config )
 checkpointfile  = args.weights
 checkpoint_data = engine.load_model_weights( single_model, checkpointfile )
 
@@ -195,11 +196,12 @@ for ientry in range(NENTRIES):
         print(lm_prob_t[:10,:])
 
     # EVALUATE SSNET SCORES
-    with torch.no_grad():
-        #print("  pred_dict[ssnet] shape: ",pred_dict["ssnet"].shape)
-        ssnet_pred_t = torch.transpose( pred_dict["ssnet"].squeeze(), 1, 0 )
-        ssnet_pred_t = torch.softmax( ssnet_pred_t, dim=1 )
-        print("  ssnet_pred_t: ",ssnet_pred_t.shape)
+    if config["RUN_SSNET"]:
+        with torch.no_grad():
+            #print("  pred_dict[ssnet] shape: ",pred_dict["ssnet"].shape)        
+            ssnet_pred_t = torch.transpose( pred_dict["ssnet"].squeeze(), 1, 0 )
+            ssnet_pred_t = torch.softmax( ssnet_pred_t, dim=1 )
+            print("  ssnet_pred_t: ",ssnet_pred_t.shape)
 
     # EVALUATE KP-LABEL SCORES
     with torch.no_grad():
@@ -229,14 +231,15 @@ for ientry in range(NENTRIES):
                                      pos_v,
                                      adc_v )
 
-    print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
-    ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
-    hitmaker.add_triplet_ssnet_scores(  matchtriplet_np, 
-                                        sparse_np_v[0],
-                                        sparse_np_v[1],
-                                        sparse_np_v[2],
-                                        adc_v.front().meta(),
-                                        ssnet_np )                                            
+    if config["RUN_SSNET"]:
+        print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
+        ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
+        hitmaker.add_triplet_ssnet_scores(  matchtriplet_np, 
+                                            sparse_np_v[0],
+                                            sparse_np_v[1],
+                                            sparse_np_v[2],
+                                            adc_v.front().meta(),
+                                            ssnet_np )                                      
 
     print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
     kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
