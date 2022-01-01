@@ -5,7 +5,7 @@ CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larma
 LEARNING_RATE: 1.0e-2
 WEIGHT_DECAY: 1.0e-4
 NUM_ITERATIONS: 100000
-START_ITER: 0
+START_ITER: 2001
 DEVICE: cuda
 RUN_PROFILER: false
 BATCH_SIZE: 3

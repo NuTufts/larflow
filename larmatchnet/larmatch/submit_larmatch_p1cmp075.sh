@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=larmatch
 #SBATCH --output=gridlog_train_larmatch_nossnet_p1cmp075.log
-#SBATCH --mem-per-cpu=8000
+#SBATCH --mem-per-cpu=16000
 #SBATCH --cpus-per-task=5
 #SBATCH --time=3-00:00:00
 #SBATCH --gres=gpu:p100:4
