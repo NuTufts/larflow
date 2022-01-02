@@ -65,26 +65,32 @@ def run(gpu, args ):
 
     config = engine.load_config_file( args )
     verbose = config["VERBOSE_MAIN_LOOP"]
+    torch.cuda.set_device(gpu)
+    device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
 
     if rank==0:
         tb_writer = SummaryWriter()
 
     single_model = engine.get_model( config, dump_model=False )
 
+    criterion = engine.make_loss_fn( config )
+    num_loss_pars = len(list(criterion.parameters()))
+    print("Num loss parameters: ",num_loss_pars)
+    print("lm loss weight: ",criterion.lm)
+    
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
         print("RESUME MODEL CHECKPOINT")
         checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
-            
-    torch.cuda.set_device(gpu)
-    device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
+        
+        # resume criterion weights
+        if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+            print("RESUME LOSS-WEIGHT VALUES")
+            criterion.load_state_dict( checkpoint_data["state_lossweights"] )
+
     single_model.to(device)
 
-    criterion = engine.make_loss_fn( config )
-    num_loss_pars = len(list(criterion.parameters()))
-    print("Num loss parameters: ",num_loss_pars)
-    print("lm loss weight: ",criterion.lm)
 
     # Wrap the model
     if args.no_parallel:
@@ -175,6 +181,14 @@ def run(gpu, args ):
             if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
+                if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+                    print("loss weights")
+                    if config["RUN_LARMATCH"]:
+                        print("  lm weight: ",torch.exp(-criterion.task_weights["lm"].detach()).item())
+                    if config["RUN_SSNET"]:
+                        print("  ssnet: ",torch.exp(-criterion.task_weights["ssnet"].detach()).item())
+                    if config["RUN_KPLABEL"]:
+                        print("  kp: ",torch.exp(-criterion.task_weights["kp"].detach()).item())
 
                 # write to tensorboard
                 # --------------------
