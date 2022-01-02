@@ -200,24 +200,31 @@ def run(gpu, args ):
                 # larmatch
                 acc_scalars = {}
                 for accname in engine.LM_CLASS_NAMES:
-                    acc_scalars[accname] = acc_meters[accname].avg
-                tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
+                    if acc_meters[accname].count>0:
+                        acc_scalars[accname] = acc_meters[accname].avg
+                if len(acc_scalars)>0:
+                    tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
 
                 # ssnet
                 ssnet_scalars = {}
                 for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
-                    ssnet_scalars[accname] = acc_meters[accname].avg
-                tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
+                    if acc_meters[accname].count>0:
+                        ssnet_scalars[accname] = acc_meters[accname].avg
+                if len(ssnet_scalars)>0:
+                    tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                 
                 # keypoint
                 kp_scalars = {}
                 for accname in engine.KP_CLASS_NAMES:
-                    kp_scalars[accname] = acc_meters[accname].avg
-                tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
+                    if acc_meters[accname].count>0:
+                        kp_scalars[accname] = acc_meters[accname].avg
+                if len(kp_scalars)>0:
+                    tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                 
                 # paf
-                paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
-                tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
+                if acc_meters["paf"].count>0:
+                    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+                    tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
 
                 # loss params
                 loss_weight_scalars = {}
@@ -248,24 +255,31 @@ def run(gpu, args ):
                     # larmatch
                     val_acc_scalars = {}
                     for accname in engine.LM_CLASS_NAMES:
-                        val_acc_scalars[accname] = valid_acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
+                        if valid_acc_meters[accname].count>0:
+                            val_acc_scalars[accname] = valid_acc_meters[accname].avg
+                    if len(val_acc_scalars)>0:
+                        tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
 
                     # ssnet
                     val_ssnet_scalars = {}
                     for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
-                        val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
+                        if valid_acc_meters[accname].count>0:
+                            val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
+                    if len(val_ssnet_scalars)>0:
+                        tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
                 
                     # keypoint
                     val_kp_scalars = {}
                     for accname in engine.KP_CLASS_NAMES:
-                        val_kp_scalars[accname] = valid_acc_meters[accname].avg
-                    tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
+                        if valid_acc_meters[accname].count>0:
+                            val_kp_scalars[accname] = valid_acc_meters[accname].avg
+                    if len(val_kp_scalars)>0:
+                        tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
                 
                     # paf
-                    val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
-                    tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
+                    if valid_acc_meters["paf"].count>0:
+                        val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
+                        tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
 
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))

@@ -48,6 +48,7 @@ def make_loss_fn( config ):
         lm_loss_weight = config["INIT_LM_LOSS_WEIGHT"]
     if "INIT_KP_LOSS_WEIGHT" in config:
         kp_loss_weight = config["INIT_KP_LOSS_WEIGHT"]
+        
     criterion = SparseLArMatchKPSLoss( learnable_weights=config["USE_LEARNABLE_LOSS_WEIGHTS"],
                                        eval_lm=config["RUN_LARMATCH"],
                                        eval_ssnet=config["RUN_SSNET"],
@@ -56,6 +57,7 @@ def make_loss_fn( config ):
                                        eval_affinity_field=config["RUN_PAF"],
                                        init_lm_weight=lm_loss_weight,
                                        init_kp_weight=kp_loss_weight).to(device)
+        
     print("made loss =============================")
     print("loss parameters: ")
     for k,x in criterion.named_parameters():
@@ -433,10 +435,10 @@ def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers ):
                                                                                                                              timers["data"].avg))
     print("  Losses: ")
     for name,meter in loss_meters.items():
-        print("    ",name,": ",meter.avg)
+        print("    ",name,": ",meter.avg," (from ",meter.count," counts)")
     print("  Accuracies: ")
     for name,meter in acc_meters.items():
-        print("    ",name,": ",meter.avg)
+        print("    ",name,": ",meter.avg," (from ",meter.count," counts)")
     print("------------------------------------------------------------------------")
     
     
