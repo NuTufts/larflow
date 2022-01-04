@@ -161,7 +161,7 @@ for ientry in range(NENTRIES):
     for p in range(3):
         wireimg = preplarmatch.make_sparse_image( p )
         wireimg_coord_np = wireimg[:,:2].astype(np.float32)
-        print(wireimg_coord_np[:10,:])
+        #print(wireimg_coord_np[:10,:])
         
         wireimg_coord = torch.from_numpy( wireimg_coord_np ).to(DEVICE)
         wireimg_feat  = torch.from_numpy( np.clip( np.expand_dims( wireimg[:,2], 1 )/50.0, 0, 10.0 ) ).to(DEVICE)
@@ -193,7 +193,7 @@ for ientry in range(NENTRIES):
         lm_prob_t = torch.transpose(  pred_dict["lm"].squeeze(), 1, 0 )
         lm_prob_t = 1.0-torch.softmax( lm_prob_t, dim=1 )
         print("  lm_prob_t=",lm_prob_t.shape)
-        print(lm_prob_t[:10,:])
+        #print(lm_prob_t[:10,:])
 
     # EVALUATE SSNET SCORES
     if config["RUN_SSNET"]:
