@@ -1,14 +1,36 @@
 import os,sys,time
 import shutil
+import numpy as np
 import torch
 import torch.distributed as dist
 import yaml
-from larmatch import LArMatch
+from model.larmatchscn import LArMatch
 from collections import OrderedDict
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
 KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
 LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
+
+def get_gen2_larmatch_model( dump_model=False ):
+    """
+    Load parameters for original Gen2 model.
+    """
+    model = LArMatch(use_unet=True,
+                     stem_nfeatures=16,
+                     features_per_layer=16,
+                     input_nfeatures=1,
+                     unet_depth=5,
+                     num_ssnet_classes=3,
+                     num_kp_classes=3,
+                     use_kp_bn=True,
+                     run_ssnet=True,
+                     run_kplabel=True,
+                     run_paf=False )
+
+    if dump_model:
+        print(model)
+        
+    return model
 
 def get_larmatch_model( config, dump_model=False ):
 
@@ -16,7 +38,7 @@ def get_larmatch_model( config, dump_model=False ):
     model = LArMatch(use_unet=True,
                      stem_nfeatures=config["STEM_FEATURES"],
                      features_per_layer=config["NUM_FEATURES"],
-                     unet_depth=config["UNET_DEPTH"],                     
+                     unet_depth=config["UNET_DEPTH"],
                      num_ssnet_classes=config["NUM_SSNET_CLASSES"],
                      num_kp_classes=config["NUM_KP_CLASSES"],
                      use_kp_bn=config["KP_USE_BN"],
@@ -28,7 +50,7 @@ def get_larmatch_model( config, dump_model=False ):
     if dump_model:
         # DUMP MODEL (for debugging)
         print(model)
-
+    
     model_dict = {"larmatch":model}
     if model.run_ssnet:   model_dict["ssnet"] = model_dict["larmatch"].ssnet_head
     if model.run_kplabel: model_dict["kplabel"] = model_dict["larmatch"].kplabel_head
@@ -52,8 +74,8 @@ def load_model_weights( model, checkpoint_file ):
 
     return checkpoint
 
-def load_config_file( args, dump_to_stdout=False ):
-    stream = open(args.config_file, 'r')
+def load_config_file( config_file, dump_to_stdout=False ):
+    stream = open(config_file, 'r')
     dictionary = yaml.load(stream, Loader=yaml.FullLoader)
     if dump_to_stdout:
         for key, value in dictionary.items():
@@ -61,20 +83,63 @@ def load_config_file( args, dump_to_stdout=False ):
     stream.close()
     return dictionary
 
-def reshape_old_sparseconvnet_weights(checkpoint):
+def load_gen2_scn_model_weights( weight_file, model ):
+    """
+    """
+    # Map all weights back to cpu first
+    loc_dict = {"cuda:%d"%(gpu):"cpu" for gpu in range(10) }
+
+    # load weights
+    checkpoint = torch.load( weight_file, map_location=loc_dict )
+
+    # change names if we saved the distributed data parallel model state    
+    remake_separated_model_weightfile( checkpoint, verbose=False )
+
+    reshape_old_sparseconvnet_weights( checkpoint, verbose=False )
+
+    # remove weights
+    if not model.run_kpshift:
+        rmlist = []
+        for pname in checkpoint["state_larmatch"]:
+            if "kpshift_head" in pname:
+                rmlist.append(pname)
+        for pname in rmlist:
+            del checkpoint["state_larmatch"][pname]
+    if not model.run_paf:
+        rmlist = []
+        for pname in checkpoint["state_larmatch"]:
+            if "affinity_head" in pname:
+                rmlist.append(pname)
+        for pname in rmlist:
+            del checkpoint["state_larmatch"][pname]
+    if not model.run_ssnet:
+        rmlist = []
+        for pname in checkpoint["state_larmatch"]:
+            if "ssnet_head" in pname:
+                rmlist.append(pname)
+        for pname in rmlist:
+            del checkpoint["state_larmatch"][pname]
+        
+    
+    model.load_state_dict( checkpoint["state_larmatch"] )
+
+
+def reshape_old_sparseconvnet_weights(checkpoint, verbose=False):
 
     # hack to be able to load sparseconvnet<1.3
+    if verbose: print("== RESHAPE OLD SPARSE CONVNET WEIGHT =================")
     for name,arr in checkpoint["state_larmatch"].items():
         if ( ("resnet" in name and "weight" in name and len(arr.shape)==3) or
              ("stem" in name and "weight" in name and len(arr.shape)==3) or
              ("unet_layers" in name and "weight" in name and len(arr.shape)==3) or         
              ("feature_layer.weight" == name and len(arr.shape)==3 ) ):
-            print("reshaping ",name)
+            if verbose: print("reshaping ",name)
             checkpoint["state_larmatch"][name] = arr.reshape( (arr.shape[0], 1, arr.shape[1], arr.shape[2]) )
+    if verbose: print("======================================================")
 
     return
 
-def rename_distributed_checkpoint_par_names(checkpoint):
+def rename_distributed_checkpoint_par_names(checkpoint,verbose=False):
     replacement = OrderedDict()
     notified = False
     for name,arr in checkpoint["state_larmatch"].items():
@@ -89,16 +154,14 @@ def rename_distributed_checkpoint_par_names(checkpoint):
     return
             
 
-def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
+def remake_separated_model_weightfile(checkpoint,verbose=False):
     # copy items into larmatch dict
     larmatch_checkpoint_data = checkpoint["state_larmatch"]
     head_names = {"ssnet":"ssnet_head",
                   "kplabel":"kplabel_head",
                   "kpshift":"kpshift_head",
                   "paf":"affinity_head"}
-    for name,model in model_dict.items():
-        if name not in head_names:
-            continue
+    for name  in head_names:
         if verbose: print("STATE DATA: ",name)
         state_name = "state_"+name
         if state_name not in checkpoint:
@@ -110,6 +173,30 @@ def remake_separated_model_weightfile(checkpoint,model_dict,verbose=False):
             larmatch_checkpoint_data[head_names[name]+"."+parname] = arr
     
     return larmatch_checkpoint_data
+
+def prepare_gen2_sparse_tensor( batch_data, device=None ):
+    """
+    for use with larmatch_dataset output
+    """
+
+    batch_out = []
+    
+    # Prep sparse ADC numpy arrays
+    for ib, data in enumerate(batch_data):
+        coord_v = []
+        feat_v  = []
+        for p in range(3):
+            c = torch.from_numpy( data["coord_%d"%(p)][:,0:2].astype(np.long) )
+            f = torch.from_numpy( data["feat_%d"%(p)] )
+            if device is not None:
+                c = c.to(device)
+                f = f.to(device)
+            coord_v.append(c)
+            feat_v.append(f)
+        batch_out.append( (coord_v, feat_v) )
+
+    return batch_out
+
 
 
 
@@ -281,7 +368,10 @@ def do_one_iteration( config, model_dict, data_loader, criterion, optimizer,
 
     # use UNET portion to first get feature vectors
     pred_dict = model_dict["larmatch"]( coord_t, feat_t, match_t, flowdata["npairs"], device, verbose=config["TRAIN_VERBOSE"] )
-    torch.distributed.barrier()    
+    torch.distributed.barrier()
+
+    if True:
+        return None
     
     match_pred_t   = pred_dict["match"]      
     ssnet_pred_t   = pred_dict["ssnet"]   if "ssnet" in pred_dict else None

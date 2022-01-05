@@ -5,10 +5,10 @@ import torch.nn as nn
 import sparseconvnet as scn
 from utils_sparselarflow import create_resnet_layer
 
-from larmatch_ssnet_classifier import LArMatchSSNetClassifier
-from larmatch_keypoint_classifier import LArMatchKeypointClassifier
-from larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
-from larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
+from .larmatch_ssnet_classifier import LArMatchSSNetClassifier
+from .larmatch_keypoint_classifier import LArMatchKeypointClassifier
+from .larmatch_kpshift_regressor   import LArMatchKPShiftRegressor
+from .larmatch_affinityfield_regressor import LArMatchAffinityFieldRegressor
 
 class LArMatch(nn.Module):
 
@@ -209,13 +209,13 @@ class LArMatch(nn.Module):
         if verbose:
             print("[larmatch::extract_features]")
             print("  index-shape=",index_t.shape,)
-            print(" feat-u-shape=",feat_u_t.shape)
-            print(" feat-v-shape=",feat_v_t.shape)
-            print(" feat-y-shape=",feat_y_t.shape)
+            print("  feat-u-shape=",feat_u_t.shape)
+            print("  feat-v-shape=",feat_v_t.shape)
+            print("  feat-y-shape=",feat_y_t.shape)
 
-        feats   = [ feat_u_t, feat_v_t, feat_y_t ]
-        for f in feats:
-            f = f.to(DEVICE)
+        feats   = ( feat_u_t, feat_v_t, feat_y_t )
+        #for f in feats:
+        #    f = f.to(DEVICE)
         feats_t = [ torch.index_select( feats[x], 0, index_t[:npts,x] ) for x in range(0,3) ]
         if verbose:
             print("  index-selected feats_t[0]=",feats_t[0].shape)
@@ -281,14 +281,14 @@ class LArMatch(nn.Module):
             kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
             kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
             outdict["kplabel"] = kplabel_pred_t
-            if verbose: print("[larmatch train] kplabel-pred=",kplabel_pred_t.shape)
+            if verbose: print("[larmatch] kplabel-pred=",kplabel_pred_t.shape)
         
         if self.run_kpshift:
             kpshift_pred_t = self.kpshift_head.forward( feat_triplet_t )
             kpshift_pred_t = kpshift_pred_t.reshape( (kpshift_pred_t.shape[1],kpshift_pred_t.shape[2]) )
             kpshift_pred_t = torch.transpose( kpshift_pred_t, 1, 0 )
             outdict["kpshift"] = kpshift_pred_t
-            if verbose: print("[larmatch train] kpshift-pred=",kpshift_pred_t.shape)
+            if verbose: print("[larmatch] kpshift-pred=",kpshift_pred_t.shape)
 
 
         if self.run_paf:
@@ -296,7 +296,7 @@ class LArMatch(nn.Module):
             paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
             paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )
             outdict["paf"] = paf_pred_t
-            if verbose: print("[larmatch train]: paf pred=",paf_pred_t.shape)
+            if verbose: print("[larmatch]: paf pred=",paf_pred_t.shape)
 
 
         return outdict

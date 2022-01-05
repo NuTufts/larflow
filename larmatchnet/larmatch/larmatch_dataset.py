@@ -11,7 +11,8 @@ from ctypes import c_int
 class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, npairs=None, load_truth=False,
-                 triplet_limit=2500000, verbose=False):
+                 triplet_limit=2500000, normalize_inputs=True,
+                 verbose=False):
         """
         Parameters:
         """
@@ -61,6 +62,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._random_entry_list = None
         self._max_num_tries = 10
         self._triplet_limit = triplet_limit
+        self._normalize_inputs = normalize_inputs
         if self._random_access:
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )        
@@ -141,8 +143,9 @@ class larmatchDataset(torch.utils.data.Dataset):
             data["coord_%d"%(p)] = self.tree.coord_v.at(p).tonumpy()
             data["feat_%d"%(p)]  = np.expand_dims( self.tree.feat_v.at(p).tonumpy(), 1 )
             # renormalize feats
-            data["feat_%d"%(p)] /= 50.0
-            data["feat_%d"%(p)] = np.clip( data["feat_%d"%(p)], 0, 10.0 )
+            if self._normalize_inputs:
+                data["feat_%d"%(p)] /= 50.0
+                data["feat_%d"%(p)] = np.clip( data["feat_%d"%(p)], 0, 10.0 )
         # get the 2D-3D correspondence data
         data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
         if data["matchtriplet_v"].shape[0]>self._triplet_limit:
