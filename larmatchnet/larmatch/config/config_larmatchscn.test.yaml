@@ -1,3 +1,5 @@
 PRINT_MODEL: true
 DEVICE: "cuda"
 WEIGHT_FILE: "weights/larmatchscn.checkpoint.1974000th.tar"
+RUN_SSNET: true
+RUN_KEYPOINT: true

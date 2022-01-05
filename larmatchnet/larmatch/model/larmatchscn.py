@@ -267,7 +267,7 @@ class LArMatch(nn.Module):
         match_pred_t = match_pred_t.reshape( (match_pred_t.shape[-1]) )
         if verbose: print("[larmatch] match-pred=",match_pred_t.shape)
 
-        outdict = {"match":match_pred_t}
+        outdict = {"lm":match_pred_t}
 
         if self.run_ssnet:
             ssnet_pred_t = self.ssnet_head.forward( feat_triplet_t )
@@ -280,8 +280,8 @@ class LArMatch(nn.Module):
             kplabel_pred_t = self.kplabel_head.forward( feat_triplet_t )
             kplabel_pred_t = kplabel_pred_t.reshape( (kplabel_pred_t.shape[1], kplabel_pred_t.shape[2]) )
             kplabel_pred_t = torch.transpose( kplabel_pred_t, 1, 0 )
-            outdict["kplabel"] = kplabel_pred_t
-            if verbose: print("[larmatch] kplabel-pred=",kplabel_pred_t.shape)
+            outdict["kp"] = kplabel_pred_t
+            if verbose: print("[larmatch] kp-pred=",kplabel_pred_t.shape)
         
         if self.run_kpshift:
             kpshift_pred_t = self.kpshift_head.forward( feat_triplet_t )
