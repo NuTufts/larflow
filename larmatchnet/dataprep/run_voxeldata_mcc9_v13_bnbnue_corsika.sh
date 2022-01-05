@@ -1,9 +1,9 @@
 #!/bin/bash
 
 dataset=train
-tag=bnbnue_${dataset}data_3mm
-WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/workdir/voxeldata/
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
+tag=bnbnue_${dataset}data_3mm_RSE
+WORKDIR=/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/larmatchnet/dataprep/workdir/voxeldata/
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/pabrat01/ubdl
 INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/voxel_outdir_mcc9_v13_bnbnue_corsika_${dataset}/${tag}
 

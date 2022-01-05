@@ -3,15 +3,15 @@
 # slurm submission script for making larmatch training data
 
 #SBATCH --job-name=nuevoxdata
-#SBATCH --output=larvoxeldata_bnb_nue_train.log
+#SBATCH --output=larvoxeldata_bnb_nue_train_polina.log
 #SBATCH --mem-per-cpu=4000
 #SBATCH --time=4:00:00
-#SBATCH --array=0-9
+#SBATCH --array=0
 #SBATCH --partition=preempt
 
 container=/cluster/tufts/wongjiradlabnu//larbys/larbys-container/singularity_minkowskiengine_u20.04.cu111.torch1.9.0.sif
 #container=/cluster/tufts/wongjiradlab/larbys/larbys-containers/ubdldeps_u20.02_pytorch1.9_py3.simg
-DATA_PREP_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep
+DATA_PREP_DIR=/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/larmatchnet/dataprep
 
 module load singularity/3.5.3
 cd /cluster/tufts/

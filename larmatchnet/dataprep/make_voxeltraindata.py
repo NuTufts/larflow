@@ -11,6 +11,7 @@ parser.add_argument('input_larmatch',nargs='+',help="Input larmatch triplet trai
 args = parser.parse_args(sys.argv[1:])
 
 import numpy as np
+from array import array
 import torch
 from larvoxel_dataset import larvoxelDataset
 
@@ -20,7 +21,7 @@ from larcv import larcv
 from larflow import larflow
 rt.gStyle.SetOptStat(0)
 
-print(args.input_larmatch)
+print("args.input_larmatch: ",args.input_larmatch)
 
 def collate_fn(batch):
     return batch
@@ -30,8 +31,25 @@ NENTRIES = len(dataset)
 
 loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=collate_fn)
 
+f_v = rt.std.vector("std::string")()
+f_v.push_back( args.input_larmatch[0] )
+#for f in input_rootfile_v:
+#    f_v.push_back( f )
+
+kploader = larflow.keypoints.LoaderKeypointData( f_v )
+kptree = kploader.load_tree()
+#kploader.set_verbosity( larcv.msg.kDEBUG )
+#kploader.exclude_false_triplets( False )
+
+print("kploader.GetEntries(): ",kploader.GetEntries())
+
 outfile = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larvoxeltrainingdata","LArMatch Voxel training data")
+
+# Run, subrun, event                                                                                                                                                                   
+run    = array('i',[0])
+subrun = array('i',[0])
+event  = array('i',[0])
 
 coord_v = std.vector("larcv::NumpyArrayInt")()
 feat_v  = std.vector("larcv::NumpyArrayFloat")()
@@ -51,7 +69,10 @@ ssnet_weight_v = std.vector("larcv::NumpyArrayFloat")()
 kp_truth_v  = std.vector("larcv::NumpyArrayFloat")()
 kp_weight_v = std.vector("larcv::NumpyArrayFloat")()
 
-                       
+
+outtree.Branch("run", run, "run/I")
+outtree.Branch("subrun", subrun, "subrun/I")
+outtree.Branch("event",  event,  "event/I")
 outtree.Branch("coord_v",coord_v)
 outtree.Branch("feat_v", feat_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
@@ -76,6 +97,7 @@ for iiter in range(NENTRIES):
         vec.clear()
         
     data = next(iter(loader))[0]
+    kploader.load_entry(iiter)
     print("Tree entry: ",data["tree_entry"])
     print(" keys: ",data.keys())
     for name,d in data.items():
@@ -85,6 +107,11 @@ for iiter in range(NENTRIES):
             print("  ",name,": ",type(d))
 
     print("wtf: ",data["voxcoord"].shape)
+    
+    run[0]    = kploader.run()
+    subrun[0] = kploader.subrun()
+    event[0]  = kploader.event()
+    
     coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
     feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )
 
