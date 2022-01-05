@@ -43,7 +43,8 @@ namespace prep {
     PrepMatchTriplets()
       : _kStopAtTripletMax(false),
 	_kTripletLimit(1000000),
-	_kshuffle_indices_when_sampling(true)
+	_kshuffle_indices_when_sampling(true),
+	_do_deadch_bug(false)
     {};
     virtual ~PrepMatchTriplets() {};
 
@@ -67,6 +68,7 @@ namespace prep {
     void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
     void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
     void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
+    void setDoDeadChannelBug( bool doit ) { _do_deadch_bug = doit; };
 
     std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
@@ -147,6 +149,7 @@ namespace prep {
     bool _kStopAtTripletMax;
     int  _kTripletLimit;
     bool _kshuffle_indices_when_sampling;
+    bool _do_deadch_bug;
 
     // map from shower daughter IDs to mother IDs
     std::map<unsigned long, unsigned long> _shower_daughter2mother;

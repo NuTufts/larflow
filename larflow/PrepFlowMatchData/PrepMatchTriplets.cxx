@@ -180,7 +180,8 @@ namespace prep {
           // unique, add to sparse image
           pix.val = 1.0;
           _sparseimg_vv[otherplane].push_back( pix );
-	  deadpixels_to_add[otherplane].insert( std::pair<int,int>(pix.row,pix.col) );
+	  if ( !_do_deadch_bug )
+	    deadpixels_to_add[otherplane].insert( std::pair<int,int>(pix.row,pix.col) );
         }
       }
     }
