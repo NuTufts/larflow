@@ -204,6 +204,7 @@ namespace prep {
 
     int   n_not_crosses = 0;
     float n_bad_triarea = 0;
+    long  n_zero_triplets = 0;
 
     for (int iflow=0; iflow<(int)larflow::kNumFlows; iflow++) {
       
@@ -303,6 +304,11 @@ namespace prep {
           imgindex_v[ othplane ] = it_oth - _sparseimg_vv[othplane].begin();
           imgindex_v[ 3 ]        = trip[3];
 
+	  if ( imgindex_v[0]==0 && imgindex_v[1]==0 && imgindex_v[2]==0 && imgindex_v[3]==2400 ) {
+	    std::cout << "[PrepMatchTriplets] all zero triplet ... " << std::endl;
+	    n_zero_triplets++;
+	  }
+
           _triplet_v.push_back( imgindex_v );
           _flowdir_v.push_back( flowdir );
           if ( check_wire_intersection) {
@@ -320,6 +326,7 @@ namespace prep {
               << " unique index triplets. time elapsed=" << float(end-start)/float(CLOCKS_PER_SEC)
               << std::endl;
     std::cout << "[PrepMatchTriplets] number removed for not intersecting: " << n_not_crosses << std::endl;
+    std::cout << "[PrepMatchTriplets] num zero triplets: " << n_zero_triplets << std::endl;
 
   }//end of process method
 
