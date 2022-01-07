@@ -106,39 +106,39 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     hitindex = 0
     if plotby=="ssn-bg":
-        hitindex = 10
+        hitindex = 12
     elif plotby=="ssn-muon":
-        hitindex = 10+larflow.prep.PrepSSNetTriplet.kMuon
+        hitindex = 10
     elif plotby=="ssn-electron":
-        hitindex = 10+larflow.prep.PrepSSNetTriplet.kElectron
+        hitindex = 11
     elif plotby=="ssn-gamma":
-        hitindex = 10+larflow.prep.PrepSSNetTriplet.kGamma
+        hitindex = 11
     elif plotby=="ssn-proton":
-        hitindex = 10+larflow.prep.PrepSSNetTriplet.kProton
+        hitindex = 10
     elif plotby=="ssn-pion":
-        hitindex = 10+larflow.prep.PrepSSNetTriplet.kPion
+        hitindex = 10
     elif plotby=="keypoint-nu":        
-        hitindex = 17+0
+        hitindex = 13
     elif plotby=="keypoint-trackstart":
-        hitindex = 17+1
+        hitindex = 14
     elif plotby=="keypoint-trackend":
-        hitindex = 17+2
+        hitindex = 14
     elif plotby=="keypoint-shower":
-        hitindex = 17+3
-    elif plotby=="keypoint-michel":
-        hitindex = 17+4
+        hitindex = 15
     elif plotby=="keypoint-delta":
-        hitindex = 17+5
+        hitindex = 15
+    elif plotby=="keypoint-michel":
+        hitindex = 15
     elif plotby=="ssn2d-hip":
         hitindex = 3
     elif plotby=="ssn2d-mip":
         hitindex = 4
     elif plotby=="ssn2d-shower":
         hitindex = 5
-    elif plotby=="ssn2d-michel":
-        hitindex = 6
     elif plotby=="ssn2d-delta":
-        hitindex = 7
+        hitindex = 6
+    elif plotby=="ssn2d-michel":
+        hitindex = 7        
 
     detdata = lardly.DetectorOutline()
 
@@ -199,7 +199,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             larflowhits["marker"]["color"] = xcolor
             larflowhits["marker"].pop("colorscale")
         else:
-            print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[3])," max=",np.max(xyz[3]))            
+            print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[:ptsused,3])," max=",np.max(xyz[:ptsused,3]))
             
         #print(xyz[:ptsused,3])
         traces_v += [larflowhits]+detdata.getlines(color=(0,0,0))

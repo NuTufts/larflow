@@ -25,7 +25,7 @@ def get_gen2_larmatch_model( dump_model=False ):
                      use_kp_bn=True,
                      run_ssnet=True,
                      run_kplabel=True,
-                     run_paf=False )
+                     run_paf=True )
 
     if dump_model:
         print(model)

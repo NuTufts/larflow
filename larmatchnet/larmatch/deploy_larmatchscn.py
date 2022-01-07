@@ -48,6 +48,7 @@ checkpointfile  = args.weights
 engine.load_gen2_scn_model_weights( args.weights, single_model )
 
 single_model.to(DEVICE)
+single_model.eval()
 print("loaded MODEL")
 #print(single_model)
 
@@ -161,8 +162,8 @@ for ientry in range(NENTRIES):
     feat_v  = []    
     for p in range(3):
         wireimg = preplarmatch.make_sparse_image( p )
-        wireimg_coord_np = wireimg[:,:2].astype(np.float32)
-        wireimg_coord = torch.from_numpy( wireimg_coord_np.astype(np.long) ).to(DEVICE)
+        wireimg_coord_np = wireimg[:,:2].astype(np.long)
+        wireimg_coord = torch.from_numpy( wireimg_coord_np ).to(DEVICE)
         wireimg_feat  = torch.from_numpy( np.expand_dims( wireimg[:,2], 1 ) ).to(DEVICE)
         print("plane[%d]"%(p)," coord: ",wireimg_coord.shape,"  feat: ",wireimg_feat.shape)        
         coord_v.append( wireimg_coord )
@@ -208,11 +209,10 @@ for ientry in range(NENTRIES):
     print("prepare score arrays: ",time.time()-tstart," sec")
 
     # EVALUATE PAF SCORES
-    #with torch.no_grad():
-    #    paf_pred_t = model_dict['paf'].forward( feat_triplet_t )
-    #    paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-    #    paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
-    #print("  paf-pred: ",paf_pred_t.shape)
+    if config["RUN_PAF"]:
+        with torch.no_grad():
+            paf_pred_t = pred_dict["paf"]
+        print("  paf-pred: ",paf_pred_t.shape)
         
     tstart = time.time()
     prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
@@ -246,14 +246,14 @@ for ientry in range(NENTRIES):
                                            adc_v.front().meta(),
                                            kplabel_np )
 
-    #print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
-    #paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
-    #hitmaker.add_triplet_affinity_field(  matchtriplet_np, 
-    #                                      sparse_np_v[0],
-    #                                      sparse_np_v[1],
-    #                                      sparse_np_v[2],
-    #                                      adc_v.front().meta(),
-    #                                      paf_np[:int(npairs.value)] )
+    print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
+    paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
+    hitmaker.add_triplet_affinity_field(  matchtriplet_np, 
+                                          sparse_np_v[0],
+                                          sparse_np_v[1],
+                                          sparse_np_v[2],
+                                          adc_v.front().meta(),
+                                          paf_np )
         
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits
@@ -263,7 +263,7 @@ for ientry in range(NENTRIES):
 
     # make flow hits
     tstart = time.time()    
-    hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
+    hitmaker.make_hits_v0_scn_network( ev_chstatus, adc_v, evout_lfhits )
     dt_make_hits = time.time()-tstart
     dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())
