@@ -72,7 +72,8 @@ namespace prep {
       match_t()
       : Y(0),U(0),V(0),
         YU(0),YV(0),UV(0),UY(0),VU(0),VY(0),
-        keypoint_scores( std::vector<float>(3,0) ),
+	ssnet_scores( std::vector<float>(10,0) ),
+        keypoint_scores( std::vector<float>(6,0) ),	
         paf( std::vector<float>(3,0) ),
         istruth(0)
       {};
@@ -187,6 +188,10 @@ namespace prep {
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     const std::vector<larcv::Image2D>& img_v,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
+
+    void make_hits_v0_scn_network( const larcv::EventChStatus& ev_chstatus,
+				   const std::vector<larcv::Image2D>& img_v,
+				   std::vector<larlite::larflow3dhit>& hit_v )  const;
     
     void store_2dssnet_score( larcv::IOManager& iolcv,
 			      std::vector<larlite::larflow3dhit>& larmatch_hit_v );

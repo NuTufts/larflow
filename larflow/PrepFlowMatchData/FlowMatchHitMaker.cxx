@@ -358,6 +358,109 @@ namespace prep {
   };
 
   /**
+   *
+   * \brief uses the match data in _matches_v to make hits
+   *
+   * makes larlite::larflow3dhit objects based on stored match data
+   * the object is a wrapper around a vector<float>.
+   *
+   * spacepoint proposals below _match_score_threshold will be skipped.
+   *
+   * FILLS HIT DATA SCHEMA FOR THE OLD v0 version of larmatch 
+   *
+   * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
+   * [0-2]:   x,y,z
+   * [3-9]:   6 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [8] is the only score stored 
+   * [10-12]: 3 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
+   * [13-15]: 3 keypoint label score [nu,track,shower]
+   * [16-18]: 3D flow direction
+   * 
+   * @param[in] ev_chstatus Class containing channel status, indicating if good or dead wire
+   * @param[out] hit_v vector of space points whose larmatch score was above threshold
+   *
+   */
+  void FlowMatchHitMaker::make_hits_v0_scn_network( const larcv::EventChStatus& ev_chstatus,
+						    const std::vector<larcv::Image2D>& img_v,
+						    std::vector<larlite::larflow3dhit>& hit_v ) const {
+
+    const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    const int ncolumns = 19;
+
+    auto const& meta = img_v.front().meta();
+    
+    int idx = 0;
+    unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
+    hit_v.reserve(maxsize);
+    for ( auto const& m : _matches_v ) {
+
+      // find the highest match score
+      std::vector<float> scores = m.get_scores();
+      float maxscore = 0;
+      int maxdir = -1;
+      for ( int i=0; i<scores.size(); i++ ) {
+        float s = scores[i];
+        if ( s>maxscore ) {
+          maxscore = s;
+          maxdir = i;
+        }
+      }
+      if ( maxscore<_match_score_threshold )
+        continue;
+
+      larlite::larflow3dhit hit;
+      hit.tick = m.tyz[0];
+      hit.srcwire = m.Y;
+      hit.targetwire.resize(3);
+      hit.targetwire[0] = m.U;
+      hit.targetwire[1] = m.V;
+      hit.targetwire[2] = m.Y;
+      hit.idxhit = idx;
+      if(m.istruth==0) hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;
+      else{ hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;}
+      float x = (m.tyz[0]-3200.0)*cm_per_tick;
+      hit.resize(ncolumns,0);
+      hit[0] = x;
+      hit[1] = m.tyz[1];
+      hit[2] = m.tyz[2];
+
+      if ( hit.tick<=meta.min_y() || hit.tick>=meta.max_y() )
+        continue;
+      
+      
+      // store scores
+      for ( int i=0; i<scores.size(); i++ ) {
+        float s = scores[i];
+        hit[3+i] = s;
+      }
+      hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
+      hit[9] = maxscore;
+      hit.track_score = maxscore;
+
+      if ( has_ssnet_scores && m.ssnet_scores.size()==3) {
+        for (int c=0; c<3; c++)
+          hit[10 + c] = m.ssnet_scores[c];
+      }
+      
+      if ( has_kplabel_scores ) {
+	hit[13] = m.keypoint_scores[0]; // neutrino
+	hit[14] = m.keypoint_scores[1]; // track
+	hit[15] = m.keypoint_scores[3]; // showers
+      }
+
+      if ( has_paf ) {
+        for (int i=0; i<3; i++)
+          hit[16+i] = m.paf[i];
+      }
+      
+      hit_v.emplace_back( std::move(hit) );
+    }
+    std::cout << "[FlowMatchHitMaker::make_hits] saved " << hit_v.size() << " hits "
+              << " from "  << _matches_v.size() << " matches" << std::endl;
+    
+  };
+  
+
+  /**
    * @brief label container of larflow3dhit using 2D track/shower ssnet output images
    *
    * calculates weighted ssnet score and modifies hit to carry value.
@@ -389,7 +492,8 @@ namespace prep {
     struct SSNetData_t {
       int row;
       int col;
-      
+
+      float bg;
       float hip;
       float mip;
       float shr;
@@ -474,6 +578,14 @@ namespace prep {
 	  scores[2] += it->second.shr;
 	  scores[3] += it->second.dlt;
 	  scores[4] += it->second.mic;
+
+	  // softmax
+	  // double norm = 0.;
+	  // for (int i=0; i<5; i++)
+	  //   norm += exp( scores[i] );
+	  // for (int i=0; i<5; i++)
+	  //   scores[i] = exp( scores[i] )/norm;
+	  
 	  nplanes++;
 	}
       }
@@ -531,6 +643,24 @@ namespace prep {
     larcv::SetPyUtil();
     std::cout << " done" << std::endl;
 
+    // check types
+    if ( PyArray_TYPE((PyArrayObject*)triple_probs)!=NPY_FLOAT32 ) {
+       throw std::runtime_error("[FlowMatchHitMaker] triple_probs array needs to by type np.float32");
+    }
+    if ( PyArray_TYPE((PyArrayObject*)triplet_indices)!=NPY_LONG ) {
+      throw std::runtime_error("[FlowMatchHitMaker] triplet_indices array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgu_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgu_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgv_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgv_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgy_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgy_sparseimg array needs to by type np.long");
+    }
+      
+
     // // match scores
     int pair_ndims = PyArray_NDIM( (PyArrayObject*)triplet_indices );
     npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
@@ -567,12 +697,19 @@ namespace prep {
 
       
       std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
-      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
-      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
-      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
-      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
-      triple[ 4 ] = (int)index[3]; //truth 
+      triple[ 4 ] = (int)index[3]; //truth
+
+      if ( triple[0]==0 && triple[1]==0 && triple[2]==0 && triple[3]==2400 ) {	
+	std::cout << "zero triple: "
+		  << "index=(" << index[0] << "," << index[1] << "," << index[2] << ")"
+		  << std::endl;
+	std::cin.get();
+      }
       
       // match threshold
       if ( prob<_match_score_threshold ) {
@@ -646,6 +783,24 @@ namespace prep {
                                                    PyObject* ssnet_scores ) {
 
     has_ssnet_scores = true;
+
+    // check types
+    if ( PyArray_TYPE((PyArrayObject*)ssnet_scores)!=NPY_FLOAT32 ) {
+       throw std::runtime_error("[FlowMatchHitMaker] triple_probs array needs to by type np.float32");
+    }
+    if ( PyArray_TYPE((PyArrayObject*)triplet_indices)!=NPY_LONG ) {
+      throw std::runtime_error("[FlowMatchHitMaker] triplet_indices array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgu_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgu_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgv_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgv_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgy_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgy_sparseimg array needs to by type np.long");
+    }
+
     
     // match triplets
     int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
@@ -666,10 +821,10 @@ namespace prep {
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
       std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
-      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
-      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
-      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
-      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
       triple[ 4 ] = (int)index[3];
     
@@ -727,6 +882,23 @@ namespace prep {
                                                       PyObject* kplabel_scores ) {
 
     has_kplabel_scores = true;
+
+    // check types
+    if ( PyArray_TYPE((PyArrayObject*)kplabel_scores)!=NPY_FLOAT32 ) {
+       throw std::runtime_error("[FlowMatchHitMaker] kplabel_scores array needs to by type np.float32");
+    }
+    if ( PyArray_TYPE((PyArrayObject*)triplet_indices)!=NPY_LONG ) {
+      throw std::runtime_error("[FlowMatchHitMaker] triplet_indices array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgu_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgu_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgv_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgv_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgy_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgy_sparseimg array needs to by type np.long");
+    }    
     
     // match triplets
     int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
@@ -749,10 +921,10 @@ namespace prep {
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
       std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
-      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
-      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
-      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
-      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
       triple[ 4 ] = (int)index[3];
     
@@ -767,7 +939,7 @@ namespace prep {
           match.keypoint_scores = std::vector<float>(6,0);
 	  if ( kp_pair_dims[1]==6 ) {
 	    // current 6-class keypoints
-	    for (int iclass=0; iclass<(int)pair_dims[1]; iclass++)
+	    for (int iclass=0; iclass<(int)6; iclass++)
 	      match.keypoint_scores[iclass] = (float)*((float*)PyArray_GETPTR2( (PyArrayObject*)kplabel_scores, ipair, iclass ));
 	  }
 	  else if ( kp_pair_dims[1]==3 ) {
@@ -815,6 +987,23 @@ namespace prep {
                                                      PyObject* paf_pred ) {
 
     has_paf = true;
+
+    // check types
+    if ( PyArray_TYPE((PyArrayObject*)paf_pred)!=NPY_FLOAT32 ) {
+       throw std::runtime_error("[FlowMatchHitMaker] paf_pred array needs to by type np.float32");
+    }
+    if ( PyArray_TYPE((PyArrayObject*)triplet_indices)!=NPY_LONG ) {
+      throw std::runtime_error("[FlowMatchHitMaker] triplet_indices array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgu_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgu_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgv_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgv_sparseimg array needs to by type np.long");
+    }
+    if (PyArray_TYPE((PyArrayObject*)imgy_sparseimg)!=NPY_LONG) {
+      throw std::runtime_error("[FlowMatchHitMaker] imgy_sparseimg array needs to by type np.long");
+    }    
     
     // match triplets
     int pair_ndims      = PyArray_NDIM( (PyArrayObject*)triplet_indices );
@@ -833,10 +1022,10 @@ namespace prep {
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
       std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
-      triple[ 0 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
-      triple[ 1 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
-      triple[ 2 ] = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
-      int row = (int)*(float*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
       triple[ 4 ] = (int)index[3];
     
