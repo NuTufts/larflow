@@ -4,8 +4,9 @@ sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 
 parser = argparse.ArgumentParser(description='Run Prep larmatch data')
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('-i','--fileid',required=True,type=int,help="File ID number to run")
 parser.add_argument('-s','--single',default=False,action='store_true',help='If flag given, input_list argument is interpretted as a triplet file')
-parser.add_argument('input_list',type=str,help="text file with paths to larmatch triplet files to distill")
+parser.add_argument('input_list',type=str,help="json file that collates triplet and mcinfo files")
 
 args = parser.parse_args()
 
@@ -18,22 +19,19 @@ from larlite import larlite
 from larcv import larcv
 from larflow import larflow
 
-
 if not os.path.exists(args.input_list):
     print("Could not fine input list: ",args.input_list)
     sys.exit(0)
-#if os.path.exists(args.output):
-#    print("output file already exists. do not overwrite")
-#    sys.exit(0)
 
-
+# FILTER OUT ABS(PDG CODES)
 ALLOWED_PDG_CODES = [11,13,22,211,2212,321]
 
+# LOAD JSON FILE
 f = open(args.input_list,'r')
 j = json.load(f)
-print(type(j))
 
-FILEIDS=[0]
+# This is the file id to run
+FILEIDS=[args.fileid]
 
 input_triplet_v = []
 input_mcinfo_v = []
@@ -211,7 +209,7 @@ for ientry in range(nentries):
                 
                 outtree.Fill()
             
-    if True and ientry>=4:
+    if False and ientry>=4:
         # For debug
         break
 
