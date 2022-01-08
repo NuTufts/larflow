@@ -20,7 +20,6 @@ args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
 import numpy as np
-import torch
 
 import ROOT as rt
 from ROOT import std
@@ -29,6 +28,7 @@ from larcv import larcv
 larcv.PSet
 from ublarcvapp import ublarcvapp
 from larflow import larflow
+import torch
 
 from larmatch import LArMatch
 from larmatch_ssnet_classifier import LArMatchSSNetClassifier
