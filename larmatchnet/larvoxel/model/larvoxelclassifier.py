@@ -87,14 +87,29 @@ class LArVoxelClassifier(nn.Module):
             ME.MinkowskiDropout(),
             self.get_mlp_block(512, 512),
             ME.MinkowskiLinear(512, out_num_classes, bias=True),
+            #ME.MinkowskiLinear(embed_dim*2, out_num_classes, bias=True),
         )
+
+        self.weight_initialization()
 
     def get_mlp_block(self, in_channel, out_channel):
         return nn.Sequential(
             ME.MinkowskiLinear(in_channel, out_channel, bias=False),
-            ME.MinkowskiInstanceNorm(out_channel),
+            ME.MinkowskiBatchNorm(out_channel),
             ME.MinkowskiLeakyReLU(),
         )
+
+    def weight_initialization(self):
+        for m in self.modules():
+            if isinstance(m, ME.MinkowskiConvolution):
+                ME.utils.kaiming_normal_(m.kernel, mode="fan_out", nonlinearity="relu")
+                
+            if isinstance(m, ME.MinkowskiBatchNorm):
+                nn.init.constant_(m.bn.weight, 1)
+                nn.init.constant_(m.bn.bias, 0)
+            if isinstance(m, ME.MinkowskiStableInstanceNorm):
+                m.reset_parameters()
+
     
     def forward(self, xinput : ME.TensorField ):        
         xsparse = xinput.sparse()
@@ -103,10 +118,11 @@ class LArVoxelClassifier(nn.Module):
         # we slice, which broadcasts pooled features back to original resolution (I think)
         y = [ x.slice(xinput) for x in encoder_out ]
         y = ME.cat(y).sparse()
-        
         y = self.multiscale_conv(y)
-        y = ME.cat( [self.global_max_pool(y),self.global_avg_pool(y)] )
+        y = ME.cat( self.global_max_pool(y),self.global_avg_pool(y) )
+        #print("after pool: ",y.F)
         y = self.final(y)
+        #print("after final conv: ",y.F)
         
         return y
 

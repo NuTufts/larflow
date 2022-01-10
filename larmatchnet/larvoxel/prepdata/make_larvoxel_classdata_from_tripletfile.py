@@ -25,6 +25,13 @@ if not os.path.exists(args.input_list):
 
 # FILTER OUT ABS(PDG CODES)
 ALLOWED_PDG_CODES = [11,13,22,211,2212,321]
+PDG_NAMES = ["electron","muon","gamma","pion","proton","kaon"]
+CODE_TO_NAMES = {11:"electron",
+                 13:"muon",
+                 22:"gamma",
+                 211:"pion",
+                 2212:"proton",
+                 321:"kaon"}
 
 # LOAD JSON FILE
 f = open(args.input_list,'r')
@@ -80,43 +87,60 @@ print("Input ready to go!")
 # do we need to?
 
 # output container for data
-outfile = rt.TFile(args.output,"recreate")
-outtree = rt.TTree("larvoxelpidtrainingdata","LArMatch training data")
+# we split the data into classes. This will make it easier to sample in a balance way.
+outfiles = {}
+outtrees = {}
+vardicts = {}
+for pdgname in PDG_NAMES:
+    if len(args.output)>len(".root") and args.output[-len(".root"):]==".root":
+        fname = args.output[:-len(".root")]+"_"+pdgname+".root"
+        print(pdgname," filename: ",fname)
+        outfile = rt.TFile(fname,"recreate")
+    else:
+        outfile = rt.TFile(args.output+"_"+pdgname+".root","recreate")
+    outfile.cd()
+        
+    outtree = rt.TTree("larvoxelpidtrainingdata","LArMatch training data")
+    print(pdgname," tree: ",outtree)
 
-# Run, subrun, event
-run    = array('i',[0])
-subrun = array('i',[0])
-event  = array('i',[0])
-pid    = array('i',[0])
-shower0_or_track1 = array('i',[0])
-trackid = array('i',[0])
-ke      = array('f',[0])
+    # Run, subrun, event
+    treevars = dict(run    = array('i',[0]),
+                    subrun = array('i',[0]),
+                    event  = array('i',[0]),
+                    pid    = array('i',[0]),
+                    shower0_or_track1 = array('i',[0]),
+                    trackid = array('i',[0]),
+                    ke      = array('f',[0]),
 
-# 3D Wire Plane Images, as sparse matrices
-coord_v = std.vector("larcv::NumpyArrayInt")()
-feat_v  = std.vector("larcv::NumpyArrayFloat")()
+                    # 3D Wire Plane Images, as sparse matrices
+                    coord_v = std.vector("larcv::NumpyArrayInt")(),
+                    feat_v  = std.vector("larcv::NumpyArrayFloat")(),
+    
+                    # class label
+                    pid_v = std.vector("larcv::NumpyArrayInt")(),
+    
+                    # meta data: true position
+                    detpos_v = std.vector("larcv::NumpyArrayFloat")(),
+    
+                    # meta data: true momentum
+                    mom_v = std.vector("larcv::NumpyArrayFloat")())
 
-# class label
-pid_v = std.vector("larcv::NumpyArrayInt")()
+    outtree.Branch("run",    treevars["run"],    "run/I")
+    outtree.Branch("subrun", treevars["subrun"], "subrun/I")
+    outtree.Branch("event",  treevars["event"],  "event/I")
+    outtree.Branch("pid",    treevars["pid"],    "pid/I")
+    outtree.Branch("shower0_or_track1", treevars["shower0_or_track1"], "shower0_or_track1/I")
+    outtree.Branch("geant_trackid", treevars["trackid"], "geant_trackid/I")
+    outtree.Branch("ke",       treevars["ke"],"ke/F")
+    outtree.Branch("coord_v",  treevars["coord_v"])
+    outtree.Branch("feat_v",   treevars["feat_v"])
+    outtree.Branch("pid_v",    treevars["pid_v"])
+    outtree.Branch("detpos_v", treevars["detpos_v"])
+    outtree.Branch("mom_v",    treevars["mom_v"])
 
-# meta data: true position
-detpos_v = std.vector("larcv::NumpyArrayFloat")()
-
-# meta data: true momentum
-mom_v = std.vector("larcv::NumpyArrayFloat")()
-
-outtree.Branch("run", run, "run/I")
-outtree.Branch("subrun", subrun, "subrun/I")
-outtree.Branch("event",  event,  "event/I")
-outtree.Branch("pid",pid,"pid/I")
-outtree.Branch("shower0_or_track1", shower0_or_track1, "shower0_or_track1/I")
-outtree.Branch("geant_trackid", trackid, "geant_trackid/I")
-outtree.Branch("ke",ke,"ke/F")
-outtree.Branch("coord_v",coord_v)
-outtree.Branch("feat_v", feat_v)
-outtree.Branch("pid_v",pid_v)
-outtree.Branch("detpos_v", detpos_v)
-outtree.Branch("mom_v", mom_v)
+    outtrees[pdgname] = outtree
+    outfiles[pdgname] = outfile
+    vardicts[pdgname] = treevars
 
 for ientry in range(nentries):
 
@@ -135,86 +159,107 @@ for ientry in range(nentries):
     #print("voxinstance2id")
     #print(voxdata["voxinstance2id"])
 
-    run[0]    = labeler.run()
-    subrun[0] = labeler.subrun()
-    event[0]  = labeler.event()
+    for pdgname,vardict in vardicts.items():
+        vardict["run"][0]    = labeler.run()
+        vardict["subrun"][0] = labeler.subrun()
+        vardict["event"][0]  = labeler.event()
 
     ev_mctrack  = io.get_data( larlite.data.kMCTrack,  "mcreco" )
     ev_mcshower = io.get_data( larlite.data.kMCShower, "mcreco" )
 
     for (ev_data,s_t) in [(ev_mctrack,1),(ev_mcshower,0)]:
         for ipart in range(ev_data.size()):
-            
-            # clear entry data containers
-            coord_v.clear()
-            feat_v.clear()
-            pid_v.clear()
-            detpos_v.clear()
-            mom_v.clear()
-            
-            shower0_or_track1[0] = s_t
-            mcpart = ev_data.at(ipart)
+            mcpart  = ev_data.at(ipart)
+            pdgcode = mcpart.PdgCode()
+            if abs(pdgcode) not in ALLOWED_PDG_CODES:
+                continue
             if mcpart.Origin()!=1:
                 continue
-            trackid[0] = mcpart.TrackID()
-            pid[0] = mcpart.PdgCode()
-            pos = mcpart.Start().Position()
+            
             mom = mcpart.Start().Momentum()
             mass = mom.Mag()
             E = mom.E()
             p = mom.P()
-            ke[0] = E-mass
-            if ke[0]<20:
+            partke = E-mass
+            if partke<20:
                 continue
-            if abs(pid[0]) not in ALLOWED_PDG_CODES:
+
+            trackid = mcpart.TrackID()
+            if trackid not in voxdata["voxinstance2id"]:
+                continue
+
+            iid = voxdata["voxinstance2id"][trackid]
+            #print("instanceid=",iid)
+            indexmatch = voxdata["voxinstance"]==iid
+            nvoxels = indexmatch.sum()
+
+            if nvoxels<10:
                 continue
             
-            print("particle[%d] isshower=%d pid=%d"%(trackid[0],shower0_or_track1[0],pid[0])," mass=",mass," E=",E," P2=",p," KE=",ke[0])
-            if trackid[0] in voxdata["voxinstance2id"]:
-                iid = voxdata["voxinstance2id"][trackid[0]]
-                print("instanceid=",iid)
-                indexmatch = voxdata["voxinstance"]==iid
-                print("number of voxels: ",indexmatch.sum())
-                iicoord = voxdata["voxcoord"][indexmatch[:],:]
-                iifeat  = voxdata["voxfeat"][indexmatch[:],:]
-                print("iicoord=",iicoord.shape," iifeat=",iifeat.shape)
-                np_pid = np.ones( 1, dtype=np.int32 )*pid[0]
+            print("number of voxels: ",indexmatch.sum())
 
-                # store data
-                np_mom = np.ones(4,dtype=np.float32)
-                np_pos = np.ones(4,dtype=np.float32)
-                for i in range(4):
-                    np_mom[i] = mom(i)
-                    np_pos[i] = pos(i)
+            # gonna save this particle
+            tree = outtrees[ CODE_TO_NAMES[abs(pdgcode)] ]
+            print("tree: ",tree)
+            vardict = vardicts[ CODE_TO_NAMES[abs(pdgcode)] ]
+            
+            # clear entry data containers
+            vardict["coord_v"].clear()
+            vardict["feat_v"].clear()
+            vardict["pid_v"].clear()
+            vardict["detpos_v"].clear()
+            vardict["mom_v"].clear()
+            
+            vardict["shower0_or_track1"][0] = s_t
+            vardict["trackid"][0] = mcpart.TrackID()
+            vardict["pid"][0] = mcpart.PdgCode()
+            vardict["ke"][0] = partke
+            
+            pos = mcpart.Start().Position()
+            
+            print("particle[%d] isshower=%d pid=%d"%(trackid,s_t,pdgcode)," mass=",mass," E=",E," P2=",p," KE=",partke)
+            
+            iicoord = voxdata["voxcoord"][indexmatch[:],:]
+            iifeat  = voxdata["voxfeat"][indexmatch[:],:]
+            print("iicoord=",iicoord.shape," iifeat=",iifeat.shape)
+            np_pid = np.ones( 1, dtype=np.int32 )*pdgcode
+            
+            # store data
+            np_mom = np.ones(4,dtype=np.float32)
+            np_pos = np.ones(4,dtype=np.float32)
+            for i in range(4):
+                np_mom[i] = mom(i)
+                np_pos[i] = pos(i)
 
-                x_mom = larcv.NumpyArrayFloat()
-                x_mom.store( np_mom.astype(np.float32) )
-                x_pos = larcv.NumpyArrayFloat()
-                x_pos.store( np_pos.astype(np.float32) )
-                x_pid = larcv.NumpyArrayInt()
-                x_pid.store( np_pid.astype(np.int32) )
-                x_coord = larcv.NumpyArrayInt()
-                x_coord.store( iicoord.astype(np.int32) )
-                x_feat  = larcv.NumpyArrayFloat()
-                x_feat.store( iifeat.astype(np.float32) )
-                #print(x_coord)
+            x_mom = larcv.NumpyArrayFloat()
+            x_mom.store( np_mom.astype(np.float32) )
+            x_pos = larcv.NumpyArrayFloat()
+            x_pos.store( np_pos.astype(np.float32) )
+            x_pid = larcv.NumpyArrayInt()
+            x_pid.store( np_pid.astype(np.int32) )
+            x_coord = larcv.NumpyArrayInt()
+            x_coord.store( iicoord.astype(np.int32) )
+            x_feat  = larcv.NumpyArrayFloat()
+            x_feat.store( iifeat.astype(np.float32) )
+            #print(x_coord)
 
-                coord_v.push_back( x_coord )
-                feat_v.push_back( x_feat )
-                pid_v.push_back( x_pid )
-                detpos_v.push_back( x_pos )
-                mom_v.push_back( x_mom )
+            vardict["coord_v"].push_back( x_coord )
+            vardict["feat_v"].push_back( x_feat )
+            vardict["pid_v"].push_back( x_pid )
+            vardict["detpos_v"].push_back( x_pos )
+            vardict["mom_v"].push_back( x_mom )
 
-                print("coord_v.size: ",coord_v.size())
+            print("coord_v.size: ",vardict["coord_v"].size())
                 
-                outtree.Fill()
+            tree.Fill()
             
     if False and ientry>=4:
         # For debug
         break
 
-
-outfile.Write()
+for name,f in outfiles.items():
+    print("Writing file for ",name)
+    f.Write()
     
 
     

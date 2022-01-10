@@ -20,6 +20,13 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
                   -211:4,
                   321:5,
                   -321:5}
+    pdg_name = ["electron","gamma","muon","proton","pion","kaon"]
+    code_to_names = {11:"electron",
+                     13:"muon",
+                     22:"gamma",
+                     211:"pion",
+                     2212:"proton",
+                     321:"kaon"}
     
     def pdgcode_to_classindex(pdgcode):
         """
@@ -30,11 +37,24 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
     
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, load_truth=False, load_meta_data=False,
-                 triplet_limit=2500000, normalize_inputs=True,
-                 verbose=False):
+                 normalize_inputs=True, small_batch_debugmode=False,
+                 min_nvoxels=10,rng_seed=None,verbose=False):
         """
         Parameters:
         """
+
+        self._random_access = random_access
+        self._load_truth = load_truth
+        self._max_num_tries = 100
+        self._normalize_inputs = normalize_inputs
+        self._load_meta_data = load_meta_data
+        self._min_nvoxels = min_nvoxels
+        self._rng = np.random.default_rng(rng_seed)
+        if small_batch_debugmode:
+            self._nentries = 16 # HACK
+            self._random_access = False
+
+        # store filenames from filelist, txtfile, or folder
         file_v = rt.std.vector("string")()
         if filelist is not None:
             if type(filelist) is not list:
@@ -61,30 +81,45 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
         else:
             raise RuntimeError("must provide a list of paths (filelist), folder path (filefolder), or textfile with paths (txtfile)")
 
-        self.tree = rt.TChain("larvoxelpidtrainingdata")
-        for ifile in range(file_v.size()):
-            self.tree.Add( file_v.at(ifile) )
-        self._nentries = self.tree.GetEntries()
-        self._load_truth = load_truth
 
+        # setup trees, one for each particle type
+        self.pdg_trees = {}
+        self.pdg_tree_nentries = {}
+        self.pdg_tree_current_entry = {}
+        self.pdg_tree_random_entry_list = {}
+        self._nentries = 0
+        for pdgname in larvoxelClassDataset.pdg_name:
+            self.pdg_trees[pdgname] = rt.TChain("larvoxelpidtrainingdata")
+            self.pdg_tree_nentries[pdgname] = 0            
+            self.pdg_tree_current_entry[pdgname] = 0
+            self.pdg_tree_random_entry_list[pdgname] = None
+            
+            for ifile in range(file_v.size()):
+                fname = os.path.basename(file_v.at(ifile))                
+                if "_"+pdgname+".root" in fname:
+                    self.pdg_trees[pdgname].Add( file_v.at(ifile) )
+                    
+            self.pdg_tree_nentries[pdgname] = self.pdg_trees[pdgname].GetEntries()
+            if self._nentries < self.pdg_tree_nentries[pdgname]:
+                self._nentries = self.pdg_tree_nentries[pdgname]
+            if self._random_access:
+                self.pdg_tree_random_entry_list[pdgname] \
+                    = self._rng.choice( self.pdg_tree_nentries[pdgname],
+                                        size=self.pdg_tree_nentries[pdgname] )        
+            
         # store parameters
         self.partition_index = 0
         self.num_partitions = 1
         self.start_index = 0
         self.end_index = self._nentries
 
-        self._current_entry  = self.start_index
         self._nloaded        = 0
         self._verbose = False
-        self._random_access = random_access
+
         self._random_entry_list = None
-        self._max_num_tries = 10
-        self._triplet_limit = triplet_limit
-        self._normalize_inputs = normalize_inputs
-        self._load_meta_data = load_meta_data
-        if self._random_access:
-            self._rng = np.random.default_rng(None)
-            self._random_entry_list = self._rng.choice( self._nentries, size=self._nentries )        
+
+        
+            
                                  
 
     def __getitem__(self, idx):
@@ -96,27 +131,38 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
 
         while not okentry:
 
-            if self._random_access and self._current_entry>=self._nentries:
+            # first choose a class randomly
+            iclass = np.random.randint( 0, len(larvoxelClassDataset.pdg_name) )
+            pdgname = larvoxelClassDataset.pdg_name[iclass]
+            if self.pdg_tree_nentries[pdgname]==0:
+                num_tries += 1
+                okentry = False
+                continue
+            
+            if self._random_access and self.pdg_tree_current_entry[pdgname]>=self.pdg_tree_nentries[pdgname]:
                 # if random access and we've used all possible indices we reset the shuffled index list
-                print("reset shuffled indices list")
-                self._random_entry_list = self._rng.choice( self._nentries, size=self._nentries )
-                self._current_entry = 0 # current entry in shuffled list
+                #print("reset shuffled indices list")
+                self.pdg_tree_random_entry_list[pdgname] = \
+                    self._rng.choice( self.pdg_tree_nentries[pdgname], size=self.pdg_tree_nentries[pdgname] )
+                self.pdg_tree_current_entry[pdgname] = 0 # current entry in shuffled list
 
-            ientry = int(self._current_entry)
+            ientry = int(self.pdg_tree_current_entry[pdgname])
         
             if self._random_access:
                 # if random access, get next entry in shuffled index list
                 data    = {"entry":ientry,
-                           "tree_entry":self._random_entry_list[ientry]}
+                           "ntries":num_tries,
+                           "tree_entry":self.pdg_tree_random_entry_list[pdgname][ientry]}
             else:
                 # else just take the next entry
                 data    = {"entry":ientry,
-                           "tree_entry":int(ientry)%int(self._nentries)}
+                           "ntries":num_tries,
+                           "tree_entry":int(ientry)%int(self.pdg_tree_nentries[pdgname])}
 
-            okentry = self.get_data_from_tree( data )
+            okentry = self.get_data_from_tree( self.pdg_trees[pdgname], data )
 
             # increment the entry index
-            self._current_entry += 1
+            self.pdg_tree_current_entry[pdgname] += 1
                 
             # increment the number of attempts we've made
             num_tries += 1
@@ -132,32 +178,36 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
         return self._nentries
 
     # get data from match trees
-    def get_data_from_tree( self, data ):
+    def get_data_from_tree( self, tree, data ):
 
         if self._verbose:
             dtio = time.time()-tio
         
-        nbytes = self.tree.GetEntry(data["tree_entry"])
+        nbytes = tree.GetEntry(data["tree_entry"])
         if self._verbose:
             print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
 
         #print("get_data_dict_from_voxelarray_file: ",self.voxeldata_tree.coord_v.at(0).tonumpy().shape)
         # get the image data
-        nimgs = self.tree.coord_v.size()
-        data["coord"] = self.tree.coord_v.at(0).tonumpy()
-        data["feat"]  = self.tree.feat_v.at(0).tonumpy()
+        nimgs = tree.coord_v.size()
+        data["coord"] = tree.coord_v.at(0).tonumpy()
+        data["feat"]  = tree.feat_v.at(0).tonumpy()
+
+        if data["coord"].shape[0]<self._min_nvoxels:
+            return False
+        
         # renormalize feats
         if self._normalize_inputs:
-            data["feat"] /= 50.0
+            data["feat"] /= 200.0
             data["feat"] = np.clip( data["feat"], 0, 10.0 )
             
         if self._load_truth:
-            data["pid"] = self.tree.pid_v.at(0).tonumpy()
+            data["pid"] = tree.pid_v.at(0).tonumpy()
             data["pid"][0] = larvoxelClassDataset.pdgcode_to_classindex( data["pid"][0] )
 
         if self._load_meta_data:
-            data["truemom"] = self.tree.mom_v.at(0).tonumpy()
-            data["truepos"] = self.tree.detpos_v.at(0).tonumpy()
+            data["truemom"] = tree.mom_v.at(0).tonumpy()
+            data["truepos"] = tree.detpos_v.at(0).tonumpy()
         
         if self._verbose:
             tottime = time.time()-t_start            
@@ -169,7 +219,7 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
 
 
     def print_status(self):
-        print("worker: entry=%d nloaded=%d"%(self._current_entry,self._nloaded))
+        print("worker: nloaded=%d"%(self._nloaded))
 
     def set_partition(self,partition_index,num_partitions):
         self.partition_index = partition_index
@@ -310,9 +360,9 @@ root [2] larvoxelpidtrainingdata->Print()
     larcv.load_pyutil()
     larcv.SetPyUtil()
 
-    niter = 3
+    niter = 10
     batch_size = 4
-    test = larvoxelClassDataset( filelist=["testdata/testdata.root"],
+    test = larvoxelClassDataset( txtfile="testdata.txt",
                                  random_access=False,
                                  load_truth=True)
     print("NENTRIES: ",len(test))
