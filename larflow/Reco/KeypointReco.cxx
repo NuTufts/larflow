@@ -55,12 +55,13 @@ namespace reco {
     for ( auto const& kpc : output_pt_v ) {
       larlite::larflow3dhit hit;
       std::vector<double> vtxpos(3);
-      hit.resize( 4, 0 ); // [0-2]: hit pos, [3]: type
+      hit.resize( 5, 0 ); // [0-2]: hit pos, [3]: type, [4]: max net score
       for (int i=0; i<3; i++) {
         hit[i] = kpc.max_pt_v[i];
         vtxpos[i] = kpc.max_pt_v[i];
       }
       hit[3] = kpc._cluster_type;
+      hit[4] = kpc.max_score;
 
       hit.targetwire.resize( 3, 0 );
       for  (int p=0; p<3; p++) 

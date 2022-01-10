@@ -57,6 +57,10 @@ namespace reco {
     std::vector< VtxCluster_t >    cluster_v; ///< clusters assigned to vertex
     std::vector< larlite::pcaxis > cluster_pca_v; ///< cluster pca assigned to vertex
     float score;                    ///< vertex candidate score based on number of clusters assigned and the impact parameter of each cluster
+    float maxScore;                 ///< max cluster impact parameter score for all assigned clusters
+    float avgScore;                 ///< average cluster impact parameter score for all assigned clusters
+    float netScore;                 ///< keypoint score (max score if vertex formed from merged candidates)
+    float netNuScore;               ///< keypoint neutrino score (max score, considering only neutrino keypoint types, if formed from merged candidates)
 
     // TRACK PRONGS AND VARIABLES
     std::vector<larlite::track>  track_v;     ///< track candidates

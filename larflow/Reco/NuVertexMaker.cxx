@@ -5,6 +5,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 #include "NuVertexFitter.h"
 
@@ -144,6 +145,10 @@ namespace reco {
         vertex.tick  = lf_vertex.tick;
         vertex.col_v = lf_vertex.targetwire;
         vertex.score = 0.0;
+        vertex.maxScore = 0.0;
+        vertex.avgScore = 0.0;
+        vertex.netScore = (lf_vertex.size() > 4) ? lf_vertex[4] : -1.;
+        vertex.netNuScore = (vertex.keypoint_type == (int)larflow::kNuVertex) ? vertex.netScore : -1.;
         seed_v.emplace_back( std::move(vertex) );
       }
     }
@@ -260,6 +265,7 @@ namespace reco {
   void NuVertexMaker::_score_vertex( NuVertexCandidate& vtx )
   {
     vtx.score = 0.;
+    vtx.maxScore = 0.;
     const float tau_gap_shower    = 20.0;
     const float tau_impact_shower = 10.0;
     const float tau_ratio_shower = 1.0;
@@ -283,7 +289,10 @@ namespace reco {
       }
       //std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
       vtx.score += clust_score;
+      if(clust_score > vtx.maxScore) vtx.maxScore = clust_score;
     }        
+    vtx.avgScore = vtx.score;
+    if(vtx.cluster_v.size() > 0) vtx.avgScore /= vtx.cluster_v.size();
   }
 
   /**
@@ -400,6 +409,10 @@ namespace reco {
         // set the pos, keypoint producer based on best score
         used_v[i] = 1;
 
+        // set keypoint network score and type for merged vertex
+        if(test_vtx.netScore > cand.netScore) cand.netScore = test_vtx.netScore;
+        if(test_vtx.netNuScore > cand.netNuScore) cand.netNuScore = test_vtx.netNuScore;
+        
         if ( cand.keypoint_type!=test_vtx.keypoint_type ) {
           if ( test_vtx.keypoint_type<cand.keypoint_type )
             cand.keypoint_type = test_vtx.keypoint_type;
