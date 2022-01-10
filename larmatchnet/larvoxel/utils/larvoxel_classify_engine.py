@@ -33,8 +33,6 @@ def load_model_weights( model, checkpoint_file ):
     checkpoint = torch.load( checkpoint_file, map_location=loc_dict )
 
     # change names if we saved the distributed data parallel model state
-    rename_distributed_checkpoint_par_names(checkpoint)
-
     model.load_state_dict( checkpoint["state_larmatch"] )
 
     return checkpoint

@@ -72,7 +72,7 @@ def run(gpu, args ):
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
 
-        checkpoint_data = larvoxel_engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
+        checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
     
     if rank==0:
         tb_writer = SummaryWriter(comment="larvoxel_classify")
@@ -126,7 +126,7 @@ def run(gpu, args ):
                                              verbose=config["LOSS_VERBOSE"],rank=rank)
 
             # periodic checkpoint
-            if iiter>0 and iiter%config["ITER_PER_CHECKPOINT"]==0:
+            if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
                 if rank==0:
                     print("RANK-0: saving periodic checkpoint")
                     engine.save_checkpoint({
