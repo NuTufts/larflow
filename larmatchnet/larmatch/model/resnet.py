@@ -104,7 +104,7 @@ class ResNetBase(nn.Module):
                     stride=stride,
                     dimension=self.D,
                 ),
-                ME.MinkowskiBatchNorm(planes * block.expansion),
+                ME.MinkowskiInstanceNorm(planes * block.expansion),
             )
         layers = []
         layers.append(
