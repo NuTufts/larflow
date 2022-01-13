@@ -1,6 +1,16 @@
 import os,sys,json
 
-f = open("inputlists/mcc9_v13_bnbnue_corsika.paired.list",'r')
+# NUE DATA
+#paired_input_list = "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.paired.list"
+#triplet_list = "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list"
+#outfilename="filelist_bnb_nue.json"
+
+# BNB NU DATA
+paired_input_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.paired.list"
+triplet_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.triplettruth.list"
+outfilename="filelist_bnb_nu.json"
+
+f = open(paired_input_list,'r')
 ll = f.readlines()
 
 input_groups = {}
@@ -13,13 +23,13 @@ for l in ll:
     g = i//5
     if g not in input_groups:
         input_groups[g] = []
-    mcinfo = os.environ["PWD"]+"/testdata/"+os.path.basename(mcinfo)
+    #mcinfo = os.environ["PWD"]+"/testdata/"+os.path.basename(mcinfo)
     input_groups[g].append(mcinfo)
     i += 1    
 
 # read triplet list
 out_json = {}
-ft = open("inputlists/triplets.list",'r')
+ft = open(triplet_list,'r')
 ll = ft.readlines()
 for l in ll:
     fname = os.path.basename(l.strip())
@@ -28,7 +38,7 @@ for l in ll:
         out_json[fileid] = {"mcinfo":input_groups[fileid],
                             "triplet":l.strip()}
 
-with open('filelist.json', 'w') as outfile:
+with open(outfilename, 'w') as outfile:
     json.dump(out_json, outfile)
     
 

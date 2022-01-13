@@ -1,11 +1,10 @@
 from __future__ import print_function
 import os,sys,argparse,json
-sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
+sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet/larvoxel/prepdata/")
 
 parser = argparse.ArgumentParser(description='Run Prep larmatch data')
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
 parser.add_argument('-i','--fileid',required=True,type=int,help="File ID number to run")
-parser.add_argument('-s','--single',default=False,action='store_true',help='If flag given, input_list argument is interpretted as a triplet file')
 parser.add_argument('input_list',type=str,help="json file that collates triplet and mcinfo files")
 
 args = parser.parse_args()
@@ -85,7 +84,12 @@ print("Input ready to go!")
 
 # we're going to loop through the larlite file to make a rse to entry map
 # do we need to?
-
+rse_map = {}
+for i in range(ll_nentries):
+    io.go_to(i)
+    rse = ( int(io.run_id()),int(io.subrun_id()),int(io.event_id()) )
+    rse_map[rse] = i
+    
 # output container for data
 # we split the data into classes. This will make it easier to sample in a balance way.
 outfiles = {}
@@ -148,13 +152,24 @@ for ientry in range(nentries):
     
     # Get the first entry (or row) in the tree (i.e. table)
     labeler.load_entry(ientry)
-    io.go_to(ientry)
+    trip_rse = ( int(labeler.run()), int(labeler.subrun()), int(labeler.event()) )
+
+    if trip_rse not in rse_map:
+        raise ValueError("triplet rse not in larlite RSE",trip_rse)
+
+    llentry = rse_map[trip_rse]
+    io.go_to(llentry)
 
     voxelizer.make_voxeldata( labeler.triplet_v[0] )    
     voxdata = voxelizer.get_full_voxel_labelset_dict( labeler )
 
-    print("triplet rse: ",(labeler.run(),labeler.subrun(),labeler.event()))
-    print("larlite: ",(io.run_id(),io.subrun_id(),io.event_id()))
+    ll_rse = ( int(io.run_id()), int(io.subrun_id()), int(io.event_id()) )
+    print("triplet rse: ",trip_rse)
+    print("larlite: ",ll_rse)
+
+    if ll_rse != trip_rse:
+        raise ValueError("larlite and triplet RSE mismatch! triplet=",trip_rse," larlite=",ll_rse)
+        
     print("voxdata keys: ",voxdata.keys())
     #print("voxinstance2id")
     #print(voxdata["voxinstance2id"])
