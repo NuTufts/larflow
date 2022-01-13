@@ -1,14 +1,24 @@
 import os,sys,json
 
+# TEST-BNB-NUE
+#paired_input_list = "inputlists/mcc9_v13_bnbnue_corsika.paired.list"
+#triplet_list="inputlists/triplets.list"
+#outfilename="filelist_test.json"
+
+# TEST-BNB-NUE
+paired_input_list = "inputlists/mcc9_v13_bnb_nu_corsika.paired.list"
+triplet_list="inputlists/triplets_bnbnu.list"
+outfilename="filelist_test_bnb_nu.json"
+
 # NUE DATA
 #paired_input_list = "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.paired.list"
 #triplet_list = "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list"
 #outfilename="filelist_bnb_nue.json"
 
 # BNB NU DATA
-paired_input_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.paired.list"
-triplet_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.triplettruth.list"
-outfilename="filelist_bnb_nu.json"
+#paired_input_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.paired.list"
+#triplet_list="/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika.triplettruth.list"
+#outfilename="filelist_bnb_nu.json"
 
 f = open(paired_input_list,'r')
 ll = f.readlines()
@@ -23,7 +33,7 @@ for l in ll:
     g = i//5
     if g not in input_groups:
         input_groups[g] = []
-    #mcinfo = os.environ["PWD"]+"/testdata/"+os.path.basename(mcinfo)
+    mcinfo = os.environ["PWD"]+"/testdata/"+os.path.basename(mcinfo)
     input_groups[g].append(mcinfo)
     i += 1    
 
