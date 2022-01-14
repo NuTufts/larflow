@@ -1,0 +1,4 @@
+G__libSmallClusterRemoval*
+*.o
+*.so*
+*~

@@ -18,6 +18,9 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
+rt.gSystem.Load('./lib/libSmallClusterRemoval.so')
+
+from ROOT import larvoxelprepdata as larvoxelprepdata
 
 if not os.path.exists(args.input_list):
     print("Could not fine input list: ",args.input_list)
@@ -75,6 +78,10 @@ labeler = larflow.keypoints.LoaderKeypointData( f_v )
 voxelsize_cm = 0.3 # 3 mm, the wire-pitch
 voxelizer = larflow.voxelizer.VoxelizeTriplets()
 voxelizer.set_voxel_size_cm( voxelsize_cm )
+
+# small cluster removal algorithm
+remover = larvoxelprepdata.SmallClusterRemoval()
+print(remover)
 
 # Get the number of entries in the tree
 nentries = labeler.GetEntries()
@@ -276,6 +283,17 @@ for ientry in range(nentries):
             iicoord = np.concatenate( iicoord_v )
             iifeat  = np.concatenate( iifeat_v )
             print("iicoord=",iicoord.shape," iifeat=",iifeat.shape," from ",len(iicoord_v)," arrays")
+
+            # post-processing: see ./lib/SmallClusterRemoval.cxx
+            pass_array = remover.do_removal( iicoord.astype(np.int64), iifeat.astype(np.float32) )
+            print("finished passing array!")
+            print("pass_array: ",pass_array)
+            print("pass_array: ",pass_array.shape)            
+            print("num passing voxels: ",pass_array.sum())
+            iicoord = iicoord[ pass_array[:]==1, : ]
+            iifeat  = iifeat[ pass_array[:]==1, : ]
+            print("after small cluster removal: iicoord=",iicoord.shape," iifeat=",iifeat.shape)
+            
             np_pid = np.ones( 1, dtype=np.int32 )*pdgcode
             
             # store data
@@ -307,7 +325,7 @@ for ientry in range(nentries):
                 
             tree.Fill()
             
-    if False and ientry>=4:
+    if True and ientry>=4:
         # For debug
         break
 
