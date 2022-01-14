@@ -6,7 +6,7 @@
 #SBATCH --output=larvoxeldata_bnb_nue_train_polina.log
 #SBATCH --mem-per-cpu=4000
 #SBATCH --time=4:00:00
-#SBATCH --array=0
+#SBATCH --array=0-9
 #SBATCH --partition=preempt
 
 container=/cluster/tufts/wongjiradlabnu//larbys/larbys-container/singularity_minkowskiengine_u20.04.cu111.torch1.9.0.sif

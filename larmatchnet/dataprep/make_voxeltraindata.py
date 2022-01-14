@@ -36,12 +36,14 @@ f_v.push_back( args.input_larmatch[0] )
 #for f in input_rootfile_v:
 #    f_v.push_back( f )
 
-kploader = larflow.keypoints.LoaderKeypointData( f_v )
-kptree = kploader.load_tree()
+kploader = dataset.loader
+
+#kploader = larflow.keypoints.LoaderKeypointData( f_v )
+#kptree = kploader.load_tree()
 #kploader.set_verbosity( larcv.msg.kDEBUG )
 #kploader.exclude_false_triplets( False )
 
-print("kploader.GetEntries(): ",kploader.GetEntries())
+#print("kploader.GetEntries(): ",kploader.GetEntries())
 
 outfile = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larvoxeltrainingdata","LArMatch Voxel training data")
@@ -97,7 +99,7 @@ for iiter in range(NENTRIES):
         vec.clear()
         
     data = next(iter(loader))[0]
-    kploader.load_entry(iiter)
+#    kploader.load_entry(iiter)
     print("Tree entry: ",data["tree_entry"])
     print(" keys: ",data.keys())
     for name,d in data.items():
