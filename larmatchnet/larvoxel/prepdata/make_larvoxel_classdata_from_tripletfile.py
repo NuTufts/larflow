@@ -81,6 +81,8 @@ voxelizer.set_voxel_size_cm( voxelsize_cm )
 
 # small cluster removal algorithm
 remover = larvoxelprepdata.SmallClusterRemoval()
+voxel_threshold = 10
+charge_threshold = 100.0
 print(remover)
 
 # Get the number of entries in the tree
@@ -285,7 +287,9 @@ for ientry in range(nentries):
             print("iicoord=",iicoord.shape," iifeat=",iifeat.shape," from ",len(iicoord_v)," arrays")
 
             # post-processing: see ./lib/SmallClusterRemoval.cxx
-            pass_array = remover.do_removal( iicoord.astype(np.int64), iifeat.astype(np.float32) )
+            pass_array = remover.do_removal( iicoord.astype(np.int64), iifeat.astype(np.float32), voxel_threshold, charge_threshold )
+            if pass_array is None:
+                continue
             print("finished passing array!")
             print("pass_array: ",pass_array)
             print("pass_array: ",pass_array.shape)            
@@ -325,7 +329,7 @@ for ientry in range(nentries):
                 
             tree.Fill()
             
-    if True and ientry>=4:
+    if False and ientry>=4:
         # For debug
         break
 
