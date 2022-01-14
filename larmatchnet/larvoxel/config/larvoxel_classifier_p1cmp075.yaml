@@ -1,0 +1,21 @@
+DEVICE: "cuda"
+RESUME_FROM_CHECKPOINT: false
+RESUME_OPTIM_FROM_CHECKPOINT: false
+CHECKPOINT_FILE: ""
+CHECKPOINT_TAG: "p1cmp075"
+WEIGHT_DECAY: 1.0e-4
+LEARNING_RATE: 1.0e-4
+DETECT_ANOMALY: false
+RUNPROFILER: false
+NUM_ITERATIONS: 100000
+START_ITER: 0
+LOSS_VERBOSE: false
+ITER_PER_CHECKPOINT: 500
+TRAIN_ITER_PER_RECORD: 1
+TRAIN_ITER_PER_VALIDPT: 10
+NUM_VALID_ITERS: 1
+
+INPUT_TXTFILE_TRAIN: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larvoxel/inputlists/larvoxel_single_particle.train.txt"
+INPUT_TXTFILE_VALID: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larvoxel/inputlists/larvoxel_single_particle.valid.txt"
+BATCHSIZE_TRAIN: 128
+BATCHSIZE_VALID: 64

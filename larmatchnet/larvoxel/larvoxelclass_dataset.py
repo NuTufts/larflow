@@ -20,7 +20,13 @@ class larvoxelClassDataset(torch.utils.data.Dataset):
                   -211:4,
                   321:5,
                   -321:5}
-    pdg_name = ["electron","gamma","muon","proton","pion","kaon"]
+    pdg_name = ["electron",
+                "gamma",
+                "muon",
+                "proton",
+                "pion",
+                #"kaon"
+    ]
     code_to_names = {11:"electron",
                      13:"muon",
                      22:"gamma",

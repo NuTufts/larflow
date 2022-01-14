@@ -12,7 +12,7 @@ class LArVoxelClassifier(nn.Module):
 
     def __init__(self,input_feats=3,
                  embed_dim=512,
-                 out_num_classes=6):
+                 out_num_classes=5):
         """
 
         Network consists of 

@@ -62,27 +62,36 @@ def run(gpu, args ):
     config = engine.load_config_file(args.config_file)
 
     # get device
-    DEVICE = torch.device(config["DEVICE"])
+    torch.cuda.set_device(gpu)
+    DEVICE = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
     
     # Get Model
     single_model = engine.get_model(config)
 
-    # Load Weights if resuming from checkpoint
+    # Get Loss
+    criterion = engine.get_loss(config)
+    
+    # Load Model Weights if resuming from checkpoint
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
             raise ValueError("Could not find checkpoint to load: ",config["CHECKPOINT_FILE"])
 
         checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
-    
+
+    single_model.to(DEVICE)
+        
     if rank==0:
         tb_writer = SummaryWriter(comment="larvoxel_classify")
 
-    single_model.to(DEVICE)
-    criterion = engine.get_loss(config).to(DEVICE)
+
 
     # Wrap the model for distributed training
     model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
-    if rank==0: print("RANK-%d Model"%(rank),model)
+    if rank==0:
+        print("RANK-%d Model"%(rank),model)
+    else:
+        print("RANK-%d Model loaded"%(rank))
+        
     torch.distributed.barrier()
 
     optimizer = torch.optim.AdamW(model.parameters(),
@@ -121,9 +130,13 @@ def run(gpu, args ):
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
             #print("RANK-%d iteration=%d"%(rank,train_iteration))
+
+            # clear cache every iteration
+            torch.cuda.empty_cache()
+            
             engine.do_one_iteration(config, model,train_loader, criterion, optimizer,
-                                             acc_meters, loss_meters, time_meters, True,
-                                             verbose=config["LOSS_VERBOSE"],rank=rank)
+                                    acc_meters, loss_meters, time_meters, True,
+                                    verbose=config["LOSS_VERBOSE"],rank=rank)
 
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
@@ -132,9 +145,9 @@ def run(gpu, args ):
                     engine.save_checkpoint({
                         'iter':train_iteration,
                         'epoch': train_iteration/float(TRAIN_NENTRIES),
-                        'state_larmatch': model.module.state_dict(),
+                        'state_dict': model.module.state_dict(),
                         'optimizer' : optimizer.state_dict(),
-                    }, False, train_iteration, filename="lv.classify.checkpoint.%dth.tar")
+                    }, False, train_iteration, filename="lv.classify.checkpoint."+config["CHECKPOINT_TAG"]+".%dth.tar")
                 else:
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
 
@@ -156,7 +169,7 @@ def run(gpu, args ):
                 for accname in larvoxelClassDataset.pdg_name:
                     if acc_meters[accname].count>0:
                         acc_scalars[accname] = acc_meters[accname].avg
-                tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
+                tb_writer.add_scalars('data/train_accuracy', acc_scalars, train_iteration )
 
                 # reset after storing values
                 for meters in [loss_meters,acc_meters,time_meters]:
@@ -186,7 +199,6 @@ def run(gpu, args ):
                     tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
                 
                     # split acc into different types
-                    # larmatch
                     val_acc_scalars = {}
                     for accname in larvoxelClassDataset.pdg_name:
                         if valid_acc_meters[accname].count>0:
@@ -205,9 +217,9 @@ def run(gpu, args ):
             engine.save_checkpoint({
                 'iter':train_iteration,
                 'epoch': train_iteration/float(TRAIN_NENTRIES),
-                'state_larmatch': model.module.state_dict(),
+                'state_dict': model.module.state_dict(),
                 'optimizer' : optimizer.state_dict(),
-            }, False, train_iteration,filename="lv.classify.checkpoint.%dth.tar")
+            }, False, train_iteration,filename="lv.classify.checkpoint."+config["CHECKPOINT_TAG"]+".%dth.tar")
         
         torch.distributed.barrier()
 

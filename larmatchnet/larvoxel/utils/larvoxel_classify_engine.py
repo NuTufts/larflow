@@ -77,19 +77,18 @@ def accuracy(pred_t, truth_t, acc_meters, verbose=False):
 
     # LARMATCH METRICS
     with torch.no_grad():        
-        print("====== calc class accuracy ========")
+        if verbose: print("====== calc class accuracy ========")
         #print("truth_t: ",truth_t)
         #print("pred_t: ",pred_t.F.shape)
         #print(pred_t.F)
         match_pred = torch.nn.Softmax(dim=1)( pred_t.F.detach() )
         #print("match_pred: ",match_pred)        
         for iclass,classname in enumerate(larvoxelClassDataset.pdg_name):
-            print("[%d] %s -------"%(iclass,classname))
+            if verbose: print("[%d] %s -------"%(iclass,classname))
             if (truth_t==iclass).sum()>0:
                 subset = match_pred[ truth_t.eq(iclass) ]
-                #print("subset: ",subset.shape)
                 correct = subset[:,iclass].gt(0.5).sum().item()
-                print("%s name: correct %d out of %d"%(classname,correct,(truth_t==iclass).sum().item()))
+                if verbose: print("%s name: correct %d out of %d"%(classname,correct,(truth_t==iclass).sum().item()))
                 acc_meters[ classname ].update( float(correct)/float(truth_t.eq(iclass).sum().item()) )
                 
     return True

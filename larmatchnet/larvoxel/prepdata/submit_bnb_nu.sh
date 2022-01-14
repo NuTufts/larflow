@@ -6,7 +6,7 @@
 #SBATCH --output=lvclass_data_bnb_nu.log
 #SBATCH --mem-per-cpu=4000
 #SBATCH --time=2:00:00
-#SBATCH --array=0
+#SBATCH --array=500-568
 #SBATCH --partition=preempt
 ##SBATCH --partition=wongjiradlab
 #SBATCH --error=gridlog_lvclassdata_bnb_nu.%j.%N.err
@@ -17,5 +17,5 @@ DATA_PREP_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchn
 module load singularity/3.5.3
 cd /cluster/tufts/
 
-# mcc9_v13_bnbnue_corsika: 493 files
+# mcc9_v13_bnbnue_corsika: 569 files
 srun singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larvoxel_data_making_script_bnb_nu.sh"

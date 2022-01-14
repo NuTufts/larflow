@@ -6,7 +6,7 @@
 #SBATCH --output=lvclass_data_bnbnue.log
 #SBATCH --mem-per-cpu=4000
 #SBATCH --time=2:00:00
-#SBATCH --array=1-99
+#SBATCH --array=400-492
 #SBATCH --partition=preempt
 ##SBATCH --partition=wongjiradlab
 #SBATCH --error=gridlog_lvclassdata_bnb_nue.%j.%N.err
