@@ -142,7 +142,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     detdata = lardly.DetectorOutline()
 
-    traces_v = []
+    traces_v = detdata.getlines(color=(0,0,0))
 
     if args.draw_flash:
         ev_flash = io.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
@@ -160,7 +160,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
     if plotby=="larmatch":
         lfhits_v =  [ lardly.data.visualize_larlite_larflowhits( ev_lfhits, "larmatch", score_threshold=minprob) ]
-        traces_v += lfhits_v + detdata.getlines(color=(0,0,0))
+        traces_v += lfhits_v
     elif plotby in ["ssn-bg","ssn-muon","ssn-electron","ssn-gamma","ssn-proton","ssn-pion","ssn-other","ssn-class",
                     "ssn2d-hip","ssn2d-mip","ssn2d-shower","ssn2d-michel","ssn2d-delta","ssn2d-class",
                     "keypoint-nu","keypoint-trackstart","keypoint-trackend","keypoint-shower","keypoint-delta","keypoint-michel"]:
@@ -202,7 +202,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             print("make hit data[",plotby,"] npts=",npoints," abovethreshold(plotted)=",ptsused,"min=",np.min(xyz[3])," max=",np.max(xyz[3]))            
             
         #print(xyz[:ptsused,3])
-        traces_v += [larflowhits]+detdata.getlines(color=(0,0,0))
+        traces_v += [larflowhits]
     elif plotby in ["flow-field"]:
         # must sample, if trying to draw triangles
         ptsused = 0
@@ -244,14 +244,16 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
             colorscale='Blues',
             sizeref=10,
             sizemode="absolute")
-        traces_v += [fig]+detdata.getlines(color=(0,0,0))
+        traces_v += [fig]
 
     if args.has_mc:
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
         traces_v += mctrack_v
 
-        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        traces_v += mcshower_v[1:]
+        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"),
+                                                                   return_origtraj=False,
+                                                                   return_dirplot=False )
+        traces_v += mcshower_v # add profile
         
     return traces_v
 
