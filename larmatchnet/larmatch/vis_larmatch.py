@@ -247,7 +247,9 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         traces_v += [fig]
 
     if args.has_mc:
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"),
+                                                                 origin=1,
+                                                                 do_sce_correction=True )
         traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"),
