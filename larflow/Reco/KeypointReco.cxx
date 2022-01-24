@@ -118,7 +118,9 @@ namespace reco {
 
     if ( logger().level()<=larcv::msg::kINFO )
       printAllKPClusterInfo();
-    LARCV_NORMAL() << "[ KeypointReco::process ] num kpclusters = " << output_pt_v.size() << std::endl;
+    LARCV_NORMAL() << "[ KeypointReco::process (type=" << _keypoint_type << ", hitindex=" << _lfhit_score_index << ") ] "
+		   << "num kpclusters = " << output_pt_v.size()
+		   << std::endl;
   }
   
   /**

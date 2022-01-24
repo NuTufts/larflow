@@ -18,6 +18,9 @@ parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,he
 parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
 parser.add_argument("-p","--products",default="rerun",help="output products saved. choices: {rerun[default],min,debug}")
 parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
+parser.add_argument("-v",'--version',default=1,type=int,help="The reco version [default 1]")
+# just for debug/development
+parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at keypoint reco")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -39,13 +42,15 @@ print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
 print("[OUTPUT]    ",args.output)
 
 # ALGORITHMS
-recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root") )
+recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
 recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
 if args.ismc:
     recoman.saveEventMCinfo( args.ismc )
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
+if args.stop_after_keypointreco:
+    recoman._stop_after_keypointreco = True
 
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )
@@ -110,6 +115,7 @@ if args.products in ["rerun","min"]:
 
     # keypoint reco
     io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypoint" ) # save reco keypoints, used to seed nu candidates
+    io.set_data_to_write( larlite.data.kLArFlow3DHit, "keypointcosmic" ) # save reco keypoints, used to seed cosmic candidates    
 
     # cosmic hit clusters:  trade space for time, since can use track paths to pick up hits again
     io.set_data_to_write( larlite.data.kLArFlowCluster, "boundarycosmicnoshift" )

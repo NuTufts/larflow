@@ -70,7 +70,7 @@ namespace reco {
   class KPSRecoManager : public larcv::larcv_base {
   public:
 
-    KPSRecoManager( std::string inputfile="outana_kpsrecomanager.root" );
+    KPSRecoManager( std::string inputfile="outana_kpsrecomanager.root", int reco_ver=1 );
     virtual ~KPSRecoManager();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -177,6 +177,13 @@ namespace reco {
     std::vector< larflow::reco::NuVertexCandidate >    _nu_perfect_v; ///< store reco based on true trajectories
 
     bool _kMinize_outputfile_size;
+
+    int _reco_version;
+
+  public:
+    
+    // for debug
+    bool _stop_after_keypointreco;
     
   public:
 

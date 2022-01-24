@@ -21,13 +21,14 @@ namespace reco {
    *
    * @param[in] inputfile_name Name of output file for non-larcv and non-larlite reco products
    */
-  KPSRecoManager::KPSRecoManager( std::string inputfile_name )
+  KPSRecoManager::KPSRecoManager( std::string inputfile_name, int reco_ver )
     : larcv::larcv_base("KPSRecoManager"),
     _save_event_mc_info(false),    
     _ana_output_file(inputfile_name),
     _t_event_elapsed(0),
     _save_selected_only(false),
-    _kMinize_outputfile_size(false)
+    _kMinize_outputfile_size(false),
+    _reco_version(reco_ver)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -98,7 +99,7 @@ namespace reco {
     // ---------------------------------------------
     recoKeypoints( iolcv, ioll );
 
-    if ( false ) {
+    if ( _stop_after_keypointreco ) {
       // for debug
       _ana_run = ev_adc->run();
       _ana_subrun = ev_adc->subrun();
@@ -265,55 +266,142 @@ namespace reco {
     // output:
     //  * _kpreco.output_pt_v: container of KPCluster objects
 
-    // neutrino
-    _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
-    _kpreco_nu.set_output_tree_name( "keypoint" );    
-    _kpreco_nu.set_sigma( 10.0 );
-    _kpreco_nu.set_min_cluster_size(   50.0, 0 );
-    _kpreco_nu.set_keypoint_threshold( 0.5, 0 );
-    _kpreco_nu.set_min_cluster_size(   20.0, 1 );    
-    _kpreco_nu.set_keypoint_threshold( 0.5, 1 );    
-    _kpreco_nu.set_larmatch_threshold( 0.5 );
-    _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
-    _kpreco_nu.set_lfhit_score_index( 13 );
-    _kpreco_nu.process( ioll );
 
-    _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
-    _kpreco_track.set_output_tree_name( "keypoint" );        
-    _kpreco_track.set_sigma( 10.0 );    
-    _kpreco_track.set_min_cluster_size(   50.0, 0 );
-    _kpreco_track.set_keypoint_threshold( 0.5, 0 );
-    _kpreco_track.set_min_cluster_size(   20.0, 1 );    
-    _kpreco_track.set_keypoint_threshold( 0.5, 1 );    
-    _kpreco_track.set_larmatch_threshold( 0.5 );
-    _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
-    _kpreco_track.set_lfhit_score_index( 14 );
-    _kpreco_track.process( ioll );
+    if ( _reco_version==1 ) {
+      // neutrino
+      _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_nu.set_output_tree_name( "keypoint" );    
+      _kpreco_nu.set_sigma( 10.0 );
+      _kpreco_nu.set_min_cluster_size(   50.0, 0 );
+      _kpreco_nu.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_nu.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_nu.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_nu.set_larmatch_threshold( 0.5 );
+      _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
+      _kpreco_nu.set_lfhit_score_index( 13 ); // (v1 larmatch network score index in hit)
+      _kpreco_nu.process( ioll );
+      
+      _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_track.set_output_tree_name( "keypoint" );        
+      _kpreco_track.set_sigma( 10.0 );    
+      _kpreco_track.set_min_cluster_size(   50.0, 0 );
+      _kpreco_track.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_track.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_track.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_track.set_larmatch_threshold( 0.5 );
+      _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
+      _kpreco_track.set_lfhit_score_index( 14 ); // (v1 larmatch network track-score index in hit)
+      _kpreco_track.process( ioll );
+      
+      _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_shower.set_output_tree_name( "keypoint" );
+      _kpreco_shower.set_sigma( 10.0 );    
+      _kpreco_shower.set_min_cluster_size(   50.0, 0 );
+      _kpreco_shower.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_shower.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_shower.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_shower.set_larmatch_threshold( 0.5 );
+      _kpreco_shower.set_keypoint_type( (int)larflow::kShowerStart );
+      _kpreco_shower.set_lfhit_score_index( 15 ); // (v1 larmatch network shower-score index in hit)
+      _kpreco_shower.process( ioll );
 
-    _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
-    _kpreco_shower.set_output_tree_name( "keypoint" );
-    _kpreco_shower.set_sigma( 10.0 );    
-    _kpreco_shower.set_min_cluster_size(   50.0, 0 );
-    _kpreco_shower.set_keypoint_threshold( 0.5, 0 );
-    _kpreco_shower.set_min_cluster_size(   20.0, 1 );    
-    _kpreco_shower.set_keypoint_threshold( 0.5, 1 );    
-    _kpreco_shower.set_larmatch_threshold( 0.5 );
-    _kpreco_shower.set_keypoint_type( (int)larflow::kShowerStart );
-    _kpreco_shower.set_lfhit_score_index( 15 );
-    _kpreco_shower.process( ioll );
+      _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
+      _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
+      _kpreco_track_cosmic.set_sigma( 50.0 );    
+      _kpreco_track_cosmic.set_min_cluster_size(   50.0, 0 );
+      _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
+      _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
+      _kpreco_track_cosmic.set_lfhit_score_index( 14 ); // (v1 larmatch network track-score index in hit)
+      _kpreco_track_cosmic.process( ioll );
 
-    _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
-    _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
-    _kpreco_track_cosmic.set_sigma( 50.0 );    
-    _kpreco_track_cosmic.set_min_cluster_size(   50.0, 0 );
-    _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
-    _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
-    _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
-    _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
-    _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
-    _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
-    _kpreco_track_cosmic.set_lfhit_score_index( 14 );    
-    _kpreco_track_cosmic.process( ioll );
+    }
+    else if ( _reco_version==2 ) {
+      // we take advantage of the fact that we dont want anything stored by the keypoint reco class
+      // after it runs. everything we need downstream is saved to a larlite tree.
+      // so we simply re-run the algorithms to work with the additional vertex types.
+
+      // neutrino: the same as reco version 1
+      _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_nu.set_sigma( 10.0 );
+      _kpreco_nu.set_min_cluster_size(   50.0, 0 );
+      _kpreco_nu.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_nu.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_nu.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_nu.set_larmatch_threshold( 0.5 );
+      _kpreco_nu.set_output_tree_name( "keypoint" );          
+      _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
+      _kpreco_nu.set_lfhit_score_index( 17 ); // (v2 larmatch-minkowski network neutrino-score index in hit)
+      _kpreco_nu.process( ioll );
+
+      // neutrino interaction track: we have track starts and ends
+      _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_track.set_sigma( 10.0 );    
+      _kpreco_track.set_min_cluster_size(   50.0, 0 );
+      _kpreco_track.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_track.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_track.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_track.set_larmatch_threshold( 0.5 );
+      // neutrino interaction track start
+      _kpreco_track.set_output_tree_name( "keypoint" );              
+      _kpreco_track.set_keypoint_type( (int)larflow::kTrackStart );
+      _kpreco_track.set_lfhit_score_index( 18 ); // (v2 larmatch-minkowski network track-start-score index in hit)
+      _kpreco_track.process( ioll );
+      // neutrino interaction track end
+      _kpreco_track.set_output_tree_name( "keypoint" );              
+      _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
+      _kpreco_track.set_lfhit_score_index( 19 ); // (v2 larmatch-minkowski network track-end-score index in hit)
+      _kpreco_track.process( ioll );
+      // neutrino interaction shower
+      _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
+      _kpreco_shower.set_output_tree_name( "keypoint" );
+      _kpreco_shower.set_sigma( 10.0 );    
+      _kpreco_shower.set_min_cluster_size(   50.0, 0 );
+      _kpreco_shower.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_shower.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_shower.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_shower.set_larmatch_threshold( 0.5 );
+      _kpreco_shower.set_keypoint_type( (int)larflow::kShowerStart );
+      _kpreco_shower.set_lfhit_score_index( 20 ); // (v2 larmatch-minkowski network nu-shower-score index in hit)
+      _kpreco_shower.process( ioll );
+      // neutrino+cosmic interaction michel
+      _kpreco_shower.set_keypoint_type( (int)larflow::kShowerMichel );
+      _kpreco_shower.set_lfhit_score_index( 21 ); // (v2 larmatch-minkowski network michel-shower-score index in hit)
+      _kpreco_shower.process( ioll );
+      // neutrino+cosmic interaction delta
+      _kpreco_shower.set_keypoint_type( (int)larflow::kShowerDelta );
+      _kpreco_shower.set_lfhit_score_index( 22 ); // (v2 larmatch-minkowski network delta-shower-score index in hit)
+      _kpreco_shower.process( ioll );
+
+      // cosmic keypoints
+      _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
+      _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
+      _kpreco_track_cosmic.set_sigma( 50.0 );    
+      _kpreco_track_cosmic.set_min_cluster_size(   50.0, 0 );
+      _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
+
+      _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackStart );
+      _kpreco_track_cosmic.set_lfhit_score_index( 18 ); // (v2 larmatch network track-start-score index in hit)
+      _kpreco_track_cosmic.process( ioll );
+
+      _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
+      _kpreco_track_cosmic.set_lfhit_score_index( 19 ); // (v2 larmatch network track-end-score index in hit)
+      _kpreco_track_cosmic.process( ioll );
+      
+      
+    }
+    else {
+      std::stringstream oops;
+      oops << "Reco Version unrecognized: " << _reco_version << " allowed: {1,2}" << std::endl;
+      throw std::runtime_error(oops.str());
+    }
 
   }
 
