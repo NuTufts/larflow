@@ -189,6 +189,9 @@ namespace prep {
     std::cout << "sparse pixel totals after deadch additions: "
               << "(" << _sparseimg_vv[0].size() << "," << _sparseimg_vv[1].size() << "," << _sparseimg_vv[2].size() << ")"
               << std::endl;
+    for (int p=0; p<3; p++){
+      std::cout << "  deadpixels_to_add[plane=" << p << "]: " << deadpixels_to_add[p].size() << std::endl;
+    }
     
     // sort all pixels
     for ( auto& pix_v : _sparseimg_vv ) {

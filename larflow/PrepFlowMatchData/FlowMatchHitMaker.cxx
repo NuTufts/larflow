@@ -250,7 +250,7 @@ namespace prep {
    * [0-2]:   x,y,z
    * [3-9]:   7 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [9] is the only score stored 
    * [10-16]: 7 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
-   * [17-22]: 6 keypoint label score [nu,track,shower]
+   * [17-22]: 6 keypoint label score [nu,track-start,track-end,nu-shower,delta,michel]
    * [23-25]: reserved for plane charge
    * [26-28]: 3D flow direction
    * 
