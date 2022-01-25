@@ -32,7 +32,9 @@ class LArMatchSpacepointClassifier( nn.Module ):
         output:
         torch tensor (1,2,N)
         """
+        #print("lm input: ",triplet_feat_t)
         pred = self.lm_classifier(triplet_feat_t)
+        #print("lm spacepoint classifier: ",pred)
         return pred
         
         

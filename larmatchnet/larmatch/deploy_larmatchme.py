@@ -48,8 +48,14 @@ checkpoint_data = engine.load_model_weights( single_model, checkpointfile )
 
 single_model.eval()
 single_model.to(DEVICE)
-print("loaded MODEL")
+print("loaded MODEL on ",DEVICE)
 #print(single_model)
+
+#for name, par in single_model.named_parameters():
+#    print("---------------------------------")
+#    print(name," ",par.shape)
+#    print(par)
+#sys.exit(0)
 
 NUM_PAIRS=30000
 ADC_PRODUCER=args.adc_name
@@ -64,7 +70,6 @@ preplarmatch = larflow.prep.PrepMatchTriplets()
 if args.use_skip_limit is not None:
     print("Set Triplet Max where we will skip event: ",args.use_skip_limit)
     preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
-
 
 #model_dict["larmatch"].eval()
 
@@ -162,25 +167,30 @@ for ientry in range(NENTRIES):
     for p in range(3):
         wireimg = preplarmatch.make_sparse_image( p )
         #wireimg_coord_np = wireimg[:,:2].astype(np.float32)
-        wireimg_coord_np = wireimg[:,:2].astype(np.long)
+        wireimg_coord_np = wireimg[:,:2].astype(np.int64)
         #print(wireimg_coord_np[:10,:])
         
         wireimg_coord = torch.from_numpy( wireimg_coord_np ).to(DEVICE)
         wireimg_feat  = torch.from_numpy( np.clip( np.expand_dims( wireimg[:,2], 1 )/50.0, 0, 10.0 ) ).to(DEVICE)
-        print("== plane[%d] =="%(p))
-        print("wireimg_coord: ",wireimg_coord.shape)        
-        print("wireimg_feat:  ",wireimg_feat.shape)
+        #print("== plane[%d] =="%(p))
+        #print("wireimg_coord: ",wireimg_coord.shape)        
+        #print("wireimg_feat:  ",wireimg_feat.shape)
         #print("  ",wireimg_coord[:10,:])
         coord_v = [ wireimg_coord ]
         feat_v  = [ wireimg_feat ]
         # prep data to pass into model, single batch
         coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
+        #print("sparse_collate out")
+        #print("coords")
+        #print(coords)
+        #print("feats")
+        #print(feats)
         wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
         sparse_np_v.append( wireimg_coord_np )
 
     # get 3d spacepoints (to do, function should be kploader function)
     matchtriplet_np = preplarmatch.get_all_triplet_data( False )
-    print("matchtriplet_np: ",matchtriplet_np.shape," ",matchtriplet_np.dtype)
+    #print("matchtriplet_np: ",matchtriplet_np.shape," ",matchtriplet_np.dtype)
     spacepoints = preplarmatch.make_spacepoint_charge_array()    
     nfilled = c_int(0)
     ntriplets = matchtriplet_np.shape[0]
@@ -193,6 +203,8 @@ for ientry in range(NENTRIES):
     with torch.no_grad():
         pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
     print("Ran model: ",pred_dict.keys())
+    torch.cuda.synchronize()
+    sys.stdout.flush()    
     
     # EVALUATE LARMATCH SCORES
     tstart = time.time()
