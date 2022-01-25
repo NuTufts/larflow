@@ -1,0 +1,6 @@
+    [95m[NORMAL][00m [0m [94m<IOManager::prepare_input>[00m Opening a file in READ mode: /home/twongj01/larflow_sparsify_cropped_valid_v5.root
+    [95m[NORMAL][00m [0m [94m<IOManager::initialize>[00m Prepared input with 76085 entries...
+Entry: 0
+Info in <TCanvas::SaveAs>: ROOT file dumpedimages/flow_fv1.root has been created
+Info in <TCanvas::SaveAs>: ROOT file dumpedimages/flow_fv2.root has been created
+Done!

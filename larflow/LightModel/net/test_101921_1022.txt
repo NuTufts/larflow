@@ -1,0 +1,2730 @@
+('DIRNAME:', 'runs/Oct19_10-22-24_trex/trex')
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 0
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 586 total voxels into numpy arrays
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (586, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 0
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 673 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 139
+entry[ 0 ] voxel entries:  (673, 4)
+('coord_t ', (586, 4))
+('feat_t ', (586, 1))
+call input
+call m
+call output
+after output
+Iteration: 1 Loss: 0.0699041560292 %
+1
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 1
+Voxel vector size: 18
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 555 total voxels into numpy arrays
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (555, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 1
+Voxel vector size: 18
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 941 total voxels into numpy arrays
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (941, 4)
+('coord_t ', (555, 4))
+('feat_t ', (555, 1))
+call input
+call m
+call output
+after output
+Iteration: 2 Loss: 0.0823578387499 %
+2
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 2
+Voxel vector size: 10
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 680 total voxels into numpy arrays
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 92
+entry[ 0 ] voxel entries:  (680, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 2
+Voxel vector size: 10
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 597 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 37
+entry[ 0 ] voxel entries:  (597, 4)
+('coord_t ', (680, 4))
+('feat_t ', (680, 1))
+call input
+call m
+call output
+after output
+Iteration: 3 Loss: 0.0535303615034 %
+3
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 3
+Voxel vector size: 95
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 624 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 88
+entry[ 0 ] voxel entries:  (624, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 3
+Voxel vector size: 95
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 742 total voxels into numpy arrays
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 26
+entry[ 0 ] voxel entries:  (742, 4)
+('coord_t ', (624, 4))
+('feat_t ', (624, 1))
+call input
+call m
+call output
+after output
+Iteration: 4 Loss: 0.0271097794175 %
+4
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 4
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 474 total voxels into numpy arrays
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 10
+entry[ 0 ] voxel entries:  (474, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 4
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 434 total voxels into numpy arrays
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (434, 4)
+('coord_t ', (474, 4))
+('feat_t ', (474, 1))
+call input
+call m
+call output
+after output
+Iteration: 5 Loss: 0.0537281855941 %
+5
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 5
+Voxel vector size: 106
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 631 total voxels into numpy arrays
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 139
+entry[ 0 ] voxel entries:  (631, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 5
+Voxel vector size: 106
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 657 total voxels into numpy arrays
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 57
+entry[ 0 ] voxel entries:  (657, 4)
+('coord_t ', (631, 4))
+('feat_t ', (631, 1))
+call input
+call m
+call output
+after output
+Iteration: 6 Loss: 0.0816734880209 %
+6
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 6
+Voxel vector size: 107
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 477 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (477, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 6
+Voxel vector size: 107
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 305 total voxels into numpy arrays
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 18
+entry[ 0 ] voxel entries:  (305, 4)
+('coord_t ', (477, 4))
+('feat_t ', (477, 1))
+call input
+call m
+call output
+after output
+Iteration: 7 Loss: 0.0684201717377 %
+7
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 7
+Voxel vector size: 130
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 858 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 139
+entry[ 0 ] voxel entries:  (858, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 7
+Voxel vector size: 130
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 424 total voxels into numpy arrays
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+entry[ 0 ] voxel entries:  (424, 4)
+('coord_t ', (858, 4))
+('feat_t ', (858, 1))
+call input
+call m
+call output
+after output
+Iteration: 8 Loss: 0.044961091131 %
+8
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 8
+Voxel vector size: 42
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 516 total voxels into numpy arrays
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 37
+entry[ 0 ] voxel entries:  (516, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 8
+Voxel vector size: 42
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 807 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 144
+entry[ 0 ] voxel entries:  (807, 4)
+('coord_t ', (516, 4))
+('feat_t ', (516, 1))
+call input
+call m
+call output
+after output
+Iteration: 9 Loss: 0.0610148794949 %
+9
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 9
+Voxel vector size: 86
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 656 total voxels into numpy arrays
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (656, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 9
+Voxel vector size: 86
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 733 total voxels into numpy arrays
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 106
+entry[ 0 ] voxel entries:  (733, 4)
+('coord_t ', (656, 4))
+('feat_t ', (656, 1))
+call input
+call m
+call output
+after output
+Iteration: 10 Loss: 0.0529437847435 %
+10
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 10
+Voxel vector size: 104
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 432 total voxels into numpy arrays
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (432, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 10
+Voxel vector size: 104
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 490 total voxels into numpy arrays
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 26
+entry[ 0 ] voxel entries:  (490, 4)
+('coord_t ', (432, 4))
+('feat_t ', (432, 1))
+call input
+call m
+call output
+after output
+Iteration: 11 Loss: 0.0418720021844 %
+11
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 11
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 650 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (650, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 11
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 720 total voxels into numpy arrays
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 130
+entry[ 0 ] voxel entries:  (720, 4)
+('coord_t ', (650, 4))
+('feat_t ', (650, 1))
+call input
+call m
+call output
+after output
+Iteration: 12 Loss: 0.042064268142 %
+12
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 12
+Voxel vector size: 92
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 742 total voxels into numpy arrays
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 42
+entry[ 0 ] voxel entries:  (742, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 12
+Voxel vector size: 92
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 745 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 104
+entry[ 0 ] voxel entries:  (745, 4)
+('coord_t ', (742, 4))
+('feat_t ', (742, 1))
+call input
+call m
+call output
+after output
+Iteration: 13 Loss: 0.0327622778714 %
+13
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 13
+Voxel vector size: 88
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 611 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 92
+entry[ 0 ] voxel entries:  (611, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 13
+Voxel vector size: 88
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 393 total voxels into numpy arrays
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 88
+entry[ 0 ] voxel entries:  (393, 4)
+('coord_t ', (611, 4))
+('feat_t ', (611, 1))
+call input
+call m
+call output
+after output
+Iteration: 14 Loss: 0.0813486799598 %
+14
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 14
+Voxel vector size: 139
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 681 total voxels into numpy arrays
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 92
+entry[ 0 ] voxel entries:  (681, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 14
+Voxel vector size: 139
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 363 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 42
+entry[ 0 ] voxel entries:  (363, 4)
+('coord_t ', (681, 4))
+('feat_t ', (681, 1))
+call input
+call m
+call output
+after output
+Iteration: 15 Loss: 0.0387840755284 %
+15
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 15
+Voxel vector size: 37
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 583 total voxels into numpy arrays
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 26
+entry[ 0 ] voxel entries:  (583, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 15
+Voxel vector size: 37
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 667 total voxels into numpy arrays
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 92
+entry[ 0 ] voxel entries:  (667, 4)
+('coord_t ', (583, 4))
+('feat_t ', (583, 1))
+call input
+call m
+call output
+after output
+Iteration: 16 Loss: 0.0441658422351 %
+16
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 16
+Voxel vector size: 47
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 691 total voxels into numpy arrays
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 107
+entry[ 0 ] voxel entries:  (691, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 16
+Voxel vector size: 47
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 639 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 10
+entry[ 0 ] voxel entries:  (639, 4)
+('coord_t ', (691, 4))
+('feat_t ', (691, 1))
+call input
+call m
+call output
+after output
+Iteration: 17 Loss: 0.0429291762412 %
+17
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 17
+Voxel vector size: 26
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 714 total voxels into numpy arrays
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 57
+entry[ 0 ] voxel entries:  (714, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 17
+Voxel vector size: 26
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 685 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 47
+entry[ 0 ] voxel entries:  (685, 4)
+('coord_t ', (714, 4))
+('feat_t ', (714, 1))
+call input
+call m
+call output
+after output
+Iteration: 18 Loss: 0.0248612333089 %
+18
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 18
+Voxel vector size: 3
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 421 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (421, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 18
+Voxel vector size: 3
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 596 total voxels into numpy arrays
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 47
+entry[ 0 ] voxel entries:  (596, 4)
+('coord_t ', (421, 4))
+('feat_t ', (421, 1))
+call input
+call m
+call output
+after output
+Iteration: 19 Loss: 0.0699415430427 %
+19
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 19
+Voxel vector size: 93
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 673 total voxels into numpy arrays
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 57
+entry[ 0 ] voxel entries:  (673, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 19
+Voxel vector size: 93
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 410 total voxels into numpy arrays
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 18
+entry[ 0 ] voxel entries:  (410, 4)
+('coord_t ', (673, 4))
+('feat_t ', (673, 1))
+call input
+call m
+call output
+after output
+Iteration: 20 Loss: 0.0284602027386 %
+20
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 20
+Voxel vector size: 86
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 592 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 47
+entry[ 0 ] voxel entries:  (592, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 20
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 662 total voxels into numpy arrays
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 95
+entry[ 0 ] voxel entries:  (662, 4)
+('coord_t ', (592, 4))
+('feat_t ', (592, 1))
+call input
+call m
+call output
+after output
+Iteration: 21 Loss: 0.0560292340815 %
+21
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 21
+Voxel vector size: 104
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 641 total voxels into numpy arrays
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 104
+entry[ 0 ] voxel entries:  (641, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 21
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 570 total voxels into numpy arrays
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (570, 4)
+('coord_t ', (641, 4))
+('feat_t ', (641, 1))
+call input
+call m
+call output
+after output
+Iteration: 22 Loss: 0.0188493281603 %
+22
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 22
+Voxel vector size: 139
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 740 total voxels into numpy arrays
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 144
+entry[ 0 ] voxel entries:  (740, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 22
+Voxel vector size: 37
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 449 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 57
+entry[ 0 ] voxel entries:  (449, 4)
+('coord_t ', (740, 4))
+('feat_t ', (740, 1))
+call input
+call m
+call output
+after output
+Iteration: 23 Loss: 0.0417017303407 %
+23
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 23
+Voxel vector size: 107
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 667 total voxels into numpy arrays
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 92
+entry[ 0 ] voxel entries:  (667, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 23
+Voxel vector size: 95
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 670 total voxels into numpy arrays
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 88
+entry[ 0 ] voxel entries:  (670, 4)
+('coord_t ', (667, 4))
+('feat_t ', (667, 1))
+call input
+call m
+call output
+after output
+Iteration: 24 Loss: 0.0249019302428 %
+24
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 24
+Voxel vector size: 93
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 393 total voxels into numpy arrays
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (393, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 24
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 551 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (551, 4)
+('coord_t ', (393, 4))
+('feat_t ', (393, 1))
+call input
+call m
+call output
+after output
+Iteration: 25 Loss: 0.0514406971633 %
+25
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 25
+Voxel vector size: 47
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 679 total voxels into numpy arrays
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 107
+entry[ 0 ] voxel entries:  (679, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 25
+Voxel vector size: 26
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 588 total voxels into numpy arrays
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 42
+entry[ 0 ] voxel entries:  (588, 4)
+('coord_t ', (679, 4))
+('feat_t ', (679, 1))
+call input
+call m
+call output
+after output
+Iteration: 26 Loss: 0.028765803203 %
+26
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 26
+Voxel vector size: 107
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 652 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 104
+entry[ 0 ] voxel entries:  (652, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 26
+Voxel vector size: 88
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 766 total voxels into numpy arrays
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (766, 4)
+('coord_t ', (652, 4))
+('feat_t ', (652, 1))
+call input
+call m
+call output
+after output
+Iteration: 27 Loss: 0.0391070023179 %
+27
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 27
+Voxel vector size: 42
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 724 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (724, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 27
+Voxel vector size: 92
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 579 total voxels into numpy arrays
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 47
+entry[ 0 ] voxel entries:  (579, 4)
+('coord_t ', (724, 4))
+('feat_t ', (724, 1))
+call input
+call m
+call output
+after output
+Iteration: 28 Loss: 0.0300318561494 %
+28
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 28
+Voxel vector size: 37
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 653 total voxels into numpy arrays
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (653, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 28
+Voxel vector size: 42
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 455 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 95
+entry[ 0 ] voxel entries:  (455, 4)
+('coord_t ', (653, 4))
+('feat_t ', (653, 1))
+call input
+call m
+call output
+after output
+Iteration: 29 Loss: 0.0390819199383 %
+29
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 29
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 566 total voxels into numpy arrays
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 3
+entry[ 0 ] voxel entries:  (566, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 29
+Voxel vector size: 10
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 681 total voxels into numpy arrays
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 42
+entry[ 0 ] voxel entries:  (681, 4)
+('coord_t ', (566, 4))
+('feat_t ', (566, 1))
+call input
+call m
+call output
+after output
+Iteration: 30 Loss: 0.0401184186339 %
+30
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 30
+Voxel vector size: 93
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 540 total voxels into numpy arrays
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 86
+entry[ 0 ] voxel entries:  (540, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 30
+Voxel vector size: 139
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 658 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 37
+entry[ 0 ] voxel entries:  (658, 4)
+('coord_t ', (540, 4))
+('feat_t ', (540, 1))
+call input
+call m
+call output
+after output
+Iteration: 31 Loss: 0.0462716817856 %
+31
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 31
+Voxel vector size: 106
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 432 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 88
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 130
+entry[ 0 ] voxel entries:  (432, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 31
+Voxel vector size: 106
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 534 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 139
+entry[ 0 ] voxel entries:  (534, 4)
+('coord_t ', (432, 4))
+('feat_t ', (432, 1))
+call input
+call m
+call output
+after output
+Iteration: 32 Loss: 0.047538664192 %
+32
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 32
+Voxel vector size: 26
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 716 total voxels into numpy arrays
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 93
+entry[ 0 ] voxel entries:  (716, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 32
+Voxel vector size: 139
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 670 total voxels into numpy arrays
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 86
+The number of voxels N for this cluster is: 10
+entry[ 0 ] voxel entries:  (670, 4)
+('coord_t ', (716, 4))
+('feat_t ', (716, 1))
+call input
+call m
+call output
+after output
+Iteration: 33 Loss: 0.0271678846329 %
+33
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 33
+Voxel vector size: 95
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 781 total voxels into numpy arrays
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 107
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 139
+entry[ 0 ] voxel entries:  (781, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 33
+Voxel vector size: 57
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 758 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 139
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 88
+entry[ 0 ] voxel entries:  (758, 4)
+('coord_t ', (781, 4))
+('feat_t ', (781, 1))
+call input
+call m
+call output
+after output
+Iteration: 34 Loss: 0.0320695862174 %
+34
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 34
+Voxel vector size: 10
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 601 total voxels into numpy arrays
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 107
+entry[ 0 ] voxel entries:  (601, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 34
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 513 total voxels into numpy arrays
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 95
+entry[ 0 ] voxel entries:  (513, 4)
+('coord_t ', (601, 4))
+('feat_t ', (601, 1))
+call input
+call m
+call output
+after output
+Iteration: 35 Loss: 0.0232588443905 %
+35
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 35
+Voxel vector size: 144
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 604 total voxels into numpy arrays
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 106
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 107
+entry[ 0 ] voxel entries:  (604, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 35
+Voxel vector size: 26
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 613 total voxels into numpy arrays
+The number of voxels N for this cluster is: 92
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 104
+The number of voxels N for this cluster is: 42
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 3
+The number of voxels N for this cluster is: 130
+entry[ 0 ] voxel entries:  (613, 4)
+('coord_t ', (604, 4))
+('feat_t ', (604, 1))
+call input
+call m
+call output
+after output
+Iteration: 36 Loss: 0.0172172207385 %
+36
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 36
+Voxel vector size: 47
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 681 total voxels into numpy arrays
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 93
+The number of voxels N for this cluster is: 10
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 95
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 95
+entry[ 0 ] voxel entries:  (681, 4)
+[DataLoader::load_tree()]
+add ../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root to chains
+Initialized tree
+Got entry 36
+Voxel vector size: 42
+batch_size: 8
+data_batch.size(): 0
+batch_size: 8
+data_batch.size(): 1
+batch_size: 8
+data_batch.size(): 2
+batch_size: 8
+data_batch.size(): 3
+batch_size: 8
+data_batch.size(): 4
+batch_size: 8
+data_batch.size(): 5
+batch_size: 8
+data_batch.size(): 6
+batch_size: 8
+data_batch.size(): 7
+data_batch.size()==batch_size, making arrays now...
+Converting data for 8 clusters
+Converting data for 547 total voxels into numpy arrays
+The number of voxels N for this cluster is: 26
+The number of voxels N for this cluster is: 18
+The number of voxels N for this cluster is: 130
+The number of voxels N for this cluster is: 47
+The number of voxels N for this cluster is: 144
+The number of voxels N for this cluster is: 57
+The number of voxels N for this cluster is: 37
+The number of voxels N for this cluster is: 88

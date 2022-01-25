@@ -1,6 +1,6 @@
 # LM training script
 
-import sys
+import os, sys
 import torch
 import torch.nn as nn
 import numpy as np
@@ -9,19 +9,36 @@ matplotlib.use('Agg')
 #matplotlib.use('GTK')
 import matplotlib.pyplot as plt
 
-
 from lightmodelnet import LightModelNet 
 from lm_dataloader import load_lm_data
 
+from tensorboardX import SummaryWriter
+from datetime import datetime
+import socket
+
+# tensorboardX: creating directories for runs
+current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+top_log_dir = os.path.join(
+    'runs', current_time + '_' + socket.gethostname())
+sub_log_dir = socket.gethostname()
+print("DIRNAME:", top_log_dir+"/"+sub_log_dir)
+if not os.path.exists(top_log_dir):
+    os.mkdir(top_log_dir)
+writer_train = SummaryWriter(top_log_dir+"/"+sub_log_dir+"_train")
+writer_val   = SummaryWriter(top_log_dir+"/"+sub_log_dir+"_val")
+
+    
 model = LightModelNet(3, True)
 
-num_iterations = 200
+num_iterations = 2700
+#num_iterations = 200
 
 error = nn.MSELoss()
 
-learning_rate = 0.001
+learning_rate = 0.0001
 #SGD optimizer:
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
 
 # Training
 count = 0
@@ -30,8 +47,8 @@ iteration_list = []
 accuracy_list = []
 
 #input_file = "../../Ana/CRTPreppedTree_crttrack_b40ad76a-1eb4-4ab0-8bf5-afbf194f216f-jobid0035.root"
-#input_file = "../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root"
-input_file = "../../Ana/CRTPreppedTree_crt_all_temp.root"
+input_file = "../../Ana/CRTPreppedTree_crttrack_f73c7b55-9e81-4ae7-8b87-129b3efa3248-jobid1065.root"
+#input_file = "../../Ana/CRTPreppedTree_crt_all_temp.root"
 #entry = 2
 
 
@@ -81,6 +98,7 @@ for iteration in range(num_iterations):
     iteration_list.append(count)
 
     print('Iteration: {} Loss: {} %'.format(count, loss.data))
+    writer_train.add_scalar("loss", loss.data,count)
     print(count)
 
 

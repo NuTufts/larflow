@@ -73,10 +73,10 @@ def load_lm_data(input_file, entry):
     coord_t = torch.from_numpy(np.array(data_dict["coord_t"]))
     feat_t = torch.from_numpy(np.array(data_dict["feat_t"]))
     #print("feat_t",feat_t)
-    feat_t = feat_t - 4330
+    feat_t = feat_t - 4330 #subtract mean of total dataset 
     #print("feat_t",feat_t)
     feat_t = feat_t / 6094.0
-    #print("feat_t",feat_t)
+    #print("feat_t",feat_t) #divide by std of total dataset
     flash_t = torch.from_numpy(np.array(data_dict["flash_t"]))
 #    flash_t[flash_t > 0] = flash_t - 38.16
 #    flash_t[flash_t:torch.gt(0)] = flash_t - 38.16

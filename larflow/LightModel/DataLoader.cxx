@@ -72,7 +72,12 @@ namespace lightmodel {
     unsigned long bytes = tclusterflash->GetEntry(entry);
 
     if ( !bytes ) {
-      throw std::runtime_error("out of file-bounds");
+      _rand = new TRandom3(0);
+      _num_entries = tclusterflash->GetEntries();
+      _current_entry = _rand->Integer(_num_entries);
+      unsigned long bytes = tclusterflash->GetEntry(_current_entry);
+      //      throw std::runtime_error("out of file-bounds");
+      
     }
     
     std::cout << "Got entry " << entry << std::endl;

@@ -1,0 +1,16 @@
+    [95m[NORMAL][00m [0m [94m<IOManager::prepare_input>[00m Opening a file in READ mode: /home/twongj01/larflow_sparsify_cropped_valid_v5.root
+    [95m[NORMAL][00m [0m [94m<IOManager::initialize>[00m Prepared input with 76085 entries...
+Entry: 0
+Traceback (most recent call last):
+  File "draw_sparsedata.py", line 22, in <module>
+    ev_sparse = io.get_data(larcv.kProductSparseImage,sys.argv[2])
+IndexError: list index out of range
+    [95m[NORMAL][00m [0m [94m<IOManager::prepare_input>[00m Opening a file in READ mode: /home/twongj01/larflow_sparsify_cropped_valid_v5.root
+    [95m[NORMAL][00m [0m [94m<IOManager::initialize>[00m Prepared input with 76085 entries...
+Entry: 0
+Traceback (most recent call last):
+  File "draw_sparsedata.py", line 22, in <module>
+    ev_sparse = io.get_data(larcv.kProductSparseImage,sys.argv[2])
+IndexError: list index out of range
+    [95m[NORMAL][00m [0m [94m<IOManager::prepare_input>[00m Opening a file in READ mode: /home/twongj01/larflow_sparsify_cropped_valid_v5.root
+    [95m[NORMAL][00m [0m [94m<IOManager::initialize>[00m Prepared input with 76085 entries...
