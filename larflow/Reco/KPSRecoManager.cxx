@@ -28,7 +28,8 @@ namespace reco {
     _t_event_elapsed(0),
     _save_selected_only(false),
     _kMinize_outputfile_size(false),
-    _reco_version(reco_ver)
+    _reco_version(reco_ver),
+    _stop_after_keypointreco(false)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
