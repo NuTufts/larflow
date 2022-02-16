@@ -88,7 +88,10 @@ namespace keypoints {
 
     int run()    { if (_run)    return _run;    else return -1; };
     int subrun() { if (_subrun) return _subrun; else return -1; };
-    int event()  { if (_event)  return _event;  else return -1; };    
+    int event()  { if (_event)  return _event;  else return -1; };
+
+    std::vector< int >                get_keypoint_types() const;
+    std::vector< std::vector<float> > get_keypoint_pos()   const;
 
   protected:
     
