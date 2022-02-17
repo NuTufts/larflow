@@ -111,7 +111,7 @@ for i in range(ll_nentries):
 # make tree of stuff we want to keep
 outfile = rt.TFile("test.root","recreate")
 outfile.cd()
-outtree = rt.TTree("fmtree","Flashmatched Tree")
+outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
 #treevars = dict(run    = array('i',[0]),
 #                subrun = array('i',[0]),
@@ -119,7 +119,11 @@ outtree = rt.TTree("fmtree","Flashmatched Tree")
 run    = array('i',[0])
 subrun = array('i',[0])
 event  = array('i',[0])
+ancestorID = array('i',[0])
 clusterTick = array('d',[0])
+flashTick = array('d',[0])
+origin = array('i',[0])
+
 coord_v = std.vector("larcv::NumpyArrayInt")()
 feat_v  = std.vector("larcv::NumpyArrayFloat")()
 
@@ -144,7 +148,10 @@ kp_weight_v = std.vector("larcv::NumpyArrayFloat")()
 outtree.Branch("run", run, "run/I")
 outtree.Branch("subrun", subrun, "subrun/I")
 outtree.Branch("event",  event,  "event/I")
+outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
 outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
+outtree.Branch("flashTick",  flashTick,  "flashTick/D")
+outtree.Branch("origin",  origin,  "origin/I")
 outtree.Branch("coord_v",  coord_v)
 outtree.Branch("feat_v",   feat_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
@@ -161,6 +168,7 @@ outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 listy = []
 
 # MAIN LOOP
+# NOTE: Only works with tracks for now! Implement shower part too
 for ientry in range(1):
 
     data = next(iter(loader))[0]
@@ -174,7 +182,7 @@ for ientry in range(1):
 
     numTracks = fmutil.numTracks( ioll )
 
-    for i in range( 0, numTracks, 1 ):
+    for i in range( 0, 20, 1 ):
         track_tick = fmutil.grabTickFromMCTrack( ioll, i )
 
         producer = fmutil.producer
@@ -217,7 +225,11 @@ for ientry in range(1):
             run[0] = ioll.run_id()
             subrun[0] = ioll.subrun_id()
             event[0] = ioll.event_id()
+            #ancestorID[0] = fmutil.trackAncestorID(ioll,i)
+            ancestorID[0] = fmutil.trackAncestorID()
             clusterTick[0] = track_tick
+            flashTick[0] = match
+            origin[0] = fmutil.trackOrigin()
 
 
             coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
@@ -242,7 +254,7 @@ for ientry in range(1):
 
             ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
             ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
-            
+
 
             outtree.Fill()
 
