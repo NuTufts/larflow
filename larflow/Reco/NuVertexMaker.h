@@ -100,17 +100,22 @@ namespace reco {
     
   protected:
 
-    void _createCandidates();
+    void _createCandidates(larcv::IOManager& iolcv);
     void _set_defaults();
     void _score_vertex( NuVertexCandidate& vtx ); 
-    void _merge_candidates();
-    bool _attachClusterToCandidate( NuVertexCandidate& vertex,
+    void _merge_candidates(larcv::IOManager& iolcv);
+    bool _attachClusterToCandidate( larcv::IOManager& iolcv,
+                                    NuVertexCandidate& vertex,
                                     const larlite::larflowcluster& lfcluster,
                                     const larlite::pcaxis& lfpca,
                                     NuVertexCandidate::ClusterType_t ctype,
                                     std::string producer,
                                     int icluster,                                    
                                     bool apply_cut );
+    float _getProjectedGapDistance( larcv::IOManager& iolcv,
+                                    const std::vector<float>& vtxPos,
+                                    const std::vector<float>& trackPt,
+                                    const std::vector<float>& trackDir );
     void _cosmic_veto_candidates( larlite::storage_manager& ioll );
     void _refine_position( larcv::IOManager& iolcv,
                            larlite::storage_manager& ioll );
@@ -123,6 +128,9 @@ namespace reco {
     int    _ana_event;   ///< [ana tree variable] event number
     TTree* _ana_tree;    ///< ROOT tree to save output of algorithm
     bool   _apply_cosmic_veto;  ///< apply wirecell filter to reduce number of possible keypoints
+    float  _proj_step; ///< step size in cm for dead channel projection
+    float  _max_proj_dist; ///< maximum total distance for dead channel projection
+    float  _max_live_wire_proj; ///< max distance to project through live wires for deach ch. proj.
     
   public:
     

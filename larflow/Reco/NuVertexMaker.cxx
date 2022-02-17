@@ -3,8 +3,10 @@
 #include "geofuncs.h"
 #include "larlite/DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventChStatus.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/GeometryHelper.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 #include "NuVertexFitter.h"
@@ -89,8 +91,8 @@ namespace reco {
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
     }
 
-    _createCandidates();
-    _merge_candidates();
+    _createCandidates(iolcv);
+    _merge_candidates(iolcv);
     if ( _apply_cosmic_veto ) {
       _cosmic_veto_candidates( ioll );
     }
@@ -118,7 +120,7 @@ namespace reco {
    * @endverbatim
    * 
    */
-  void NuVertexMaker::_createCandidates()
+  void NuVertexMaker::_createCandidates(larcv::IOManager& iolcv)
   {
 
     LARCV_DEBUG() << "Associate clusters to vertices via impact par and gap distance" << std::endl;
@@ -168,7 +170,7 @@ namespace reco {
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
           NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
 
-          bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
+          bool attached = _attachClusterToCandidate( iolcv, vertex, lfcluster, lfpca,
                                                      ctype, it->first, icluster, true );
 
           LARCV_DEBUG() << "  cluster " << it->first << "[" << icluster << "] attached=" << attached << std::endl;
@@ -247,6 +249,10 @@ namespace reco {
     _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
 
     _apply_cosmic_veto = false;
+
+    _proj_step = 0.3;
+    _max_proj_dist = 20.0;
+    _max_live_wire_proj = 2.0;
     
   }
 
@@ -339,7 +345,7 @@ namespace reco {
    * we fill the _merged_v vector using _vertex_v candidates.
    *
    */
-  void NuVertexMaker::_merge_candidates()
+  void NuVertexMaker::_merge_candidates(larcv::IOManager& iolcv)
   {
 
     // sort by score
@@ -442,7 +448,7 @@ namespace reco {
             auto const& lfcluster = it_clust->second->at(test_clust.index);
             auto const& lfpca     = it_pca->second->at(test_clust.index);
             auto const& clust_t   = it_ctype->second;
-            _attachClusterToCandidate( cand, lfcluster, lfpca, clust_t,
+            _attachClusterToCandidate( iolcv, cand, lfcluster, lfpca, clust_t,
                                        test_clust.producer, test_clust.index, false );
           }
               
@@ -482,7 +488,8 @@ namespace reco {
    * @param[in] icluster cluster index
    * @param[in] apply_cut if true, clusters only attached if satisfies limits on impact parameter and gap distance
    */
-  bool NuVertexMaker::_attachClusterToCandidate( NuVertexCandidate& vertex,
+  bool NuVertexMaker::_attachClusterToCandidate( larcv::IOManager& iolcv,
+                                                 NuVertexCandidate& vertex,
                                                  const larlite::larflowcluster& lfcluster,
                                                  const larlite::pcaxis& lfpca,
                                                  NuVertexCandidate::ClusterType_t ctype,
@@ -525,8 +532,14 @@ namespace reco {
 
     if ( apply_cut ) {
       // wide association for now
-      if ( gapdist>_cluster_type_max_gap[ctype] )
-        return false;
+      if ( gapdist>_cluster_type_max_gap[ctype] ){
+        if(gapdist > _max_proj_dist) return false;
+        float projGapDist = 999.;
+        if(closestend == 0) projGapDist = _getProjectedGapDistance(iolcv, vertex.pos, start, pcadir);
+        if(closestend == 1) projGapDist = _getProjectedGapDistance(iolcv, vertex.pos, end, pcadir);
+        if( projGapDist>_cluster_type_max_gap[ctype] )
+          return false;
+      }
           
       if ( r>_cluster_type_max_impact_radius[ctype] )
         return false;
@@ -562,7 +575,68 @@ namespace reco {
     
     return true;
   }
-  
+ 
+
+  /**
+   * @brief get distance from vertex to track's projection through dead channel regions
+   *
+   * @param[in] vertex position
+   * @param[in] start track point for projection
+   * @param[in] track direction
+   */
+  float NuVertexMaker::_getProjectedGapDistance( larcv::IOManager& iolcv,
+                                                 const std::vector<float>& vtxPos,
+                                                 const std::vector<float>& trackPt,
+                                                 const std::vector<float>& trackDir )
+  {
+    auto geo = larutil::Geometry::GetME();
+    auto geohelp = larutil::GeometryHelper::GetME();
+    larcv::EventChStatus* ev_chstatus =
+      (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
+    float wToCm = geohelp->WireToCm();
+
+    float trackDirMag = sqrt(trackDir[0]*trackDir[0] + trackDir[1]*trackDir[1] + 
+     trackDir[2]*trackDir[2]);
+    TVector3 vtxPosV(vtxPos[0], vtxPos[1], vtxPos[2]);
+    TVector3 trackPtV(trackPt[0], trackPt[1], trackPt[2]);
+    TVector3 projDirV(trackDir[0]/trackDirMag, trackDir[1]/trackDirMag, trackDir[2]/trackDirMag);
+    if(projDirV.Angle(trackPtV - vtxPosV) < M_PI/2.) projDirV *= -1.;
+
+    TVector3 projPt = trackPtV;
+    TVector3 newPt = trackPtV + _proj_step*projDirV;
+    TVector3 firstGoodPt = trackPtV;
+    float distToVtx = (trackPtV - vtxPosV).Mag();
+    float currDist = (newPt - vtxPosV).Mag();
+    bool inLiveRegion = true;
+
+    while(currDist < distToVtx){
+
+      bool foundBadChannel = false;
+      for(unsigned int i = 0; i < 3; ++i){
+        larutil::Point2D planePt = geohelp->Point_3Dto2D(newPt, i);
+        unsigned int wire = (unsigned int)round(planePt.w/wToCm);
+        if(wire > geo->Nwires(i)-1) wire = geo->Nwires(i)-1;
+        if(ev_chstatus->Status(i).Status(wire) < 4)
+          { foundBadChannel = true; break; }
+      }
+
+      if(!inLiveRegion && !foundBadChannel)
+        { firstGoodPt = newPt; inLiveRegion = true; }
+      if(foundBadChannel)
+        { inLiveRegion = false; }
+      if(inLiveRegion && (newPt - firstGoodPt).Mag() > _max_live_wire_proj)
+        { projPt = firstGoodPt; break; }
+
+      distToVtx = currDist;
+      projPt = newPt;
+      newPt = newPt + _proj_step*projDirV;
+      currDist = (newPt - vtxPosV).Mag();
+
+    }
+
+    return (projPt - vtxPosV).Mag();
+  }
+ 
   /**
    * @brief apply cosmic track veto to candidate vertices
    *
