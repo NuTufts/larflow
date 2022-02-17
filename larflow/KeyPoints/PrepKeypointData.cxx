@@ -48,6 +48,7 @@ namespace keypoints {
     for (int i=0; i<6; i++) {
       _match_proposal_labels_v[i].clear();
       _kppos_v[i].clear();
+      _kp_pdg_trackid_v[i].clear();      
     }
       
   }
@@ -167,8 +168,10 @@ namespace keypoints {
 
     // build key-points
     _kpd_v.clear();
-    for (int i=0; i<6; i++)
+    for (int i=0; i<6; i++) {
       _kppos_v[i].clear();
+      _kp_pdg_trackid_v[i].clear();      
+    }
 
     // build crossing points for muon track primaries
     std::vector<KPdata> track_kpd
@@ -199,12 +202,16 @@ namespace keypoints {
     for ( auto const& kpd : _kpd_v ) {
       if ( kpd.kptype>=0 && kpd.kptype<6 ) {
         _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
+	std::vector<int> pdg_trackid(2);
+	pdg_trackid[0] = kpd.pid;
+	pdg_trackid[1] = kpd.trackid;
+	_kp_pdg_trackid_v[ kpd.kptype ].push_back( pdg_trackid );
       }
       else {
         throw std::runtime_error("unrecognized keypoint type");
       }          
     }
-
+    
   }
 
 
@@ -743,6 +750,10 @@ namespace keypoints {
     _label_tree->Branch("run",    &_run,    "run/I");
     _label_tree->Branch("subrun", &_subrun, "subrun/I");
     _label_tree->Branch("event",  &_event,  "event/I");
+
+    std::string kp_type_names[6]
+      = {"nuvertex","trackstart","trackend","showerstart","showermichel","showerdelta"};
+    
     _label_tree->Branch("kplabel_nuvertex",     &_match_proposal_labels_v[0]);
     _label_tree->Branch("kplabel_trackstart",   &_match_proposal_labels_v[1]);
     _label_tree->Branch("kplabel_trackend",     &_match_proposal_labels_v[2]);    
@@ -755,6 +766,12 @@ namespace keypoints {
     _label_tree->Branch("kppos_showerstart",  &_kppos_v[3]);
     _label_tree->Branch("kppos_showermichel", &_kppos_v[4]);
     _label_tree->Branch("kppos_showerdelta",  &_kppos_v[5]);
+
+    // truth meta data branches
+    for (int i=0; i<6; i++) {
+      std::string brname = "kptruth_"+kp_type_names[i];
+      _label_tree->Branch( brname.c_str(), &_kp_pdg_trackid_v[i] );
+    }
 
     hdist[0] = new TH1F("hdist_x","",2002,-500,500.0);
     hdist[1] = new TH1F("hdist_y","",2002,-500,500.0);

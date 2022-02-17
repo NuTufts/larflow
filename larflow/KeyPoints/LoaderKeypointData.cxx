@@ -82,6 +82,7 @@ namespace keypoints {
     
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
+
   }
 
   /**
@@ -95,6 +96,12 @@ namespace keypoints {
     unsigned long bytes = ttriplet->GetEntry(entry);
     bytes = tssnet->GetEntry(entry);
     bytes = tkeypoint->GetEntry(entry);
+
+    LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
+    for (int n=0; n<6; n++) {
+      std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
+    }
+    
     return bytes;
   }
 
@@ -509,6 +516,30 @@ namespace keypoints {
     }
     
     return 0;
+  }
+
+  std::vector< std::vector<float> > LoaderKeypointData::get_keypoint_pos() const
+  {
+    std::vector< std::vector<float> > kp_pos;
+    for (int n=0; n<6; n++) {
+      int nkp = (int)kppos_v[n]->size();
+      for (int i=0; i<nkp; i++) {
+	kp_pos.push_back( kppos_v[n]->at(i) );
+      }
+    }
+    return kp_pos;
+  }
+
+  std::vector< int > LoaderKeypointData::get_keypoint_types() const
+  {
+    std::vector< int > kp_types;
+    for (int n=0; n<6; n++) {
+      int nkp = (int)kppos_v[n]->size();
+      for (int i=0; i<nkp; i++) {
+	kp_types.push_back(n);
+      }
+    }
+    return kp_types;
   }
   
 }

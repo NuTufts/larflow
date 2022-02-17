@@ -15,6 +15,20 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 #---CERN ROOT (required)
 find_package(ROOT CONFIG REQUIRED)
+# we set the compiler version based on the one used for ROOT
+execute_process(
+    COMMAND bash "-c" "root-config --features | awk '{print $1}'"
+    OUTPUT_VARIABLE ROOT_CXX_STANDARD )
+if (${ROOT_CXX_STANDARD} MATCHES "cxx17")
+  message( STATUS "using cxx17")
+  set(CMAKE_CXX_STANDARD 17)
+elseif (${ROOT_CXX_STANDARD} MATCHES "cxx14")
+  message(STATUS "using cxx14")
+  set(CMAKE_CXX_STANDARD 14)
+else ()
+  message( STATUS "using cxx11")  
+  set(CMAKE_CXX_STANDARD 11)
+endif()
 
 #---LArCV (required)
 set( larcv_DIR "$ENV{LARCV_LIBDIR}/cmake/larcv")
@@ -49,6 +63,8 @@ endif()
 
 
 #---LArLite
+set( larlite_DIR $ENV{LARLITE_LIBDIR}/cmake/larlite )
+find_package( larlite REQUIRED )
 set( LARLITE_INC_DIRS "$ENV{LARLITE_COREDIR}" "$ENV{LARLITE_BASEDIR}" "$ENV{LARLITE_USERDEVDIR}" "$ENV{LARLITE_BASEDIR}/../" )
 set( LARLITE_LIB_DIR  "$ENV{LARLITE_LIBDIR}" )
 set( HAS_LARLITE 1 )
