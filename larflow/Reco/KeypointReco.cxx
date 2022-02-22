@@ -189,6 +189,7 @@ namespace reco {
     std::vector< std::vector<float> > skimmed_pt_v;
     std::vector< int > skimmed_index_v;
 
+    // collect spacepoints with scores above a threshold
     _skim_remaining_points( keypoint_score_threshold,
                             skimmed_pt_v,
                             skimmed_index_v );
@@ -205,7 +206,6 @@ namespace reco {
                   << " maxkd=" <<  maxkd
                   << std::endl;
     
-    //cluster_spacepoint_v( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );
     cluster_sdbscan_spacepoints( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );    
 
     float sigma = _sigma; // bandwidth
@@ -295,7 +295,7 @@ namespace reco {
 
       int skimidx = cluster.hitidx_v[i];
       
-      float w = skimmed_pt_v[ skimidx ][3]*skimmed_pt_v[ skimidx ][4];
+      float w = skimmed_pt_v[ skimidx ][3]*skimmed_pt_v[ skimidx ][4]; // (score * charge)
       if ( w>10.0 ) w = 10.0;
       if ( w<0.0 ) w = 0.0;
       
@@ -430,6 +430,10 @@ namespace reco {
     _output_tree = new TTree("larflow_keypointreco", "Reconstructed keypoint clusters");
     bindKPClusterContainerToTree( _output_tree );
   }
+
+  /**
+   * @brief parse the output of v2 larmatch keypoint output and produce keypoints
+   */
 
   
 }
