@@ -47,6 +47,7 @@
 #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
 #pragma link C++ class larflow::reco::DBScanLArMatchHits+;
 #pragma link C++ class larflow::reco::KeypointReco+;
+#pragma link C++ class larflow::reco::EventKeypointReco+;
 #pragma link C++ class larflow::reco::TrackClusterBuilder+;
 #pragma link C++ class larflow::reco::CosmicTrackBuilder+;
 #pragma link C++ class larflow::reco::TrackOTFit+;

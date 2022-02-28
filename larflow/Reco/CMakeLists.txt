@@ -12,7 +12,7 @@ set( HEADERS cluster_functions.h
   ProjectionDefectSplitter.h
   ShortProtonClusterReco.h
   PyLArFlow.h
-  KPCluster.h KeypointReco.h
+  KPCluster.h KeypointReco.h EventKeypointReco.h
   KeypointFilterByClusterSize.h
   KeypointFilterByWCTagger.h
   TrackClusterBuilder.h
@@ -63,7 +63,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ShortProtonClusterReco.cxx  
   PyLArFlow.cxx
   KPCluster.cxx
-  KeypointReco.cxx
+  KeypointReco.cxx EventKeypointReco.cxx
   KeypointFilterByClusterSize.cxx
   KeypointFilterByWCTagger.cxx
   ShowerRecoKeypoint.cxx
