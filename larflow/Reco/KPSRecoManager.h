@@ -183,7 +183,8 @@ namespace reco {
   public:
     
     // for debug
-    bool _stop_after_keypointreco;
+    bool _stop_after_prepspacepoints; ///< stop after prepSpacepoints()
+    bool _stop_after_keypointreco;    ///< stop after recoKeypoints()
     
   public:
 
@@ -192,6 +193,12 @@ namespace reco {
 
     /** @brief Minimize the output file size by not saving intermediate vertex candidates */
     void minimze_output_size( bool domin=true ) { _kMinize_outputfile_size=domin; };
+
+    /** @brief Set reco chain to stop at spacepoint preparation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_spacepoint_prep( bool stop_here=true ) { _stop_after_prepspacepoints=stop_here; };
+    
+    /** @brief Set reco chain to stop at keypoint reconstruction and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_keypoint_reco( bool stop_here=true ) { _stop_after_keypointreco=stop_here; };
     
   };
 

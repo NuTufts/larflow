@@ -20,7 +20,8 @@ parser.add_argument("-p","--products",default="rerun",help="output products save
 parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
 parser.add_argument("-v",'--version',default=1,type=int,help="The reco version [default 1]")
 # just for debug/development
-parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at keypoint reco")
+parser.add_argument('--stop-after-spacepointprep',default=False,action='store_true',help="If true, stop at Spacepoint Prep")
+parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at Keypoint Reco")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -50,7 +51,12 @@ if args.ismc:
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
 if args.stop_after_keypointreco:
-    recoman._stop_after_keypointreco = True
+    recoman.debug_stop_at_keypoint_reco( True )
+if args.stop_after_spacepointprep:
+    print("STOP AFTER SPACEPOINT PREP")
+    recoman.debug_stop_at_spacepoint_prep( True )
+    print("[enter] to start")
+    input()
 
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )

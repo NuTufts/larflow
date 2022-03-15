@@ -50,6 +50,7 @@ io.open()
 #out = rt.TFile(args.output,"recreate")
 
 kpreco = larflow.reco.EventKeypointReco()
+#kpreco.set_verbosity(0)
 print(kpreco)
 
 #lcv_nentries = iolcv.get_n_entries()

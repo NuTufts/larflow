@@ -29,6 +29,7 @@ namespace reco {
     _save_selected_only(false),
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
+    _stop_after_prepspacepoints(false),
     _stop_after_keypointreco(false)
   {
     make_ana_file();
@@ -91,20 +92,27 @@ namespace reco {
           << std::endl;
       throw std::runtime_error(msg.str());
     }
+
+    // Set run, subrun, event indices in ana tree
+    _ana_run = ev_adc->run();
+    _ana_subrun = ev_adc->subrun();
+    _ana_event  = ev_adc->event();
     
     // PREP SETS OF HITS
     // ------------------
     prepSpacepoints( iolcv, ioll  );
-    
+    if ( _stop_after_prepspacepoints ) {
+      // early stoppage to debug (and visualize) prepared spacepoints
+      _ana_tree->Fill();
+      return;
+    }
+
     // Make keypoint candidates from larmatch vertex
     // ---------------------------------------------
     recoKeypoints( iolcv, ioll );
 
     if ( _stop_after_keypointreco ) {
-      // for debug
-      _ana_run = ev_adc->run();
-      _ana_subrun = ev_adc->subrun();
-      _ana_event  = ev_adc->event();
+      // early stoppage to debug (and visualize) prepared keypoints
       _ana_tree->Fill();
       return;
     }
@@ -249,6 +257,22 @@ namespace reco {
     _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
     _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
     _choosemaxhit.process( iolcv, ioll );
+
+    // if we're stopping at this stage for debugging/plotting,
+    // we force the saving of all the intermediate hit containers
+    if ( _stop_after_prepspacepoints ) {
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "larmatch" ); ///< save all original hits (now ssnet-labeled)
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxtrackhit_wcfilter" ); ///< final set of in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxshowerhit" );         ///< final set of in-time shower hits      
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "full_maxtrackhit" );     ///< final set of out-of-time track hits
+
+      // intermediate hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_trackhit" );      //< pre-max out-of-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_showerhit" );     //< pre-max out-of-time shower hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_trackhit" );  //< pre-max in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_showerhit" ); //< pre-max in-time track hits
+      
+    }
     
   }
   
