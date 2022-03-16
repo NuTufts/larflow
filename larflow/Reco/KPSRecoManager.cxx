@@ -30,7 +30,8 @@ namespace reco {
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
     _stop_after_prepspacepoints(false),
-    _stop_after_keypointreco(false)
+    _stop_after_keypointreco(false),
+    _stop_after_subclustering(false)      
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -119,6 +120,11 @@ namespace reco {
       
     // PARTICLE FRAGMENT RECO
     clusterSubparticleFragments( iolcv, ioll );
+    if ( _stop_after_subclustering ) {
+      // early stopping to debug (and visualize) subclusters
+      _ana_tree->Fill();
+      return;
+    }
     
     // COSMIC RECO
     cosmicTrackReco( iolcv, ioll );
@@ -183,6 +189,15 @@ namespace reco {
                                         larlite::storage_manager& ioll )
   {
 
+    // PREP: make sure the larmatch points have their idxhit index set
+    // we can use this as a way to trace identity of hits back to original set
+    larlite::event_larflow3dhit* ev_larmatch =
+      (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+    for (size_t ihit=0; ihit<ev_larmatch->size(); ihit++) {
+      auto& hit = ev_larmatch->at(ihit);
+      hit.idxhit = (int)ihit;
+    }
+    
     // PREP: LABEL larmatch POINTS WITH 2D SSNET SHOWER SCORE
     // input:
     //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
@@ -349,7 +364,7 @@ namespace reco {
       // after it runs. everything we need downstream is saved to a larlite tree.
       // so we simply re-run the algorithms to work with the additional vertex types.
 
-      // neutrino: the same as reco version 1
+      // neutrino
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
       _kpreco_nu.set_min_cluster_size(   50.0, 0 );
@@ -464,7 +479,7 @@ namespace reco {
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
     _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.set_fit_line_segments_to_clusters( true );
@@ -500,7 +515,21 @@ namespace reco {
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
 
     // SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints
-    
+
+    if ( _stop_after_subclustering ) {
+      // we're going to stop here. save key intermediate products from this stage.
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_wcfilter" ); // in-time track clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_wcfilter" );         // in-time track clusters
+      
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_full" ); // out-of-time track clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_full" );         // out-of-time track clusters
+      
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "showerkp" ); // shower in-time clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "showerkp" );         // shower in-time clusters
+
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitnoise" ); // unused hits in cluster splitter
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitvetoed" ); // unused hits in cluster splitter      
+    }
   }
 
   /**

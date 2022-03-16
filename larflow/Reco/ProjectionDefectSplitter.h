@@ -36,7 +36,7 @@ namespace reco {
       _input_lfhit_tree_name("larmatch"),
       _output_cluster_tree_name("projsplit"),
       _min_larmatch_score(0.0),
-      _maxdist(2.0),
+      _maxdist(3.0),
       _minsize(20),
       _maxkd(30),
       _veto_hits_around_keypoints(false),
@@ -118,6 +118,9 @@ namespace reco {
     std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  ///< we veto clusters if they are near these 3d space points
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
+    int _veto_hits_using_keypoint_scores( const larlite::event_larflow3dhit& inputhits,
+					  std::vector<int>& used_hits_v,
+					  float kp_score_threshold );
 
     bool _fit_line_segments_to_clusters; ///< if true, run routine to fit line segments to the different clusters
 

@@ -111,6 +111,12 @@ namespace reco {
         evout_noise->push_back( ev_lfhits->at(i) );
       }
     }
+    // make noise cluster
+    larlite::event_larflow3dhit* evout_veto = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitvetoed" );    
+    for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
+      if ( used_hits_v[i]==2 )
+        evout_veto->push_back( ev_lfhits->at(i) );
+    }
     
   }
 
@@ -568,7 +574,8 @@ namespace reco {
     output_cluster_v.clear();
 
     // veto hits using keypoints
-    int nvetoed = _veto_hits_using_keypoints( inputhits, used_hits_v );
+    int nvetoed_kp = _veto_hits_using_keypoints( inputhits, used_hits_v );
+    int nvetoed_kpscore = _veto_hits_using_keypoint_scores( inputhits, used_hits_v, 0.9 );
     
     // downsample points, if needed
     std::vector<larlite::larflow3dhit> downsample_hit_v;
@@ -623,7 +630,7 @@ namespace reco {
                                                        used_hits_v,
                                                        downsample_hit_v,
                                                        orig_idx_v,
-                                                       10.0 );
+                                                       5.0 );
         dense_cluster_v.emplace_back( std::move(ds_cluster) );
       }
       
@@ -643,51 +650,119 @@ namespace reco {
 
     // if we vetod hits, we assign those veto hits near the ends of found clusters
     // we recalc the pca for these clusters
-    // ============= TO DO ==================
-    if ( nvetoed>0 ) {
+    if ( nvetoed_kp>0 || nvetoed_kpscore>0 ) {
       // track which clusters we modified
       std::vector<int> modded_cluster( dense_cluster_v.size(), 0 );
       int nclaimed = 0;
+
+      std::map<int,float> claimed_hitidx_mindist; //map from hitindex to min distance to cluster
+      std::map<int,int>   claimed_hitidx_clusteridx; //map from hitindex to best claiming cluster
       
-      // add hits to cluster ends
-      for ( int ihit=0; ihit<total_pts; ihit++) {
-        if ( used_hits_v[ihit]!=2 )
-          continue;
+      // loop over clusters and check if keypoint is close to ends
+      // if so, absorb points along line
+      for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
+	auto& cluster = dense_cluster_v[ic];
 
-        auto const& hit = inputhits[ihit];
+	// find close keypoints
+	bool veto_hit = false;
+	for ( auto const& pev_keypoint : _event_keypoint_for_veto_v ) {
+	  for ( auto const& kphit : *pev_keypoint ) {
+
+	    // check the distance to the ends
+	    for (int iend=0; iend<2; iend++) {
+	      float dist = 0.;
+	      for (int v=0; v<3; v++) {
+		dist += (cluster.pca_ends_v[iend][v]-kphit[v])*(cluster.pca_ends_v[iend][v]-kphit[v]);
+	      }
+	      dist = sqrt(dist);
+
+	      if ( dist>0.0 && dist<5.0 ) {
+
+		// this keypoint is close enough to the end.
+		// we absorb hits along the line
+		std::vector<float> fkphit = { kphit[0], kphit[1], kphit[2] };
+	    
+		for ( int ihit=0; ihit<total_pts; ihit++) {
+		  if ( used_hits_v[ihit]!=2 )
+		    continue;
+
+		  auto const& hit = inputhits[ihit];
+		  std::vector<float> hitpt = { hit[0], hit[1], hit[2] };
         
-        // check to add to clusters
-        bool claimed = false;
-        for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
-          auto& cluster = dense_cluster_v[ic];
-          for ( auto const& endpt : cluster.pca_ends_v ) {
-            float dist = 0.;
-            for (int v=0; v<3; v++)
-              dist += (endpt[v]-hit[v])*(endpt[v]-hit[v]);
-            if (dist<_maxdist*_maxdist ) {
-              std::vector<float> pt = { hit[0], hit[1], hit[2] };
-              std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+		  // check to add to clusters
+		  bool claimed = false;
+		  float closest_dist = 5.0;
+		  int closest_cluster_idx = -1;
 
-              int downsample_index = orig_idx_v.size();
-              orig_idx_v.push_back( ihit );
-              downsample_hit_v.push_back( hit );              
-              
-              cluster.points_v.push_back( pt );
-              cluster.imgcoord_v.push_back( imgcoord );
-              cluster.hitidx_v.push_back( downsample_index );
+		  float dist_to_pca_line =
+		    larflow::reco::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
 
-              used_hits_v[ihit] = 1;
-              modded_cluster[ic] = 1;
-              nclaimed++;
-              break;
-            }
-            if ( claimed )
-              break;
-          }//end of loop over end points
-          if ( claimed )
-            break;
-        }//end of loop over clusters
-      }//end of hit loop
+		  float ptproj = larflow::reco::pointRayProjection3f( fkphit, cluster.pca_ends_v[iend], hitpt );
+
+		  if ( dist_to_pca_line<1.5 && ptproj>0.0 ) {
+
+		    float enddist = 0.;
+		    for (int v=0; v<3; v++) {
+		      enddist += (cluster.pca_ends_v[iend][v]-hitpt[v])*(cluster.pca_ends_v[iend][v]-hitpt[v]);
+		    }
+		    enddist   = sqrt(enddist);
+
+		    if ( enddist<5.0 ) {
+		      claimed = true;
+
+		      auto itclaimed = claimed_hitidx_mindist.find( ihit );
+		      if (itclaimed!=claimed_hitidx_mindist.end()) {
+			if ( dist_to_pca_line < itclaimed->second ) {
+			  // better than previous claim
+			  claimed_hitidx_mindist[ihit] = dist_to_pca_line;
+			  claimed_hitidx_clusteridx[ihit] = ic;
+			}
+		      }
+		      else {
+			// new claim
+			claimed_hitidx_mindist[ihit] = dist_to_pca_line;
+			claimed_hitidx_clusteridx[ihit] = ic;
+		      }
+
+		      // std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+		      // int downsample_index = orig_idx_v.size();
+		      // orig_idx_v.push_back( ihit );
+		      // downsample_hit_v.push_back( hit );              
+		      // cluster.points_v.push_back( hitpt );
+		      // cluster.imgcoord_v.push_back( imgcoord );
+		      // cluster.hitidx_v.push_back( downsample_index );
+
+		      // used_hits_v[ihit] = 1;
+		      // modded_cluster[ic] = 1;
+		      // nclaimed++;
+		      
+		    }//end of enddist
+		  }//end of pca distance
+		  
+		}//end of hit	    
+	      }//end of if close to keypoint
+	    }//end of loop end
+	  }//end of keypoint loop
+	}//end of keypoint event
+      }//end of dense cluster
+
+      // add claimed hits to clusters
+      for ( auto itclaimed=claimed_hitidx_clusteridx.begin(); itclaimed!=claimed_hitidx_clusteridx.end(); itclaimed++ ) {
+	auto const& hit = inputhits.at(itclaimed->first);
+	auto& cluster = dense_cluster_v.at(itclaimed->second);
+	std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+	std::vector<float> hitpt    = { hit[0], hit[1], hit[2] };
+	int downsample_index = orig_idx_v.size();
+	orig_idx_v.push_back( itclaimed->first );
+	downsample_hit_v.push_back( hit );              
+	cluster.points_v.push_back( hitpt );
+	cluster.imgcoord_v.push_back( imgcoord );
+	cluster.hitidx_v.push_back( downsample_index );
+
+	used_hits_v[itclaimed->first] = 1;
+	modded_cluster[itclaimed->second] = 1;
+	nclaimed++;	
+      }
       
       // if we modded any clusters, recalc the pca
       int nmodded = 0;
@@ -700,7 +775,7 @@ namespace reco {
       }
       LARCV_INFO() << "Absorbed " << nclaimed << " hits and moddified " << nmodded << " clusters"  << std::endl;
     }//end of if we ha veto'd hits, absorb those hits and veto
-      
+    
     // we perform split functions on the clusters
     int nsplit = 0;
     for (int isplit=0; isplit<3; isplit++ ) {
@@ -811,6 +886,47 @@ namespace reco {
     return nhits_vetoed;
   }
 
+  /**
+   * @brief veto hits using larmatch network keypoint scores
+   *
+   * we veto hits with nu,trackstart,showerstart score.
+   * we veto by marking hits in the used hits vector.
+   *
+   * @param[in]  inputhits   Container of input hits
+   * @param[out] used_hits_v Vector used to flag/veto hits
+   */
+  int ProjectionDefectSplitter::_veto_hits_using_keypoint_scores( const larlite::event_larflow3dhit& inputhits,
+								  std::vector<int>& used_hits_v,
+								  float kp_score_threshold )
+  {
+
+    std::vector<int> kpscore_indices = { 17, 18, 19, 20 };
+    
+    float max_dist_sq = _maxdist*_maxdist;
+    int nhits_vetoed = 0;
+    for ( int ihit=0; ihit<(int)inputhits.size(); ihit++ ) {
+
+      if ( used_hits_v[ihit]!=0 )
+        continue;
+      
+      auto const& lfhit = inputhits[ihit];
+      
+      bool veto_hit = false;
+      for (auto const& idx : kpscore_indices ) {
+	if ( lfhit[idx]>kp_score_threshold)
+	  veto_hit = true;
+      }
+      
+      if ( veto_hit ) {
+        nhits_vetoed += 1;
+        used_hits_v[ihit] = 2;
+      }
+      
+    }
+    LARCV_INFO() << "Number of hits veto'd by keypoint scores: " << nhits_vetoed << " out of " << used_hits_v.size() << std::endl;
+    return nhits_vetoed;
+  }
+  
   /**
    * @brief fit line segments to clusters
    *

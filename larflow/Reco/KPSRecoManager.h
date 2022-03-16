@@ -182,9 +182,10 @@ namespace reco {
 
   public:
     
-    // for debug
+    // reco phase stopping points for debugging and visualization
     bool _stop_after_prepspacepoints; ///< stop after prepSpacepoints()
     bool _stop_after_keypointreco;    ///< stop after recoKeypoints()
+    bool _stop_after_subclustering;   ///< stop after clusterSubparticleFragments()
     
   public:
 
@@ -199,6 +200,10 @@ namespace reco {
     
     /** @brief Set reco chain to stop at keypoint reconstruction and save intermediates for debug/ana/visualization **/
     void debug_stop_at_keypoint_reco( bool stop_here=true ) { _stop_after_keypointreco=stop_here; };
+
+    /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_subclustering( bool stop_here=true ) { _stop_after_subclustering=stop_here; };
+    
     
   };
 

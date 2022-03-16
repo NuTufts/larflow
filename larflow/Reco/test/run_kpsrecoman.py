@@ -18,10 +18,11 @@ parser.add_argument('-tb','--tickbackwards',action='store_true',default=False,he
 parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If true, store MC information")
 parser.add_argument("-p","--products",default="rerun",help="output products saved. choices: {rerun[default],min,debug}")
 parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
-parser.add_argument("-v",'--version',default=1,type=int,help="The reco version [default 1]")
+parser.add_argument("-v",'--version',default=2,type=int,help="The reco version [default 2]")
 # just for debug/development
 parser.add_argument('--stop-after-spacepointprep',default=False,action='store_true',help="If true, stop at Spacepoint Prep")
 parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at Keypoint Reco")
+parser.add_argument('--stop-after-subclustering',default=False,action='store_true',help="If true, stop at subcluster reco")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -55,6 +56,11 @@ if args.stop_after_keypointreco:
 if args.stop_after_spacepointprep:
     print("STOP AFTER SPACEPOINT PREP")
     recoman.debug_stop_at_spacepoint_prep( True )
+    print("[enter] to start")
+    input()
+if args.stop_after_subclustering:
+    print("STOP AFTER SUBCLUSTERING")
+    recoman.debug_stop_at_subclustering( True )
     print("[enter] to start")
     input()
 
