@@ -87,6 +87,7 @@ for ientry in range( nentries ):
     iolcv.read_entry(ientry)
 
     tripmaker = ev_triplet[0]
+    mcpg = ublarcvapp.mctools.MCPixelPGraph()
     
     ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
     print("number of images: ",ev_adc.Image2DArray().size())
@@ -105,6 +106,10 @@ for ientry in range( nentries ):
 
     # make triplet proposals
     tripmaker.process( adc_v, badch_v, 10.0, True )
+
+    # dump pgraph
+    mcpg.buildgraphonly( ioll )
+    #mcpg.printGraph(0,False)
 
     # make good/bad triplet ground truth
     tripmaker.process_truth_labels( iolcv, ioll, "wiremc" )

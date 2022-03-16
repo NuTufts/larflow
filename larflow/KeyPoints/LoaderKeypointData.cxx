@@ -53,6 +53,7 @@ namespace keypoints {
     for (int i=0; i<6; i++) {
       kplabel_v[i] = 0;
       kppos_v[i] = 0;
+      kptruth_v[i] = 0;
     }
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
@@ -79,6 +80,13 @@ namespace keypoints {
     tkeypoint->SetBranchAddress("kppos_showerstart",  &kppos_v[3]);
     tkeypoint->SetBranchAddress("kppos_showermichel", &kppos_v[4]);
     tkeypoint->SetBranchAddress("kppos_showerdelta",  &kppos_v[5]);    
+
+    tkeypoint->SetBranchAddress("kptruth_nuvertex",     &kptruth_v[0]);
+    tkeypoint->SetBranchAddress("kptruth_trackstart",   &kptruth_v[1]);
+    tkeypoint->SetBranchAddress("kptruth_trackend",     &kptruth_v[2]);    
+    tkeypoint->SetBranchAddress("kptruth_showerstart",  &kptruth_v[3]);
+    tkeypoint->SetBranchAddress("kptruth_showermichel", &kptruth_v[4]);
+    tkeypoint->SetBranchAddress("kptruth_showerdelta",  &kptruth_v[5]);    
     
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
@@ -540,6 +548,19 @@ namespace keypoints {
       }
     }
     return kp_types;
+  }
+
+  std::vector< std::vector<int> > LoaderKeypointData::get_keypoint_pdg_and_trackid() const
+  {
+    std::vector< std::vector<int> > kp_pdgtrackid;
+    for (int n=0; n<6; n++) {
+      int nkp = (int)kptruth_v[n]->size();
+      for (int i=0; i<nkp; i++) {
+	const std::vector<int>& pdgtrackid = kptruth_v[n]->at(i);	
+	kp_pdgtrackid.push_back( pdgtrackid );
+      }
+    }
+    return kp_pdgtrackid;
   }
   
 }
