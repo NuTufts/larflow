@@ -310,12 +310,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         larbysmc = ublarcvapp.mctools.LArbysMC()
         larbysmc.process( io )
         larbysmc.printInteractionInfo()
-        
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-        traces_v += mctrack_v
 
-        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        traces_v.append( mcshower_v[2] )
+        mcinfoplots = lardly.data.visualize_nu_interaction(io, do_sce_correction=True )
+        traces_v += mcinfoplots
+        
+        #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        #traces_v += mctrack_v
+
+        #mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        #traces_v.append( mcshower_v[2] )
 
     # Check for perfect reco
     num_nu_perfect = 0        
