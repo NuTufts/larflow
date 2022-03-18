@@ -206,7 +206,11 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             # track-cluster
             lfcluster = nuvtx.track_hitcluster_v[itrack]
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,itrack) )
-            cluster_trace["marker"]["color"] = "rgb(0,255,0)"
+
+            randcolor = np.random.randint(0,high=254,size=2)
+            zcolor = "rgb(0,%d,%d)"%(randcolor[0],randcolor[1])
+            
+            cluster_trace["marker"]["color"] = zcolor
             cluster_trace["marker"]["opacity"] = 0.8
             cluster_trace["marker"]["size"] = 2.0
             traces_v.append(cluster_trace)            

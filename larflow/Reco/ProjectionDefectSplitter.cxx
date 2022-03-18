@@ -575,7 +575,7 @@ namespace reco {
 
     // veto hits using keypoints
     int nvetoed_kp = _veto_hits_using_keypoints( inputhits, used_hits_v );
-    int nvetoed_kpscore = _veto_hits_using_keypoint_scores( inputhits, used_hits_v, 0.9 );
+    int nvetoed_kpscore = _veto_hits_using_keypoint_scores( inputhits, used_hits_v, _kp_veto_score_threshold );
     
     // downsample points, if needed
     std::vector<larlite::larflow3dhit> downsample_hit_v;
@@ -676,7 +676,7 @@ namespace reco {
 	      }
 	      dist = sqrt(dist);
 
-	      if ( dist>0.0 && dist<5.0 ) {
+	      if ( dist>0.0 && dist<10.0 ) {
 
 		// this keypoint is close enough to the end.
 		// we absorb hits along the line
@@ -691,7 +691,7 @@ namespace reco {
         
 		  // check to add to clusters
 		  bool claimed = false;
-		  float closest_dist = 5.0;
+		  float closest_dist = _kp_veto_radius+1.0;
 		  int closest_cluster_idx = -1;
 
 		  float dist_to_pca_line =
@@ -848,7 +848,7 @@ namespace reco {
                                                              std::vector<int>& used_hits_v )
   {
 
-    float max_dist_sq = _maxdist*_maxdist;
+    float max_dist_sq = _kp_veto_radius*_kp_veto_radius;
     int nhits_vetoed = 0;
     for ( int ihit=0; ihit<(int)inputhits.size(); ihit++ ) {
 
@@ -900,9 +900,8 @@ namespace reco {
 								  float kp_score_threshold )
   {
 
-    std::vector<int> kpscore_indices = { 17, 18, 19, 20 };
+    std::vector<int> kpscore_indices = { 17, 18, 19, 20, 21 };
     
-    float max_dist_sq = _maxdist*_maxdist;
     int nhits_vetoed = 0;
     for ( int ihit=0; ihit<(int)inputhits.size(); ihit++ ) {
 

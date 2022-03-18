@@ -157,6 +157,7 @@ namespace reco {
 
     void saveEventMCinfo(bool savemc);
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
+    void runPerfectMCreco( bool run_perfect=true ) { _run_perfect_mcreco=run_perfect; }; ///< if true and save MC info also set to true, run mc perfect reco
 
     void clear();
 
@@ -186,6 +187,7 @@ namespace reco {
     bool _stop_after_prepspacepoints; ///< stop after prepSpacepoints()
     bool _stop_after_keypointreco;    ///< stop after recoKeypoints()
     bool _stop_after_subclustering;   ///< stop after clusterSubparticleFragments()
+    bool _run_perfect_mcreco;         ///< if true, and in MC mode, run perfect reconstruction code
     
   public:
 

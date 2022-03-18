@@ -72,6 +72,7 @@ namespace reco {
 
     LARCV_DEBUG() << "Make Tracks" << std::endl;    
     ublarcvapp::mctools::TruthTrackSCE track_convertor( _psce );
+    track_convertor.set_verbosity( larcv::msg::kDEBUG );
     TrackdQdx dqdxalgo;
     
     for ( auto const& track : ev_mctrack ) {

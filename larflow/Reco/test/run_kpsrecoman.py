@@ -23,6 +23,7 @@ parser.add_argument("-v",'--version',default=2,type=int,help="The reco version [
 parser.add_argument('--stop-after-spacepointprep',default=False,action='store_true',help="If true, stop at Spacepoint Prep")
 parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at Keypoint Reco")
 parser.add_argument('--stop-after-subclustering',default=False,action='store_true',help="If true, stop at subcluster reco")
+parser.add_argument("--run-perfect-mcreco",default=False,action='store_true',help="If true, and --ismc also provided, then perfecto reco module is run")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -49,6 +50,8 @@ recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
 if args.ismc:
     recoman.saveEventMCinfo( args.ismc )
+    if args.run_perfect_mcreco:
+        recoman.runPerfectMCreco( True )
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
 if args.stop_after_keypointreco:

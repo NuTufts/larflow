@@ -36,9 +36,11 @@ namespace reco {
       _input_lfhit_tree_name("larmatch"),
       _output_cluster_tree_name("projsplit"),
       _min_larmatch_score(0.0),
-      _maxdist(3.0),
+      _maxdist(1.0),
       _minsize(20),
       _maxkd(30),
+      _kp_veto_radius(3.0),
+      _kp_veto_score_threshold(0.85),
       _veto_hits_around_keypoints(false),
       _fit_line_segments_to_clusters(false)      
       {};
@@ -80,6 +82,8 @@ namespace reco {
     float _maxdist;                         ///< maximum distance two spacepoints can be connected for dbscan
     int   _minsize;                         ///< minimum cluster size for dbscan
     int   _maxkd;                           ///< max number of neighbors per spaecepoint for dbscan
+    float _kp_veto_radius;                  ///< radius from keypoint within which spacepoints are vetoed
+    float _kp_veto_score_threshold;         ///< keypoint scores above threshold used to veto keypoints
 
   public:
 
@@ -92,6 +96,12 @@ namespace reco {
     /** @brief set minimum larmatch score must have to be included in clusters */
     void set_min_larmatch_score( float min_score ) { _min_larmatch_score = min_score; };
 
+    /** @brief set keypoint vertex veto radius */
+    void set_keypoint_veto_radius( float radius_cm ) { _kp_veto_radius = radius_cm; };
+
+    /** @brief set keypoint score threshold for veto */
+    void set_keypoint_score_threshold( float score ) { _kp_veto_score_threshold = score; };
+    
 
     /** 
      * @brief set the dbscan parameters for clustering 

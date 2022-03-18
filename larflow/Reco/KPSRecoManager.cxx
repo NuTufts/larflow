@@ -31,7 +31,8 @@ namespace reco {
     _reco_version(reco_ver),
     _stop_after_prepspacepoints(false),
     _stop_after_keypointreco(false),
-    _stop_after_subclustering(false)      
+    _stop_after_subclustering(false),
+    _run_perfect_mcreco(false)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -150,10 +151,10 @@ namespace reco {
     // make selection variables
     //makeNuCandidateSelectionVariables( iolcv, ioll );
 
-    if ( _save_event_mc_info ) {
+    if ( _save_event_mc_info && _run_perfect_mcreco ) {
       _event_mcinfo_maker.process( ioll );
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
-      _perfect_reco.set_verbosity( larcv::msg::kDEBUG );
+      //_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
       //truthAna( iolcv, ioll );
@@ -475,7 +476,7 @@ namespace reco {
     //_pcacluster.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
-    const float _maxdist = 2.0;
+    const float _maxdist = 1.0;
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
