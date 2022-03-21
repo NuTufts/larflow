@@ -28,6 +28,8 @@ namespace reco {
                   larlite::storage_manager& ioll,
                   std::vector<NuVertexCandidate>& nu_candidate_v );
 
+    void set_verbosity( larcv::msg::Level_t v ) { TrackClusterBuilder::set_verbosity(v); };
+
   };
 
 }

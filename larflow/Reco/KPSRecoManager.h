@@ -187,6 +187,7 @@ namespace reco {
     bool _stop_after_prepspacepoints; ///< stop after prepSpacepoints()
     bool _stop_after_keypointreco;    ///< stop after recoKeypoints()
     bool _stop_after_subclustering;   ///< stop after clusterSubparticleFragments()
+    bool _stop_after_nutracker;       ///< stop after nutrackbuilder in multiProngReco()
     bool _run_perfect_mcreco;         ///< if true, and in MC mode, run perfect reconstruction code
     
   public:
@@ -205,6 +206,9 @@ namespace reco {
 
     /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
     void debug_stop_at_subclustering( bool stop_here=true ) { _stop_after_subclustering=stop_here; };
+
+    /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_nutracker( bool stop_here=true ) { _stop_after_nutracker=stop_here; };
     
     
   };

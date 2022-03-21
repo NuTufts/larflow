@@ -697,7 +697,7 @@ namespace reco {
 		  float dist_to_pca_line =
 		    larflow::reco::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
 
-		  float ptproj = larflow::reco::pointRayProjection3f( fkphit, cluster.pca_ends_v[iend], hitpt );
+		  float ptproj = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[iend], fkphit, hitpt );
 
 		  if ( dist_to_pca_line<1.5 && ptproj>0.0 ) {
 

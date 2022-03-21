@@ -47,7 +47,8 @@ namespace reco {
 
     TrackClusterBuilder()
       : larcv::larcv_base("TrackClusterBuilder"),
-      _one_track_per_startpoint(true)
+	_max_node_endpt_dist(100.0),
+	_one_track_per_startpoint(true)
         {};
     virtual ~TrackClusterBuilder() {};
 
@@ -163,6 +164,7 @@ namespace reco {
 
     // PARAMETERS
     // -----------
+    float _max_node_endpt_dist;  ///< maximum distance two cluster ends can be connected by an edge
     bool _one_track_per_startpoint; ///< if flag is true, reduce many possible paths down to one
 
   public:
@@ -197,6 +199,8 @@ namespace reco {
 
     int findClosestSegment( const std::vector<float>& testpt, const float max_dist );
                             
+    // tools to save details for debug/visualization
+    void saveConnections( larlite::storage_manager& ioll, std::string tree_name="tcb_connections" );
     
   protected:
 
@@ -211,6 +215,11 @@ namespace reco {
                              std::vector< std::vector<NodePos_t*> >& filtered_v );
 
     void _buildTracksFromSegments();
+
+    bool _checkForMissingVplane( const std::vector<float>& frac_v,
+				 const std::vector<float>& seg_dir,
+				 const float frac_threshold );
+    
     
   };
   

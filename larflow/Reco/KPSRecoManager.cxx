@@ -32,6 +32,7 @@ namespace reco {
     _stop_after_prepspacepoints(false),
     _stop_after_keypointreco(false),
     _stop_after_subclustering(false),
+    _stop_after_nutracker(false),
     _run_perfect_mcreco(false)
   {
     make_ana_file();
@@ -67,10 +68,12 @@ namespace reco {
     
     larcv::EventChStatus* ev_chstatus =
       (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
+    // std::vector<larcv::Image2D> gapch_v =
+    //   _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
+    //                                    4, 3, 2400, 6*1008, 3456, 6, 1,
+    //                                    5.0, 50, -1.0 );
     std::vector<larcv::Image2D> gapch_v =
-      _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
-                                       4, 3, 2400, 6*1008, 3456, 6, 1,
-                                       5.0, 50, -1.0 );
+      _badchmaker.makeOverlayedBadChannelImage( adc_v, *ev_chstatus, 4, 15.0 );
     
     LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
     larcv::EventImage2D* evout_badch =
@@ -132,6 +135,15 @@ namespace reco {
     
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
+    // if ( _stop_after_nutracker ) {
+    //   _ana_tree->Fill();
+    //   return;
+    // }
+
+    // if ( _stop_after_prongreco ) {
+    //   _ana_tree->Fill();
+    //   return;      
+    // }
 
     // kinematics
     runBasicKinematics( iolcv, ioll );
@@ -492,6 +504,7 @@ namespace reco {
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    //_projsplitter_cosmic.set_dbscan_pars( 3.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
     //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
     _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
@@ -565,7 +578,7 @@ namespace reco {
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
-    _nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
+    //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     
@@ -574,14 +587,19 @@ namespace reco {
 
     // NuTrackBuilder class
     _nu_track_builder.clear();
-    //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _nu_track_builder.set_verbosity( larcv::msg::kINFO );    
+    if ( _stop_after_nutracker )
+      _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
+    else 
+      _nu_track_builder.set_verbosity( larcv::msg::kINFO );
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     // larflow::reco::TrackFindBadConnection track_splitter;
     // track_splitter.set_verbosity( larcv::msg::kINFO );
     // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
     //   int nsplit = track_splitter.processNuVertexTracks( nuvtx, iolcv );
-    
+    if ( _stop_after_nutracker ) {
+      _nu_track_builder.saveConnections( ioll, "tcb_connections" );
+      ioll.set_data_to_write( larlite::data::kTrack, "tcb_connections" );
+    }
 
     // first attempt
     // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );

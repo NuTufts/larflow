@@ -50,8 +50,9 @@ namespace reco {
     std::map<std::string, larlite::event_larflow3dhit* > _keypoint_producers;      ///< map from tree name to event container for keypoints
     std::map<std::string, larlite::event_pcaxis* >       _keypoint_pca_producers;  ///< map from tree name to pca info for keypoints
 
-    std::map<std::string, larlite::event_larflowcluster* > _cluster_producers;     ///< map from tree name to event container for larflowcluster
-    std::map<std::string, larlite::event_pcaxis* >         _cluster_pca_producers; ///< map from tree name to pca info for clusters
+    std::map<std::string, larlite::event_larflowcluster* > _cluster_producers;       ///< map from tree name to event container for larflowcluster
+    std::map<std::string, larlite::event_pcaxis* >         _cluster_pca_producers;   ///< map from tree name to pca info for clusters
+    std::map<std::string, larlite::event_track* >          _cluster_track_producers; ///< map from tree name to track line fit for track clusters
     std::map<std::string, NuVertexCandidate::ClusterType_t > _cluster_type;        ///< cluster type
     std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_impact_radius; ///< max distance from cluster pca to vertex allowed, per class type
     std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_gap; ///< maximum gap between vertex and start of cluster, per class type
@@ -69,6 +70,7 @@ namespace reco {
                                NuVertexCandidate::ClusterType_t ctype ) {
       _cluster_producers[name] = nullptr;
       _cluster_pca_producers[name] = nullptr;
+      _cluster_track_producers[name] = nullptr;
       _cluster_type[name] = ctype;
     };
 
